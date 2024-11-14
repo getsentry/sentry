@@ -1,22 +1,19 @@
-import {ReactNode} from 'react';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import type {ReactNode} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  EventsResults,
-  formatSort,
-  useProfileEvents,
-} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const {organization} = initializeOrg();
-const client = new QueryClient();
-
 function TestContext({children}: {children?: ReactNode}) {
   return (
-    <QueryClientProvider client={client}>
+    <QueryClientProvider client={makeTestQueryClient()}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
@@ -29,7 +26,19 @@ describe('useProfileEvents', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('handles querying the api', async function () {
+  it('handles querying the api using discover', async function () {
+    const {organization: organizationUsingTransactions} = initializeOrg();
+
+    function TestContextUsingTransactions({children}: {children?: ReactNode}) {
+      return (
+        <QueryClientProvider client={makeTestQueryClient()}>
+          <OrganizationContext.Provider value={organizationUsingTransactions}>
+            {children}
+          </OrganizationContext.Provider>
+        </QueryClientProvider>
+      );
+    }
+
     const fields = ['count()'];
 
     const body: EventsResults<(typeof fields)[number]> = {
@@ -40,26 +49,26 @@ describe('useProfileEvents', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body,
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          query: 'has:profile.id (transaction:foo)',
+        }),
+      ],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEvents, {
-      wrapper: TestContext,
+    const {result} = renderHook(useProfileEvents, {
+      wrapper: TestContextUsingTransactions,
       initialProps: {
         fields,
+        query: 'transaction:foo',
         sort: {key: 'count()', order: 'desc' as const},
         referrer: '',
       },
     });
 
     await waitFor(() => result.current.isSuccess);
-    expect(result.current.data).toEqual([
-      body,
-      expect.anything(),
-      expect.objectContaining({
-        getResponseHeader: expect.anything(),
-      }),
-    ]);
+    expect(result.current.data).toEqual(body);
   });
 
   it('handles api errors', async function () {
@@ -69,10 +78,10 @@ describe('useProfileEvents', function () {
       url: `/organizations/${organization.slug}/events/`,
       status: 400,
       statusCode: 400,
-      match: [MockApiClient.matchQuery({dataset: 'profiles'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useProfileEvents, {
+    const {result} = renderHook(useProfileEvents, {
       wrapper: TestContext,
       initialProps: {
         fields: ['count()'],
@@ -82,7 +91,7 @@ describe('useProfileEvents', function () {
     });
 
     await waitFor(() => result.current.isError);
-    expect(result.current.status).toEqual('error');
+    await waitFor(() => expect(result.current.status).toEqual('error'));
   });
 });
 

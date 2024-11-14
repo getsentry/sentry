@@ -6,9 +6,12 @@ debug_meta.
 This is not used in production yet, we are still collecting metrics there.
 """
 
-import hashlib
+from __future__ import annotations
 
-from sentry.utils import json
+import hashlib
+from typing import Any
+
+import orjson
 
 _INTERFACES = {}
 
@@ -29,7 +32,7 @@ class DebugMeta:
 
     @staticmethod
     def encode(data):
-        dedup = {}
+        dedup: dict[str, list[str | Any]] = {}
 
         if data:
             for image in data.get("images") or []:
@@ -60,7 +63,7 @@ def deduplicate(data):
             continue
 
         to_deduplicate, to_inline = interface.encode(data.pop(key))
-        to_deduplicate_serialized = json.dumps(to_deduplicate, sort_keys=True).encode("utf8")
+        to_deduplicate_serialized = orjson.dumps(to_deduplicate)
         checksum = hashlib.md5(to_deduplicate_serialized).hexdigest()
         extra_keys[checksum] = to_deduplicate
         patchsets.append([key, checksum, to_inline])

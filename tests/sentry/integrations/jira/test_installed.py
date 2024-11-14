@@ -1,20 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
-from unittest.mock import patch
+from collections.abc import Mapping
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import jwt
 import responses
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
-from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_query_hash,
+)
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
+@control_silo_test
 class JiraInstalledTest(APITestCase):
     endpoint = "sentry-extensions-jira-installed"
     method = "post"
@@ -73,13 +79,13 @@ class JiraInstalledTest(APITestCase):
         )
 
     def test_missing_token(self):
-        self.get_error_response(**self.body(), status_code=status.HTTP_400_BAD_REQUEST)
+        self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
     def test_invalid_token(self):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
     @patch(
@@ -93,19 +99,23 @@ class JiraInstalledTest(APITestCase):
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
         )
 
-    def test_with_shared_secret(self):
+    @patch("sentry_sdk.set_tag")
+    def test_with_shared_secret(self, mock_set_tag: MagicMock):
         self.get_success_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
-        assert integration.status == ObjectStatus.VISIBLE
 
+        mock_set_tag.assert_any_call("integration_id", integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
+
+    @patch("sentry_sdk.set_tag")
     @responses.activate
-    def test_with_key_id(self):
+    def test_with_key_id(self, mock_set_tag: MagicMock):
         self.add_response()
 
         self.get_success_response(
@@ -113,4 +123,6 @@ class JiraInstalledTest(APITestCase):
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
         )
         integration = Integration.objects.get(provider="jira", external_id=self.external_id)
-        assert integration.status == ObjectStatus.VISIBLE
+
+        mock_set_tag.assert_any_call("integration_id", integration.id)
+        assert integration.status == ObjectStatus.ACTIVE

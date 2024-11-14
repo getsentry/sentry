@@ -2,20 +2,21 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**
@@ -45,7 +46,7 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: React.ComponentProps<typeof DropdownAutoComplete>;
+  addDropdown: StaticDropdownAutoCompleteProps;
   /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
@@ -108,7 +109,7 @@ export interface ChoiceMapperFieldProps
 export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps> {
   static defaultProps = defaultProps;
 
-  hasValue = (value: InputFieldProps['value']) => defined(value) && !objectIsEmpty(value);
+  hasValue = (value: InputFieldProps['value']) => defined(value) && !isEmptyObject(value);
 
   renderField = (props: ChoiceMapperFieldProps) => {
     const {
@@ -181,7 +182,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       >
         {({isOpen}) => (
           <DropdownButton
-            icon={<IconAdd size="xs" isCircled />}
+            icon={<IconAdd isCircled />}
             isOpen={isOpen}
             size="xs"
             disabled={disabled}

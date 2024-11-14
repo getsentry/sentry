@@ -1,25 +1,27 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import KeyRow from './keyRow';
 
@@ -30,15 +32,15 @@ type Props = {
 
 type State = {
   keyList: ProjectKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectKeys extends AsyncView<Props, State> {
+class ProjectKeys extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Client Keys'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
@@ -145,18 +147,19 @@ class ProjectKeys extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {location, organization, routes, params} = this.props;
+    const {location, organization, project, routes, params} = this.props;
     const {projectId} = params;
-    const access = new Set(organization.access);
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <Fragment>
         {this.state.keyList.map(key => (
           <KeyRow
-            access={access}
+            hasWriteAccess={hasAccess}
             key={key.id}
             orgId={organization.slug}
-            projectId={`${projectId}`}
+            projectId={projectId}
+            project={this.props.project}
             data={key}
             onToggle={this.handleToggleKey}
             onRemove={this.handleRemoveKey}
@@ -171,26 +174,27 @@ class ProjectKeys extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const access = new Set(this.props.organization.access);
+    const {organization, project} = this.props;
     const isEmpty = !this.state.keyList.length;
+    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
     return (
       <div data-test-id="project-keys">
         <SettingsPageHeader
           title={t('Client Keys')}
           action={
-            access.has('project:write') ? (
-              <Button
-                onClick={this.handleCreateKey}
-                size="sm"
-                priority="primary"
-                icon={<IconAdd size="xs" isCircled />}
-              >
-                {t('Generate New Key')}
-              </Button>
-            ) : null
+            <Button
+              onClick={this.handleCreateKey}
+              size="sm"
+              priority="primary"
+              icon={<IconAdd isCircled />}
+              disabled={!hasAccess}
+            >
+              {t('Generate New Key')}
+            </Button>
           }
         />
+
         <TextBlock>
           {tct(
             `To send data to Sentry you will need to configure an SDK with a client key
@@ -205,6 +209,8 @@ class ProjectKeys extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
+
+        <PermissionAlert project={project} />
 
         {isEmpty ? this.renderEmpty() : this.renderResults()}
       </div>

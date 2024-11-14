@@ -1,15 +1,15 @@
 import {useMemo} from 'react';
 import * as React from 'react';
-import {vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
-import {UIFrames} from 'sentry/utils/profiling/uiFrames';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {
   FlamegraphTooltipColorIndicator,
@@ -42,13 +42,11 @@ export function FlamegraphUIFramesTooltip({
     const framesInConfigSpace = hoveredNode.map(frame => {
       return {
         type: frame.type,
-        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1).transformRect(
-          uiFramesView.configSpaceTransform
-        ),
+        rect: new Rect(frame.start, frame.end, frame.end - frame.start, 1),
       };
     });
     return framesInConfigSpace.sort((a, b) => a.type.localeCompare(b.type));
-  }, [uiFramesView, hoveredNode]);
+  }, [hoveredNode]);
 
   return (
     <BoundTooltip
@@ -58,6 +56,8 @@ export function FlamegraphUIFramesTooltip({
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {
+        const rect = frame.rect.transformRect(uiFramesView.configSpaceTransform);
+
         return (
           <React.Fragment key={i}>
             <FlamegraphTooltipFrameMainInfo>
@@ -66,12 +66,12 @@ export function FlamegraphUIFramesTooltip({
                   ...uiFramesRenderer.getColorForFrame(frame.type)
                 )}
               />
-              {uiFrames.formatter(frame.rect.width)}{' '}
+              {uiFrames.formatter(rect.width)}{' '}
               {frame.type === 'frozen' ? t('frozen frame') : t('slow frame')}
             </FlamegraphTooltipFrameMainInfo>
             <FlamegraphTooltipTimelineInfo>
-              {uiFrames.timelineFormatter(frame.rect.left)} {' \u2014 '}
-              {uiFrames.timelineFormatter(frame.rect.right)}
+              {uiFrames.timelineFormatter(rect.left)} {' \u2014 '}
+              {uiFrames.timelineFormatter(rect.right)}
             </FlamegraphTooltipTimelineInfo>
           </React.Fragment>
         );

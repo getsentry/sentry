@@ -1,17 +1,30 @@
-import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
-
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
-import {ButtonProps} from 'sentry/components/button';
-import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
-import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
+import type {ButtonProps} from 'sentry/components/button';
+import type {FormPanelProps} from 'sentry/components/forms/formPanel';
+import type {JsonFormObject} from 'sentry/components/forms/types';
+import type {
+  ProductSelectionProps,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
+import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
+import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
+import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
+import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
+import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
 import type {Integration, IntegrationProvider} from './integrations';
+import type {
+  Route,
+  RouteComponentProps,
+  RouteContextInterface,
+} from './legacyReactRouter';
 import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
@@ -50,14 +63,16 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  'routes:api': RoutesHook;
-  'routes:organization': RoutesHook;
+  'routes:legacy-organization-redirects': RoutesHook;
+  'routes:root': RoutesHook;
+  'routes:settings': RoutesHook;
 };
 
 /**
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
+type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -69,17 +84,50 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 
-type DisabledAppStoreConnectMultiple = {organization: Organization};
-
-type DisabledCustomSymbolSources = {organization: Organization};
+type DisabledCustomSymbolSources = {
+  children: React.ReactNode;
+  organization: Organization;
+};
 
 type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type ReplayGracePeriodAlertProps = {organization: Organization};
+type MetricsSamplesListProps = {children: React.ReactNode; organization: Organization};
 
-type ReplayOnboardinCTAProps = {children: React.ReactNode; organization: Organization};
+type ReplayFeedbackButton = {children: React.ReactNode};
+type ReplayListPageHeaderProps = {children?: React.ReactNode};
+type ReplayOnboardingAlertProps = {children: React.ReactNode};
+type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ProductUnavailableCTAProps = {organization: Organization};
+
+type ProfilingBetaAlertBannerProps = {
+  organization: Organization;
+};
+
+type ProfilingUpgradePlanButtonProps = ButtonProps & {
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type ProfilingAM1OrMMXUpgradeProps = {
+  fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
+type OrganizationHeaderProps = {
+  organization: Organization;
+};
+
+type ProductSelectionAvailabilityProps = Omit<
+  ProductSelectionProps,
+  'disabledProducts' | 'productsPerPlatform'
+>;
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -91,27 +139,91 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type AttemptCloseAttemptProps = {
+  handleRemoveAccount: () => void;
+  organizationSlugs: string[];
+};
+
+type CodecovLinkProps = {
+  organization: Organization;
+};
+
+// on-create-project-product-selection
+type CreateProjectProductSelectionChangedCallback = (options: {
+  defaultProducts: ProductSolution[];
+  organization: Organization;
+  selectedProducts: ProductSolution[];
+}) => void;
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type MonitorCreatedCallback = (organization: Organization) => void;
+
+type CronsOnboardingPanelProps = {children: React.ReactNode};
+
+type SentryLogoProps = SVGIconProps & {
+  pride?: boolean;
+};
+export type ParntershipAgreementType = 'standard' | 'partner_presence';
+export type PartnershipAgreementProps = {
+  agreements: Array<ParntershipAgreementType>;
+  partnerDisplayName: string;
+  onSubmitSuccess?: () => void;
+  organizationSlug?: string;
+};
+
+export type MembershipSettingsProps = {
+  forms: JsonFormObject[];
+  jsonFormSettings: Omit<
+    FormPanelProps,
+    'highlighted' | 'fields' | 'additionalFieldProps'
+  >;
+};
 
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
+  'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
+  'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
+  'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
-  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
+  'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
+  'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
+  'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
+  'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
-  'component:enhanced-org-stats': () => React.ComponentType<UsageStatsOrganizationProps>;
+  'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:insights-date-range-query-limit-footer': () => React.ComponentType<{}>;
+  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
-  'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
-  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
-  'component:superuser-access-category': React.FC<any>;
+  'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
+  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
+  'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
+  'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
+  'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
+  'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
+  'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
+  'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
+  'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
+  'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
+  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
+  'component:replay-settings-alert': () => React.ComponentType<{}> | null;
+  'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
+  'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
+  'component:superuser-warning-excluded': SuperuserWarningExcluded;
 };
 
 /**
@@ -124,19 +236,16 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
+  'sidebar:navigation-item': SidebarNavigationItemHook;
 };
 
 /**
  * Analytics / tracking / and operational metrics backend hooks.
  */
 export type AnalyticsHooks = {
-  // TODO(scefali): Below are deprecated and should be replaced
-  'analytics:event': LegacyAnalyticsEvent;
   'analytics:init-user': AnalyticsInitUser;
   'analytics:log-experiment': AnalyticsLogExperiment;
-  'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
-  'analytics:track-event': AnalyticsTrackEvent;
-  'analytics:track-event-v2': AnalyticsTrackEventV2;
+  'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
 };
 
@@ -147,6 +256,8 @@ export type AnalyticsHooks = {
 export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
+  'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
+  'feature-disabled:create-metrics-alert-tooltip': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
@@ -175,8 +286,10 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
+  'feature-disabled:starfish-view': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
 };
 
@@ -186,11 +299,9 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:item-override': SidebarItemOverrideHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
@@ -199,9 +310,8 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
+  'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
-  'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
@@ -235,6 +345,7 @@ export type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-experiment': UseExperiment;
 };
 
 /**
@@ -243,7 +354,9 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**
@@ -267,11 +380,6 @@ type GenericOrganizationComponentHook = (opts: {
  * Receives a project object and should return a React node.
  */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
-
-// TODO(ts): We should correct the organization header hook to conform to the
-// GenericOrganizationComponentHook, passing org as a prop object, not direct
-// as the only argument.
-type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
@@ -303,6 +411,11 @@ type FeatureDisabledHook = (opts: {
 }) => React.ReactNode;
 
 /**
+ * Called to check if the superuser warning should be excluded for the given organization.
+ */
+type SuperuserWarningExcluded = (organization: Organization | null) => boolean;
+
+/**
  * Called when the app is mounted.
  */
 type AnalyticsInitUser = (user: User) => void;
@@ -310,26 +423,7 @@ type AnalyticsInitUser = (user: User) => void;
 /**
  * Trigger analytics tracking in the hook store.
  */
-type AnalyticsTrackEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-  /**
-   * The English string used as the name of the event.
-   */
-  eventName: string;
-  organization_id: string | number | null;
-}) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- */
-type AnalyticsTrackEventV2 = (
+type AnalyticsRawTrackEvent = (
   data: {
     /**
      * Arbitrary data to track
@@ -370,20 +464,6 @@ type AnalyticsTrackEventV2 = (
 ) => void;
 
 /**
- * Trigger ad hoc analytics tracking in the hook store.
- */
-type AnalyticsTrackAdhocEvent = (opts: {
-  /**
-   * Arbitrary data to track
-   */
-  [key: string]: any;
-  /**
-   * The key used to identify the event.
-   */
-  eventKey: string;
-}) => void;
-
-/**
  * Trigger experiment observed logging.
  */
 type AnalyticsLogExperiment = (opts: {
@@ -396,24 +476,6 @@ type AnalyticsLogExperiment = (opts: {
    */
   organization?: Organization;
 }) => void;
-
-/**
- * Trigger analytics tracking in the hook store.
- *
- * Prefer using `analytics:track-event` or `analytics:track-adhock-event`.
- *
- * @deprecated This is the legacy interface.
- */
-type LegacyAnalyticsEvent = (
-  /**
-   * The key used to identify the event.
-   */
-  name: string,
-  /**
-   * Arbitrary data to track
-   */
-  data: {[key: string]: any}
-) => void;
 
 /**
  * Trigger recording a metric in the hook store.
@@ -461,14 +523,6 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
-  id?: string;
-}>;
-
-type SidebarItemOverrideHook = () => React.ComponentType<{
-  /**
-   * The item label being wrapped
-   */
-  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
   id?: string;
 }>;
 
@@ -584,10 +638,41 @@ type InviteButtonCustomizationHook = () => React.ComponentType<{
      */
     disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;
 }>;
+
+/**
+ * Sidebar navigation item customization allows passing render props to disable
+ * the link, wrap it in an upsell modal, and give it some additional content
+ * (e.g., a Business Icon) to render.
+ *
+ * TODO: We can use this to replace the sidebar label hook `sidebar:item-label`,
+ * too, since this is a more generic version.
+ */
+type SidebarNavigationItemHook = () => React.ComponentType<{
+  children: (opts: {
+    Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
+    additionalContent: React.ReactElement | null;
+    disabled: boolean;
+  }) => React.ReactElement;
+  id: string;
+}>;
+
+/**
+ * Insights upsell hook takes in a insights module name
+ * and renders either the applicable upsell page or the children inside the hook.
+ */
+type InsightsUpsellHook = {
+  children: React.ReactNode;
+  moduleName: TitleableModuleNames;
+  fullPage?: boolean;
+};
 
 /**
  * Invite Modal customization allows for a render-prop component to add

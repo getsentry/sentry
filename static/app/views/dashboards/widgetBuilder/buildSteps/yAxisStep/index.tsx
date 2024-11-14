@@ -1,9 +1,11 @@
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {DataSet} from '../../utils';
+import type {DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {YAxisSelector} from './yAxisSelector';
@@ -12,11 +14,12 @@ interface Props {
   aggregates: QueryFieldValue[];
   dataSet: DataSet;
   displayType: DisplayType;
-  onYAxisChange: (newFields: QueryFieldValue[]) => void;
+  onYAxisChange: (newFields: QueryFieldValue[], newSelectedAggregate?: number) => void;
   organization: Organization;
   tags: TagCollection;
   widgetType: WidgetType;
   queryErrors?: Record<string, any>[];
+  selectedAggregate?: number;
 }
 
 export function YAxisStep({
@@ -26,6 +29,7 @@ export function YAxisStep({
   onYAxisChange,
   tags,
   widgetType,
+  selectedAggregate,
 }: Props) {
   return (
     <BuildStep
@@ -49,6 +53,7 @@ export function YAxisStep({
         onChange={onYAxisChange}
         tags={tags}
         errors={queryErrors}
+        selectedAggregate={selectedAggregate}
       />
     </BuildStep>
   );

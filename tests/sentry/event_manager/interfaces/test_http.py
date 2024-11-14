@@ -2,6 +2,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -9,7 +10,7 @@ def make_http_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"request": data})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("request")
 
@@ -22,9 +23,11 @@ def test_basic(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com"))
 
 
+@django_db_all
 def test_full(make_http_snapshot):
     make_http_snapshot(
         dict(
+            api_target="foo",
             method="GET",
             url="http://example.com",
             query_string="foo=bar",
@@ -49,6 +52,7 @@ def test_data_as_dict(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", data={"foo": "bar"}))
 
 
+@django_db_all
 def test_urlencoded_data(make_http_snapshot):
     make_http_snapshot(
         dict(
@@ -77,6 +81,7 @@ def test_infer_json_content_type(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", data='{"foo":"bar"}'))
 
 
+@django_db_all
 def test_cookies_as_string(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", cookies="a=b;c=d"))
     make_http_snapshot(dict(url="http://example.com", cookies="a=b;c=d"))
@@ -98,6 +103,7 @@ def test_query_string_and_fragment_as_params(make_http_snapshot):
     )
 
 
+@django_db_all
 def test_query_string_and_fragment_in_url(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com?foo\ufffd=bar#fragment\u2026"))
 
@@ -114,10 +120,12 @@ def test_invalid_method(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", method="1234"))
 
 
+@django_db_all
 def test_invalid_method2(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", method="A" * 33))
 
 
+@django_db_all
 def test_invalid_method3(make_http_snapshot):
     make_http_snapshot(dict(url="http://example.com", method="A"))
 

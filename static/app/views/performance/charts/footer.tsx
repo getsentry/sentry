@@ -1,10 +1,9 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -13,11 +12,14 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 
-import {getAxisOptions, TooltipOption} from '../data';
+import type {TooltipOption} from '../data';
+import {getAxisOptions} from '../data';
 
 type Props = {
   api: Client;
@@ -67,7 +69,7 @@ class ChartFooter extends Component<Props, State> {
 
   handleSelectorChange(key: string, value: string) {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.change_chart', {
+    trackAnalytics('performance_views.overview.change_chart', {
       organization,
       metric: value,
     });

@@ -1,16 +1,22 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.models import Group
+from sentry.models.group import Group
 
 
 @region_silo_endpoint
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project, version) -> Response:
@@ -20,9 +26,9 @@ class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Retrieve a list of issues to be resolved in a given release.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project associated with the release.
+        :pparam string project_id_or_slug: the id or slug of the project associated with the release.
         :pparam string version: the version identifier of the release.
         :auth: required
         """

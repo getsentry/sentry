@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -30,7 +30,7 @@ function useSplitPanelTracking({slideDirection}: Options) {
       const endSizeCSS = Number(
         endPosition?.endsWith('fr') ? '50' : endPosition?.replace('%', '') || 0
       );
-      trackAdvancedAnalyticsEvent('replay.details-resized-panel', {
+      trackAnalytics('replay.details-resized-panel', {
         organization,
         layout: getLayout(),
         slide_motion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller,

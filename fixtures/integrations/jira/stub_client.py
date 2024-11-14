@@ -1,4 +1,4 @@
-from fixtures.integrations import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -23,7 +23,7 @@ class StubJiraApiClient(StubService):
     def get_versions(self, project_id):
         return self._get_stub_data("versions_response.json")
 
-    def get_projects_list(self):
+    def get_projects_list(self, cached: bool = True):
         return self._get_stub_data("project_list_response.json")
 
     def get_issue(self, issue_key):

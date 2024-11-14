@@ -1,13 +1,10 @@
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  getContext,
-  Rect,
-  resizeCanvasToDisplaySize,
-} from 'sentry/utils/profiling/gl/utils';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
+import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {makeSpansColorMapByOpAndDescription} from '../colors/utils';
 
@@ -102,7 +99,7 @@ export class SpanChartRenderer2D {
       return this.pattern;
     }
     return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR
+      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
     );
   }
 
@@ -195,7 +192,7 @@ export class SpanChartRenderer2D {
       // If we dont do it, it sometimes causes the canvas to be drawn with a translation
       this.context.setTransform(1, 0, 0, 1, 0, 0);
 
-      if (span.node.span.op === 'missing instrumentation') {
+      if (span.node.span.op === 'missing span instrumentation') {
         this.context.beginPath();
         this.context.rect(
           rect.x + BORDER_WIDTH / 2,
@@ -211,7 +208,7 @@ export class SpanChartRenderer2D {
 
         this.context.fillStyle =
           this.isSearching && !this.searchResults.has(span.node.span.span_id)
-            ? colorComponentsToRgba(this.theme.COLORS.FRAME_GRAYSCALE_COLOR)
+            ? colorComponentsToRgba(this.theme.COLORS.FRAME_FALLBACK_COLOR)
             : colorComponentsToRgba(color);
 
         this.context.fillRect(

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import html
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -11,12 +12,24 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.models import Integration, Organization, User
-from sentry.services.hybrid_cloud.integration import integration_service
-
-from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
+from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.unfurl.types import (
+    Handler,
+    UnfurlableUrl,
+    UnfurledUrl,
+    make_type_coercer,
+)
+from sentry.models.organization import Organization
+from sentry.users.models.user import User
 
 map_incident_args = make_type_coercer(
     {
@@ -32,6 +45,18 @@ map_incident_args = make_type_coercer(
 
 def unfurl_metric_alerts(
     request: HttpRequest,
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_metric_alerts(integration, links, user)
+
+
+def _unfurl_metric_alerts(
     integration: Integration,
     links: list[UnfurlableUrl],
     user: User | None = None,
@@ -107,6 +132,7 @@ def unfurl_metric_alerts(
                     start=link.args["start"],
                     end=link.args["end"],
                     user=user,
+                    subscription=selected_incident.subscription if selected_incident else None,
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
@@ -145,7 +171,7 @@ customer_domain_metric_alerts_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
 )
 
-handler: Handler = Handler(
+metric_alert_handler = Handler(
     fn=unfurl_metric_alerts,
     matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,

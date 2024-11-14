@@ -2,19 +2,24 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping, Sequence
 from types import LambdaType
-from typing import Any, Mapping, Sequence, Type
+from typing import Any
 
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.views import View
 from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Organization
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.utils.hashlib import md5_text
+from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
+from ..models import Organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -50,11 +55,11 @@ class Pipeline(abc.ABC):
 
     pipeline_name: str
     provider_manager: Any
-    provider_model_cls: Type[Model]
+    provider_model_cls: type[Model]
     session_store_cls = PipelineSessionStore
 
     @classmethod
-    def get_for_request(cls, request: Request) -> Pipeline | None:
+    def get_for_request(cls, request: HttpRequest) -> Pipeline | None:
         req_state = cls.unpack_state(request)
         if not req_state:
             return None
@@ -69,7 +74,7 @@ class Pipeline(abc.ABC):
         )
 
     @classmethod
-    def unpack_state(cls, request: Request) -> PipelineRequestState | None:
+    def unpack_state(cls, request: HttpRequest) -> PipelineRequestState | None:
         state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
         if not state.is_valid():
             return None
@@ -78,31 +83,42 @@ class Pipeline(abc.ABC):
         if state.provider_model_id:
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
 
-        organization = None
+        organization: RpcOrganization | None = None
         if state.org_id:
-            organization = Organization.objects.get(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(
+                id=state.org_id, include_teams=False
+            )
+            if org_context:
+                organization = org_context.organization
 
         provider_key = state.provider_key
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str) -> PipelineProvider:
+    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         provider: PipelineProvider = self.provider_manager.get(provider_key)
         return provider
 
     def __init__(
         self,
-        request: Request,
+        request: Request | HttpRequest,
         provider_key: str,
-        organization: Organization | None = None,
+        organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
+        if organization:
+            bind_organization_context(organization)
+
         self.request = request
-        self.organization = organization
+        self.organization: RpcOrganization | None = (
+            serialize_rpc_organization(organization)
+            if isinstance(organization, Organization)
+            else organization
+        )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key)
+        self.provider = self.get_provider(provider_key, organization=organization)
 
         self.config = config or {}
         self.provider.set_pipeline(self)
@@ -225,7 +241,6 @@ class Pipeline(abc.ABC):
     @abc.abstractmethod
     def finish_pipeline(self) -> HttpResponseBase:
         """Called when the pipeline completes the final step."""
-        pass
 
     def bind_state(self, key: str, value: Any) -> None:
         data = self.state.data or {}

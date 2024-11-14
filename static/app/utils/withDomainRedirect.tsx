@@ -1,20 +1,21 @@
-import {useContext} from 'react';
-import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
-import * as Sentry from '@sentry/react';
+import {generatePath} from 'react-router-dom';
+import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
-import * as qs from 'query-string';
 
-import {decodeScalar} from 'sentry/utils/queryString';
+import Redirect from 'sentry/components/redirect';
+import ConfigStore from 'sentry/stores/configStore';
+import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import Redirect from 'sentry/utils/redirect';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+
+import useOrganization from './useOrganization';
 
 /**
  * withDomainRedirect is a higher-order component (HOC) meant to be used with <Route /> components within
  * static/app/routes.tsx whose route paths contains the :orgId parameter at least once.
  * For example:
+ *
  *  <Route
  *    path="/organizations/:orgId/issues/(searches/:searchId/)"
  *    component={withDomainRedirect(errorHandler(IssueListContainer))}
@@ -33,23 +34,25 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
-    const {customerDomain, links} = window.__initialData;
+    const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
-    const currentOrganization = useContext(OrganizationContext);
+    const currentOrganization = useOrganization({allowNull: true});
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
       const redirectPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       const redirectURL = `${trimEnd(sentryUrl, '/')}/${trimStart(redirectPath, '/')}`;
 
-      if (currentOrganization) {
-        if (
-          currentOrganization.slug !== customerDomain.subdomain ||
-          !currentOrganization.features.includes('customer-domains')
-        ) {
-          window.location.replace(redirectURL);
-          return null;
-        }
+      // If we have domain information, but the subdomain and slug are different
+      // redirect to the slug path and let django decide what happens next.
+      if (
+        currentOrganization &&
+        customerDomain.subdomain &&
+        (currentOrganization.slug !== customerDomain.subdomain ||
+          !features.has('system:multi-region'))
+      ) {
+        window.location.replace(redirectURL);
+        return null;
       }
 
       const {params, routes} = props;
@@ -67,36 +70,10 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         return <WrappedComponent {...props} />;
       }
 
-      const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
-      const redirectOrgURL = `/${trimStart(orglessRedirectPath, '/')}${
+      const orglessRedirectPath = generatePath(orglessSlugRoute, params);
+      const redirectOrgURL = `/${trim(orglessRedirectPath, '/')}/${
         window.location.search
       }${window.location.hash}`;
-
-      // This is really noisy, so collect a subset.
-      const referrer = decodeScalar(qs.parse(window.location.search).referrer, '');
-      if (Math.random() < 0.2 || referrer !== '') {
-        const paramOrgId = (params as any).orgId ?? '';
-
-        Sentry.withScope(function (scope) {
-          const wrongOrgId = paramOrgId !== customerDomain.subdomain ? 'yes' : 'no';
-          scope.setTag('isCustomerDomain', 'yes');
-          scope.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
-          scope.setTag('customerDomain.referrer', referrer);
-          scope.setTag('customerDomain.subdomain', customerDomain.subdomain);
-          scope.setTag('customerDomain.fromRoute', fullRoute);
-          scope.setTag('customerDomain.redirectRoute', orglessSlugRoute);
-          scope.setTag('customerDomain.wrongOrgId', wrongOrgId);
-          scope.setTag('customerDomain.paramOrgId', paramOrgId);
-          scope.setContext('customerDomain', {
-            customerDomain,
-            fullRoute,
-            orglessSlugRoute,
-            redirectOrgURL,
-            routeParams: params,
-          });
-          Sentry.captureMessage('Redirect with :orgId param on customer domain');
-        });
-      }
 
       // Redirect to a route path with :orgId omitted.
       return <Redirect to={redirectOrgURL} router={props.router} />;

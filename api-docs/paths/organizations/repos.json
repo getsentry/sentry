@@ -5,7 +5,7 @@
     "operationId": "List an Organization's Repositories",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
         "description": "The organization short name.",
         "required": true,

@@ -2,52 +2,43 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import {useRole} from 'sentry/components/acl/useRole';
+import Tag from 'sentry/components/badge/tag';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
-import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {Project} from 'sentry/types/project';
 
-import {getFeatureTooltip, getFileType} from './utils';
+import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
-  downloadRole: string;
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
+  project: Project;
   showDetails: boolean;
 };
 
-const DebugFileRow = ({
+function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
-  downloadRole,
   onDelete,
   orgSlug,
-}: Props) => {
-  const {
-    id,
-    data,
-    debugId,
-    uuid,
-    size,
-    dateCreated,
-    objectName,
-    cpuName,
-    symbolType,
-    codeId,
-  } = debugFile;
-  const fileType = getFileType(debugFile);
+  project,
+}: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
+  const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
+    debugFile;
   const {features} = data || {};
 
   return (
@@ -71,11 +62,7 @@ const DebugFileRow = ({
             : objectName}
         </Name>
         <Description>
-          <DescriptionText>
-            {symbolType === 'proguard' && cpuName === 'any'
-              ? t('proguard mapping')
-              : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
-          </DescriptionText>
+          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
 
           {features && (
             <FeatureTags>
@@ -100,32 +87,28 @@ const DebugFileRow = ({
       </Column>
       <RightColumn>
         <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                disabled={hasRole}
-                title={tct(
-                  'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                isHoverable
-              >
-                <Button
-                  size="xs"
-                  icon={<IconDownload size="xs" />}
-                  href={downloadUrl}
-                  disabled={!hasRole}
-                >
-                  {t('Download')}
-                </Button>
-              </Tooltip>
+          <Tooltip
+            disabled={hasRole}
+            title={tct(
+              'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
-          <Access access={['project:write']}>
+            isHoverable
+          >
+            <LinkButton
+              size="xs"
+              icon={<IconDownload />}
+              href={downloadUrl}
+              disabled={!hasRole}
+            >
+              {t('Download')}
+            </LinkButton>
+          </Tooltip>
+          <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip
                 disabled={hasAccess}
@@ -139,7 +122,7 @@ const DebugFileRow = ({
                 >
                   <Button
                     priority="danger"
-                    icon={<IconDelete size="xs" />}
+                    icon={<IconDelete />}
                     size="xs"
                     disabled={!hasAccess}
                     data-test-id="delete-dif"
@@ -153,7 +136,7 @@ const DebugFileRow = ({
       </RightColumn>
     </Fragment>
   );
-};
+}
 
 const DescriptionText = styled('span')`
   display: inline-flex;

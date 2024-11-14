@@ -1,11 +1,13 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import {User, UserIdentityConfig} from 'sentry/types';
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import type {User} from 'sentry/types/user';
+import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(
   identity: UserIdentityConfig,
-  onSuccess: {(): void}
+  onSuccess: () => void
 ) {
   const api = new Client();
 
@@ -25,24 +27,30 @@ export async function disconnectIdentity(
   onSuccess();
 }
 
-export function updateUser(user: User) {
+export function updateUser(user: User | ChangeAvatarUser) {
   const previousUser = ConfigStore.get('user');
 
   // If the user changed their theme preferences, we should also update
   // the config store
   if (
+    user.options &&
     previousUser.options.theme !== user.options.theme &&
     user.options.theme !== 'system'
   ) {
     ConfigStore.set('theme', user.options.theme);
   }
 
-  // Ideally we'd fire an action but this is gonna get refactored soon anyway
-  ConfigStore.set('user', user);
+  const options = {...previousUser.options, ...user.options};
+
+  // We are merging the types because the avatar endpoint ("/users/me/avatar/") doesn't return a full User
+  ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-export function logout(api: Client) {
-  return api.requestPromise('/auth/', {method: 'DELETE'});
+export async function logout(api: Client, redirectUrl = '/auth/login/') {
+  const data = await api.requestPromise('/auth/', {method: 'DELETE'});
+
+  // If there's a URL for SAML Single-logout, redirect back to IdP
+  window.location.assign(data?.sloUrl || redirectUrl);
 }
 
 export function removeAuthenticator(api: Client, userId: string, authId: string) {

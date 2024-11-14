@@ -1,8 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('PositionIndicatorRenderer', () => {
   it('draws nothing if view is not zoomed', () => {
@@ -61,9 +61,9 @@ describe('PositionIndicatorRenderer', () => {
     );
 
     expect(context.beginPath).toHaveBeenCalled();
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     expect(context.rect.mock.calls[0]).toEqual([0, 0, 200, 200]);
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     // We offset x by width of the border be
     expect(context.rect.mock.calls[1]).toEqual([
       80 - LightFlamegraphTheme.SIZES.MINIMAP_POSITION_OVERLAY_BORDER_WIDTH,

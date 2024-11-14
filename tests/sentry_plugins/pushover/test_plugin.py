@@ -1,13 +1,13 @@
 from functools import cached_property
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 from django.urls import reverse
 
-from sentry.models import Rule
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
 SUCCESS = """{"status":1,"request":"e460545a8b333d0da2f3602aff3133d6"}"""
@@ -40,6 +40,7 @@ class PushoverPluginTest(PluginTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -77,6 +78,7 @@ class PushoverPluginTest(PluginTestCase):
         event = self.store_event(
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
@@ -115,7 +117,7 @@ class PushoverPluginTest(PluginTestCase):
             args=[self.org.slug, self.project.slug, "pushover"],
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         userkey_config = [item for item in config if item["name"] == "userkey"][0]
         apikey_config = [item for item in config if item["name"] == "apikey"][0]
         assert userkey_config.get("type") == "secret"

@@ -1,23 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
-from sentry.integrations import IntegrationInstallation
-from sentry.models import Integration, Organization, PullRequest, Repository
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.utils.json import JSONData
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
 
 
-class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
+class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
     repo_provider = "github"
 
-    def _validate_repo(
-        self, client: Any, installation: IntegrationInstallation, repo: str
-    ) -> JSONData:
+    def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:
@@ -27,7 +30,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
             # make sure installation has access to this specific repo
             # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
-            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            # https://docs.github.com/en/rest/webhooks/repo-config#list-hooks
             client.repo_hooks(repo)
         except ApiError:
             raise IntegrationError(f"You must grant Sentry access to {repo}")
@@ -47,7 +50,7 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         return config
 
     def build_repository_config(
-        self, organization: Organization, data: Mapping[str, Any]
+        self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> Mapping[str, Any]:
         return {
             "name": data["identifier"],
@@ -73,28 +76,27 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = Integration.objects.get(id=integration_id)
-        installation = integration.get_installation(repo.organization_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
+        if integration is None:
+            raise NotImplementedError(
+                "GitHub apps requires a valid active integration to fetch commits"
+            )
+
+        installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()
 
         try:
             return eval_commits(client)
-        except ApiError as e:
-            if e.code == 404:
-                try:
-                    client.get_token(force_refresh=True)
-                    return eval_commits(client)
-                except Exception as e:
-                    raise installation.raise_error(e)
-            raise installation.raise_error(e)
         except Exception as e:
-            raise installation.raise_error(e)
+            installation.raise_error(e)
 
     def _format_commits(
         self,
         client: Any,
         repo_name: str,
-        commit_list: Sequence[Mapping[str, Any]],
+        commit_list: Any,
     ) -> Sequence[Mapping[str, Any]]:
         """Convert GitHub commits into our internal format
 
@@ -145,6 +147,4 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         return f"{repo.url}/pull/{pull_request.key}"
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        slug: str = repo.name
-        return slug
+        return repo.name

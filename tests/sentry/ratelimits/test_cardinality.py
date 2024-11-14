@@ -1,28 +1,18 @@
-from typing import Collection, Optional, Sequence
+from collections.abc import Collection, Sequence
 
 import pytest
 
 from sentry.ratelimits.cardinality import (
     GrantedQuota,
     Quota,
-    RedisBlasterBackend,
     RedisCardinalityLimiter,
-    RedisClusterBackend,
     RequestedQuota,
 )
-from sentry.utils import redis
 
 
-@pytest.fixture(params=["cluster", "rb", "rb_many"])
-def limiter(request, settings):
-    instance = RedisCardinalityLimiter()
-    if request.param == "rb":
-        instance.backend = RedisBlasterBackend(redis.clusters.get("default"))
-        yield instance
-
-    else:
-        instance.backend = RedisClusterBackend(redis.redis_clusters.get("default"))
-        yield instance
+@pytest.fixture
+def limiter():
+    return RedisCardinalityLimiter()
 
 
 class LimiterHelper:
@@ -36,11 +26,13 @@ class LimiterHelper:
         self.quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
         self.timestamp = 3600
 
-    def add_value(self, value: int) -> Optional[int]:
+    def add_value(self, value: int) -> int | None:
         values = self.add_values([value])
         if values:
             (value,) = values
             return value
+        else:
+            return None
 
     def add_values(self, values: Sequence[int]) -> Collection[int]:
         request = RequestedQuota(prefix="hello", unit_hashes=values, quota=self.quota)
@@ -184,14 +176,14 @@ def test_sliding(limiter: RedisCardinalityLimiter):
     assert admissions == expected
 
 
-def test_sampling(limiter: RedisCardinalityLimiter):
+def test_sampling(limiter: RedisCardinalityLimiter) -> None:
     """
     demonstrate behavior when "shard sampling" is active. If one out of 10
     shards for an organization are stored, it is still possible to limit the
     exactly correct amount of hashes, for certain hash values.
     """
-    limiter.num_physical_shards = 1
-    limiter.num_shards = 10
+    limiter.impl.num_physical_shards = 1
+    limiter.impl.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill up the physical shard
@@ -211,8 +203,8 @@ def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
     test an edgecase of set sampling in the cardinality limiter. it is not
     exactly desired behavior but a known sampling artifact
     """
-    limiter.num_physical_shards = 1
-    limiter.num_shards = 10
+    limiter.impl.num_physical_shards = 1
+    limiter.impl.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill

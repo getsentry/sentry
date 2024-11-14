@@ -1,9 +1,16 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Alert} from 'sentry/components/alert';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Permissions, Scope, WebhookEvent} from 'sentry/types';
-import {toResourcePermissions} from 'sentry/utils/consolidatedScopes';
+import type {Scope} from 'sentry/types/core';
+import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+import {
+  comparePermissionLevels,
+  toResourcePermissions,
+} from 'sentry/utils/consolidatedScopes';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
@@ -14,10 +21,12 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   events: WebhookEvent[];
+  newApp: boolean;
   scopes: Scope[];
 };
 
 type State = {
+  elevating: boolean;
   events: WebhookEvent[];
   permissions: Permissions;
 };
@@ -33,6 +42,7 @@ export default class PermissionsObserver extends Component<Props, State> {
     this.state = {
       permissions: this.scopeListToPermissionState(),
       events: this.props.events,
+      elevating: false,
     };
   }
 
@@ -53,14 +63,48 @@ export default class PermissionsObserver extends Component<Props, State> {
 
   onPermissionChange = (permissions: Permissions) => {
     this.setState({permissions});
+    const new_permissions = toResourcePermissions(this.props.scopes);
+
+    let elevating = false;
+    Object.keys(permissions).some((resource_name: string) => {
+      if (
+        comparePermissionLevels(
+          permissions[resource_name],
+          new_permissions[resource_name]
+        ) > 0
+      ) {
+        elevating = true;
+        return true;
+      }
+      return false;
+    });
+
+    this.setState({elevating});
   };
 
   onEventChange = (events: WebhookEvent[]) => {
     this.setState({events});
   };
 
+  renderCallout() {
+    const {elevating} = this.state;
+
+    if (!this.props.newApp && elevating === true) {
+      return (
+        <Alert type="warning" showIcon>
+          {t(
+            'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider rotating the Client Secret below.'
+          )}
+        </Alert>
+      );
+    }
+
+    return null;
+  }
+
   render() {
     const {permissions, events} = this.state;
+
     return (
       <Fragment>
         <Panel>
@@ -71,6 +115,7 @@ export default class PermissionsObserver extends Component<Props, State> {
               onChange={this.onPermissionChange}
               appPublished={this.props.appPublished}
             />
+            {this.renderCallout()}
           </PanelBody>
         </Panel>
         <Panel>

@@ -1,28 +1,32 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
-from sentry.models import GroupHash
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.models.grouphash import GroupHash
+from sentry.receivers import create_default_projects
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.utils import build_query_strings
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
 class SnubaUtilTest(TestCase, SnubaTestCase):
     def test_filter_keys_set(self):
+        create_default_projects()
         snuba.raw_query(
             start=datetime.now(),
             end=datetime.now(),
             filter_keys={"project_id": {1}, "culprit": {"asdf"}},
             aggregations=[["count()", "", "count"]],
+            tenant_ids={"referrer": "bleh", "organization_id": 123},
         )
 
     def test_shrink_timeframe(self):
-        now = datetime.now()
-        year_ago = now - timedelta(days=365)
+        now = datetime.now(UTC)
+        naive_now = now.replace(tzinfo=None)
+        year_ago = naive_now - timedelta(days=365)
 
-        issues = None
-        assert snuba.shrink_time_window(issues, year_ago) == year_ago
-
-        issues = []
-        assert snuba.shrink_time_window(issues, year_ago) == year_ago
+        # issues of None / empty list
+        assert snuba.shrink_time_window(None, year_ago) == year_ago
+        assert snuba.shrink_time_window([], year_ago) == year_ago
 
         group1 = self.create_group()
         group1.first_seen = now - timedelta(hours=1)
@@ -34,7 +38,9 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
         GroupHash.objects.create(project_id=group2.project_id, group=group2, hash="b" * 32)
 
         issues = [group1.id]
-        assert snuba.shrink_time_window(issues, year_ago) == now - timedelta(hours=1, minutes=5)
+        assert snuba.shrink_time_window(issues, year_ago) == naive_now - timedelta(
+            hours=1, minutes=5
+        )
 
         issues = [group1.id, group2.id]
         assert snuba.shrink_time_window(issues, year_ago) == year_ago
@@ -61,3 +67,42 @@ class SnubaUtilTest(TestCase, SnubaTestCase):
                 assert snuba.OVERRIDE_OPTIONS == {"foo": 2, "consistent": False}
             assert snuba.OVERRIDE_OPTIONS == {"foo": 1, "consistent": False}
         assert snuba.OVERRIDE_OPTIONS == {"consistent": False}
+
+    def test_build_query_strings(self):
+        snuba_query_no_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+        )
+        subscription_noquery = QuerySubscription.objects.create(
+            status=QuerySubscription.Status.CREATING.value,
+            project=self.project,
+            snuba_query=snuba_query_no_query,
+            query_extra="foobar",
+        )
+        query_strings = build_query_strings(subscription_noquery, snuba_query_no_query)
+        assert query_strings.query_string == "foobar"
+        assert query_strings.query == ""
+        assert query_strings.query_extra == "foobar"
+
+        snuba_query_with_query = SnubaQuery.objects.create(
+            type=SnubaQuery.Type.ERROR.value,
+            dataset="events",
+            aggregate="count()",
+            time_window=60,
+            resolution=60,
+            query="event.type:error",
+        )
+        subscription_with_query = QuerySubscription.objects.create(
+            status=QuerySubscription.Status.CREATING.value,
+            project=self.project,
+            snuba_query=snuba_query_with_query,
+            query_extra="foobar",
+        )
+
+        query_strings = build_query_strings(subscription_with_query, snuba_query_with_query)
+        assert query_strings.query_string == "event.type:error and foobar"
+        assert query_strings.query == "event.type:error"
+        assert query_strings.query_extra == " and foobar"

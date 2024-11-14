@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import logging
 
-from rest_framework.request import Request
+import orjson
+from django.http import HttpRequest
 from rest_framework.response import Response
 
-from sentry.auth.view import AuthView, ConfigureView
-from sentry.utils import json
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
 from sentry.utils.signing import urlsafe_b64decode
 
 from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE
@@ -18,29 +23,29 @@ class FetchUser(AuthView):
         self.version = version
         super().__init__(*args, **kwargs)
 
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: HttpRequest, helper) -> Response:
         data = helper.fetch_state("data")
 
         try:
             id_token = data["id_token"]
         except KeyError:
-            logger.error("Missing id_token in OAuth response: %s" % data)
+            logger.exception("Missing id_token in OAuth response: %s", data)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
-            logger.error("Unable to decode id_token: %s" % exc, exc_info=True)
+            logger.exception("Unable to decode id_token: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = json.loads(payload)
+            payload = orjson.loads(payload)
         except Exception as exc:
-            logger.error("Unable to decode id_token payload: %s" % exc, exc_info=True)
+            logger.exception("Unable to decode id_token payload: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)
 
         if not payload.get("email"):
-            logger.error("Missing email in id_token payload: %s" % id_token)
+            logger.error("Missing email in id_token payload: %s", id_token)
             return helper.error(ERR_INVALID_RESPONSE)
 
         # support legacy style domains with pure domain regexp
@@ -64,14 +69,16 @@ class FetchUser(AuthView):
         return helper.next_step()
 
 
-class GoogleConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, auth_provider):
-        config = auth_provider.config
-        if config.get("domain"):
-            domains = [config["domain"]]
-        else:
-            domains = config.get("domains")
-        return self.render("sentry_auth_google/configure.html", {"domains": domains or []})
+def google_configure_view(
+    request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
+) -> DeferredResponse:
+    config = auth_provider.config
+    if config.get("domain"):
+        domains: list[str] | None
+        domains = [config["domain"]]
+    else:
+        domains = config.get("domains")
+    return DeferredResponse("sentry_auth_google/configure.html", {"domains": domains or []})
 
 
 def extract_domain(email):

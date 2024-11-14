@@ -34,6 +34,8 @@ class EventError:
     JS_INVALID_SOURCEMAP_LOCATION = "js_invalid_sourcemap_location"
     JS_TOO_LARGE = "js_too_large"  # deprecated in favor of FETCH_TOO_LARGE
     JS_FETCH_TIMEOUT = "js_fetch_timeout"  # deprecated in favor of FETCH_TIMEOUT
+    JS_MISSING_SOURCES_CONTENT = "js_missing_sources_content"
+    JS_SCRAPING_DISABLED = "js_scraping_disabled"
 
     # Processing: Native
     NATIVE_NO_CRASHED_THREAD = "native_no_crashed_thread"
@@ -46,6 +48,7 @@ class EventError:
     NATIVE_SIMULATOR_FRAME = "native_simulator_frame"
     NATIVE_UNKNOWN_IMAGE = "native_unknown_image"
     NATIVE_SYMBOLICATOR_FAILED = "native_symbolicator_failed"
+    NATIVE_UNSUPPORTED_DSYM = "native_unsupported_dsym"
 
     # Processing: Proguard
     PROGUARD_MISSING_MAPPING = "proguard_missing_mapping"
@@ -80,9 +83,11 @@ class EventError:
         JS_INVALID_SOURCEMAP_LOCATION: "Invalid location in sourcemap",
         JS_TOO_LARGE: "Remote file too large",
         JS_FETCH_TIMEOUT: "Remote file took too long to load",
+        JS_SCRAPING_DISABLED: "Javascript scraping was disabled",
         NATIVE_NO_CRASHED_THREAD: "No crashed thread found in crash report",
         NATIVE_INTERNAL_FAILURE: "Internal failure when attempting to symbolicate",
         NATIVE_BAD_DSYM: "The debug information file used was broken.",
+        NATIVE_UNSUPPORTED_DSYM: "The debug information file is not supported",
         NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: "An optional debug information file was missing.",
         NATIVE_MISSING_DSYM: "A required debug information file was missing.",
         NATIVE_MISSING_SYSTEM_DSYM: "A system debug information file was missing.",

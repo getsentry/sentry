@@ -23,17 +23,15 @@ describe('TableField', function () {
 
   describe('renders', function () {
     it('renders without form context', function () {
-      const {container} = render(<TableField {...defaultProps} />);
-      expect(container).toSnapshot();
+      render(<TableField {...defaultProps} />);
     });
 
     it('renders with form context', function () {
-      const {container} = render(
+      render(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField {...defaultProps} />
         </Form>
       );
-      expect(container).toSnapshot();
     });
 
     it('renders button text', function () {
@@ -46,14 +44,14 @@ describe('TableField', function () {
     });
 
     describe('saves changes', function () {
-      it('handles adding a new row', function () {
+      it('handles adding a new row', async function () {
         render(
           <Form onSubmit={mockSubmit} model={model}>
             <TableField {...defaultProps} />
           </Form>
         );
 
-        userEvent.click(screen.getByLabelText('Add Thing'));
+        await userEvent.click(screen.getByLabelText('Add Thing'));
 
         const columns = screen.getAllByText(/Column/);
         expect(columns).toHaveLength(2);
@@ -61,7 +59,7 @@ describe('TableField', function () {
         expect(columns[1]).toHaveTextContent('Column 2');
       });
 
-      it('handles removing a row', function () {
+      it('handles removing a row', async function () {
         render(
           <Form onSubmit={mockSubmit} model={model}>
             <TableField {...defaultProps} />
@@ -70,14 +68,14 @@ describe('TableField', function () {
         renderGlobalModal();
 
         // add a couple new rows
-        userEvent.click(screen.getByLabelText('Add Thing'));
-        userEvent.click(screen.getByLabelText('Add Thing'));
+        await userEvent.click(screen.getByLabelText('Add Thing'));
+        await userEvent.click(screen.getByLabelText('Add Thing'));
 
         // delete the last row
-        userEvent.click(screen.getAllByLabelText(/delete/).at(-1)!);
+        await userEvent.click(screen.getAllByLabelText(/delete/).at(-1)!);
 
         // click through confirmation
-        userEvent.click(screen.getByTestId('confirm-button'));
+        await userEvent.click(screen.getByTestId('confirm-button'));
 
         expect(screen.getByTestId('field-row')).toBeInTheDocument();
       });

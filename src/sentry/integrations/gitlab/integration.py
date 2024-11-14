@@ -1,35 +1,39 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Mapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
-from sentry.models import Repository
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationProviderError,
+)
+from sentry.users.models.identity import Identity
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitLabApiClient, GitLabSetupClient
-from .issues import GitlabIssueBasic
+from .client import GitLabApiClient, GitLabSetupApiClient
+from .issues import GitlabIssuesSpec
 from .repository import GitlabRepositoryProvider
 
 DESCRIPTION = """
@@ -89,48 +93,27 @@ metadata = IntegrationMetadata(
 )
 
 
-class GitlabIntegration(
-    IntegrationInstallation, GitlabIssueBasic, RepositoryMixin, CommitContextMixin
-):
-    repo_search = True
+class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIntegration):
     codeowners_locations = ["CODEOWNERS", ".gitlab/CODEOWNERS", "docs/CODEOWNERS"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_identity = None
 
-    def get_group_id(self):
-        return self.model.metadata["group_id"]
+    @property
+    def integration_name(self) -> str:
+        return "gitlab"
 
     def get_client(self):
         if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+            try:
+                self.default_identity = self.get_default_identity()
+            except Identity.DoesNotExist:
+                raise IntegrationError("Identity not found.")
 
         return GitLabApiClient(self)
 
-    def get_repositories(self, query=None):
-        # Note: gitlab projects are the same things as repos everywhere else
-        group = self.get_group_id()
-        resp = self.get_client().search_projects(group, query)
-        return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
-
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
-        base_url = self.model.metadata["base_url"]
-        repo_name = repo.config["path"]
-
-        # Must format the url ourselves since `check_file` is a head request
-        # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
-
-    def search_projects(self, query):
-        client = self.get_client()
-        group_id = self.get_group_id()
-        return client.search_projects(group_id, query)
-
-    def search_issues(self, project_id, query, iids):
-        client = self.get_client()
-        return client.search_project_issues(project_id, query, iids)
-
+    # IntegrationInstallation methods
     def error_message_from_json(self, data):
         """
         Extract error messages from gitlab API errors.
@@ -144,45 +127,59 @@ class GitlabIntegration(
         if "error" in data:
             return data["error"]
 
-    def get_commit_context(
-        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, str] | None:
-        """
-        Returns the latest commit that altered the line from the event frame if it exists.
-        """
-        lineno = event_frame.get("lineno", 0)
-        if not lineno:
-            return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
+    # RepositoryIntegration methods
 
-        try:
-            commit = max(
-                blame_range,
-                key=lambda blame: datetime.strptime(
-                    blame.get("commit", {}).get("committed_date"), "%Y-%m-%dT%H:%M:%S.%fZ"
-                ),
-            )
-        except (ValueError, IndexError):
-            return None
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
 
-        commitInfo = commit.get("commit")
-        if not commitInfo:
-            return None
-        else:
-            return {
-                "commitId": commitInfo.get("id"),
-                "committedDate": commitInfo.get("committed_date"),
-                "commitMessage": commitInfo.get("message"),
-                "commitAuthorName": commitInfo.get("committer_name"),
-                "commitAuthorEmail": commitInfo.get("committer_email"),
-            }
+    def get_repositories(self, query=None):
+        # Note: gitlab projects are the same things as repos everywhere else
+        group = self.get_group_id()
+        resp = self.get_client().search_projects(group, query)
+        return [{"identifier": repo["id"], "name": repo["name_with_namespace"]} for repo in resp]
+
+    def source_url_matches(self, url: str) -> bool:
+        return url.startswith("https://{}".format(self.model.metadata["domain_name"]))
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        base_url = self.model.metadata["base_url"]
+        repo_name = repo.config["path"]
+
+        # Must format the url ourselves since `check_file` is a head request
+        # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
+        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        branch, _, _ = url.partition("/")
+        return branch
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        url = url.replace(f"{repo.url}/-/blob/", "")
+        url = url.replace(f"{repo.url}/blob/", "")
+        _, _, source_path = url.partition("/")
+        return source_path
+
+    # Gitlab only functions
+
+    def get_group_id(self):
+        return self.model.metadata["group_id"]
+
+    def search_projects(self, query):
+        client = self.get_client()
+        group_id = self.get_group_id()
+        return client.search_projects(group_id, query)
+
+    # TODO(cathy): define in issue ABC
+    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]]:
+        client = self.get_client()
+        project_id = kwargs["project_id"]
+        iids = kwargs["iids"]
+        resp = client.search_project_issues(project_id, query, iids)
+        assert isinstance(resp, list)
+        return resp
 
 
 class InstallationForm(forms.Form):
@@ -245,7 +242,7 @@ class InstallationForm(forms.Form):
     )
     client_secret = forms.CharField(
         label=_("GitLab Application Secret"),
-        widget=forms.TextInput(attrs={"placeholder": _("XXXXXXXXXXXXXXXXXXXXXXXXXXX")}),
+        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
     )
 
     def clean_url(self):
@@ -254,7 +251,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -296,7 +293,7 @@ class InstallationConfigView(PipelineView):
 
 
 class InstallationGuideView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -353,11 +350,15 @@ class GitlabIntegrationProvider(IntegrationProvider):
         )
 
     def get_group_info(self, access_token, installation_data):
-        client = GitLabSetupClient(
-            installation_data["url"], access_token, installation_data["verify_ssl"]
+        client = GitLabSetupApiClient(
+            base_url=installation_data["url"],
+            access_token=access_token,
+            verify_ssl=installation_data["verify_ssl"],
         )
+
+        requested_group = installation_data["group"]
         try:
-            resp = client.get_group(installation_data["group"])
+            resp = client.get_group(requested_group)
             return resp.json
         except ApiError as e:
             self.get_logger().info(
@@ -365,13 +366,17 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 extra={
                     "base_url": installation_data["url"],
                     "verify_ssl": installation_data["verify_ssl"],
-                    "group": installation_data["group"],
+                    "group": requested_group,
                     "include_subgroups": installation_data["include_subgroups"],
                     "error_message": str(e),
                     "error_status": e.code,
                 },
             )
-            raise IntegrationError("The requested GitLab group could not be found.")
+            # We raise IntegrationProviderError to prevent a Sentry Issue from being created as this is an expected
+            # error, and we just want to invoke the error message to the user.
+            raise IntegrationProviderError(
+                f"The requested GitLab group {requested_group} could not be found."
+            )
 
     def get_pipeline_views(self):
         return [
@@ -434,6 +439,11 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 "external_id": "{}:{}".format(hostname, user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
+            },
+            "post_install_data": {
+                "redirect_url_format": absolute_uri(
+                    f"/settings/{{org_slug}}/integrations/{self.key}/"
+                ),
             },
         }
         return integration

@@ -1,11 +1,17 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.commit import get_users_for_commits
-from sentry.models import Commit, CommitFileChange, Repository
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.repository import Repository
 
 
 @register(CommitFileChange)
 class CommitFileChangeSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         commits = list(
             Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related("author")
         )
@@ -18,7 +24,7 @@ class CommitFileChangeSerializer(Serializer):
             ).values_list("id", "name")
         )
 
-        result = {}
+        result: dict[int, Any] = {}
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {
@@ -29,7 +35,7 @@ class CommitFileChangeSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "orgId": obj.organization_id,

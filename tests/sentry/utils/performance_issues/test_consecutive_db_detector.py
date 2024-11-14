@@ -1,37 +1,38 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
-from sentry.models import ProjectOption
-from sentry.testutils import TestCase
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
     get_event,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import ConsecutiveDBSpanDetector
+from sentry.utils.performance_issues.detectors.consecutive_db_detector import (
+    ConsecutiveDBSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 SECOND = 1000
 
 
-@region_silo_test
 @pytest.mark.django_db
 class ConsecutiveDbDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = ConsecutiveDBSpanDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = ConsecutiveDBSpanDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -76,6 +77,13 @@ class ConsecutiveDbDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -183,6 +191,13 @@ class ConsecutiveDbDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "db",
+                    "parent_span_ids": None,
+                    "cause_span_ids": ["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -230,7 +245,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
     def test_respects_project_option(self):
         project = self.create_project()
-        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event = self.create_issue_event()
         event["project_id"] = project.id
 
         settings = get_detection_settings(project.id)
@@ -241,7 +256,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         ProjectOption.objects.set_value(
             project=project,
             key="sentry:performance_issue_settings",
-            value={"consecutive_db_queries_detection_rate": 0.0},
+            value={"consecutive_db_queries_detection_enabled": False},
         )
 
         settings = get_detection_settings(project.id)

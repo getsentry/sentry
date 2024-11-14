@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:21:59.594363Z'
+created: '2024-10-24T14:19:37.942436+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
             function*
               "_dispatch_root_queues_init_once"
@@ -120,10 +120,10 @@ system:
           frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "_dispatch_worker_thread2"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_root_queue_drain"
-          frame (ignored by stack trace rule (category:threadbase -group v-group))
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "_dispatch_client_callout"
           frame*

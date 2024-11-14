@@ -1,18 +1,20 @@
 import styled from '@emotion/styled';
 
 import TextArea from 'sentry/components/forms/controls/textarea';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type Props = {
-  'data-test-id': string;
   dateUpdated: string | null;
   raw: string;
   type: 'codeowners' | 'issueowners';
   controls?: React.ReactNode[];
+  'data-test-id'?: string;
   placeholder?: string;
   provider?: string;
   repoName?: string;
@@ -123,6 +125,6 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const SyncDate = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;

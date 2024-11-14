@@ -1,11 +1,15 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   level: 'error',
   metadata: {
     type: 'metadata type',
@@ -17,7 +21,7 @@ const group = TestStubs.Group({
   culprit: 'culprit',
 });
 
-const event = TestStubs.Event({
+const event = EventFixture({
   id: 'id',
   eventID: 'eventID',
   groupID: 'groupID',
@@ -32,19 +36,15 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
-        <EventOrGroupHeader organization={organization} data={group} {...router} />
-      );
-
-      expect(container).toSnapshot();
+      render(<EventOrGroupHeader organization={organization} data={group} {...router} />);
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -54,12 +54,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -73,8 +71,6 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-
-      expect(container).toSnapshot();
     });
 
     it('renders metadata values in message for error events', function () {
@@ -116,21 +112,20 @@ describe('EventOrGroupHeader', function () {
 
   describe('Event', function () {
     it('renders with `type = error`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
-          data={{
+          data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
-          }}
+          })}
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = csp`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -140,11 +135,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('renders with `type = default`', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           organization={organization}
           data={{
@@ -158,11 +152,10 @@ describe('EventOrGroupHeader', function () {
           {...router}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('hides level tag', function () {
-      const {container} = render(
+      render(
         <EventOrGroupHeader
           hideLevel
           organization={organization}
@@ -176,7 +169,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />
       );
-      expect(container).toSnapshot();
     });
 
     it('keeps sort in link when query has sort', function () {
@@ -189,7 +181,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {
@@ -219,7 +210,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {
@@ -235,5 +225,32 @@ describe('EventOrGroupHeader', function () {
         '/organizations/org-slug/issues/groupID/events/eventID/?_allp=1&referrer=event-or-group-header'
       );
     });
+  });
+
+  it('renders group tombstone without link to group', function () {
+    render(
+      <EventOrGroupHeader
+        organization={organization}
+        data={{
+          id: '123',
+          level: 'error',
+          message: 'numTabItems is not defined ReferenceError something',
+          culprit:
+            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
+          type: EventOrGroupType.ERROR,
+          metadata: {
+            value: 'numTabItems is not defined',
+            type: 'ReferenceError',
+            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
+            function: 'useOverflowTabs',
+          },
+          actor: UserFixture(),
+          isTombstone: true,
+        }}
+        {...router}
+      />
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

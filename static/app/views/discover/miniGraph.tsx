@@ -1,26 +1,28 @@
 import {Component} from 'react';
-import {Theme, withTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
-import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
-import EventsGeoRequest from 'sentry/components/charts/eventsGeoRequest';
+import type {Client} from 'sentry/api';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
+import type {BarChartProps} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {getInterval, processTableResults} from 'sentry/components/charts/utils';
-import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
+import {getInterval} from 'sentry/components/charts/utils';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {Organization} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
-import {aggregateOutputType, PlotType} from 'sentry/utils/discover/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {PlotType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
@@ -68,8 +70,8 @@ class MiniGraph extends Component<Props> {
     const interval = isDaily
       ? '1d'
       : eventView.interval
-      ? eventView.interval
-      : getInterval({start, end, period}, intervalFidelity);
+        ? eventView.interval
+        : getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,
@@ -89,6 +91,7 @@ class MiniGraph extends Component<Props> {
       expired: eventView.expired,
       name: eventView.name,
       display,
+      dataset: eventView.dataset,
     };
   }
 
@@ -139,55 +142,9 @@ class MiniGraph extends Component<Props> {
       expired,
       name,
       display,
+      dataset,
     } = this.getRefreshProps(this.props);
 
-    if (display === DisplayModes.WORLDMAP) {
-      return (
-        <EventsGeoRequest
-          api={api}
-          organization={organization}
-          yAxis={yAxis}
-          query={query}
-          orderby={orderby}
-          projects={project as number[]}
-          period={period}
-          start={start}
-          end={end}
-          environments={environment as string[]}
-          referrer={referrer}
-        >
-          {({errored, loading, tableData}) => {
-            if (errored) {
-              return (
-                <StyledGraphContainer>
-                  <IconWarning color="gray300" size="md" />
-                </StyledGraphContainer>
-              );
-            }
-            if (loading) {
-              return (
-                <StyledGraphContainer>
-                  <LoadingIndicator mini />
-                </StyledGraphContainer>
-              );
-            }
-            const {data, title} = processTableResults(tableData);
-            const chartOptions = {
-              height: 100,
-              series: [
-                {
-                  seriesName: title,
-                  data,
-                },
-              ],
-              fromDiscoverQueryList: true,
-            };
-
-            return <WorldMapChart {...chartOptions} />;
-          }}
-        </EventsGeoRequest>
-      );
-    }
     return (
       <EventsRequest
         organization={organization}
@@ -207,6 +164,7 @@ class MiniGraph extends Component<Props> {
         expired={expired}
         name={name}
         referrer={referrer}
+        dataset={dataset}
         hideError
         partial
       >
@@ -247,7 +205,7 @@ class MiniGraph extends Component<Props> {
           const chartColors = allSeries.length
             ? [...theme.charts.getColorPalette(allSeries.length - 2 - (hasOther ? 1 : 0))]
             : undefined;
-          if (chartColors && chartColors.length && hasOther) {
+          if (chartColors?.length && hasOther) {
             chartColors.push(theme.chartOther);
           }
           const chartOptions = {

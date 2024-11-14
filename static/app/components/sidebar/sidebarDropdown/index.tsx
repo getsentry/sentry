@@ -2,58 +2,48 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
+import {Chevron} from 'sentry/components/chevron';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconChevron, IconSentry} from 'sentry/icons';
+import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Config, Organization, Project, User} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
-import SidebarMenuItemLink from '../sidebarMenuItemLink';
-import {CommonSidebarProps} from '../types';
+import type SidebarMenuItemLink from '../sidebarMenuItemLink';
+import type {CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
-// TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
-  api: Client;
-  config: Config;
-  projects: Project[];
-  user: User;
   /**
    * Set to true to hide links within the organization
    */
   hideOrgLinks?: boolean;
-  org?: Organization;
 };
 
-const SidebarDropdown = ({
-  api,
-  org,
-  projects,
-  orientation,
-  collapsed,
-  config,
-  user,
-  hideOrgLinks,
-}: Props) => {
-  const handleLogout = async () => {
-    await logout(api);
-    window.location.assign('/auth/login/');
-  };
+export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: Props) {
+  const api = useApi();
+
+  const config = useLegacyStore(ConfigStore);
+  const org = useOrganization({allowNull: true});
+  const user = useUser();
+  const {projects} = useProjects();
 
   const hasOrganization = !!org;
   const hasUser = !!user;
@@ -65,12 +55,16 @@ const SidebarDropdown = ({
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
+  function handleLogout() {
+    logout(api);
+  }
+
   // Avatar to use: Organization --> user --> Sentry
   const avatar =
     hasOrganization || hasUser ? (
       <StyledAvatar
         collapsed={collapsed}
-        organization={org}
+        organization={org ?? undefined}
         user={!org ? user : undefined}
         size={32}
         round={false}
@@ -94,11 +88,11 @@ const SidebarDropdown = ({
             {!collapsed && orientation !== 'top' && (
               <OrgAndUserWrapper>
                 <OrgOrUserName>
-                  {hasOrganization ? org.name : user.name}{' '}
-                  <StyledIconChevron color="white" size="xs" direction="down" />
+                  {hasOrganization ? org.name : user?.name}{' '}
+                  <StyledChevron direction={isOpen ? 'up' : 'down'} />
                 </OrgOrUserName>
                 <UserNameOrEmail>
-                  {hasOrganization ? user.name : user.email}
+                  {hasOrganization ? user?.name : user?.email}
                 </UserNameOrEmail>
               </OrgAndUserWrapper>
             )}
@@ -109,6 +103,7 @@ const SidebarDropdown = ({
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} projectCount={projects.length} />
+                  <RollbackBanner />
                   {!hideOrgLinks && (
                     <Fragment>
                       {hasOrgRead && (
@@ -158,7 +153,7 @@ const SidebarDropdown = ({
                         {t('User settings')}
                       </SidebarMenuItem>
                       <SidebarMenuItem to="/settings/account/api/">
-                        {t('API keys')}
+                        {t('User auth tokens')}
                       </SidebarMenuItem>
                       {hasOrganization && (
                         <Hook
@@ -185,9 +180,7 @@ const SidebarDropdown = ({
       )}
     </DeprecatedDropdownMenu>
   );
-};
-
-export default withApi(withProjects(SidebarDropdown));
+}
 
 const SentryLink = styled(Link)`
   color: ${p => p.theme.white};
@@ -209,6 +202,7 @@ const UserBadgeNoOverflow = styled(IdBadge)`
 
 const SidebarDropdownRoot = styled('div')`
   position: relative;
+  padding: 0 3px; /* align org icon with sidebar item icons */
 `;
 
 // So that long org names and user names do not overflow
@@ -219,7 +213,7 @@ const OrgAndUserWrapper = styled('div')`
 const OrgOrUserName = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1.2;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.white};
   text-shadow: 0 0 6px rgba(255, 255, 255, 0);
   transition: 0.15s text-shadow linear;
@@ -255,6 +249,10 @@ const StyledAvatar = styled(Avatar)<{collapsed: boolean}>`
   margin-right: ${p => (p.collapsed ? '0' : space(1.5))};
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   border-radius: 6px; /* Fixes background bleeding on corners */
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    margin-right: 0;
+  }
 `;
 
 const OrgAndUserMenu = styled('div')`
@@ -264,6 +262,6 @@ const OrgAndUserMenu = styled('div')`
   z-index: ${p => p.theme.zIndex.orgAndUserMenu};
 `;
 
-const StyledIconChevron = styled(IconChevron)`
-  margin-left: ${space(0.25)};
+const StyledChevron = styled(Chevron)`
+  transform: translateY(${space(0.25)});
 `;

@@ -1,5 +1,7 @@
-import {Event} from 'sentry/types/event';
-import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import type {Event} from 'sentry/types/event';
+import type {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,
@@ -70,7 +72,9 @@ function generateTransactionLite({
     project_slug: generateProjectSlug(position),
     parent_event_id: generation <= 0 ? null : generateEventId(parentPosition),
     parent_span_id: generation <= 0 ? null : generateSpanId(parentPosition),
+    performance_issues: [],
     errors: [],
+    timestamp: 112312412,
   };
 }
 
@@ -94,6 +98,7 @@ function generateTransaction(opts: {depth: number; index: number}): TraceFull {
      * the type checking.
      */
     'transaction.duration': 0,
+    timestamp: 112312412,
   };
 }
 
@@ -170,7 +175,7 @@ describe('Quick Trace Utils', function () {
   });
 
   describe('parseQuickTrace', function () {
-    const organization = TestStubs.Organization();
+    const organization = OrganizationFixture();
     it('parses empty trace', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');
       expect(() =>

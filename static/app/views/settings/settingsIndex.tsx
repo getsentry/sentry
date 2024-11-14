@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
@@ -8,16 +8,21 @@ import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
@@ -55,7 +60,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     }
   }, [api, organization]);
 
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const organizationSettingsUrl =
@@ -206,7 +211,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
       <HomePanelHeader>
         <HomeLinkIcon to={LINKS.API}>
           <HomeIconContainer>
-            <IconLock size="lg" isSolid />
+            <IconLock size="lg" locked />
           </HomeIconContainer>
           {t('API Keys')}
         </HomeLinkIcon>
@@ -216,11 +221,16 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
         <h3>{t('Quick links')}:</h3>
         <ul>
           <li>
-            <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+            <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
+              {t('Organization Auth Tokens')}
+            </HomeLink>
+          </li>
+          <li>
+            <HomeLink to={LINKS.API}>{t('User Auth Tokens')}</HomeLink>
           </li>
           <li>
             <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-              {t('Your Integrations')}
+              {t('Custom Integrations')}
             </HomeLink>
           </li>
           <li>

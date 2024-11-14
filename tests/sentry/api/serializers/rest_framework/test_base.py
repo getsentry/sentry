@@ -1,5 +1,4 @@
 from django.contrib.contenttypes.models import ContentType
-from django.test import TestCase
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import (
@@ -9,6 +8,7 @@ from sentry.api.serializers.rest_framework.base import (
     convert_dict_key_case,
     snake_to_camel_case,
 )
+from sentry.testutils.cases import TestCase
 
 
 class PersonSerializer(CamelSnakeSerializer):

@@ -1,14 +1,21 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
-from sentry_relay import PublicKey
+from sentry_relay.auth import PublicKey
 
-from sentry.db.models import Model, control_silo_only_model
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.mixins import OverwritableConfigMixin
+from sentry.backup.sanitize import SanitizableField, Sanitizer
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model, region_silo_model
 
 
-@control_silo_only_model
-class RelayUsage(Model):
-    __include_in_export__ = True
+@region_silo_model
+class RelayUsage(OverwritableConfigMixin, Model):
+    __relocation_scope__ = RelocationScope.Config
+    __relocation_custom_ordinal__ = ["relay_id", "version"]
 
     relay_id = models.CharField(max_length=64)
     version = models.CharField(max_length=32, default="0.0.1")
@@ -21,10 +28,21 @@ class RelayUsage(Model):
         app_label = "sentry"
         db_table = "sentry_relayusage"
 
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
 
-@control_silo_only_model
-class Relay(Model):
-    __include_in_export__ = True
+        sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
+        sanitizer.set_string(json, SanitizableField(model_name, "public_key"))
+
+
+@region_silo_model
+class Relay(OverwritableConfigMixin, Model):
+    __relocation_scope__ = RelocationScope.Config
+    __relocation_custom_ordinal__ = ["relay_id"]
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)
@@ -32,7 +50,7 @@ class Relay(Model):
     first_seen = models.DateTimeField(default=None, null=True)
     # not used, functionality replaced by RelayUsage
     last_seen = models.DateTimeField(default=None, null=True)
-    is_internal = models.NullBooleanField(default=None)
+    is_internal = models.BooleanField(default=None, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -62,3 +80,13 @@ class Relay(Model):
         Returns all the relays that are configured with one of the specified keys
         """
         return Relay.objects.filter(public_key__in=keys)
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_uuid(json, SanitizableField(model_name, "relay_id"))
+        sanitizer.set_string(json, SanitizableField(model_name, "public_key"))

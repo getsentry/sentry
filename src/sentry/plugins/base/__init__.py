@@ -1,6 +1,5 @@
-from .bindings import BindingManager
+from .binding_manager import BindingManager
 from .manager import PluginManager
-from .notifier import *  # NOQA
 from .response import *  # NOQA
 from .structs import *  # NOQA
 from .v1 import *  # NOQA

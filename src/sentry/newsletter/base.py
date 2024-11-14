@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
+
+from sentry.users.models.user import User
 from sentry.utils.services import Service
 
 
@@ -19,7 +25,7 @@ class Newsletter(Service):
 
     enabled = False
 
-    def is_enabled(self):
+    def is_enabled(self) -> bool:
         return self.enabled
 
     def optout_email(self, email, **kwargs):
@@ -29,7 +35,7 @@ class Newsletter(Service):
     Replacements for the functions below that only accept a single list_id argument
     """
 
-    def get_default_list_ids(self):
+    def get_default_list_ids(self) -> tuple[int, ...]:
         return self.DEFAULT_LISTS
 
     def get_subscriptions(self, user):
@@ -37,10 +43,11 @@ class Newsletter(Service):
 
     def update_subscriptions(
         self,
-        user,
-        list_ids=None,
-        subscribed=True,
-        create=None,
+        user: User,
+        *,
+        list_ids: Sequence[int] | None = None,
+        subscribed: bool = True,
+        create: bool | None = None,
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
@@ -50,13 +57,14 @@ class Newsletter(Service):
 
     def create_or_update_subscriptions(
         self,
-        user,
-        list_ids=None,
-        subscribed=True,
+        user: User,
+        *,
+        list_ids: Sequence[int] | None = None,
+        subscribed: bool = True,
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs,
+        **kwargs: Any,
     ):
         return self.update_subscriptions(
             user=user,
@@ -74,31 +82,33 @@ class Newsletter(Service):
     accept multiple list IDs
     """
 
-    def get_default_list_id(self):
+    def get_default_list_id(self) -> int:
         return self.DEFAULT_LIST_ID
 
     def update_subscription(
         self,
-        user,
-        list_id=None,
-        subscribed=True,
-        create=None,
+        user: User,
+        *,
+        list_id: int | None = None,
+        subscribed: bool = True,
+        create: bool | None = None,
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs,
+        **kwargs: Any,
     ):
         return None
 
     def create_or_update_subscription(
         self,
-        user,
-        list_id=None,
-        subscribed=True,
+        user: User,
+        *,
+        list_id: int | None = None,
+        subscribed: bool = True,
         verified=None,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs,
+        **kwargs: Any,
     ):
         return self.update_subscription(
             user=user,

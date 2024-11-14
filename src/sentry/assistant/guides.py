@@ -1,5 +1,3 @@
-from django.conf import settings
-
 # Guide definitions
 #
 # The id of each guide should be unique and immutable, as it is stored in the
@@ -25,26 +23,11 @@ GUIDES = {
     "releases_widget": 26,
     "activate_sampling_rule": 27,
     "create_conditional_rule": 28,
+    "explain_archive_button_issue_details": 29,
+    "explain_archive_tab_issue_stream": 30,
+    "explain_new_default_event_issue_detail": 31,
+    "new_project_filter": 32,
+    "explain_archive_button_issue_stream": 33,
+    "ddm_view": 34,
+    "metrics_onboarding": 37,
 }
-
-# demo mode has different guides
-if settings.DEMO_MODE:
-    GUIDES = {
-        "sidebar": 20,
-        "issue_stream_v2": 21,
-        "issue_v2": 22,
-        "releases": 23,
-        "release_details": 24,
-        "discover_landing": 25,
-        "discover_event_view": 26,
-        "transaction_details": 27,
-        "sidebar_v2": 28,
-        "issues_v3": 29,
-        "releases_v2": 30,
-        "react-native-release": 31,
-        "release-details_v2": 32,
-        "performance": 33,
-        "transaction_summary": 34,
-        "transaction_details_v2": 35,
-        "issue_stream_v3": 36,
-    }

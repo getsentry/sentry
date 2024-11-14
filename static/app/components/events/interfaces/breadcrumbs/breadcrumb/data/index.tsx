@@ -1,6 +1,12 @@
-import {Organization} from 'sentry/types';
-import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
+import type {
+  BreadcrumbMeta,
+  BreadcrumbTransactionEvent,
+} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbMessageFormat, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 import {Default} from './default';
 import {Exception} from './exception';
@@ -11,14 +17,28 @@ type Props = {
   event: Event;
   organization: Organization;
   searchTerm: string;
-  meta?: Record<any, any>;
+  meta?: BreadcrumbMeta;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
-export function Data({breadcrumb, event, organization, searchTerm, meta}: Props) {
-  const orgSlug = organization.slug;
-
+export function Data({
+  breadcrumb,
+  event,
+  organization,
+  searchTerm,
+  meta,
+  transactionEvents,
+}: Props) {
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} meta={meta} />;
+  }
+
+  if (
+    !meta &&
+    breadcrumb.message &&
+    breadcrumb.messageFormat === BreadcrumbMessageFormat.SQL
+  ) {
+    return <Sql breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
 
   if (
@@ -31,10 +51,11 @@ export function Data({breadcrumb, event, organization, searchTerm, meta}: Props)
   return (
     <Default
       event={event}
-      orgSlug={orgSlug}
+      organization={organization}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
       meta={meta}
+      transactionEvents={transactionEvents}
     />
   );
 }

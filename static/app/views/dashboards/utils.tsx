@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import {connect} from 'echarts';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
@@ -12,11 +11,10 @@ import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
 import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
 import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import type {Fidelity} from 'sentry/components/charts/utils';
 import {
-  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
@@ -24,30 +22,49 @@ import {
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {Organization, PageFilters} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
   isEquation,
   isMeasurement,
+  RATE_UNIT_MULTIPLIERS,
+  RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {decodeList} from 'sentry/utils/queryString';
 import {
+  DiscoverDatasets,
+  DisplayModes,
+  type SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
+import {parseField} from 'sentry/utils/metrics/mri';
+import type {MetricsWidget} from 'sentry/utils/metrics/types';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -64,23 +81,14 @@ export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
 export function eventViewFromWidget(
   title: string,
   query: WidgetQuery,
-  selection: PageFilters,
-  widgetDisplayType?: DisplayType
+  selection: PageFilters
 ): EventView {
   const {start, end, period: statsPeriod} = selection.datetime;
   const {projects, environments} = selection;
 
   // World Map requires an additional column (geo.country_code) to display in discover when navigating from the widget
-  const fields =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.columns.includes('geo.country_code')
-      ? ['geo.country_code', ...query.columns, ...query.aggregates]
-      : [...query.columns, ...query.aggregates];
-  const conditions =
-    widgetDisplayType === DisplayType.WORLD_MAP &&
-    !query.conditions.includes('has:geo.country_code')
-      ? `${query.conditions} has:geo.country_code`.trim()
-      : query.conditions;
+  const fields = [...query.columns, ...query.aggregates];
+  const conditions = query.conditions;
 
   const {orderby} = query;
   // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
@@ -102,6 +110,39 @@ export function eventViewFromWidget(
   });
 }
 
+export function getThresholdUnitSelectOptions(
+  dataType: string
+): {label: string; value: string}[] {
+  if (dataType === 'duration') {
+    return Object.keys(DURATION_UNITS)
+      .map(unit => ({label: unit, value: unit}))
+      .slice(2);
+  }
+
+  if (dataType === 'rate') {
+    return Object.values(RateUnit).map(unit => ({
+      label: `/${unit.split('/')[1]}`,
+      value: unit,
+    }));
+  }
+
+  return [];
+}
+
+export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolean {
+  return Object.keys(thresholdsConfig.max_values).length > 0;
+}
+
+export function normalizeUnit(value: number, unit: string, dataType: string): number {
+  const multiplier =
+    dataType === 'rate'
+      ? RATE_UNIT_MULTIPLIERS[unit]
+      : dataType === 'duration'
+        ? DURATION_UNITS[unit]
+        : 1;
+  return value * multiplier;
+}
+
 function coerceStringToArray(value?: string | string[] | null) {
   return typeof value === 'string' ? [value] : value;
 }
@@ -111,6 +152,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);
     const queryFields = coerceStringToArray(query.queryFields);
+    const widgetType = decodeScalar(query.widgetType);
     const queries: WidgetQuery[] = [];
     if (
       queryConditions &&
@@ -137,7 +179,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           interval: string;
           title: string;
         }),
-        widgetType: WidgetType.DISCOVER,
+        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
@@ -157,8 +199,6 @@ export function miniWidget(displayType: DisplayType): string {
       return WidgetBigNumber;
     case DisplayType.TABLE:
       return WidgetTable;
-    case DisplayType.WORLD_MAP:
-      return WidgetWorldMap;
     case DisplayType.LINE:
     default:
       return WidgetLine;
@@ -224,13 +264,14 @@ export function getWidgetDiscoverUrl(
   index: number = 0,
   isMetricsData: boolean = false
 ) {
-  const eventView = eventViewFromWidget(
-    widget.title,
-    widget.queries[index],
-    selection,
-    widget.displayType
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
+  const discoverLocation = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) && widget.widgetType
+      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      : undefined
   );
-  const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
 
   // Pull a max of 3 valid Y-Axis from the widget
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
@@ -242,9 +283,6 @@ export function getWidgetDiscoverUrl(
 
   // Visualization specific transforms
   switch (widget.displayType) {
-    case DisplayType.WORLD_MAP:
-      discoverLocation.query.display = DisplayModes.WORLDMAP;
-      break;
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
@@ -262,18 +300,23 @@ export function getWidgetDiscoverUrl(
   }
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
-  const fields = discoverLocation.query.field;
+  const fields =
+    Array.isArray(discoverLocation.query.field) || !discoverLocation.query.field
+      ? discoverLocation.query.field
+      : [discoverLocation.query.field];
+
   const query = widget.queries[0];
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
-  const equationFields = getFieldsFromEquations(queryFields);
+
   // Updates fields by adding any individual terms from equation fields as a column
-  equationFields.forEach(term => {
+  getFieldsFromEquations(queryFields).forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {
       fields.unshift(term);
     }
   });
+  discoverLocation.query.field = fields;
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
@@ -324,6 +367,40 @@ export function getWidgetReleasesUrl(
   return releasesLocation;
 }
 
+export function getWidgetMetricsUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+
+  // ensures that My Projects selection is properly handled
+  const project = selection.projects.length ? selection.projects : [0];
+
+  const metricsLocation = getMetricsUrl(organization.slug, {
+    ...datetime,
+    project,
+    environment: selection.environments,
+    widgets: _widget.queries.map(query => {
+      const parsed = parseField(query.aggregates[0]);
+
+      return {
+        mri: parsed?.mri,
+        aggregation: parsed?.aggregation,
+        groupBy: query.columns,
+        query: query.conditions ?? '',
+        displayType: getMetricDisplayType(_widget.displayType),
+      } satisfies Partial<MetricsWidget>;
+    }),
+  });
+
+  return metricsLocation;
+}
+
 export function flattenErrors(
   data: ValidationError | string,
   update: FlatValidationError
@@ -355,7 +432,7 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        dataset: 'metricsEnhanced',
+        dataset: DiscoverDatasets.METRICS_ENHANCED,
       }
     : {};
 }
@@ -412,7 +489,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
       );
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
-          parsedCondition.type === Token.Filter &&
+          parsedCondition.type === Token.FILTER &&
           parsedCondition.key?.text === 'transaction'
       );
       return transactionSelected || transactionUsedInFilter;
@@ -422,7 +499,8 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.projects) &&
+    dashboard.projects &&
+    dashboard.projects.length === 0 &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -517,8 +595,8 @@ export function getCurrentPageFilters(
       project === undefined || project === null
         ? []
         : typeof project === 'string'
-        ? [Number(project)]
-        : project.map(Number),
+          ? [Number(project)]
+          : project.map(Number),
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,
@@ -535,5 +613,64 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
   });
-  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
+  return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
+
+export function dashboardFiltersToString(
+  dashboardFilters: DashboardFilters | null | undefined
+): string {
+  let dashboardFilterConditions = '';
+  if (dashboardFilters) {
+    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+      if (activeFilters.length === 1) {
+        dashboardFilterConditions += `${key}:"${activeFilters[0]}" `;
+      } else if (activeFilters.length > 1) {
+        dashboardFilterConditions += `${key}:[${activeFilters
+          .map(f => `"${f}"`)
+          .join(',')}] `;
+      }
+    }
+  }
+  return dashboardFilterConditions;
+}
+
+export function connectDashboardCharts(groupName: string) {
+  connect?.(groupName);
+}
+
+export function hasDatasetSelector(organization: Organization): boolean {
+  return organization.features.includes('performance-discover-dataset-selector');
+}
+
+export function appendQueryDatasetParam(
+  organization: Organization,
+  queryDataset?: SavedQueryDatasets
+) {
+  if (hasDatasetSelector(organization) && queryDataset) {
+    return {queryDataset: queryDataset};
+  }
+  return {};
+}
+
+/**
+ * Checks if the widget is using the performance_score aggregate
+ */
+export function isUsingPerformanceScore(widget: Widget) {
+  if (widget.queries.length === 0) {
+    return false;
+  }
+  return widget.queries.some(_doesWidgetUsePerformanceScore);
+}
+
+function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
+  if (query.conditions?.includes('performance_score')) {
+    return true;
+  }
+  if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
+    return true;
+  }
+
+  return false;
+}
+
+export const performanceScoreTooltip = t('peformance_score is not supported in Discover');

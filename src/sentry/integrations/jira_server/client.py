@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
+from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
@@ -35,7 +43,6 @@ class JiraServerClient(ApiClient):
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
-    EMAIL_URL = "/rest/api/3/user/email"
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
@@ -46,47 +53,41 @@ class JiraServerClient(ApiClient):
     # lets the user make their second jira issue with cached data.
     cache_time = 240
 
-    def __init__(self, base_url, credentials, verify_ssl, logging_context=None):
-        self.base_url = base_url
-        self.credentials = credentials
-        super().__init__(verify_ssl, logging_context)
+    def __init__(
+        self,
+        integration: RpcIntegration | Integration,
+        identity: RpcIdentity,
+        logging_context: Any | None = None,
+    ):
+        self.base_url = integration.metadata["base_url"]
+        self.identity = identity
+        super().__init__(
+            integration_id=integration.id,
+            verify_ssl=integration.metadata["verify_ssl"],
+            logging_context=logging_context,
+        )
 
     def get_cache_prefix(self):
         return "sentry-jira-server:"
 
-    def request_hook(self, method, path, data, params, **kwargs):
-        """
-        Used by Jira Client to apply the jira-server authentication
-        Which is RSA signed OAuth1
-        """
-        if "auth" not in kwargs:
-            kwargs["auth"] = OAuth1(
-                client_key=self.credentials["consumer_key"],
-                rsa_key=self.credentials["private_key"],
-                resource_owner_key=self.credentials["access_token"],
-                resource_owner_secret=self.credentials["access_token_secret"],
-                signature_method=SIGNATURE_RSA,
-                signature_type="auth_header",
-            )
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        return self.authorize_request(prepared_request=prepared_request)
 
-        request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, data=data, params=params))
-        return request_spec
-
-    def request(self, method, path, data=None, params=None, **kwargs):
-        """
-        Use the request_hook method for our specific style of Jira to
-        add authentication data and transform parameters.
-        """
-        request_spec = self.request_hook(method, path, data, params, **kwargs)
-        if "headers" not in request_spec:
-            request_spec["headers"] = {}
-
-        # Force adherence to the GDPR compliant API conventions.
-        # See
-        # https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
-        request_spec["headers"]["x-atlassian-force-account-id"] = "true"
-        return self._request(**request_spec)
+    def authorize_request(self, prepared_request: PreparedRequest):
+        """Jira Server authorizes with RSA-signed OAuth1 scheme"""
+        if not self.identity:
+            return prepared_request
+        auth_scheme = OAuth1(
+            client_key=self.identity.data["consumer_key"],
+            rsa_key=self.identity.data["private_key"],
+            resource_owner_key=self.identity.data["access_token"],
+            resource_owner_secret=self.identity.data["access_token_secret"],
+            signature_method=SIGNATURE_RSA,
+            signature_type="auth_header",
+            decoding=None,
+        )
+        prepared_request.prepare_auth(auth=auth_scheme)
+        return prepared_request
 
     def user_id_get_param(self):
         return "username"
@@ -115,7 +116,9 @@ class JiraServerClient(ApiClient):
     def update_comment(self, issue_key, comment_id, comment):
         return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
-    def get_projects_list(self):
+    def get_projects_list(self, cached: bool = True):
+        if not cached:
+            return self.get(self.PROJECT_URL)
         return self.get_cached(self.PROJECT_URL)
 
     def get_issue_types(self, project_id):
@@ -139,6 +142,21 @@ class JiraServerClient(ApiClient):
         return self.get_cached(self.VERSIONS_URL % project)
 
     def get_priorities(self):
+        """
+        XXX(schew2381): There is an existing bug where we fetch and show all project priorities instead of scoping
+        them to the selected project. This is fine when manually creating a Jira Server issue b/c we surface that
+        the selected priority is not available. However for the alert rule action, you can save the action with an
+        invalid priority for the chosen project. We surface this issue externally in our docs:
+        https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-alert-not-creating-jira-issues
+
+        We are limited by the Jira Server API b/c fetching priorities requires global/project admin permissions.
+        There is currently no workaround for this!
+
+        Please DO NOT attempt to use the following APIs:
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/priorityschemes-getPrioritySchemes
+        https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme-getAssignedPriorityScheme
+
+        """
         return self.get_cached(self.PRIORITIES_URL)
 
     def get_users_for_project(self, project):
@@ -176,7 +194,9 @@ class JiraServerClient(ApiClient):
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
-        return self.post(self.TRANSITION_URL % issue_key, {"transition": {"id": transition_id}})
+        return self.post(
+            self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
+        )
 
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()
@@ -187,10 +207,6 @@ class JiraServerClient(ApiClient):
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
-
-    def get_email(self, account_id):
-        user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
-        return user.get("email")
 
     def get_field_autocomplete(self, name, value):
         if name.startswith(CUSTOMFIELD_PREFIX):
@@ -216,6 +232,7 @@ class JiraServerSetupClient(ApiClient):
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "jira_server_setup"
 
+    @control_silo_function
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
         self.base_url = base_url
         self.consumer_key = consumer_key
@@ -253,6 +270,7 @@ class JiraServerSetupClient(ApiClient):
             rsa_key=self.private_key,
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         url = self.access_token_url.format(self.base_url)
         resp = self.post(url, auth=auth, allow_text=True)
@@ -266,6 +284,7 @@ class JiraServerSetupClient(ApiClient):
             resource_owner_secret=credentials["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
 
         # Create a JWT token that we can add to the webhook URL
@@ -289,5 +308,6 @@ class JiraServerSetupClient(ApiClient):
                 rsa_key=self.private_key,
                 signature_method=SIGNATURE_RSA,
                 signature_type="auth_header",
+                decoding=None,
             )
         return self._request(*args, **kwargs)

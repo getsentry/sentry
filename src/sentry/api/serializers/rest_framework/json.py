@@ -1,7 +1,6 @@
-from django.utils.translation import ugettext_lazy as _
+import orjson
+from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import Field, ValidationError
-
-from sentry.utils import json
 
 # JSONField taken from Django rest framework version 3.9.0
 # See https://github.com/encode/django-rest-framework/blob/0eb2dc1137189027cc8d638630fb1754b02d6cfa/rest_framework/fields.py
@@ -14,7 +13,7 @@ class JSONField(Field):
 
     def to_internal_value(self, data):
         try:
-            json.dumps(data)
-        except (TypeError, ValueError):
+            orjson.dumps(data)
+        except (TypeError, ValueError, orjson.JSONEncodeError):
             raise ValidationError(self.default_error_messages["invalid"])
         return data

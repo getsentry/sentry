@@ -1,11 +1,12 @@
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -25,7 +26,8 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import PageLayout, {ChildProps} from '../pageLayout';
+import type {ChildProps} from '../pageLayout';
+import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
 
@@ -55,7 +57,7 @@ function TransactionEvents(props: Props) {
       location={location}
       organization={organization}
       projects={projects}
-      tab={Tab.Events}
+      tab={Tab.EVENTS}
       getDocumentTitle={getDocumentTitle}
       generateEventView={generateEventView}
       childComponent={EventsContentWrapper}
@@ -95,13 +97,10 @@ function EventsContentWrapper(props: ChildProps) {
   const onChangeSpanOperationBreakdownFilter = (
     newFilter: SpanOperationBreakdownFilter
   ) => {
-    trackAdvancedAnalyticsEvent(
-      'performance_views.transactionEvents.ops_filter_dropdown.selection',
-      {
-        organization,
-        action: newFilter as string,
-      }
-    );
+    trackAnalytics('performance_views.transactionEvents.ops_filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
 
     // Check to see if the current table sort matches the EventsDisplayFilter.
     // If it does, we can re-sort using the new SpanOperationBreakdownFilter
@@ -109,7 +108,7 @@ function EventsContentWrapper(props: ChildProps) {
       eventsDisplayFilterName
     ].sort;
     const currentSort = eventView?.sorts?.[0];
-    let sortQuery = {};
+    let sortQuery: Record<string, string> = {};
 
     if (
       eventsFilterOptionSort?.kind === currentSort?.kind &&
@@ -124,7 +123,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...sortQuery,
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
     browserHistory.push({
@@ -134,7 +133,7 @@ function EventsContentWrapper(props: ChildProps) {
   };
 
   const onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
-    trackAdvancedAnalyticsEvent(
+    trackAnalytics(
       'performance_views.transactionEvents.display_filter_dropdown.selection',
       {
         organization,
@@ -147,7 +146,7 @@ function EventsContentWrapper(props: ChildProps) {
       ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilterName === EventsDisplayFilterName.p100) {
+    if (newFilterName === EventsDisplayFilterName.P100) {
       delete nextQuery.showTransaction;
     }
 
@@ -247,7 +246,7 @@ function generateEventView({
     'timestamp',
   ];
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.None) {
+  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);

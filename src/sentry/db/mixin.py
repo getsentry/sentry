@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, FrozenSet
+from typing import Any
 from uuid import uuid4
 
-from django.db import transaction
+from django.db import router, transaction
 
-from sentry.db.models.manager import M
-from sentry.models import OrganizationOption
+from sentry.db.models.manager.types import M
+from sentry.models.options.organization_option import OrganizationOption
 
 logger = logging.getLogger("sentry.deletions")
 
@@ -18,7 +18,7 @@ def delete_pending_deletion_option(instance: M, **kwargs: Any) -> None:
 
 
 class PendingDeletionMixin:
-    _rename_fields_on_pending_delete: FrozenSet[str] = frozenset()
+    _rename_fields_on_pending_delete: frozenset[str] = frozenset()
 
     def build_pending_deletion_key(self) -> str:
         return f"pending-delete:{self.__class__.__name__}:{self.id}"
@@ -46,7 +46,7 @@ class PendingDeletionMixin:
         if extra_fields_to_save:
             fields = list(fields) + extra_fields_to_save
 
-        with transaction.atomic():
+        with transaction.atomic(router.db_for_write(type(self))):
             self.save(update_fields=fields)
             OrganizationOption.objects.update_or_create(
                 organization_id=self.organization_id,

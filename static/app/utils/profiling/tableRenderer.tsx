@@ -1,6 +1,6 @@
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
-import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
+import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 
 interface TableHeadProps<K> {
@@ -18,7 +18,7 @@ export function renderTableHead<K>({
   sortableColumns,
   onClick,
 }: TableHeadProps<K>) {
-  return (column: GridColumnOrder<K>, _columnIndex: number) => {
+  return function (column: GridColumnOrder<K>, _columnIndex: number) {
     return (
       <SortLink
         onClick={e => onClick?.(column, e)}

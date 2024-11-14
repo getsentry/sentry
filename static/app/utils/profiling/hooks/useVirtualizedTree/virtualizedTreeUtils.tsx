@@ -1,13 +1,13 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
-import {
+import type {
   TreeLike,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import type {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
+import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
-import {VirtualizedState} from './useVirtualizedTreeReducer';
+import type {VirtualizedState} from './useVirtualizedTreeReducer';
 
 export function updateGhostRow({
   element,
@@ -270,9 +270,11 @@ export function computeVirtualizedTreeNodeScrollTop(
     rowHeight,
     scrollHeight,
     currentScrollTop,
+    maxScrollableHeight,
   }: {
     currentScrollTop: number;
     index: number;
+    maxScrollableHeight: number;
     rowHeight: number;
     scrollHeight: number;
   },
@@ -285,7 +287,18 @@ export function computeVirtualizedTreeNodeScrollTop(
   }
 
   if (block === 'center') {
-    return newPosition - scrollHeight / 2 + rowHeight;
+    // The return value is bounded between 0 and the maximum scroll
+    // distance from the top (calculated by subtracting the max scroll
+    // height from the total height of the scrollable area). This is
+    // to ensure that the scroll position is never negative or greater
+    // than allowed.
+    return Math.max(
+      Math.min(
+        newPosition - scrollHeight / 2 + rowHeight,
+        maxScrollableHeight - scrollHeight
+      ),
+      0
+    );
   }
 
   if (block === 'end') {

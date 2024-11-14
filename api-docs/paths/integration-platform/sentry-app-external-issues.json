@@ -1,8 +1,8 @@
 {
   "post": {
     "tags": ["Integration"],
-    "description": "Create an external issue from an integration platform integration.",
-    "operationId": "Create an External Issue",
+    "description": "Create or update an external issue from an integration platform integration.",
+    "operationId": "Create or update an External Issue",
     "parameters": [
       {
         "name": "uuid",
@@ -56,7 +56,13 @@
           "application/json": {
             "schema": {
               "type": "object",
-              "required": ["id", "issueId", "serviceType", "displayName", "webUrl"],
+              "required": [
+                "id",
+                "issueId",
+                "serviceType",
+                "displayName",
+                "webUrl"
+              ],
               "properties": {
                 "id": {
                   "type": "string"

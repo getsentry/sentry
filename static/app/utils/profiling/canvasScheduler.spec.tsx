@@ -1,4 +1,5 @@
-import {CanvasScheduler, FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
+import type {FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
+import {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 
 const handlers: (keyof FlamegraphEvents)[] = [
   'reset zoom',
@@ -142,7 +143,7 @@ describe('CanvasScheduler', () => {
     scheduler.registerAfterFrameCallback(drawAfterFn);
 
     for (const [key, handler] of handlerFns) {
-      // @ts-ignore register all handlers
+      // @ts-expect-error register all handlers
       scheduler.on(key, handler);
     }
     scheduler.dispose();

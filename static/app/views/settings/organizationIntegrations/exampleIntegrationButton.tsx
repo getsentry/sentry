@@ -1,8 +1,9 @@
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {IntegrationView} from 'sentry/utils/analytics/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {
   platformEventLinkMap,
   PlatformEvents,
@@ -24,10 +25,10 @@ function ExampleIntegrationButton({
   ...buttonProps
 }: ExampleIntegrationButtonProps) {
   return (
-    <Button
+    <LinkButton
       size="sm"
       external
-      href={platformEventLinkMap[PlatformEvents.EXAMPLE_SOURCE]}
+      href={platformEventLinkMap[PlatformEvents.EXAMPLE_SOURCE] ?? ''}
       onClick={() => {
         trackIntegrationAnalytics(PlatformEvents.EXAMPLE_SOURCE, {
           organization,
@@ -38,7 +39,7 @@ function ExampleIntegrationButton({
       {...buttonProps}
     >
       {t('View Example App')}
-    </Button>
+    </LinkButton>
   );
 }
 export default withOrganization(ExampleIntegrationButton);

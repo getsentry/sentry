@@ -1,12 +1,15 @@
 /* global global */
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 describe('AddIntegrationButton', function () {
-  const provider = TestStubs.GitHubIntegrationProvider();
+  const provider = GitHubIntegrationProviderFixture();
 
-  it('Opens the setup dialog on click', function () {
+  it('Opens the setup dialog on click', async function () {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global
@@ -16,11 +19,11 @@ describe('AddIntegrationButton', function () {
       <AddIntegrationButton
         provider={provider}
         onAddIntegration={jest.fn()}
-        organization={TestStubs.Organization()}
+        organization={OrganizationFixture()}
       />
     );
 
-    userEvent.click(screen.getByLabelText('Add integration'));
+    await userEvent.click(screen.getByLabelText('Add integration'));
     expect(open.mock.calls).toHaveLength(1);
     expect(focus.mock.calls).toHaveLength(1);
     expect(open.mock.calls[0][2]).toBe(

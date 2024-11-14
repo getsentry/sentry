@@ -1,13 +1,11 @@
-from freezegun import freeze_time
-
-from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 @freeze_time()
-@region_silo_test
 class TeamUnresolvedIssueAgeEndpointTest(APITestCase):
     endpoint = "sentry-api-0-team-unresolved-issue-age"
 

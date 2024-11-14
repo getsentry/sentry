@@ -1,19 +1,22 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
-import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  EnhancedProcessedSpanType,
+  RawSpanType,
+} from 'sentry/components/events/interfaces/spans/types';
 import {
   boundsGenerator,
   generateRootSpan,
   parseTrace,
 } from 'sentry/components/events/interfaces/spans/utils';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 
 describe('SpanTreeModel', () => {
-  const api: Client = new Client();
+  const api = new MockApiClient();
 
   const event = {
     id: '2b658a829a21496b87fd1f14a61abf65',
@@ -47,7 +50,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/organizations/?member=1',
             },
@@ -65,7 +68,7 @@ describe('SpanTreeModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/internal/health/',
             },
@@ -79,9 +82,9 @@ describe('SpanTreeModel', () => {
             parent_span_id: 'a453cc713e5baf9c',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
         ],
@@ -90,47 +93,50 @@ describe('SpanTreeModel', () => {
     ],
   } as unknown as EventTransaction;
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
-    body: {
-      ...event,
-      contexts: {
-        trace: {
-          trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
-          span_id: 'a5702f287954a9ef',
-          parent_span_id: 'b23703998ae619e7',
-          op: 'something',
-          status: 'unknown',
-          type: 'trace',
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/events/project:19c403a10af34db2b7d93ad669bb51ed/',
+      body: {
+        ...event,
+        contexts: {
+          trace: {
+            trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
+            span_id: 'a5702f287954a9ef',
+            parent_span_id: 'b23703998ae619e7',
+            op: 'something',
+            status: 'unknown',
+            type: 'trace',
+          },
         },
+        entries: [
+          {
+            data: [
+              {
+                timestamp: 1622079937.227645,
+                start_timestamp: 1622079936.90689,
+                description: 'something child',
+                op: 'child',
+                span_id: 'bcbea9f18a11e161',
+                parent_span_id: 'a5702f287954a9ef',
+                trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
+                status: 'ok',
+                data: {},
+              },
+            ],
+            type: EntryType.SPANS,
+          },
+        ],
       },
-      entries: [
-        {
-          data: [
-            {
-              timestamp: 1622079937.227645,
-              start_timestamp: 1622079936.90689,
-              description: 'something child',
-              op: 'child',
-              span_id: 'bcbea9f18a11e161',
-              parent_span_id: 'a5702f287954a9ef',
-              trace_id: '61d2d7c5acf448ffa8e2f8f973e2cd36',
-              status: 'ok',
-              data: {},
-            },
-          ],
-          type: EntryType.SPANS,
-        },
-      ],
-    },
-  });
+    });
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/sentry/events/project:broken/',
-    body: {
-      ...event,
-    },
-    statusCode: 500,
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry/events/project:broken/',
+      body: {
+        ...event,
+      },
+      statusCode: 500,
+    });
   });
 
   it('makes children', () => {
@@ -161,7 +167,7 @@ describe('SpanTreeModel', () => {
                 'http.status_code': '200',
               },
               data: {
-                method: 'GET',
+                'http.method': 'GET',
                 type: 'fetch',
                 url: '/api/0/organizations/?member=1',
               },
@@ -240,7 +246,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/organizations/?member=1',
           },
@@ -271,7 +277,7 @@ describe('SpanTreeModel', () => {
             'http.status_code': '200',
           },
           data: {
-            method: 'GET',
+            'http.method': 'GET',
             type: 'fetch',
             url: '/api/0/internal/health/',
           },
@@ -298,9 +304,9 @@ describe('SpanTreeModel', () => {
           parent_span_id: 'a453cc713e5baf9c',
           trace_id: '8cbbc19c0f54447ab702f00263262726',
           data: {
-            'Decoded Body Size': 159248,
-            'Encoded Body Size': 159248,
-            'Transfer Size': 275,
+            'http.decoded_response_content_length': 159248,
+            'http.response_content_length': 159248,
+            'http.response_transfer_size': 275,
           },
         },
         numOfSpanChildren: 0,
@@ -547,7 +553,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -557,8 +563,9 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 5; i++) {
-      event2.entries[0].data.push(spanTemplate);
+      data.push(spanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);
@@ -628,7 +635,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -638,8 +645,9 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 4; i++) {
-      event2.entries[0].data.push(spanTemplate);
+      data.push(spanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);
@@ -704,7 +712,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -723,7 +731,7 @@ describe('SpanTreeModel', () => {
         'http.status_code': '200',
       },
       data: {
-        method: 'GET',
+        'http.method': 'GET',
         type: 'fetch',
         url: '/api/0/internal/health/',
       },
@@ -733,15 +741,16 @@ describe('SpanTreeModel', () => {
       throw new Error('event2.entries[0].data is not an array');
     }
 
+    const data = event2.entries[0].data as RawSpanType[];
     for (let i = 0; i < 7; i++) {
-      event2.entries[0].data.push(groupableSpanTemplate);
+      data.push(groupableSpanTemplate);
     }
 
     // This span should not get grouped with the others
-    event2.entries[0].data.push(normalSpanTemplate);
+    data.push(normalSpanTemplate);
 
     for (let i = 0; i < 5; i++) {
-      event2.entries[0].data.push(groupableSpanTemplate);
+      data.push(groupableSpanTemplate);
     }
 
     const parsedTrace = parseTrace(event2);

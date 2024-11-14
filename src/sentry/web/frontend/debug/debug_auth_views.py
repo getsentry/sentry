@@ -1,13 +1,12 @@
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.models import User
+from sentry.users.models.user import User
 from sentry.web.helpers import render_to_response
 
 
 class DebugAuthConfirmIdentity(View):
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         auth_identity = {"id": "bar@example.com", "email": "bar@example.com"}
         return render_to_response(
             "sentry/auth-confirm-identity.html",
@@ -23,12 +22,13 @@ class DebugAuthConfirmIdentity(View):
 
 
 class DebugAuthConfirmLink(View):
-    def get(self, request: Request) -> Response:
-        auth_identity = {"id": "bar@example.com", "email": "bar@example.com"}
+    def get(self, request: HttpRequest) -> HttpResponse:
+        auth_identity = {"id": "bar@example.com", "email": "test1@example.com"}
         return render_to_response(
             "sentry/auth-confirm-link.html",
             context={
-                "existing_user": User(email="foo@example.com"),
+                "provider": "Okta",
+                "existing_user": User(email="test1@example.com", avatar_type=2),
                 "identity": auth_identity,
                 "identity_display_name": auth_identity["email"],
                 "identity_identifier": auth_identity["id"],

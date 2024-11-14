@@ -1,11 +1,10 @@
-from freezegun import freeze_time
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
 
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class GroupStatsTest(APITestCase):
     @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):
@@ -13,10 +12,11 @@ class GroupStatsTest(APITestCase):
         group1 = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).isoformat(),
             },
             project_id=self.project.id,
         ).group
+        assert group1 is not None
 
         url = f"/api/0/issues/{group1.id}/stats/"
 
@@ -25,7 +25,7 @@ class GroupStatsTest(APITestCase):
                 self.store_event(
                     data={
                         "fingerprint": [fingerprint],
-                        "timestamp": iso_format(before_now(minutes=5)),
+                        "timestamp": before_now(minutes=5).isoformat(),
                     },
                     project_id=self.project.id,
                 )

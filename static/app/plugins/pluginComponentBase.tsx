@@ -24,7 +24,7 @@ type State = {state: FormState};
 
 class PluginComponentBase<
   P extends Props = Props,
-  S extends State = State
+  S extends State = State,
 > extends Component<P, S> {
   constructor(props: P, context: any) {
     super(props, context);
@@ -105,7 +105,7 @@ class PluginComponentBase<
       },
       () => {
         addLoadingMessage(t('Saving changes\u2026'));
-        callback && callback();
+        callback?.();
       }
     );
   }
@@ -116,7 +116,7 @@ class PluginComponentBase<
       {
         state: FormState.READY,
       },
-      () => callback && callback()
+      () => callback?.()
     );
 
     window.clearTimeout(this.successMessageTimeout);
@@ -131,7 +131,7 @@ class PluginComponentBase<
       {
         state: FormState.ERROR,
       },
-      () => callback && callback()
+      () => callback?.()
     );
 
     window.clearTimeout(this.errorMessageTimeout);
@@ -143,7 +143,7 @@ class PluginComponentBase<
   onSaveComplete(callback, ...args) {
     clearIndicators();
     callback = callbackWithArgs(this, callback, ...args);
-    callback && callback();
+    callback?.();
   }
 
   renderField(props: Omit<GenericFieldProps, 'formState'>): React.ReactNode {

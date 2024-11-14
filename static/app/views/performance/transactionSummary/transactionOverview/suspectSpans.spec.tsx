@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
 import {
@@ -14,11 +16,8 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import SuspectSpans from 'sentry/views/performance/transactionSummary/transactionOverview/suspectSpans';
 
 function initializeData({query} = {query: {}}) {
-  const features = ['performance-view', 'performance-suspect-spans-view'];
-  const organization = TestStubs.Organization({
-    features,
-    projects: [TestStubs.Project()],
-  });
+  const features = ['performance-view'];
+  const organization = OrganizationFixture({features});
   const initialData = initializeOrg({
     organization,
     router: {
@@ -30,11 +29,10 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
-    project: 1,
     projects: [],
   });
 
-  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(initialData.projects));
   return {
     ...initialData,
     eventView: EventView.fromLocation(initialData.router.location),
@@ -67,7 +65,7 @@ describe('SuspectSpans', function () {
               eventView={initialData.eventView}
               projectId="1"
               transactionName="Test Transaction"
-              totals={{'count()': 1, 'sum(transaction.duration)': 1000}}
+              totals={{'count()': 1}}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
@@ -79,7 +77,7 @@ describe('SuspectSpans', function () {
       expect(await screen.findByText('Span Name')).toBeInTheDocument();
       expect(await screen.findByText('Frequency')).toBeInTheDocument();
       expect(await screen.findByText('P75 Self Time')).toBeInTheDocument();
-      expect(await screen.findByText('Total Self Time %')).toBeInTheDocument();
+      expect(await screen.findByText('Total Self Time')).toBeInTheDocument();
     });
 
     // Due to the createHref being stubbed out (see link below),

@@ -1,5 +1,9 @@
-from sentry.rules.conditions.level import LevelCondition, MatchType
+from sentry.rules.conditions.level import LevelCondition
+from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class LevelConditionTest(RuleTestCase):
@@ -50,6 +54,8 @@ class LevelConditionTest(RuleTestCase):
         eevent = self.store_event(data={"level": "error"}, project_id=self.project.id)
         wevent = self.store_event(data={"level": "warning"}, project_id=self.project.id)
         assert wevent.event_id != eevent.event_id
+        assert eevent.group is not None
+        assert wevent.group is not None
         assert wevent.group.id == eevent.group.id
 
         rule = self.get_rule(data={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})

@@ -1,11 +1,9 @@
-from sentry.models import ProjectCodeOwners
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
 
-@region_silo_test(stable=True)
 class ProjectCodeOwnersTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectCodeOwners.get_cache_key(self.project.id))
@@ -69,6 +67,7 @@ class ProjectCodeOwnersTestCase(TestCase):
 
         code_owners = ProjectCodeOwners.objects.filter(project=self.project)
         merged = ProjectCodeOwners.merge_code_owners_list(code_owners_list=code_owners)
+        assert merged is not None
 
         assert merged.schema == {
             "$version": 1,

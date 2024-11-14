@@ -6,16 +6,19 @@ import orderBy from 'lodash/orderBy';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {IconAdd, IconEllipsis} from 'sentry/icons';
+import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
@@ -41,32 +44,32 @@ type CreateNewSavedSearchButtonProps = Pick<
 
 const MAX_SHOWN_SEARCHES = 4;
 
-const SavedSearchItemDescription = ({
+function SavedSearchItemDescription({
   savedSearch,
-}: Pick<SavedSearchItemProps, 'savedSearch'>) => {
+}: Pick<SavedSearchItemProps, 'savedSearch'>) {
   if (savedSearch.isGlobal) {
     return <SavedSearchItemQuery>{savedSearch.query}</SavedSearchItemQuery>;
   }
 
   return (
     <SavedSearchItemVisbility>
-      {savedSearch.visibility === SavedSearchVisibility.Organization
+      {savedSearch.visibility === SavedSearchVisibility.ORGANIZATION
         ? t('Anyone in organization can see but not edit')
         : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
   );
-};
+}
 
-const SavedSearchItem = ({
+function SavedSearchItem({
   organization,
   onSavedSearchSelect,
   savedSearch,
-}: SavedSearchItemProps) => {
+}: SavedSearchItemProps) {
   const {mutate: deleteSavedSearch} = useDeleteSavedSearchOptimistic();
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
   const canEdit =
-    savedSearch.visibility === SavedSearchVisibility.Owner || hasOrgWriteAccess;
+    savedSearch.visibility === SavedSearchVisibility.OWNER || hasOrgWriteAccess;
 
   const actions: MenuItemProps[] = [
     {
@@ -131,7 +134,7 @@ const SavedSearchItem = ({
       )}
     </SearchListItem>
   );
-};
+}
 
 function CreateNewSavedSearchButton({
   organization,
@@ -139,7 +142,7 @@ function CreateNewSavedSearchButton({
   sort,
 }: CreateNewSavedSearchButtonProps) {
   const onClick = () => {
-    trackAdvancedAnalyticsEvent('search.saved_search_open_create_modal', {
+    trackAnalytics('search.saved_search_open_create_modal', {
       organization,
     });
     openModal(deps => (
@@ -148,31 +151,27 @@ function CreateNewSavedSearchButton({
   };
 
   return (
-    <Button
-      aria-label={t('Create a new saved search')}
-      onClick={onClick}
-      icon={<IconAdd size="sm" />}
-      borderless
-      size="sm"
-    />
+    <Button onClick={onClick} priority="link" size="sm">
+      {t('Add saved search')}
+    </Button>
   );
 }
 
-const SavedIssueSearches = ({
+function SavedIssueSearches({
   organization,
   onSavedSearchSelect,
   query,
   sort,
-}: SavedIssueSearchesProps) => {
+}: SavedIssueSearchesProps) {
   const theme = useTheme();
-  const [isOpen] = useSyncedLocalStorageState(
+  const [isOpen, setIsOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
@@ -182,7 +181,7 @@ const SavedIssueSearches = ({
     return null;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <StyledSidebar>
         <LoadingIndicator />
@@ -215,8 +214,16 @@ const SavedIssueSearches = ({
       <Fragment>
         <HeadingContainer>
           <Heading>{t('Saved Searches')}</Heading>
-          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+          <Button
+            aria-label={t('Collapse sidebar')}
+            borderless
+            onClick={() => setIsOpen(false)}
+            icon={<IconClose />}
+          />
         </HeadingContainer>
+        <CreateSavedSearchWrapper>
+          <CreateNewSavedSearchButton {...{organization, query, sort}} />
+        </CreateSavedSearchWrapper>
         <SearchesContainer>
           {shownOrgSavedSearches.map(item => (
             <SavedSearchItem
@@ -260,7 +267,7 @@ const SavedIssueSearches = ({
       )}
     </StyledSidebar>
   );
-};
+}
 
 const StyledSidebar = styled('aside')`
   grid-area: saved-searches;
@@ -296,6 +303,11 @@ const Heading = styled('h2')`
   margin: 0;
 `;
 
+const CreateSavedSearchWrapper = styled('div')`
+  padding: 0 ${space(2)};
+  margin-bottom: ${space(1)};
+`;
+
 const SearchesContainer = styled('ul')`
   padding: 0;
   margin-bottom: ${space(1)};
@@ -306,7 +318,7 @@ const StyledItemButton = styled(Button)`
   width: 100%;
   text-align: left;
   height: auto;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
@@ -317,6 +329,7 @@ const StyledItemButton = styled(Button)`
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
+  display: block;
   position: absolute;
   top: 12px;
   right: ${space(1)};
@@ -380,7 +393,7 @@ const SavedSearchItemQuery = styled('div')`
 
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.5)} ${space(2)};
 
   &:hover {

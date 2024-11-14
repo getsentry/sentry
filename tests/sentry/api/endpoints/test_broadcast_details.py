@@ -1,9 +1,9 @@
-from sentry.models import Broadcast, BroadcastSeen
-from sentry.testutils import APITestCase
+from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BroadcastDetailsTest(APITestCase):
     def test_simple(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)
@@ -22,7 +22,7 @@ class BroadcastDetailsTest(APITestCase):
         assert response.status_code == 404
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class BroadcastUpdateTest(APITestCase):
     def test_regular_user(self):
         broadcast1 = Broadcast.objects.create(message="bar", is_active=True)

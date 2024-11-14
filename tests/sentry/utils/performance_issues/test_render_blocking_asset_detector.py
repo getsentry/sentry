@@ -1,26 +1,29 @@
-import unittest
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
+from sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector import (
     RenderBlockingAssetSpanDetector,
+)
+from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def _valid_render_blocking_asset_event(url: str) -> Event:
-    event = {
+def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
+    return {
         "event_id": "a" * 16,
         "project": PROJECT_ID,
         "measurements": {
@@ -35,9 +38,9 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
                 desc=url,
                 duration=1000.0,
                 data={
-                    "Transfer Size": 1200000,
-                    "Encoded Body Size": 1200000,
-                    "Decoded Body Size": 2000000,
+                    "http.response_transfer_size": 1200000,
+                    "http.response_content_length": 1200000,
+                    "http.decoded_response_content_length": 2000000,
                     "resource.render_blocking_status": "blocking",
                 },
             ),
@@ -49,24 +52,22 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
         },
         "transaction": "/",
     }
-    return event
 
 
-def find_problems(settings, event: Event) -> List[PerformanceProblem]:
+def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = RenderBlockingAssetSpanDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
 @pytest.mark.django_db
-class RenderBlockingAssetDetectorTest(unittest.TestCase):
+class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
     def find_problems(self, event):
-        return find_problems(self.settings, event)
+        return find_problems(self._settings, event)
 
     def test_detects_render_blocking_asset(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
@@ -79,8 +80,36 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = RenderBlockingAssetSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"large_render_blocking_asset_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = RenderBlockingAssetSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_if_resource_overlaps_fcp(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
@@ -112,7 +141,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
         for span in event["spans"]:
             if span["op"] == "resource.script":
-                span["data"]["Encoded Body Size"] = 900000
+                span["data"]["http.response_content_length"] = 400000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):
@@ -127,7 +156,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         for span in event["spans"]:
             if span["op"] == "resource.script":
                 # This is a real value we saw in production.
-                span["data"]["Encoded Body Size"] = 18446744073709552000
+                span["data"]["http.response_content_length"] = 18446744073709552000
         assert self.find_problems(event) == []
 
     def test_detects_if_render_blocking_status_is_missing(self):
@@ -144,6 +173,13 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={
+                    "op": "resource.script",
+                    "parent_span_ids": [],
+                    "cause_span_ids": [],
+                    "offender_span_ids": ["bbbbbbbbbbbbbbbb"],
+                },
+                evidence_display=[],
             )
         ]
 
@@ -155,6 +191,7 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
         assert self.find_problems(event) == []
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     "expected,first_url,second_url",
     [
@@ -196,6 +233,18 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             "/foo-6a7a65d8bf641868d8683022a5b62f54.js",
             "/bar-9aa723de2aa141eeb2e61a2c6bbf0d53.js",
         ),
+        # same file, trailing double hash
+        (
+            True,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/foo-7753eadb.362e3029.js",
+        ),
+        # different file, trailing double hash
+        (
+            False,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/bar-7753eadb.362e3029.js",
+        ),
         # filename is just a hash
         (
             True,
@@ -225,6 +274,54 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             True,
             "/6a7a65d8-bf64-1868-d868-3022a5b62f54.js",
             "/9aa723de-2aa1-41ee-b2e6-1a2c6bbf0d53.js",
+        ),
+        # dot-separated version number, same file
+        (
+            True,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/foo.js",
+        ),
+        # dot-separated version number, different file
+        (
+            False,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/bar.js",
+        ),
+        # version number without dots, same file
+        (
+            True,
+            "/v1/foo.js",
+            "/v20220301115713/foo.js",
+        ),
+        # version number without dots, different file
+        (
+            False,
+            "/v1/foo.js",
+            "/v20220301115713/bar.js",
+        ),
+        # same path, numeric filename
+        (
+            True,
+            "/foo/1.js",
+            "/foo/23.js",
+        ),
+        # same path, numeric filename, different extension
+        (
+            False,
+            "/foo/1.css",
+            "/foo/23.js",
+        ),
+        # different path, numeric filename
+        (
+            False,
+            "/foo/1.js",
+            "/bar/23.js",
+        ),
+        # same path, partially numeric filename
+        (
+            False,
+            "/foo/bar1.js",
+            "/foo/bar2.js",
         ),
     ],
 )

@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import SavedSearch
+from sentry.models.savedsearch import SavedSearch
 
 
 @register(SavedSearch)
 class SavedSearchSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "type": obj.type,

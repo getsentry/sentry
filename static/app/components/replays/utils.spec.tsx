@@ -1,45 +1,17 @@
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
+import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
 import {
   countColumns,
-  divide,
-  flattenSpans,
-  formatTime,
-  getCrumbsByColumn,
-  relativeTimeInMs,
-  showPlayerTime,
+  findVideoSegmentIndex,
+  flattenFrames,
+  getFramesByColumn,
 } from 'sentry/components/replays/utils';
-import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import type {ReplaySpan} from 'sentry/views/replays/types';
+import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
-
-function createSpan(span: Partial<ReplaySpan>): ReplaySpan {
-  return {
-    data: {},
-    ...span,
-  } as ReplaySpan;
-}
-
-function createCrumb({timestamp}: Pick<Crumb, 'timestamp'>): Crumb {
-  return {
-    timestamp,
-    color: 'white',
-    description: 'crumb description',
-    id: 1,
-    type: BreadcrumbType.DEFAULT,
-    data: {},
-    level: BreadcrumbLevelType.DEBUG,
-  };
-}
-
-describe('formatTime', () => {
-  it.each([
-    ['seconds', 15 * 1000, '00:15'],
-    ['minutes', 2.5 * 60 * 1000, '02:30'],
-    ['hours', 75 * 60 * 1000, '01:15:00'],
-  ])('should format a %s long duration into a string', (_desc, duration, expected) => {
-    expect(formatTime(duration)).toEqual(expected);
-  });
-});
 
 describe('countColumns', () => {
   it('should divide 27s by 2700px to find twentyseven 1s columns, with some fraction remaining', () => {
@@ -100,30 +72,45 @@ describe('countColumns', () => {
   });
 });
 
-describe('getCrumbsByColumn', () => {
-  const startTimestampMs = 1649945987326; // milliseconds
+describe('getFramesByColumn', () => {
   const durationMs = 25710; // milliseconds
-  const CRUMB_1 = createCrumb({timestamp: '2022-04-14T14:19:47.326000Z'});
-  const CRUMB_2 = createCrumb({timestamp: '2022-04-14T14:19:49.249000Z'});
-  const CRUMB_3 = createCrumb({timestamp: '2022-04-14T14:19:51.512000Z'});
-  const CRUMB_4 = createCrumb({timestamp: '2022-04-14T14:19:57.326000Z'});
-  const CRUMB_5 = createCrumb({timestamp: '2022-04-14T14:20:13.036000Z'});
+
+  const {
+    errorFrames: [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
+    feedbackFrames: [],
+  } = hydrateErrors(
+    ReplayRecordFixture({
+      started_at: new Date('2022-04-14T14:19:47.326000Z'),
+    }),
+    [
+      RawReplayErrorFixture({
+        timestamp: new Date('2022-04-14T14:19:47.326000Z'),
+      }),
+      RawReplayErrorFixture({
+        timestamp: new Date('2022-04-14T14:19:49.249000Z'),
+      }),
+      RawReplayErrorFixture({
+        timestamp: new Date('2022-04-14T14:19:51.512000Z'),
+      }),
+      RawReplayErrorFixture({
+        timestamp: new Date('2022-04-14T14:19:57.326000Z'),
+      }),
+      RawReplayErrorFixture({
+        timestamp: new Date('2022-04-14T14:20:13.036000Z'),
+      }),
+    ]
+  );
 
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(startTimestampMs, durationMs, [], columnCount);
+    const columns = getFramesByColumn(durationMs, [], columnCount);
     const expectedEntries = [];
     expect(columns).toEqual(new Map(expectedEntries));
   });
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(
-      startTimestampMs,
-      durationMs,
-      [CRUMB_1, CRUMB_5],
-      columnCount
-    );
+    const columns = getFramesByColumn(durationMs, [CRUMB_1, CRUMB_5], columnCount);
     expect(columns).toEqual(
       new Map([
         [1, [CRUMB_1]],
@@ -135,8 +122,7 @@ describe('getCrumbsByColumn', () => {
   it('should group crumbs by bucket', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
-    const columns = getCrumbsByColumn(
-      startTimestampMs,
+    const columns = getFramesByColumn(
       durationMs,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
@@ -151,139 +137,220 @@ describe('getCrumbsByColumn', () => {
   });
 });
 
-describe('flattenSpans', () => {
+describe('flattenFrames', () => {
   it('should return an empty array if there ar eno spans', () => {
-    expect(flattenSpans([])).toStrictEqual([]);
+    expect(flattenFrames([])).toStrictEqual([]);
   });
 
   it('should return the FlattenedSpanRange for a single span', () => {
-    const span = createSpan({
-      op: 'span',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    expect(flattenSpans([span])).toStrictEqual([
+    const frames = hydrateSpans(ReplayRecordFixture(), [
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+    ]);
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should return two non-overlapping spans', () => {
-    const span1 = createSpan({
-      op: 'span1',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 60,
-      endTimestamp: 90,
-    });
+    const frames = hydrateSpans(ReplayRecordFixture(), [
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(60000),
+        endTimestamp: new Date(90000),
+      }),
+    ]);
 
-    expect(flattenSpans([span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 10000,
       },
       {
         duration: 30000,
         endTimestamp: 90000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 60000,
       },
     ]);
   });
 
   it('should merge two overlapping spans', () => {
-    const span1 = createSpan({
-      op: 'span1',
-      data: {},
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 20,
-      endTimestamp: 40,
-    });
+    const frames = hydrateSpans(ReplayRecordFixture(), [
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(20000),
+        endTimestamp: new Date(40000),
+      }),
+    ]);
 
-    expect(flattenSpans([span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should merge overlapping spans that are not first in the list', () => {
-    const span0 = createSpan({
-      op: 'span0',
-      startTimestamp: 0,
-      endTimestamp: 1,
-    });
-    const span1 = createSpan({
-      op: 'span1',
-      startTimestamp: 10,
-      endTimestamp: 30,
-    });
-    const span2 = createSpan({
-      op: 'span2',
-      startTimestamp: 20,
-      endTimestamp: 40,
-    });
+    const frames = hydrateSpans(ReplayRecordFixture(), [
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(0),
+        endTimestamp: new Date(1000),
+      }),
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(10000),
+        endTimestamp: new Date(30000),
+      }),
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        startTimestamp: new Date(20000),
+        endTimestamp: new Date(40000),
+      }),
+    ]);
 
-    expect(flattenSpans([span0, span1, span2])).toStrictEqual([
+    expect(flattenFrames(frames)).toStrictEqual([
       {
         duration: 1000,
         endTimestamp: 1000,
-        spanCount: 1,
+        frameCount: 1,
         startTimestamp: 0,
       },
       {
         duration: 30000,
         endTimestamp: 40000,
-        spanCount: 2,
+        frameCount: 2,
         startTimestamp: 10000,
       },
     ]);
   });
+});
 
-  const diffMs = 1652309918676;
-  describe('relativeTimeinMs', () => {
-    it('returns relative time in MS', () => {
-      expect(relativeTimeInMs('2022-05-11T23:04:27.576000Z', diffMs)).toEqual(348900);
-    });
+describe('findVideoSegmentIndex', () => {
+  const segments = [
+    {
+      id: 0,
+      timestamp: 0,
+      duration: 5000,
+    },
+    // no gap
+    {
+      id: 1,
+      timestamp: 5000,
+      duration: 5000,
+    },
+    {
+      id: 2,
+      timestamp: 10_001,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 3,
+      timestamp: 20_000,
+      duration: 5000,
+    },
+    // 5 second gap
+    {
+      id: 4,
+      timestamp: 30_000,
+      duration: 5000,
+    },
+    {
+      id: 5,
+      timestamp: 35_002,
+      duration: 5000,
+    },
+  ];
+  const trackList = segments.map(
+    ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+  );
 
-    it('returns invalid date if date string is malformed', () => {
-      expect(relativeTimeInMs('202223:04:27.576000Z', diffMs)).toEqual(NaN);
-    });
+  it.each([
+    ['matches starting timestamp', 0, 0],
+    ['matches ending timestamp', 5000, 0],
+    ['is inside of a segment (between timestamps)', 7500, 1],
+    ['matches ending timestamp', 15_001, 2],
+    ['is not inside of a segment', 16_000, 2],
+    ['matches starting timestamp', 20_000, 3],
+    ['is not inside of a segment', 27_500, 3],
+    ['is not inside of a segment', 29_000, 3],
+    ['is inside of a segment', 34_999, 4],
+    ['is inside of a segment', 40_002, 5],
+    ['is after the last segment', 50_000, 5],
+  ])(
+    'should find correct segment when target timestamp %s (%s)',
+    (_desc, targetTimestamp, expected) => {
+      expect(findVideoSegmentIndex(trackList, segments, targetTimestamp)).toEqual(
+        expected
+      );
+    }
+  );
+
+  it('returns first segment if target timestamp is before the first segment when there is only a single attachment', () => {
+    const segments2 = [
+      {
+        id: 0,
+        timestamp: 5000,
+        duration: 5000,
+      },
+    ];
+    const trackList2 = segments2.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
   });
 
-  describe('showPlayerTime', () => {
-    it('returns time formatted for player', () => {
-      expect(showPlayerTime('2022-05-11T23:04:27.576000Z', diffMs)).toEqual('05:48');
-    });
-
-    it('returns 0:00 if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z', diffMs)).toEqual('00:00');
-    });
-  });
-
-  describe('divide', () => {
-    it('divides numbers safely', () => {
-      expect(divide(81, 9)).toEqual(9);
-    });
-
-    it('dividing by zero returns zero', () => {
-      expect(divide(81, 0)).toEqual(0);
-    });
+  it('returns first segment if target timestamp is before the first segment', () => {
+    const segments2 = [
+      {
+        id: 0,
+        timestamp: 5000,
+        duration: 5000,
+      },
+      {
+        id: 1,
+        timestamp: 10000,
+        duration: 5000,
+      },
+      {
+        id: 2,
+        timestamp: 15000,
+        duration: 5000,
+      },
+      {
+        id: 3,
+        timestamp: 25000,
+        duration: 5000,
+      },
+    ];
+    const trackList2 = segments2.map(
+      ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
+    );
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
   });
 });

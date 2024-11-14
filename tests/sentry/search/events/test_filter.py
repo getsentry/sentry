@@ -9,29 +9,26 @@ from snuba_sdk.function import Function
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.models.release import SemverFilter
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.exceptions import InvalidSearchQuery
+from sentry.models.releases.util import SemverFilter
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import (
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
     SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.events.fields import (
-    DiscoverFunction,
-    FunctionArg,
-    InvalidSearchQuery,
-    with_default,
-)
+from sentry.search.events.fields import DiscoverFunction, FunctionArg, with_default
 from sentry.search.events.filter import (
     _semver_build_filter_converter,
     _semver_filter_converter,
     _semver_package_filter_converter,
     parse_semver,
 )
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import OPERATOR_TO_FUNCTION, Dataset
+from sentry.utils.snuba import OPERATOR_TO_FUNCTION
 
 
 # Helper functions to make reading the expected output from the boolean tests easier to read. #
@@ -104,13 +101,15 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 1 argument\(s\)",
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 3 argument\(s\)",
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -123,13 +122,15 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_w_optionals\(\): expected at least 1 argument\(s\) but got 0 argument\(s\)",
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with pytest.raises(
-            InvalidSearchQuery, match=r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery,
+            match=r"fn_w_optionals\(\): expected at most 2 argument\(s\) but got 3 argument\(s\)",
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
@@ -197,8 +198,8 @@ class DiscoverFunctionTest(unittest.TestCase):
         assert fn.is_accessible(["fn"]) is True
 
 
-class BaseSemverConverterTest:
-    key = None
+class BaseSemverConverterTest(TestCase):
+    key: str
 
     def converter(self, *args, **kwargs):
         raise NotImplementedError
@@ -225,7 +226,7 @@ class BaseSemverConverterTest:
         assert set(converted[2]) == set(expected_releases)
 
 
-class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
+class SemverFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_ALIAS
 
     def converter(self, *args, **kwargs):
@@ -380,7 +381,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest, TestCase):
         )
 
 
-class SemverPackageFilterConverterTest(BaseSemverConverterTest, TestCase):
+class SemverPackageFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_PACKAGE_ALIAS
 
     def converter(self, *args, **kwargs):
@@ -420,8 +421,17 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest, TestCase):
             project_id=[self.project.id, project_2.id],
         )
 
+    def test_in(self):
+        release_1 = self.create_release(version="foo@1.0.0.0")
+        release_2 = self.create_release(version="bar@1.2.0.0")
+        self.run_test("IN", ["foo"], "IN", [release_1.version])
+        self.run_test("IN", ["foo", "bar"], "IN", [release_1.version, release_2.version])
+        self.run_test(
+            "IN", ["foo", "bar", "notathing"], "IN", [release_1.version, release_2.version]
+        )
 
-class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
+
+class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_BUILD_ALIAS
 
     def converter(self, *args, **kwargs):
@@ -1144,8 +1154,10 @@ def _project(x):
 def test_snql_boolean_search(description, query, expected_where, expected_having):
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": [1]}
-    query_filter = UnresolvedQuery(dataset, params)
-    where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+    query_filter = UnresolvedQuery(
+        dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
+    )
+    where, having = query_filter.resolve_conditions(query)
     assert where == expected_where, description
     assert having == expected_having, description
 
@@ -1218,9 +1230,11 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
 def test_snql_malformed_boolean_search(description, query, expected_message):
     dataset = Dataset.Discover
     params: ParamsType = {}
-    query_filter = UnresolvedQuery(dataset, params)
+    query_filter = UnresolvedQuery(
+        dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
+    )
     with pytest.raises(InvalidSearchQuery) as error:
-        where, having = query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = query_filter.resolve_conditions(query)
     assert str(error.value) == expected_message, description
 
 
@@ -1239,17 +1253,19 @@ class SnQLBooleanSearchQueryTest(TestCase):
             "organization_id": self.organization.id,
             "project_id": [self.project1.id, self.project2.id],
         }
-        self.query_filter = UnresolvedQuery(dataset, params)
+        self.query_filter = UnresolvedQuery(
+            dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
+        )
 
     def test_project_or(self):
         query = f"project:{self.project1.slug} OR project:{self.project2.slug}"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [Or(conditions=[_project(self.project1.id), _project(self.project2.id)])]
         assert having == []
 
     def test_project_and_with_parens(self):
         query = f"(project:{self.project1.slug} OR project:{self.project2.slug}) AND a:b"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             And(
                 conditions=[
@@ -1262,7 +1278,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 
     def test_project_or_with_nested_ands(self):
         query = f"(project:{self.project1.slug} AND a:b) OR (project:{self.project1.slug} AND c:d)"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             Or(
                 conditions=[
@@ -1281,11 +1297,11 @@ class SnQLBooleanSearchQueryTest(TestCase):
             ),
         ):
             query = f"project:{self.project1.slug} OR project:{self.project3.slug}"
-            self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+            self.query_filter.resolve_conditions(query)
 
     def test_issue_id_or(self):
         query = f"issue.id:{self.group1.id} OR issue.id:{self.group2.id}"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             Or(
                 conditions=[
@@ -1298,7 +1314,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 
     def test_issue_id_and(self):
         query = f"issue.id:{self.group1.id} AND issue.id:{self.group1.id}"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             And(
                 conditions=[
@@ -1311,7 +1327,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 
     def test_issue_id_or_with_parens(self):
         query = f"(issue.id:{self.group1.id} AND issue.id:{self.group2.id}) OR issue.id:{self.group3.id}"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             Or(
                 conditions=[
@@ -1329,19 +1345,19 @@ class SnQLBooleanSearchQueryTest(TestCase):
 
     def test_issue_id_and_tag(self):
         query = f"issue.id:{self.group1.id} AND a:b"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [And(conditions=[_cond("group_id", Op.EQ, self.group1.id), _tag("a", "b")])]
         assert having == []
 
     def test_issue_id_or_tag(self):
         query = f"issue.id:{self.group1.id} OR a:b"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [Or(conditions=[_cond("group_id", Op.EQ, self.group1.id), _tag("a", "b")])]
         assert having == []
 
     def test_issue_id_or_with_parens_and_tag(self):
         query = f"(issue.id:{self.group1.id} AND a:b) OR issue.id:{self.group2.id}"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             Or(
                 conditions=[
@@ -1354,7 +1370,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
 
     def test_issue_id_or_with_parens_and_multiple_tags(self):
         query = f"(issue.id:{self.group1.id} AND a:b) OR c:d"
-        where, having = self.query_filter.resolve_conditions(query, use_aggregate_conditions=True)
+        where, having = self.query_filter.resolve_conditions(query)
         assert where == [
             Or(
                 conditions=[

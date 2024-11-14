@@ -1,16 +1,16 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
-import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
+import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -168,7 +168,9 @@ const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(52, 60, 69, 0.2),
+    0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
   background-color: ${p => p.theme.background};
   width: 220px;
@@ -251,7 +253,7 @@ const RadioLabel = styled('label')`
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

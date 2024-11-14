@@ -1,65 +1,72 @@
-from typing import Callable, List, cast
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
 from uuid import uuid4
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
-from sentry.models import ProjectOption
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
     create_span,
     get_event,
 )
-from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import NPlusOneAPICallsDetector
+from sentry.utils.performance_issues.base import DetectorType, parameterize_url
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsDetector,
     without_query_params,
 )
 from sentry.utils.performance_issues.performance_detection import (
-    DetectorType,
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = NPlusOneAPICallsDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = NPlusOneAPICallsDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_event(self, description_maker: Callable[[int], str]) -> Event:
-        duration_threshold = (
-            self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["duration_threshold"] + 1
-        )
-        count = self.settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
+    def create_event(self, description_maker: Callable[[int], str]) -> dict[str, Any]:
+        total_duration = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["total_duration"] + 1
+        count = self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] + 1
         hash = uuid4().hex[:16]
 
-        event = cast(
-            Event,
-            create_event(
-                [
-                    create_span(
-                        "http.client",
-                        duration_threshold,
-                        description_maker(i),
-                        hash=hash,
-                    )
-                    for i in range(count)
-                ]
-            ),
+        return create_event(
+            [
+                create_span(
+                    "http.client",
+                    total_duration / count,
+                    description_maker(i),
+                    hash=hash,
+                )
+                for i in range(count)
+            ]
         )
 
-        return event
+    def create_eligible_spans(self, duration: float, count: int) -> list:
+        spans = []
+
+        for i in range(count):
+            spans.append(
+                create_span(
+                    "http.client",
+                    duration,
+                    f"GET /api/0/organizations/books?book_id={i}",
+                    f"hash{i}",
+                )
+            )
+
+        return spans
 
     def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
@@ -100,9 +107,86 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                     "a34089b08b6d0646",
                     "950801c0d7576650",
                 ],
+                evidence_data={
+                    "op": "http.client",
+                    "parent_span_ids": ["a0c39078d1570b00"],
+                    "cause_span_ids": [],
+                    "offender_span_ids": [
+                        "ba198ace55bdb20f",
+                        "8a20c71faa0fb6a7",
+                        "9269c825d935b33a",
+                        "9ea82f759505e0f3",
+                        "8c55019639e94ab3",
+                        "9b86746e9cc7fbf0",
+                        "806aa31fe1874495",
+                        "bf409b62d9c30197",
+                        "896ac7d28addb37f",
+                        "9c859aeaf6bfaea9",
+                        "950d8f569bbe3d9e",
+                        "b19a2811b457e87a",
+                        "b566d4ce5b46d4f0",
+                        "b33e9da4441a4800",
+                        "8b68818410aa45d8",
+                        "8ac4e73b53fc2077",
+                        "9fe4a1aff019e39e",
+                        "b29cd0c0cd85ae85",
+                        "b3ff0062caa3ea51",
+                        "a3fde2e38a66cc2c",
+                        "b78802cd80762f57",
+                        "9e2ea4d33b1c1bc6",
+                        "bb827dc7a11085f4",
+                        "a34089b08b6d0646",
+                        "950801c0d7576650",
+                    ],
+                },
+                evidence_display=[],
             )
         ]
         assert problems[0].title == "N+1 API Call"
+
+    def test_does_not_detect_problems_with_low_total_duration_of_spans(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["spans"] = self.create_eligible_spans(
+            100, 10
+        )  # total duration is 1s, greater than default
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+
+        event["spans"] = self.create_eligible_spans(
+            10, 5
+        )  # total duration is 50ms, lower than default
+
+        problems = self.find_problems(event)
+        assert problems == []
+
+    def test_detects_problems_with_low_span_duration_high_total_duration(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["spans"] = self.create_eligible_spans(100, 10)  # total duration is 1s
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+
+        event["spans"] = self.create_eligible_spans(10, 50)  # total duration is 500ms
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+
+    def test_does_not_detect_problems_with_low_span_count(self):
+        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
+        event["spans"] = self.create_eligible_spans(
+            1000, self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"]
+        )
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+
+        event["spans"] = self.create_eligible_spans(
+            1000, self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"] - 1
+        )
+
+        problems = self.find_problems(event)
+        assert problems == []
 
     def test_does_not_detect_problem_with_unparameterized_urls(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-weather-app")
@@ -111,38 +195,6 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
-
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
-
-        detector = NPlusOneAPICallsDetector(self.settings, event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-n-plus-one-api-calls-detector": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
-
-    def test_respects_project_option(self):
-        project = self.create_project()
-        event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
-        event["project_id"] = project.id
-
-        settings = get_detection_settings(project.id)
-        detector = NPlusOneAPICallsDetector(settings, event)
-
-        assert detector.is_creation_allowed_for_project(project)
-
-        ProjectOption.objects.set_value(
-            project=project,
-            key="sentry:performance_issue_settings",
-            value={"n_plus_one_api_calls_detection_rate": 0.0},
-        )
-
-        settings = get_detection_settings(project.id)
-        detector = NPlusOneAPICallsDetector(settings, event)
-
-        assert not detector.is_creation_allowed_for_project(project)
 
     def test_fingerprints_events(self):
         event = self.create_event(lambda i: "GET /clients/11/info")
@@ -278,7 +330,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
     ],
 )
 def test_parameterizes_url(url, parameterized_url):
-    r = NPlusOneAPICallsDetector.parameterize_url(url)
+    r = parameterize_url(url)
     assert r == parameterized_url
 
 
@@ -343,7 +395,7 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
-            "description": "GET http://service.io/resource",
+            "description": "GET /resource.js",
             "hash": "a",
             "data": {"url": "/resource.js"},
         },
@@ -352,6 +404,16 @@ def test_allows_eligible_spans(span):
             "op": "http.client",
             "description": "GET http://service.io/resource?graphql=somequery",
             "hash": "a",
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
+            "description": "GET http://service.io/resource",  # New JS SDK removes query string from description
+            "hash": "a",
+            "data": {
+                "http.query": "graphql=somequery",
+                "url": "http://service.io/resource",
+            },
         },
         {
             "span_id": "a",

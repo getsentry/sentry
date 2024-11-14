@@ -5,7 +5,7 @@ from django import forms
 from sentry.rules.actions.integrations.base import INTEGRATION_KEY
 
 
-class IntegrationNotifyServiceForm(forms.Form):  # type: ignore
+class IntegrationNotifyServiceForm(forms.Form):
     integration = forms.ChoiceField(choices=(), widget=forms.Select())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

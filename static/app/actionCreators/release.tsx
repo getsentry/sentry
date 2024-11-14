@@ -5,10 +5,11 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import type {Deploy, Release} from 'sentry/types/release';
+import {ReleaseStatus} from 'sentry/types/release';
 
 type ParamsGet = {
   orgSlug: string;
@@ -96,7 +97,7 @@ export function archiveRelease(api: Client, params: ParamsGet) {
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
       method: 'POST',
       data: {
-        status: ReleaseStatus.Archived,
+        status: ReleaseStatus.ARCHIVED,
         projects: [],
         version: releaseVersion,
       },
@@ -124,7 +125,7 @@ export function restoreRelease(api: Client, params: ParamsGet) {
     .requestPromise(`/organizations/${orgSlug}/releases/`, {
       method: 'POST',
       data: {
-        status: ReleaseStatus.Active,
+        status: ReleaseStatus.ACTIVE,
         projects: [],
         version: releaseVersion,
       },

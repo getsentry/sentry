@@ -1,10 +1,14 @@
 import datetime
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
+from requests import PreparedRequest
+
 from sentry.integrations.client import ApiClient
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -44,49 +48,40 @@ class JiraCloudClient(ApiClient):
     # lets the user make their second jira issue with cached data.
     cache_time = 240
 
-    def __init__(self, base_url, shared_secret, verify_ssl, logging_context=None):
-        self.base_url = base_url
-        self.shared_secret = shared_secret
-        super().__init__(verify_ssl, logging_context)
+    def __init__(
+        self,
+        integration: RpcIntegration,
+        verify_ssl: bool,
+        logging_context: Any | None = None,
+    ):
+        self.base_url = integration.metadata.get("base_url")
+        self.shared_secret = integration.metadata.get("shared_secret")
+        super().__init__(
+            integration_id=integration.id,
+            verify_ssl=verify_ssl,
+            logging_context=logging_context,
+        )
 
-    def get_cache_prefix(self):
-        return "sentry-jira-2:"
-
-    def request_hook(self, method, path, data, params, **kwargs):
-        """
-        Used by Jira Client to apply the jira-cloud authentication
-        """
-        # handle params that are already part of the path
+    def finalize_request(self, prepared_request: PreparedRequest):
+        path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
-        url_params.update(params or {})
         path = path.split("?")[0]
-
         jwt_payload = {
             "iss": JIRA_KEY,
             "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
-            "qsh": get_query_hash(path, method.upper(), url_params),
+            "qsh": get_query_hash(
+                uri=path,
+                method=prepared_request.method.upper(),
+                query_params=url_params,
+            ),
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        params = dict(jwt=encoded_jwt, **(url_params or {}))
-        request_spec = kwargs.copy()
-        request_spec.update(dict(method=method, path=path, data=data, params=params))
-        return request_spec
+        prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
+        return prepared_request
 
-    def request(self, method, path, data=None, params=None, **kwargs):
-        """
-        Use the request_hook method for our specific style of Jira to
-        add authentication data and transform parameters.
-        """
-        request_spec = self.request_hook(method, path, data, params, **kwargs)
-        if "headers" not in request_spec:
-            request_spec["headers"] = {}
-
-        # Force adherence to the GDPR compliant API conventions.
-        # See
-        # https://developer.atlassian.com/cloud/jira/platform/deprecation-notice-user-privacy-api-migration-guide
-        request_spec["headers"]["x-atlassian-force-account-id"] = "true"
-        return self._request(**request_spec)
+    def get_cache_prefix(self):
+        return "sentry-jira-2:"
 
     def user_id_get_param(self):
         """
@@ -201,7 +196,9 @@ class JiraCloudClient(ApiClient):
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
-        return self.post(self.TRANSITION_URL % issue_key, {"transition": {"id": transition_id}})
+        return self.post(
+            self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
+        )
 
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()

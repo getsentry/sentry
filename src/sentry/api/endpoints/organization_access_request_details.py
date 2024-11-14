@@ -1,14 +1,22 @@
-from django.db import IntegrityError, transaction
+import logging
+
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import OrganizationAccessRequest, OrganizationMemberTeam
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
+logger = logging.getLogger(__name__)
 
 
 class AccessRequestPermission(OrganizationPermission):
@@ -43,7 +51,12 @@ class AccessRequestSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
-    permission_classes = [AccessRequestPermission]
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.ENTERPRISE
+    permission_classes = (AccessRequestPermission,)
 
     # TODO(dcramer): this should go onto AccessRequestPermission
     def _can_access(self, request: Request, access_request):
@@ -63,34 +76,45 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         """
-        Get list of requests to join org/team
-
+        Get a list of requests to join org/team.
+        If any requests are redundant (user already joined the team), they are not returned.
         """
         if request.access.has_scope("org:write"):
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    team__organization=organization, member__user__is_active=True
-                ).select_related("team", "member__user")
+                    team__organization=organization,
+                    member__user_is_active=True,
+                    member__user_id__isnull=False,
+                ).select_related("team", "member")
             )
 
         elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
-                    member__user__is_active=True,
+                    member__user_is_active=True,
+                    member__user_id__isnull=False,
                     team__id__in=request.access.team_ids_with_membership,
-                ).select_related("team", "member__user")
+                ).select_related("team", "member")
             )
         else:
             # Return empty response if user does not have access
             return Response([])
 
-        return Response(serialize(access_requests, request.user))
+        teams_by_user = OrganizationMember.objects.get_teams_by_user(organization=organization)
+
+        # We omit any requests which are now redundant (i.e. the user joined that team some other way)
+        valid_access_requests = [
+            access_request
+            for access_request in access_requests
+            if access_request.member.user_id is not None
+            and access_request.team_id not in teams_by_user[access_request.member.user_id]
+        ]
+
+        return Response(serialize(valid_access_requests, request.user))
 
     def put(self, request: Request, organization, request_id) -> Response:
         """
         Approve or deny a request
-
-        Approve or deny a request.
 
             {method} {path}
 
@@ -115,7 +139,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
 
         if is_approved:
             try:
-                with transaction.atomic():
+                with transaction.atomic(router.db_for_write(OrganizationMemberTeam)):
                     omt = OrganizationMemberTeam.objects.create(
                         organizationmember=access_request.member, team=access_request.team
                     )
@@ -126,7 +150,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                     request=request,
                     organization=organization,
                     target_object=omt.id,
-                    target_user=access_request.member.user,
+                    target_user_id=access_request.member.user_id,
                     event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
                     data=omt.get_audit_log_data(),
                 )

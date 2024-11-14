@@ -1,10 +1,8 @@
-from typing import List, Optional
-
 BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 BASE32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 
-def _encode(number, alphabet):
+def _encode(number: int, alphabet: str) -> str:
     if number == 0:
         return alphabet[0]
 
@@ -26,7 +24,7 @@ def _encode(number, alphabet):
     return "".join(rv)
 
 
-def _decode(number, alphabet):
+def _decode(number: str, alphabet: str) -> int:
     rv = 0
     inverse = False
 
@@ -44,27 +42,29 @@ def _decode(number, alphabet):
     return rv
 
 
-def base32_encode(number):
+def base32_encode(number: int) -> str:
     return _encode(number, BASE32_ALPHABET)
 
 
-def base32_decode(number):
+def base32_decode(number: str) -> int:
     number = number.upper().replace("O", "0").replace("I", "1").replace("L", "1")
     return _decode(number, BASE32_ALPHABET)
 
 
-def base36_encode(number):
+def base36_encode(number: int) -> str:
     return _encode(number, BASE36_ALPHABET)
 
 
-def base36_decode(s):
+def base36_decode(s: str) -> int:
     return int(s, 36)
 
 
 DEFAULT_UNITS = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 
 
-def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
+def format_bytes(
+    number: float, units: tuple[str, ...] = DEFAULT_UNITS, decimal_places: int = 2
+) -> str:
     block = 1024.0
     if number < block:
         return f"{number} {units[0]}"
@@ -74,10 +74,10 @@ def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
     while number >= block and u < max_unit:
         number /= block
         u += 1
-    return ("{:.%df} {}" % (decimal_places,)).format(number, units[u])
+    return f"{number:.{decimal_places}f} {units[u]}"
 
 
-def format_grouped_length(length: int, steps: Optional[List[int]] = None) -> str:
+def format_grouped_length(length: int, steps: list[int] | None = None) -> str:
     if steps is None:
         steps = [10, 100]
 
@@ -94,5 +94,11 @@ def format_grouped_length(length: int, steps: Optional[List[int]] = None) -> str
     return f">{steps[-1]}"
 
 
-def validate_bigint(value):
+def validate_bigint(value: object) -> bool:
     return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
+
+
+def clip(val: int, left: int, right: int) -> int:
+    val = max(left, val)
+    val = min(val, right)
+    return val

@@ -1,4 +1,4 @@
-from sentry.models import Group, GroupStatus
+from sentry.models.group import Group, GroupStatus
 
 
 def user_reports_filter_to_unresolved(user_reports):

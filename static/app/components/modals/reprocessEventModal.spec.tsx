@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -10,7 +12,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {ReprocessingEventModal} from 'sentry/components/modals/reprocessEventModal';
 
-const group = TestStubs.Group({
+const group = GroupFixture({
   id: '1337',
   pluginActions: [],
   pluginIssues: [],
@@ -19,11 +21,9 @@ const group = TestStubs.Group({
 describe('ReprocessEventModal', function () {
   it('form fields & info', function () {
     const {organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 
@@ -69,11 +69,9 @@ describe('ReprocessEventModal', function () {
 
   it('reprocess all events', async function () {
     const {organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 
@@ -105,7 +103,7 @@ describe('ReprocessEventModal', function () {
       screen.getByRole('spinbutton', {name: 'Number of events to be reprocessed'})
     ).toHaveAttribute('placeholder', 'Reprocess all events');
 
-    userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
 
     await waitFor(() => expect(window.location.reload).toHaveBeenCalled());
     expect(handleCloseModal).toHaveBeenCalled();

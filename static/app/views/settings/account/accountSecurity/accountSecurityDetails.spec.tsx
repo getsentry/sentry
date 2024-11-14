@@ -1,3 +1,10 @@
+import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
+import {
+  AllAuthenticatorsFixture,
+  AuthenticatorsFixture,
+} from 'sentry-fixture/authenticators';
+import {OrganizationsFixture} from 'sentry-fixture/organizations';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -14,64 +21,53 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecurityDetails', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
   describe('Totp', function () {
-    beforeAll(function () {
+    beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticatorsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: OrganizationsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
-        body: TestStubs.Authenticators().Totp(),
+        body: AuthenticatorsFixture().Totp(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmailsFixture(),
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      expect(screen.getByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
 
       // has created and last used dates
       expect(screen.getByText('Created at')).toBeInTheDocument();
@@ -87,41 +83,27 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
@@ -129,7 +111,7 @@ describe('AccountSecurityDetails', function () {
     it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: OrganizationsFixture({require2FA: true}),
       });
 
       const deleteMock = MockApiClient.addMockResponse({
@@ -140,91 +122,63 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can not remove last 2fa method when org requires 2fa', function () {
+    it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations({require2FA: true}),
+        body: OrganizationsFixture({require2FA: true}),
       });
 
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: [TestStubs.Authenticators().Totp()],
+        body: [AuthenticatorsFixture().Totp()],
       });
 
       const params = {
         authId: '15',
       };
 
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
     });
   });
 
@@ -232,60 +186,47 @@ describe('AccountSecurityDetails', function () {
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: ENDPOINT,
-        body: TestStubs.AllAuthenticators(),
+        body: AllAuthenticatorsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
-        body: TestStubs.Organizations(),
+        body: OrganizationsFixture(),
       });
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
-        body: TestStubs.Authenticators().Recovery(),
+        body: AuthenticatorsFixture().Recovery(),
       });
 
       MockApiClient.addMockResponse({
         url: ACCOUNT_EMAILS_ENDPOINT,
-        body: TestStubs.AccountEmails(),
+        body: AccountEmailsFixture(),
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
+      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });
@@ -300,37 +241,25 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Regenerate Codes'})
+      );
 
       renderGlobalModal();
 
@@ -340,18 +269,17 @@ describe('AccountSecurityDetails', function () {
         )
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('has copy, print and download buttons', function () {
+    it('has copy, print and download buttons', async function () {
       const params = {
         authId: '16',
       };
 
-      const {router, route, routerContext} = initializeOrg({
-        ...initializeOrg(),
+      const {router} = initializeOrg({
         router: {
           params,
         },
@@ -362,29 +290,16 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper
-          router={router}
-          location={router.location}
-          params={params}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        >
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            router={router}
-            location={router.location}
-            params={params}
-            routes={router.routes}
-            routeParams={router.params}
-            route={route}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
-      expect(screen.getByRole('button', {name: 'print'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'download'})).toHaveAttribute(
         'href',
@@ -393,7 +308,7 @@ describe('AccountSecurityDetails', function () {
 
       expect(screen.getByTestId('frame')).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'copy'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Copy'})).toBeInTheDocument();
     });
   });
 });

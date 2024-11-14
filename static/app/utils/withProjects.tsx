@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -15,12 +15,12 @@ function withProjects<P extends InjectedProjectsProps>(
 ) {
   type Props = Omit<P, keyof InjectedProjectsProps>;
 
-  const Wrapper: React.FC<Props> = props => {
+  function Wrapper(props: Props) {
     const {projects, initiallyLoaded} = useProjects();
     const loadingProjects = !initiallyLoaded;
 
     return <WrappedComponent {...(props as P)} {...{projects, loadingProjects}} />;
-  };
+  }
 
   Wrapper.displayName = `withProjects(${getDisplayName(WrappedComponent)})`;
 

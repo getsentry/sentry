@@ -1,24 +1,30 @@
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-// Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
-  replayRecord: {
-    tags: {
-      'browser.name': ['Chrome'],
-      'sdk.version': ['7.13.0', '7.13.2'],
+const mockReplay = ReplayReader.factory({
+  replayRecord: ReplayRecordFixture({
+    browser: {
+      name: 'Chrome',
+      version: '110.0.0',
     },
-  },
+    tags: {
+      foo: ['bar', 'baz'],
+      my_custom_tag: ['a wordy value'],
+    },
+  }),
+  errors: [],
+  fetching: false,
+  attachments: [],
 });
-
-const mockReplay = ReplayReader.factory(replayReaderParams);
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
-    <ReplayContextProvider replay={replay}>
+    <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
       <TagPanel />
     </ReplayContextProvider>
   );
@@ -31,6 +37,10 @@ describe('TagPanel', () => {
     expect(screen.getByTestId('replay-tags-loading-placeholder')).toBeInTheDocument();
   });
 
+  it('should snapshot empty state', () => {
+    renderComponent(null);
+  });
+
   it('should show the tags correctly inside ReplayTagsTableRow component with single item array', () => {
     renderComponent(mockReplay);
 
@@ -41,31 +51,39 @@ describe('TagPanel', () => {
   it('should show the tags correctly inside ReplayTagsTableRow component with multiple items array', () => {
     renderComponent(mockReplay);
 
-    expect(screen.getByText('sdk.version')).toBeInTheDocument();
-    expect(screen.getByText('7.13.0')).toBeInTheDocument();
-    expect(screen.getByText('7.13.2')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
+    expect(screen.getByText('baz')).toBeInTheDocument();
   });
 
-  it('should snaptshot empty state', async () => {
-    const {container} = renderComponent(null);
+  it('should link known tags to their proper field names and a valid search query', () => {
+    renderComponent(mockReplay);
 
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
+    expect(screen.getByText('bar').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=foo%3A%22bar%22'
+    );
+    expect(screen.getByText('baz').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=foo%3A%22baz%22'
+    );
   });
 
-  it('should snaptshot state with tags', async () => {
-    const {container} = renderComponent(mockReplay);
+  it('should link user-submitted tags to a valid search query', () => {
+    renderComponent(mockReplay);
 
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
+    expect(screen.getByText('a wordy value').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=my_custom_tag%3A%22a%20wordy%20value%22'
+    );
+  });
+
+  it('should snapshot state with tags', () => {
+    renderComponent(mockReplay);
   });
 
   it('should show not found message when no tags are found', () => {
-    if (mockReplay) {
-      mockReplay.getReplay = jest.fn().mockReturnValue({tags: {}});
-    }
+    mockReplay!.getReplay = jest.fn().mockReturnValue({tags: {}});
 
     renderComponent(mockReplay);
 

@@ -11,8 +11,7 @@ describe('FrameRegisters', function () {
       r12: '0x0000000000000000',
     };
 
-    const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    render(<FrameRegisters registers={registers} />);
   });
 
   it('should skip registers without a value', function () {
@@ -22,8 +21,7 @@ describe('FrameRegisters', function () {
       r12: '0x0000000000000000',
     };
 
-    const {container} = render(<FrameRegisters registers={registers} />);
-    expect(container).toSnapshot();
+    render(<FrameRegisters registers={registers} />);
   });
 });
 
@@ -37,9 +35,9 @@ describe('FrameRegistersValue', function () {
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={hexadecimalValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.queryByText(hexadecimalValue)).not.toBeInTheDocument();
       expect(screen.getByText(numericValue)).toBeInTheDocument();
     });
@@ -51,9 +49,9 @@ describe('FrameRegistersValue', function () {
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={numericValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.queryByText(hexadecimalValue)).not.toBeInTheDocument();
       expect(screen.getByText(numericValue)).toBeInTheDocument();
     });
@@ -67,9 +65,9 @@ describe('FrameRegistersValue', function () {
       expect(screen.getByText(unknownValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={unknownValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.getByText(unknownValue)).toBeInTheDocument();
     });
   });

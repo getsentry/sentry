@@ -1,16 +1,16 @@
+import urllib.parse
+
 from django.urls import reverse
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
-@region_silo_test
 class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -19,8 +19,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -35,7 +35,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -44,8 +44,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -64,7 +64,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_statperiod_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).isoformat()},
             project_id=project.id,
         )
 
@@ -73,8 +73,8 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
@@ -92,7 +92,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_start_end_query(self):
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).isoformat()},
             project_id=project.id,
         )
 
@@ -101,16 +101,21 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-project-tagkey-values",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "key": "foo",
             },
         )
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=14)), iso_format(before_now(seconds=1))
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=14).isoformat(),
+                    "end": before_now(seconds=1).isoformat(),
+                }
             )
         )
 
@@ -119,8 +124,13 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=16)), iso_format(before_now(days=14))
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=16).isoformat(),
+                    "end": before_now(days=14).isoformat(),
+                }
             )
         )
 

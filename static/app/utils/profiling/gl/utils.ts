@@ -1,16 +1,56 @@
 import {useLayoutEffect, useState} from 'react';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
+import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
+  FlamegraphRenderer,
+  FlamegraphRendererConstructor,
+} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import type {
+  UIFramesRenderer,
+  UIFramesRendererConstructor,
+} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
-import {CanvasPoolManager} from '../canvasScheduler';
-import {clamp} from '../colors/utils';
-import {FlamegraphCanvas} from '../flamegraphCanvas';
-import {SpanChartRenderer2D} from '../renderers/spansRenderer';
-import {SpanChartNode} from '../spanChart';
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[],
+  constructorArgs: ConstructorParameters<FlamegraphRendererConstructor>
+): FlamegraphRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: UIFramesRendererConstructor[],
+  constructorArgs: ConstructorParameters<UIFramesRendererConstructor>
+): UIFramesRenderer | null;
+export function initializeFlamegraphRenderer(
+  renderers: FlamegraphRendererConstructor[] | UIFramesRendererConstructor[],
+  constructorArgs:
+    | ConstructorParameters<FlamegraphRendererConstructor>
+    | ConstructorParameters<UIFramesRendererConstructor>
+): FlamegraphRenderer | UIFramesRenderer | null {
+  for (const renderer of renderers) {
+    let r: FlamegraphRenderer | UIFramesRenderer | null = null;
+    try {
+      // @ts-expect-error ts complains that constructor args are not of tuple
+      // type, even though they are.
+      r = new renderer(...constructorArgs);
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
+
+    // A renderer should only fail if the rendering context was unavailable
+    if (r && r.ctx !== null) {
+      return r;
+    }
+  }
+
+  return null;
+}
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -133,14 +173,11 @@ function onResize(entries: ResizeObserverEntry[]) {
     let width;
     let height;
     let dpr = window.devicePixelRatio;
-    // @ts-ignore use as a progressive enhancement, some browsers don't support this yet
     if (entry.devicePixelContentBoxSize) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      // @ts-ignore
       width = entry.devicePixelContentBoxSize[0].inlineSize;
-      // @ts-ignore
       height = entry.devicePixelContentBoxSize[0].blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
@@ -148,9 +185,9 @@ function onResize(entries: ResizeObserverEntry[]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-ignore
+        // @ts-expect-error
         width = entry.contentBoxSize.inlineSize;
-        // @ts-ignore
+        // @ts-expect-error
         height = entry.contentBoxSize.blockSize;
       }
     } else {
@@ -239,280 +276,15 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-// Utility class to manipulate a virtual rect element. Some of the implementations are based off
-// speedscope, however they are not 100% accurate and we've made some changes. It is important to
-// note that contructing a lot of these objects at draw time is expensive and should be avoided.
-export class Rect {
-  origin: vec2;
-  size: vec2;
-
-  constructor(x: number, y: number, width: number, height: number) {
-    this.origin = vec2.fromValues(x, y);
-    this.size = vec2.fromValues(width, height);
-  }
-
-  clone(): Rect {
-    return Rect.From(this);
-  }
-
-  isValid(): boolean {
-    return this.toMatrix().every(n => !isNaN(n));
-  }
-
-  isEmpty(): boolean {
-    return this.width === 0 && this.height === 0;
-  }
-
-  static Empty(): Rect {
-    return new Rect(0, 0, 0, 0);
-  }
-
-  static From(rect: Rect): Rect {
-    return new Rect(rect.x, rect.y, rect.width, rect.height);
-  }
-
-  get x(): number {
-    return this.origin[0];
-  }
-  get y(): number {
-    return this.origin[1];
-  }
-  get width(): number {
-    return this.size[0];
-  }
-  get height(): number {
-    return this.size[1];
-  }
-  get left(): number {
-    return this.x;
-  }
-  get right(): number {
-    return this.left + this.width;
-  }
-  get top(): number {
-    return this.y;
-  }
-  get bottom(): number {
-    return this.top + this.height;
-  }
-  get centerX(): number {
-    return this.x + this.width / 2;
-  }
-  get centerY(): number {
-    return this.y + this.height / 2;
-  }
-  get center(): vec2 {
-    return [this.centerX, this.centerY];
-  }
-
-  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
-    let maybeEncodedRect = query;
-
-    if (typeof query === 'string') {
-      maybeEncodedRect = query.split(',');
-    }
-
-    if (!Array.isArray(maybeEncodedRect)) {
-      return null;
-    }
-
-    if (maybeEncodedRect.length !== 4) {
-      return null;
-    }
-
-    const rect = new Rect(
-      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
-    );
-
-    if (rect.isValid()) {
-      return rect;
-    }
-
-    return null;
-  }
-
-  static encode(rect: Rect): string {
-    return rect.toString();
-  }
-
-  toString() {
-    return [this.x, this.y, this.width, this.height].map(n => Math.round(n)).join(',');
-  }
-
-  toMatrix(): mat3 {
-    const {width: w, height: h, x, y} = this;
-    // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
-    // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
-    // prettier-ignore
-    return mat3.fromValues(
-      w, 0, 0,
-      0, h, 0,
-      x, y, 1
-    )
-  }
-
-  hasIntersectionWith(other: Rect): boolean {
-    const top = Math.max(this.top, other.top);
-    const bottom = Math.max(top, Math.min(this.bottom, other.bottom));
-    if (bottom - top === 0) {
-      return false;
-    }
-
-    const left = Math.max(this.left, other.left);
-    const right = Math.max(left, Math.min(this.right, other.right));
-
-    if (right - left === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  containsX(vec: vec2): boolean {
-    return vec[0] >= this.left && vec[0] <= this.right;
-  }
-  containsY(vec: vec2): boolean {
-    return vec[1] >= this.top && vec[1] <= this.bottom;
-  }
-
-  contains(vec: vec2): boolean {
-    return this.containsX(vec) && this.containsY(vec);
-  }
-
-  containsRect(rect: Rect): boolean {
-    return (
-      this.left <= rect.left &&
-      rect.right <= this.right &&
-      this.top <= rect.top &&
-      rect.bottom <= this.bottom
-    );
-  }
-
-  leftOverlapsWith(rect: Rect): boolean {
-    return rect.left <= this.left && rect.right >= this.left;
-  }
-
-  rightOverlapsWith(rect: Rect): boolean {
-    return this.right >= rect.left && this.right <= rect.right;
-  }
-
-  overlapsX(other: Rect): boolean {
-    return this.left <= other.right && this.right >= other.left;
-  }
-
-  overlapsY(other: Rect): boolean {
-    return this.top <= other.bottom && this.bottom >= other.top;
-  }
-
-  overlaps(other: Rect): boolean {
-    return this.overlapsX(other) && this.overlapsY(other);
-  }
-
-  transformRect(transform: mat3 | Readonly<mat3>): Rect {
-    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
-    const y = this.x * transform[1] + this.y * transform[4] + transform[7];
-    const width = this.width * transform[0] + this.height * transform[3];
-    const height = this.width * transform[1] + this.height * transform[4];
-
-    return new Rect(
-      x + (width < 0 ? width : 0),
-      y + (height < 0 ? height : 0),
-      Math.abs(width),
-      Math.abs(height)
-    );
-  }
-
-  /**
-   * Returns a transform that inverts the y axis within the rect.
-   * This causes the bottom of the rect to be the top of the rect and vice versa.
-   */
-  invertYTransform(): mat3 {
-    return mat3.fromValues(1, 0, 0, 0, -1, 0, 0, this.y * 2 + this.height, 1);
-  }
-
-  withHeight(height: number): Rect {
-    return new Rect(this.x, this.y, this.width, height);
-  }
-
-  withWidth(width: number): Rect {
-    return new Rect(this.x, this.y, width, this.height);
-  }
-
-  withX(x: number): Rect {
-    return new Rect(x, this.y, this.width, this.height);
-  }
-
-  withY(y: number) {
-    return new Rect(this.x, y, this.width, this.height);
-  }
-
-  toBounds(): [number, number, number, number] {
-    return [this.x, this.y, this.x + this.width, this.y + this.height];
-  }
-
-  toArray(): [number, number, number, number] {
-    return [this.x, this.y, this.width, this.height];
-  }
-
-  between(to: Rect): Rect {
-    return new Rect(to.x, to.y, to.width / this.width, to.height / this.height);
-  }
-
-  translate(x: number, y: number): Rect {
-    return new Rect(x, y, this.width, this.height);
-  }
-
-  translateX(x: number): Rect {
-    return new Rect(x, this.y, this.width, this.height);
-  }
-
-  translateY(y: number): Rect {
-    return new Rect(this.x, y, this.width, this.height);
-  }
-
-  scaleX(x: number): Rect {
-    return new Rect(this.x, this.y, this.width * x, this.height);
-  }
-
-  scaleY(y: number): Rect {
-    return new Rect(this.x, this.y, this.width, this.height * y);
-  }
-
-  scale(x: number, y: number): Rect {
-    return new Rect(this.x * x, this.y * y, this.width * x, this.height * y);
-  }
-
-  scaleOriginBy(x: number, y: number): Rect {
-    return new Rect(this.x * x, this.y * y, this.width, this.height);
-  }
-
-  scaledBy(x: number, y: number): Rect {
-    return new Rect(this.x, this.y, this.width * x, this.height * y);
-  }
-
-  equals(rect: Rect): boolean {
-    if (this.x !== rect.x) {
-      return false;
-    }
-    if (this.y !== rect.y) {
-      return false;
-    }
-    if (this.width !== rect.width) {
-      return false;
-    }
-    if (this.height !== rect.height) {
-      return false;
-    }
-    return true;
-  }
-
-  notEqualTo(rect: Rect): boolean {
-    return !this.equals(rect);
-  }
-}
-
-function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
-function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
-function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function getContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
   const ctx =
     context === 'webgl'
       ? canvas.getContext(context, {antialias: false})
@@ -523,10 +295,26 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exported separately as writing export function for each overload as
-// breaks the line width rules and makes it harder to read.
-export {getContext};
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: '2d'
+): CanvasRenderingContext2D;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: 'webgl'
+): WebGLRenderingContext;
+export function safeGetContext(
+  canvas: HTMLCanvasElement,
+  context: string
+): RenderingContext | null {
+  const ctx =
+    context === 'webgl'
+      ? canvas.getContext(context, {antialias: false})
+      : canvas.getContext(context);
+  return ctx;
+}
 
+export const ELLIPSIS = '\u2026';
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
   if (!string) {
     return Rect.Empty();
@@ -544,28 +332,6 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
   );
 }
 
-// Taken from speedscope, computes min/max by halving the high/low end
-// of the range on each iteration as long as range precision is greater than the given precision.
-export function findRangeBinarySearch(
-  {low, high}: {high: number; low: number},
-  fn: (val: number) => number,
-  target: number,
-  precision = 1
-): [number, number] {
-  // eslint-disable-next-line
-  while (true) {
-    if (high - low <= precision) {
-      return [low, high];
-    }
-
-    const mid = (high + low) / 2;
-    if (fn(mid) < target) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-}
 /**
  * Returns first index of value in array where value.start < target
  * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 4 which points to value 3
@@ -576,6 +342,16 @@ export function findRangeBinarySearch(
 export function upperBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
+): number;
+export function upperBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function upperBound<T extends {end: number; start: number} | {x: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T> | Record<any, any>,
+  getValue?: (value: T) => number
 ) {
   let low = 0;
   let high = values.length;
@@ -585,13 +361,20 @@ export function upperBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].start < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].start < target
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].start;
 
-    if (values[mid].start < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -611,7 +394,17 @@ export function upperBound<T extends {end: number; start: number}>(
 export function lowerBound<T extends {end: number; start: number}>(
   target: number,
   values: Array<T> | ReadonlyArray<T>
-) {
+): number;
+export function lowerBound<T>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue: (value: T) => number
+): number;
+export function lowerBound<T extends {end: number; start: number}>(
+  target: number,
+  values: Array<T> | ReadonlyArray<T>,
+  getValue?: (value: T) => number
+): number {
   let low = 0;
   let high = values.length;
 
@@ -620,13 +413,20 @@ export function lowerBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].end < target ? 1 : 0;
+    return getValue
+      ? getValue(values[0]) < target
+        ? 1
+        : 0
+      : values[0].end < target
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
+    const value = getValue ? getValue(values[mid]) : values[mid].end;
 
-    if (values[mid].end < target) {
+    if (value < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -642,23 +442,25 @@ export function formatColorForSpan(
 ): string {
   const color = renderer.getColorForFrame(frame);
   if (Array.isArray(color)) {
-    if (color.length === 4) {
-      return `rgba(${color
-        .slice(0, 3)
-        .map(n => n * 255)
-        .join(',')}, ${color[3]})`;
-    }
-
-    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return colorComponentsToRGBA(color);
   }
   return '';
 }
 
+export function formatColorForFrame(frame: FlamegraphFrame, color: ColorChannels): string;
 export function formatColorForFrame(
   frame: FlamegraphFrame,
-  renderer: FlamegraphRenderer
+  color: FlamegraphRenderer
+): string;
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  rendererOrColor: FlamegraphRenderer | ColorChannels
 ): string {
-  const color = renderer.getColorForFrame(frame);
+  if (Array.isArray(rendererOrColor)) {
+    return colorComponentsToRGBA(rendererOrColor);
+  }
+
+  const color = rendererOrColor.getColorForFrame(frame);
   if (color.length === 4) {
     return `rgba(${color
       .slice(0, 3)
@@ -669,41 +471,21 @@ export function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
-export const ELLIPSIS = '\u2026';
-type TrimTextCenter = {
+export interface TrimTextCenter {
   end: number;
   length: number;
   start: number;
   text: string;
-};
-
-// Similar to speedscope's implementation, utility fn to trim text in the center with a small bias towards prefixes.
-export function trimTextCenter(text: string, low: number): TrimTextCenter {
-  if (low >= text.length) {
-    return {
-      text,
-      start: 0,
-      end: 0,
-      length: 0,
-    };
-  }
-
-  const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
-  const postfixLength = low - prefixLength - 1;
-
-  const start = prefixLength;
-  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
-
-  return {
-    text: trimText,
-    start,
-    end,
-    length: end - start,
-  };
 }
 
+export function hexToColorChannels(color: string, alpha: number): ColorChannels {
+  return [
+    parseInt(color.slice(1, 3), 16) / 255,
+    parseInt(color.slice(3, 5), 16) / 255,
+    parseInt(color.slice(5, 7), 16) / 255,
+    alpha,
+  ];
+}
 // Utility function to compute a clamped view. This is essentially a bounds check
 // to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(
@@ -713,11 +495,12 @@ export function computeClampedConfigView(
   if (!newConfigView.isValid()) {
     throw new Error(newConfigView.toString());
   }
+
   const clampedWidth = clamp(newConfigView.width, width.min, width.max);
   const clampedHeight = clamp(newConfigView.height, height.min, height.max);
 
   const maxX = width.max - clampedWidth;
-  const maxY = clampedHeight >= height.max ? 0 : height.max - clampedHeight;
+  const maxY = Math.max(height.max - clampedHeight, 0);
 
   const clampedX = clamp(newConfigView.x, 0, maxX);
   const clampedY = clamp(newConfigView.y, 0, maxY);
@@ -840,9 +623,14 @@ export function computeConfigViewWithStrategy(
 }
 
 export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): Rect {
+  if (!frames.length) {
+    return view;
+  }
+
   if (frames.length === 1) {
     return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
   }
+
   const frame = frames.reduce(
     (min, f) => {
       return {

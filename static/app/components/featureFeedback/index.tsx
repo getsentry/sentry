@@ -1,11 +1,9 @@
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonProps} from 'sentry/components/button';
-import {
-  FeedbackModal,
-  FeedbackModalProps,
-  modalCss,
-} from 'sentry/components/featureFeedback/feedbackModal';
-import {Data} from 'sentry/components/forms/types';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import type {FeedbackModalProps} from 'sentry/components/featureFeedback/feedbackModal';
+import {FeedbackModal, modalCss} from 'sentry/components/featureFeedback/feedbackModal';
+import type {Data} from 'sentry/components/forms/types';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -20,7 +18,7 @@ export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props
 }: FeatureFeedbackProps<T>) {
-  function handleClick(e: React.MouseEvent) {
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,
     });

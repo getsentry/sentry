@@ -1,13 +1,12 @@
 import re
-from typing import Optional, Set
 
 from rest_framework import serializers
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
+from sentry.models.organization import Organization
 
 EXTERNAL_ID_LENGTH_MIN = 1
 EXTERNAL_ID_LENGTH_MAX = 64
@@ -22,7 +21,7 @@ def _out_of_range_string(param: str, minimum: int, maximum: int, actual: int) ->
 
 
 def is_valid_provider(
-    provider: str, available_providers: Optional[Set[ExternalProviders]] = None
+    provider: str, available_providers: set[ExternalProviders] | None = None
 ) -> bool:
     try:
         validate_provider(provider, available_providers)
@@ -31,7 +30,7 @@ def is_valid_provider(
     return True
 
 
-def validate_external_id_option(external_id: Optional[str]) -> Optional[str]:
+def validate_external_id_option(external_id: str | None) -> str | None:
     if not external_id:
         return None
 

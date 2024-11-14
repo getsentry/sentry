@@ -1,7 +1,8 @@
 from unittest.mock import patch
 
-from sentry.models import OrganizationOption, Repository
-from sentry.testutils import TestCase
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.repository import Repository
+from sentry.testutils.cases import TestCase
 
 
 class RenamePendingDeleteTest(TestCase):

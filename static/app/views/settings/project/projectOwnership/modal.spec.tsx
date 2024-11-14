@@ -1,13 +1,28 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 import ProjectOwnershipModal from './modal';
 
 describe('Project Ownership', () => {
-  const org = TestStubs.Organization();
-  const project = TestStubs.ProjectDetails();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
   const issueId = '1234';
+  const stacktrace = EventEntryStacktraceFixture();
+  const event = EventFixture({
+    entries: [stacktrace],
+  });
+  const user = UserFixture();
 
   beforeEach(() => {
+    ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
       url: `/issues/${issueId}/tags/url/`,
       body: {
@@ -36,18 +51,11 @@ describe('Project Ownership', () => {
         raw: null,
       },
     });
-    const stacktrace = TestStubs.EventEntryStacktrace();
     // Set one frame to in-app
-    stacktrace.data.frames[0].inApp = true;
-    MockApiClient.addMockResponse({
-      url: `/issues/${issueId}/events/latest/`,
-      body: TestStubs.Event({
-        entries: [stacktrace],
-      }),
-    });
+    stacktrace.data.frames![0].inApp = true;
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
-      body: TestStubs.Members(),
+      body: MembersFixture(),
     });
   });
 
@@ -61,13 +69,40 @@ describe('Project Ownership', () => {
         issueId={issueId}
         organization={org}
         project={project}
-        onSave={() => {}}
+        eventData={event}
+        onCancel={() => {}}
       />
     );
 
-    expect(screen.getByText(/Match against Issue Data/)).toBeInTheDocument();
-    // First in-app frame is suggested
-    expect(screen.getByText('raven/base.py')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
+    // Description
+    expect(screen.getByText(/Assign issues based on custom rules/)).toBeInTheDocument();
+
+    // Suggestions
+    expect(
+      screen.getByText(/Here’s some suggestions based on this issue/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`path:raven/base.py ${user.email}`, {exact: false})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(`url:*/path ${user.email}`, {exact: false})
+    ).toBeInTheDocument();
+  });
+
+  it('can cancel', async () => {
+    const onCancel = jest.fn();
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={onCancel}
+      />
+    );
+
+    // Cancel
+    await userEvent.click(screen.getByText('Cancel'));
+    expect(onCancel).toHaveBeenCalled();
   });
 });

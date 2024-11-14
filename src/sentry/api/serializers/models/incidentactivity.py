@@ -1,25 +1,23 @@
 from django.db.models import prefetch_related_objects
 
-from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.user import UserSerializer
-from sentry.incidents.models import IncidentActivity
+from sentry.api.serializers import Serializer, register
+from sentry.incidents.models.incident import IncidentActivity
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 @register(IncidentActivity)
 class IncidentActivitySerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "incident__organization")
-        prefetch_related_objects(item_list, "user")
-        user_serializer = UserSerializer()
-        serialized_users = serialize(
-            {item.user for item in item_list if item.user_id},
-            user=user,
-            serializer=user_serializer,
+        serialized_users = user_service.serialize_many(
+            filter={"user_ids": [i.user_id for i in item_list if i.user_id]},
+            as_user=serialize_generic_user(user),
         )
         user_lookup = {user["id"]: user for user in serialized_users}
         return {item: {"user": user_lookup.get(str(item.user_id))} for item in item_list}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         incident = obj.incident
 
         return {

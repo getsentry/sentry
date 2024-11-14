@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, overload
+from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
 from django.http import HttpRequest
-from rest_framework.request import Request
 
 from sentry import options
 
@@ -30,26 +29,24 @@ def absolute_uri(url: str | None = None, url_prefix: str | None = None) -> str:
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
-def query_string(request: Request) -> str:
+def query_string(request: HttpRequest) -> str:
     qs = request.META.get("QUERY_STRING") or ""
     if qs:
         qs = f"?{qs}"
     return qs
 
 
-def create_redirect_url(request: Request, redirect_url: str) -> str:
+def create_redirect_url(request: HttpRequest, redirect_url: str) -> str:
     qs = query_string(request)
     return f"{redirect_url}{qs}"
 
 
 @overload
-def origin_from_url(url: str) -> str:
-    ...
+def origin_from_url(url: str) -> str: ...
 
 
 @overload
-def origin_from_url(url: None) -> None:
-    ...
+def origin_from_url(url: None) -> None: ...
 
 
 def origin_from_url(url: str | None) -> str | None:
@@ -106,7 +103,7 @@ def parse_uri_match(value: str) -> ParsedUriMatch:
 
 
 def is_valid_origin(
-    origin: str, project: Project | None = None, allowed: frozenset[str] | None = None
+    origin: str | None, project: Project | None = None, allowed: frozenset[str] | None = None
 ) -> bool:
     """
     Given an ``origin`` which matches a base URI (e.g. http://example.com)
@@ -218,5 +215,11 @@ def percent_encode(val: str) -> str:
     return quote(val).replace("%7E", "~").replace("/", "%2F")
 
 
-def is_using_customer_domain(request: HttpRequest) -> bool:
+class _HttpRequestWithSubdomain(HttpRequest):
+    """typing-only: to help with hinting for `.subdomain`"""
+
+    subdomain: str
+
+
+def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)

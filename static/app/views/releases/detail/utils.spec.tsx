@@ -1,3 +1,5 @@
+import {ReleaseFixture} from 'sentry-fixture/release';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {lightTheme} from 'sentry/utils/theme';
@@ -10,7 +12,7 @@ describe('releases/detail/utils', () => {
   describe('generateReleaseMarkLines', () => {
     const {created, adopted, unadopted} = releaseMarkLinesLabels;
     const {router} = initializeOrg();
-    const release = TestStubs.Release();
+    const release = ReleaseFixture();
     const project = release.projects[0];
 
     it('generates "Created" markline', () => {

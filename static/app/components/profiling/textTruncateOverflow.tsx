@@ -1,4 +1,4 @@
-import {ComponentProps, ElementType} from 'react';
+import type {ComponentProps, ElementType} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';

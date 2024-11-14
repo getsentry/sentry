@@ -7,10 +7,10 @@ import {
 } from 'sentry-test/profiling/utils';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,
@@ -115,7 +115,7 @@ describe('CanvasView', () => {
       const canvas = makeCanvasMock({
         getContext: jest
           .fn()
-          // @ts-ignore
+          // @ts-expect-error
           .mockReturnValue(makeContextMock({canvas: {width: 1000, height: 2000}})),
       });
 

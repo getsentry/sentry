@@ -1,245 +1,189 @@
-import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import uniq from 'lodash/uniq';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 
-import {createNote, deleteNote, updateNote} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import ActivityAuthor from 'sentry/components/activity/author';
-import ActivityItem from 'sentry/components/activity/item';
-import Note from 'sentry/components/activity/note';
-import NoteInputWithStorage from 'sentry/components/activity/note/inputWithStorage';
-import {CreateError} from 'sentry/components/activity/note/types';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {
+  TContext,
+  TData,
+  TError,
+  TVariables,
+} from 'sentry/components/feedback/useMutateActivity';
+import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
-import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {
+import GroupStore from 'sentry/stores/groupStore';
+import type {NoteType} from 'sentry/types/alerts';
+import type {
   Group,
-  GroupActivityAssigned,
+  GroupActivity as GroupActivityType,
+  GroupActivityNote,
   GroupActivityReprocess,
-  GroupActivityType,
-  Organization,
-  User,
-} from 'sentry/types';
-import {uniqueId} from 'sentry/utils/guid';
-import Teams from 'sentry/utils/teams';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-
-import GroupActivityItem from './groupActivityItem';
+} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
+import type {MutateOptions} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
   getGroupMostRecentActivity,
   getGroupReprocessingStatus,
   ReprocessingStatus,
-} from './utils';
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
-type Props = {
-  api: Client;
+export type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
+
+interface GroupActivityProps {
   group: Group;
-  organization: Organization;
-} & RouteComponentProps<{}, {}>;
-
-type State = {
-  createBusy: boolean;
-  error: boolean;
-  errorJSON: CreateError | null;
-  inputId: string;
-};
-
-class GroupActivity extends Component<Props, State> {
-  // TODO(dcramer): only re-render on group/activity change
-  state: State = {
-    createBusy: false,
-    error: false,
-    errorJSON: null,
-    inputId: uniqueId(),
-  };
-
-  handleNoteDelete = async ({noteId, text: oldText}) => {
-    const {api, group} = this.props;
-
-    addLoadingMessage(t('Removing comment...'));
-
-    try {
-      await deleteNote(api, group, noteId, oldText);
-      clearIndicators();
-    } catch (_err) {
-      addErrorMessage(t('Failed to delete comment'));
-    }
-  };
-
-  /**
-   * Note: This is nearly the same logic as `app/views/alerts/details/activity`
-   * This can be abstracted a bit if we create more objects that can have activities
-   */
-  handleNoteCreate = async note => {
-    const {api, group} = this.props;
-
-    this.setState({
-      createBusy: true,
-    });
-
-    addLoadingMessage(t('Posting comment...'));
-
-    try {
-      await createNote(api, group, note);
-
-      this.setState({
-        createBusy: false,
-
-        // This is used as a `key` to Note Input so that after successful post
-        // we reset the value of the input
-        inputId: uniqueId(),
-      });
-      clearIndicators();
-    } catch (error) {
-      this.setState({
-        createBusy: false,
-        error: true,
-        errorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
-      });
-      addErrorMessage(t('Unable to post comment'));
-    }
-  };
-
-  handleNoteUpdate = async (note, {noteId, text: oldText}) => {
-    const {api, group} = this.props;
-
-    addLoadingMessage(t('Updating comment...'));
-
-    try {
-      await updateNote(api, group, note, noteId, oldText);
-      clearIndicators();
-    } catch (error) {
-      this.setState({
-        error: true,
-        errorJSON: error.responseJSON || DEFAULT_ERROR_JSON,
-      });
-      addErrorMessage(t('Unable to update comment'));
-    }
-  };
-
-  render() {
-    const {group, organization} = this.props;
-    const {activity: activities, count, id: groupId} = group;
-    const groupCount = Number(count);
-    const mostRecentActivity = getGroupMostRecentActivity(activities);
-    const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
-
-    const me = ConfigStore.get('user');
-    const projectSlugs = group && group.project ? [group.project.slug] : [];
-    const noteProps = {
-      minHeight: 140,
-      group,
-      projectSlugs,
-      placeholder: t(
-        'Add details or updates to this event. \nTag users with @, or teams with #'
-      ),
-    };
-
-    return (
-      <Fragment>
-        {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
-          reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
-          <ReprocessedBox
-            reprocessActivity={mostRecentActivity as GroupActivityReprocess}
-            groupCount={groupCount}
-            orgSlug={organization.slug}
-            groupId={groupId}
-          />
-        )}
-
-        <Layout.Body>
-          <Layout.Main>
-            <ActivityItem author={{type: 'user', user: me}}>
-              {() => (
-                <NoteInputWithStorage
-                  key={this.state.inputId}
-                  storageKey="groupinput:latest"
-                  itemKey={group.id}
-                  onCreate={this.handleNoteCreate}
-                  busy={this.state.createBusy}
-                  error={this.state.error}
-                  errorJSON={this.state.errorJSON}
-                  {...noteProps}
-                />
-              )}
-            </ActivityItem>
-
-            <Teams
-              ids={uniq(
-                group.activity
-                  .filter(
-                    (item): item is GroupActivityAssigned =>
-                      item.type === GroupActivityType.ASSIGNED &&
-                      item.data.assigneeType === 'team' &&
-                      item.data.assignee?.length > 0
-                  )
-                  .map(item => item.data.assignee)
-              )}
-            >
-              {({initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  group.activity.map(item => {
-                    const authorName = item.user ? item.user.name : 'Sentry';
-
-                    if (item.type === GroupActivityType.NOTE) {
-                      return (
-                        <ErrorBoundary mini key={`note-${item.id}`}>
-                          <Note
-                            showTime={false}
-                            text={item.data.text}
-                            noteId={item.id}
-                            user={item.user as User}
-                            dateCreated={item.dateCreated}
-                            authorName={authorName}
-                            onDelete={this.handleNoteDelete}
-                            onUpdate={this.handleNoteUpdate}
-                            {...noteProps}
-                          />
-                        </ErrorBoundary>
-                      );
-                    }
-
-                    return (
-                      <ErrorBoundary mini key={`item-${item.id}`}>
-                        <ActivityItem
-                          author={{
-                            type: item.user ? 'user' : 'system',
-                            user: item.user ?? undefined,
-                          }}
-                          date={item.dateCreated}
-                          header={
-                            <GroupActivityItem
-                              author={<ActivityAuthor>{authorName}</ActivityAuthor>}
-                              activity={item}
-                              orgSlug={organization.slug}
-                              projectId={group.project.id}
-                            />
-                          }
-                        />
-                      </ErrorBoundary>
-                    );
-                  })
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
-          </Layout.Main>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
 }
 
-export {GroupActivity};
-export default withApi(withOrganization(GroupActivity));
+function GroupActivity({group}: GroupActivityProps) {
+  const organization = useOrganization();
+  const {activity: activities, count, id: groupId} = group;
+  const groupCount = Number(count);
+  const mostRecentActivity = getGroupMostRecentActivity(activities);
+  const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
+  const mutators = useMutateActivity({
+    organization,
+    group,
+  });
+
+  const deleteOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Failed to delete comment'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Comment removed'));
+      },
+    };
+  }, []);
+
+  const createOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to post comment'));
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        addSuccessMessage(t('Comment posted'));
+      },
+    };
+  }, [group.id]);
+
+  const updateOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to update comment'));
+      },
+      onSuccess: data => {
+        const d = data as GroupActivityNote;
+        GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
+        addSuccessMessage(t('Comment updated'));
+      },
+    };
+  }, [group.id]);
+
+  const handleDelete = useCallback(
+    (item: GroupActivityType) => {
+      const restore = group.activity.find(activity => activity.id === item.id);
+      const index = GroupStore.removeActivity(group.id, item.id);
+
+      if (index === -1 || restore === undefined) {
+        addErrorMessage(t('Failed to delete comment'));
+        return;
+      }
+      mutators.handleDelete(
+        item.id,
+        group.activity.filter(a => a.id !== item.id),
+        deleteOptions
+      );
+    },
+    [deleteOptions, group.activity, mutators, group.id]
+  );
+
+  const handleCreate = useCallback(
+    (n: NoteType, _me: User) => {
+      mutators.handleCreate(n, group.activity, createOptions);
+    },
+    [createOptions, group.activity, mutators]
+  );
+
+  const handleUpdate = useCallback(
+    (item: GroupActivityType, n: NoteType) => {
+      mutators.handleUpdate(n, item.id, group.activity, updateOptions);
+    },
+    [updateOptions, group.activity, mutators]
+  );
+
+  return (
+    <Fragment>
+      {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
+        reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
+        <ReprocessedBox
+          reprocessActivity={mostRecentActivity as GroupActivityReprocess}
+          groupCount={groupCount}
+          orgSlug={organization.slug}
+          groupId={groupId}
+        />
+      )}
+
+      <Layout.Body>
+        <Layout.Main>
+          <ActivitySection
+            group={group}
+            onDelete={handleDelete}
+            onCreate={handleCreate}
+            onUpdate={handleUpdate}
+            placeholderText={t(
+              'Add details or updates to this event. \nTag users with @, or teams with #'
+            )}
+          />
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
+}
+
+function GroupActivityRoute() {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const navigate = useNavigate();
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
+
+  // TODO(streamlined-ui): Activity will become a router redirect to the event details page
+  useEffect(() => {
+    if (hasStreamlinedUI) {
+      navigate({
+        ...location,
+        pathname: baseUrl,
+      });
+    }
+  }, [hasStreamlinedUI, navigate, baseUrl, location]);
+
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  return <GroupActivity group={group} />;
+}
+
+export default GroupActivityRoute;

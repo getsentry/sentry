@@ -1,15 +1,19 @@
-from sentry.integrations.msteams.card_builder import AdaptiveCard, ColumnSetBlock
-from sentry.models import Organization
+from __future__ import annotations
+
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.utils.http import absolute_uri
 
 from .base import MSTeamsMessageBuilder
 from .block import (
     ActionType,
+    AdaptiveCard,
+    ColumnSetBlock,
     ColumnWidth,
+    ContentAlignment,
+    OpenUrlAction,
     TextSize,
     TextWeight,
-    VerticalContentAlignment,
-    create_action_block,
     create_column_block,
     create_column_set_block,
     create_logo_block,
@@ -20,11 +24,11 @@ from .utils import InstallationMessages
 
 def create_title_block(text: str) -> ColumnSetBlock:
     return create_column_set_block(
-        create_logo_block(),
+        create_column_block(create_logo_block()),
         create_column_block(
             create_text_block(text, size=TextSize.LARGE, weight=TextWeight.BOLDER),
-            width=ColumnWidth.STRECH,
-            verticalContentAlignment=VerticalContentAlignment.CENTER,
+            width=ColumnWidth.STRETCH,
+            verticalContentAlignment=ContentAlignment.CENTER,
         ),
     )
 
@@ -39,8 +43,8 @@ def build_installation_card(signed_params: str, title: str, description: str, in
         text=description,
         fields=[instruction],
         actions=[
-            create_action_block(
-                ActionType.OPEN_URL,
+            OpenUrlAction(
+                type=ActionType.OPEN_URL,
                 title=InstallationMessages.TEAM_INSTALLATION_BUTTON,
                 url=url,
             )
@@ -72,11 +76,13 @@ def build_installation_confirmation_message(
     return MSTeamsMessageBuilder().build(
         title=create_title_block(title),
         text=text,
-        actions=[create_action_block(ActionType.OPEN_URL, title=button_title, url=url)],
+        actions=[OpenUrlAction(type=ActionType.OPEN_URL, title=button_title, url=url)],
     )
 
 
-def build_team_installation_confirmation_message(organization: Organization) -> AdaptiveCard:
+def build_team_installation_confirmation_message(
+    organization: Organization | RpcOrganizationSummary,
+) -> AdaptiveCard:
     alert_rule_url = absolute_uri(
         InstallationMessages.ALERT_RULE_URL.format(organization_slug=organization.slug)
     )

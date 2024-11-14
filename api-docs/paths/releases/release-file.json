@@ -5,9 +5,9 @@
     "operationId": "Retrieve an Organization Release's File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -29,6 +29,14 @@
         "required": true,
         "schema": {
           "type": "string"
+        }
+      },
+      {
+        "name": "download",
+        "in": "query",
+        "description": "If this is set to true, then the response payload will be the raw file contents. Otherwise, the response will be the file metadata as JSON.",
+        "schema": {
+          "type": "boolean"
         }
       }
     ],
@@ -73,9 +81,9 @@
     "operationId": "Update an Organization Release File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
@@ -163,9 +171,9 @@
     "operationId": "Delete an Organization Release's File",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the release belongs to.",
+        "description": "The ID or slug of the organization the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"

@@ -1,10 +1,12 @@
 import enum
 import logging
 import struct
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple, cast
+from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
@@ -52,7 +54,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         COMPRESSED_ZLIB = 1 << 0
         COMPRESSED_ZSTD = 1 << 1
 
-    compression_strategies: Mapping[str, Tuple[Flags, Codec[bytes, bytes]]] = {
+    compression_strategies: Mapping[str, tuple[Flags, Codec[bytes, bytes]]] = {
         "zlib": (Flags.COMPRESSED_ZLIB, ZlibCodec()),
         "zstd": (Flags.COMPRESSED_ZSTD, ZstdCodec()),
     }
@@ -61,11 +63,11 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self,
         instance: str,
         table_name: str,
-        project: Optional[str] = None,
-        client_options: Optional[Mapping[Any, Any]] = None,
-        default_ttl: Optional[timedelta] = None,
-        compression: Optional[str] = None,
-        app_profile: Optional[str] = None,
+        project: str | None = None,
+        client_options: Mapping[Any, Any] | None = None,
+        default_ttl: timedelta | None = None,
+        compression: str | None = None,
+        app_profile: str | None = None,
     ) -> None:
         client_options = client_options if client_options is not None else {}
         if "admin" in client_options:
@@ -112,14 +114,15 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                     )
             return table
 
-    def get(self, key: str) -> Optional[bytes]:
-        row = self._get_table().read_row(key)
+    def get(self, key: str) -> bytes | None:
+        with sentry_sdk.start_span(op="bigtable.get"):
+            row = self._get_table().read_row(key)
         if row is None:
             return None
 
         return self.__decode_row(row)
 
-    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
+    def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
@@ -128,12 +131,12 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             value = self.__decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
-            # value may be returned by ``__decode_row`` if the the row has
+            # value may be returned by ``__decode_row`` if the row has
             # outlived its TTL, so we need to check its value here.
             if value is not None:
                 yield row.row_key.decode("utf-8"), value
 
-    def __decode_row(self, row: PartialRowData) -> Optional[bytes]:
+    def __decode_row(self, row: PartialRowData) -> bytes | None:
         columns = row.cells[self.column_family]
 
         try:
@@ -150,7 +153,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             if cell.timestamp < timezone.now():
                 return None
 
-        value = cast(bytes, cell.value)
+        value = cell.value
 
         if self.flags_column in columns:
             flags = self.Flags(self.flags_struct.unpack(columns[self.flags_column][0].value)[0])
@@ -169,19 +172,19 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         return value
 
-    def set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
         try:
             return self._set(key, value, ttl)
-        except exceptions.InternalServerError:
+        except (exceptions.InternalServerError, exceptions.ServiceUnavailable):
             # Delete cached client before retry
             with self.__table_lock:
                 del self.__table
-            # Retry once on InternalServerError
+            # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
             return self._set(key, value, ttl)
 
-    def _set(self, key: str, value: bytes, ttl: Optional[timedelta] = None) -> None:
+    def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
         # XXX: There is a type mismatch here -- ``direct_row`` expects
         # ``bytes`` but we are providing it with ``str``.
         row = self._get_table().direct_row(key)

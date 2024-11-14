@@ -1,29 +1,51 @@
-from collections import defaultdict
+from __future__ import annotations
+
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import Model
+    from sentry.deletions.base import BaseDeletionTask
 
 __all__ = ["DeletionTaskManager"]
 
 
 class DeletionTaskManager:
-    def __init__(self, default_task=None):
-        self.tasks = {}
+    def __init__(self, default_task: type[BaseDeletionTask[Any]] | None = None) -> None:
+        self.tasks: MutableMapping[type[Model], type[BaseDeletionTask[Any]]] = {}
         self.default_task = default_task
-        self.dependencies = defaultdict(set)
-        self.bulk_dependencies = defaultdict(set)
 
-    def get(self, task=None, **kwargs):
+    def exec_sync(self, instance: Model) -> None:
+        task = self.get(
+            model=type(instance),
+            query={"id": instance.id},
+        )
+        while task.chunk():
+            pass
+
+    def exec_sync_many(self, instances: list[Model]) -> None:
+        if not instances:
+            return
+
+        task = self.get(
+            model=type(instances[0]),
+            query={"id__in": [i.id for i in instances]},
+        )
+        while task.chunk():
+            pass
+
+    def get(
+        self,
+        task: type[BaseDeletionTask[Any]] | None = None,
+        **kwargs: Any,
+    ) -> BaseDeletionTask[Any]:
         if task is None:
             model = kwargs.get("model")
-            try:
-                task = self.tasks[model]
-            except KeyError:
-                task = self.default_task
+            assert model, "The model parameter is required if `task` is not provided"
+            task = self.tasks.get(model, self.default_task)
+        assert task is not None, "Task cannot be None"
+
         return task(manager=self, **kwargs)
 
-    def register(self, model, task):
+    def register(self, model: type[Model], task: type[BaseDeletionTask[Any]]) -> None:
         self.tasks[model] = task
-
-    def add_dependencies(self, model, dependencies):
-        self.dependencies[model] |= set(dependencies)
-
-    def add_bulk_dependencies(self, model, dependencies):
-        self.bulk_dependencies[model] |= set(dependencies)

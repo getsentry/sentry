@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Member} from 'sentry/types';
+import type {Member} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 
 function getMemberUser(member: Member) {
   return {
@@ -53,19 +54,21 @@ export async function fetchOrgMembers(
   return [];
 }
 
-export type IndexedMembersByProject = Record<string, Member['user'][]>;
+export type IndexedMembersByProject = Record<string, User[]>;
 
 /**
  * Convert a list of members with user & project data
  * into a object that maps project slugs : users in that project.
  */
 export function indexMembersByProject(members: Member[]): IndexedMembersByProject {
-  return members.reduce((acc, member) => {
+  return members.reduce<IndexedMembersByProject>((acc, member) => {
     for (const project of member.projects) {
       if (!acc.hasOwnProperty(project)) {
         acc[project] = [];
       }
-      acc[project].push(member.user);
+      if (member.user) {
+        acc[project].push(member.user);
+      }
     }
     return acc;
   }, {});
@@ -101,8 +104,4 @@ export function resendMemberInvite(
       reinvite: true,
     },
   });
-}
-
-export function getCurrentMember(api: Client, orgId: string) {
-  return api.requestPromise(`/organizations/${orgId}/members/me/`);
 }

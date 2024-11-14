@@ -1,9 +1,12 @@
-from sentry.models import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-class AssignedToFilter(RuleTestCase):
+class AssignedToFilterTest(RuleTestCase):
     rule_cls = AssignedToFilter
 
     def test_assigned_to_member_passes(self):

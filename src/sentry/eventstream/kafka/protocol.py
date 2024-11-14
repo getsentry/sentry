@@ -1,15 +1,8 @@
+from __future__ import annotations
+
 import logging
-from typing import (
-    Any,
-    Callable,
-    FrozenSet,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    cast,
-)
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry.utils import json, metrics
 
@@ -21,8 +14,8 @@ class UnexpectedOperation(Exception):
 
 
 def basic_protocol_handler(
-    unsupported_operations: FrozenSet[str],
-) -> Callable[[str, Any, Any], Optional[Mapping[str, Any]]]:
+    unsupported_operations: frozenset[str],
+) -> Callable[[str, Any, Any], dict[str, Any] | None]:
     # The insert message formats for Version 1 and 2 are essentially unchanged,
     # so this function builds a handler function that can deal with both.
 
@@ -30,7 +23,7 @@ def basic_protocol_handler(
         operation: str,
         event_data: Mapping[str, Any],
         task_state: Mapping[str, Any],
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> dict[str, Any] | None:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
 
@@ -51,7 +44,7 @@ def basic_protocol_handler(
 
         return kwargs
 
-    def handle_message(operation: str, *data: Any) -> Optional[Mapping[str, Any]]:
+    def handle_message(operation: str, *data: Any) -> dict[str, Any] | None:
         if operation == "insert":
             return get_task_kwargs_for_insert(operation, *data)
         elif operation in unsupported_operations:
@@ -95,14 +88,14 @@ class InvalidVersion(Exception):
     pass
 
 
-def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
+def get_task_kwargs_for_message(value: bytes) -> dict[str, Any] | None:
     """
     Decodes a message body, returning a dictionary of keyword arguments that
     can be applied to a post-processing task, or ``None`` if no task should be
     dispatched.
     """
 
-    metrics.timing("eventstream.events.size.data", len(value))
+    metrics.distribution("eventstream.events.size.data", len(value), unit="byte")
     payload = json.loads(value, use_rapid_json=True)
 
     try:
@@ -120,23 +113,23 @@ def get_task_kwargs_for_message(value: bytes) -> Optional[Mapping[str, Any]]:
     return handler(*payload[1:])
 
 
-def decode_str(value: Optional[bytes]) -> str:
+def decode_str(value: bytes) -> str:
     assert isinstance(value, bytes)
     return value.decode("utf-8")
 
 
-def decode_optional_str(value: Optional[bytes]) -> Optional[str]:
+def decode_optional_str(value: bytes | None) -> str | None:
     if value is None:
         return None
     return decode_str(value)
 
 
-def decode_int(value: Optional[bytes]) -> int:
+def decode_int(value: bytes) -> int:
     assert isinstance(value, bytes)
     return int(value)
 
 
-def decode_optional_int(value: Optional[bytes]) -> Optional[int]:
+def decode_optional_int(value: bytes | None) -> int | None:
     if value is None:
         return None
     return decode_int(value)
@@ -146,7 +139,7 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
-def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
+def decode_optional_list_str(value: str | None) -> Sequence[Any] | None:
     if value is None:
         return None
 
@@ -154,20 +147,27 @@ def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
     if not isinstance(parsed, list):
         raise ValueError(f"'{value}' could not be parsed into an instance of list.")
 
-    return cast(Sequence[Any], json.loads(value))
+    return json.loads(value)
 
 
 def get_task_kwargs_for_message_from_headers(
-    headers: Sequence[Tuple[str, Optional[bytes]]]
-) -> Optional[Mapping[str, Any]]:
+    headers: Sequence[tuple[str, bytes | None]]
+) -> dict[str, Any] | None:
     """
     Same as get_task_kwargs_for_message but gets the required information from
     the kafka message headers.
     """
     try:
         header_data = {k: v for k, v in headers}
-        version = decode_int(header_data["version"])
-        operation = decode_str(header_data["operation"])
+
+        def _required(k: str) -> bytes:
+            v = header_data[k]
+            if v is None:
+                raise ValueError(f"expected {k!r} to be non-None")
+            return v
+
+        version = decode_int(_required("version"))
+        operation = decode_str(_required("operation"))
 
         if operation == "insert":
             if "group_id" not in header_data:
@@ -176,9 +176,9 @@ def get_task_kwargs_for_message_from_headers(
                 header_data["primary_hash"] = None
 
             primary_hash = decode_optional_str(header_data["primary_hash"])
-            event_id = decode_str(header_data["event_id"])
+            event_id = decode_str(_required("event_id"))
             group_id = decode_optional_int(header_data["group_id"])
-            project_id = decode_int(header_data["project_id"])
+            project_id = decode_int(_required("project_id"))
 
             event_data = {
                 "event_id": event_id,
@@ -188,12 +188,10 @@ def get_task_kwargs_for_message_from_headers(
                 "occurrence_id": decode_optional_str(header_data.get("occurrence_id")),
             }
 
-            skip_consume = decode_bool(cast(bytes, header_data["skip_consume"]))
-            is_new = decode_bool(cast(bytes, header_data["is_new"]))
-            is_regression = decode_bool(cast(bytes, header_data["is_regression"]))
-            is_new_group_environment = decode_bool(
-                cast(bytes, header_data["is_new_group_environment"])
-            )
+            skip_consume = decode_bool(_required("skip_consume"))
+            is_new = decode_bool(_required("is_new"))
+            is_regression = decode_bool(_required("is_regression"))
+            is_new_group_environment = decode_bool(_required("is_new_group_environment"))
 
             task_state: MutableMapping[str, Any] = {
                 "skip_consume": skip_consume,
@@ -207,18 +205,19 @@ def get_task_kwargs_for_message_from_headers(
             try:
                 group_states = decode_optional_list_str(group_states_str)
             except ValueError:
-                logger.error(f"Received event with malformed group_states: '{group_states_str}'")
+                logger.exception(
+                    "Received event with malformed group_states: '%s'", group_states_str
+                )
             except Exception:
-                logger.error(
-                    f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
+                logger.exception(
+                    "Uncaught exception thrown when trying to parse group_states: '%s'",
+                    group_states_str,
                 )
             task_state["group_states"] = group_states
 
             # default in case queue is not sent
             task_state["queue"] = (
-                decode_str(header_data["queue"])
-                if "queue" in header_data
-                else "post_process_errors"
+                decode_str(_required("queue")) if "queue" in header_data else "post_process_errors"
             )
 
         else:

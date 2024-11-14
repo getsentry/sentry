@@ -1,24 +1,35 @@
-__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
+from __future__ import annotations
 
 import logging
+import secrets
 from time import time
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
+import orjson
+from django.http import HttpResponse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
+from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import Provider
 
+__all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
+
 logger = logging.getLogger(__name__)
 ERR_INVALID_STATE = "An error occurred while validating your request."
+ERR_TOKEN_RETRIEVAL = "Failed to retrieve token from the upstream service."
 
 
 class OAuth2Provider(Provider):
@@ -34,7 +45,7 @@ class OAuth2Provider(Provider):
     oauth_authorize_url = ""
     refresh_token_url = ""
 
-    oauth_scopes = ()
+    oauth_scopes: tuple[str, ...] = ()
 
     def _get_oauth_parameter(self, parameter_name):
         """
@@ -190,8 +201,8 @@ class OAuth2Provider(Provider):
 
         try:
             body = safe_urlread(req)
-            payload = json.loads(body)
-        except Exception:
+            payload = orjson.loads(body)
+        except orjson.JSONDecodeError:
             payload = {}
 
         self.handle_refresh_error(req, payload)
@@ -201,7 +212,19 @@ class OAuth2Provider(Provider):
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
+
+
+def record_event(event: IntegrationPipelineViewType, provider: str):
+    from sentry.identity import default_manager as identity_manager
+
+    try:
+        identity_manager.get(provider)
+    except NotRegistered:
+        logger.exception("oauth2.record_event.invalid_provider", extra={"provider": provider})
+
+    return IntegrationPipelineViewEvent(
+        event, domain=IntegrationDomain.IDENTITY, provider_key=provider
+    )
 
 
 class OAuth2LoginView(PipelineView):
@@ -233,24 +256,25 @@ class OAuth2LoginView(PipelineView):
             "redirect_uri": redirect_uri,
         }
 
-    @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
-        for param in ("code", "error", "state"):
-            if param in request.GET:
-                return pipeline.next_step()
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        with record_event(IntegrationPipelineViewType.OAUTH_LOGIN, pipeline.provider.key).capture():
+            for param in ("code", "error", "state"):
+                if param in request.GET:
+                    return pipeline.next_step()
 
-        state = uuid4().hex
+            state = secrets.token_hex()
 
-        params = self.get_authorize_params(
-            state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
-        )
-        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+            params = self.get_authorize_params(
+                state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
+            )
+            redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
-        pipeline.bind_state("state", state)
-        if request.subdomain:
-            pipeline.bind_state("subdomain", request.subdomain)
+            pipeline.bind_state("state", state)
+            if request.subdomain:
+                pipeline.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(redirect_uri)
+            return self.redirect(redirect_uri)
 
 
 class OAuth2CallbackView(PipelineView):
@@ -277,70 +301,86 @@ class OAuth2CallbackView(PipelineView):
         }
 
     def exchange_token(self, request: Request, pipeline, code):
-        # TODO: this needs the auth yet
-        data = self.get_token_params(code=code, redirect_uri=absolute_uri(pipeline.redirect_url()))
-        verify_ssl = pipeline.config.get("verify_ssl", True)
-        try:
-            req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
-            body = safe_urlread(req)
-            if req.headers.get("Content-Type", "").startswith("application/x-www-form-urlencoded"):
-                return dict(parse_qsl(body))
-            return json.loads(body)
-        except SSLError:
-            logger.info(
-                "identity.oauth2.ssl-error",
-                extra={"url": self.access_token_url, "verify_ssl": verify_ssl},
+        with record_event(
+            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
+        ).capture() as lifecycle:
+            # TODO: this needs the auth yet
+            data = self.get_token_params(
+                code=code, redirect_uri=absolute_uri(pipeline.redirect_url())
             )
-            url = self.access_token_url
-            return {
-                "error": "Could not verify SSL certificate",
-                "error_description": f"Ensure that {url} has a valid SSL certificate",
-            }
-        except ConnectionError:
-            url = self.access_token_url
-            logger.info("identity.oauth2.connection-error", extra={"url": url})
-            return {
-                "error": "Could not connect to host or service",
-                "error_description": f"Ensure that {url} is open to connections",
-            }
-        except json.JSONDecodeError:
-            logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
-            return {
-                "error": "Could not decode a JSON Response",
-                "error_description": "We were not able to parse a JSON response, please try again.",
-            }
+            verify_ssl = pipeline.config.get("verify_ssl", True)
+            try:
+                req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
+                body = safe_urlread(req)
+                if req.headers.get("Content-Type", "").startswith(
+                    "application/x-www-form-urlencoded"
+                ):
+                    return dict(parse_qsl(body))
+                return orjson.loads(body)
+            except SSLError:
+                logger.info(
+                    "identity.oauth2.ssl-error",
+                    extra={"url": self.access_token_url, "verify_ssl": verify_ssl},
+                )
+                lifecycle.record_failure("ssl_error")
+                url = self.access_token_url
+                return {
+                    "error": "Could not verify SSL certificate",
+                    "error_description": f"Ensure that {url} has a valid SSL certificate",
+                }
+            except ConnectionError:
+                url = self.access_token_url
+                logger.info("identity.oauth2.connection-error", extra={"url": url})
+                lifecycle.record_failure("connection_error")
+                return {
+                    "error": "Could not connect to host or service",
+                    "error_description": f"Ensure that {url} is open to connections",
+                }
+            except orjson.JSONDecodeError:
+                logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
+                lifecycle.record_failure("json_error")
+                return {
+                    "error": "Could not decode a JSON Response",
+                    "error_description": "We were not able to parse a JSON response, please try again.",
+                }
 
-    def dispatch(self, request: Request, pipeline) -> Response:
-        error = request.GET.get("error")
-        state = request.GET.get("state")
-        code = request.GET.get("code")
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        with record_event(
+            IntegrationPipelineViewType.OAUTH_CALLBACK, pipeline.provider.key
+        ).capture() as lifecycle:
+            error = request.GET.get("error")
+            state = request.GET.get("state")
+            code = request.GET.get("code")
 
-        if error:
-            pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
-            return pipeline.error(error)
+            if error:
+                pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
+                lifecycle.record_failure("token_exchange_error", extra={"msg": ERR_INVALID_STATE})
+                return pipeline.error(ERR_INVALID_STATE)
 
-        if state != pipeline.fetch_state("state"):
-            pipeline.logger.info(
-                "identity.token-exchange-error",
-                extra={
-                    "error": "invalid_state",
-                    "state": state,
-                    "pipeline_state": pipeline.fetch_state("state"),
-                    "code": code,
-                },
-            )
-            return pipeline.error(ERR_INVALID_STATE)
+            if state != pipeline.fetch_state("state"):
+                pipeline.logger.info(
+                    "identity.token-exchange-error",
+                    extra={
+                        "error": "invalid_state",
+                        "state": state,
+                        "pipeline_state": pipeline.fetch_state("state"),
+                        "code": code,
+                    },
+                )
+                lifecycle.record_failure("token_exchange_error", extra={"msg": ERR_INVALID_STATE})
+                return pipeline.error(ERR_INVALID_STATE)
 
+        # separate lifecycle event inside exchange_token
         data = self.exchange_token(request, pipeline, code)
 
+        # these errors are based off of the results of exchange_token, lifecycle errors are captured inside
         if "error_description" in data:
             error = data.get("error")
-            pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
             return pipeline.error(data["error_description"])
 
         if "error" in data:
             pipeline.logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error("Failed to retrieve token from the upstream service.")
+            return pipeline.error(ERR_TOKEN_RETRIEVAL)
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a

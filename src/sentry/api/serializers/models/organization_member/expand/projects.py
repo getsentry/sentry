@@ -1,7 +1,12 @@
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Sequence, cast
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, cast
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, TeamStatus, User
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import TeamStatus
+from sentry.users.models.user import User
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithProjectsResponse
@@ -25,7 +30,7 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         # to avoid having to fetch the team model as well.
         member_teams = OrganizationMemberTeam.objects.filter(
             organizationmember_id__in=[om.id for om in item_list],
-            team__status=TeamStatus.VISIBLE,
+            team__status=TeamStatus.ACTIVE,
         ).values_list("team_id", "organizationmember_id", named=True)
 
         # The set of team ids, this will be used to filter down the `ProjectTeam` below

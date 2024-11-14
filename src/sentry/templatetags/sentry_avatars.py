@@ -2,10 +2,10 @@ from urllib.parse import urlencode
 
 from django import template
 from django.urls import reverse
-from django.utils.safestring import mark_safe
 
-from sentry.models import User, UserAvatar
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 from sentry.utils.http import absolute_uri
 
@@ -22,16 +22,16 @@ def gravatar_url(context, email, size, default="mm"):
 
 @register.simple_tag(takes_context=True)
 def letter_avatar_svg(context, display_name, identifier, size=None):
-    return mark_safe(get_letter_avatar(display_name, identifier, size=size))
+    return get_letter_avatar(display_name, identifier, size=size)
 
 
 @register.simple_tag(takes_context=True)
 def profile_photo_url(context, user_id, size=None):
-    try:
-        avatar = UserAvatar.objects.get_from_cache(user=user_id)
-    except UserAvatar.DoesNotExist:
+    user_avatar = user_service.get_user_avatar(user_id=user_id)
+
+    if not user_avatar:
         return
-    url = reverse("sentry-user-avatar-url", args=[avatar.ident])
+    url = reverse("sentry-user-avatar-url", args=[user_avatar.ident])
     if size:
         url += "?" + urlencode({"s": size})
     return absolute_uri(url)
@@ -41,13 +41,13 @@ def profile_photo_url(context, user_id, size=None):
 # than 1-2 avatars. It will make a request for every user!
 @register.simple_tag(takes_context=True)
 def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
-    return mark_safe(get_email_avatar(display_name, identifier, size, try_gravatar))
+    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.inclusion_tag("sentry/partial/avatar.html")
 def avatar(user, size=36):
     # user can be User or OrganizationMember
-    if isinstance(user, User):
+    if isinstance(user, User) or isinstance(user, RpcUser):
         user_id = user.id
         email = user.email
     else:
@@ -55,6 +55,7 @@ def avatar(user, size=36):
         email = user.email
         if user_id:
             email = user.user.email
+
     return {
         "email": email,
         "user_id": user_id,

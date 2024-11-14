@@ -1,41 +1,39 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-} from 'sentry/components/gridEditable';
+import type {GridColumn} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
-import {
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {TagValue} from '../transactionOverview/tagExplorer';
 import {normalizeSearchConditions} from '../utils';
 
-import {
-  TAGS_TABLE_COLUMN_ORDER,
-  TagsTableColumn,
-  TagsTableColumnKeys,
-} from './tagsDisplay';
+import type {TagsTableColumn, TagsTableColumnKeys} from './tagsDisplay';
+import {TAGS_TABLE_COLUMN_ORDER} from './tagsDisplay';
 import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
@@ -163,7 +161,7 @@ export class TagValueTable extends Component<Props, State> {
 
   handleReleaseLinkClicked = () => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.tags.jump_to_release', {
+    trackAnalytics('performance_views.tags.jump_to_release', {
       organization,
     });
   };
@@ -280,7 +278,6 @@ export class TagValueTable extends Component<Props, State> {
     const {
       eventView,
       tagKey,
-      location,
       isLoading,
       tableData,
       aggregateColumn,
@@ -303,22 +300,27 @@ export class TagValueTable extends Component<Props, State> {
 
     return (
       <StyledPanelTable>
-        <GridEditable
+        <VisuallyCompleteWithData
+          id="TransactionTags-TagValueTable"
+          hasData={!!tableData?.data?.length}
           isLoading={isLoading}
-          data={tableData && tableData.data ? tableData.data : []}
-          columnOrder={newColumns}
-          columnSortBy={[]}
-          grid={{
-            renderHeadCell: this.renderHeadCellWithMeta(
-              eventView,
-              tableData ? tableData.meta : {},
-              newColumns
-            ) as any,
-            renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn,
-          }}
-          location={location}
-        />
+        >
+          <GridEditable
+            isLoading={isLoading}
+            data={tableData?.data ? tableData.data : []}
+            columnOrder={newColumns}
+            columnSortBy={[]}
+            grid={{
+              renderHeadCell: this.renderHeadCellWithMeta(
+                eventView,
+                tableData ? tableData.meta : {},
+                newColumns
+              ) as any,
+              renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+              onResizeColumn: this.handleResizeColumn,
+            }}
+          />
+        </VisuallyCompleteWithData>
 
         <Pagination pageLinks={pageLinks} onCursor={onCursor} size="sm" />
       </StyledPanelTable>

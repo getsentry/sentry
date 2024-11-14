@@ -1,19 +1,19 @@
 import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import SplitDiff from 'sentry/components/splitDiff';
+import type SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import withApi from 'sentry/utils/withApi';
-
-import renderGroupingInfo from './renderGroupingInfo';
 
 const defaultProps = {
   baseEventId: 'latest',
@@ -25,17 +25,19 @@ type DefaultProps = typeof defaultProps;
 type Props = {
   api: Client;
   baseIssueId: string;
+  location: Location;
   orgId: string;
   project: Project;
   targetIssueId: string;
   baseEventId?: string;
   className?: string;
+  organization?: Organization;
+  shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
 type State = {
   baseEvent: Array<string>;
-  groupingDiff: boolean;
   loading: boolean;
   targetEvent: Array<string>;
   SplitDiffAsync?: typeof SplitDiff;
@@ -46,7 +48,6 @@ class IssueDiff extends Component<Props, State> {
 
   state: State = {
     loading: true,
-    groupingDiff: false,
     baseEvent: [],
     targetEvent: [],
 
@@ -60,34 +61,75 @@ class IssueDiff extends Component<Props, State> {
   }
 
   fetchData() {
-    const {baseIssueId, targetIssueId, baseEventId, targetEventId} = this.props;
+    const {
+      baseIssueId,
+      targetIssueId,
+      baseEventId,
+      targetEventId,
+      organization,
+      project,
+      shouldBeGrouped,
+      location,
+    } = this.props;
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data
-    Promise.all([
-      import('../splitDiff'),
-      this.fetchEventData(baseIssueId, baseEventId ?? 'latest'),
-      this.fetchEventData(targetIssueId, targetEventId ?? 'latest'),
-    ])
-      .then(([{default: SplitDiffAsync}, baseEvent, targetEvent]) => {
+    const asyncFetch = async () => {
+      try {
+        const splitdiffPromise = import('../splitDiff');
+        const {default: SplitDiffAsync} = await splitdiffPromise;
+
+        const [baseEventData, targetEventData] = await Promise.all([
+          this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
+          this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
+        ]);
+
+        const [baseEvent, targetEvent] = await Promise.all([
+          getStacktraceBody(baseEventData, hasSimilarityEmbeddingsFeature),
+          getStacktraceBody(targetEventData, hasSimilarityEmbeddingsFeature),
+        ]);
+
         this.setState({
           SplitDiffAsync,
           baseEvent,
           targetEvent,
           loading: false,
         });
-      })
-      .catch(() => {
+        if (organization && hasSimilarityEmbeddingsFeature) {
+          trackAnalytics('issue_details.similar_issues.diff_clicked', {
+            organization,
+            project_id: baseEventData?.projectID,
+            group_id: baseEventData?.groupID,
+            error_message: baseEventData?.message
+              ? baseEventData.message
+              : baseEventData?.title,
+            stacktrace: baseEvent.join('/n '),
+            transaction: this.getTransaction(
+              baseEventData?.tags ? baseEventData.tags : []
+            ),
+            parent_group_id: targetEventData?.groupID,
+            parent_error_message: targetEventData?.message
+              ? targetEventData.message
+              : targetEventData?.title,
+            parent_stacktrace: targetEvent.join('/n '),
+            parent_transaction: this.getTransaction(
+              targetEventData?.tags ? targetEventData.tags : []
+            ),
+            shouldBeGrouped: shouldBeGrouped,
+          });
+        }
+      } catch {
         addErrorMessage(t('Error loading events'));
-      });
+      }
+    };
+
+    asyncFetch();
   }
 
-  toggleDiffMode = (groupingDiff: boolean) => {
-    this.setState({groupingDiff, loading: true}, this.fetchData);
-  };
-
-  fetchEventData = async (issueId: string, eventId: string) => {
+  fetchEvent = async (issueId: string, eventId: string) => {
     const {orgId, project, api} = this.props;
-    const {groupingDiff} = this.state;
 
     let paramEventId = eventId;
 
@@ -96,51 +138,23 @@ class IssueDiff extends Component<Props, State> {
       paramEventId = event.eventID;
     }
 
-    if (groupingDiff) {
-      const groupingInfo = await api.requestPromise(
-        `/projects/${orgId}/${project.slug}/events/${paramEventId}/grouping-info/`
-      );
-      return renderGroupingInfo(groupingInfo);
-    }
-
     const event = await api.requestPromise(
       `/projects/${orgId}/${project.slug}/events/${paramEventId}/`
     );
-    return getStacktraceBody(event);
+    return event;
+  };
+
+  getTransaction = (tags: any[]) => {
+    return tags.find(tag => tag.key === 'transaction');
   };
 
   render() {
-    const {className, project} = this.props;
-    const {
-      SplitDiffAsync: DiffComponent,
-      loading,
-      groupingDiff,
-      baseEvent,
-      targetEvent,
-    } = this.state;
-
-    const showDiffToggle = project.features.includes('similarity-view-v2');
+    const {className} = this.props;
+    const {SplitDiffAsync: DiffComponent, loading, baseEvent, targetEvent} = this.state;
 
     return (
       <StyledIssueDiff className={className} loading={loading}>
         {loading && <LoadingIndicator />}
-        {!loading && showDiffToggle && (
-          <HeaderWrapper>
-            <SegmentedControl
-              aria-label={t('Grouping')}
-              size="sm"
-              value={groupingDiff ? 'grouping' : 'event'}
-              onChange={key => this.toggleDiffMode(key === 'grouping')}
-            >
-              <SegmentedControl.Item key="event">
-                {t('Diff stack trace and message')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="grouping">
-                {t('Diff grouping information')}
-              </SegmentedControl.Item>
-            </SegmentedControl>
-          </HeaderWrapper>
-        )}
         {!loading &&
           DiffComponent &&
           baseEvent.map((value, i) => (
@@ -178,10 +192,4 @@ const StyledIssueDiff = styled('div', {
         justify-content: center;
         align-items: center;
       `};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-bottom: ${space(2)};
 `;

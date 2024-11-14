@@ -31,12 +31,16 @@ class NotifyEmailAction(EventAction):
 
     def render_label(self) -> str:
         if "fallthroughType" not in self.data:
-            self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+            self.data = {**self.data, "fallthroughType": FallthroughChoiceType.ACTIVE_MEMBERS.value}
         return self.label.format(**self.data)
 
-    def after(self, event, state):
+    def after(self, event, notification_uuid: str | None = None):
         group = event.group
-        extra = {"event_id": event.event_id, "group_id": group.id}
+        extra = {
+            "event_id": event.event_id,
+            "group_id": group.id,
+            "notification_uuid": notification_uuid,
+        }
         group = event.group
 
         target_type = ActionTargetType(self.data["targetType"])
@@ -65,6 +69,7 @@ class NotifyEmailAction(EventAction):
                 target_identifier,
                 fallthrough_type,
                 skip_digests,
+                notification_uuid,
             )
         )
 

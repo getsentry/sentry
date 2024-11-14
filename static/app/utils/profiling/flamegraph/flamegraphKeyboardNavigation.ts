@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from '../flamegraphFrame';
 
 export type DirectionX = 'left' | 'right';
 export type DirectionY = 'up' | 'down';
@@ -12,7 +12,7 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
     const parent = frame.parent;
 
     // sentry root is a virtual root that should not be selectable
-    if (parent?.frame.isRoot()) {
+    if (parent?.frame.isRoot) {
       return frame;
     }
 

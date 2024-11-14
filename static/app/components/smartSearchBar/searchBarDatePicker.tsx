@@ -1,7 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import format from 'date-fns/format';
-import type {Moment} from 'moment';
 
 import {DatePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
@@ -12,7 +11,6 @@ import {DEFAULT_DAY_START_TIME, setDateToTime} from 'sentry/utils/dates';
 
 type SearchBarDatePickerProps = {
   handleSelectDateTime: (value: string) => void;
-  date?: Moment;
   dateString?: string;
 };
 
@@ -68,10 +66,10 @@ const parseIncomingDateString = (incomingDateString?: string) => {
   return new Date(strippedTimeZone + 'T00:00:00');
 };
 
-const SearchBarDatePicker = ({
+function SearchBarDatePicker({
   dateString,
   handleSelectDateTime,
-}: SearchBarDatePickerProps) => {
+}: SearchBarDatePickerProps) {
   const incomingDate = parseIncomingDateString(dateString);
 
   const time = incomingDate ? format(incomingDate, 'HH:mm:ss') : DEFAULT_DAY_START_TIME;
@@ -125,14 +123,14 @@ const SearchBarDatePicker = ({
       </DatePickerFooter>
     </SearchBarDatePickerOverlay>
   );
-};
+}
 
 /**
  * This component keeps track of its own state because updates bring focus
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-const TimeInput = ({time, setTime}: TimeInputProps) => {
+function TimeInput({time, setTime}: TimeInputProps) {
   const [localTime, setLocalTime] = useState(time);
   const [isFocused, setIsFocused] = useState(false);
   const timeInputRef = useRef<HTMLInputElement | null>(null);
@@ -144,7 +142,7 @@ const TimeInput = ({time, setTime}: TimeInputProps) => {
   return (
     <Input
       ref={timeInputRef}
-      aria-label="Time"
+      aria-label={t('Time')}
       type="time"
       data-test-id="search-bar-date-picker-time-input"
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +170,7 @@ const TimeInput = ({time, setTime}: TimeInputProps) => {
       step={1}
     />
   );
-};
+}
 
 const SearchBarDatePickerOverlay = styled(Overlay)`
   position: absolute;
@@ -205,7 +203,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   user-select: none;
   cursor: pointer;
   gap: ${space(1)};

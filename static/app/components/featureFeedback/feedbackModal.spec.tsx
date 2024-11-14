@@ -1,13 +1,6 @@
 import {Fragment} from 'react';
-import {
-  BrowserClient,
-  defaultIntegrations,
-  defaultStackParser,
-  makeFetchTransport,
-} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   renderGlobalModal,
@@ -19,25 +12,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import {TextField} from 'sentry/components/forms';
-import {RouteContext} from 'sentry/views/routeContext';
-
-function ComponentProviders({children}: {children: React.ReactNode}) {
-  const {router} = initializeOrg();
-
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      {children}
-    </RouteContext.Provider>
-  );
-}
+import TextField from 'sentry/components/forms/fields/textField';
 
 describe('FeatureFeedback', function () {
   describe('default', function () {
@@ -45,19 +20,15 @@ describe('FeatureFeedback', function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       const feedbackClient = new Sentry.BrowserClient({
-        transport: makeFetchTransport,
-        stackParser: defaultStackParser,
-        integrations: defaultIntegrations,
+        transport: Sentry.makeFetchTransport,
+        stackParser: Sentry.defaultStackParser,
+        integrations: Sentry.getDefaultIntegrations({}),
       });
 
       renderGlobalModal();
 
       act(() =>
-        openModal(modalProps => (
-          <ComponentProviders>
-            <FeedbackModal {...modalProps} featureName="test" />
-          </ComponentProviders>
-        ))
+        openModal(modalProps => <FeedbackModal {...modalProps} featureName="test" />)
       );
 
       // Form fields
@@ -69,16 +40,14 @@ describe('FeatureFeedback', function () {
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
       // User enters additional feedback message
-      userEvent.paste(
-        screen.getByPlaceholderText('What did you expect?'),
-        'this is a feedback message'
-      );
-      userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText(/what did you expect/i));
+      await userEvent.paste('this is a feedback message');
+      await userEvent.keyboard('{enter}');
 
       // Submit button is still disabled
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText("I don't like this feature")).toBeInTheDocument();
@@ -86,12 +55,12 @@ describe('FeatureFeedback', function () {
       expect(screen.getByText('I like this feature')).toBeInTheDocument();
 
       // Select feedback type
-      userEvent.click(screen.getByText('I like this feature'));
+      await userEvent.click(screen.getByText('I like this feature'));
 
       // Submit button is now enabled because the required field was selected
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
 
-      userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
       await waitFor(() =>
         expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
@@ -108,114 +77,108 @@ describe('FeatureFeedback', function () {
       );
     });
 
-    it('renders provided feedbackTypes', function () {
+    it('renders provided feedbackTypes', async function () {
       renderGlobalModal();
 
       act(() =>
         openModal(modalProps => (
-          <ComponentProviders>
-            <FeedbackModal
-              {...modalProps}
-              featureName="test"
-              feedbackTypes={['Custom feedback type A', 'Custom feedback type B']}
-            />
-          </ComponentProviders>
+          <FeedbackModal
+            {...modalProps}
+            featureName="test"
+            feedbackTypes={['Custom feedback type A', 'Custom feedback type B']}
+          />
         ))
       );
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText('Custom feedback type A')).toBeInTheDocument();
       expect(screen.getByText('Custom feedback type B')).toBeInTheDocument();
 
       // Close modal
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
 
-    it('renders an arbitrary secondary action', function () {
+    it('renders an arbitrary secondary action', async function () {
       renderGlobalModal();
 
       act(() =>
         openModal(modalProps => (
-          <ComponentProviders>
-            <FeedbackModal
-              {...modalProps}
-              featureName="test"
-              secondaryAction={<a href="#">Test Secondary Action Link</a>}
-            />
-          </ComponentProviders>
+          <FeedbackModal
+            {...modalProps}
+            featureName="test"
+            secondaryAction={<a href="#">Test Secondary Action Link</a>}
+          />
         ))
       );
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText('Test Secondary Action Link')).toBeInTheDocument();
 
       // Close modal
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
   });
 
   describe('custom', function () {
-    it('renders custom feedback form', function () {
+    it('renders custom feedback form', async function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       // Mock implementation of the Sentry Browser SDK
-      BrowserClient.prototype.captureEvent = jest.fn();
+      Sentry.BrowserClient.prototype.captureEvent = jest.fn();
 
       renderGlobalModal();
 
       act(() =>
         openModal(modalProps => (
-          <ComponentProviders>
-            <FeedbackModal
-              {...modalProps}
-              featureName="test"
-              initialData={{step: 0, name: null, surname: null}}
-            >
-              {({Header, Body, Footer, state, onFieldChange}) => {
-                if (state.step === 0) {
-                  return (
-                    <Fragment>
-                      <Header>First Step</Header>
-                      <Body>
-                        <TextField
-                          label="Name"
-                          value={state.name}
-                          name="name"
-                          onChange={value => onFieldChange('name', value)}
-                        />
-                      </Body>
-                      <Footer onNext={() => onFieldChange('step', 1)} />
-                    </Fragment>
-                  );
-                }
-
+          <FeedbackModal
+            {...modalProps}
+            featureName="test"
+            initialData={{step: 0, name: null, surname: null}}
+          >
+            {({Header, Body, Footer, state, onFieldChange}) => {
+              if (state.step === 0) {
                 return (
                   <Fragment>
-                    <Header>Last Step</Header>
+                    <Header>First Step</Header>
                     <Body>
                       <TextField
-                        label="Surname"
-                        value={state.surname}
-                        name="surname"
-                        onChange={value => onFieldChange('surname', value)}
+                        label="Name"
+                        value={state.name}
+                        name="name"
+                        onChange={value => onFieldChange('name', value)}
                       />
                     </Body>
-                    <Footer
-                      onBack={() => onFieldChange('step', 0)}
-                      primaryDisabledReason={
-                        !state.surname ? 'Please answer at least one question' : undefined
-                      }
-                      submitEventData={{message: 'Feedback: test'}}
-                    />
+                    <Footer onNext={() => onFieldChange('step', 1)} />
                   </Fragment>
                 );
-              }}
-            </FeedbackModal>
-          </ComponentProviders>
+              }
+
+              return (
+                <Fragment>
+                  <Header>Last Step</Header>
+                  <Body>
+                    <TextField
+                      label="Surname"
+                      value={state.surname}
+                      name="surname"
+                      onChange={value => onFieldChange('surname', value)}
+                    />
+                  </Body>
+                  <Footer
+                    onBack={() => onFieldChange('step', 0)}
+                    primaryDisabledReason={
+                      !state.surname ? 'Please answer at least one question' : undefined
+                    }
+                    submitEventData={{message: 'Feedback: test'}}
+                  />
+                </Fragment>
+              );
+            }}
+          </FeedbackModal>
         ))
       );
 
@@ -227,36 +190,36 @@ describe('FeatureFeedback', function () {
 
       // Change form field
       expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-      userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new value');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new value');
       expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('new value');
 
       // Go to next step
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       // Next step is rendered
       expect(screen.getByRole('heading', {name: 'Last Step'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
 
       // Go to previous step
-      userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
       // Previous step is rendered
       expect(screen.getByRole('heading', {name: 'First Step'})).toBeInTheDocument();
 
       // Go to next step
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       // Next step is rendered
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
       // Change form field
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('');
-      userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('new value');
 
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
 
-      userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'

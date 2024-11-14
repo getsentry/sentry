@@ -19,7 +19,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
@@ -29,7 +29,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import Accordion from '../components/accordion';
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {
   GrowLink,
@@ -39,20 +39,33 @@ import {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPParamsIfApplicable} from '../utils';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from '../types';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from '../utils';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
+
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
-  const pageError = usePageError();
+  const {setPageError} = usePageAlert();
   const theme = useTheme();
 
   const colors = [...theme.charts.getColorPalette(5)].reverse();
@@ -94,7 +107,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             {...provided}
             eventView={eventView}
             location={location}
-            limit={3}
+            limit={QUERY_LIMIT_PARAM}
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
@@ -119,9 +132,14 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
-          eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
-          ]);
+
+          // Skip character escaping because generating the query for EventsRequest
+          // downstream will already handle escaping
+          eventView.additionalConditions.setFilterValues(
+            'transaction',
+            [provided.widgetData.list.data[selectedListIndex].transaction as string],
+            false
+          );
 
           if (canUseMetricsData(organization)) {
             eventView.additionalConditions.setFilterValues('!transaction', [
@@ -152,7 +170,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
                 'low'
               )}
               hideError
-              onError={pageError.setPageError}
+              onError={setPageError}
               queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
             />
           );
@@ -169,17 +187,17 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getAreaChart = provided => () => {
-    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+  const getAreaChart = (provided: ComponentData) => {
+    const durationUnit = getDurationUnit(provided.widgetData.chart.data ?? []);
     return (
       <StackedAreaChart
         {...provided.widgetData.chart}
-        {...provided}
+        {...(provided as any)}
         colors={colors}
-        series={provided.widgetData.chart.data}
+        series={provided.widgetData.chart.data ?? []}
         animation
         isGroupedByDate
         showTimeInTooltip
@@ -189,7 +207,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                aggregateOutputType(provided.widgetData.chart.data?.[0].seriesName),
                 undefined,
                 durationUnit
               );
@@ -208,8 +226,8 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     );
   };
 
-  const getHeaders = provided =>
-    provided.widgetData.list.data.map(listItem => () => {
+  const getHeaders = (provided: ComponentData) =>
+    provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
@@ -230,7 +248,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       const rightValue = listItem[displayedField];
 
       return (
-        <Fragment>
+        <Fragment key={i}>
           <GrowLink to={transactionTarget}>
             <Truncate value={transaction} maxLength={40} />
           </GrowLink>

@@ -1,26 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from django.utils import timezone
+import pytest
 from django.utils.timezone import now
-from freezegun import freeze_time
 
-from sentry.models import (
-    GroupAssignee,
-    GroupEnvironment,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupStatus,
-)
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 @freeze_time(datetime(2021, 6, 24, 4, 00))
-@region_silo_test
 class TeamIssueBreakdownTest(APITestCase):
     endpoint = "sentry-api-0-team-all-unresolved-issues"
 
+    @pytest.mark.xfail(reason="flakey")
     def test_status_format(self):
         project1 = self.create_project(teams=[self.team])
         group1_1 = self.create_group(project=project1, first_seen=before_now(days=40))

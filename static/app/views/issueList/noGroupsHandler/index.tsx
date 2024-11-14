@@ -1,15 +1,20 @@
 import {Component, lazy, Suspense} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {Query} from 'sentry/views/issueList/utils';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import NoIssuesMatched from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
+
+const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
+const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
 
 type Props = {
   api: Client;
@@ -73,26 +78,35 @@ class NoGroupsHandler extends Component<Props, State> {
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
-    let firstEventQuery = {};
+    // Set project to -1 for all projects
+    // Do not pass a project id for "my projects"
+    let firstEventQuery: {project?: number[]} = {};
     const projectsQuery: {per_page: number; query?: string} = {per_page: 1};
 
-    if (!selectedProjectIds || !selectedProjectIds.length) {
-      firstEventQuery = {is_member: true};
-    } else {
+    if (selectedProjectIds?.length && !selectedProjectIds.includes(-1)) {
       firstEventQuery = {project: selectedProjectIds};
       projectsQuery.query = selectedProjectIds.map(id => `id:${id}`).join(' ');
     }
 
-    [{sentFirstEvent}, projects] = await Promise.all([
-      // checks to see if selection has sent a first event
-      api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
-        query: firstEventQuery,
-      }),
-      // retrieves a single project to feed to the ErrorRobot from renderStreamBody
-      api.requestPromise(`/organizations/${organization.slug}/projects/`, {
-        query: projectsQuery,
-      }),
-    ]);
+    try {
+      [{sentFirstEvent}, projects] = await Promise.all([
+        // checks to see if selection has sent a first event
+        api.requestPromise(`/organizations/${organization.slug}/sent-first-event/`, {
+          query: firstEventQuery,
+        }),
+        // retrieves a single project to feed to WaitingForEvents from renderStreamBody
+        api.requestPromise(`/organizations/${organization.slug}/projects/`, {
+          query: projectsQuery,
+        }),
+      ]);
+    } catch {
+      this.setState({
+        fetchingSentFirstEvent: false,
+        sentFirstEvent: true,
+        firstEventProjects: undefined,
+      });
+      return;
+    }
 
     // See comment where this property is initialized
     // FIXME
@@ -113,31 +127,71 @@ class NoGroupsHandler extends Component<Props, State> {
 
   renderAwaitingEvents(projects: State['firstEventProjects']) {
     const {organization, groupIds} = this.props;
-
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = lazy(() => import('sentry/components/errorRobot'));
+    const updatedEmptyStatePlatforms = [
+      'python-django',
+      'node',
+      'javascript-nextjs',
+      'android',
+      ...(organization.features.includes('issue-stream-empty-state-additional-platforms')
+        ? [
+            'apple-ios',
+            'dotnet',
+            'dotnet-aspnetcore',
+            'flutter',
+            'go',
+            'java',
+            'java-spring-boot',
+            'javascript',
+            'javascript-angular',
+            'javascript-react',
+            'javascript-vue',
+            'node-express',
+            'node-nestjs',
+            'php',
+            'php-laravel',
+            'python',
+            'python-fastapi',
+            'python-flask',
+            'react-native',
+            'ruby',
+            'ruby-rails',
+            'unity',
+          ]
+        : []),
+    ];
+
+    const hasUpdatedEmptyState =
+      organization.features.includes('issue-stream-empty-state') &&
+      project?.platform &&
+      updatedEmptyStatePlatforms.includes(project.platform);
 
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
-        <ErrorRobot
-          org={organization}
-          project={project}
-          sampleIssueId={sampleIssueId}
-          gradient
-        />
+        {!hasUpdatedEmptyState && (
+          <WaitingForEvents
+            org={organization}
+            project={project}
+            sampleIssueId={sampleIssueId}
+          />
+        )}
+        {hasUpdatedEmptyState && <UpdatedEmptyState project={project} />}
       </Suspense>
     );
   }
 
   renderEmpty() {
     const {emptyMessage} = this.props;
-    return (
-      <EmptyStateWarning>
-        <p>{emptyMessage ?? t('Sorry, no issues match your filters.')}</p>
-      </EmptyStateWarning>
-    );
+    if (emptyMessage) {
+      return (
+        <EmptyStateWarning>
+          <p>{emptyMessage}</p>
+        </EmptyStateWarning>
+      );
+    }
+    return <NoIssuesMatched />;
   }
 
   render() {
@@ -159,7 +213,7 @@ class NoGroupsHandler extends Component<Props, State> {
       );
     }
 
-    if (query === Query.FOR_REVIEW) {
+    if (FOR_REVIEW_QUERIES.includes(query || '')) {
       return (
         <NoUnresolvedIssues
           title={t('Well, would you look at that.')}

@@ -1,30 +1,39 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
+  isDemoModeEnabled,
+  openDemoSignupModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
 export default function DemoHeader() {
+  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
+
+  useEffect(() => {
+    openDemoSignupModal();
+  }, []);
+
+  if (!isDemoModeEnabled()) {
+    return null;
+  }
+
   const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
 
-  const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
-
   const docsBtn = (
     <DocsDemoBtn
-      onClick={() =>
-        trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
-      }
+      onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
       href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
       external
     >
@@ -35,7 +44,7 @@ export default function DemoHeader() {
   const reqDemoBtn = (
     <NewRequestDemoBtn
       onClick={() =>
-        trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+        trackAnalytics('growth.demo_click_request_demo', {
           organization: null,
         })
       }
@@ -60,7 +69,7 @@ export default function DemoHeader() {
         // from localStorage when the user clicks the button.
         window.open(url, '_blank');
 
-        trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+        trackAnalytics('growth.demo_click_get_started', {
           cta: sandboxData?.cta?.id,
           organization: null,
         });
@@ -128,23 +137,22 @@ const FreeTrialTextShort = styled('span')`
 
 const FreeTrialTextLong = styled('span')``;
 
-const NewBaseButton = styled(Button)`
+const NewRequestDemoBtn = styled(LinkButton)`
   text-transform: uppercase;
-`;
-
-const NewRequestDemoBtn = styled(NewBaseButton)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
 
-const DocsDemoBtn = styled(NewBaseButton)`
+const DocsDemoBtn = styled(LinkButton)`
+  text-transform: uppercase;
   @media (max-width: 500px) {
     display: none;
   }
 `;
 
-const FreeTrial = styled(NewBaseButton)`
+const FreeTrial = styled(Button)`
+  text-transform: uppercase;
   border-color: transparent;
   background-color: #6c5fc7;
   color: #fff;

@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import DeployBadge from 'sentry/components/deployBadge';
+import DeployBadge from 'sentry/components/badge/deployBadge';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Deploy} from 'sentry/types';
+import type {Deploy} from 'sentry/types/release';
 
 type Props = {
   deploys: Deploy[];
@@ -15,7 +15,7 @@ type Props = {
   version: string;
 };
 
-const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
+function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Deploys')}</SidebarSection.Title>
@@ -36,7 +36,7 @@ const Deploys = ({version, orgSlug, projectId, deploys}: Props) => {
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
-};
+}
 
 const Row = styled('div')`
   display: flex;

@@ -1,27 +1,28 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import SegmentExplorerQuery, {
-  TableData,
-} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -42,11 +43,11 @@ type Props = {
 
 type TagOption = string;
 
-const TagsPageContent = (props: Props) => {
+function TagsPageContent(props: Props) {
   const {eventView, location, organization, projects} = props;
 
   const [aggregateColumn, setAggregateColumn] = useState(
-    getTransactionField(SpanOperationBreakdownFilter.None, projects, eventView)
+    getTransactionField(SpanOperationBreakdownFilter.NONE, projects, eventView)
   );
 
   return (
@@ -74,7 +75,7 @@ const TagsPageContent = (props: Props) => {
       </SegmentExplorerQuery>
     </Layout.Main>
   );
-};
+}
 
 function getTagKeyOptions(tableData: TableData) {
   const suspectTags: TagOption[] = [];
@@ -90,14 +91,14 @@ function getTagKeyOptions(tableData: TableData) {
   };
 }
 
-const InnerContent = (
+function InnerContent(
   props: Props & {
     aggregateColumn: string;
     onChangeAggregateColumn: (aggregateColumn: string) => void;
     tableData: TableData | null;
     isLoading?: boolean;
   }
-) => {
+) {
   const {
     eventView: _eventView,
     location,
@@ -166,7 +167,7 @@ const InnerContent = (
   };
 
   const changeTag = (tag: string, isOtherTag: boolean) => {
-    trackAdvancedAnalyticsEvent('performance_views.tags.change_tag', {
+    trackAnalytics('performance_views.tags.change_tag', {
       organization,
       from_tag: tagSelected!,
       to_tag: tag,
@@ -181,6 +182,8 @@ const InnerContent = (
 
   const query = decodeScalar(location.query.query, '');
 
+  const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -194,26 +197,34 @@ const InnerContent = (
         <FilterActions>
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
-            <DatePageFilter alignDropdown="left" />
+            <DatePageFilter />
           </PageFilterBar>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-          />
+          <StyledSearchBarWrapper>
+            {organization.features.includes('search-query-builder-performance') ? (
+              <TransactionSearchQueryBuilder
+                projects={projectIds}
+                initialQuery={query}
+                onSearch={handleSearch}
+                searchSource="transaction_tags"
+              />
+            ) : (
+              <SearchBar
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={handleSearch}
+              />
+            )}
+          </StyledSearchBarWrapper>
           <CompactSelect
             value={aggregateColumn}
             options={X_AXIS_SELECT_OPTIONS}
             onChange={opt => {
-              trackAdvancedAnalyticsEvent(
-                'performance_views.tags.change_aggregate_column',
-                {
-                  organization,
-                  value: opt.value,
-                }
-              );
+              trackAnalytics('performance_views.tags.change_aggregate_column', {
+                organization,
+                value: opt.value,
+              });
               onChangeAggregateColumn(opt.value);
             }}
             triggerProps={{prefix: t('X-Axis')}}
@@ -223,15 +234,15 @@ const InnerContent = (
       </StyledMain>
     </ReversedLayoutBody>
   );
-};
+}
 
-const TagsSideBar = (props: {
+function TagsSideBar(props: {
   changeTag: (tag: string, isOtherTag: boolean) => void;
   otherTags: TagOption[];
   suspectTags: TagOption[];
   isLoading?: boolean;
   tagSelected?: string;
-}) => {
+}) {
   const {suspectTags, otherTags, changeTag, tagSelected, isLoading} = props;
   return (
     <StyledSide>
@@ -288,12 +299,12 @@ const TagsSideBar = (props: {
       )}
     </StyledSide>
   );
-};
+}
 
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
@@ -336,7 +347,7 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/6;

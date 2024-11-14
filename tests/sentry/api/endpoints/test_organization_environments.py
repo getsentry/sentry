@@ -1,12 +1,10 @@
 from functools import cached_property
 
 from sentry.api.serializers import serialize
-from sentry.models import Environment
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.environment import Environment
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationEnvironmentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-environments"
 

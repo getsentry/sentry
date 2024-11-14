@@ -1,78 +1,21 @@
-import first from 'lodash/first';
-import {duration} from 'moment';
+import invariant from 'invariant';
+import {duration} from 'moment-timezone';
 
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import {t} from 'sentry/locale';
-import type {
-  BreadcrumbTypeDefault,
-  BreadcrumbTypeNavigation,
-  Crumb,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  isBreadcrumbTypeDefault,
-} from 'sentry/types/breadcrumbs';
-import type {
-  MemorySpanType,
-  RecordingEvent,
-  ReplayCrumb,
-  ReplayError,
-  ReplayRecord,
-  ReplaySpan,
-} from 'sentry/views/replays/types';
+import isValidDate from 'sentry/utils/date/isValidDate';
+import getMinMax from 'sentry/utils/getMinMax';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
-// Errors if it is an interface
-// See https://github.com/microsoft/TypeScript/issues/15300
-type ReplayAttachmentsByTypeMap = {
-  breadcrumbs: ReplayCrumb[];
-
-  /**
-   * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
-   */
-  rrwebEvents: RecordingEvent[];
-  spans: ReplaySpan[];
-};
-
-export function mapRRWebAttachments(
-  unsortedReplayAttachments: any[]
-): ReplayAttachmentsByTypeMap {
-  const replayAttachments: ReplayAttachmentsByTypeMap = {
-    breadcrumbs: [],
-    rrwebEvents: [],
-    spans: [],
-  };
-
-  unsortedReplayAttachments.forEach(attachment => {
-    if (attachment.data?.tag === 'performanceSpan') {
-      replayAttachments.spans.push(attachment.data.payload);
-    } else if (attachment?.data?.tag === 'breadcrumb') {
-      replayAttachments.breadcrumbs.push(attachment.data.payload);
-    } else {
-      replayAttachments.rrwebEvents.push(attachment);
-    }
-  });
-
-  return replayAttachments;
-}
-
-export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
-  return span.op === 'memory';
-};
-
-export const isNetworkSpan = (span: ReplaySpan) => {
-  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
-};
-
-export const getBreadcrumbsByCategory = (breadcrumbs: Crumb[], categories: string[]) => {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
+const defaultValues = {
+  has_viewed: false,
 };
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   // Marshal special fields into tags
+  const user = Object.fromEntries(
+    Object.entries(apiResponse.user)
+      .filter(([key, value]) => key !== 'display_name' && value)
+      .map(([key, value]) => [`user.${key}`, [value]])
+  );
   const unorderedTags: ReplayRecord['tags'] = {
     ...apiResponse.tags,
     ...(apiResponse.browser?.name ? {'browser.name': [apiResponse.browser.name]} : {}),
@@ -85,164 +28,31 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       ? {'device.model_id': [apiResponse.device.model_id]}
       : {}),
     ...(apiResponse.device?.name ? {'device.name': [apiResponse.device.name]} : {}),
+    ...(apiResponse.environment ? {environment: [apiResponse.environment]} : {}),
     ...(apiResponse.platform ? {platform: [apiResponse.platform]} : {}),
-    ...(apiResponse.releases ? {releases: [apiResponse.releases]} : {}),
+    ...(apiResponse.releases ? {releases: [...apiResponse.releases]} : {}),
+    ...(apiResponse.replay_type ? {replayType: [apiResponse.replay_type]} : {}),
     ...(apiResponse.os?.name ? {'os.name': [apiResponse.os.name]} : {}),
     ...(apiResponse.os?.version ? {'os.version': [apiResponse.os.version]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
-    ...(apiResponse.user?.ip ? {'user.ip': [apiResponse.user.ip]} : {}),
+    ...user,
   };
 
-  // Sort the tags by key
-  const tags = Object.keys(unorderedTags)
-    .sort()
-    .reduce((acc, key) => {
-      acc[key] = unorderedTags[key];
-      return acc;
-    }, {});
-
+  const startedAt = new Date(apiResponse.started_at);
+  invariant(isValidDate(startedAt), 'replay.started_at is invalid');
+  const finishedAt = new Date(apiResponse.finished_at);
+  invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
   return {
+    ...defaultValues,
     ...apiResponse,
-    ...(apiResponse.started_at ? {started_at: new Date(apiResponse.started_at)} : {}),
-    ...(apiResponse.finished_at ? {finished_at: new Date(apiResponse.finished_at)} : {}),
+    ...(apiResponse.started_at ? {started_at: startedAt} : {}),
+    ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
-    tags,
+    tags: unorderedTags,
   };
-}
-
-export function rrwebEventListFactory(
-  replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[]
-) {
-  const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
-    type: 5, // EventType.Custom,
-    timestamp: replayRecord.finished_at.getTime(),
-    data: {
-      tag: 'replay-end',
-    },
-  });
-
-  events.sort((a, b) => a.timestamp - b.timestamp);
-
-  const firstRRWebEvent = first(events) as RecordingEvent;
-  firstRRWebEvent.timestamp = replayRecord.started_at.getTime();
-
-  return events;
-}
-
-export function breadcrumbFactory(
-  replayRecord: ReplayRecord,
-  errors: ReplayError[],
-  rawCrumbs: ReplayCrumb[],
-  spans: ReplaySpan[]
-): Crumb[] {
-  const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur'];
-
-  const initialUrl = replayRecord.tags.url?.join(', ');
-  const initBreadcrumb = {
-    type: BreadcrumbType.INIT,
-    timestamp: replayRecord.started_at.toISOString(),
-    level: BreadcrumbLevelType.INFO,
-    message: initialUrl,
-    data: {
-      action: 'replay-init',
-      label: t('Start recording'),
-      url: initialUrl,
-    },
-  } as BreadcrumbTypeDefault;
-
-  const errorCrumbs: RawCrumb[] = errors.map(error => ({
-    type: BreadcrumbType.ERROR,
-    level: BreadcrumbLevelType.ERROR,
-    category: 'issue',
-    message: error.title,
-    data: {
-      label: error['error.type'].join(''),
-      eventId: error.id,
-      groupId: error['issue.id'] || 1,
-      groupShortId: error.issue,
-      project: error['project.name'],
-    },
-    timestamp: error.timestamp,
-  }));
-
-  const spanCrumbs: (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[] = spans
-    .filter(span =>
-      ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
-        span.op
-      )
-    )
-    .map(span => {
-      if (span.op.startsWith('navigation')) {
-        const [, action] = span.op.split('.');
-        return {
-          category: 'default',
-          type: BreadcrumbType.NAVIGATION,
-          timestamp: new Date(span.startTimestamp * 1000).toISOString(),
-          level: BreadcrumbLevelType.INFO,
-          message: span.description,
-          action,
-          data: {
-            to: span.description,
-            label:
-              action === 'reload'
-                ? t('Reload')
-                : action === 'navigate'
-                ? t('Page load')
-                : t('Navigation'),
-            ...span.data,
-          },
-        };
-      }
-
-      return {
-        type: BreadcrumbType.DEBUG,
-        timestamp: new Date(span.startTimestamp * 1000).toISOString(),
-        level: BreadcrumbLevelType.INFO,
-        category: 'default',
-        data: {
-          action: span.op,
-          ...span.data,
-          label: span.op === 'largest-contentful-paint' ? t('LCP') : span.op,
-        },
-      };
-    });
-
-  const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
-
-  const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
-    .filter(crumb => {
-      return !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '');
-    })
-    .map(crumb => {
-      return {
-        ...crumb,
-        type: BreadcrumbType.DEFAULT,
-        timestamp: new Date(crumb.timestamp * 1000).toISOString(),
-      };
-    });
-
-  const result = transformCrumbs([
-    ...(!hasPageLoad ? [initBreadcrumb] : []),
-    ...rawCrumbsWithTimestamp,
-    ...errorCrumbs,
-    ...spanCrumbs,
-  ]);
-
-  return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
-}
-
-export function spansFactory(spans: ReplaySpan[]) {
-  return spans
-    .sort((a, b) => a.startTimestamp - b.startTimestamp)
-    .map(span => ({
-      ...span,
-      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
-      timestamp: span.startTimestamp * 1000,
-    }));
 }
 
 /**
@@ -253,30 +63,43 @@ export function spansFactory(spans: ReplaySpan[]) {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[],
-  rawCrumbs: ReplayCrumb[],
-  rawSpanData: ReplaySpan[]
+  rrwebEvents: {timestamp: number}[],
+  rawCrumbs: {timestamp: number}[],
+  rawSpanData: {endTimestamp: number; op: string; startTimestamp: number}[]
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
-  const breadcrumbTimestamps = (
-    rawCrumbs.map(rawCrumb => rawCrumb.timestamp).filter(Boolean) as number[]
-  )
-    .map(timestamp => +new Date(timestamp * 1000))
+  const breadcrumbTimestamps = rawCrumbs
+    .map(rawCrumb => rawCrumb.timestamp)
     .filter(Boolean);
   const rawSpanDataFiltered = rawSpanData.filter(
-    ({op}) => op !== 'largest-contentful-paint'
+    ({op}) => op !== 'web-vital' && op !== 'largest-contentful-paint'
   );
-  const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp * 1000);
-  const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp * 1000);
+  const spanStartTimestamps = rawSpanDataFiltered
+    .map(span => span.startTimestamp)
+    .filter(Boolean);
+  const spanEndTimestamps = rawSpanDataFiltered
+    .map(span => span.endTimestamp)
+    .filter(Boolean);
+
+  // Calculate min/max of each array individually, to prevent extra allocations.
+  // Also using `getMinMax()` so we can handle any huge arrays.
+  const {min: minRRWeb, max: maxRRWeb} = getMinMax(rrwebTimestamps);
+  const {min: minCrumbs, max: maxCrumbs} = getMinMax(breadcrumbTimestamps);
+  const {min: minSpanStarts} = getMinMax(spanStartTimestamps);
+  const {max: maxSpanEnds} = getMinMax(spanEndTimestamps);
 
   return {
     startTimestampMs: Math.min(
       replayRecord.started_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
+      minRRWeb,
+      minCrumbs * 1000,
+      minSpanStarts * 1000
     ),
     endTimestampMs: Math.max(
       replayRecord.finished_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
+      maxRRWeb,
+      maxCrumbs * 1000,
+      maxSpanEnds * 1000
     ),
   };
 }

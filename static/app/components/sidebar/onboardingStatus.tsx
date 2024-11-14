@@ -1,7 +1,9 @@
-import {Fragment} from 'react';
-import {css, Theme} from '@emotion/react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import ProgressRing, {
@@ -9,67 +11,61 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import {useSandboxSidebarTasks} from 'sentry/utils/demoWalkthrough';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import withProjects from 'sentry/utils/withProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
+import useProjects from 'sentry/utils/useProjects';
 
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import type {CommonSidebarProps} from './types';
+import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
-  projects: Project[];
 };
-
-export const getSidebarTasks = isDemoWalkthrough()
-  ? useSandboxSidebarTasks
-  : getMergedTasks;
-
-const isDone = (task: OnboardingTaskStatus) =>
-  task.status === 'complete' || task.status === 'skipped';
 
 const progressTextCss = () => css`
   font-size: ${theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${theme.fontWeightBold};
 `;
 
-function OnboardingStatus({
+export default function OnboardingStatus({
   collapsed,
   org,
-  projects,
   currentPanel,
   orientation,
   hidePanel,
   onShowPanel,
 }: Props) {
-  const handleShowPanel = () => {
-    trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
+  const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
+
+  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const walkthrough = isDemoModeEnabled();
+
+  const handleToggle = useCallback(() => {
+    if (!walkthrough && !isActive === true) {
+      trackAnalytics('quick_start.opened', {
+        organization: org,
+        new_experience: false,
+      });
+    }
     onShowPanel();
-  };
-  const [onboardingState] = usePersistedOnboardingState();
+  }, [walkthrough, isActive, onShowPanel, org]);
 
-  const shouldShowSidebar =
-    org.features?.includes('onboarding') || ConfigStore.get('demoMode');
-
-  if (!shouldShowSidebar) {
-    return null;
-  }
-
-  const tasks = getSidebarTasks({
+  const tasks = getMergedTasks({
     organization: org,
     projects,
-    onboardingState: onboardingState || undefined,
+    onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
+
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
 
@@ -80,13 +76,24 @@ function OnboardingStatus({
       !task.completionSeen
   );
 
-  const isActive = currentPanel === SidebarPanelKey.OnboardingWizard;
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+      new_experience: false,
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 
-  const walkthrough = isDemoWalkthrough();
   const label = walkthrough ? t('Guided Tours') : t('Quick Start');
   const task = walkthrough ? 'tours' : 'tasks';
 
@@ -95,7 +102,7 @@ function OnboardingStatus({
       <Container
         role="button"
         aria-label={label}
-        onClick={handleShowPanel}
+        onClick={handleToggle}
         isActive={isActive}
       >
         <ProgressRing
@@ -108,7 +115,7 @@ function OnboardingStatus({
           size={38}
           barWidth={6}
         />
-        {!collapsed && (
+        {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
             <Remaining>
@@ -189,5 +196,3 @@ const Container = styled('div')<{isActive: boolean}>`
     ${hoverCss};
   }
 `;
-
-export default withProjects(OnboardingStatus);

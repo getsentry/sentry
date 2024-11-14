@@ -2,17 +2,14 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {DeepPartial} from 'sentry/types/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import type {DeepPartial} from 'sentry/types/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import {DEFAULT_FLAMEGRAPH_STATE} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {
   decodeFlamegraphStateFromQueryParams,
@@ -28,11 +25,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useProfiles} from './profilesProvider';
+import {useProfiles, useProfileTransaction} from './profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
   const profiles = useProfiles();
+  const profiledTransaction = useProfileTransaction();
   const params = useParams();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
@@ -41,6 +39,8 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       },
     }
   );
@@ -48,7 +48,7 @@ function ProfileFlamegraph(): React.ReactElement {
   const currentProject = useCurrentProjectFromRouteParam();
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
+    trackAnalytics('profiling_views.profile_flamegraph', {
       organization,
       project_platform: currentProject?.platform,
       project_id: currentProject?.id,
@@ -63,41 +63,11 @@ function ProfileFlamegraph(): React.ReactElement {
       qs.parse(window.location.search)
     );
 
-    let type =
-      queryStringState.preferences?.type ??
-      storedPreferences.preferences?.type ??
-      DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-    let sorting =
-      queryStringState.preferences?.sorting ??
-      storedPreferences.preferences?.sorting ??
-      DEFAULT_FLAMEGRAPH_STATE.preferences.sorting;
-
-    // Ensure that the type and sorting is overriden to the default if the feature is not enabled
-    // or if the view permutation is not compatible with the type
-    if (
-      type === 'flamegraph' &&
-      !organization.features.includes('profiling-flamegraphs')
-    ) {
-      type = 'flamechart';
-    }
-
-    // If flamegraph, but user wants call order, switch to alphabetical
-    if (type === 'flamegraph' && sorting === 'call order') {
-      sorting = 'alphabetical';
-    }
-    // If flamechart, but user wants alphabetical, switch to call order
-    if (type === 'flamechart' && sorting === 'alphabetical') {
-      sorting = 'call order';
-    }
-
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
-        type,
-        sorting,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(storedPreferences?.preferences?.timelines ?? {}),
@@ -126,11 +96,7 @@ function ProfileFlamegraph(): React.ReactElement {
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
-              {profiles.type === 'errored' ? (
-                <Alert type="error" showIcon>
-                  {profiles.error}
-                </Alert>
-              ) : profiles.type === 'loading' ? (
+              {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
@@ -159,7 +125,11 @@ function ProfileGroupTypeProvider({
 }) {
   const preferences = useFlamegraphPreferences();
   return (
-    <ProfileGroupProvider input={input} traceID={traceID} type={preferences.type}>
+    <ProfileGroupProvider
+      input={input}
+      traceID={traceID}
+      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
+    >
       {children}
     </ProfileGroupProvider>
   );

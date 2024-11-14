@@ -1,7 +1,10 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Frame, PlatformType} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import type {Event, Frame} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {SymbolicatorStatus} from '../types';
 
@@ -11,7 +14,7 @@ export function trimPackage(pkg: string) {
   return filename.replace(/\.(dylib|so|a|dll|exe)$/, '');
 }
 
-export function getPlatform(dataPlatform: PlatformType | null, platform: string) {
+export function getPlatform(dataPlatform: PlatformKey | null, platform: string) {
   // prioritize the frame platform but fall back to the platform
   // of the stack trace / exception
   return dataPlatform || platform;
@@ -73,11 +76,11 @@ export function hasContextSource(frame: Frame) {
 }
 
 export function hasContextVars(frame: Frame) {
-  return !objectIsEmpty(frame.vars || {});
+  return !isEmptyObject(frame.vars || {});
 }
 
 export function hasContextRegisters(registers: Record<string, string>) {
-  return !objectIsEmpty(registers);
+  return !isEmptyObject(registers);
 }
 
 export function hasAssembly(frame: Frame, platform?: string) {
@@ -106,4 +109,43 @@ export function isExpandable({
     hasContextRegisters(registers) ||
     hasAssembly(frame, platform)
   );
+}
+
+export function getLeadHint({
+  event,
+  hasNextFrame,
+}: {
+  event: Event;
+  hasNextFrame: boolean;
+}) {
+  if (hasNextFrame) {
+    return t('Called from');
+  }
+
+  switch (event.type) {
+    case EventOrGroupType.ERROR:
+      // ANRs/AppHangs are errors, but not crashes, so "Crashed in non-app" might be confusing as if
+      // there was a crash prior to ANR, hence special-casing them
+      return isAnrEvent(event) ? t('Occurred in non-app') : t('Crashed in non-app');
+    default:
+      return t('Occurred in non-app');
+  }
+}
+
+function isAnrEvent(event: Event) {
+  const mechanismTag = event.tags?.find(({key}) => key === 'mechanism')?.value;
+  const isANR =
+    mechanismTag === 'ANR' ||
+    mechanismTag === 'AppExitInfo' ||
+    mechanismTag === 'AppHang' ||
+    mechanismTag === 'mx_hang_diagnostic';
+  return isANR;
+}
+
+export function hasFileExtension(filepath: string) {
+  // Regular expression to match a file extension
+  const fileExtensionPattern = /\.[0-9a-z]+$/i;
+
+  // Check if the filepath matches the pattern
+  return fileExtensionPattern.test(filepath);
 }

@@ -1,6 +1,7 @@
-import {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
-import {allOperators, Token, TokenResult} from './parser';
+import type {TokenResult} from './parser';
+import {allOperators, Token} from './parser';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've
@@ -90,27 +91,27 @@ export function treeResultLocator<T>({
     }
 
     switch (token.type) {
-      case Token.Filter:
+      case Token.FILTER:
         nodeVisitor(token.key);
         nodeVisitor(token.value);
         break;
-      case Token.KeyExplicitTag:
+      case Token.KEY_EXPLICIT_TAG:
         nodeVisitor(token.key);
         break;
-      case Token.KeyAggregate:
+      case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
         token.args && nodeVisitor(token.args);
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
-      case Token.LogicGroup:
+      case Token.LOGIC_GROUP:
         token.inner.forEach(nodeVisitor);
         break;
-      case Token.KeyAggregateArgs:
+      case Token.KEY_AGGREGATE_ARGS:
         token.args.forEach(v => nodeVisitor(v.value));
         break;
-      case Token.ValueNumberList:
-      case Token.ValueTextList:
+      case Token.VALUE_NUMBER_LIST:
+      case Token.VALUE_TEXT_LIST:
         token.items.forEach((v: any) => nodeVisitor(v.value));
         break;
       default:
@@ -152,18 +153,18 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
     }
 
     switch (token.type) {
-      case Token.Filter:
+      case Token.FILTER:
         return transform({
           ...token,
           key: nodeVisitor(token.key),
           value: nodeVisitor(token.value),
         });
-      case Token.KeyExplicitTag:
+      case Token.KEY_EXPLICIT_TAG:
         return transform({
           ...token,
           key: nodeVisitor(token.key),
         });
-      case Token.KeyAggregate:
+      case Token.KEY_AGGREGATE:
         return transform({
           ...token,
           name: nodeVisitor(token.name),
@@ -171,18 +172,18 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
-      case Token.LogicGroup:
+      case Token.LOGIC_GROUP:
         return transform({
           ...token,
           inner: token.inner.map(nodeVisitor),
         });
-      case Token.KeyAggregateArgs:
+      case Token.KEY_AGGREGATE_ARGS:
         return transform({
           ...token,
           args: token.args.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
-      case Token.ValueNumberList:
-      case Token.ValueTextList:
+      case Token.VALUE_NUMBER_LIST:
+      case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
           // TODO(ts): Not sure why `v` cannot be inferred here
@@ -202,22 +203,29 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
+  /**
+   * Display explicit tags with `tags[name]` instead of `name`
+   */
+  showExplicitTagPrefix?: boolean;
 };
 
 /**
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: TokenResult<Token.KeySimple | Token.KeyExplicitTag | Token.KeyAggregate>,
+  key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs} = options;
+  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
   switch (key.type) {
-    case Token.KeySimple:
+    case Token.KEY_SIMPLE:
       return key.value;
-    case Token.KeyExplicitTag:
+    case Token.KEY_EXPLICIT_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
       return key.key.value;
-    case Token.KeyAggregate:
+    case Token.KEY_AGGREGATE:
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;
@@ -239,4 +247,66 @@ export function isWithinToken(
 
 export function isOperator(value: string) {
   return allOperators.some(op => op === value);
+}
+
+function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
+  let stringifiedToken = '';
+
+  if (token.negated) {
+    stringifiedToken += '!';
+  }
+
+  stringifiedToken += stringifyToken(token.key);
+  stringifiedToken += ':';
+  stringifiedToken += token.operator;
+  stringifiedToken += stringifyToken(token.value);
+
+  return stringifiedToken;
+}
+
+export function stringifyToken(token: TokenResult<Token>) {
+  switch (token.type) {
+    case Token.FREE_TEXT:
+    case Token.SPACES:
+      return token.value;
+    case Token.FILTER:
+      return stringifyTokenFilter(token);
+    case Token.LOGIC_GROUP:
+      return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
+    case Token.LOGIC_BOOLEAN:
+      return token.value;
+    case Token.VALUE_TEXT_LIST:
+      const textListItems = token.items
+        .map(item => item.value?.text ?? '')
+        .filter(text => text.length > 0);
+      return `[${textListItems.join(',')}]`;
+    case Token.VALUE_NUMBER_LIST:
+      const numberListItems = token.items
+        .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
+        .filter(str => str.length > 0);
+      return `[${numberListItems.join(',')}]`;
+    case Token.KEY_SIMPLE:
+      return token.value;
+    case Token.KEY_AGGREGATE:
+      return token.text;
+    case Token.KEY_AGGREGATE_ARGS:
+      return token.text;
+    case Token.KEY_AGGREGATE_PARAMS:
+      return token.text;
+    case Token.KEY_EXPLICIT_TAG:
+      return `${token.prefix}[${token.key.value}]`;
+    case Token.VALUE_TEXT:
+      return token.quoted ? `"${token.value}"` : token.value;
+    case Token.VALUE_RELATIVE_DATE:
+      return `${token.sign}${token.value}${token.unit}`;
+    case Token.VALUE_BOOLEAN:
+    case Token.VALUE_DURATION:
+    case Token.VALUE_ISO_8601_DATE:
+    case Token.VALUE_PERCENTAGE:
+    case Token.VALUE_SIZE:
+    case Token.VALUE_NUMBER:
+      return token.text;
+    default:
+      return '';
+  }
 }

@@ -1,11 +1,20 @@
 from copy import deepcopy
 from unittest import mock
+from unittest.mock import call
 from urllib.parse import urlencode
 
+import pytest
 import responses
+from django.test import override_settings
+from django.urls import reverse
 
-from sentry.models import Identity, IdentityProvider, Integration
-from sentry.testutils import APITestCase
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity
 from sentry.utils import jwt
 
 from .test_helpers import (
@@ -21,12 +30,17 @@ from .test_helpers import (
     WELL_KNOWN_KEYS,
 )
 
-webhook_url = "/extensions/msteams/webhook/"
+webhook_url = reverse("sentry-integration-msteams-webhooks")
 team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
 class MsTeamsWebhookTest(APITestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+            yield
+
     def setUp(self):
         super().setUp()
 
@@ -214,7 +228,8 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
-        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -225,7 +240,29 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert not Integration.objects.filter(id=integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not Integration.objects.filter(id=integration.id)
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_invalid_silo_member_removed(self, mock_time, mock_decode):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            resp = self.client.post(
+                path=webhook_url,
+                data=EXAMPLE_TEAM_MEMBER_REMOVED,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+            assert resp.status_code == 400
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -233,7 +270,8 @@ class MsTeamsWebhookTest(APITestCase):
     def test_different_member_removed(self, mock_time, mock_decode):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
-        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -244,7 +282,8 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert Integration.objects.filter(id=integration.id)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -358,9 +397,10 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
-    def test_help_command(self, mock_time, mock_decode):
+    def test_help_command(self, mock_time, mock_decode, mock_record):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "Help"
         access_json = {"expires_in": 86399, "access_token": "my_token"}
@@ -389,6 +429,11 @@ class MsTeamsWebhookTest(APITestCase):
             3
         ].request.body.decode("utf-8")
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -424,14 +469,42 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
+
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_link_command_already_linked(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
-        idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
-        Identity.objects.create(external_id=other_command["from"]["id"], idp=idp, user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            idp = self.create_identity_provider(type="msteams", external_id=team_id)
+            Identity.objects.create(
+                external_id=other_command["from"]["id"], idp=idp, user=self.user
+            )
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
@@ -492,3 +565,40 @@ class MsTeamsWebhookTest(APITestCase):
             "utf-8"
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+    @responses.activate
+    @mock.patch("sentry.utils.jwt.decode")
+    @mock.patch("time.time")
+    def test_invalid_silo_card_action_payload(self, mock_time, mock_decode):
+        mock_time.return_value = 1594839999 + 60
+        mock_decode.return_value = DECODED_TOKEN
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            integration = self.create_provider_integration(external_id=team_id, provider="msteams")
+            CARD_ACTION_RESPONSE = {
+                "type": "message",
+                "from": {"id": "user_id"},
+                "channelData": {
+                    "tenant": {"id": "f5ffd8cf-a1aa-4242-adad-86509faa3be5"},
+                    "channel": {"id": "channel_id"},
+                },
+                "conversation": {"conversationType": "channel", "id": "conversation_id"},
+                "value": {
+                    "payload": {
+                        "groupId": "groupId",
+                        "eventId": "eventId",
+                        "actionType": ACTION_TYPE.ASSIGN,
+                        "rules": [],
+                        "integrationId": integration.id,
+                    },
+                    "assignInput": "me",
+                },
+                "replyToId": "replyToId",
+                "serviceUrl": "https://smba.trafficmanager.net/amer/",
+            }
+            response = self.client.post(
+                path=webhook_url,
+                data=CARD_ACTION_RESPONSE,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {TOKEN}",
+            )
+            assert response.status_code == 400

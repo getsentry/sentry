@@ -1,5 +1,3 @@
-import flatMap from 'lodash/flatMap';
-
 import type {Item, ItemsAfterFilter, ItemsBeforeFilter} from './types';
 
 type Items = ItemsBeforeFilter;
@@ -15,14 +13,13 @@ function hasRootGroup(items: Items): items is ItemsWithChildren {
 }
 
 function filterItems(items: Items, inputValue: string): ItemsBeforeFilter {
-  return items.filter(
-    item =>
-      (typeof item.searchKey === 'string' && item.searchKey.length > 0
-        ? item.searchKey
-        : `${item.value} ${item.label}`
-      )
-        .toLowerCase()
-        .indexOf(inputValue.toLowerCase()) > -1
+  return items.filter(item =>
+    (typeof item.searchKey === 'string' && item.searchKey.length > 0
+      ? item.searchKey
+      : `${item.value} ${item.label}`
+    )
+      .toLowerCase()
+      .includes(inputValue.toLowerCase())
   );
 }
 
@@ -50,7 +47,7 @@ function autoCompleteFilter(
 
   if (hasRootGroup(items)) {
     // if the first item has children, we assume it is a group
-    return flatMap(filterGroupedItems(items, inputValue), item => {
+    return filterGroupedItems(items, inputValue).flatMap(item => {
       const groupItems = item.items.map(groupedItem => ({
         ...groupedItem,
         index: itemCount++,

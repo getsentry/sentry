@@ -1,57 +1,67 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {User} from 'sentry/types';
+import type {StrictStoreDefinition} from 'sentry/stores/types';
+import type {User} from 'sentry/types/user';
 
-interface MemberListStoreDefinition extends StoreDefinition {
+type State = {
+  cursor: string | null;
+  hasMore: boolean | null;
+  loading: boolean;
+  members: User[];
+};
+
+// XXX(epurkhiser): Either this store is completely wrong, or it is misnamed, a
+// `Member` has one `User`, this stores users not members.
+
+interface MemberListStoreDefinition extends StrictStoreDefinition<State> {
   getAll(): User[];
-  getById(id: string): User | undefined;
-  getState(): User[];
+  getById(memberId: string): User | undefined;
   init(): void;
-  isLoaded(): boolean;
-  loadInitialData(items: User[]): void;
-  loaded: boolean;
-  state: User[];
+  loadInitialData(items: User[], hasMore?: boolean | null, cursor?: string | null): void;
+  reset(): void;
 }
 
 const storeConfig: MemberListStoreDefinition = {
-  loaded: false,
-  state: [],
+  state: {
+    members: [],
+    loading: true,
+    hasMore: null,
+    cursor: null,
+  },
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.state = [];
-    this.loaded = false;
+    this.reset();
   },
 
-  // TODO(dcramer): this should actually come from an action of some sorts
-  loadInitialData(items: User[]) {
-    this.state = items;
-    this.loaded = true;
+  reset() {
+    this.state = {
+      members: [],
+      loading: true,
+      hasMore: null,
+      cursor: null,
+    };
+  },
+
+  loadInitialData(items: User[], hasMore, cursor) {
+    this.state = {
+      members: items,
+      loading: false,
+      hasMore: hasMore ?? this.state.hasMore,
+      cursor: cursor ?? this.state.cursor,
+    };
+
     this.trigger(this.state, 'initial');
   },
 
-  isLoaded() {
-    return this.loaded;
-  },
-
-  getById(id) {
-    if (!this.state) {
-      return undefined;
-    }
-
-    id = '' + id;
-    for (let i = 0; i < this.state.length; i++) {
-      if (this.state[i].id === id) {
-        return this.state[i];
-      }
-    }
-    return undefined;
+  getById(memberId) {
+    return this.state.members.find(({id}) => memberId === id);
   },
 
   getAll() {
-    return this.state;
+    return this.state.members;
   },
 
   getState() {

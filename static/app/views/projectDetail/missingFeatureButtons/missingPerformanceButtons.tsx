@@ -4,10 +4,11 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 const DOCS_URL = 'https://docs.sentry.io/performance-monitoring/getting-started/';
 
@@ -19,7 +20,7 @@ function MissingPerformanceButtons({organization}: Props) {
   const router = useRouter();
 
   function handleTourAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.performance_tour.advance', {
+    trackAnalytics('project_detail.performance_tour.advance', {
       organization,
       step,
       duration,
@@ -27,7 +28,7 @@ function MissingPerformanceButtons({organization}: Props) {
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.performance_tour.close', {
+    trackAnalytics('project_detail.performance_tour.close', {
       organization,
       step,
       duration,
@@ -37,7 +38,7 @@ function MissingPerformanceButtons({organization}: Props) {
   return (
     <Feature
       hookName="feature-disabled:project-performance-score-card"
-      features={['performance-view']}
+      features="performance-view"
       organization={organization}
     >
       <ButtonBar gap={1}>
@@ -48,7 +49,7 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             // TODO: add analytics here for this specific action.
             navigateTo(
-              `/organizations/${organization.slug}/performance/?project=:project#performance-sidequest`,
+              `${getPerformanceBaseUrl(organization.slug)}/?project=:project#performance-sidequest`,
               router
             );
           }}

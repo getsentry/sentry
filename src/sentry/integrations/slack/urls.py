@@ -1,35 +1,32 @@
-from django.conf.urls import url
+from django.urls import re_path
 
-from .views.link_identity import SlackLinkIdentityView
-from .views.link_team import SlackLinkTeamView
-from .views.unlink_identity import SlackUnlinkIdentityView
-from .views.unlink_team import SlackUnlinkTeamView
+from .spec import SlackMessagingSpec
 from .webhooks.action import SlackActionEndpoint
 from .webhooks.command import SlackCommandsEndpoint
 from .webhooks.event import SlackEventEndpoint
+from .webhooks.options_load import SlackOptionsLoadEndpoint
 
 urlpatterns = [
-    url(r"^action/$", SlackActionEndpoint.as_view()),
-    url(r"^commands/$", SlackCommandsEndpoint.as_view(), name="sentry-integration-slack-commands"),
-    url(r"^event/$", SlackEventEndpoint.as_view()),
-    url(
-        r"^link-identity/(?P<signed_params>[^\/]+)/$",
-        SlackLinkIdentityView.as_view(),
-        name="sentry-integration-slack-link-identity",
+    re_path(
+        r"^action/$",
+        SlackActionEndpoint.as_view(),
+        name="sentry-integration-slack-action",
     ),
-    url(
-        r"^unlink-identity/(?P<signed_params>[^\/]+)/$",
-        SlackUnlinkIdentityView.as_view(),
-        name="sentry-integration-slack-unlink-identity",
+    re_path(
+        r"^commands/$",
+        SlackCommandsEndpoint.as_view(),
+        name="sentry-integration-slack-commands",
     ),
-    url(
-        r"^link-team/(?P<signed_params>[^\/]+)/$",
-        SlackLinkTeamView.as_view(),
-        name="sentry-integration-slack-link-team",
+    re_path(
+        r"^event/$",
+        SlackEventEndpoint.as_view(),
+        name="sentry-integration-slack-event",
     ),
-    url(
-        r"^unlink-team/(?P<signed_params>[^\/]+)/$",
-        SlackUnlinkTeamView.as_view(),
-        name="sentry-integration-slack-unlink-team",
+    re_path(
+        r"^options-load/$",
+        SlackOptionsLoadEndpoint.as_view(),
+        name="sentry-integration-slack-options-load",
     ),
 ]
+
+urlpatterns += SlackMessagingSpec().get_identity_view_set_url_patterns()

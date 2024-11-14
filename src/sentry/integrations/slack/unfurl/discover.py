@@ -1,24 +1,34 @@
 from __future__ import annotations
 
 import html
+import logging
 import re
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict
 
 from sentry import analytics, features
 from sentry.api import client
-from sentry.charts import generate_chart
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
-from sentry.models import ApiKey, Integration
+from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
+from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.search.events.filter import to_list
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.snuba.referrer import Referrer
+from sentry.users.models.user import User
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,
@@ -26,8 +36,7 @@ from sentry.utils.dates import (
     validate_interval,
 )
 
-from ..utils import logger
-from . import Handler, UnfurlableUrl, UnfurledUrl
+_logger = logging.getLogger(__name__)
 
 # The display modes on the frontend are defined in app/utils/discover/types.tsx
 display_modes: Mapping[str, ChartType] = {
@@ -37,8 +46,13 @@ display_modes: Mapping[str, ChartType] = {
     "top5line": ChartType.SLACK_DISCOVER_TOP5_PERIOD_LINE,
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
-    "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
     "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
+}
+
+dataset_map: Mapping[str, str] = {
+    "discover": "discover",
+    "error-events": "errors",
+    "transaction-like": "transactions",
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
@@ -76,7 +90,7 @@ def get_double_period(period: str) -> str:
     if not m:
         m = re.match(r"^(\d+)([hdmsw]?)$", DEFAULT_PERIOD)
 
-    value, unit = m.groups()  # type: ignore
+    value, unit = m.groups()  # type: ignore[union-attr]
     value = int(value)
 
     return f"{value * 2}{unit}"
@@ -102,10 +116,22 @@ def is_aggregate(field: str) -> bool:
 
 
 def unfurl_discover(
-    data: HttpRequest,
+    request: HttpRequest,
     integration: Integration,
     links: list[UnfurlableUrl],
-    user: User | None,
+    user: User | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_discover(integration, links, user)
+
+
+def _unfurl_discover(
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
@@ -133,15 +159,12 @@ def unfurl_discover(
         if query_id:
             try:
                 response = client.get(
-                    auth=ApiKey(organization=org, scope_list=["org:read"]),
+                    auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                     path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
                 )
 
-            except Exception as exc:
-                logger.error(
-                    f"Failed to load saved query for unfurl: {exc}",
-                    exc_info=True,
-                )
+            except Exception:
+                _logger.exception("Failed to load saved query for unfurl")
             else:
                 saved_query = response.data
 
@@ -149,9 +172,16 @@ def unfurl_discover(
         params.setlist(
             "order",
             params.getlist("sort")
-            or (to_list(saved_query.get("orderby")) if saved_query.get("orderby") else []),
+            or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
         params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+
+        saved_query_dataset = dataset_map.get(saved_query.get("queryDataset"))
+        params.setlist(
+            "dataset",
+            params.getlist("dataset")
+            or (to_list(saved_query_dataset) if saved_query_dataset else []),
+        )
 
         fields = params.getlist("field") or to_list(saved_query.get("fields"))
         # Mimic Discover to pick the first aggregate as the yAxis option if
@@ -186,7 +216,7 @@ def unfurl_discover(
             y_axis = params.getlist("yAxis")[0]
             if display_mode != "dailytop5":
                 display_mode = get_top5_display_mode(y_axis)
-            top_events = params.getlist("topEvents")[0]
+            top_events = int(params.getlist("topEvents")[0])
         else:
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.
@@ -233,23 +263,17 @@ def unfurl_discover(
                 params.setlist("statsPeriod", [stats_period])
 
         endpoint = "events-stats/"
-        if "worldmap" in display_mode:
-            endpoint = "events-geo/"
-            params.setlist("field", params.getlist("yAxis"))
-            params.pop("sort", None)
+        params["referrer"] = Referrer.DISCOVER_SLACK_UNFURL.value
 
         try:
             resp = client.get(
-                auth=ApiKey(organization=org, scope_list=["org:read"]),
+                auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                 user=user,
                 path=f"/organizations/{org_slug}/{endpoint}",
                 params=params,
             )
-        except Exception as exc:
-            logger.error(
-                f"Failed to load {endpoint} for unfurl: {exc}",
-                exc_info=True,
-            )
+        except Exception:
+            _logger.exception("Failed to load %s for unfurl", endpoint)
             continue
 
         chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
@@ -257,12 +281,9 @@ def unfurl_discover(
         style = display_modes.get(display_mode, display_modes["default"])
 
         try:
-            url = generate_chart(style, chart_data)
-        except RuntimeError as exc:
-            logger.error(
-                f"Failed to generate chart for discover unfurl: {exc}",
-                exc_info=True,
-            )
+            url = charts.generate_chart(style, chart_data)
+        except RuntimeError:
+            _logger.exception("Failed to generate chart for discover unfurl")
             continue
 
         unfurls[link.url] = SlackDiscoverMessageBuilder(
@@ -306,7 +327,7 @@ customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
-handler: Handler = Handler(
+discover_handler = Handler(
     fn=unfurl_discover,
     matcher=[discover_link_regex, customer_domain_discover_link_regex],
     arg_mapper=map_discover_query_args,

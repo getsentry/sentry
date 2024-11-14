@@ -1,13 +1,14 @@
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models.signals import post_delete, post_save
 
-from sentry.models import Email, UserEmail
+from sentry.users.models.email import Email
+from sentry.users.models.useremail import UserEmail
 
 
 def create_email(instance, created, **kwargs):
     if created:
         try:
-            with transaction.atomic():
+            with transaction.atomic(router.db_for_write(Email)):
                 Email.objects.create(email=instance.email)
         except IntegrityError:
             pass

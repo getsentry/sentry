@@ -1,20 +1,15 @@
-import zlib
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from sentry import features, options
-from sentry.models import MAX_FILE_SIZE
+from sentry.models.files.utils import MAX_FILE_SIZE
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 
-def compress_file(fp, level=6):
-    compressor = zlib.compressobj(level)
-    z_chunks = []
-    chunks = []
-    for chunk in fp.chunks():
-        chunks.append(chunk)
-        z_chunks.append(compressor.compress(chunk))
-    return (b"".join(z_chunks) + compressor.flush(), b"".join(chunks))
-
-
-def get_max_file_size(organization):
+def get_max_file_size(organization: Organization) -> int:
     """Returns the maximum allowed debug file size for this organization."""
     if features.has("organizations:large-debug-files", organization):
         return MAX_FILE_SIZE

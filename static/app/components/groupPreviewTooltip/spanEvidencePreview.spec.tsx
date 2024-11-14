@@ -3,84 +3,41 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import * as useApi from 'sentry/utils/useApi';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 
 describe('SpanEvidencePreview', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.restoreAllMocks();
-  });
-
-  it('does not fetch before hover', () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    const spy = jest.spyOn(api, 'requestPromise');
-
-    render(
-      <SpanEvidencePreview
-        eventId="event-id"
-        projectSlug="project-slug"
-        groupId="group-id"
-      >
-        Hover me
-      </SpanEvidencePreview>
-    );
-
-    jest.runAllTimers();
-
-    expect(spy).not.toHaveBeenCalled();
-  });
-
-  it('fetches from event URL when event and project are provided', async () => {
-    const mock = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/`,
-      body: null,
-    });
-
-    render(
-      <SpanEvidencePreview
-        eventId="event-id"
-        projectSlug="project-slug"
-        groupId="group-id"
-      >
-        Hover me
-      </SpanEvidencePreview>
-    );
-
-    userEvent.hover(screen.getByText('Hover me'));
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalled();
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/',
     });
   });
 
-  it('fetches from group URL when only group ID is provided', async () => {
+  it('does not fetch before hover', async () => {
     const mock = MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
-      body: null,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
+      body: {},
     });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
-    userEvent.hover(screen.getByText('Hover me'));
+    await act(tick);
 
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalled();
-    });
+    expect(mock).not.toHaveBeenCalled();
   });
 
   it('shows error when request fails', async () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error());
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
+      body: {},
+      statusCode: 500,
+    });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
-    userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await screen.findByText('Failed to load preview');
   });
@@ -137,16 +94,16 @@ describe('SpanEvidencePreview', () => {
           9
         )
       )
-      .getEvent();
+      .getEventFixture();
 
     MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
+      url: `/organizations/org-slug/issues/group-id/events/recommended/`,
       body: event,
     });
 
     render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
-    userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await screen.findByTestId('span-evidence-preview-body');
 
@@ -154,9 +111,11 @@ describe('SpanEvidencePreview', () => {
     expect(screen.getByRole('cell', {name: event.title})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - connect'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'connect'})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Repeating Spans (9)'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'db - group me'})).toBeInTheDocument();
+
+    // SQLish formatter uppercases group
+    expect(screen.getByRole('cell', {name: 'GROUP me'})).toBeInTheDocument();
   });
 });

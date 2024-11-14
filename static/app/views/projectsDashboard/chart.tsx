@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 
 import NoEvents from './noEvents';
@@ -16,7 +16,7 @@ type Props = {
   transactionStats?: Project['transactionStats'];
 };
 
-const Chart = ({firstEvent, stats, transactionStats}: Props) => {
+function Chart({firstEvent, stats, transactionStats}: Props) {
   const series: BaseChartProps['series'] = [];
   const hasTransactions = transactionStats !== undefined;
 
@@ -165,6 +165,6 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
       {!firstEvent && <NoEvents seriesCount={series.length} />}
     </Fragment>
   );
-};
+}
 
 export default Chart;

@@ -1,113 +1,114 @@
-import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
-import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
-import {handleRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {Group} from 'sentry/types/group';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
+import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {
+  useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 import AllEventsTable from './allEventsTable';
 
-type Props = {
-  api: Client;
-  group: Group;
-  organization: Organization;
-} & RouteComponentProps<{groupId: string}, {}>;
+export const ALL_EVENTS_EXCLUDED_TAGS = [
+  'environment',
+  'performance.issue_ids',
+  'transaction.op',
+  'transaction.status',
+  ...ISSUE_PROPERTY_FIELDS,
+];
 
-interface State {
-  query: string;
+interface GroupEventsProps {
+  group: Group;
 }
 
-const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issue_ids'];
+function GroupEvents({group}: GroupEventsProps) {
+  const location = useLocation();
+  const environments = useEnvironmentsFromUrl();
+  const params = useParams<{groupId: string}>();
+  const organization = useOrganization();
 
-class GroupEvents extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['cursor', 'query'],
+    shouldClean: newLocation =>
+      newLocation.pathname.includes(`/issues/${params.groupId}/`),
+  });
 
-    const queryParams = this.props.location.query;
+  const handleSearch = useCallback(
+    (query: string) =>
+      browserHistory.push(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/issues/${params.groupId}/events/`,
+          query: {...location.query, query},
+        })
+      ),
+    [location, organization, params.groupId]
+  );
 
-    this.state = {
-      query: queryParams.query || '',
-    };
-  }
+  const query = (location.query?.query ?? '') as string;
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.location.search !== nextProps.location.search) {
-      const queryParams = nextProps.location.query;
-
-      this.setState({
-        query: queryParams.query,
-      });
-    }
-  }
-
-  UNSAFE_componentDidMount() {
-    this._unsubscribeHandleRouteLeave = browserHistory.listen(newLocation =>
-      handleRouteLeave({
-        fieldsToClean: ['cursor'],
-        newLocation,
-        oldPathname: this.props.location.pathname,
-      })
-    );
-  }
-
-  UNSAFE_componentWillUnmount() {
-    this._unsubscribeHandleRouteLeave?.();
-  }
-
-  _unsubscribeHandleRouteLeave: undefined | ReturnType<typeof browserHistory.listen>;
-
-  handleSearch = (query: string) => {
-    const targetQueryParams = {...this.props.location.query};
-    targetQueryParams.query = query;
-    const {organization} = this.props;
-    const {groupId} = this.props.params;
-
-    browserHistory.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/issues/${groupId}/events/`,
-        query: targetQueryParams,
-      })
-    );
-  };
-
-  render() {
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <AllEventsFilters>
-            <EventSearchBar
-              organization={this.props.organization}
-              defaultQuery=""
-              onSearch={this.handleSearch}
-              excludedTags={excludedTags}
-              query={this.state.query}
-              hasRecentSearches={false}
-            />
-          </AllEventsFilters>
-          <AllEventsTable
-            issueId={this.props.group.id}
-            location={this.props.location}
-            organization={this.props.organization}
-            group={this.props.group}
-            excludedTags={excludedTags}
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <AllEventsFilters>
+          <EventSearch
+            environments={environments}
+            group={group}
+            handleSearch={handleSearch}
+            query={query}
           />
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+        </AllEventsFilters>
+        <AllEventsTable
+          organization={organization}
+          group={group}
+          excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
+        />
+      </Layout.Main>
+    </Layout.Body>
+  );
 }
 
 const AllEventsFilters = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export {GroupEvents};
+// TODO(streamlined-ui): Remove this file completely and change rotue to new events list
+function IssueEventsList() {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const params = useParams<{groupId: string}>();
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
 
-export default withOrganization(withApi(GroupEvents));
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  if (hasStreamlinedUI) {
+    return <EventList group={group} />;
+  }
+
+  return <GroupEvents group={group} />;
+}
+
+export default IssueEventsList;

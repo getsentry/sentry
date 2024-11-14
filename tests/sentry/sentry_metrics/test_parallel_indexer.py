@@ -1,21 +1,17 @@
 from datetime import datetime, timezone
 
+import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.sentry_metrics.configuration import (
-    RELEASE_HEALTH_PG_NAMESPACE,
-    IndexerStorage,
-    MetricsIngestConfiguration,
-    UseCaseKey,
-)
+from sentry.metrics.middleware import global_tags
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 ts = int(datetime.now(tz=timezone.utc).timestamp())
 counter_payload = {
-    "name": SessionMRI.SESSION.value,
+    "name": SessionMRI.RAW_SESSION.value,
     "tags": {
         "environment": "production",
         "session.status": "init",
@@ -28,13 +24,28 @@ counter_payload = {
 }
 
 
-def test_basic(request):
+@pytest.fixture(autouse=True)
+def reset_global_metrics_state():
+    # running a MetricsConsumerStrategyFactory has a side-effect of mutating
+    # global metrics tags
+    with global_tags(_all_threads=True):
+        yield
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
+def test_basic(request, settings, force_disable_multiprocessing):
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no
     pickling/unpickling errors when passing the strategy into the
     ParallelTransformStep, as that is easy to break.
     """
+    # Eventually we should stop testing with the real multiprocessing strategy
+    # and instead have enough sanity checks built into sentry.utils.arroyo to
+    # make it no longer necessary.
+    settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = force_disable_multiprocessing
+
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=1,
         max_msg_batch_time=1,
@@ -43,20 +54,8 @@ def test_basic(request):
         processes=1,
         input_block_size=1024,
         output_block_size=1024,
-        config=MetricsIngestConfiguration(
-            db_backend=IndexerStorage.MOCK,
-            db_backend_options={},
-            input_topic="ingest-metrics",
-            output_topic="snuba-metrics",
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
-            internal_metrics_tag="test",
-            writes_limiter_cluster_options={},
-            writes_limiter_namespace="test",
-            cardinality_limiter_cluster_options={},
-            cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-            index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
-        ),
-        slicing_router=None,
+        ingest_profile="release-health",
+        indexer_db="postgres",
     )
 
     strategy = processing_factory.create_with_partitions(
@@ -78,3 +77,5 @@ def test_basic(request):
     strategy.submit(message=message)
     strategy.close()
     strategy.join()
+    # Close the multiprocessing pool
+    processing_factory.shutdown()

@@ -1,19 +1,24 @@
 import {Component, Fragment} from 'react';
 
-import {Panel, PanelBody} from 'sentry/components/panels';
-import {Organization, Project} from 'sentry/types';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
+import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
+import DynamicAlertsFeedbackButton from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
 import {
-  Action,
+  type Action,
   AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  MetricActionTemplate,
-  Trigger,
-  UnsavedMetricRule,
+  type AlertRuleSensitivity,
+  type AlertRuleThresholdType,
+  type MetricActionTemplate,
+  type Trigger,
+  type UnsavedMetricRule,
 } from '../types';
 
 type Props = {
@@ -31,16 +36,19 @@ type Props = {
   onResolveThresholdChange: (
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
+  onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
   projects: Project[];
-
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
+
+  sensitivity: UnsavedMetricRule['sensitivity'];
 
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
+  isMigration?: boolean;
 };
 
 /**
@@ -103,9 +111,12 @@ class Triggers extends Component<Props> {
       thresholdPeriod,
       comparisonType,
       resolveThreshold,
+      isMigration,
+      onSensitivityChange,
       onThresholdTypeChange,
       onResolveThresholdChange,
       onThresholdPeriodChange,
+      sensitivity,
     } = this.props;
 
     // Note we only support 2 triggers max
@@ -113,37 +124,54 @@ class Triggers extends Component<Props> {
       <Fragment>
         <Panel>
           <PanelBody>
-            <TriggerForm
-              disabled={disabled}
-              errors={errors}
-              organization={organization}
-              projects={projects}
-              triggers={triggers}
-              aggregate={aggregate}
-              resolveThreshold={resolveThreshold}
-              thresholdType={thresholdType}
-              thresholdPeriod={thresholdPeriod}
-              comparisonType={comparisonType}
-              onChange={this.handleChangeTrigger}
-              onThresholdTypeChange={onThresholdTypeChange}
-              onResolveThresholdChange={onResolveThresholdChange}
-              onThresholdPeriodChange={onThresholdPeriodChange}
-            />
+            {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
+              <AnomalyDetectionFormField
+                disabled={disabled}
+                sensitivity={sensitivity}
+                onSensitivityChange={onSensitivityChange}
+                thresholdType={thresholdType}
+                onThresholdTypeChange={onThresholdTypeChange}
+              />
+            ) : (
+              <TriggerForm
+                disabled={disabled}
+                errors={errors}
+                organization={organization}
+                projects={projects}
+                triggers={triggers}
+                aggregate={aggregate}
+                resolveThreshold={resolveThreshold}
+                thresholdType={thresholdType}
+                thresholdPeriod={thresholdPeriod}
+                comparisonType={comparisonType}
+                onChange={this.handleChangeTrigger}
+                onThresholdTypeChange={onThresholdTypeChange}
+                onResolveThresholdChange={onResolveThresholdChange}
+                onThresholdPeriodChange={onThresholdPeriodChange}
+              />
+            )}
           </PanelBody>
         </Panel>
 
-        <ActionsPanel
-          disabled={disabled}
-          loading={availableActions === null}
-          error={false}
-          availableActions={availableActions}
-          currentProject={currentProject}
-          organization={organization}
-          projects={projects}
-          triggers={triggers}
-          onChange={this.handleChangeActions}
-          onAdd={this.handleAddAction}
-        />
+        {comparisonType === AlertRuleComparisonType.DYNAMIC && (
+          <DynamicAlertsFeedbackButton />
+        )}
+
+        {isMigration ? null : (
+          <ActionsPanel
+            disabled={disabled}
+            loading={availableActions === null}
+            error={false}
+            availableActions={availableActions}
+            currentProject={currentProject}
+            organization={organization}
+            projects={projects}
+            triggers={triggers}
+            onChange={this.handleChangeActions}
+            onAdd={this.handleAddAction}
+            comparisonType={comparisonType}
+          />
+        )}
       </Fragment>
     );
   }

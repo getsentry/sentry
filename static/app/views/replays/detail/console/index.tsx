@@ -1,40 +1,70 @@
-import {memo, useRef} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
-import styled from '@emotion/styled';
+import {memo, useMemo, useRef, useState} from 'react';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
+import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import ConsoleFilters from 'sentry/views/replays/detail/console/consoleFilters';
 import ConsoleLogRow from 'sentry/views/replays/detail/console/consoleLogRow';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
+import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
-interface Props {
-  breadcrumbs: undefined | Extract<Crumb, BreadcrumbTypeDefault>[];
-  startTimestampMs: number;
-}
+import useVirtualizedInspector from '../useVirtualizedInspector';
 
-function Console({breadcrumbs, startTimestampMs}: Props) {
-  const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
-  const {items, setSearchTerm} = filterProps;
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 24,
+};
+
+function Console() {
+  const {currentTime, replay} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
+  const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
+
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
+  const frames = replay?.getConsoleFrames();
+
+  const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
+
+  const filterProps = useConsoleFilters({frames: frames || []});
+  const {expandPathsRef, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 24,
-    },
+
+  const deps = useMemo(() => [items], [items]);
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
+  });
+
+  const {handleDimensionChange} = useVirtualizedInspector({
+    cache,
+    listRef,
+    expandPathsRef,
+  });
+
+  const {
+    handleClick: onClickToJump,
+    onRowsRendered,
+    showJumpDownButton,
+    showJumpUpButton,
+  } = useJumpButtons({
+    currentTime,
+    frames: items,
+    isTable: false,
+    setScrollToRow,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
@@ -44,13 +74,22 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       <CellMeasurer
         cache={cache}
         columnIndex={0}
-        key={key}
+        // Set key based on filters, otherwise we can have odd expand/collapse state
+        // with <StructuredEventData> when filtering
+        key={`${searchTerm}-${logLevel.join(',')}-${key}`}
         parent={parent}
         rowIndex={index}
       >
         <ConsoleLogRow
-          breadcrumb={item}
-          breadcrumbs={items}
+          currentHoverTime={currentHoverTime}
+          currentTime={currentTime}
+          expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
+          frame={item}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          index={index}
+          onClickTimestamp={onClickTimestamp}
+          onDimensionChange={handleDimensionChange}
           startTimestampMs={startTimestampMs}
           style={style}
         />
@@ -59,28 +98,35 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   };
 
   return (
-    <ConsoleContainer>
-      <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
-      <ConsoleLogContainer>
-        {breadcrumbs ? (
-          <AutoSizer>
+    <FluidHeight>
+      <ConsoleFilters frames={frames} {...filterProps} />
+      <TabItemContainer data-test-id="replay-details-console-tab">
+        {frames ? (
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
                 height={height}
                 noRowsRenderer={() => (
                   <NoRowRenderer
-                    unfilteredItems={breadcrumbs}
+                    unfilteredItems={frames}
                     clearSearchTerm={clearSearchTerm}
                   >
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={onRowsRendered}
+                onScroll={() => {
+                  if (scrollToRow !== undefined) {
+                    setScrollToRow(undefined);
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
+                scrollToIndex={scrollToRow}
                 width={width}
               />
             )}
@@ -88,21 +134,16 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
         ) : (
           <Placeholder height="100%" />
         )}
-      </ConsoleLogContainer>
-    </ConsoleContainer>
+        {items?.length ? (
+          <JumpButtons
+            jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
+            onClick={onClickToJump}
+            tableHeaderHeight={0}
+          />
+        ) : null}
+      </TabItemContainer>
+    </FluidHeight>
   );
 }
-
-const ConsoleContainer = styled(FluidHeight)`
-  height: 100%;
-`;
-
-const ConsoleLogContainer = styled('div')`
-  position: relative;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-`;
 
 export default memo(Console);

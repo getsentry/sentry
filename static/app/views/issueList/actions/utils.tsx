@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import capitalize from 'lodash/capitalize';
 
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import {Organization, ResolutionStatusDetails} from 'sentry/types';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
+import {capitalize} from 'sentry/utils/string/capitalize';
+import commonTheme from 'sentry/utils/theme';
 
 import ExtraDescription from './extraDescription';
 
@@ -14,11 +15,12 @@ export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 export enum ConfirmAction {
   RESOLVE = 'resolve',
   UNRESOLVE = 'unresolve',
-  IGNORE = 'ignore',
+  ARCHIVE = 'archive',
   BOOKMARK = 'bookmark',
   UNBOOKMARK = 'unbookmark',
   MERGE = 'merge',
   DELETE = 'delete',
+  SET_PRIORITY = 'reprioritize',
 }
 
 function getBulkConfirmMessage(action: string, queryCount: number) {
@@ -47,7 +49,6 @@ function PerformanceIssueAlert({
 }: {
   allInQuerySelected: boolean;
   children: string;
-  organization: Organization;
 }) {
   if (!allInQuerySelected) {
     return null;
@@ -65,11 +66,9 @@ export function getConfirm({
   allInQuerySelected,
   query,
   queryCount,
-  organization,
 }: {
   allInQuerySelected: boolean;
   numIssues: number;
-  organization: Organization;
   query: string;
   queryCount: number;
 }) {
@@ -78,7 +77,7 @@ export function getConfirm({
     canBeUndone,
     append = '',
   }: {
-    action: ConfirmAction | string;
+    action: ConfirmAction;
     canBeUndone: boolean;
     append?: string;
   }) {
@@ -104,12 +103,12 @@ export function getConfirm({
                 'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
                 {
                   link: (
-                    <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
+                    <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/23813143627675-When-should-I-delete-events" />
                   ),
                 }
               )}
             </p>
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
               {t('Deleting performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
           </Fragment>
@@ -119,7 +118,7 @@ export function getConfirm({
         message = (
           <Fragment>
             <p>{t('Note that unmerging is currently an experimental feature.')}</p>
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+            <PerformanceIssueAlert allInQuerySelected={allInQuerySelected}>
               {t('Merging performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
           </Fragment>
@@ -159,7 +158,20 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 }
 
 export function performanceIssuesSupportsIgnoreAction(
-  statusDetails: ResolutionStatusDetails
+  statusDetails: IgnoredStatusDetails
 ) {
   return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }
+
+// A mapping of which screen sizes will trigger the column to disappear
+// e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
+export const COLUMN_BREAKPOINTS = {
+  ISSUE: undefined, // Issue column is always visible
+  TREND: commonTheme.breakpoints.small,
+  AGE: commonTheme.breakpoints.xlarge,
+  SEEN: commonTheme.breakpoints.xlarge,
+  EVENTS: commonTheme.breakpoints.medium,
+  USERS: commonTheme.breakpoints.medium,
+  PRIORITY: commonTheme.breakpoints.large,
+  ASSIGNEE: commonTheme.breakpoints.xsmall,
+};

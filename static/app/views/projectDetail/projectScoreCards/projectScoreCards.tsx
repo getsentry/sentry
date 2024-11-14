@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  PageFilters,
-  Project,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
 
 import {ProjectAnrScoreCard} from './projectAnrScoreCard';
 import ProjectApdexScoreCard from './projectApdexScoreCard';
@@ -38,21 +37,21 @@ function ProjectScoreCards({
   return (
     <CardWrapper>
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.SESSIONS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS}
+        project={project}
       />
 
       <ProjectStabilityScoreCard
-        organization={organization}
         selection={selection}
         isProjectStabilized={isProjectStabilized}
         hasSessions={hasSessions}
         query={query}
-        field={SessionFieldWithOperation.USERS}
+        field={SessionFieldWithOperation.CRASH_FREE_RATE_USERS}
+        project={project}
       />
 
       <ProjectVelocityScoreCard
@@ -62,7 +61,7 @@ function ProjectScoreCards({
         query={query}
       />
 
-      {organization.features.includes('anr-rate') && project?.platform === 'android' ? (
+      {isPlatformANRCompatible(project?.platform) ? (
         <ProjectAnrScoreCard
           organization={organization}
           selection={selection}
@@ -84,6 +83,11 @@ function ProjectScoreCards({
 }
 
 const CardWrapper = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: 1fr;
+  margin-bottom: ${space(2)};
+
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-column-gap: ${space(2)};

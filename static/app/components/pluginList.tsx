@@ -1,9 +1,13 @@
 import {disablePlugin, enablePlugin} from 'sentry/actionCreators/plugins';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import InactivePlugins from 'sentry/components/inactivePlugins';
-import {Panel, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelItem from 'sentry/components/panels/panelItem';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   organization: Organization;
@@ -13,13 +17,15 @@ type Props = {
   onEnablePlugin?: (plugin: Plugin) => void;
 };
 
-const PluginList = ({
+function PluginList({
   organization,
   project,
   pluginList,
   onDisablePlugin = () => {},
   onEnablePlugin = () => {},
-}: Props) => {
+}: Props) {
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+
   const handleEnablePlugin = (plugin: Plugin) => {
     enablePlugin({
       projectId: project.slug,
@@ -54,22 +60,22 @@ const PluginList = ({
     <div>
       {pluginList
         .filter(p => p.enabled)
-        .map(data => (
+        .map(plugin => (
           <PluginConfig
-            data={data}
-            organization={organization}
+            plugin={plugin}
             project={project}
-            key={data.id}
+            key={plugin.id}
             onDisablePlugin={handleDisablePlugin}
           />
         ))}
 
       <InactivePlugins
+        disabled={!hasWriteAccess}
         plugins={pluginList.filter(p => !p.enabled && !p.isHidden)}
         onEnablePlugin={handleEnablePlugin}
       />
     </div>
   );
-};
+}
 
 export default PluginList;

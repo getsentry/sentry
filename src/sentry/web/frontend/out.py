@@ -1,14 +1,14 @@
 from django.http import Http404, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.utils.settings import is_self_hosted
 
 
 class OutView(View):
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> HttpResponseBase:
         if not is_self_hosted():
             raise Http404
 

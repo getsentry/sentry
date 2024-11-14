@@ -1,0 +1,8 @@
+The following Sentry organizations that you are a member of have been migrated onto sentry.io:
+{% for org in orgs %}
+* {{ org }}
+{% endfor %}
+
+To continue with using these accounts at their new location, please claim your account with sentry.io.
+
+Claim Account ({{ url|safe }})

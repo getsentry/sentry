@@ -5,7 +5,7 @@ from sentry_sdk import capture_exception
 
 from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import AuditLogEntry
+from sentry.models.auditlogentry import AuditLogEntry
 
 
 def fix(data):
@@ -33,7 +33,7 @@ def override_actor_id(user):
 
 @register(AuditLogEntry)
 class AuditLogEntrySerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer); assert on relations
         prefetch_related_objects(item_list, "actor")
         prefetch_related_objects(item_list, "target_user")
@@ -49,15 +49,17 @@ class AuditLogEntrySerializer(Serializer):
 
         return {
             item: {
-                "actor": users[str(item.actor_id)]
-                if item.actor_id and not override_actor_id(item.actor)
-                else {"name": item.get_actor_name()},
+                "actor": (
+                    users[str(item.actor_id)]
+                    if item.actor_id and not override_actor_id(item.actor)
+                    else {"name": item.get_actor_name()}
+                ),
                 "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,
             }
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         audit_log_event = audit_log.get(obj.event)
 
         try:

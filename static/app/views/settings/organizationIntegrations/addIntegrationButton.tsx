@@ -1,7 +1,9 @@
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {IntegrationWithConfig} from 'sentry/types';
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import AddIntegration from './addIntegration';
 
@@ -13,6 +15,7 @@ interface AddIntegrationButtonProps
     > {
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
+  installStatus?: string;
   reinstall?: boolean;
 }
 
@@ -24,10 +27,15 @@ export function AddIntegrationButton({
   reinstall,
   analyticsParams,
   modalParams,
+  installStatus,
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
-    buttonText ?? (reinstall ? t('Enable') : t('Add %s', provider.metadata.noun));
+    buttonText ?? reinstall
+      ? t('Enable')
+      : installStatus === 'Disabled'
+        ? t('Reinstall')
+        : t('Add %s', provider.metadata.noun);
 
   return (
     <Tooltip
@@ -45,7 +53,15 @@ export function AddIntegrationButton({
           <Button
             disabled={!provider.canAdd}
             {...buttonProps}
-            onClick={() => onClick()}
+            onClick={() => {
+              if (label === t('Reinstall')) {
+                trackAnalytics('integrations.integration_reinstall_clicked', {
+                  organization,
+                  provider: provider.metadata.noun,
+                });
+              }
+              onClick();
+            }}
             aria-label={t('Add integration')}
           >
             {label}

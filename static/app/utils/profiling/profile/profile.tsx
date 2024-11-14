@@ -1,4 +1,4 @@
-import {lastOfArray} from 'sentry/utils';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
@@ -8,24 +8,22 @@ interface ProfileStats {
   negativeSamplesCount: number;
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality + some added functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
-// We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class Profile {
+  // The epoch time at which this profile was started. All relative timestamp should be
+  // relative to this.
+  // Some older formats may not have a timestamp defined.
+  timestamp: number | null;
   // Duration of the profile
   duration: number;
-  // Started at ts of the profile - varies between implementations of the profiler.
-  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
+  // Relative timestamp of the first sample in the timestamp.
   startedAt: number;
-  // Ended at ts of the profile - varies between implementations of the profiler.
-  // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
+  // Relative timestamp of the last sample in the timestamp.
   endedAt: number;
   threadId: number;
   type: string;
 
   // Unit in which the timings are reported in
-  unit = 'microseconds';
+  unit: ProfilingFormatterUnit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
 
@@ -35,7 +33,11 @@ export class Profile {
   // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
 
+  // Max stack size of each sample
+  readonly MAX_STACK_SIZE = 256;
+
   samples: CallTreeNode[] = [];
+  sample_durations_ns: number[] = [];
   weights: number[] = [];
   rawWeights: number[] = [];
 
@@ -44,6 +46,9 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
+  callTreeNodeProfileIdMap: Map<CallTreeNode, Profiling.ProfileReference[] | string[]> =
+    new Map();
+
   constructor({
     duration,
     startedAt,
@@ -51,6 +56,7 @@ export class Profile {
     name,
     unit,
     threadId,
+    timestamp,
     type,
   }: {
     duration: number;
@@ -58,8 +64,9 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
-    type: string;
-    unit: string;
+    type: 'flamechart' | 'flamegraph' | 'empty';
+    unit: ProfilingFormatterUnit;
+    timestamp?: number;
   }) {
     this.threadId = threadId;
     this.duration = duration;
@@ -68,6 +75,7 @@ export class Profile {
     this.name = name;
     this.unit = unit;
     this.type = type ?? '';
+    this.timestamp = timestamp ?? null;
   }
 
   static Empty = new Profile({
@@ -77,7 +85,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    type: '',
+    type: 'empty',
   }).build();
 
   isEmpty(): boolean {
@@ -109,20 +117,19 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot() && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && !prevStack.includes(top)) {
         top = top.parent;
       }
 
-      while (prevStack.length > 0 && lastOfArray(prevStack) !== top) {
+      while (prevStack.length > 0 && prevStack[prevStack.length - 1] !== top) {
         const node = prevStack.pop()!;
         closeFrame(node, value);
       }
 
       const toOpen: CallTreeNode[] = [];
-
       let node: CallTreeNode | null = stackTop;
 
-      while (node && !node.isRoot() && node !== top) {
+      while (node && !node.isRoot && node !== top) {
         toOpen.push(node);
         node = node.parent;
       }

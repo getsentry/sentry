@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import datetime
 import re
+from datetime import timezone
 
 import pytest
-from django.utils import timezone
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
@@ -11,22 +13,25 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import constants
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
+from sentry.utils.snuba import QueryOutsideRetentionError, UnqualifiedQueryError, bulk_snuba_queries
 from sentry.utils.validators import INVALID_ID_DETAILS
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class QueryBuilderTest(TestCase):
+class DiscoverQueryBuilderTest(TestCase):
     def setUp(self):
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
             hour=10, minute=15, second=0, microsecond=0
         ) - datetime.timedelta(days=2)
         self.end = self.start + datetime.timedelta(days=1)
         self.projects = [self.project.id, self.create_project().id, self.create_project().id]
-        self.params = {
+        self.params: ParamsType = {
             "project_id": self.projects,
             "start": self.start,
             "end": self.end,
@@ -38,8 +43,9 @@ class QueryBuilderTest(TestCase):
             Condition(Column("project_id"), Op.IN, self.projects),
         ]
 
+    @pytest.mark.querybuilder
     def test_simple_query(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="user.email:foo@example.com release:1.2.1",
@@ -63,8 +69,53 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
+    def test_free_text_search(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="foo",
+            selected_columns=["count()"],
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(
+                    Function("positionCaseInsensitive", [Column("message"), "foo"]),
+                    Op.NEQ,
+                    0,
+                ),
+                *self.default_conditions,
+            ],
+        )
+
+    def test_query_without_project_ids(self):
+        params: ParamsType = {
+            "start": self.params["start"],
+            "end": self.params["end"],
+            "organization_id": self.organization.id,
+        }
+        with pytest.raises(UnqualifiedQueryError):
+            query = DiscoverQueryBuilder(
+                Dataset.Discover, params, query="foo", selected_columns=["id"]
+            )
+            bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
+
+    def test_query_with_empty_project_ids(self):
+        params: ParamsType = {
+            "start": self.params["start"],
+            "end": self.params["end"],
+            "project_id": [],  # We add an empty project_id list
+            "organization_id": self.organization.id,
+        }
+        with pytest.raises(UnqualifiedQueryError):
+            query = DiscoverQueryBuilder(
+                Dataset.Discover, params, query="foo", selected_columns=["id"]
+            )
+            bulk_snuba_queries([query.get_snql_query()], referrer=Referrer.TESTING_TEST.value)
+
     def test_simple_orderby(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             selected_columns=["user.email", "release"],
@@ -78,7 +129,7 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             selected_columns=["user.email", "release"],
@@ -93,7 +144,7 @@ class QueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
     def test_orderby_duplicate_columns(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             selected_columns=["user.email", "user.email"],
@@ -105,7 +156,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_simple_limitby(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             dataset=Dataset.Discover,
             params=self.params,
             query="",
@@ -118,7 +169,7 @@ class QueryBuilderTest(TestCase):
         assert query.limitby == LimitBy([Column("message")], 1)
 
     def test_environment_filter(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="environment:prod",
@@ -134,7 +185,7 @@ class QueryBuilderTest(TestCase):
         )
         query.get_snql_query().validate()
 
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="environment:[dev, prod]",
@@ -152,7 +203,9 @@ class QueryBuilderTest(TestCase):
 
     def test_environment_param(self):
         self.params["environment"] = ["", self.environment.name]
-        query = QueryBuilder(Dataset.Discover, self.params, selected_columns=["environment"])
+        query = DiscoverQueryBuilder(
+            Dataset.Discover, self.params, selected_columns=["environment"]
+        )
 
         self.assertCountEqual(
             query.where,
@@ -170,7 +223,9 @@ class QueryBuilderTest(TestCase):
 
         env2 = self.create_environment()
         self.params["environment"] = [self.environment.name, env2.name]
-        query = QueryBuilder(Dataset.Discover, self.params, selected_columns=["environment"])
+        query = DiscoverQueryBuilder(
+            Dataset.Discover, self.params, selected_columns=["environment"]
+        )
 
         self.assertCountEqual(
             query.where,
@@ -186,7 +241,7 @@ class QueryBuilderTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         self.params["project_id"] = [project1.id, project2.id]
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query=f"project:{project1.slug}",
@@ -217,7 +272,7 @@ class QueryBuilderTest(TestCase):
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
             ),
         ):
-            QueryBuilder(
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query=f"project:{project1.slug}",
@@ -229,7 +284,7 @@ class QueryBuilderTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         self.params["project_id"] = [project1.id, project2.id]
-        query = QueryBuilder(Dataset.Discover, self.params, selected_columns=["project"])
+        query = DiscoverQueryBuilder(Dataset.Discover, self.params, selected_columns=["project"])
 
         self.assertCountEqual(
             query.where,
@@ -253,7 +308,7 @@ class QueryBuilderTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
         self.params["project_id"] = [project1.id, project2.id]
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query=f"project:{project1.slug}",
@@ -286,7 +341,7 @@ class QueryBuilderTest(TestCase):
         project1 = self.create_project(name="zzz")
         project2 = self.create_project(name="aaa")
         self.params["project_id"] = [project1.id, project2.id]
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover, self.params, selected_columns=["project"], orderby=["project"]
         )
 
@@ -309,7 +364,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_count_if(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -341,7 +396,7 @@ class QueryBuilderTest(TestCase):
 
     def test_count_if_array(self):
         self.maxDiff = None
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -390,7 +445,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_count_if_with_tags(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -420,13 +475,60 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_not_empty_measurement(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="has:measurements.lcp",
+        )
+
+        lcp = Column("measurements[lcp]")
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [lcp]), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+
+    def test_not_empty_function_measurement(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="has:measurements.frames_frozen_rate",
+        )
+
+        frames_total = Column("measurements[frames_total]")
+        frames_frozen = Column("measurements[frames_frozen]")
+
+        frames_frozen_rate = Function(
+            "if",
+            [
+                Function("greater", [frames_total, 0]),
+                Function("divide", [frames_frozen, frames_total]),
+                None,
+            ],
+            alias="measurements.frames_frozen_rate",
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(Function("isNull", [frames_frozen_rate]), Op.EQ, 0),
+                *self.default_conditions,
+            ],
+        )
+
     def test_array_join(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
             selected_columns=["array_join(measurements_key)", "count()"],
-            functions_acl=["array_join"],
+            config=QueryBuilderConfig(
+                functions_acl=["array_join"],
+            ),
         )
         array_join_column = Function(
             "arrayJoin",
@@ -434,16 +536,16 @@ class QueryBuilderTest(TestCase):
             "array_join_measurements_key",
         )
         self.assertCountEqual(query.columns, [array_join_column, Function("count", [], "count")])
-        # make sure the the array join columns are present in gropuby
+        # make sure the array join columns are present in gropuby
         self.assertCountEqual(query.groupby, [array_join_column])
 
     def test_retention(self):
         old_start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
         old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
-        old_params = {**self.params, "start": old_start, "end": old_end}
+        old_params: ParamsType = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
             with pytest.raises(QueryOutsideRetentionError):
-                QueryBuilder(
+                DiscoverQueryBuilder(
                     Dataset.Discover,
                     old_params,
                     query="",
@@ -451,12 +553,14 @@ class QueryBuilderTest(TestCase):
                 )
 
     def test_array_combinator(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
             selected_columns=["sumArray(measurements_value)"],
-            functions_acl=["sumArray"],
+            config=QueryBuilderConfig(
+                functions_acl=["sumArray"],
+            ),
         )
         self.assertCountEqual(
             query.columns,
@@ -471,7 +575,7 @@ class QueryBuilderTest(TestCase):
 
     def test_array_combinator_is_private(self):
         with pytest.raises(InvalidSearchQuery, match="sum: no access to private function"):
-            QueryBuilder(
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="",
@@ -480,16 +584,18 @@ class QueryBuilderTest(TestCase):
 
     def test_array_combinator_with_non_array_arg(self):
         with pytest.raises(InvalidSearchQuery, match="stuff is not a valid array column"):
-            QueryBuilder(
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="",
                 selected_columns=["sumArray(stuff)"],
-                functions_acl=["sumArray"],
+                config=QueryBuilderConfig(
+                    functions_acl=["sumArray"],
+                ),
             )
 
     def test_spans_columns(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -498,7 +604,9 @@ class QueryBuilderTest(TestCase):
                 "array_join(spans_group)",
                 "sumArray(spans_exclusive_time)",
             ],
-            functions_acl=["array_join", "sumArray"],
+            config=QueryBuilderConfig(
+                functions_acl=["array_join", "sumArray"],
+            ),
         )
         self.assertCountEqual(
             query.columns,
@@ -514,7 +622,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_array_join_clause(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -536,7 +644,7 @@ class QueryBuilderTest(TestCase):
         query.get_snql_query().validate()
 
     def test_sample_rate(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -551,7 +659,7 @@ class QueryBuilderTest(TestCase):
         assert snql_query.match.sample == 0.1
 
     def test_turbo(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -566,15 +674,17 @@ class QueryBuilderTest(TestCase):
         assert snql_query.flags.turbo
 
     def test_auto_aggregation(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="count_unique(user):>10",
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snql_query = query.get_snql_query().query
         snql_query.validate()
@@ -593,7 +703,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_auto_aggregation_with_boolean(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             # Nonsense query but doesn't matter
@@ -601,8 +711,10 @@ class QueryBuilderTest(TestCase):
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            ),
         )
         snql_query = query.get_snql_query().query
         snql_query.validate()
@@ -630,22 +742,24 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_disable_auto_aggregation(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="count_unique(user):>10",
             selected_columns=[
                 "count()",
             ],
-            auto_aggregations=False,
-            use_aggregate_conditions=True,
+            config=QueryBuilderConfig(
+                auto_aggregations=False,
+                use_aggregate_conditions=True,
+            ),
         )
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
         with pytest.raises(InvalidSearchQuery):
             query.get_snql_query()
 
     def test_query_chained_or_tip(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="field:a OR field:b OR field:c",
@@ -656,7 +770,7 @@ class QueryBuilderTest(TestCase):
         assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
 
     def test_chained_or_with_different_terms(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="field:a or field:b or event.type:transaction or transaction:foo",
@@ -668,7 +782,7 @@ class QueryBuilderTest(TestCase):
         # field:a or (field:b or (event.type:transaciton or transaction: foo))
         assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
 
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="event.type:transaction or transaction:foo or field:a or field:b",
@@ -679,7 +793,7 @@ class QueryBuilderTest(TestCase):
         assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
 
     def test_chained_or_with_different_terms_with_and(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             # There's an implicit and between field:b, and event.type:transaction
@@ -692,7 +806,7 @@ class QueryBuilderTest(TestCase):
         # field:a or (field:b and event.type:transaction)
         assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
 
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             # There's an implicit and between event.type:transaction, and field:a
@@ -706,7 +820,7 @@ class QueryBuilderTest(TestCase):
         assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
 
     def test_group_by_not_in_select(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -735,7 +849,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_group_by_duplicates_select(self):
-        query = QueryBuilder(
+        query = DiscoverQueryBuilder(
             Dataset.Discover,
             self.params,
             query="",
@@ -764,7 +878,7 @@ class QueryBuilderTest(TestCase):
 
     def test_missing_function(self):
         with pytest.raises(InvalidSearchQuery):
-            QueryBuilder(
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="",
@@ -778,10 +892,8 @@ class QueryBuilderTest(TestCase):
             )
 
     def test_id_filter_non_uuid(self):
-        with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter ID"))
-        ):
-            QueryBuilder(
+        with pytest.raises(InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("id"))):
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="id:foo",
@@ -789,10 +901,8 @@ class QueryBuilderTest(TestCase):
             )
 
     def test_trace_id_filter_non_uuid(self):
-        with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Trace ID"))
-        ):
-            QueryBuilder(
+        with pytest.raises(InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("trace"))):
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="trace:foo",
@@ -801,11 +911,43 @@ class QueryBuilderTest(TestCase):
 
     def test_profile_id_filter_non_uuid(self):
         with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Profile ID"))
+            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("profile.id"))
         ):
-            QueryBuilder(
+            DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
                 query="profile.id:foo",
                 selected_columns=["count()"],
             )
+
+    def test_orderby_raw_empty_equation(self):
+        with pytest.raises(InvalidSearchQuery, match=re.escape("Cannot sort by an empty equation")):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["count()"],
+                orderby="equation|",
+            )
+
+    def test_orderby_salted_column_hash(self):
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=["column_hash(transaction) as sample"],
+            orderby=["sample"],
+            config=QueryBuilderConfig(
+                functions_acl=["column_hash"],
+            ),
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.orderby,
+            [
+                OrderBy(
+                    Function("farmFingerprint64", [Column("transaction")], "sample"),
+                    Direction.ASC,
+                )
+            ],
+        )

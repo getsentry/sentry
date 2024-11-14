@@ -1,0 +1,17 @@
+export enum Referrer {
+  LANDING_DOMAINS = 'api.performance.http.landing-domains',
+  LANDING_DOMAINS_LIST = 'api.performance.http.landing-domains-list',
+  LANDING_DURATION_CHART = 'api.performance.http.landing-duration-chart',
+  LANDING_RESPONSE_CODE_CHART = 'api.performance.http.landing-response-code-chart',
+  LANDING_THROUGHPUT_CHART = 'api.performance.http.landing-throughput-chart',
+  DOMAIN_SUMMARY_DURATION_CHART = 'api.performance.http.domain-summary-duration-chart',
+  DOMAIN_SUMMARY_METRICS_RIBBON = 'api.performance.http.domain-summary-metrics-ribbon',
+  DOMAIN_SUMMARY_RESPONSE_CODE_CHART = 'api.performance.http.domain-summary-response-code-chart',
+  DOMAIN_SUMMARY_THROUGHPUT_CHART = 'api.performance.http.domain-summary-throughput-chart',
+  DOMAIN_SUMMARY_TRANSACTIONS_LIST = 'api.performance.http.domain-summary-transactions-list',
+  SAMPLES_PANEL_DURATION_CHART = 'api.performance.http.samples-panel-duration-chart',
+  SAMPLES_PANEL_DURATION_SAMPLES = 'api.performance.http.samples-panel-duration-samples',
+  SAMPLES_PANEL_METRICS_RIBBON = 'api.performance.http.samples-panel-metrics-ribbon',
+  SAMPLES_PANEL_RESPONSE_CODE_CHART = 'api.performance.http.samples-panel-response-code-chart',
+  SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = 'api.performance.http.samples-panel-response-code-samples',
+}

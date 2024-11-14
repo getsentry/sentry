@@ -1,10 +1,10 @@
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {
-  computeInterval,
   getIntervalTimeAtX,
   GridRenderer,
 } from 'sentry/utils/profiling/renderers/gridRenderer';
+import {computeInterval, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('getIntervalTimeAtX', () => {
   beforeEach(() => {
@@ -81,7 +81,7 @@ describe('computeInterval', () => {
 
     const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
-    expect(computeInterval(configView, logicalToConfig)).toEqual([
+    expect(computeInterval(configView, logicalToConfig, getIntervalTimeAtX)).toEqual([
       0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
     ]);
   });
@@ -96,7 +96,7 @@ describe('computeInterval', () => {
 
     const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
-    expect(computeInterval(configView, logicalToConfig)).toEqual([
+    expect(computeInterval(configView, logicalToConfig, getIntervalTimeAtX)).toEqual([
       50, 60, 70, 80, 90, 100,
     ]);
   });
@@ -111,7 +111,7 @@ describe('computeInterval', () => {
 
     const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
-    expect(computeInterval(configView, logicalToConfig)).toEqual([
+    expect(computeInterval(configView, logicalToConfig, getIntervalTimeAtX)).toEqual([
       60, 65, 70, 75, 80, 85, 90, 95, 100,
     ]);
   });
@@ -126,7 +126,7 @@ describe('computeInterval', () => {
 
     const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
-    expect(computeInterval(configView, logicalToConfig)).toEqual([
+    expect(computeInterval(configView, logicalToConfig, getIntervalTimeAtX)).toEqual([
       80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100,
     ]);
   });
@@ -141,7 +141,7 @@ describe('computeInterval', () => {
 
     const logicalToConfig = transformMatrixBetweenRect(logicalSpace, configView);
 
-    expect(computeInterval(configView, logicalToConfig)).toEqual([
+    expect(computeInterval(configView, logicalToConfig, getIntervalTimeAtX)).toEqual([
       0, 0.5, 1, 1.5, 2, 2.5, 3,
     ]);
   });
@@ -192,15 +192,15 @@ describe('gridRenderer', () => {
     // Labels should be 0 - 10
     expect(context.fillRect).toHaveBeenCalledTimes(3);
 
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     for (let i = 0; i < context.fillText.mock.calls.length; i++) {
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       expect(context.fillText.mock.calls[i][0]).toEqual(i + 'ms');
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       expect(context.fillText.mock.calls[i][1]).toEqual(
         i * 100 - LightFlamegraphTheme.SIZES.LABEL_FONT_PADDING - WIDTH
       );
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       // First 3 draw calls are for the horizontal line, the rest are verticals
       expect(context.strokeRect.mock.calls[i][0]).toEqual(i * 100 - 1);
     }

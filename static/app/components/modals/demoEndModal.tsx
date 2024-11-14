@@ -3,15 +3,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
 import ModalTask from 'sentry/components/onboardingWizard/modalTask';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -80,7 +80,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       )
     );
 
-    trackAdvancedAnalyticsEvent('growth.end_modal_restart_tours', {
+    trackAnalytics('growth.end_modal_restart_tours', {
       organization: null,
     });
 
@@ -93,8 +93,8 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
 
   const handleMoreTours = () => {
     closeModal?.();
-    SidebarPanelStore.togglePanel(SidebarPanelKey.OnboardingWizard);
-    trackAdvancedAnalyticsEvent('growth.end_modal_more_tours', {
+    SidebarPanelStore.togglePanel(SidebarPanelKey.ONBOARDING_WIZARD);
+    trackAnalytics('growth.end_modal_more_tours', {
       organization: null,
     });
   };
@@ -104,7 +104,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
       <CloseButton
         size="zero"
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.end_modal_close', {
+          trackAnalytics('growth.end_modal_close', {
             organization: null,
           });
           if (closeModal) {
@@ -123,7 +123,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton, orgSlug}
           external
           href={url}
           onClick={() => {
-            trackAdvancedAnalyticsEvent('growth.end_modal_signup', {
+            trackAnalytics('growth.end_modal_signup', {
               organization: null,
             });
           }}
@@ -167,7 +167,7 @@ const ModalHeader = styled('div')`
   }
 `;
 
-const SignUpButton = styled(Button)`
+const SignUpButton = styled(LinkButton)`
   background-color: ${p => p.theme.purple300};
   border: none;
   color: ${p => p.theme.white};

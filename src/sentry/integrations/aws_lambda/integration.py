@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from botocore.exceptions import ClientError
-from django.utils.translation import ugettext_lazy as _
+from django.http.response import HttpResponseBase
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
-from sentry.api.serializers import serialize
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -16,8 +19,14 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import OrganizationIntegration, Project, ProjectStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import PipelineView
+from sentry.projects.services.project import project_service
+from sentry.silo.base import control_silo_function
+from sentry.users.models.user import User
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -78,10 +87,19 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             region = self.metadata["region"]
             account_number = self.metadata["account_number"]
             aws_external_id = self.metadata["aws_external_id"]
-            self._client = gen_aws_client(account_number, region, aws_external_id)
+            self._client = gen_aws_client(
+                account_number=account_number,
+                region=region,
+                aws_external_id=aws_external_id,
+            )
+
         return self._client
 
+    def get_client(self) -> Any:
+        return self.client
+
     def get_one_lambda_function(self, name):
+        # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
         return self.client.get_function(FunctionName=name)["Configuration"]
 
     def get_serialized_lambda_function(self, name):
@@ -188,6 +206,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             AwsLambdaSetupLayerPipelineView(),
         ]
 
+    @control_silo_function
     def build_integration(self, state):
         region = state["region"]
         account_number = state["account_number"]
@@ -224,24 +243,28 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         }
         return integration
 
-    def post_install(self, integration, organization, extra):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         default_project_id = extra["default_project_id"]
-        OrganizationIntegration.objects.filter(
-            organization=organization, integration=integration
-        ).update(config={"default_project_id": default_project_id})
+        for oi in OrganizationIntegration.objects.filter(
+            organization_id=organization.id, integration=integration
+        ):
+            oi.update(config={"default_project_id": default_project_id})
 
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         # if we have the projectId, go to the next step
         if "projectId" in request.GET:
             pipeline.bind_state("project_id", request.GET["projectId"])
             return pipeline.next_step()
 
         organization = pipeline.organization
-        projects = Project.objects.filter(
-            organization=organization, status=ProjectStatus.VISIBLE
-        ).order_by("slug")
+        projects = organization.projects
 
         # if only one project, automatically use that
         if len(projects) == 1:
@@ -249,7 +272,11 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
-        serialized_projects = [serialize(x, request.user) for x in projects]
+        projects = sorted(projects, key=lambda p: p.slug)
+        serialized_projects = project_service.serialize_many(
+            organization_id=organization.id,
+            filter=dict(project_ids=[p.id for p in projects]),
+        )
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
@@ -260,7 +287,12 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
-            serialized_organization = serialize(pipeline.organization, request.user)
+            serialized_organization = organization_service.serialize_organization(
+                id=pipeline.organization.id,
+                as_user=(
+                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
+                ),
+            )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
@@ -300,7 +332,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 # if we have a configuration error, we should blow up the pipeline
                 raise
             except Exception as e:
-                logger.error(
+                logger.exception(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )
@@ -313,7 +345,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if request.method == "POST":
             raw_data = request.POST
             data = {}
@@ -341,7 +373,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
 
 class AwsLambdaSetupLayerPipelineView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponseBase:
         if "finish_pipeline" in request.GET:
             return pipeline.finish_pipeline()
 

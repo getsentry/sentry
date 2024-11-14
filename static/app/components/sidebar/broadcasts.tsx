@@ -1,172 +1,135 @@
-import {Component, Fragment} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
-import {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import BroadcastSdkUpdates from 'sentry/components/sidebar/broadcastSdkUpdates';
+import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
-import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Broadcast, Organization} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import type {Broadcast} from 'sentry/types/system';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import type {CommonSidebarProps} from './types';
+import {SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)
 
-type Props = CommonSidebarProps & {
-  api: Client;
-  organization: Organization;
-};
+export function Broadcasts({
+  orientation,
+  collapsed,
+  currentPanel,
+  hidePanel,
+  onShowPanel,
+}: CommonSidebarProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const previousPanel = usePrevious(currentPanel);
 
-type State = {
-  broadcasts: Broadcast[];
-  error: boolean;
-  loading: boolean;
-};
+  const [hasSeenAllPosts, setHasSeenAllPosts] = useState(false);
+  const markSeenTimeoutRef = useRef<number | undefined>(undefined);
 
-class Broadcasts extends Component<Props, State> {
-  state: State = {
-    broadcasts: [],
-    loading: true,
-    error: false,
-  };
+  const {mutate: markBroadcastsAsSeen} = useMutation({
+    mutationFn: (unseenPostIds: string[]) => {
+      return api.requestPromise('/broadcasts/', {
+        method: 'PUT',
+        query: {id: unseenPostIds},
+        data: {hasSeen: '1'},
+      });
+    },
+  });
 
-  componentDidMount() {
-    this.fetchData();
-    document.addEventListener('visibilitychange', this.handleVisibilityChange);
-  }
-
-  componentWillUnmount() {
-    window.clearTimeout(this.markSeenTimeout);
-    window.clearTimeout(this.pollingTimeout);
-
-    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
-  }
-
-  pollingTimeout: number | undefined = undefined;
-  markSeenTimeout: number | undefined = undefined;
-
-  startPolling() {
-    if (this.pollingTimeout) {
-      this.stopPolling();
+  const {isPending, data: broadcasts = []} = useApiQuery<Broadcast[]>(
+    [`/organizations/${organization.slug}/broadcasts/`],
+    {
+      staleTime: 0,
+      refetchInterval: POLLER_DELAY,
+      refetchOnWindowFocus: true,
     }
-    this.pollingTimeout = window.setTimeout(this.fetchData, POLLER_DELAY);
-  }
+  );
 
-  stopPolling() {
-    window.clearTimeout(this.pollingTimeout);
-    this.pollingTimeout = undefined;
-  }
+  const unseenPostIds = useMemo(
+    () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
+    [broadcasts]
+  );
 
-  fetchData = async () => {
-    if (this.pollingTimeout) {
-      this.stopPolling();
+  const handleShowPanel = useCallback(() => {
+    if (markSeenTimeoutRef.current) {
+      window.clearTimeout(markSeenTimeoutRef.current);
     }
 
-    try {
-      const data = await getAllBroadcasts(this.props.api, this.props.organization.slug);
-      this.setState({loading: false, broadcasts: data || []});
-    } catch {
-      this.setState({loading: false, error: true});
+    markSeenTimeoutRef.current = window.setTimeout(() => {
+      markBroadcastsAsSeen(unseenPostIds);
+    }, MARK_SEEN_DELAY);
+
+    onShowPanel();
+  }, [onShowPanel, unseenPostIds, markBroadcastsAsSeen]);
+
+  useEffect(() => {
+    if (
+      previousPanel === SidebarPanelKey.BROADCASTS &&
+      currentPanel !== SidebarPanelKey.BROADCASTS
+    ) {
+      setHasSeenAllPosts(true);
     }
+  }, [previousPanel, currentPanel]);
 
-    this.startPolling();
-  };
+  useEffect(() => {
+    return () => {
+      if (markSeenTimeoutRef.current) {
+        window.clearTimeout(markSeenTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  /**
-   * If tab/window loses visibility (note: this is different than focus), stop
-   * polling for broadcasts data, otherwise, if it gains visibility, start
-   * polling again.
-   */
-  handleVisibilityChange = () =>
-    document.hidden ? this.stopPolling() : this.startPolling();
+  return (
+    <DemoModeGate>
+      <SidebarItem
+        data-test-id="sidebar-broadcasts"
+        orientation={orientation}
+        collapsed={collapsed}
+        active={currentPanel === SidebarPanelKey.BROADCASTS}
+        badge={hasSeenAllPosts ? undefined : unseenPostIds?.length}
+        icon={<IconBroadcast size="md" />}
+        label={t("What's new")}
+        onClick={handleShowPanel}
+        id="broadcasts"
+      />
 
-  handleShowPanel = () => {
-    window.clearTimeout(this.markSeenTimeout);
-
-    this.markSeenTimeout = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
-    this.props.onShowPanel();
-  };
-
-  markSeen = async () => {
-    const unseenBroadcastIds = this.unseenIds;
-    if (unseenBroadcastIds.length === 0) {
-      return;
-    }
-
-    await markBroadcastsAsSeen(this.props.api, unseenBroadcastIds);
-
-    this.setState(state => ({
-      broadcasts: state.broadcasts.map(item => ({...item, hasSeen: true})),
-    }));
-  };
-
-  get unseenIds() {
-    return this.state.broadcasts
-      ? this.state.broadcasts.filter(item => !item.hasSeen).map(item => item.id)
-      : [];
-  }
-
-  render() {
-    const {orientation, collapsed, currentPanel, hidePanel} = this.props;
-    const {broadcasts, loading} = this.state;
-
-    const unseenPosts = this.unseenIds;
-
-    return (
-      <DemoModeGate>
-        <Fragment>
-          <SidebarItem
-            data-test-id="sidebar-broadcasts"
-            orientation={orientation}
-            collapsed={collapsed}
-            active={currentPanel === SidebarPanelKey.Broadcasts}
-            badge={unseenPosts.length}
-            icon={<IconBroadcast size="md" />}
-            label={t("What's new")}
-            onClick={this.handleShowPanel}
-            id="broadcasts"
-          />
-
-          {currentPanel === SidebarPanelKey.Broadcasts && (
-            <SidebarPanel
-              data-test-id="sidebar-broadcasts-panel"
-              orientation={orientation}
-              collapsed={collapsed}
-              title={t("What's new in Sentry")}
-              hidePanel={hidePanel}
-            >
-              {loading ? (
-                <LoadingIndicator />
-              ) : broadcasts.length === 0 ? (
-                <SidebarPanelEmpty>
-                  {t('No recent updates from the Sentry team.')}
-                </SidebarPanelEmpty>
-              ) : (
-                broadcasts.map(item => (
-                  <SidebarPanelItem
-                    key={item.id}
-                    hasSeen={item.hasSeen}
-                    title={item.title}
-                    message={item.message}
-                    link={item.link}
-                    cta={item.cta}
-                  />
-                ))
-              )}
-              <BroadcastSdkUpdates />
-            </SidebarPanel>
+      {currentPanel === SidebarPanelKey.BROADCASTS && (
+        <SidebarPanel
+          data-test-id="sidebar-broadcasts-panel"
+          orientation={orientation}
+          collapsed={collapsed}
+          title={t("What's new in Sentry")}
+          hidePanel={hidePanel}
+        >
+          {isPending ? (
+            <LoadingIndicator />
+          ) : broadcasts.length === 0 ? (
+            <SidebarPanelEmpty>
+              {t('No recent updates from the Sentry team.')}
+            </SidebarPanelEmpty>
+          ) : (
+            broadcasts.map(item => (
+              <BroadcastPanelItem
+                key={item.id}
+                hasSeen={item.hasSeen}
+                title={item.title}
+                message={item.message}
+                link={item.link}
+                mediaUrl={item.mediaUrl}
+                category={item.category}
+              />
+            ))
           )}
-        </Fragment>
-      </DemoModeGate>
-    );
-  }
+        </SidebarPanel>
+      )}
+    </DemoModeGate>
+  );
 }
-
-export default withApi(Broadcasts);

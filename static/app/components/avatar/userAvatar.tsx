@@ -1,15 +1,16 @@
-import BaseAvatar from 'sentry/components/avatar/baseAvatar';
-import {Actor, AvatarUser} from 'sentry/types';
+import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
+import type {Actor} from 'sentry/types/core';
+import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderTooltipFunc = (user: AvatarUser | Actor) => React.ReactNode;
 
-type Props = {
+interface Props extends BaseAvatarProps {
   gravatar?: boolean;
   renderTooltip?: RenderTooltipFunc;
   user?: Actor | AvatarUser;
-} & Omit<BaseAvatar['props'], 'uploadPath' | 'uploadId'>;
+}
 
 function isActor(maybe: AvatarUser | Actor): maybe is Actor {
   return typeof (maybe as AvatarUser).email === 'undefined';
@@ -22,7 +23,7 @@ function getType(user: AvatarUser | Actor, gravatar: boolean | undefined) {
   if (user.avatar) {
     return user.avatar.avatarType;
   }
-  if (user.options && user.options.avatarType) {
+  if (user.options?.avatarType) {
     return user.options.avatarType;
   }
 
@@ -55,13 +56,13 @@ function UserAvatar({
 
   const avatarData = isActor(user)
     ? {
-        uploadId: '',
         gravatarId: '',
         letterId: user.name,
         title: user.name,
+        uploadUrl: '',
       }
     : {
-        uploadId: user.avatar?.avatarUuid ?? '',
+        uploadUrl: user.avatar?.avatarUrl ?? '',
         gravatarId: user.email?.toLowerCase(),
         letterId: user.email || user.username || user.id || user.ip_address,
         title: user.name || user.email || user.username || '',
@@ -72,8 +73,7 @@ function UserAvatar({
       round
       {...props}
       type={type}
-      uploadPath="avatar"
-      uploadId={avatarData.uploadId}
+      uploadUrl={avatarData.uploadUrl}
       gravatarId={avatarData.gravatarId}
       letterId={avatarData.letterId}
       title={avatarData.title}

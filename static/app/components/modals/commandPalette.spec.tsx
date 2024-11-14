@@ -1,3 +1,9 @@
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -18,22 +24,22 @@ function renderMockRequests() {
 
   const organization = MockApiClient.addMockResponse({
     url: '/organizations/',
-    body: [TestStubs.Organization({slug: 'billy-org', name: 'billy org'})],
+    body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
-    body: [TestStubs.Project({slug: 'foo-project'})],
+    body: [ProjectFixture({slug: 'foo-project'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/teams/',
-    body: [TestStubs.Team({slug: 'foo-team'})],
+    body: [TeamFixture({slug: 'foo-team'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/members/',
-    body: TestStubs.Members(),
+    body: MembersFixture(),
   });
 
   MockApiClient.addMockResponse({
@@ -62,13 +68,6 @@ function renderMockRequests() {
   });
 
   MockApiClient.addMockResponse({
-    url: '/internal/health/',
-    body: {
-      problems: [],
-    },
-  });
-
-  MockApiClient.addMockResponse({
     url: '/assistant/',
     body: [],
   });
@@ -89,13 +88,9 @@ describe('Command Palette Modal', function () {
         Footer={ModalFooter}
       />,
       {
-        context: TestStubs.routerContext([
-          {
-            router: TestStubs.router({
-              params: {orgId: 'org-slug'},
-            }),
-          },
-        ]),
+        router: RouterFixture({
+          params: {orgId: 'org-slug'},
+        }),
       }
     );
 
@@ -103,7 +98,7 @@ describe('Command Palette Modal', function () {
     // first two typed characters of a sequence in most cases. This test only
     // types two characters to match in-app behaviour even though it's unclear
     // why it works that way
-    userEvent.type(screen.getByRole('textbox'), 'bi');
+    await userEvent.type(screen.getByRole('textbox'), 'bi');
 
     expect(mockRequests.organization).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -118,7 +113,7 @@ describe('Command Palette Modal', function () {
     expect(badges[0]).toHaveTextContent('billy-org Dashboard');
     expect(badges[1]).toHaveTextContent('billy-org Settings');
 
-    userEvent.click(badges[0]);
+    await userEvent.click(badges[0]);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

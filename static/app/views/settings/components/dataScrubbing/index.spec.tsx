@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,7 +9,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 
-const relayPiiConfig = JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig());
+const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 
 describe('Data Scrubbing', function () {
   beforeEach(() => {
@@ -122,9 +123,7 @@ describe('Data Scrubbing', function () {
 
     it('OrganizationRules has content', function () {
       const {organization, project} = initializeOrg({
-        ...initializeOrg(),
         organization: {
-          ...initializeOrg().organization,
           relayPiiConfig,
         },
       });
@@ -161,7 +160,7 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
 
       expect(
         await screen.findByText('Are you sure you wish to delete this rule?')
@@ -185,14 +184,14 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
 
       expect(
         await screen.findByText('Add an advanced data scrubbing rule')
       ).toBeInTheDocument();
     });
 
-    it('Open Edit Rule Modal', function () {
+    it('Open Edit Rule Modal', async function () {
       const {organization, router, project} = initializeOrg();
 
       render(
@@ -210,7 +209,7 @@ describe('Data Scrubbing', function () {
         {router}
       );
 
-      userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
 
       // Verify the router to open the modal was called
       expect(router.push).toHaveBeenCalledWith(

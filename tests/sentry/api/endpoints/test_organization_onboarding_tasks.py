@@ -1,11 +1,13 @@
 from django.urls import reverse
 
-from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()
@@ -26,7 +28,7 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
 
         assert task.status == OnboardingTaskStatus.COMPLETE
         assert task.completion_seen is None
-        assert task.user == self.user
+        assert task.user_id == self.user.id
 
     def test_mark_completion_seen(self):
         response = self.client.post(self.path, {"task": "create_project", "status": "complete"})
@@ -93,3 +95,22 @@ class OrganizationOnboardingTaskEndpointTest(APITestCase):
         assert not OrganizationOnboardingTask.objects.filter(
             organization=self.org, task=OnboardingTask.FIRST_PROJECT
         ).exists()
+
+    def test_get_tasks(self):
+        # create a task
+        self.client.post(self.path, {"task": "create_project", "status": "complete"})
+
+        # get tasks
+        response = self.client.get(self.path)
+        assert response.status_code == 200, response.content
+
+        # Verify that the response contains the 'onboardingTasks' key
+        assert "onboardingTasks" in response.data
+        tasks = response.data["onboardingTasks"]
+
+        # Verify that the 'create_project' task is in the list of onboarding tasks
+        create_project_task = next(
+            (task for task in tasks if task["task"] == "create_project"), None
+        )
+        assert create_project_task is not None
+        assert create_project_task["status"] == "complete"

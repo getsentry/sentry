@@ -6,11 +6,11 @@ import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 import Rules from './rules';
-import {Rule} from './types';
+import type {Rule} from './types';
 
 type Props = {
   organization: Organization;
@@ -90,7 +90,7 @@ export class OrganizationRules extends Component<Props, State> {
                 ? t('Expand Organization Rules')
                 : t('Collapse Organization Rules')
             }
-            icon={<IconChevron size="xs" direction={isCollapsed ? 'down' : 'up'} />}
+            icon={<IconChevron direction={isCollapsed ? 'down' : 'up'} />}
             size="xs"
             aria-label={t('Toggle Organization Rules')}
           />

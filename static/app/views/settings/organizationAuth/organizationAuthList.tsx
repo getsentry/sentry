@@ -1,8 +1,12 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {AuthProvider, Organization} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
+import type {Organization} from 'sentry/types/organization';
 import {descopeFeatureName} from 'sentry/utils';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -29,7 +33,7 @@ type Props = {
   activeProvider?: AuthProvider;
 };
 
-const OrganizationAuthList = ({organization, providerList, activeProvider}: Props) => {
+function OrganizationAuthList({organization, providerList, activeProvider}: Props) {
   const features = organization.features;
 
   // Sort provider list twice: first, by popularity,
@@ -112,6 +116,9 @@ const OrganizationAuthList = ({organization, providerList, activeProvider}: Prop
       </Panel>
     </div>
   );
-};
+}
 
 export default withOrganization(OrganizationAuthList);
+
+// For tests
+export {OrganizationAuthList};

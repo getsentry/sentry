@@ -1,29 +1,103 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-
-import localStorage from 'sentry/utils/localStorage';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ReplayInlineOnboardingPanel from './replayInlineOnboardingPanel';
 
-jest.mock('sentry/utils/localStorage');
-
-const TEN_SECONDS = 10 * 1000;
-
 describe('replayInlineOnboardingPanel', () => {
-  it('should render by default', async () => {
-    const {container} = render(<ReplayInlineOnboardingPanel />);
-    expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-    expect(container).toSnapshot();
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
   });
 
-  it('should not render if hideUntil is set', async () => {
-    localStorage.getItem = jest.fn().mockReturnValue(Date.now() + TEN_SECONDS);
-    render(<ReplayInlineOnboardingPanel />);
-    expect(await screen.queryByText('Configure Session Replay')).not.toBeInTheDocument();
+  it('shows an onboarding banner that may be dismissed', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {}},
+    });
+    const dismissMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      method: 'PUT',
+    });
+
+    render(<ReplayInlineOnboardingPanel platform="react" projectId="123" />);
+    expect(
+      await screen.findByText('Watch the errors and latency issues your users face')
+    ).toBeInTheDocument();
+
+    // Open the snooze or dismiss dropdown
+    await userEvent.click(screen.getByTestId('icon-close'));
+    expect(screen.getByText('Dismiss')).toBeInTheDocument();
+    expect(screen.getByText('Snooze')).toBeInTheDocument();
+
+    // Click dismiss
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Dismiss'}));
+    expect(dismissMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/prompts-activity/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          feature: 'issue_replay_inline_onboarding',
+          status: 'dismissed',
+        }),
+      })
+    );
+    expect(
+      screen.queryByText('Watch the errors and latency issues your users face')
+    ).not.toBeInTheDocument();
   });
 
-  it('should clear the hideUntil time if it has expired', async () => {
-    localStorage.getItem = jest.fn().mockReturnValue(Date.now() - TEN_SECONDS);
-    render(<ReplayInlineOnboardingPanel />);
-    expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
+  it('shows an onboarding banner that may be snoozed', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {}},
+    });
+    const snoozeMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      method: 'PUT',
+    });
+
+    render(<ReplayInlineOnboardingPanel platform="react" projectId="123" />);
+    expect(
+      await screen.findByText('Watch the errors and latency issues your users face')
+    ).toBeInTheDocument();
+
+    // Open the snooze or dismiss dropdown
+    await userEvent.click(screen.getByTestId('icon-close'));
+    expect(screen.getByText('Dismiss')).toBeInTheDocument();
+    expect(screen.getByText('Snooze')).toBeInTheDocument();
+
+    // Click snooze
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Snooze'}));
+    expect(snoozeMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/prompts-activity/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          feature: 'issue_replay_inline_onboarding',
+          status: 'snoozed',
+        }),
+      })
+    );
+    expect(
+      screen.queryByText('Watch the errors and latency issues your users face')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render if already dismissed', () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {
+        data: {
+          feature: 'issue_replay_inline_onboarding',
+          status: 'dismissed',
+          dismissed_ts: 3,
+        },
+      },
+    });
+
+    render(<ReplayInlineOnboardingPanel platform="react" projectId="123" />);
+    expect(
+      screen.queryByText('Watch the errors and latency issues your users face')
+    ).not.toBeInTheDocument();
   });
 });

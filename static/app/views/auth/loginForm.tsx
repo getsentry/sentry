@@ -1,9 +1,8 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -12,7 +11,8 @@ import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -20,30 +20,32 @@ type LoginProvidersProps = Partial<
 
 // TODO(epurkhiser): The abstraction here would be much nicer if we just
 // exposed a configuration object telling us what auth providers there are.
-const LoginProviders = ({
+function LoginProviders({
   vstsLoginLink,
   githubLoginLink,
   googleLoginLink,
-}: LoginProvidersProps) => (
-  <ProviderWrapper>
-    <ProviderHeading>{t('External Account Login')}</ProviderHeading>
-    {googleLoginLink && (
-      <Button size="sm" icon={<IconGoogle size="xs" />} href={googleLoginLink}>
-        {t('Sign in with Google')}
-      </Button>
-    )}
-    {githubLoginLink && (
-      <Button size="sm" icon={<IconGithub size="xs" />} href={githubLoginLink}>
-        {t('Sign in with GitHub')}
-      </Button>
-    )}
-    {vstsLoginLink && (
-      <Button size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
-        {t('Sign in with Azure DevOps')}
-      </Button>
-    )}
-  </ProviderWrapper>
-);
+}: LoginProvidersProps) {
+  return (
+    <ProviderWrapper>
+      <ProviderHeading>{t('External Account Login')}</ProviderHeading>
+      {googleLoginLink && (
+        <LinkButton size="sm" icon={<IconGoogle />} href={googleLoginLink}>
+          {t('Sign in with Google')}
+        </LinkButton>
+      )}
+      {githubLoginLink && (
+        <LinkButton size="sm" icon={<IconGithub />} href={githubLoginLink}>
+          {t('Sign in with GitHub')}
+        </LinkButton>
+      )}
+      {vstsLoginLink && (
+        <LinkButton size="sm" icon={<IconVsts />} href={vstsLoginLink}>
+          {t('Sign in with Azure DevOps')}
+        </LinkButton>
+      )}
+    </ProviderWrapper>
+  );
+}
 
 type Props = {
   authConfig: AuthConfig;
@@ -122,7 +124,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 24px;
 `;
 

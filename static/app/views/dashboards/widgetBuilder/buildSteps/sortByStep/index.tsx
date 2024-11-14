@@ -7,11 +7,14 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import type {WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {
-  DataSet,
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -85,6 +88,7 @@ export function SortByStep({
           ? t("Choose one of the columns you've created to sort by.")
           : t("Choose one of the y-axis you've created to sort by.")
       }
+      data-test-id="sort-by-step"
     >
       <Tooltip
         title={disableSortReason}

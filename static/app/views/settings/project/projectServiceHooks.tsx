@@ -1,23 +1,27 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelAlert from 'sentry/components/panels/panelAlert';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import Switch from 'sentry/components/switchButton';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, ServiceHook} from 'sentry/types';
+import type {ServiceHook} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -59,10 +63,10 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 type State = {
   hookList: null | ServiceHook[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectServiceHooks extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ProjectServiceHooks extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
     const projectId = params.projectId;
     return [['hookList', `/projects/${organization.slug}/${projectId}/hooks/`]];
@@ -145,23 +149,22 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
     const {organization, params} = this.props;
-    const access = new Set(organization.access);
 
     return (
       <Fragment>
         <SettingsPageHeader
           title={t('Service Hooks')}
           action={
-            access.has('project:write') ? (
-              <Button
+            organization.access.includes('project:write') ? (
+              <LinkButton
                 data-test-id="new-service-hook"
                 to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}
                 size="sm"
                 priority="primary"
-                icon={<IconAdd size="xs" isCircled />}
+                icon={<IconAdd isCircled />}
               >
                 {t('Create New Hook')}
-              </Button>
+              </LinkButton>
             ) : null
           }
         />

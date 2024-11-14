@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {HealthStatsPeriodOption, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import {HealthStatsPeriodOption} from 'sentry/types/release';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
   selection: PageFilters;
 };
 
-const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
+function ReleaseCardStatsPeriod({location, selection}: Props) {
   const activePeriod =
     location.query.healthStatsPeriod || HealthStatsPeriodOption.TWENTY_FOUR_HOURS;
   const {pathname, query} = location;
@@ -45,7 +46,7 @@ const ReleaseCardStatsPeriod = ({location, selection}: Props) => {
       </Period>
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')`
   display: grid;

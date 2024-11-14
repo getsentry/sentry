@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+import type {ListItemProps} from './listItem';
 import {getListSymbolStyle, listSymbol} from './utils';
 
+type ListItemChild = React.ReactElement<ListItemProps> | undefined | false;
+
 type Props = {
-  children: React.ReactNode;
+  children: ListItemChild | ListItemChild[];
   className?: string;
   'data-test-id'?: string;
   initialCounterValue?: number;
@@ -37,14 +40,9 @@ const List = styled(
       <Wrapper className={className} {...props}>
         {!symbol || typeof symbol === 'string'
           ? children
-          : Children.map(children, child => {
-              if (!isValidElement(child)) {
-                return child;
-              }
-              return cloneElement(child as React.ReactElement, {
-                symbol,
-              });
-            })}
+          : Children.map(children, child =>
+              !isValidElement(child) ? child : cloneElement(child, {symbol})
+            )}
       </Wrapper>
     );
   }

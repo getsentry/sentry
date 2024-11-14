@@ -1,5 +1,5 @@
-import {browserHistory} from 'react-router';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -8,44 +8,27 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({organization, router}) {
-  const client = new QueryClient();
-
+function WrappedComponent({router}) {
   return (
-    <QueryClientProvider client={client}>
-      <RouteContext.Provider
-        value={{
-          location: router.location,
-          params: {},
-          router,
-          routes: [],
-        }}
-      >
-        <OrganizationContext.Provider value={organization}>
-          <MEPSettingProvider>
-            <PerformanceContent router={router} location={router.location} />
-          </MEPSettingProvider>
-        </OrganizationContext.Provider>
-      </RouteContext.Provider>
-    </QueryClientProvider>
+    <MEPSettingProvider>
+      <PerformanceContent router={router} location={router.location} />
+    </MEPSettingProvider>
   );
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = TestStubs.Organization({
+  const organization = OrganizationFixture({
     features,
-    projects,
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
+    projects,
     organization,
     router: {
       location: {
@@ -55,19 +38,16 @@ function initializeData(projects, query, features = FEATURES) {
     },
   });
   act(() => void OrganizationStore.onUpdate(initialData.organization, {replace: true}));
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
 function initializeTrendsData(query, addDefaultQuery = true) {
   const projects = [
-    TestStubs.Project({id: '1', firstTransactionEvent: false}),
-    TestStubs.Project({id: '2', firstTransactionEvent: true}),
+    ProjectFixture({id: '1', firstTransactionEvent: false}),
+    ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = TestStubs.Organization({
-    FEATURES,
-    projects,
-  });
+  const organization = OrganizationFixture({features: FEATURES});
 
   const otherTrendsQuery = addDefaultQuery
     ? {
@@ -76,8 +56,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     : {};
 
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
+    projects,
     router: {
       location: {
         pathname: '/test',
@@ -88,7 +68,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
@@ -132,7 +112,7 @@ describe('Performance > Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -286,16 +266,16 @@ describe('Performance > Content', function () {
     act(() => ProjectsStore.reset());
 
     // TODO: This was likely a defensive check added due to a previous isolation issue, it can possibly be removed.
-    // @ts-ignore
+    // @ts-expect-error
     pageFilters.updateDateTime.mockRestore();
   });
 
   it('renders basic UI elements', async function () {
-    const projects = [TestStubs.Project({firstTransactionEvent: true})];
-    const data = initializeData(projects, {});
+    const projects = [ProjectFixture({firstTransactionEvent: true})];
+    const {router} = initializeData(projects, {});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -305,13 +285,13 @@ describe('Performance > Content', function () {
 
   it('renders onboarding state when the selected project has no events', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: [1]});
+    const {router} = initializeData(projects, {project: [1]});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -321,32 +301,32 @@ describe('Performance > Content', function () {
 
   it('does not render onboarding for "my projects"', async function () {
     const projects = [
-      TestStubs.Project({id: '1', firstTransactionEvent: false}),
-      TestStubs.Project({id: '2', firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: ['-1']});
+    const {router} = initializeData(projects, {project: ['-1']});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(screen.queryByText('Pinpoint problems')).not.toBeInTheDocument();
   });
 
   it('forwards conditions to transaction summary', async function () {
-    const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
-    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
+    const projects = [ProjectFixture({id: '1', firstTransactionEvent: true})];
+    const {router} = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: '/apple/cart'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
-    expect(data.router.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
@@ -357,9 +337,9 @@ describe('Performance > Content', function () {
   });
 
   it('Default period for trends does not call updateDateTime', async function () {
-    const data = initializeTrendsData({query: 'tag:value'}, false);
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    const {router} = initializeTrendsData({query: 'tag:value'}, false);
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -368,19 +348,19 @@ describe('Performance > Content', function () {
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
-    const data = initializeTrendsData({
+    const {router} = initializeTrendsData({
       query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION} api`,
       statsPeriod: '24h',
     });
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('button', {name: 'View Trends'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
@@ -397,13 +377,13 @@ describe('Performance > Content', function () {
 
   it('Default page (transactions) without trends feature will not update filters if none are set', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: true}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {view: undefined});
+    const {router} = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
@@ -411,24 +391,24 @@ describe('Performance > Content', function () {
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
-    const data = initializeTrendsData({view: undefined}, false);
+    const {router} = initializeTrendsData({view: undefined}, false);
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
-    const data = initializeTrendsData({query: 'device.family:Mac'}, false);
+    const {router} = initializeTrendsData({query: 'device.family:Mac'}, false);
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledWith(
@@ -443,13 +423,13 @@ describe('Performance > Content', function () {
 
   it('Display Create Sample Transaction Button', async function () {
     const projects = [
-      TestStubs.Project({id: 1, firstTransactionEvent: false}),
-      TestStubs.Project({id: 2, firstTransactionEvent: false}),
+      ProjectFixture({id: '1', firstTransactionEvent: false}),
+      ProjectFixture({id: '2', firstTransactionEvent: false}),
     ];
-    const data = initializeData(projects, {view: undefined});
+    const {router} = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent organization={data.organization} router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();

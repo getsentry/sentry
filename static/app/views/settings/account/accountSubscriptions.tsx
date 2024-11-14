@@ -1,24 +1,34 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import findIndex from 'lodash/findIndex';
-import groupBy from 'lodash/groupBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
-type Subscription = {
+export type Subscription = {
   email: string;
   listDescription: string;
   listId: number;
@@ -28,92 +38,124 @@ type Subscription = {
   unsubscribedDate: string | null;
 };
 
-type State = AsyncView['state'] & {
-  subscriptions: Subscription[];
-};
+function AccountSubscriptions() {
+  const {
+    data: subscriptions = [],
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<Subscription[]>([ENDPOINT], {
+    staleTime: 2 * 60 * 1000,
+  });
 
-class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['subscriptions', ENDPOINT]];
-  }
+  const queryClient = useQueryClient();
+  const api = useApi();
 
-  getTitle() {
-    return 'Subscriptions';
-  }
+  const {mutate: updateSubscription} = useMutation({
+    mutationFn: (data: Subscription) =>
+      api.requestPromise(ENDPOINT, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: (_resp, subscription: Subscription) => {
+      addSuccessMessage(
+        `${subscription.subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
+      );
 
-  handleToggle = (subscription: Subscription, listId: number, _e: React.MouseEvent) => {
-    const subscribed = !subscription.subscribed;
-    const oldSubscriptions = this.state.subscriptions;
+      // Update the subscription in the list
+      setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], subs => {
+        return subs.map(sub => {
+          if (sub.listId === subscription.listId) {
+            return subscription;
+          }
 
-    this.setState(state => {
-      const newSubscriptions = state.subscriptions.slice();
-      const index = findIndex(newSubscriptions, {listId});
-      newSubscriptions[index] = {
-        ...subscription,
-        subscribed,
-        subscribedDate: new Date().toString(),
-      };
-      return {
-        ...state,
-        subscriptions: newSubscriptions,
-      };
-    });
-
-    this.api.request(ENDPOINT, {
-      method: 'PUT',
-      data: {
-        listId: subscription.listId,
-        subscribed,
-      },
-      success: () => {
-        addSuccessMessage(
-          `${subscribed ? 'Subscribed' : 'Unsubscribed'} to ${subscription.listName}`
-        );
-      },
-      error: () => {
+          return sub;
+        });
+      });
+    },
+    onError: (subscription: Subscription) => {
+      if (subscription) {
         addErrorMessage(
-          `Unable to ${subscribed ? '' : 'un'}subscribe to ${subscription.listName}`
+          `Unable to ${subscription.subscribed ? '' : 'un'}subscribe to ${subscription.listName}`
         );
-        this.setState({subscriptions: oldSubscriptions});
-      },
+      } else {
+        addErrorMessage('An unknown error occurred, please try again later.');
+      }
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetch();
+        }}
+      />
+    );
+  }
+
+  const subGroups = Object.entries(
+    subscriptions.reduce<Record<string, Subscription[]>>((acc, sub) => {
+      (acc[sub.email] = acc[sub.email] || []).push(sub);
+      return acc;
+    }, {})
+  );
+
+  subGroups.sort(([a], [b]) => a[0]?.localeCompare(b[0]));
+
+  const handleToggle = (subscription: Subscription) => {
+    const subscribed = !subscription.subscribed;
+
+    updateSubscription({
+      ...subscription,
+      subscribed,
     });
   };
 
-  renderBody() {
-    const subGroups = Object.entries(groupBy(this.state.subscriptions, sub => sub.email));
+  const subscriptionText = t('Subscriptions');
+  return (
+    <div>
+      <SentryDocumentTitle title={subscriptionText} />
+      <SettingsPageHeader title={subscriptionText} />
 
-    return (
-      <div>
-        <SettingsPageHeader title="Subscriptions" />
-        <TextBlock>
-          {t(`Sentry is committed to respecting your inbox. Our goal is to
+      <TextBlock>
+        {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
               painful. Enjoyable even.`)}
-        </TextBlock>
+      </TextBlock>
 
-        <TextBlock>
-          {t(`As part of our compliance with the EU’s General Data Protection
+      <TextBlock>
+        {t(`As part of our compliance with the EU’s General Data Protection
               Regulation (GDPR), starting on 25 May 2018, we’ll only email you
               according to the marketing categories to which you’ve explicitly
               opted-in.`)}
-        </TextBlock>
+      </TextBlock>
 
-        <Panel>
-          {this.state.subscriptions.length ? (
-            <div>
-              <PanelHeader>{t('Subscription')}</PanelHeader>
-              <PanelBody>
-                {subGroups.map(([email, subscriptions]) => (
-                  <Fragment key={email}>
-                    {subGroups.length > 1 && (
-                      <Heading>
-                        <IconToggle /> {t('Subscriptions for %s', email)}
-                      </Heading>
-                    )}
+      <Panel>
+        {subscriptions?.length ? (
+          <div>
+            <PanelHeader>{t('Subscription')}</PanelHeader>
+            <PanelBody>
+              {subGroups.map(([email, subs]) => (
+                <Fragment key={email}>
+                  {subGroups.length > 1 && (
+                    <Heading>
+                      <IconToggle /> {t('Subscriptions for %s', email)}
+                    </Heading>
+                  )}
 
-                    {subscriptions.map(subscription => (
-                      <PanelItem center key={subscription.listId}>
-                        <SubscriptionDetails>
+                  {subs
+                    .sort((a, b) => a.listId - b.listId)
+                    .map((subscription, i) => (
+                      <PanelItem center key={`${email}-${subscription.listId}-${i}`}>
+                        <SubscriptionDetails
+                          htmlFor={`${subscription.email}-${subscription.listId}`}
+                          aria-label={subscription.listName}
+                        >
                           <SubscriptionName>{subscription.listName}</SubscriptionName>
                           {subscription.listDescription && (
                             <Description>{subscription.listDescription}</Description>
@@ -139,41 +181,37 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                         </SubscriptionDetails>
                         <div>
                           <Switch
+                            id={`${subscription.email}-${subscription.listId}`}
                             isActive={subscription.subscribed}
                             size="lg"
-                            toggle={this.handleToggle.bind(
-                              this,
-                              subscription,
-                              subscription.listId
-                            )}
+                            toggle={() => handleToggle(subscription)}
                           />
                         </div>
                       </PanelItem>
                     ))}
-                  </Fragment>
-                ))}
-              </PanelBody>
-            </div>
-          ) : (
-            <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
-          )}
-        </Panel>
-        <TextBlock>
-          {t(`We’re applying GDPR consent and privacy policies to all Sentry
+                </Fragment>
+              ))}
+            </PanelBody>
+          </div>
+        ) : (
+          <EmptyMessage>{t("There's no subscription backend present.")}</EmptyMessage>
+        )}
+      </Panel>
+      <TextBlock>
+        {t(`We’re applying GDPR consent and privacy policies to all Sentry
               contacts, regardless of location. You’ll be able to manage your
               subscriptions here and from an Unsubscribe link in the footer of
               all marketing emails.`)}
-        </TextBlock>
+      </TextBlock>
 
-        <TextBlock>
-          {tct(
-            'Please contact [email:learn@sentry.io] with any questions or suggestions.',
-            {email: <a href="mailto:learn@sentry.io" />}
-          )}
-        </TextBlock>
-      </div>
-    );
-  }
+      <TextBlock>
+        {tct(
+          'Please contact [email:learn@sentry.io] with any questions or suggestions.',
+          {email: <a href="mailto:learn@sentry.io" />}
+        )}
+      </TextBlock>
+    </div>
+  );
 }
 
 const Heading = styled(PanelItem)`
@@ -187,9 +225,17 @@ const Heading = styled(PanelItem)`
   color: ${p => p.theme.subText};
 `;
 
-const SubscriptionDetails = styled('div')`
-  width: 50%;
+const SubscriptionDetails = styled('label')`
+  font-weight: initial;
   padding-right: ${space(2)};
+  width: 85%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 75%;
+  }
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
 `;
 
 const SubscriptionName = styled('div')`

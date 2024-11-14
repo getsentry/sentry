@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -8,15 +10,21 @@ import {
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
+import type EventView from 'sentry/utils/discover/eventView';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 
 export function handleCreateQuery(
   api: Client,
@@ -30,7 +38,7 @@ export function handleCreateQuery(
   const payload = eventView.toNewQuery();
   payload.yAxis = yAxis;
 
-  trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'request'), {
+  trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'request'), {
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
@@ -39,7 +47,7 @@ export function handleCreateQuery(
   promise
     .then((savedQuery: SavedQuery) => {
       addSuccessMessage(t('Query saved'));
-      trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
+      trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'success'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
       });
@@ -48,12 +56,11 @@ export function handleCreateQuery(
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query not saved'));
-      trackAdvancedAnalyticsEvent(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
+      trackAnalytics(getAnalyticsCreateEventKeyName(isNewQuery, 'failed'), {
         organization,
         ...extractAnalyticsQueryFields(payload),
         error:
-          (err && err.message) ||
-          `Could not save a ${isNewQuery ? 'new' : 'existing'} query`,
+          err?.message || `Could not save a ${isNewQuery ? 'new' : 'existing'} query`,
       });
     });
 
@@ -74,7 +81,7 @@ export function handleUpdateQuery(
     return Promise.reject();
   }
 
-  trackAdvancedAnalyticsEvent('discover_v2.update_query_request', {
+  trackAnalytics('discover_v2.update_query_request', {
     organization,
     ...extractAnalyticsQueryFields(payload),
   });
@@ -85,7 +92,7 @@ export function handleUpdateQuery(
     .then((savedQuery: SavedQuery) => {
       addSuccessMessage(t('Query updated'));
 
-      trackAdvancedAnalyticsEvent('discover_v2.update_query_success', {
+      trackAnalytics('discover_v2.update_query_success', {
         organization,
         ...extractAnalyticsQueryFields(payload),
       });
@@ -98,10 +105,10 @@ export function handleUpdateQuery(
     .catch((err: Error) => {
       addErrorMessage(t('Query not updated'));
 
-      trackAdvancedAnalyticsEvent('discover_v2.update_query_failed', {
+      trackAnalytics('discover_v2.update_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(payload),
-        error: (err && err.message) || 'Failed to update a query',
+        error: err?.message || 'Failed to update a query',
       });
     });
 
@@ -118,11 +125,8 @@ export function handleUpdateQueryName(
   eventView: EventView
 ) {
   const payload = eventView.toNewQuery();
-
-  trackAnalyticsEvent({
-    eventKey: 'discover_v2.update_query_name_request',
-    eventName: "Discoverv2: Request to update a saved query's name",
-    organization_id: parseInt(organization.id, 10),
+  trackAnalytics('discover_v2.update_query_name_request', {
+    organization,
     ...extractAnalyticsQueryFields(payload),
   });
 
@@ -132,22 +136,18 @@ export function handleUpdateQueryName(
     .then(_saved => {
       addSuccessMessage(t('Query name saved'));
 
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_query_name_success',
-        eventName: "Discoverv2: Successfully updated a saved query's name",
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.update_query_name_successs', {
+        organization,
         ...extractAnalyticsQueryFields(payload),
       });
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query name not saved'));
 
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.update_query_failed',
-        eventName: "Discoverv2: Failed to update a saved query's name",
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.update_query_failed', {
+        organization,
         ...extractAnalyticsQueryFields(payload),
-        error: (err && err.message) || 'Failed to update a query name',
+        error: err?.message || 'Failed to update a query name',
       });
     });
 
@@ -159,10 +159,8 @@ export function handleDeleteQuery(
   organization: Organization,
   eventView: EventView
 ): Promise<void> {
-  trackAnalyticsEvent({
-    eventKey: 'discover_v2.delete_query_request',
-    eventName: 'Discoverv2: Request to delete a saved query',
-    organization_id: parseInt(organization.id, 10),
+  trackAnalytics('discover_v2.delete_query_request', {
+    organization,
     ...extractAnalyticsQueryFields(eventView.toNewQuery()),
   });
 
@@ -171,23 +169,17 @@ export function handleDeleteQuery(
   promise
     .then(() => {
       addSuccessMessage(t('Query deleted'));
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.delete_query_success',
-        eventName: 'Discoverv2: Successfully deleted a saved query',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.delete_query_success', {
+        organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
       });
     })
     .catch((err: Error) => {
       addErrorMessage(t('Query not deleted'));
-
-      trackAnalyticsEvent({
-        eventKey: 'discover_v2.delete_query_failed',
-        eventName: 'Discoverv2: Failed to delete a saved query',
-        organization_id: parseInt(organization.id, 10),
+      trackAnalytics('discover_v2.delete_query_failed', {
+        organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
-        error: (err && err.message) || 'Failed to delete query',
+        error: err?.message || 'Failed to delete query',
       });
     });
 
@@ -253,11 +245,91 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
   switch (displayMode) {
     case DisplayModes.BAR:
       return DisplayType.BAR;
-    case DisplayModes.WORLDMAP:
-      return DisplayType.WORLD_MAP;
     case DisplayModes.TOP5:
       return DisplayType.TOP_N;
     default:
       return DisplayType.LINE;
+  }
+}
+
+export function getSavedQueryDataset(
+  organization: Organization,
+  location: Location | undefined,
+  savedQuery: SavedQuery | NewQuery | undefined,
+  splitDecision?: SavedQueryDatasets
+): SavedQueryDatasets {
+  const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
+  if (dataset) {
+    return dataset as SavedQueryDatasets;
+  }
+  if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
+    return splitDecision;
+  }
+  if (
+    savedQuery?.queryDataset &&
+    savedQuery?.queryDataset !== SavedQueryDatasets.DISCOVER
+  ) {
+    return savedQuery.queryDataset;
+  }
+  if (hasDatasetSelector(organization)) {
+    return SavedQueryDatasets.ERRORS;
+  }
+  return SavedQueryDatasets.DISCOVER;
+}
+
+export function getSavedQueryWithDataset(
+  savedQuery?: SavedQuery | NewQuery
+): SavedQuery | NewQuery | undefined {
+  if (!savedQuery) {
+    return undefined;
+  }
+  return {
+    ...savedQuery,
+    dataset: getDatasetFromLocationOrSavedQueryDataset(
+      undefined,
+      savedQuery?.queryDataset
+    ),
+  };
+}
+
+export function getDatasetFromLocationOrSavedQueryDataset(
+  location: Location | undefined,
+  queryDataset: SavedQueryDatasets | undefined
+): DiscoverDatasets | undefined {
+  const dataset = decodeScalar(location?.query?.dataset);
+  if (dataset) {
+    return dataset as DiscoverDatasets;
+  }
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
+  switch (savedQueryDataset) {
+    case SavedQueryDatasets.ERRORS:
+      return DiscoverDatasets.ERRORS;
+    case SavedQueryDatasets.TRANSACTIONS:
+      return DiscoverDatasets.TRANSACTIONS;
+    case SavedQueryDatasets.DISCOVER:
+      return DiscoverDatasets.DISCOVER;
+    default:
+      return undefined;
+  }
+}
+
+export function getSavedQueryDatasetFromLocationOrDataset(
+  location: Location | undefined,
+  dataset: DiscoverDatasets | undefined
+): SavedQueryDatasets | undefined {
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
+  if (savedQueryDataset) {
+    return savedQueryDataset as SavedQueryDatasets;
+  }
+  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
+  switch (discoverDataset) {
+    case DiscoverDatasets.ERRORS:
+      return SavedQueryDatasets.ERRORS;
+    case DiscoverDatasets.TRANSACTIONS:
+      return SavedQueryDatasets.TRANSACTIONS;
+    case DiscoverDatasets.DISCOVER:
+      return SavedQueryDatasets.DISCOVER;
+    default:
+      return undefined;
   }
 }

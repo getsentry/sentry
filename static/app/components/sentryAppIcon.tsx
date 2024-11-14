@@ -1,13 +1,13 @@
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
-import {AvatarSentryApp} from 'sentry/types';
+import type {AvatarSentryApp} from 'sentry/types/integrations';
 
 type Props = {
   sentryApp: AvatarSentryApp;
   size: number;
 };
 
-const SentryAppIcon = ({sentryApp, size}: Props) => {
+function SentryAppIcon({sentryApp, size}: Props) {
   return <SentryAppAvatar sentryApp={sentryApp} size={size} isColor />;
-};
+}
 
 export default SentryAppIcon;

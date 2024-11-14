@@ -1,28 +1,30 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from functools import cached_property
 
-import pytz
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.endpoints.project_releases import ReleaseWithVersionSerializer
+from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
-from sentry.models import (
-    CommitAuthor,
-    CommitFileChange,
-    Environment,
-    Release,
-    ReleaseCommit,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Repository,
-)
-from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.environment import Environment
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, ReleaseCommitPatchTest, TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class ProjectReleaseListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -34,7 +36,7 @@ class ProjectReleaseListTest(APITestCase):
         release1 = Release.objects.create(
             organization_id=project1.organization_id,
             version="1",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release1.add_project(project1)
 
@@ -43,15 +45,15 @@ class ProjectReleaseListTest(APITestCase):
         release2 = Release.objects.create(
             organization_id=project1.organization_id,
             version="2",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project1)
 
         release3 = Release.objects.create(
             organization_id=project1.organization_id,
             version="3",
-            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
-            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386, tzinfo=UTC),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386, tzinfo=UTC),
             user_agent="my_agent",
         )
         release3.add_project(project1)
@@ -61,7 +63,10 @@ class ProjectReleaseListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project1.organization.slug, "project_slug": project1.slug},
+            kwargs={
+                "organization_id_or_slug": project1.organization.slug,
+                "project_id_or_slug": project1.slug,
+            },
         )
         response = self.client.get(url, format="json")
 
@@ -82,13 +87,16 @@ class ProjectReleaseListTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version="foobar",
-            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.get(url + "?query=foo", format="json")
 
@@ -104,7 +112,7 @@ class ProjectReleaseListTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version="foo.bar-1.0.0",
-            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release.add_project(project)
 
@@ -114,12 +122,11 @@ class ProjectReleaseListTest(APITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test(stable=True)
 class ProjectReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
-        self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=timezone.utc)
+        self.datetime = datetime(2013, 8, 13, 3, 8, 24, tzinfo=UTC)
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")
         project2 = self.create_project(teams=[team], name="bar")
@@ -183,9 +190,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.env3 = env3
 
     def make_environment(self, name, project):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
@@ -206,8 +211,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url + "?environment=" + self.env1.name, format="json")
@@ -221,8 +226,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project2.organization.slug,
-                "project_slug": self.project2.slug,
+                "organization_id_or_slug": self.project2.organization.slug,
+                "project_id_or_slug": self.project2.slug,
             },
         )
         response = self.client.get(url + "?environment=" + self.env2.name, format="json")
@@ -232,8 +237,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -243,8 +248,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         response = self.client.get(url + "?environment=" + "invalid_environment", format="json")
@@ -257,8 +262,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project1.organization.slug,
-                "project_slug": self.project1.slug,
+                "organization_id_or_slug": self.project1.organization.slug,
+                "project_id_or_slug": self.project1.slug,
             },
         )
         ReleaseProjectEnvironment.objects.create(
@@ -316,7 +321,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         )
 
 
-@region_silo_test(stable=True)
 class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
@@ -325,7 +329,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(
             url,
@@ -351,7 +358,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, data={"version": "1.2.1 (123)"})
 
@@ -373,7 +383,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.1"})
@@ -392,7 +405,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project2.organization.slug, "project_slug": project2.slug},
+            kwargs={
+                "organization_id_or_slug": project2.organization.slug,
+                "project_id_or_slug": project2.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.1"})
@@ -413,7 +429,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         response = self.client.post(url, data={"version": "1.2.3\n"})
@@ -447,7 +466,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(url, data={"version": "1.2.1", "owner": self.user.email})
 
@@ -466,7 +488,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-project-releases",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
         response = self.client.post(
             url, data={"version": "1.2.1", "commits": [{"id": "a" * 40}, {"id": "b" * 40}]}
@@ -488,16 +513,95 @@ class ProjectReleaseCreateTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id
 
+    def test_org_auth_token(self):
+        org = self.create_organization()
+        org2 = self.create_organization()
 
-@region_silo_test(stable=True)
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version="1",
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
+        )
+        release1.add_project(project1)
+
+        url = reverse(
+            "sentry-api-0-project-releases",
+            kwargs={"organization_id_or_slug": org.slug, "project_id_or_slug": project1.slug},
+        )
+
+        # test right org, wrong permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            bad_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(bad_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1"},
+            HTTP_AUTHORIZATION=f"Bearer {bad_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test wrong org, right permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            wrong_org_token_str = generate_token(org2.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org2.id,
+                name="token 1",
+                token_hashed=hash_token(wrong_org_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1"},
+            HTTP_AUTHORIZATION=f"Bearer {wrong_org_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test right org, right permissions level
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            good_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                url,
+                data={"version": "1.2.1"},
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
+        assert response.status_code == 201, response.content
+
+        # Make sure org token usage was updated
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == project1.id
+
+
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
         return reverse(
             "sentry-api-0-project-releases",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -619,7 +723,6 @@ class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         }
 
 
-@region_silo_test(stable=True)
 class ReleaseSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -651,10 +754,12 @@ class ReleaseSerializerTest(TestCase):
 
         result = serializer.validated_data
         assert result["version"] == self.version
-        assert result["owner"] == self.user
+        assert result["owner"]
+        assert result["owner"].id == self.user.id
+        assert result["owner"].username == self.user.username
         assert result["ref"] == self.ref
         assert result["url"] == self.url
-        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=pytz.UTC)
+        assert result["dateReleased"] == datetime(1000, 10, 10, 6, 6, tzinfo=UTC)
         assert result["commits"] == self.commits
 
     def test_fields_not_required(self):

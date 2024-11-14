@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Badge from 'sentry/components/badge';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import Clipboard from 'sentry/components/clipboard';
+import Badge from 'sentry/components/badge/badge';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -14,9 +14,10 @@ import NavTabs from 'sentry/components/navTabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconCopy, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Release, ReleaseMeta, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import ReleaseActions from './releaseActions';
@@ -30,14 +31,14 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-const ReleaseHeader = ({
+function ReleaseHeader({
   location,
   organization,
   release,
   project,
   releaseMeta,
   refetchData,
-}: Props) => {
+}: Props) {
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
 
@@ -100,11 +101,12 @@ const ReleaseHeader = ({
           <IdBadge project={project} avatarSize={28} hideName />
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
-            <Tooltip title={version} containerDisplayMode="flex">
-              <Clipboard value={version}>
-                <IconCopy />
-              </Clipboard>
-            </Tooltip>
+            <CopyToClipboardButton
+              borderless
+              size="zero"
+              text={version}
+              title={version}
+            />
           </IconWrapper>
           {!!url && (
             <IconWrapper>
@@ -144,7 +146,7 @@ const ReleaseHeader = ({
       </Fragment>
     </Layout.Header>
   );
-};
+}
 
 const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;

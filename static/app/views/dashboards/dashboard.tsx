@@ -2,11 +2,11 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import type {Layouts} from 'react-grid-layout';
+import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -15,18 +15,26 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {DatasetSource} from 'sentry/utils/discover/types';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
+import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -40,12 +48,15 @@ import {
   getDefaultWidgetHeight,
   getMobileLayout,
   getNextAvailablePosition,
+  isValidLayout,
+  METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
-  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget} from './types';
-import {getDashboardFiltersFromURL} from './utils';
+import type {DashboardDetails, Widget} from './types';
+import {DashboardWidgetSource, WidgetType} from './types';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -62,13 +73,14 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
-  isEditing: boolean;
+  isEditingDashboard: boolean;
   location: Location;
   /**
    * Fired when widgets are added/removed/sorted.
@@ -77,7 +89,10 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  handleAddMetricWidget?: (layout?: Widget['layout']) => void;
+  handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
   onSetNewWidget?: () => void;
@@ -147,6 +162,8 @@ class Dashboard extends Component<Props, State> {
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -163,6 +180,7 @@ class Dashboard extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.debouncedHandleResize);
     window.clearTimeout(this.forceCheckTimeout);
+    GroupStore.reset();
   }
 
   forceCheckTimeout: number | undefined = undefined;
@@ -203,8 +221,14 @@ class Dashboard extends Component<Props, State> {
     loadOrganizationTags(api, organization.slug, selection);
   }
 
-  handleStartAdd = () => {
-    const {organization, router, location, paramDashboardId} = this.props;
+  handleStartAdd = (dataset?: DataSet) => {
+    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
+      this.props;
+
+    if (dataset === DataSet.METRICS) {
+      handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
+      return;
+    }
 
     if (paramDashboardId) {
       router.push(
@@ -213,6 +237,7 @@ class Dashboard extends Component<Props, State> {
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
+            dataset,
           },
         })
       );
@@ -225,6 +250,7 @@ class Dashboard extends Component<Props, State> {
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
+          dataset,
         },
       })
     );
@@ -233,7 +259,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
-    const {isEditing, onUpdate, handleUpdateWidgetList} = this.props;
+    const {isEditingDashboard, onUpdate, handleUpdateWidgetList} = this.props;
 
     let nextList = [...this.props.dashboard.widgets];
     const updateIndex = nextList.indexOf(prevWidget);
@@ -254,26 +280,48 @@ class Dashboard extends Component<Props, State> {
     }
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.delete', {
+      organization,
+      widget_type: widgetToDelete.displayType,
+    });
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
 
-    if (!isEditing) {
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditing, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.duplicate', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -284,13 +332,46 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-    if (!isEditing) {
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
+
+  handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
+
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
+
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
       handleUpdateWidgetList(nextList);
     }
   };
 
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
+    const widget = this.props.dashboard.widgets[index];
+
+    trackAnalytics('dashboards_views.widget.edit', {
+      organization,
+      widget_type: widget.displayType,
+    });
+
+    if (widget.widgetType === WidgetType.METRICS) {
+      return;
+    }
 
     if (paramDashboardId) {
       router.push(
@@ -329,20 +410,26 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, widgetLimitReached, isPreview, dashboard, location} = this.props;
+    const {isEditingDashboard, widgetLimitReached, isPreview, dashboard, location} =
+      this.props;
 
     const widgetProps = {
       widget,
-      isEditing,
+      widgetLegendState: this.props.widgetLegendState,
+      isEditingDashboard,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
       onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
+      onSetTransactionsDataset: () => this.handleChangeSplitDataset(widget, index),
+
       isPreview,
+
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     const key = constructGridItemKey(widget);
+
     return (
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
@@ -446,7 +533,6 @@ class Dashboard extends Component<Props, State> {
       const [nextPosition] = getNextAvailablePosition(columnDepths, 1);
       position = nextPosition;
     }
-
     return {
       ...position,
       w: DEFAULT_WIDGET_WIDTH,
@@ -457,13 +543,19 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditing, dashboard, widgetLimitReached} = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
+      this.props;
     const {widgets} = dashboard;
 
     const columnDepths = calculateColumnDepths(layouts[DESKTOP]);
+
     const widgetsWithLayout = assignDefaultLayout(widgets, columnDepths);
 
-    const canModifyLayout = !isMobile && isEditing;
+    const canModifyLayout = !isMobile && isEditingDashboard;
+
+    const displayInlineAddWidget =
+      hasCustomMetrics(organization) &&
+      isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
       <GridLayout
@@ -485,21 +577,23 @@ class Dashboard extends Component<Props, State> {
             className={DRAG_RESIZE_CLASS}
             size="xs"
             borderless
-            icon={<IconResize size="xs" />}
+            icon={<IconResize />}
           />
         }
         useCSSTransforms={false}
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && !widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditingDashboard || displayInlineAddWidget) &&
+          !widgetLimitReached &&
+          !isPreview && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

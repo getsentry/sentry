@@ -1,7 +1,11 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import {BaseGroup, EventOrGroupType, IssueCategory} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {BaseGroup} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
 
 describe('EventOrGroupTitle', function () {
   const data = {
@@ -14,7 +18,7 @@ describe('EventOrGroupTitle', function () {
   };
 
   it('renders with subtitle when `type = error`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -26,12 +30,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with subtitle when `type = csp`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -43,12 +45,10 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with no subtitle when `type = default`', function () {
-    const wrapper = render(
+    render(
       <EventOrGroupTitle
         data={
           {
@@ -62,15 +62,9 @@ describe('EventOrGroupTitle', function () {
         }
       />
     );
-
-    expect(wrapper.container).toSnapshot();
   });
 
   it('renders with title override', function () {
-    const routerContext = TestStubs.routerContext([
-      {organization: TestStubs.Organization({features: ['custom-event-title']})},
-    ]);
-
     render(
       <EventOrGroupTitle
         data={
@@ -83,8 +77,7 @@ describe('EventOrGroupTitle', function () {
             },
           } as BaseGroup
         }
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByText('metadata title')).toBeInTheDocument();
@@ -106,6 +99,33 @@ describe('EventOrGroupTitle', function () {
     expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
   });
 
+  it('does not render stacktrace preview when data is a tombstone', () => {
+    render(
+      <EventOrGroupTitle
+        data={{
+          id: '123',
+          level: 'error',
+          message: 'numTabItems is not defined ReferenceError something',
+          culprit:
+            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
+          type: EventOrGroupType.ERROR,
+          metadata: {
+            value: 'numTabItems is not defined',
+            type: 'ReferenceError',
+            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
+            function: 'useOverflowTabs',
+          },
+          actor: UserFixture(),
+          isTombstone: true,
+        }}
+        withStackTracePreview
+      />
+    );
+
+    expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
+    expect(screen.getByText('ReferenceError')).toBeInTheDocument();
+  });
+
   describe('performance issue list', () => {
     const perfData = {
       title: 'Hello',
@@ -118,11 +138,7 @@ describe('EventOrGroupTitle', function () {
     } as BaseGroup;
 
     it('should correctly render title', () => {
-      const routerContext = TestStubs.routerContext([
-        {organization: TestStubs.Organization({features: ['custom-event-title']})},
-      ]);
-
-      render(<EventOrGroupTitle data={perfData} />, {context: routerContext});
+      render(<EventOrGroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
       expect(screen.getByText('transaction name')).toBeInTheDocument();

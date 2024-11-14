@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import functools
+from typing import ClassVar, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.search.utils import convert_user_tag_to_query
@@ -7,7 +10,7 @@ from sentry.tagstore.base import TagKeyStatus
 
 @functools.total_ordering
 class TagType:
-    _sort_key = None
+    _sort_key: ClassVar[str]
 
     def __repr__(self):
         return "<{}: {}>".format(
@@ -19,7 +22,7 @@ class TagType:
         return hash(tuple(getattr(self, name) for name in self.__slots__))
 
     def __eq__(self, other):
-        return type(self) == type(other) and all(
+        return type(self) is type(other) and all(
             getattr(self, name) == getattr(other, name) for name in self.__slots__
         )
 
@@ -39,7 +42,7 @@ class TagKey(TagType):
     _sort_key = "values_seen"
 
     def __init__(
-        self, key, values_seen=None, status=TagKeyStatus.VISIBLE, count=None, top_values=None
+        self, key, values_seen=None, status=TagKeyStatus.ACTIVE, count=None, top_values=None
     ):
         self.key = key
         self.values_seen = values_seen
@@ -88,10 +91,21 @@ class GroupTagValue(TagType):
         self.last_seen = last_seen
 
 
+class TagKeySerializerResponseOptional(TypedDict, total=False):
+    uniqueValues: int | None
+    totalValues: int | None
+    topValues: list[TagValueSerializerResponse] | None
+
+
+class TagKeySerializerResponse(TagKeySerializerResponseOptional):
+    key: str
+    name: str
+
+
 @register(GroupTagKey)
 @register(TagKey)
 class TagKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs) -> TagKeySerializerResponse:
         from sentry import tagstore
 
         output = {
@@ -107,10 +121,23 @@ class TagKeySerializer(Serializer):
         return output
 
 
+class TagValueSerializerResponseOptional(TypedDict, total=False):
+    query: str | None
+
+
+class TagValueSerializerResponse(TagValueSerializerResponseOptional):
+    key: str
+    name: str
+    value: str
+    count: int
+    lastSeen: str
+    firstSeen: str
+
+
 @register(GroupTagValue)
 @register(TagValue)
 class TagValueSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         from sentry import tagstore
 
         key = tagstore.get_standardized_key(obj.key)

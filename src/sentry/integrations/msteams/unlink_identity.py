@@ -1,22 +1,22 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.urls import reverse
-from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
-from rest_framework.response import Response
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.models import Identity
+from django.urls import reverse
+
+from sentry.integrations.messaging.linkage import UnlinkIdentityView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.msteams.linkage import MsTeamsIdentityLinkageView
 from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
-from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
-from sentry.web.helpers import render_to_response
+from sentry.utils.signing import sign
 
 from .card_builder.identity import build_unlinked_card
+from .constants import SALT
 from .utils import get_preinstall_client
 
 
 def build_unlinking_url(conversation_id, service_url, teams_user_id):
     signed_params = sign(
+        salt=SALT,
         conversation_id=conversation_id,
         service_url=service_url,
         teams_user_id=teams_user_id,
@@ -29,45 +29,27 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
     )
 
 
-class MsTeamsUnlinkIdentityView(BaseView):
-    @transaction_start("MsTeamsUnlinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params) -> Response:
-        try:
-            params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
-            return render_to_response(
-                "sentry/integrations/msteams/expired-link.html",
-                request=request,
-            )
+class MsTeamsUnlinkIdentityView(MsTeamsIdentityLinkageView, UnlinkIdentityView):
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/msteams/unlinked.html", {}
 
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/integrations/msteams/unlink-identity.html",
-                request=request,
-                context={},
-            )
+    @property
+    def confirmation_template(self) -> str:
+        return "sentry/integrations/msteams/unlink-identity.html"
 
-        # find the identities linked to this team user and sentry user
-        identity_list = Identity.objects.filter(
-            external_id=params["teams_user_id"], user=request.user
-        )
-        # if no identities, tell the user that
-        if not identity_list:
-            return render_to_response(
-                "sentry/integrations/msteams/no-identity.html",
-                request=request,
-                context={},
-            )
+    @property
+    def no_identity_template(self) -> str | None:
+        return "sentry/integrations/msteams/no-identity.html"
 
-        # otherwise, delete the identities, send message to the user, and render a success screen
-        identity_list.delete()
+    @property
+    def filter_by_user_id(self) -> bool:
+        return True
+
+    def notify_on_success(
+        self, external_id: str, params: Mapping[str, Any], integration: Integration | None
+    ) -> None:
         client = get_preinstall_client(params["service_url"])
         card = build_unlinked_card()
         client.send_card(params["conversation_id"], card)
-
-        return render_to_response(
-            "sentry/integrations/msteams/unlinked.html",
-            request=request,
-            context={},
-        )

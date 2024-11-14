@@ -3,37 +3,42 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Avatar from 'sentry/components/avatar';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupTombstone} from 'sentry/types';
+import type {GroupTombstone} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type RowProps = {
+interface GroupTombstoneRowProps {
   data: GroupTombstone;
   disabled: boolean;
   onUndiscard: (id: string) => void;
-};
+}
 
-function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
+function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps) {
   const actor = data.actor;
 
   return (
     <PanelItem center>
       <StyledBox>
         <EventOrGroupHeader
-          includeLink={false}
           hideIcons
-          className="truncate"
-          size="normal"
-          data={data}
+          data={{...data, isTombstone: true}}
           source="group-tombstome"
         />
       </StyledBox>
@@ -55,6 +60,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
           disabled={disabled}
         >
           <Button
+            type="button"
             aria-label={t('Undiscard')}
             title={
               disabled
@@ -62,7 +68,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
                 : t('Undiscard')
             }
             size="xs"
-            icon={<IconDelete size="xs" />}
+            icon={<IconDelete />}
             disabled={disabled}
           />
         </Confirm>
@@ -71,42 +77,61 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
   );
 }
 
-type Props = AsyncComponent['props'] & {
-  orgId: string;
-  projectId: string;
-};
+interface GroupTombstonesProps {
+  project: Project;
+}
 
-type State = {
-  tombstones: GroupTombstone[];
-  tombstonesPageLinks: null | string;
-} & AsyncComponent['state'];
+function GroupTombstones({project}: GroupTombstonesProps) {
+  const api = useApi();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {
+    data: tombstones,
+    isPending,
+    isError,
+    refetch,
+    getResponseHeader,
+  } = useApiQuery<GroupTombstone[]>(
+    [
+      `/projects/${organization.slug}/${project.slug}/tombstones/`,
+      {query: {...location.query}},
+    ],
+    {staleTime: 0}
+  );
+  const tombstonesPageLinks = getResponseHeader?.('Link');
 
-class GroupTombstones extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props;
-    return [
-      ['tombstones', `/projects/${orgId}/${projectId}/tombstones/`, {}, {paginate: true}],
-    ];
-  }
-
-  handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
-    const {orgId, projectId} = this.props;
-    const path = `/projects/${orgId}/${projectId}/tombstones/${tombstoneId}/`;
-    this.api
-      .requestPromise(path, {
-        method: 'DELETE',
-      })
+  const handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
+    api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/tombstones/${tombstoneId}/`,
+        {
+          method: 'DELETE',
+        }
+      )
       .then(() => {
         addSuccessMessage(t('Events similar to these will no longer be filtered'));
-        this.fetchData();
       })
       .catch(() => {
         addErrorMessage(t('We were unable to undiscard this issue'));
-        this.fetchData();
+      })
+      .finally(() => {
+        refetch();
       });
   };
 
-  renderEmpty() {
+  if (isPending) {
+    return (
+      <Panel>
+        <LoadingIndicator />
+      </Panel>
+    );
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!tombstones?.length) {
     return (
       <Panel>
         <EmptyMessage>{t('You have no discarded issues')}</EmptyMessage>
@@ -114,11 +139,9 @@ class GroupTombstones extends AsyncComponent<Props, State> {
     );
   }
 
-  renderBody() {
-    const {tombstones, tombstonesPageLinks} = this.state;
-
-    return tombstones.length ? (
-      <Access access={['project:write']}>
+  return (
+    <ErrorBoundary>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
             <Panel>
@@ -127,7 +150,7 @@ class GroupTombstones extends AsyncComponent<Props, State> {
                   key={data.id}
                   data={data}
                   disabled={!hasAccess}
-                  onUndiscard={this.handleUndiscard}
+                  onUndiscard={handleUndiscard}
                 />
               ))}
             </Panel>
@@ -135,10 +158,8 @@ class GroupTombstones extends AsyncComponent<Props, State> {
           </Fragment>
         )}
       </Access>
-    ) : (
-      this.renderEmpty()
-    );
-  }
+    </ErrorBoundary>
+  );
 }
 
 const StyledBox = styled('div')`

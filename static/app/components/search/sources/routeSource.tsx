@@ -1,17 +1,19 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
-import flattenDepth from 'lodash/flattenDepth';
 
-import {Organization, Project} from 'sentry/types';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import HookStore from 'sentry/stores/hookStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import accountSettingsNavigation from 'sentry/views/settings/account/navigationConfiguration';
 import organizationSettingsNavigation from 'sentry/views/settings/organization/navigationConfiguration';
 import projectSettingsNavigation from 'sentry/views/settings/project/navigationConfiguration';
-import {NavigationItem} from 'sentry/views/settings/types';
+import type {NavigationItem} from 'sentry/views/settings/types';
 
-import {ChildProps, ResultItem} from './types';
+import type {ChildProps, ResultItem} from './types';
 import {strGetFn} from './utils';
 
 type Config =
@@ -96,6 +98,16 @@ class RouteSource extends Component<Props, State> {
     this.createSearch();
   }
 
+  getHookConfigs(): Config {
+    const {organization} = this.props;
+
+    return organization
+      ? HookStore.get('settings:organization-navigation-config').map(cb =>
+          cb(organization)
+        )
+      : [];
+  }
+
   async createSearch() {
     const {project, organization} = this.props;
 
@@ -106,14 +118,12 @@ class RouteSource extends Component<Props, State> {
       features: new Set(project?.features ?? []),
     } as Context;
 
-    const searchMap = flattenDepth<NavigationItem>(
-      [
-        mapFunc(accountSettingsNavigation, context),
-        mapFunc(projectSettingsNavigation, context),
-        mapFunc(organizationSettingsNavigation, context),
-      ],
-      2
-    );
+    const searchMap: NavigationItem[] = [
+      mapFunc(accountSettingsNavigation, context),
+      mapFunc(projectSettingsNavigation, context),
+      mapFunc(organizationSettingsNavigation, context),
+      mapFunc(this.getHookConfigs(), context),
+    ].flat(2);
 
     const options = {
       ...this.props.searchOptions,

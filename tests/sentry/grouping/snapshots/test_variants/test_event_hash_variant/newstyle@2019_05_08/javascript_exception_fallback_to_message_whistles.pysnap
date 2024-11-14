@@ -10,5 +10,5 @@ app:
       exception*
         type*
           "Error"
-        value* (stripped common values)
+        value* (stripped event-specific values)
           "<date>: <email> logged in (error <int>) time spent <float> --- correlation id <uuid>, checksum <sha1> (md5 <md5>); payload timestamp <date> (submitted from <ip> via <ip> via <ip>) at offset <hex>"

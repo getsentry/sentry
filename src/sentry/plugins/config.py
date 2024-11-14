@@ -97,7 +97,7 @@ class PluginConfigMixin(ProviderMixin):
         """
         return {}
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         form = self.project_conf_form
         if not form:
             return []
@@ -153,9 +153,6 @@ class PluginConfigMixin(ProviderMixin):
         return config
 
     def get_group_urls(self):
-        return []
-
-    def get_project_urls(self):
         return []
 
     def setup(self, bindings):

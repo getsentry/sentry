@@ -1,14 +1,14 @@
-import selectEvent from 'react-select-event';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/deprecatedforms/form';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 
 describe('SelectAsyncField', function () {
-  let api;
+  let api: jest.Mock;
 
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     api = MockApiClient.addMockResponse({
       url: '/foo/bar/',
       body: {
@@ -26,8 +26,8 @@ describe('SelectAsyncField', function () {
   it('supports autocomplete arguments from an integration', async function () {
     render(<SelectAsyncField {...defaultProps} />);
 
-    selectEvent.openMenu(screen.getByText('Select me'));
-    userEvent.type(screen.getByRole('textbox'), 'baz');
+    await selectEvent.openMenu(screen.getByText('Select me'));
+    await userEvent.type(screen.getByRole('textbox'), 'baz');
 
     expect(api).toHaveBeenCalled();
 
@@ -43,16 +43,15 @@ describe('SelectAsyncField', function () {
       </Form>
     );
 
-    selectEvent.openMenu(screen.getByText('Select me'));
-    userEvent.type(screen.getByRole('textbox'), 'baz');
-
-    await selectEvent.select(screen.getByText('Select me'), 'Baz Label');
+    await selectEvent.openMenu(screen.getByText('Select me'));
+    await userEvent.type(screen.getByRole('textbox'), 'baz');
+    await userEvent.click(screen.getByText('Baz Label'));
 
     expect(screen.getByLabelText('form')).toHaveFormValues({
       fieldName: 'baz',
     });
 
-    userEvent.click(screen.getByRole('button', {name: /save/i}));
+    await userEvent.click(screen.getByRole('button', {name: /save/i}));
 
     expect(submitMock).toHaveBeenCalledWith(
       {

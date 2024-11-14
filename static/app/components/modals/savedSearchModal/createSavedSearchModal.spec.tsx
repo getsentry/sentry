@@ -1,6 +1,7 @@
-import selectEvent from 'react-select-event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -9,12 +10,12 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let createMock;
-  const organization = TestStubs.Organization({
+  const organization = OrganizationFixture({
     access: ['org:write'],
   });
 
@@ -46,14 +47,19 @@ describe('CreateSavedSearchModal', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/tags/`,
+      body: [],
+    });
   });
 
   it('saves a search when query is not changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
@@ -64,7 +70,7 @@ describe('CreateSavedSearchModal', function () {
             query: 'is:unresolved assigned:lyn@sentry.io',
             sort: IssueSortOptions.DATE,
             type: 0,
-            visibility: SavedSearchVisibility.Owner,
+            visibility: SavedSearchVisibility.OWNER,
           },
         })
       );
@@ -74,14 +80,14 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
-    userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    userEvent.type(
-      screen.getByRole('textbox', {name: /filter issues/i}),
-      'is:resolved{enter}'
-    );
-    await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
+
+    await userEvent.click(screen.getAllByRole('combobox').at(-1)!);
+    await userEvent.paste('event.type:error');
+
+    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
@@ -89,10 +95,10 @@ describe('CreateSavedSearchModal', function () {
         expect.objectContaining({
           data: {
             name: 'new search name',
-            query: 'is:resolved',
-            sort: IssueSortOptions.PRIORITY,
+            query: 'is:unresolved assigned:lyn@sentry.io event.type:error',
+            sort: IssueSortOptions.TRENDS,
             type: 0,
-            visibility: SavedSearchVisibility.Owner,
+            visibility: SavedSearchVisibility.OWNER,
           },
         })
       );
@@ -101,21 +107,22 @@ describe('CreateSavedSearchModal', function () {
 
   describe('visibility', () => {
     it('only allows owner-level visibility without org:write permission', async function () {
-      const org = TestStubs.Organization({
+      const org = OrganizationFixture({
         access: [],
       });
 
       render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
 
-      userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+      await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+      await userEvent.paste('new search name');
 
       // Hovering over the visibility dropdown shows disabled reason
-      userEvent.hover(screen.getByText(/only me/i));
+      await userEvent.hover(screen.getByText(/only me/i));
       await screen.findByText(
         /only organization admins can create global saved searches/i
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Save'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
       await waitFor(() => {
         expect(createMock).toHaveBeenCalledWith(
@@ -123,7 +130,7 @@ describe('CreateSavedSearchModal', function () {
           expect.objectContaining({
             data: expect.objectContaining({
               name: 'new search name',
-              visibility: SavedSearchVisibility.Owner,
+              visibility: SavedSearchVisibility.OWNER,
             }),
           })
         );
@@ -132,20 +139,21 @@ describe('CreateSavedSearchModal', function () {
   });
 
   it('can change to org-level visibility with org:write permission', async function () {
-    const org = TestStubs.Organization({
+    const org = OrganizationFixture({
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
         '/organizations/org-slug/searches/',
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new search name',
-            visibility: SavedSearchVisibility.Organization,
+            visibility: SavedSearchVisibility.ORGANIZATION,
           }),
         })
       );

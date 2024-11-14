@@ -1,4 +1,4 @@
-import {ChromeTraceProfile} from 'sentry/utils/profiling/profile/chromeTraceProfile';
+import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
   importProfile,
@@ -7,6 +7,7 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
+import {makeSentryContinuousProfile} from './continuousProfile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
 
@@ -33,6 +34,7 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
+      '',
       '',
       'flamechart'
     );
@@ -63,36 +65,11 @@ describe('importProfile', () => {
         metadata: {} as Profiling.Schema['metadata'],
       },
       '',
+      '',
       'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports typescript profile', () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const imported = importProfile(typescriptProfile, '', 'flamechart');
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
@@ -127,6 +104,7 @@ describe('importProfile', () => {
         },
       },
       '',
+      '',
       'flamechart'
     );
 
@@ -154,7 +132,7 @@ describe('importProfile', () => {
       ],
     };
 
-    const imported = importProfile(jsSelfProfile, 'profile', 'flamechart');
+    const imported = importProfile(jsSelfProfile, 'profile', '', 'flamechart');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
@@ -162,16 +140,25 @@ describe('importProfile', () => {
   it('imports sentry sampled profile', () => {
     const sentrySampledProfile = makeSentrySampledProfile();
 
-    const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
+    const imported = importProfile(sentrySampledProfile, 'profile', '', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
+  });
+
+  it('imports sentry continuous profile', () => {
+    const continuousProfile = makeSentryContinuousProfile();
+
+    const imported = importProfile(continuousProfile, 'profile', '', 'flamegraph');
+
+    expect(imported.profiles[0]).toBeInstanceOf(ContinuousProfile);
   });
 
   it('throws on unrecognized profile type', () => {
     expect(() =>
       importProfile(
-        // @ts-ignore
+        // @ts-expect-error
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
+        '',
         '',
         'flamechart'
       )
@@ -181,16 +168,18 @@ describe('importProfile', () => {
 
 describe('parseDroppedProfile', () => {
   beforeEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
   it('throws if file has no string contents', async () => {
-    // @ts-ignore we are just setting null on the file, we are not actually reading it because our event is mocked
+    // @ts-expect-error we are just setting null on the file, we are not actually reading it because our event is mocked
     const file = new File([null], 'test.tsx');
 
     const reader = new FileReader();
 
-    jest.spyOn(window, 'FileReader').mockImplementation(() => reader);
-    jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const fileReaderMock = jest
+      .spyOn(window, 'FileReader')
+      .mockImplementation(() => reader);
+    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('load', {
         detail: {target: {result: null}},
       });
@@ -201,6 +190,9 @@ describe('parseDroppedProfile', () => {
     await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
+
+    fileReaderMock.mockRestore();
+    readAsTextMock.mockRestore();
   });
 
   it('throws if FileReader errors', async () => {
@@ -208,8 +200,10 @@ describe('parseDroppedProfile', () => {
 
     const reader = new FileReader();
 
-    jest.spyOn(window, 'FileReader').mockImplementation(() => reader);
-    jest.spyOn(reader, 'readAsText').mockImplementation(() => {
+    const fileReaderMock = jest
+      .spyOn(window, 'FileReader')
+      .mockImplementation(() => reader);
+    const readAsTextMock = jest.spyOn(reader, 'readAsText').mockImplementation(() => {
       const loadEvent = new CustomEvent('error', {
         detail: {target: {result: null}},
       });
@@ -220,6 +214,9 @@ describe('parseDroppedProfile', () => {
     await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
+
+    fileReaderMock.mockRestore();
+    readAsTextMock.mockRestore();
   });
 
   it('throws if contents are not valid JSON', async () => {
@@ -253,42 +250,11 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports dropped typescript profile', async () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
-    const imported = importProfile(
-      await parseDroppedProfile(file),
-      file.name,
-      'flamechart'
-    );
-
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
 
   it('imports dropped JS self profile', async () => {
@@ -316,6 +282,7 @@ describe('parseDroppedProfile', () => {
     const imported = importProfile(
       await parseDroppedProfile(file),
       file.name,
+      '',
       'flamechart'
     );
 

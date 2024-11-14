@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-import {TransformOptions} from '@babel/core';
+import type {TransformOptions} from '@babel/core';
 
 const config: TransformOptions = {
   presets: [
@@ -15,36 +15,17 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.27',
+        corejs: '3.37',
       },
     ],
-    '@babel/preset-typescript',
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-proposal-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
-      plugins: [
-        [
-          'transform-react-remove-prop-types',
-          {
-            mode: 'remove', // remove from bundle
-            removeImport: true, // removes `prop-types` import statements
-            classNameMatchers: [
-              'SelectField',
-              'FormField',
-              'AsyncComponent',
-              'AsyncView',
-            ],
-            additionalLibraries: [/app\/sentryTypes$/],
-          },
-        ],
-        ['babel-plugin-add-react-displayname'],
-      ],
+      plugins: [['babel-plugin-add-react-displayname']],
     },
     development: {
       plugins: [
@@ -54,8 +35,17 @@ const config: TransformOptions = {
       ],
     },
     test: {
-      // Required, see https://github.com/facebook/jest/issues/9430
-      plugins: ['dynamic-import-node'],
+      sourceMaps: process.env.CI ? false : true,
+      plugins: [
+        // Disable emotion sourcemaps in tests
+        // Since emotion spends lots of time parsing and inserting sourcemaps
+        [
+          '@emotion/babel-plugin',
+          {
+            sourceMap: false,
+          },
+        ],
+      ],
     },
   },
 };

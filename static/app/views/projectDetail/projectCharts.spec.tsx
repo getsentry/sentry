@@ -1,15 +1,15 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {PlatformKey} from 'sentry/types/project';
 import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
-function renderProjectCharts(
-  features?: string[],
-  platform?: string,
-  chartDisplay?: string
-) {
+function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
   const {organization, router, project} = initializeOrg({
-    organization: TestStubs.Organization({features}),
+    organization: OrganizationFixture(),
     projects: [{platform}],
     router: {
       params: {orgId: 'org-slug', projectId: 'project-slug'},
@@ -36,7 +36,7 @@ function renderProjectCharts(
 }
 
 describe('ProjectDetail > ProjectCharts', () => {
-  let mockSessions;
+  let mockSessions: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/releases/stats/`,
@@ -46,9 +46,7 @@ describe('ProjectDetail > ProjectCharts', () => {
     mockSessions = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsFieldFixture(`sum(session)`),
     });
   });
 
@@ -56,19 +54,34 @@ describe('ProjectDetail > ProjectCharts', () => {
     jest.resetAllMocks();
   });
 
-  it('renders ANR options', () => {
-    renderProjectCharts(['anr-rate'], 'android');
+  it('renders ANR options for android projects', async () => {
+    renderProjectCharts('android');
 
-    userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.getByText('Foreground ANR Rate')).toBeInTheDocument();
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
   });
 
-  it('does not render ANR options for non-android platforms', () => {
-    renderProjectCharts(['anr-rate'], 'python');
+  it('renders ANR options for electron projects', async () => {
+    renderProjectCharts('javascript-electron');
 
-    userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
+
+    expect(screen.getByText('Foreground ANR Rate')).toBeInTheDocument();
+    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+  });
+
+  it('does not render ANR options for non-compatible platforms', async () => {
+    renderProjectCharts('python');
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
@@ -112,7 +125,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       url: '/organizations/org-slug/sessions/',
       body: responseBody,
     });
-    renderProjectCharts(['anr-rate'], 'android', 'anr_rate');
+    renderProjectCharts('android', 'anr_rate');
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
 
     await waitFor(() =>

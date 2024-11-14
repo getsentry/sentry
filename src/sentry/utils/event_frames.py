@@ -1,27 +1,33 @@
 from __future__ import annotations
 
+import inspect
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Set,
-    Tuple,
-    cast,
-)
+from typing import Any, Protocol, cast
 
 from sentry.utils.safe import PathSearchable, get_path
+
+
+@dataclass(frozen=True)
+class EventFrame:
+    lineno: int | None = None
+    in_app: bool | None = None
+    abs_path: str | None = None
+    filename: str | None = None
+    function: str | None = None
+    package: str | None = None
+    module: str | None = None
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
+        return cls(**{k: v for k, v in data.items() if k in inspect.signature(cls).parameters})
 
 
 # mypy hack to work around callable assuing the first arg of callable is 'self'
 # https://github.com/python/mypy/issues/5485
 class FrameMunger(Protocol):
-    def __call__(self, key: str, frame: MutableMapping[str, Any]) -> bool:
+    def __call__(self, frame: EventFrame) -> str | None:
         pass
 
 
@@ -29,57 +35,54 @@ class FrameMunger(Protocol):
 class SdkFrameMunger:
     frame_munger: FrameMunger
     requires_sdk: bool = False
-    supported_sdks: Set[str] = field(default_factory=set)
+    supported_sdks: set[str] = field(default_factory=set)
 
 
-def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
-    if frame.get("filename") is None or frame.get("module") is None:
-        return False
-    if "/" not in str(frame.get("filename")) and frame.get("module"):
+def java_frame_munger(frame: EventFrame) -> str | None:
+    if not frame.filename or not frame.module:
+        return None
+    if "/" not in str(frame.filename) and frame.module:
         # Replace the last module segment with the filename, as the
         # terminal element in a module path is the class
-        module = frame["module"].split(".")
-        module[-1] = frame["filename"]
-        frame[key] = "/".join(module)
-        return True
-    return False
+        module = frame.module.split(".")
+        module[-1] = frame.filename
+        return "/".join(module)
+    return None
 
 
-def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
-    if not frame.get("package") or not frame.get("abs_path"):
-        return False
+def cocoa_frame_munger(frame: EventFrame) -> str | None:
+    if not frame.package or not frame.abs_path:
+        return None
 
-    rel_path = package_relative_path(str(frame.get("abs_path")), str(frame.get("package")))
+    rel_path = package_relative_path(frame.abs_path, frame.package)
     if rel_path:
-        frame[key] = rel_path
-        return True
-    return False
+        return rel_path
+    return None
 
 
-def flutter_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
-    if not frame.get("abs_path"):
-        return False
+def flutter_frame_munger(frame: EventFrame) -> str | None:
+    if not frame.abs_path:
+        return None
 
-    abs_path = str(frame.get("abs_path"))
+    abs_path = str(frame.abs_path)
 
     if abs_path.startswith("dart:"):
-        return False
+        return None
     elif abs_path.startswith("package:"):
-        if not frame.get("package"):
-            return False
+        if not frame.package:
+            return None
 
-        pkg = frame.get("package")
+        pkg = frame.package
         if abs_path.find(f"package:{pkg}") == -1:
-            return False
+            return None
         else:
             src_path = abs_path.replace(f"package:{pkg}", "", 1).strip("/")
             if src_path:
-                frame[key] = src_path
-                return True
-    return False
+                return src_path
+    return None
 
 
-def package_relative_path(abs_path: str, package: str) -> str | None:
+def package_relative_path(abs_path: str | None, package: str | None) -> str | None:
     """
     returns the left-biased shortened path relative to the package directory
     """
@@ -102,8 +105,25 @@ PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
 }
 
 
-def get_sdk_name(event_data: PathSearchable) -> Optional[str]:
+def get_sdk_name(event_data: PathSearchable) -> str | None:
     return get_path(event_data, "sdk", "name", filter=True) or None
+
+
+def try_munge_frame_path(
+    frame: EventFrame,
+    platform: str | None = None,
+    sdk_name: str | None = None,
+) -> str | None:
+    """
+    Applies platform-specific frame munging for filename pathing.
+
+    If munging was successful, return the munged filename, otherwise return None.
+    """
+    munger = platform and PLATFORM_FRAME_MUNGER.get(platform)
+    if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
+        return None
+
+    return munger.frame_munger(frame)
 
 
 def munged_filename_and_frames(
@@ -111,7 +131,7 @@ def munged_filename_and_frames(
     data_frames: Sequence[Mapping[str, Any]],
     key: str = "munged_filename",
     sdk_name: str | None = None,
-) -> Optional[Tuple[str, Sequence[Mapping[str, Any]]]]:
+) -> tuple[str, Sequence[Mapping[str, Any]]] | None:
     """
     Applies platform-specific frame munging for filename pathing.
 
@@ -127,11 +147,16 @@ def munged_filename_and_frames(
     )
     frames_updated = False
     for frame in copy_frames:
-        frames_updated |= munger.frame_munger(key, frame)
+        munged_filename = munger.frame_munger(EventFrame.from_dict(frame))
+        if munged_filename:
+            frame[key] = munged_filename
+            frames_updated = True
     return (key, copy_frames) if frames_updated else None
 
 
-def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+def get_crashing_thread(
+    thread_frames: Sequence[Mapping[str, Any]] | None
+) -> Mapping[str, Any] | None:
     if not thread_frames:
         return None
     if len(thread_frames) == 1:
@@ -175,6 +200,9 @@ def find_stack_frames(
             threads = get_path(event_data, "threads", "values", filter=True) or get_path(
                 event_data, "threads", filter=True
             )
+            # Handles edge case where the second call to get_path doesn't return a list of threads
+            if threads == {"values": None}:
+                threads = None
             thread = get_crashing_thread(threads)
             if thread is not None:
                 frames = get_path(thread, "stacktrace", "frames") or []

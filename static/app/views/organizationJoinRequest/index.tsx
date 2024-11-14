@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,7 +8,8 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAdhocEvent} from 'sentry/utils/analytics';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = RouteComponentProps<{orgId: string}, {}>;
 
@@ -22,17 +22,13 @@ class OrganizationJoinRequest extends Component<Props, State> {
     submitSuccess: null,
   };
 
-  componentDidMount() {
-    const {params} = this.props;
-
-    trackAdhocEvent({
-      eventKey: 'join_request.viewed',
-      org_slug: params.orgId,
-    });
-  }
-
   handleSubmitSuccess = () => {
+    const {params, location} = this.props;
     this.setState({submitSuccess: true});
+    trackAnalytics('join_request.created', {
+      organization: params.orgId,
+      referrer: location.query.referrer,
+    });
   };
 
   handleSubmitError() {

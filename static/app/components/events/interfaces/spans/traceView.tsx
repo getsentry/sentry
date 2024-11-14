@@ -3,22 +3,26 @@ import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import DragManager, {DragManagerChildrenProps} from './dragManager';
+import type {DragManagerChildrenProps} from './dragManager';
+import DragManager from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import * as SpanContext from './spanContext';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
+  isAggregate?: boolean;
   isEmbedded?: boolean;
+  performanceIssues?: TracePerformanceIssue[];
 };
 
 function TraceView(props: Props) {
@@ -63,13 +67,14 @@ function TraceView(props: Props) {
               viewStart: 0,
               viewEnd: 1,
             })}
+            isEmbedded={!!props.isEmbedded}
           />
         );
       }}
     </Observer>
   );
 
-  const {organization, waterfallModel, isEmbedded} = props;
+  const {organization, waterfallModel, isEmbedded, performanceIssues} = props;
 
   if (!getTraceContext(waterfallModel.event)) {
     return (
@@ -77,6 +82,18 @@ function TraceView(props: Props) {
         <p>{t('There is no trace for this transaction')}</p>
       </EmptyStateWarning>
     );
+  }
+  if (
+    (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
+    performanceIssues
+  ) {
+    const suspectSpans = performanceIssues.flatMap(issue => issue.suspect_spans);
+    if (suspectSpans.length) {
+      waterfallModel.affectedSpanIds = performanceIssues.flatMap(issue => [
+        ...issue.suspect_spans,
+        ...issue.span,
+      ]);
+    }
   }
 
   return (
@@ -125,6 +142,7 @@ function TraceView(props: Props) {
                                       operationNameFilters={
                                         waterfallModel.operationNameFilters
                                       }
+                                      isEmbedded={!!isEmbedded}
                                     />
                                   )}
                                 </Observer>

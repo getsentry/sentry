@@ -1,9 +1,10 @@
 import ClippedBox from 'sentry/components/clippedBox';
-import ContextData from 'sentry/components/contextData';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import StructuredEventData from 'sentry/components/structuredEventData';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
-import {EntryRequest} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';
@@ -14,6 +15,46 @@ type Props = {
   meta?: Record<any, any>;
 };
 
+export function getBodyContent({data, meta, inferredContentType}: Props) {
+  switch (inferredContentType) {
+    case 'application/json':
+      return (
+        <JsonEventData data-test-id="rich-http-content-body-context-data" data={data} />
+      );
+    case 'application/x-www-form-urlencoded':
+    case 'multipart/form-data': {
+      const transformedData = getTransformedData(data, meta).map(d => {
+        const [key, value] = d.data;
+        return {
+          key,
+          subject: key,
+          value,
+          meta: d.meta,
+        };
+      });
+
+      if (!transformedData.length) {
+        return null;
+      }
+
+      return (
+        <KeyValueList
+          data-test-id="rich-http-content-body-key-value-list"
+          data={transformedData}
+          isContextData
+        />
+      );
+    }
+
+    default:
+      return (
+        <pre data-test-id="rich-http-content-body-section-pre">
+          <StructuredEventData data={data} meta={meta} withAnnotatedText />
+        </pre>
+      );
+  }
+}
+
 export function RichHttpContentClippedBoxBodySection({
   data,
   meta,
@@ -23,51 +64,7 @@ export function RichHttpContentClippedBoxBodySection({
     return null;
   }
 
-  function getContent() {
-    switch (inferredContentType) {
-      case 'application/json':
-        return (
-          <ContextData
-            data-test-id="rich-http-content-body-context-data"
-            data={data}
-            preserveQuotes
-          />
-        );
-      case 'application/x-www-form-urlencoded':
-      case 'multipart/form-data': {
-        const transformedData = getTransformedData(data, meta).map(d => {
-          const [key, value] = d.data;
-          return {
-            key,
-            subject: key,
-            value,
-            meta: d.meta,
-          };
-        });
-
-        if (!transformedData.length) {
-          return null;
-        }
-
-        return (
-          <KeyValueList
-            data-test-id="rich-http-content-body-key-value-list"
-            data={transformedData}
-            isContextData
-          />
-        );
-      }
-
-      default:
-        return (
-          <pre data-test-id="rich-http-content-body-section-pre">
-            <ContextData data={data} meta={meta} withAnnotatedText />
-          </pre>
-        );
-    }
-  }
-
-  const content = getContent();
+  const content = getBodyContent({data, meta, inferredContentType});
 
   if (!content) {
     return null;

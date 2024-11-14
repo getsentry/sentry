@@ -1,9 +1,22 @@
+import responses
+from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models import Project, ProjectKey, ProjectStatus, SentryAppInstallationToken
+from sentry.constants import ObjectStatus
+from sentry.deletions.tasks.hybrid_cloud import (
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
+)
 from sentry.models.apitoken import ApiToken
-from sentry.testutils import APITestCase
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ProjectsListTest(APITestCase):
@@ -27,7 +40,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["organization"]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=True)
 
@@ -42,7 +56,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=False)
 
@@ -56,14 +71,32 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response()
         assert len(response.data) == 0
 
+    def test_filter_by_org_id(self):
+        user = self.create_user(is_superuser=True)
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project = self.create_project(teams=[team])
+        org2 = self.create_organization()
+        team2 = self.create_team(organization=org2, members=[user])
+        self.create_project(teams=[team2])
+
+        self.login_as(user=user, superuser=False)
+
+        response = self.get_success_response(qs_params={"organizationId": str(org.id)})
+        assert len(response.data) == 1
+
+        assert response.data[0]["id"] == str(project.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
+
     def test_status_filter(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org, members=[user])
         project1 = self.create_project(teams=[team])
-        project2 = self.create_project(teams=[team], status=ProjectStatus.PENDING_DELETION)
+        project2 = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
 
         self.login_as(user=user)
 
@@ -76,7 +109,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project2.id)
 
     def test_query_filter(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -94,7 +128,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_slug_query(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -112,7 +147,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_dsn_filter(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -131,7 +167,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_id_query(self):
-        Project.objects.all().delete()
+        with unguarded_write(using=router.db_for_write(Project)):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -150,31 +187,40 @@ class ProjectsListTest(APITestCase):
 
     def test_valid_with_internal_integration(self):
         project = self.create_project(organization=self.organization, teams=[self.team])
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
         path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
         assert project.name.encode("utf-8") in response.content
 
     def test_deleted_token_with_internal_integration(self):
-        self.create_internal_integration(
+        internal_integration = self.create_internal_integration(
             name="my_app",
             organization=self.organization,
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
-        token = token.api_token.token
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
 
-        # Delete the token
-        SentryAppInstallationToken.objects.all().delete()
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            # Fetch the record using the created token
+            install_token = SentryAppInstallationToken.objects.get(api_token=token)
+            # Delete the token
+            install_token.delete()
+            schedule_hybrid_cloud_foreign_key_jobs_control()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -202,10 +248,16 @@ class ProjectsListTest(APITestCase):
         )
         assert self.project.name.encode("utf-8") in response.content
 
+    @responses.activate
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
 
-        ApiToken.objects.all().delete()
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            token = ApiToken.objects.get(token=token)
+            token.delete()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
 
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},

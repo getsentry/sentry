@@ -1,15 +1,17 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
-import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
@@ -17,9 +19,8 @@ type Props = {
   api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
-  isLoading: boolean;
   organization: Organization;
-  projSlug: Project['slug'];
+  project: Project;
 };
 
 function BuiltInRepositories({
@@ -27,8 +28,7 @@ function BuiltInRepositories({
   organization,
   builtinSymbolSourceOptions,
   builtinSymbolSources,
-  projSlug,
-  isLoading,
+  project,
 }: Props) {
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
@@ -61,7 +61,7 @@ function BuiltInRepositories({
 
     try {
       const updatedProjectDetails: Project = await api.requestPromise(
-        `/projects/${organization.slug}/${projSlug}/`,
+        `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
           data: {
@@ -81,41 +81,37 @@ function BuiltInRepositories({
     <Panel>
       <PanelHeader>{SECTION_TITLE}</PanelHeader>
       <PanelBody>
-        {isLoading ? (
-          <LoadingIndicator />
-        ) : (
-          <Access access={['project:write']}>
-            {({hasAccess}) => (
-              <StyledSelectField
-                disabledReason={
-                  !hasAccess
-                    ? t(
-                        'You do not have permission to edit built-in repositories configurations.'
-                      )
-                    : undefined
-                }
-                disabled={!hasAccess}
-                name="builtinSymbolSources"
-                label={SECTION_TITLE}
-                help={t(
-                  'Configures which built-in repositories Sentry should use to resolve debug files.'
-                )}
-                placeholder={t('Select built-in repository')}
-                value={validBuiltInSymbolSources}
-                onChange={handleChange}
-                options={builtinSymbolSourceOptions
-                  .filter(source => !source.hidden)
-                  .map(source => ({
-                    value: source.sentry_key,
-                    label: source.name,
-                  }))}
-                getValue={value => (value === null ? [] : value)}
-                flexibleControlStateSize
-                multiple
-              />
-            )}
-          </Access>
-        )}
+        <Access access={['project:write']} project={project}>
+          {({hasAccess}) => (
+            <StyledSelectField
+              disabledReason={
+                !hasAccess
+                  ? t(
+                      'You do not have permission to edit built-in repositories configurations.'
+                    )
+                  : undefined
+              }
+              disabled={!hasAccess}
+              name="builtinSymbolSources"
+              label={SECTION_TITLE}
+              help={t(
+                'Configures which built-in repositories Sentry should use to resolve debug files.'
+              )}
+              placeholder={t('Select built-in repository')}
+              value={validBuiltInSymbolSources}
+              onChange={handleChange}
+              options={builtinSymbolSourceOptions
+                .filter(source => !source.hidden)
+                .map(source => ({
+                  value: source.sentry_key,
+                  label: source.name,
+                }))}
+              getValue={value => (value === null ? [] : value)}
+              flexibleControlStateSize
+              multiple
+            />
+          )}
+        </Access>
       </PanelBody>
     </Panel>
   );

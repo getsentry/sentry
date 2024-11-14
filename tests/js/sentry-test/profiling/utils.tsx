@@ -32,7 +32,7 @@ export const makeContextMock = (
     vertexAttribPointer: jest.fn(),
     viewport: jest.fn(),
 
-    // @ts-ignore
+    // @ts-expect-error
     canvas: {
       width: 1000,
       height: 1000,
@@ -79,7 +79,6 @@ export const makeFlamegraph = (
       createFrameIndex('mobile', frames ?? [{name: 'f0'}]),
       {type: 'flamechart'}
     ),
-    0,
     {inverted: false, sort: 'call order'}
   );
 };

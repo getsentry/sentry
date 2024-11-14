@@ -1,7 +1,7 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   mailFrom: string;
@@ -15,10 +15,10 @@ type Data = {
   testMailEmail: string;
 };
 
-type State = AsyncView['state'] & {data: Data};
+type State = DeprecatedAsyncView['state'] & {data: Data};
 
-export default class AdminMail extends AsyncView<{}, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class AdminMail extends DeprecatedAsyncView<{}, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/mail/']];
   }
 

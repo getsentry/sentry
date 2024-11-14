@@ -1,10 +1,12 @@
-import {Theme} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
+import Color from 'color';
 
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import CHART_PALETTE from 'sentry/constants/chartPalette';
+import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
-import {getSpanBarColours, SpanBarType} from './constants';
+import type {SpanBarType} from './constants';
+import {getSpanBarColours} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -30,8 +32,9 @@ export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: The
   if (spanBarType) {
     const {primary, alternate} = getSpanBarColours(spanBarType, theme);
 
-    return `
-      background-image: linear-gradient(135deg,
+    return css`
+      background-image: linear-gradient(
+        135deg,
         ${alternate},
         ${alternate} 2.5px,
         ${primary} 2.5px,
@@ -64,11 +67,15 @@ export const getDurationPillAlignment = ({
 }) => {
   switch (durationDisplay) {
     case 'left':
-      return `right: calc(100% + ${space(0.5)});`;
+      return css`
+        right: calc(100% + ${space(0.5)});
+      `;
     case 'right':
-      return `left: calc(100% + ${space(0.75)});`;
+      return css`
+        left: calc(100% + ${space(0.75)});
+      `;
     default:
-      return `
+      return css`
         right: ${space(0.75)};
       `;
   }
@@ -99,13 +106,25 @@ export const getToggleTheme = ({
   disabled,
   errored,
   isSpanGroupToggler,
+  spanBarType,
 }: {
   disabled: boolean;
   errored: boolean;
   isExpanded: boolean;
   theme: Theme;
   isSpanGroupToggler?: boolean;
+  spanBarType?: SpanBarType;
 }) => {
+  if (spanBarType) {
+    const {primary} = getSpanBarColours(spanBarType, theme);
+    return css`
+      background: ${primary};
+      border: 2px solid ${theme.button.default.border};
+      color: ${theme.button.primary.color};
+      cursor: pointer;
+    `;
+  }
+
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const errorTheme = theme.button.danger;
 
@@ -122,26 +141,26 @@ export const getToggleTheme = ({
     : buttonTheme.color;
 
   if (isSpanGroupToggler) {
-    return `
-    background: ${theme.blue300};
-    border: 1px solid ${theme.button.default.border};
-    color: ${color};
-    cursor: pointer;
-  `;
+    return css`
+      background: ${theme.blue300};
+      border: 2px solid ${theme.button.default.border};
+      color: ${color};
+      cursor: pointer;
+    `;
   }
 
   if (disabled) {
-    return `
-    background: ${background};
-    border: 1px solid ${border};
-    color: ${color};
-    cursor: default;
-  `;
+    return css`
+      background: ${background};
+      border: 2px solid ${border};
+      color: ${color};
+      cursor: default;
+    `;
   }
 
-  return `
+  return css`
     background: ${background};
-    border: 1px solid ${border};
+    border: 2px solid ${border};
     color: ${color};
   `;
 };
@@ -175,10 +194,6 @@ export const getHumanDuration = (duration: number): string => {
     maximumFractionDigits: 2,
   })}ms`;
 };
-
-export const toPercent = (value: number) => `${(value * 100).toFixed(3)}%`;
-
-export const toRoundedPercent = (value: number) => `${Math.round(value * 100)}%`;
 
 type Rect = {
   height: number;
@@ -218,16 +233,6 @@ export const rectOfContent = (element: Element): Rect => {
   };
 };
 
-export const clamp = (value: number, min: number, max: number): number => {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-};
-
 const getLetterIndex = (letter: string): number => {
   const index = 'abcdefghijklmnopqrstuvwxyz'.indexOf(letter) || 0;
   return index === -1 ? 0 : index;
@@ -254,12 +259,20 @@ export const pickBarColor = (input: string | undefined): string => {
     return barColors[input];
   }
 
-  const letterIndex1 = getLetterIndex(input.slice(0, 1));
-  const letterIndex2 = getLetterIndex(input.slice(1, 2));
-  const letterIndex3 = getLetterIndex(input.slice(2, 3));
-  const letterIndex4 = getLetterIndex(input.slice(3, 4));
+  const letterIndex1 = getLetterIndex(input[0]);
+  const letterIndex2 = getLetterIndex(input[1]);
+  const letterIndex3 = getLetterIndex(input[2]);
+  const letterIndex4 = getLetterIndex(input[3]);
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
   ];
+};
+
+export const lightenBarColor = (
+  input: string | undefined,
+  lightenRatio: number
+): string => {
+  const barColor = pickBarColor(input);
+  return Color(barColor).lighten(lightenRatio).string();
 };

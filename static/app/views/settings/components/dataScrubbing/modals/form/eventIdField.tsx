@@ -7,7 +7,8 @@ import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {EventId, EventIdStatus} from '../../types';
+import type {EventId} from '../../types';
+import {EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';
 
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';
@@ -90,9 +91,9 @@ class EventIdField extends Component<Props, State> {
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const {keyCode} = event;
+    const {key} = event;
 
-    if (keyCode === 13 && this.isEventIdValid()) {
+    if (key === 'Enter' && this.isEventIdValid()) {
       this.props.onUpdateEventId(this.state.value);
     }
   };
@@ -147,7 +148,7 @@ export default EventIdField;
 
 const StyledInput = styled(Input)`
   flex: 1;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   input {
     padding-right: ${space(1.5)};
   }

@@ -9,10 +9,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmailField from 'sentry/components/forms/fields/emailField';
 import Form from 'sentry/components/forms/form';
@@ -20,8 +20,8 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 
 type Props = ModalRenderProps & {
@@ -41,7 +41,7 @@ class SuggestProjectModal extends Component<Props, State> {
 
   handleGetStartedClick = () => {
     const {matchedUserAgentString, organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_setup_project', {
+    trackAnalytics('growth.clicked_mobile_prompt_setup_project', {
       matchedUserAgentString,
       organization,
     });
@@ -50,7 +50,7 @@ class SuggestProjectModal extends Component<Props, State> {
   handleAskTeammate = () => {
     const {matchedUserAgentString, organization} = this.props;
     this.setState({askTeammate: true});
-    trackAdvancedAnalyticsEvent('growth.clicked_mobile_prompt_ask_teammate', {
+    trackAnalytics('growth.clicked_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
       organization,
     });
@@ -63,7 +63,7 @@ class SuggestProjectModal extends Component<Props, State> {
   handleSubmitSuccess = () => {
     const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
-    trackAdvancedAnalyticsEvent('growth.submitted_mobile_prompt_ask_teammate', {
+    trackAnalytics('growth.submitted_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
       organization,
     });
@@ -162,7 +162,7 @@ class SuggestProjectModal extends Component<Props, State> {
           </ModalContainer>
         </Body>
         <Footer>
-          <Access organization={organization} access={['project:write']}>
+          <Access access={['project:write']}>
             {({hasAccess}) => (
               <ButtonBar gap={1}>
                 <Button
@@ -172,13 +172,13 @@ class SuggestProjectModal extends Component<Props, State> {
                   {t('Tell a Teammate')}
                 </Button>
                 {hasAccess && (
-                  <Button
+                  <LinkButton
                     href={newProjectLink}
                     onClick={this.handleGetStartedClick}
                     priority="primary"
                   >
                     {t('Get Started')}
-                  </Button>
+                  </LinkButton>
                 )}
               </ButtonBar>
             )}

@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.core.cache import cache
 from django.urls import reverse
-from django.utils import timezone
 
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.hashlib import md5_text
@@ -29,7 +29,7 @@ class BitbucketServerRepositoryProvider(IntegrationRepositoryProvider):
             config["repo"] = repo["name"]
         return config
 
-    def build_repository_config(self, organization, data):
+    def build_repository_config(self, organization: RpcOrganization, data):
         installation = self.get_installation(data.get("installation"), organization.id)
         client = installation.get_client()
 

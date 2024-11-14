@@ -8,11 +8,13 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Release} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 interface CustomResolutionModalProps extends ModalRenderProps {
   onSelected: (change: {inRelease: string}) => void;
-  orgSlug: string;
+  organization: Organization;
   projectSlug?: string;
 }
 
@@ -20,8 +22,8 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   const [version, setVersion] = useState('');
   const currentUser = configStore.get('user');
 
-  const onChange = (value: any) => {
-    setVersion(value.item);
+  const onChange = (selection: string | number | boolean) => {
+    setVersion(selection as string);
   };
 
   const onAsyncFieldResults = (results: Release[]) => {
@@ -30,9 +32,16 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         author => author.email && author.email === currentUser?.email
       );
       return {
-        item: release.version,
-        label: <Version version={release.version} anchor={false} />,
-        plainTextLabel: release.versionInfo.description ?? release.version,
+        value: release.version,
+        label: (
+          <Fragment>
+            <Version version={release.version} anchor={false} />{' '}
+            {isVersionInfoSemver(release.versionInfo.version)
+              ? t('(semver)')
+              : t('(non-semver)')}
+          </Fragment>
+        ),
+        textValue: release.versionInfo.description ?? release.version,
         details: (
           <span>
             {t('Created')} <TimeSince date={release.dateCreated} />
@@ -45,8 +54,8 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   };
 
   const url = props.projectSlug
-    ? `/projects/${props.orgSlug}/${props.projectSlug}/releases/`
-    : `/organizations/${props.orgSlug}/releases/`;
+    ? `/projects/${props.organization.slug}/${props.projectSlug}/releases/`
+    : `/organizations/${props.organization.slug}/releases/`;
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +87,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
           {t('Cancel')}
         </Button>
         <Button type="submit" priority="primary">
-          {t('Save Changes')}
+          {t('Resolve')}
         </Button>
       </Footer>
     </form>

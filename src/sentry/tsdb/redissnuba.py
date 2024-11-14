@@ -1,7 +1,9 @@
 import inspect
 import time
 
-from sentry.tsdb.base import BaseTSDB
+import sentry_sdk
+
+from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.tsdb.dummy import DummyTSDB
 from sentry.tsdb.redis import RedisTSDB
 from sentry.tsdb.snuba import SnubaTSDB
@@ -28,6 +30,7 @@ method_specifications = {
     "get_sums": (READ, single_model_argument),
     "get_distinct_counts_series": (READ, single_model_argument),
     "get_distinct_counts_totals": (READ, single_model_argument),
+    "get_distinct_counts_totals_with_conditions": (READ, single_model_argument),
     "get_distinct_counts_union": (READ, single_model_argument),
     "get_most_frequent": (READ, single_model_argument),
     "get_most_frequent_series": (READ, single_model_argument),
@@ -57,7 +60,7 @@ assert (
 model_backends = {
     # model: (read, write)
     model: ("redis", "redis") if model not in SnubaTSDB.model_query_settings else ("snuba", "dummy")
-    for model in BaseTSDB.models
+    for model in TSDBModel
 }
 
 
@@ -80,6 +83,10 @@ def make_method(key):
     def method(self, *a, **kw):
         callargs = inspect.getcallargs(getattr(BaseTSDB, key), self, *a, **kw)
         backend = selector_func(key, callargs, self.switchover_timestamp)
+
+        sentry_sdk.set_tag("tsdb.backend", backend)
+        sentry_sdk.set_tag("tsdb.method", key)
+
         return getattr(self.backends[backend], key)(*a, **kw)
 
     return method

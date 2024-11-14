@@ -69,8 +69,8 @@ describe('SearchBarAction', () => {
     handleFilter = jest.fn();
   });
 
-  it('default render', () => {
-    const {container} = render(
+  it('default render', async () => {
+    render(
       <SearchBarAction
         filterOptions={options}
         onFilterChange={handleFilter}
@@ -81,7 +81,7 @@ describe('SearchBarAction', () => {
     );
 
     const filterDropdownMenu = screen.getByText('Filter By');
-    userEvent.click(filterDropdownMenu);
+    await userEvent.click(filterDropdownMenu);
 
     // Types
     expect(screen.getByText('Types')).toBeInTheDocument();
@@ -96,11 +96,9 @@ describe('SearchBarAction', () => {
     expect(screen.getByText('Levels')).toBeInTheDocument();
     expect(screen.getByText('info')).toBeInTheDocument();
     expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
-
-    expect(container).toSnapshot();
   });
 
-  it('Without Options', () => {
+  it('Without Options', async () => {
     render(
       <SearchBarAction
         filterOptions={[]}
@@ -111,11 +109,12 @@ describe('SearchBarAction', () => {
       />
     );
 
+    expect(await screen.findByTestId('input-trailing-items')).toBeInTheDocument();
     expect(screen.queryByText('Types')).not.toBeInTheDocument();
     expect(screen.queryByText('Levels')).not.toBeInTheDocument();
   });
 
-  it('With Option Type only', () => {
+  it('With Option Type only', async () => {
     const typeOptions = options[0];
     render(
       <SearchBarAction
@@ -128,7 +127,7 @@ describe('SearchBarAction', () => {
     );
 
     const filterDropdownMenu = screen.getByText('Filter By');
-    userEvent.click(filterDropdownMenu);
+    await userEvent.click(filterDropdownMenu);
 
     // Header
     expect(screen.getByText('Types')).toBeInTheDocument();
@@ -143,7 +142,7 @@ describe('SearchBarAction', () => {
     expect(screen.getAllByText('Error')[0]).toBeInTheDocument();
 
     const httpRequestItem = screen.getByText('HTTP request');
-    userEvent.click(httpRequestItem);
+    await userEvent.click(httpRequestItem);
 
     const httpRequestOption = ('options' in typeOptions ? typeOptions.options : []).find(
       opt => opt.label === 'HTTP request'
@@ -151,7 +150,7 @@ describe('SearchBarAction', () => {
     expect(handleFilter).toHaveBeenCalledWith([httpRequestOption]);
   });
 
-  it('With Option Level only', () => {
+  it('With Option Level only', async () => {
     const levelOptions = options[1];
     render(
       <SearchBarAction
@@ -164,7 +163,7 @@ describe('SearchBarAction', () => {
     );
 
     const filterDropdownMenu = screen.getByText('Filter By');
-    userEvent.click(filterDropdownMenu);
+    await userEvent.click(filterDropdownMenu);
 
     // Header
     expect(screen.getByText('Levels')).toBeInTheDocument();
@@ -176,7 +175,7 @@ describe('SearchBarAction', () => {
 
     // Check Item
     const infoItem = screen.getByText('info');
-    userEvent.click(infoItem);
+    await userEvent.click(infoItem);
 
     const infoOption = ('options' in levelOptions ? levelOptions.options : []).find(
       opt => opt.label === 'info'

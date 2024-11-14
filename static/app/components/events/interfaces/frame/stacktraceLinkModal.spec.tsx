@@ -1,3 +1,9 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {
   act,
   renderGlobalModal,
@@ -8,17 +14,17 @@ import {
 
 import {openModal} from 'sentry/actionCreators/modal';
 import StacktraceLinkModal from 'sentry/components/events/interfaces/frame/stacktraceLinkModal';
-import * as analytics from 'sentry/utils/integrationUtil';
+import * as analytics from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const integration = TestStubs.GitHubIntegration();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
+  const integration = GitHubIntegrationFixture();
   const filename = '/sentry/app.py';
-  const repo = TestStubs.Repository({integrationId: integration.id});
-  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
   const configData = {
     stackRoot: '',
@@ -29,7 +35,7 @@ describe('StacktraceLinkModal', () => {
   };
   const onSubmit = jest.fn();
   const closeModal = jest.fn();
-  const analyticsSpy = jest.spyOn(analytics, 'trackIntegrationAnalytics');
+  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -66,7 +72,7 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    expect(screen.getByText('Tell us where your source code is')).toBeInTheDocument();
+    expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
 
     // Links to GitHub with one integration
     expect(screen.getByText('GitHub')).toBeInTheDocument();
@@ -74,7 +80,6 @@ describe('StacktraceLinkModal', () => {
       'href',
       'https://github.com/test-integration'
     );
-    expect(screen.getByRole('dialog')).toSnapshot();
   });
 
   it('closes modal after successful quick setup', async () => {
@@ -99,8 +104,11 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), 'sourceUrl');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      'sourceUrl'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });
@@ -115,7 +123,7 @@ describe('StacktraceLinkModal', () => {
       statusCode: 400,
     });
 
-    renderGlobalModal({context: TestStubs.routerContext()});
+    renderGlobalModal();
     act(() =>
       openModal(modalProps => (
         <StacktraceLinkModal
@@ -130,11 +138,11 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Repository URL'}),
       'sourceUrl{enter}'
     );
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).not.toHaveBeenCalled();
     });
@@ -196,11 +204,13 @@ describe('StacktraceLinkModal', () => {
     const suggestion =
       'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
     expect(screen.getByText(suggestion)).toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toSnapshot();
 
     // Paste and save suggestion
-    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), suggestion);
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      suggestion
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });

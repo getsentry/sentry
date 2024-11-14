@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   type: 'system' | 'user';
@@ -36,7 +36,7 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
   );
 }
 
-export default ActivityAvatar;
+export {ActivityAvatar};
 
 type SystemAvatarProps = {
   size: number;

@@ -1,10 +1,9 @@
-import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {Frame} from 'sentry/utils/profiling/frame';
-import {formatTo} from 'sentry/utils/profiling/units/units';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import {assertValidProfilingUnit, formatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import type {createFrameIndex} from './utils';
 
 export class EventedProfile extends Profile {
   calltree: CallTreeNode[] = [this.callTree];
@@ -16,8 +15,12 @@ export class EventedProfile extends Profile {
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {
+      type: 'flamechart' | 'flamegraph';
+      frameFilter?: (frame: Frame) => boolean;
+    }
   ): EventedProfile {
+    assertValidProfilingUnit(eventedProfile.unit);
     const profile = new EventedProfile({
       duration: eventedProfile.endValue - eventedProfile.startValue,
       startedAt: eventedProfile.startValue,
@@ -42,6 +45,10 @@ export class EventedProfile extends Profile {
 
       if (!frame) {
         throw new Error(`Cannot retrieve event: ${event.frame} from frame index`);
+      }
+
+      if (options.frameFilter && !options.frameFilter(frame)) {
+        continue;
       }
 
       switch (event.type) {
@@ -96,12 +103,12 @@ export class EventedProfile extends Profile {
     const weightDelta = weight - this.lastValue;
 
     for (const frame of this.stack) {
-      frame.addToTotalWeight(weightDelta);
+      frame.totalWeight += weightDelta;
     }
 
-    const top = lastOfArray(this.stack);
+    const top = this.stack[this.stack.length - 1];
     if (top) {
-      top.addToSelfWeight(weight);
+      top.selfWeight += weight;
     }
   }
 
@@ -109,12 +116,12 @@ export class EventedProfile extends Profile {
     const delta = value - this.lastValue;
 
     for (const node of this.calltree) {
-      node.addToTotalWeight(delta);
+      node.totalWeight += delta;
     }
-    const stackTop = lastOfArray(this.calltree);
+    const stackTop = this.calltree[this.calltree.length - 1];
 
     if (stackTop) {
-      stackTop.addToSelfWeight(delta);
+      stackTop.selfWeight += delta;
     }
   }
 
@@ -122,7 +129,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
 
-    const lastTop = lastOfArray(this.calltree);
+    const lastTop = this.calltree[this.calltree.length - 1];
 
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
@@ -156,7 +163,7 @@ export class EventedProfile extends Profile {
           lastTop.children.push(node);
         }
       } else {
-        const last = lastOfArray(lastTop.children);
+        const last = lastTop.children[lastTop.children.length - 1];
         if (last && !last.isLocked() && last.frame === frame) {
           node = last;
         } else {
@@ -172,8 +179,8 @@ export class EventedProfile extends Profile {
       while (start >= 0) {
         if (this.calltree[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.calltree[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(this.calltree[start]);
+          this.calltree[start].recursive = node;
+          node.recursive = this.calltree[start];
           break;
         }
         start--;

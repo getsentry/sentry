@@ -1,14 +1,16 @@
+from __future__ import annotations
+
 import ast
+
+import pytest
 
 from tools.flake8_plugin import SentryCheck
 
 
-def _run(src):
+def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
     tree = ast.parse(src)
-    return sorted(
-        "t.py:{}:{}: {}".format(*error)
-        for error in SentryCheck(tree=tree, filename="getsentry/foo.py").run()
-    )
+    errors = sorted(SentryCheck(tree=tree, filename=filename).run())
+    return ["t.py:{}:{}: {}".format(*error) for error in errors]
 
 
 def test_S001():
@@ -89,3 +91,124 @@ from sentry.models import User
     assert errors == [
         "t.py:1:0: S005 Do not import models from sentry.models but the actual module",
     ]
+
+
+def test_S006():
+    src = """\
+from django.utils.encoding import force_bytes
+from django.utils.encoding import force_str
+"""
+    # only error in tests until we can fix the rest
+    assert _run(src, filename="src/sentry/whatever.py") == []
+    errors = _run(src, filename="tests/test_foo.py")
+    assert errors == [
+        "t.py:1:0: S006 Do not use force_bytes / force_str -- test the types directly",
+        "t.py:2:0: S006 Do not use force_bytes / force_str -- test the types directly",
+    ]
+
+
+def test_S007():
+    src = """\
+from sentry.testutils.outbox import outbox_runner
+"""
+    # no errors in tests/
+    assert _run(src, filename="tests/test_foo.py") == []
+
+    # no errors in src/sentry/testutils/
+    assert _run(src, filename="src/sentry/testutils/silo.py") == []
+
+    # errors in other paths
+    errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
+    assert errors == [
+        "t.py:1:0: S007 Do not import sentry.testutils into production code.",
+    ]
+
+    # Module imports should have errors too.
+    src = """\
+import sentry.testutils.outbox as outbox_utils
+"""
+    assert _run(src, filename="tests/test_foo.py") == []
+
+    errors = _run(src, filename="src/sentry/api/endpoints/organization_details.py")
+    assert errors == [
+        "t.py:1:0: S007 Do not import sentry.testutils into production code.",
+    ]
+
+
+@pytest.mark.parametrize(
+    "src",
+    (
+        "from pytz import utc",
+        "from pytz import UTC",
+        "pytz.utc",
+        "pytz.UTC",
+    ),
+)
+def test_S008(src):
+    expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
+    assert _run(src) == expected
+
+
+def test_S009():
+    src = """\
+try:
+    ...
+except OSError:
+    raise  # ok: what we want people to do!
+except TypeError as e:
+    raise RuntimeError()  # ok: reraising a different exception
+except ValueError as e:
+    raise e  # bad!
+"""
+    expected = ["t.py:8:4: S009 Use `raise` with no arguments to reraise exceptions"]
+    assert _run(src) == expected
+
+
+def test_S010():
+    src = """\
+try:
+    ...
+except ValueError:
+    ... # ok: not a reraise body
+except Exception:
+    raise  # bad!
+
+try:
+    ...
+except Exception:
+    ...
+    raise  # ok: non just a reraise body
+"""
+    expected = ["t.py:5:0: S010 Except handler does nothing and should be removed"]
+    assert _run(src) == expected
+
+
+def test_S011():
+    src = """\
+from sentry.testutils.cases import APITestCase
+from django.test import override_settings
+
+def test():
+    with override_settings(SENTRY_OPTIONS={"foo": "bar"}):  # bad
+        ...
+
+    with override_settings(
+        SENTRY_OPTIONS={"foo": "bar"},  # bad
+        OTHER_SETTING=2,  # ok
+    ):
+        ...
+
+    with override_settings(OTHER_SETTING=2):  # ok
+        ...
+
+class Test(ApiTestCase):
+    def test(self):
+        with self.settings(SENTRY_OPTIONS={"foo": "bar"}):  # bad
+            ...
+"""
+    expected = [
+        "t.py:5:27: S011 Use override_options(...) instead to ensure proper cleanup",
+        "t.py:9:8: S011 Use override_options(...) instead to ensure proper cleanup",
+        "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
+    ]
+    assert _run(src, filename="tests/test_example.py") == expected

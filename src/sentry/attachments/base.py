@@ -1,5 +1,8 @@
 import zlib
 
+import sentry_sdk
+import zstandard
+
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -48,6 +51,7 @@ class CachedAttachment:
         self._data = data
         self.chunks = chunks
         self._cache = cache
+        self._has_initial_data = data is not UNINITIALIZED_DATA
 
     @classmethod
     def from_upload(cls, file, **kwargs):
@@ -71,6 +75,9 @@ class CachedAttachment:
     def chunk_keys(self):
         assert self.key is not None
         assert self.id is not None
+
+        if self._has_initial_data:
+            return
 
         if self.chunks is None:
             yield ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=self.key, id=self.id)
@@ -130,13 +137,16 @@ class BaseAttachmentCache:
 
     def set_chunk(self, key, id, chunk_index, chunk_data, timeout=None):
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
-        self.inner.set(key, zlib.compress(chunk_data), timeout, raw=True)
+        compressed = compress_chunk(chunk_data)
+        self.inner.set(key, compressed, timeout, raw=True)
 
     def set_unchunked_data(self, key, id, data, timeout=None, metrics_tags=None):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
-        compressed = zlib.compress(data)
-        metrics.timing("attachments.blob-size.raw", len(data), tags=metrics_tags)
-        metrics.timing("attachments.blob-size.compressed", len(compressed), tags=metrics_tags)
+        compressed = compress_chunk(data)
+        metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")
+        metrics.distribution(
+            "attachments.blob-size.compressed", len(compressed), tags=metrics_tags, unit="byte"
+        )
         metrics.incr("attachments.received", tags=metrics_tags, skip_internal=False)
         self.inner.set(key, compressed, timeout, raw=True)
 
@@ -151,19 +161,28 @@ class BaseAttachmentCache:
             attachment.setdefault("key", key)
             yield CachedAttachment(cache=self, **attachment)
 
-    def get_data(self, attachment):
-        data = []
+    def get_data(self, attachment) -> bytes:
+        data = bytearray()
 
         for key in attachment.chunk_keys:
             raw_data = self.inner.get(key, raw=True)
             if raw_data is None:
                 raise MissingAttachmentChunks()
-            data.append(zlib.decompress(raw_data))
+            if raw_data.startswith(b"\x28\xb5\x2f\xfd"):
+                decompressed = zstandard.decompress(raw_data)
+            else:
+                decompressed = zlib.decompress(raw_data)
+            data.extend(decompressed)
 
-        return b"".join(data)
+        return bytes(data)
 
+    @sentry_sdk.tracing.trace
     def delete(self, key):
         for attachment in self.get(key):
             attachment.delete()
 
         self.inner.delete(ATTACHMENT_META_KEY.format(key=key))
+
+
+def compress_chunk(chunk_data: bytes) -> bytes:
+    return zstandard.compress(chunk_data)

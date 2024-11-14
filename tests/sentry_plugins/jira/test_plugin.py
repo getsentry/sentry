@@ -1,12 +1,15 @@
-from functools import cached_property
+from __future__ import annotations
 
+from functools import cached_property
+from typing import Any
+
+import orjson
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.urls import reverse
 
-from sentry.testutils import TestCase
-from sentry.utils import json
+from sentry.testutils.cases import TestCase
 from sentry_plugins.jira.plugin import JiraPlugin
 
 create_meta_response = {
@@ -180,11 +183,32 @@ create_meta_response = {
     ],
 }
 
-issue_response = {
+issue_response: dict[str, Any] = {
     "key": "SEN-19",
     "id": "10708",
     "fields": {"summary": "TypeError: 'set' object has no attribute '__getitem__'"},
 }
+
+user_search_response: list[dict[str, Any]] = [
+    {
+        "self": "https://getsentry.atlassian.net/rest/api/2/user?username=userexample",
+        "key": "JIRAUSER10100",
+        "name": "userexample",
+        "emailAddress": "user@example.com",
+        "avatarUrls": {
+            "48x48": "http://www.example.com/jira/secure/useravatar?size=large&ownerId=andrew",
+            "24x24": "http://www.example.com/jira/secure/useravatar?size=small&ownerId=andrew",
+            "16x16": "http://www.example.com/jira/secure/useravatar?size=xsmall&ownerId=andrew",
+            "32x32": "http://www.example.com/jira/secure/useravatar?size=medium&ownerId=andrew",
+        },
+        "displayName": "User Example",
+        "active": True,
+        "deleted": False,
+        "timeZone": "Europe/Vienna",
+        "locale": "en_US",
+        "lastLoginTime": "2024-06-24T12:15:00+0200",
+    }
+]
 
 
 class JiraPluginTest(TestCase):
@@ -212,9 +236,9 @@ class JiraPluginTest(TestCase):
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("default_project", "SEN", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -270,7 +294,7 @@ class JiraPluginTest(TestCase):
             "sentry-api-0-project-plugin-details", args=[self.org.slug, self.project.slug, "jira"]
         )
         res = self.client.get(url)
-        config = json.loads(res.content)["config"]
+        config = orjson.loads(res.content)["config"]
         password_config = [item for item in config if item["name"] == "password"][0]
         assert password_config.get("type") == "secret"
         assert password_config.get("value") is None
@@ -293,3 +317,68 @@ class JiraPluginTest(TestCase):
                 "self": "https://something.atlassian.net/rest/api/2/user?username=someaddon",
             }
         ) == {"id": "robot", "text": "robot (robot)"}
+
+    def _setup_autocomplete_jira(self):
+        self.plugin.set_option("instance_url", "https://getsentry.atlassian.net", self.project)
+        self.plugin.set_option("default_project", "SEN", self.project)
+        self.login_as(user=self.user)
+        self.group = self.create_group(message="Hello world", culprit="foo.bar")
+
+    @responses.activate
+    def test_autocomplete_issue_id(self):
+        self._setup_autocomplete_jira()
+        responses.add(
+            responses.GET,
+            "https://getsentry.atlassian.net/rest/api/2/search/",
+            json={"issues": [issue_response]},
+        )
+
+        url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=issue_id"
+        response = self.client.get(url)
+
+        assert response.json() == {
+            "issue_id": [
+                {
+                    "text": "(SEN-19) TypeError: 'set' object has no attribute '__getitem__'",
+                    "id": "SEN-19",
+                }
+            ]
+        }
+
+    @responses.activate
+    def test_autocomplete_jira_url_reporter(self):
+        self._setup_autocomplete_jira()
+
+        responses.add(
+            responses.GET,
+            "https://getsentry.atlassian.net/rest/api/2/user/search/?username=user&project=SEN",
+            json=user_search_response,
+        )
+
+        url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=user&autocomplete_field=reporter&jira_url=https://getsentry.atlassian.net/rest/api/2/user/search/"
+        response = self.client.get(url)
+        assert response.json() == {
+            "reporter": [
+                {"id": "userexample", "text": "User Example - user@example.com (userexample)"}
+            ]
+        }
+
+    def test_autocomplete_jira_url_missing(self):
+        self._setup_autocomplete_jira()
+
+        url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter"
+        response = self.client.get(url)
+        assert response.json() == {
+            "error_type": "validation",
+            "errors": [{"jira_url": "missing required parameter"}],
+        }
+
+    def test_autocomplete_jira_url_mismatch(self):
+        self._setup_autocomplete_jira()
+
+        url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter&jira_url=https://eviljira.com/"
+        response = self.client.get(url)
+        assert response.json() == {
+            "error_type": "validation",
+            "errors": [{"jira_url": "domain must match"}],
+        }

@@ -5,8 +5,10 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const profilingFeature = ['profiling'];
+
 type Props = {
-  children: React.ReactChildren;
+  children: React.ReactNode;
 };
 
 function ProfilingContainer({children}: Props) {
@@ -15,7 +17,7 @@ function ProfilingContainer({children}: Props) {
   return (
     <Feature
       hookName="feature-disabled:profiling-page"
-      features={['profiling']}
+      features={profilingFeature}
       organization={organization}
       renderDisabled={() => (
         <Layout.Page withPadding>

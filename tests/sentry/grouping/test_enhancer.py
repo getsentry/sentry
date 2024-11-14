@@ -1,15 +1,28 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest import mock
+
 import pytest
 
-from sentry.grouping.component import GroupingComponent
-from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig, create_match_frame
+from sentry.grouping.enhancer import (
+    Enhancements,
+    is_valid_profiling_action,
+    is_valid_profiling_matcher,
+    keep_profiling_rules,
+)
+from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.grouping.enhancer.matchers import _cached, create_match_frame
 
 
 def dump_obj(obj):
     if not isinstance(getattr(obj, "__dict__", None), dict):
         return obj
-    rv = {}
-    for (key, value) in obj.__dict__.items():
+    rv: dict[str, Any] = {}
+    for key, value in obj.__dict__.items():
         if key.startswith("_"):
+            continue
+        elif key == "rust_enhancements":
             continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
@@ -20,7 +33,7 @@ def dump_obj(obj):
     return rv
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [2])
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -35,16 +48,27 @@ module:core::*                                  -app
 family:javascript path:*/test.js                -app
 family:javascript app:1 path:*/test.js          -app
 family:native                                   max-frames=3
+
+error.value:"*something*"                       max-frames=12
 """,
         bases=["common:v1"],
     )
     enhancement.version = version
 
-    dumped = enhancement.dumps()
     insta_snapshot(dump_obj(enhancement))
+
+    dumped = enhancement.dumps()
     assert Enhancements.loads(dumped).dumps() == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
+
+
+def test_parse_empty_with_base():
+    enhancement = Enhancements.from_config_string(
+        "",
+        bases=["newstyle:2023-01-11"],
+    )
+    assert enhancement
 
 
 def test_parsing_errors():
@@ -64,6 +88,33 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
+def test_flipflop_inapp():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:all +app
+        family:all -app
+    """
+    )
+
+    frames: list[dict[str, Any]] = [{}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == -1  # == None
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": False}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert "data" not in frames[0]  # no changes were made
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": True}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == 1  # == True
+    assert frames[0]["in_app"] is False
+
+
 def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cache=None):
     """Convenience function for rule tests"""
     if cache is None:
@@ -71,7 +122,7 @@ def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cac
 
     match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-    return rule.get_matching_frame_actions(match_frames, platform, exception_data, cache)
+    return rule.get_matching_frame_actions(match_frames, exception_data, cache)
 
 
 def test_basic_path_matching():
@@ -187,6 +238,15 @@ def test_app_matching():
             app_no_rule, [{"abs_path": "/test.c", "in_app": True}], "native"
         )
     )
+
+
+def test_invalid_app_matcher():
+    enhancements = Enhancements.from_config_string("app://../../src/some-file.ts -app")
+    (rule,) = enhancements.rules
+
+    assert not bool(_get_matching_frame_actions(rule, [{}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": True}], "javascript"))
+    assert not bool(_get_matching_frame_actions(rule, [{"in_app": False}], "javascript"))
 
 
 def test_package_matching():
@@ -347,7 +407,7 @@ def test_mechanism_matching_no_frames():
 
     # Matcher matches:
     (matcher,) = rule._exception_matchers
-    assert matcher.matches_frame([], None, "python", exception_data, {})
+    assert matcher.matches_frame([], None, exception_data, {})
 
 
 def test_range_matching():
@@ -414,23 +474,6 @@ def test_range_matching_direct():
     )
 
 
-@pytest.mark.parametrize("action", ["+", "-"])
-@pytest.mark.parametrize("type", ["prefix", "sentinel"])
-def test_sentinel_and_prefix(action, type):
-    rule = Enhancements.from_config_string(f"function:foo {action}{type}").rules[0]
-
-    frames = [{"function": "foo"}]
-    actions = _get_matching_frame_actions(rule, frames, "whatever")
-    assert len(actions) == 1
-
-    component = GroupingComponent(id=None)
-    assert not getattr(component, f"is_{type}_frame")
-
-    actions[0][1].update_frame_components_contributions([component], frames, 0)
-    expected = action == "+"
-    assert getattr(component, f"is_{type}_frame") is expected
-
-
 @pytest.mark.parametrize(
     "frame",
     [
@@ -440,5 +483,83 @@ def test_sentinel_and_prefix(action, type):
 )
 def test_app_no_matches(frame):
     enhancements = Enhancements.from_config_string("app:no +app")
-    enhancements.apply_modifications_to_frame([frame], "native", None)
+    enhancements.apply_modifications_to_frame([frame], "native", {})
     assert frame.get("in_app")
+
+
+def test_cached_with_kwargs():
+    """Order of kwargs should not matter"""
+
+    foo = mock.Mock()
+
+    cache: dict[object, object] = {}
+    _cached(cache, foo, kw1=1, kw2=2)
+    assert foo.call_count == 1
+
+    # Call with different kwargs order - call_count is still one:
+    _cached(cache, foo, kw2=2, kw1=1)
+    assert foo.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (["stack.abs_path:**/project/**.c"], True),
+        (["stack.module:test_module"], True),
+        (["stack.function:myproject_*"], True),
+        (["stack.package:**/libcurl.dylib"], True),
+        (["family:javascript,native"], False),
+        (["app:yes"], False),
+        (["category:telemetry"], False),
+        (
+            ["stack.module:test_module", "|", "[", "stack.package:**/libcurl.dylib", "]"],
+            False,
+        ),  # we don't allow siblings matchers
+    ],
+)
+def test_valid_profiling_matchers(test_input, expected):
+    assert is_valid_profiling_matcher(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("+app", True),
+        ("-app", True),
+        ("+group", False),
+        ("-group", False),
+        ("^app", False),
+        ("vapp", False),
+    ],
+)
+def test_valid_profiling_action(test_input, expected):
+    assert is_valid_profiling_action(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (
+            """
+stack.package:**/libcurl.dylib -group
+stack.package:**/libcurl.dylib -app
+stack.function:myproject_* +app
+stack.function:myproject_* ^app
+stack.function:myproject_* vapp
+""",
+            """stack.package:**/libcurl.dylib -app
+stack.function:myproject_* +app""",
+        ),
+        ("", ""),
+        (
+            """
+category:telemetry -group
+family:javascript,native -group
+[ stack.function:myproject_* ] | stack.function:utils_* -app
+""",
+            "",
+        ),
+    ],
+)
+def test_keep_profiling_rules(test_input, expected):
+    assert keep_profiling_rules(test_input) == expected

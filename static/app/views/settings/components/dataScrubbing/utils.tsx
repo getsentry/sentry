@@ -1,12 +1,7 @@
 import {t} from 'sentry/locale';
 
-import {
-  MethodType,
-  Rule,
-  RuleType,
-  SourceSuggestion,
-  SourceSuggestionType,
-} from './types';
+import type {Rule, SourceSuggestion} from './types';
+import {MethodType, RuleType, SourceSuggestionType} from './types';
 
 function getRuleLabel(type: RuleType) {
   switch (type) {
@@ -89,7 +84,11 @@ const unarySuggestions: Array<SourceSuggestion> = [
 ];
 
 const valueSuggestions: Array<SourceSuggestion> = [
-  {type: SourceSuggestionType.VALUE, value: '**', description: t('everywhere')},
+  {
+    type: SourceSuggestionType.VALUE,
+    value: '**',
+    description: t('all default PII fields'),
+  },
   {
     type: SourceSuggestionType.VALUE,
     value: 'password',

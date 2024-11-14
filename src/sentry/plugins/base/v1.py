@@ -1,33 +1,40 @@
+from __future__ import annotations
+
 __all__ = ("Plugin",)
 
 import logging
+from collections.abc import Sequence
 from threading import local
+from typing import TYPE_CHECKING, Any
 
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth import access
+from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
-from sentry.plugins.base.response import Response
+from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
+from sentry.projects.services.project import RpcProject
 from sentry.utils.hashlib import md5_text
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 
 class PluginMount(type):
     def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
+        new_cls: type[IPlugin] = type.__new__(cls, name, bases, attrs)  # type: ignore[assignment]
         if IPlugin in bases:
             return new_cls
-        if new_cls.title is None:
+        if not hasattr(new_cls, "title"):
             new_cls.title = new_cls.__name__
-        if not new_cls.slug:
+        if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
-        if not hasattr(new_cls, "logger") or new_cls.logger in [
-            getattr(b, "logger", None) for b in bases
-        ]:
+        if "logger" not in attrs:
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 
@@ -51,23 +58,23 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     """
 
     # Generic plugin information
-    title = None
-    slug = None
-    description = None
-    version = None
-    author = None
-    author_url = None
-    resource_links = ()
-    feature_descriptions = []
+    title: str | _StrPromise
+    slug: str
+    description: str | None = None
+    version: str | None = None
+    author: str | None = None
+    author_url: str | None = None
+    resource_links: list[tuple[str, str]] = []
+    feature_descriptions: Sequence[Any] = []
 
     # Configuration specifics
-    conf_key = None
-    conf_title = None
+    conf_key: str | None = None
+    conf_title: str | _StrPromise | None = None
 
-    project_conf_form = None
+    project_conf_form: Any = None
     project_conf_template = "sentry/plugins/project_configuration.html"
 
-    site_conf_form = None
+    site_conf_form: Any = None
     site_conf_template = "sentry/plugins/site_configuration.html"
 
     # Global enabled state
@@ -78,7 +85,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     project_default_enabled = False
 
     # used by queries to determine if the plugin is configured
-    required_field = None
+    required_field: str | None = None
 
     def _get_option_key(self, key):
         return f"{self.get_conf_key()}:{key}"
@@ -86,7 +93,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     def get_plugin_type(self):
         return "default"
 
-    def is_enabled(self, project=None):
+    def is_enabled(self, project: Project | RpcProject | None = None):
         """
         Returns a boolean representing if this plugin is enabled.
 
@@ -110,10 +117,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -128,7 +135,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return get_option(self._get_option_key(key), project, user)
 
-    def set_option(self, key, value, project=None, user=None):
+    def set_option(self, key, value, project=None, user=None) -> None:
         """
         Updates the value of an option in your plugins keyspace.
 
@@ -138,9 +145,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import set_option
 
-        return set_option(self._get_option_key(key), value, project, user)
+        set_option(self._get_option_key(key), value, project, user)
 
-    def unset_option(self, key, project=None, user=None):
+    def unset_option(self, key, project=None, user=None) -> None:
         """
         Removes an option in your plugins keyspace.
 
@@ -150,7 +157,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import unset_option
 
-        return unset_option(self._get_option_key(key), project, user)
+        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""
@@ -268,7 +275,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     # The following methods are specific to web requests
 
-    def get_title(self):
+    def get_title(self) -> str | _StrPromise:
         """
         Returns the general title for this plugin.
 
@@ -278,7 +285,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     get_short_title = get_title
 
-    def get_description(self):
+    def get_description(self) -> str | None:
         """
         Returns the description for this plugin. This is shown on the plugin configuration
         page.
@@ -287,7 +294,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         return self.description
 
-    def get_resource_links(self):
+    def get_resource_links(self) -> Sequence[tuple[str, str]]:
         """
         Returns a list of tuples pointing to various resources for this plugin.
 
@@ -314,7 +321,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if isinstance(response, HttpResponseRedirect):
             return response
 
-        if not isinstance(response, Response):
+        if not isinstance(response, DeferredResponse):
             raise NotImplementedError("Use self.render() when returning responses.")
 
         event = group.get_latest_event()
@@ -497,18 +504,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
-
-    def view_configure(self, request, project, **kwargs):
-        if request.method == "GET":
-            return Response(
-                self.get_configure_plugin_fields(
-                    request=request,  # DEPRECATED: this param should not be used
-                    project=project,
-                    **kwargs,
-                )
-            )
-        self.configure(project, request.data)
-        return Response({"message": "Successfully updated configuration."})
 
 
 class Plugin(IPlugin, metaclass=PluginMount):

@@ -1,6 +1,9 @@
-import {Layout} from 'react-grid-layout';
+import type {Layout} from 'react-grid-layout';
 
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
+import {type DatasetSource, SavedQueryDatasets} from 'sentry/utils/discover/types';
+
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -15,7 +18,6 @@ export enum DisplayType {
   BAR = 'bar',
   LINE = 'line',
   TABLE = 'table',
-  WORLD_MAP = 'world_map',
   BIG_NUMBER = 'big_number',
   TOP_N = 'top_n',
 }
@@ -23,7 +25,44 @@ export enum DisplayType {
 export enum WidgetType {
   DISCOVER = 'discover',
   ISSUE = 'issue',
-  RELEASE = 'metrics', // TODO(dashboards): Rename this on backend and then change here
+  RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'
+  METRICS = 'custom-metrics',
+  ERRORS = 'error-events',
+  TRANSACTIONS = 'transaction-like',
+  SPANS = 'spans',
+}
+
+// These only pertain to on-demand warnings at this point in time
+// Since they are the only soft-validation we do.
+export type WidgetWarning = Record<string, OnDemandExtractionState>;
+export type WidgetQueryWarning = null | OnDemandExtractionState;
+
+export interface ValidateWidgetResponse {
+  warnings: {
+    columns: WidgetWarning;
+    queries: WidgetQueryWarning[]; // Ordered, matching queries passed via the widget.
+  };
+}
+
+export enum OnDemandExtractionState {
+  DISABLED_NOT_APPLICABLE = 'disabled:not-applicable',
+  DISABLED_PREROLLOUT = 'disabled:pre-rollout',
+  DISABLED_MANUAL = 'disabled:manual',
+  DISABLED_SPEC_LIMIT = 'disabled:spec-limit',
+  DISABLED_HIGH_CARDINALITY = 'disabled:high-cardinality',
+  ENABLED_ENROLLED = 'enabled:enrolled',
+  ENABLED_MANUAL = 'enabled:manual',
+  ENABLED_CREATION = 'enabled:creation',
+}
+
+export const WIDGET_TYPE_TO_SAVED_QUERY_DATASET = {
+  [WidgetType.ERRORS]: SavedQueryDatasets.ERRORS,
+  [WidgetType.TRANSACTIONS]: SavedQueryDatasets.TRANSACTIONS,
+};
+
+interface WidgetQueryOnDemand {
+  enabled: boolean;
+  extractionState: OnDemandExtractionState;
 }
 
 export type WidgetQuery = {
@@ -39,6 +78,11 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  isHidden?: boolean | null;
+  // Contains the on-demand entries for the widget query.
+  onDemand?: WidgetQueryOnDemand[];
+  // Aggregate selected for the Big Number widget builder
+  selectedAggregate?: number;
 };
 
 export type Widget = {
@@ -46,11 +90,14 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  datasetSource?: DatasetSource;
+  description?: string;
   id?: string;
   layout?: WidgetLayout | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   tempId?: string;
+  thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
 };
 
@@ -62,6 +109,11 @@ export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
 export type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
+};
+
+export type DashboardPermissions = {
+  isEditableByEveryone: boolean;
+  teamsWithEditAccess?: number[];
 };
 
 /**
@@ -91,13 +143,14 @@ export type DashboardDetails = {
   dateCreated: string;
   filters: DashboardFilters;
   id: string;
-  projects: number[];
+  projects: undefined | number[];
   title: string;
   widgets: Widget[];
   createdBy?: User;
   end?: string;
   environment?: string[];
   period?: string;
+  permissions?: DashboardPermissions;
   start?: string;
   utc?: boolean;
 };
@@ -105,6 +158,7 @@ export type DashboardDetails = {
 export enum DashboardState {
   VIEW = 'view',
   EDIT = 'edit',
+  INLINE_EDIT = 'inline_edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',

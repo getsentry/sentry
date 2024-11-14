@@ -182,7 +182,7 @@ class DropdownMenu extends Component<Props, State> {
     }
 
     // Button that controls visibility of dropdown menu
-    if (this.dropdownActor && this.dropdownActor.contains(e.target)) {
+    if (this.dropdownActor?.contains(e.target)) {
       return;
     }
 

@@ -1,0 +1,45 @@
+{# Auth redirect template for Dev Toolbar. Returned after successfully logging in to a requested organization. #}
+{% load sentry_assets %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Sentry - Login Success</title>
+    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
+  </head>
+  <body>
+    <div>
+      <p>You are logged in!</p>
+      <p>This window will automatically close after {{ delay_sec }} seconds. If not then check the console for errors.</p>
+      <button type="button" id="close-popup">Close Popup</button>
+    </div>
+
+    {% script %}
+    <script>
+      (function() {
+        const delay = {{ delay_ms|escapejs }};
+        const cookie = '{{ cookie|escapejs }}';
+        const token = '{{ token|escapejs }}';
+
+        document.getElementById('close-popup').addEventListener('click', () => {
+          window.close();
+        });
+
+        if (window.opener) {
+          window.opener.postMessage({
+            source: 'sentry-toolbar',
+            message: 'did-login',
+            cookie,
+            token,
+          }, window.location.origin);
+
+          if (delay && typeof delay === 'number') {
+            setTimeout(() => {
+              window.close();
+            }, delay);
+          }
+        }
+      })();
+    </script>
+    {% endscript %}
+  </body>
+</html>

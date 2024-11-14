@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import * as ApiNamespace from 'sentry/api';
+import type * as ApiNamespace from 'sentry/api';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
@@ -9,13 +9,13 @@ export class Request {}
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
+const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
     return;
   }
 
-  if (isAsync) {
-    setTimeout(() => fn(...args), 1);
+  if (asyncDelay !== undefined) {
+    setTimeout(() => fn(...args), asyncDelay);
     return;
   }
 
@@ -27,19 +27,29 @@ type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 /**
  * Callables for matching requests based on arbitrary conditions.
  */
-interface MatchCallable {
-  (url: string, options: ApiNamespace.RequestOptions): boolean;
-}
+type MatchCallable = (url: string, options: ApiNamespace.RequestOptions) => boolean;
 
-type ResponseType = ApiNamespace.ResponseMeta & {
+type AsyncDelay = undefined | number;
+interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
+  host: string;
   match: MatchCallable[];
   method: string;
   statusCode: number;
   url: string;
-};
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This will override `MockApiClient.asyncDelay` for this request.
+   */
+  asyncDelay?: AsyncDelay;
+  query?: Record<string, string | number | boolean | string[] | number[]>;
+}
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
@@ -66,12 +76,32 @@ afterEach(() => {
     }
     Client.errors = {};
   }
+
+  // Mock responses are removed between tests
+  Client.clearMockResponses();
 });
 
 class Client implements ApiNamespace.Client {
+  activeRequests: Record<string, ApiNamespace.Request> = {};
+  baseUrl = '';
+  // uses the default client json headers. Sadly, we cannot refernce the real client
+  // because it will cause a circular dependency and explode, hence the copy/paste
+  headers = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
+
   static mockResponses: MockResponse[] = [];
 
-  static mockAsync = false;
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This is the global/default value. `addMockResponse` can override per request.
+   */
+  static asyncDelay: AsyncDelay = undefined;
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -109,6 +139,7 @@ class Client implements ApiNamespace.Client {
 
     Client.mockResponses.unshift([
       {
+        host: '',
         url: '',
         status: 200,
         statusCode: 200,
@@ -120,6 +151,7 @@ class Client implements ApiNamespace.Client {
         callCount: 0,
         match: [],
         ...response,
+        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
@@ -131,6 +163,9 @@ class Client implements ApiNamespace.Client {
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
+      if (response.host && (options.host || '') !== response.host) {
+        return false;
+      }
       if (url !== response.url) {
         return false;
       }
@@ -141,9 +176,6 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  activeRequests: Record<string, ApiNamespace.Request> = {};
-  baseUrl = '';
-
   uniqueId() {
     return '123';
   }
@@ -152,19 +184,23 @@ class Client implements ApiNamespace.Client {
    * In the real client, this clears in-flight responses. It's NOT
    * clearMockResponses. You probably don't want to call this from a test.
    */
-  clear() {}
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
+  }
 
   wrapCallback<T extends any[]>(
     _id: string,
     func: FunctionCallback<T> | undefined,
     _cleanup: boolean = false
   ) {
+    const asyncDelay = Client.asyncDelay;
+
     return (...args: T) => {
       // @ts-expect-error
       if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.mockAsync, func, ...args);
+      respond(asyncDelay, func, ...args);
     };
   }
 
@@ -222,7 +258,7 @@ class Client implements ApiNamespace.Client {
       const body =
         typeof response.body === 'function' ? response.body(url, options) : response.body;
 
-      if (![200, 202].includes(response.statusCode)) {
+      if (response.statusCode >= 300) {
         response.callCount++;
 
         const errorResponse = Object.assign(
@@ -253,7 +289,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          Client.mockAsync,
+          response.asyncDelay,
           options.success,
           body,
           {},
@@ -266,7 +302,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(Client.mockAsync, options.complete);
+    respond(response?.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;

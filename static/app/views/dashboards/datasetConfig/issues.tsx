@@ -1,26 +1,27 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {
-  generateIssueWidgetFieldOptions,
-  ISSUE_WIDGET_SORT_OPTIONS,
-} from '../widgetBuilder/issueWidget/utils';
+import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
-import {DatasetConfig} from './base';
+import type {DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -59,7 +60,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   getTableSortOptions,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
-  fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
+  getFieldHeaderMap: () => ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
@@ -72,11 +73,14 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   };
 }
 
-function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
-  const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
-  if (organization.features.includes('issue-list-trend-sort')) {
-    sortOptions.push(IssueSortOptions.TREND);
-  }
+function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQuery) {
+  const sortOptions = [
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    IssueSortOptions.TRENDS,
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,
@@ -120,7 +124,7 @@ export function transformIssuesResponseToTable(
         issue: shortId,
         title,
         project: project.slug,
-        links: annotations?.join(', '),
+        links: (annotations ?? []) as any,
       };
 
       // Get lifetime stats
@@ -138,7 +142,7 @@ export function transformIssuesResponseToTable(
       const query = widgetQuery.conditions;
       const parsedResult = parseSearch(query);
       const filteredTerms = parsedResult?.filter(
-        p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+        p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
       );
 
       transformedTableResult.discoverSearchQuery = joinQuery(filteredTerms, true);
@@ -158,9 +162,11 @@ export function transformIssuesResponseToTable(
 
 function getTableRequest(
   api: Client,
+  _: Widget,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
+  __?: OnDemandControlContext,
   limit?: number,
   cursor?: string
 ) {

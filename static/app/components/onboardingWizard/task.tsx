@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Avatar from 'sentry/components/avatar';
@@ -13,11 +13,13 @@ import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import type {OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import SkipConfirm from './skipConfirm';
@@ -28,11 +30,12 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAdvancedAnalyticsEvent('onboarding.wizard_clicked', {
+  trackAnalytics('quick_start.task_card_clicked', {
     organization,
     todo_id: task.task,
     todo_title: task.title,
     action,
+    new_experience: false,
   });
 
 type Props = {
@@ -58,8 +61,7 @@ type Props = {
 
 function Task(props: Props) {
   const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
-  const routeContext = useRouteContext();
-  const {router} = routeContext;
+  const router = useRouter();
   const handleSkip = () => {
     recordAnalytics(task, organization, 'skipped');
     onSkip(task.task);
@@ -69,7 +71,7 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
-    if (isDemoWalkthrough()) {
+    if (isDemoModeEnabled()) {
       DemoWalkthroughStore.activateGuideAnchor(task.task);
     }
 
@@ -78,13 +80,17 @@ function Task(props: Props) {
     }
 
     if (task.actionType === 'action') {
-      task.action(routeContext);
+      task.action(router);
     }
 
     if (task.actionType === 'app') {
-      const url = new URL(task.location, window.location.origin);
-      url.searchParams.append('referrer', 'onboarding_task');
-      navigateTo(url.toString(), router);
+      // Convert all paths to a location object
+      let to =
+        typeof task.location === 'string' ? {pathname: task.location} : task.location;
+      // Add referrer to all links
+      to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
+
+      navigateTo(to, router);
     }
     hidePanel();
   };
@@ -125,7 +131,7 @@ function Task(props: Props) {
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="pink400" isSolid />
+      <IconLock color="pink400" locked />
     </Tooltip>
   );
 
@@ -187,7 +193,7 @@ const IncompleteTitle = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const CompleteTitle = styled(IncompleteTitle)`
@@ -226,7 +232,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   </div>
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.pink400};
   display: grid;
   grid-template-columns: max-content max-content;
@@ -274,7 +280,7 @@ const completedItemAnimation = {
 const DateCompleted = styled(motion.div)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 300;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 DateCompleted.defaultProps = {

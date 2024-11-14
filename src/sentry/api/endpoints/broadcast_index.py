@@ -1,19 +1,25 @@
+from __future__ import annotations
+
 import logging
 from functools import reduce
 from operator import or_
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
-from sentry.models import Broadcast, BroadcastSeen
+from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
+from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
@@ -23,7 +29,13 @@ from rest_framework.response import Response
 
 
 @control_silo_endpoint
-class BroadcastIndexEndpoint(OrganizationEndpoint):
+class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.UNOWNED
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     permission_classes = (OrganizationPermission,)
 
     def _get_serializer(self, request: Request):
@@ -36,16 +48,28 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         return serialize(items, request.user, serializer=serializer_cls())
 
     def _secondary_filtering(self, request: Request, organization_slug, queryset):
-        # used in the SASS product
+        # used in the SAAS product
         return list(queryset)
 
-    def convert_args(self, request: Request, organization_slug=None, *args, **kwargs):
-        if organization_slug:
-            args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(self, request: Request, *args, **kwargs):
+        organization_id_or_slug: int | str | None = None
+        if args and args[0] is not None:
+            organization_id_or_slug = args[0]
+            # Required so it behaves like the original convert_args, where organization_id_or_slug was another parameter
+            # TODO: Remove this once we remove the old `organization_slug` parameter from getsentry
+            args = args[1:]
+        else:
+            organization_id_or_slug = kwargs.pop("organization_id_or_slug", None) or kwargs.pop(
+                "organization_slug", None
+            )
+        if organization_id_or_slug:
+            args, kwargs = super().convert_args(request, organization_id_or_slug)
 
         return (args, kwargs)
 
-    def get(self, request: Request, organization=None) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization | None = None, **kwargs
+    ) -> Response:
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):
             # superusers can slice and dice
             queryset = Broadcast.objects.all().order_by("-date_added")
@@ -60,11 +84,11 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    value_str = " ".join(value)
                     queryset = queryset.filter(
-                        Q(title__icontains=value)
-                        | Q(message__icontains=value)
-                        | Q(link__icontains=value)
+                        Q(title__icontains=value_str)
+                        | Q(message__icontains=value_str)
+                        | Q(link__icontains=value_str)
                     )
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
@@ -129,13 +153,13 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
                 unseen_queryset = queryset
             else:
                 unseen_queryset = queryset.exclude(
-                    id__in=queryset.filter(broadcastseen__user=request.user).values("id")
+                    id__in=queryset.filter(broadcastseen__user_id=request.user.id).values("id")
                 )
 
             for broadcast in unseen_queryset:
                 try:
-                    with transaction.atomic():
-                        BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
+                    with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
+                        BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
                 except IntegrityError:
                     pass
 
@@ -151,14 +175,16 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Broadcast)):
             broadcast = Broadcast.objects.create(
                 title=result["title"],
                 message=result["message"],
                 link=result["link"],
-                cta=result["cta"],
                 is_active=result.get("isActive") or False,
                 date_expires=result.get("dateExpires"),
+                media_url=result.get("mediaUrl"),
+                category=result.get("category"),
+                created_by_id=User.objects.get(id=request.user.id),
             )
             logger.info(
                 "broadcasts.create",
@@ -171,8 +197,8 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         if result.get("hasSeen"):
             try:
-                with transaction.atomic():
-                    BroadcastSeen.objects.create(broadcast=broadcast, user=request.user)
+                with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
+                    BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass
 

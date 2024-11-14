@@ -16,7 +16,7 @@ class UrlsPlugin(TagPlugin):
     tag = "url"
     project_default_enabled = True
 
-    def get_tag_values(self, event):
+    def get_tag_values(self, event) -> list[str]:
         http = event.interfaces.get("request")
         if not http:
             return []

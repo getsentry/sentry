@@ -1,17 +1,21 @@
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {getFormat} from 'sentry/utils/dates';
+import {useUser} from 'sentry/utils/useUser';
 
-interface Props extends React.HTMLAttributes<HTMLTimeElement> {
+export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
    * Input date.
    */
-  date: moment.MomentInput | momentTimezone.MomentInput;
+  date: moment.MomentInput;
   /**
    * If true, will only return the date part, e.g. "Jan 1".
    */
   dateOnly?: boolean;
+  /**
+   * When set, will force the date time display to be in the specified timezone
+   */
+  forcedTimezone?: string;
   /**
    * Formatting string. If specified, this formatting string will override all
    * other formatting props (dateOnly, timeOnly, year).
@@ -43,53 +47,7 @@ interface Props extends React.HTMLAttributes<HTMLTimeElement> {
   year?: boolean;
 }
 
-function getDateFormat({year}: Pick<Props, 'year'>) {
-  // "Jan 1, 2022" or "Jan 1"
-  return year ? 'MMM D, YYYY' : 'MMM D';
-}
-
-function getTimeFormat({clock24Hours, seconds, timeZone}) {
-  const substrings = [
-    clock24Hours ? 'HH' : 'h', // hour – "23" (24h format) or "11" (12h format)
-    ':mm', // minute
-    seconds ? ':ss' : '', // second
-    clock24Hours ? '' : ' A', // AM/PM
-    timeZone ? ' z' : '', // time zone
-  ];
-  return substrings.join('');
-}
-
-function getFormat({
-  dateOnly,
-  timeOnly,
-  year,
-  seconds,
-  timeZone,
-  clock24Hours,
-}: Pick<Props, 'dateOnly' | 'timeOnly' | 'year' | 'seconds' | 'timeZone'> & {
-  clock24Hours: boolean;
-}) {
-  if (dateOnly) {
-    return getDateFormat({year});
-  }
-
-  if (timeOnly) {
-    return getTimeFormat({clock24Hours, seconds, timeZone});
-  }
-
-  const dateFormat = getDateFormat({year});
-  const timeFormat = getTimeFormat({
-    clock24Hours,
-    seconds,
-    timeZone,
-  });
-
-  // If the year is shown, then there's already a comma in dateFormat ("Jan 1, 2020"),
-  // so we don't need to add another comma between the date and time
-  return year ? `${dateFormat} ${timeFormat}` : `${dateFormat}, ${timeFormat}`;
-}
-
-function DateTime({
+export function DateTime({
   format,
   date,
   utc,
@@ -98,9 +56,10 @@ function DateTime({
   year,
   timeZone,
   seconds = false,
+  forcedTimezone,
   ...props
-}: Props) {
-  const user = ConfigStore.get('user');
+}: DateTimeProps) {
+  const user = useUser();
   const options = user?.options;
 
   const formatString =
@@ -122,9 +81,7 @@ function DateTime({
     <time {...props}>
       {utc
         ? moment.utc(date as moment.MomentInput).format(formatString)
-        : momentTimezone.tz(date, options?.timezone ?? '').format(formatString)}
+        : moment.tz(date, forcedTimezone ?? options?.timezone ?? '').format(formatString)}
     </time>
   );
 }
-
-export default DateTime;

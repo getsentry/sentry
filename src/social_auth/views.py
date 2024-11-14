@@ -6,13 +6,12 @@ Notes:
       token back.
 """
 
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from social_auth.decorators import dsa_view
@@ -24,7 +23,7 @@ ASSOCIATE_ERROR_URL = setting("SOCIAL_AUTH_ASSOCIATE_ERROR_URL")
 PIPELINE_KEY = setting("SOCIAL_AUTH_PARTIAL_PIPELINE_KEY", "partial_pipeline")
 
 
-@dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete"))
+@dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete_auth_sso"))
 def auth(request, backend):
     """Authenticate using social backend"""
     data = request.POST if request.method == "POST" else request.GET
@@ -38,10 +37,10 @@ def auth(request, backend):
     if REDIRECT_FIELD_NAME in data:
         # Check and sanitize a user-defined GET/POST next field value
         redirect = data[REDIRECT_FIELD_NAME]
-        # NOTE: django-sudo's `is_safe_url` is much better at catching bad
+        # NOTE: django's `url_has_allowed_host_and_scheme` is much better at catching bad
         # redirections to different domains than social_auth's
         # `sanitize_redirect` call.
-        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = DEFAULT_REDIRECT
         request.session[REDIRECT_FIELD_NAME] = redirect or DEFAULT_REDIRECT
 

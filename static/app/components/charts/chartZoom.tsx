@@ -1,27 +1,28 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
 import type {
   DataZoomComponentOption,
+  ECharts,
   InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import {DateString} from 'sentry/types';
-import {
+import type {DateString} from 'sentry/types/core';
+import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   EChartFinishedHandler,
   EChartRestoreHandler,
 } from 'sentry/types/echarts';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -32,16 +33,15 @@ type Period = {
   start: DateString;
 };
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
+type ZoomPropKeys =
+  | 'period'
+  | 'xAxis'
+  | 'onChartReady'
+  | 'onDataZoom'
+  | 'onRestore'
+  | 'onFinished';
 
-export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
+export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -49,7 +49,7 @@ export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
   start?: Date;
   toolBox?: ToolboxComponentOption;
   utc?: boolean;
-};
+}
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
@@ -63,6 +63,7 @@ type Props = {
   onZoom?: (period: Period) => void;
   period?: string | null;
   router?: InjectedRouter;
+  saveOnZoom?: boolean;
   showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
@@ -100,6 +101,15 @@ class ChartZoom extends Component<Props> {
     this.saveCurrentPeriod(this.props);
   }
 
+  componentWillUnmount(): void {
+    document.body.removeEventListener('keydown', this.handleKeyDown);
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
+    this.$chart?.removeEventListener('mousedown', this.handleMouseDown);
+  }
+
+  chart?: ECharts;
+  $chart?: HTMLElement;
+  isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
   zooming: (() => void) | null = null;
@@ -126,7 +136,7 @@ class ChartZoom extends Component<Props> {
    * Saves a callback function to be called after chart animation is completed
    */
   setPeriod = ({period, start, end}, saveHistory = false) => {
-    const {router, onZoom, usePageDate} = this.props;
+    const {router, onZoom, usePageDate, saveOnZoom} = this.props;
     const startFormatted = getDate(start);
     const endFormatted = getDate(end);
 
@@ -172,7 +182,8 @@ class ChartZoom extends Component<Props> {
               : startFormatted,
             end: endFormatted ? getUtcToLocalDateObject(endFormatted) : endFormatted,
           },
-          router
+          router,
+          {save: saveOnZoom}
         );
       }
 
@@ -183,8 +194,33 @@ class ChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
+
+    this.chart = chart;
+    this.$chart = chart.getDom();
+
+    this.$chart.addEventListener('mousedown', this.handleMouseDown);
+  };
+
+  handleKeyDown = evt => {
+    if (!this.chart) {
+      return;
+    }
+
+    // This handler only exists if mouse down was caught inside the chart.
+    // Therefore, no need to check any other state.
+    if (evt.key === 'Escape') {
+      evt.stopPropagation();
+      // Mark the component as currently cancelling a zoom selection. This allows
+      // us to prevent "restore" handlers from running
+      this.isCancellingZoom = true;
+
+      // "restore" removes the current chart zoom selection
+      this.chart.dispatchAction({
+        type: 'restore',
+      });
+    }
   };
 
   /**
@@ -193,6 +229,15 @@ class ChartZoom extends Component<Props> {
    * Updates URL state to reflect initial params
    */
   handleZoomRestore = (evt, chart) => {
+    if (this.isCancellingZoom) {
+      // If this restore is caused by a zoom cancel, do not run handlers!
+      // The regular handler restores to the earliest point in the zoom history
+      // and we do not want that. We want to cancel the selection and do nothing
+      // else. Reset `isCancellingZoom` here in case the dispatch was async
+      this.isCancellingZoom = false;
+      return;
+    }
+
     if (!this.history.length) {
       return;
     }
@@ -203,6 +248,22 @@ class ChartZoom extends Component<Props> {
     this.history = [];
 
     this.props.onRestore?.(evt, chart);
+  };
+
+  handleMouseDown = () => {
+    // Register `mouseup` and `keydown` listeners on mouse down
+    // This ensures that there is only one live listener at a time
+    // regardless of how many charts are rendered. NOTE: It's
+    // important to set `useCapture: true` in the `"keydown"` handler
+    // otherwise the Escape will close whatever modal or panel the
+    // chart is in. Those elements register their handlers _earlier_.
+    document.body.addEventListener('mouseup', this.handleMouseUp);
+    document.body.addEventListener('keydown', this.handleKeyDown, true);
+  };
+
+  handleMouseUp = () => {
+    document.body.removeEventListener('mouseup', this.handleMouseUp);
+    document.body.removeEventListener('keydown', this.handleKeyDown, true);
   };
 
   handleDataZoom = (evt, chart) => {
@@ -244,7 +305,7 @@ class ChartZoom extends Component<Props> {
     }
 
     // This attempts to activate the area zoom toolbox feature
-    const zoom = chart._componentsViews?.find(c => c._features && c._features.dataZoom);
+    const zoom = chart._componentsViews?.find(c => c._features?.dataZoom);
     if (zoom && !zoom._features.dataZoom._isZoomActive) {
       // Calling dispatchAction will re-trigger handleChartFinished
       chart.dispatchAction({
@@ -254,7 +315,9 @@ class ChartZoom extends Component<Props> {
       });
     }
 
-    callIfFunction(this.props.onFinished);
+    if (typeof this.props.onFinished === 'function') {
+      this.props.onFinished(_props, chart);
+    }
   };
 
   render() {
@@ -335,4 +398,4 @@ class ChartZoom extends Component<Props> {
   }
 }
 
-export default ChartZoom;
+export default withSentryRouter(ChartZoom);

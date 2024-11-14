@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {getPercentiles} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {filterToField, SpanOperationBreakdownFilter} from '../../filter';
 
 import Content from './content';
@@ -23,7 +23,7 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
   const percentiles = getPercentiles(props.organization as Organization);
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Percentiles')
         : tct('Span Operation Percentiles - [operationName]', {
             operationName: currentFilter,
@@ -40,7 +40,7 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
 
   function generateFields() {
     let field: string | undefined;
-    if (currentFilter === SpanOperationBreakdownFilter.None) {
+    if (currentFilter === SpanOperationBreakdownFilter.NONE) {
       field = 'transaction.duration';
     } else {
       field = filterToField(currentFilter);

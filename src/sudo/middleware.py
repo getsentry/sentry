@@ -5,6 +5,9 @@ sudo.middleware
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.deprecation import MiddlewareMixin
 
 from sudo.settings import (
@@ -24,11 +27,11 @@ class SudoMiddleware(MiddlewareMixin):
     cookie for sudo mode to work correctly.
     """
 
-    def has_sudo_privileges(self, request):
+    def has_sudo_privileges(self, request: HttpRequest) -> bool:
         # Override me to alter behavior
         return has_sudo_privileges(request)
 
-    def process_request(self, request):
+    def process_request(self, request: HttpRequest) -> None:
         assert hasattr(request, "session"), (
             "The Sudo middleware requires session middleware to be installed."
             "Edit your MIDDLEWARE setting to insert "
@@ -37,7 +40,9 @@ class SudoMiddleware(MiddlewareMixin):
         )
         request.is_sudo = lambda: self.has_sudo_privileges(request)
 
-    def process_response(self, request, response):
+    def process_response(
+        self, request: HttpRequest, response: HttpResponseBase
+    ) -> HttpResponseBase:
         is_sudo = getattr(request, "_sudo", None)
 
         if is_sudo is None:
@@ -50,7 +55,11 @@ class SudoMiddleware(MiddlewareMixin):
 
         # Sudo mode has been granted,
         # and we have a token to send back to the user agent
-        if is_sudo is True and hasattr(request, "_sudo_token"):
+        if (
+            is_sudo is True
+            and hasattr(request, "_sudo_token")
+            and hasattr(request, "_sudo_max_age")
+        ):
             token = request._sudo_token
             max_age = request._sudo_max_age
             response.set_signed_cookie(

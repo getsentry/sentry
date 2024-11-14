@@ -1,43 +1,37 @@
-from rest_framework.request import Request
+from typing import TypeVar
+
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration, Organization
+from sentry.api.base import control_silo_endpoint
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
+from sentry.integrations.vsts.integration import VstsIntegration
+
+T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
-@pending_silo_endpoint
-class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
-    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
-        try:
-            integration = Integration.objects.get(
-                organizations=organization, id=integration_id, provider="vsts"
-            )
-        except Integration.DoesNotExist:
-            return Response(status=404)
+@control_silo_endpoint
+class VstsSearchEndpoint(SourceCodeSearchEndpoint):
+    @property
+    def integration_provider(self):
+        return "vsts"
 
-        field = request.GET.get("field")
-        query = request.GET.get("query")
-        if field is None:
-            return Response({"detail": "field is a required parameter"}, status=400)
+    @property
+    def installation_class(self):
+        return VstsIntegration
+
+    def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         if not query:
-            return Response({"detail": "query is a required parameter"}, status=400)
+            return Response([])
 
-        installation = integration.get_installation(organization.id)
-
-        if field == "externalIssue":
-            if not query:
-                return Response([])
-
-            resp = installation.get_client().search_issues(integration.name, query)
-            return Response(
-                [
-                    {
-                        "label": f'({i["fields"]["system.id"]}) {i["fields"]["system.title"]}',
-                        "value": i["fields"]["system.id"],
-                    }
-                    for i in resp.get("results", [])
-                ]
-            )
-
-        return Response(status=400)
+        assert isinstance(installation, self.installation_class)
+        resp = installation.search_issues(query=query)
+        return Response(
+            [
+                {
+                    "label": f'({i["fields"]["system.id"]}) {i["fields"]["system.title"]}',
+                    "value": i["fields"]["system.id"],
+                }
+                for i in resp.get("results", [])
+            ]
+        )

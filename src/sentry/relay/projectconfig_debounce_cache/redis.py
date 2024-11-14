@@ -1,6 +1,14 @@
+import rb
+from rediscluster import RedisCluster
+
 from sentry.relay.projectconfig_debounce_cache.base import ProjectConfigDebounceCache
 from sentry.utils import metrics
-from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
+from sentry.utils.redis import (
+    get_dynamic_cluster_from_options,
+    is_instance_rb_cluster,
+    is_instance_redis_cluster,
+    validate_dynamic_cluster,
+)
 
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
@@ -28,11 +36,13 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def validate(self):
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
-    def _get_redis_client(self, routing_key):
-        if self.is_redis_cluster:
+    def _get_redis_client(self, routing_key: str) -> rb.Cluster | RedisCluster:
+        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster
-        else:
+        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
             return self.cluster.get_local_client_for_key(routing_key)
+        else:
+            raise AssertionError("unreachable")
 
     def is_debounced(self, *, public_key, project_id, organization_id):
         if organization_id:

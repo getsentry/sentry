@@ -4,9 +4,7 @@
   "environment": "prod",
   "platform": "javascript",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

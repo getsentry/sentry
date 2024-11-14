@@ -1,18 +1,27 @@
+from collections.abc import Mapping, MutableMapping
 from datetime import datetime
-from typing import Any, Dict, Optional
+from types import TracebackType
+from typing import Any, Self
 from urllib.parse import urlencode, urlparse
 
 import brotli
+import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
 from parsimonious.exceptions import ParseError
+from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
 from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
+from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
+from sentry.utils.sdk import set_measurement
+
+Profile = MutableMapping[str, Any]
+CallTrees = Mapping[str, list[Any]]
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -21,9 +30,15 @@ class RetrySkipTimeout(urllib3.Retry):
     read timeout. Retrying after a timeout adds useless load to Snuba.
     """
 
-    def increment(  # type: ignore
-        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
-    ):
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: urllib3.BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -> Self:
         """
         Just rely on the parent class unless we have a read timeout. In that case,
         immediately give up. Except when we're inserting a profile to vroom which
@@ -60,13 +75,13 @@ class RetrySkipTimeout(urllib3.Retry):
 
 
 _profiling_pool = connection_from_url(
-    settings.SENTRY_PROFILING_SERVICE_URL,
+    settings.SENTRY_VROOM,
     retries=RetrySkipTimeout(
         total=3,
         status_forcelist={502},
         allowed_methods={"GET", "POST"},
     ),
-    timeout=10,
+    timeout=15,
     maxsize=10,
     headers={"Accept-Encoding": "br, gzip"},
 )
@@ -75,11 +90,11 @@ _profiling_pool = connection_from_url(
 def get_from_profiling_service(
     method: str,
     path: str,
-    params: Optional[Dict[Any, Any]] = None,
-    headers: Optional[Dict[Any, Any]] = None,
+    params: dict[Any, Any] | None = None,
+    headers: dict[Any, Any] | None = None,
     json_data: Any = None,
 ) -> VroomResponse:
-    kwargs: Dict[str, Any] = {"headers": {}}
+    kwargs: dict[str, Any] = {"headers": {}}
     if params:
         params = {
             key: value.isoformat() if isinstance(value, datetime) else value
@@ -98,10 +113,11 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        kwargs["body"] = brotli.compress(
-            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
-        )
-    return _profiling_pool.urlopen(  # type: ignore
+        with sentry_sdk.start_span(op="json.dumps"):
+            data = json.dumps(json_data).encode("utf-8")
+        set_measurement("payload.size", len(data), unit="byte")
+        kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
+    return _profiling_pool.urlopen(
         method,
         path,
         **kwargs,
@@ -111,10 +127,13 @@ def get_from_profiling_service(
 def proxy_profiling_service(
     method: str,
     path: str,
-    params: Optional[Dict[str, Any]] = None,
-    headers: Optional[Dict[str, str]] = None,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    json_data: Any = None,
 ) -> SentryResponse:
-    profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
+    profiling_response = get_from_profiling_service(
+        method, path, params=params, headers=headers, json_data=json_data
+    )
     return SentryResponse(
         content=profiling_response.data,
         status=profiling_response.status,
@@ -137,13 +156,13 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, str]:
+def parse_profile_filters(query: str) -> dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:
-        raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+        raise InvalidSearchQuery(f"Parse error: {e}")
 
-    profile_filters: Dict[str, str] = {}
+    profile_filters: dict[str, str] = {}
 
     for term in parsed_terms:
         if not isinstance(term, SearchFilter):
@@ -157,3 +176,39 @@ def parse_profile_filters(query: str) -> Dict[str, str]:
         profile_filters[term.key.name] = term.value.value
 
     return profile_filters
+
+
+# This support applying a subset of stack trace rules to the profile (matchers and actions).
+#
+# Matchers allowed:
+#
+#     stack.abs_path
+#     stack.module
+#     stack.function
+#     stack.package
+#
+# Actions allowed:
+#
+#     +app
+#     -app
+def apply_stack_trace_rules_to_profile(profile: Profile, rules_config: str) -> None:
+    profiling_rules = keep_profiling_rules(rules_config)
+    if profiling_rules == "":
+        return
+    enhancements = Enhancements.from_config_string(profiling_rules)
+    if "version" in profile:
+        enhancements.apply_modifications_to_frame(
+            profile["profile"]["frames"], profile["platform"], {}
+        )
+    elif profile["platform"] == "android":
+        # Set the fields that Enhancements expect
+        # with the right names.
+        # Sample format already has the right fields,
+        # for android we need to create aliases.
+        for method in profile["profile"]["methods"]:
+            method["function"] = method.get("name", "")
+            method["abs_path"] = method.get("source_file", "")
+            method["module"] = method.get("class_name", "")
+        enhancements.apply_modifications_to_frame(
+            profile["profile"]["methods"], profile["platform"], {}
+        )

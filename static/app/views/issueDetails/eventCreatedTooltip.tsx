@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {useUser} from 'sentry/utils/useUser';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -33,7 +34,7 @@ type Props = {
 };
 
 export default function EventCreatedTooltip({event}: Props) {
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
   const dateCreated = event.dateCreated ? moment(event.dateCreated) : null;
@@ -45,9 +46,9 @@ export default function EventCreatedTooltip({event}: Props) {
       <dd>
         {dateCreated ? (
           <Fragment>
-            {dateCreated.format('ll')}
-            <br />
-            {dateCreated.format(format)}
+            <AutoSelectText>
+              {dateCreated.format('ll')} {dateCreated.format(format)}
+            </AutoSelectText>
           </Fragment>
         ) : (
           <NotApplicableText>{t('n/a')}</NotApplicableText>
@@ -57,17 +58,19 @@ export default function EventCreatedTooltip({event}: Props) {
         <Fragment>
           <dt>{t('Received')}</dt>
           <dd>
-            {dateReceived.format('ll')}
-            <br />
-            {dateReceived.format(format)}
+            <AutoSelectText>
+              {dateReceived.format('ll')} {dateReceived.format(format)}
+            </AutoSelectText>
           </dd>
           <dt>{t('Latency')}</dt>
           <dd>
-            {dateCreated ? (
-              formatDateDelta(dateCreated, dateReceived)
-            ) : (
-              <NotApplicableText>{t('n/a')}</NotApplicableText>
-            )}
+            <AutoSelectText>
+              {dateCreated ? (
+                formatDateDelta(dateCreated, dateReceived)
+              ) : (
+                <NotApplicableText>{t('n/a')}</NotApplicableText>
+              )}
+            </AutoSelectText>
           </dd>
         </Fragment>
       )}

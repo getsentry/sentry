@@ -1,9 +1,9 @@
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -12,10 +12,8 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/security-and-privacy/"
 
-    def load_organization_helper(self, snapshot_name=None):
+    def load_organization_helper(self):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        if snapshot_name is not None:
-            self.browser.snapshot("organization settings security and privacy -- " + snapshot_name)
         assert self.browser.wait_until(
             '[data-test-id="organization-settings-security-and-privacy"]'
         )
@@ -47,13 +45,13 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.browser.click("[role='dialog'] [data-test-id='confirm-button']")
         self.browser.wait_until_not("[role='dialog']")
         self.browser.wait_until_test_id("toast-error")
-        self.load_organization_helper("setting 2fa without 2fa enabled")
+        self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_without_rule(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
-        self.load_organization_helper("advanced-data-scrubbing-without-rule")
+        self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_with_rules(self):
         relayPiiConfig = json.dumps(
@@ -73,11 +71,11 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing-rules"]')
-        self.load_organization_helper("advanced-data-scrubbing-with-rules")
+        self.load_organization_helper()
 
     def test_renders_advanced_data_scrubbing_add_rule_modal(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         assert self.browser.wait_until('[data-test-id="advanced-data-scrubbing"]')
         self.browser.click_when_visible("[aria-label='Add Rule']")
-        self.load_organization_helper("advanced-data-scrubbing-add-rule-modal")
+        self.load_organization_helper()

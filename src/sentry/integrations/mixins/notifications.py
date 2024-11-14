@@ -1,7 +1,9 @@
 import logging
 
-from sentry.models import ExternalActor, NotificationSetting, Team
-from sentry.types.integrations import ExternalProviders
+from sentry_sdk import capture_message
+
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.team import Team
 
 logger = logging.getLogger("sentry.integrations.notifications")
 
@@ -22,14 +24,22 @@ class NotifyBasicMixin:
         """
         Notify through the integration that an external team has been removed.
         """
+        if not external_team.external_id:
+            logger.info(
+                "notify.external_team_missing_external_id",
+                extra={
+                    "external_team_id": external_team.id,
+                    "team_id": team.id,
+                    "team_slug": team.slug,
+                },
+            )
+            capture_message(
+                f"External team {external_team.id} has no external_id",
+                level="warning",
+            )
+            return
+
         self.send_message(
             channel_id=external_team.external_id,
             message=SUCCESS_UNLINKED_TEAM_MESSAGE.format(team=team.slug),
         )
-
-    def remove_notification_settings(self, actor_id: int, provider: ExternalProviders) -> None:
-        """
-        Delete notification settings based on an actor_id
-        There is no foreign key relationship so we have to manually cascade.
-        """
-        NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()

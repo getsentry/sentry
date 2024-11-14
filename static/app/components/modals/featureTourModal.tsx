@@ -1,8 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,6 +23,10 @@ type ChildProps = {
 type Props = {
   children: (props: ChildProps) => React.ReactNode;
   /**
+   * Provide a URL for the done state to open in a new tab.
+   */
+  doneUrl: string;
+  /**
    * The list of tour steps.
    * The FeatureTourModal will manage state on the active step.
    */
@@ -30,10 +35,6 @@ type Props = {
    * Customize the text shown on the done button.
    */
   doneText?: string;
-  /**
-   * Provide a URL for the done state to open in a new tab.
-   */
-  doneUrl?: string;
   /**
    * Triggered when the tour is advanced.
    */
@@ -179,7 +180,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
               </Button>
             )}
             {!hasNext && (
-              <Button
+              <LinkButton
                 external
                 href={doneUrl}
                 onClick={closeModal}
@@ -187,7 +188,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
                 aria-label={t('Complete tour')}
               >
                 {doneText}
-              </Button>
+              </LinkButton>
             )}
           </TourButtonBar>
           <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
@@ -221,7 +222,7 @@ const TourButtonBar = styled(ButtonBar)`
 const StepCounter = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray300};
 `;
 

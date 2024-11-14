@@ -4,9 +4,7 @@
   "environment": "prod",
   "platform": "javascript",
   "logger": "",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {
@@ -231,9 +229,7 @@
             {
               "function": "e/<",
               "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
               "module": "sentry/dist/app",
               "colno": 36132,
@@ -247,9 +243,7 @@
             {
               "function": "e/</a</<",
               "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
               "module": "sentry/dist/app",
               "colno": 36236,
@@ -479,9 +473,7 @@
             {
               "function": "e/<",
               "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
               "module": "sentry/dist/app",
               "colno": 35941,
@@ -495,9 +487,7 @@
             {
               "function": "componentPromise",
               "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
               "module": "sentry/dist/app",
               "colno": 1170018,
@@ -511,9 +501,7 @@
             {
               "function": "o.e",
               "abs_path": "https://s1.sentry-cdn.com/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
-              "post_context": [
-                "//# sourceMappingURL=app.js.map"
-              ],
+              "post_context": ["//# sourceMappingURL=app.js.map"],
               "filename": "/_static/5788ef38fefa0df624cb96af56fd1435/sentry/dist/app.js",
               "module": "sentry/dist/app",
               "colno": 4919,

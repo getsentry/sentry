@@ -1,168 +1,271 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Loading from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
+import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
-import {
-  getTraceRequestPayload,
-  makeEventView,
-} from 'sentry/utils/performance/quickTrace/utils';
-import useApi from 'sentry/utils/useApi';
+import type {Organization} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import TraceView from 'sentry/views/performance/traceDetails/traceView';
-import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
+import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
+import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import TraceView, {
+  StyledTracePanel,
+} from 'sentry/views/performance/traceDetails/traceView';
+import {hasTraceData} from 'sentry/views/performance/traceDetails/utils';
+import EmptyState from 'sentry/views/replays/detail/emptyState';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {
+  useFetchTransactions,
+  useTransactionData,
+} from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
-type State = {
-  /**
-   * Error, if not null.
-   */
-  // error: QueryError | null;
-  error: any | null;
-  /**
-   * Loading state of this query.
-   */
-  isLoading: boolean;
-  /**
-   * Pagelinks, if applicable. Can be provided to the Pagination component.
-   */
-  pageLinks: string | null;
-  /**
-   * EventView that generates API payload
-   */
-  traceEventView: EventView | null;
-  /**
-   * Data / result.
-   */
-  traces: TraceFullDetailed[] | null;
-};
+import {useReplayTraces} from './useReplayTraces';
 
-interface Props {
-  organization: Organization;
-  replayRecord: ReplayRecord;
+function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
+  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
+  useRouteAnalyticsParams(performanceActive ? {trace_status: 'trace missing'} : {});
+
+  return (
+    <BorderedSection data-test-id="replay-details-trace-tab">
+      <EmptyState data-test-id="empty-state">
+        <p>{t('No traces found')}</p>
+      </EmptyState>
+    </BorderedSection>
+  );
 }
 
-const INITIAL_STATE = Object.freeze({
-  error: null,
-  isLoading: true,
-  pageLinks: null,
-  traceEventView: null,
-  traces: null,
-});
+function TraceFound({
+  organization,
+  performanceActive,
+  eventView,
+  traces,
+  orphanErrors,
+}: {
+  eventView: EventView | null;
+  organization: Organization;
+  performanceActive: boolean;
+  traces: TraceTree.Transaction[] | null;
+  orphanErrors?: TraceError[];
+}) {
+  const location = useLocation();
 
-export default function Trace({replayRecord, organization}: Props) {
-  const [state, setState] = useState<State>(INITIAL_STATE);
-  const api = useApi();
-  const location = useLocation<ReplayListLocationQuery>();
+  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
+  useRouteAnalyticsParams(performanceActive ? {trace_status: 'success'} : {});
 
-  const replayId = replayRecord.id;
-  const projectId = replayRecord.project_id;
-  const orgSlug = organization.slug;
+  return (
+    <OverflowScrollBorderedSection>
+      <TraceView
+        meta={null}
+        traces={traces || []}
+        location={location}
+        organization={organization}
+        traceEventView={eventView!}
+        traceSlug="Replay"
+        orphanErrors={orphanErrors}
+      />
+    </OverflowScrollBorderedSection>
+  );
+}
 
-  const start = getUtcDateString(replayRecord.started_at.getTime());
-  const end = getUtcDateString(replayRecord.finished_at.getTime());
+const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+  drawer: {
+    minimized: false,
+    sizes: {
+      'drawer left': 0.33,
+      'drawer right': 0.33,
+      'drawer bottom': 0.4,
+    },
+    layoutOptions: [],
+  },
+  missing_instrumentation: true,
+  autogroup: {
+    parent: true,
+    sibling: true,
+  },
+  layout: 'drawer bottom',
+  list: {
+    width: 0.5,
+  },
+};
 
-  useEffect(() => {
-    async function loadTraces() {
-      const eventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: `Traces in replay ${replayId}`,
-        fields: ['trace', 'count(trace)', 'min(timestamp)'],
-        orderby: 'min_timestamp',
-        query: `replayId:${replayId}`,
-        projects: [Number(projectId)],
-        version: 2,
-        start,
-        end,
-      });
+function Trace({replay}: {replay: undefined | ReplayRecord}) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {
+    state: {didInit, errors, isFetching, traces, orphanErrors},
+    eventView,
+  } = useTransactionData();
 
-      try {
-        const [data, , resp] = await doDiscoverQuery<TableData>(
-          api,
-          `/organizations/${orgSlug}/events/`,
-          eventView.getEventsAPIPayload(location)
-        );
+  useFetchTransactions();
 
-        const traceIds = data.data.map(({trace}) => trace).filter(trace => trace);
-
-        // TODO(replays): Potential performance concerns here if number of traceIds is large
-        const traceDetails = await Promise.allSettled(
-          traceIds.map(traceId =>
-            doDiscoverQuery(
-              api,
-              `/organizations/${orgSlug}/events-trace/${traceId}/`,
-              getTraceRequestPayload({
-                eventView: makeEventView({start, end}),
-                location,
-              })
-            )
-          )
-        );
-
-        const successfulTraceDetails = traceDetails
-          .map(settled => (settled.status === 'fulfilled' ? settled.value[0] : undefined))
-          .filter(Boolean);
-
-        if (successfulTraceDetails.length !== traceDetails.length) {
-          traceDetails.forEach(trace => {
-            if (trace.status === 'rejected') {
-              Sentry.captureMessage(trace.reason);
-            }
-          });
-        }
-
-        setState(prevState => ({
-          isLoading: false,
-          error: null,
-          traceEventView: eventView,
-          pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
-          traces:
-            successfulTraceDetails.flatMap(trace => trace as TraceFullDetailed[]) || [],
-        }));
-      } catch (err) {
-        setState({
-          isLoading: false,
-          error: err,
-          pageLinks: null,
-          traceEventView: null,
-          traces: null,
-        });
-      }
-    }
-
-    loadTraces();
-
-    return () => {};
-  }, [api, replayId, projectId, orgSlug, location, start, end]);
-
-  if (state.isLoading) {
-    return <LoadingIndicator />;
+  if (errors.length) {
+    // Same style as <EmptyStateWarning>
+    return (
+      <BorderedSection>
+        <EmptyState withIcon={false}>
+          <IconSad legacySize="54px" />
+          <p>{t('Unable to retrieve traces')}</p>
+        </EmptyState>
+      </BorderedSection>
+    );
   }
 
-  if (state.error || !state.traceEventView) {
-    return <LoadingError />;
+  if (!replay || !didInit || (isFetching && !traces?.length) || !eventView) {
+    // Show the blank screen until we start fetching, thats when you get a spinner
+    return (
+      <StyledPlaceholder height="100%">
+        {isFetching ? <Loading /> : null}
+      </StyledPlaceholder>
+    );
   }
 
-  if (!state.traces?.length) {
-    return <EmptyMessage title={t('No traces found')} />;
+  const project = projects.find(p => p.id === replay.project_id);
+  const hasPerformance = project?.firstTransactionEvent === true;
+  const performanceActive =
+    organization.features.includes('performance-view') && hasPerformance;
+
+  if (!hasTraceData(traces, orphanErrors)) {
+    return <TracesNotFound performanceActive={performanceActive} />;
   }
 
   return (
-    <TraceView
-      meta={null}
-      traces={state.traces}
-      location={location}
+    <TraceFound
+      performanceActive={performanceActive}
       organization={organization}
-      traceEventView={state.traceEventView}
-      traceSlug="Replay"
+      eventView={eventView}
+      traces={(traces as TraceTree.Transaction[]) ?? []}
+      orphanErrors={orphanErrors}
     />
   );
-  // TODO(replays): pagination
 }
+
+export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
+    replayRecord: replay,
+  });
+
+  const firstTrace = replayTraces?.[0];
+  const trace = useTrace({
+    traceSlug: firstTrace?.traceSlug,
+    timestamp: firstTrace?.timestamp,
+  });
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const meta = useReplayTraceMeta(replay);
+  const tree = useTraceTree({
+    trace,
+    meta,
+    replay: replay ?? null,
+  });
+
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('replay-trace-view-preferences') ||
+      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  const otherReplayTraces = useMemo(() => {
+    if (!replayTraces) {
+      return [];
+    }
+    return replayTraces.slice(1);
+  }, [replayTraces]);
+
+  if (indexError) {
+    // Same style as <EmptyStateWarning>
+    return (
+      <BorderedSection>
+        <EmptyState withIcon={false}>
+          <IconSad legacySize="54px" />
+          <p>{t('Unable to retrieve traces')}</p>
+        </EmptyState>
+      </BorderedSection>
+    );
+  }
+
+  if (!replay || !indexComplete || !replayTraces || !eventView) {
+    // Show the blank screen until we start fetching, thats when you get a spinner
+    return (
+      <StyledPlaceholder height="100%">
+        {!indexComplete ? <Loading /> : null}
+      </StyledPlaceholder>
+    );
+  }
+
+  const project = projects.find(p => p.id === replay.project_id);
+  const hasPerformance = project?.firstTransactionEvent === true;
+  const performanceActive =
+    organization.features.includes('performance-view') && hasPerformance;
+
+  if (replayTraces.length === 0) {
+    return <TracesNotFound performanceActive={performanceActive} />;
+  }
+
+  return (
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="replay-trace-view-preferences"
+    >
+      <TraceViewWaterfallWrapper>
+        <TraceViewWaterfall
+          traceSlug={undefined}
+          trace={trace}
+          tree={tree}
+          rootEvent={rootEvent}
+          replayTraces={otherReplayTraces}
+          organization={organization}
+          traceEventView={eventView}
+          meta={meta}
+          source="replay"
+          replay={replay}
+          // Replays might want to enable this in the future
+          isEmbedded={false}
+        />
+      </TraceViewWaterfallWrapper>
+    </TraceStateProvider>
+  );
+}
+
+// This has the gray background, to match other loaders on Replay Details
+const StyledPlaceholder = styled(Placeholder)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+// White background, to match the loaded component
+const BorderedSection = styled(FluidHeight)`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const OverflowScrollBorderedSection = styled(BorderedSection)`
+  overflow: scroll;
+
+  ${StyledTracePanel} {
+    border: none;
+  }
+`;
+
+const TraceViewWaterfallWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`;
+
+export default Trace;

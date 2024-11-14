@@ -1,8 +1,6 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import RadioBooleanField from 'sentry/components/forms/fields/radioField';
 import SecretField from 'sentry/components/forms/fields/secretField';
@@ -11,10 +9,10 @@ import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type Props = {
-  api: Client;
   authConfig: AuthConfig;
 };
 

@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
+import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -13,26 +13,25 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {
+  IssueAlertConfiguration,
+  IssueAlertRuleAction,
+  IssueAlertRuleCondition,
+} from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
-  IssueAlertRuleAction,
-  IssueAlertRuleActionTemplate,
-  IssueAlertRuleCondition,
-  IssueAlertRuleConditionTemplate,
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
   MailActionTargetType,
 } from 'sentry/types/alerts';
+import type {Choices} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
-import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-const NOTIFY_EMAIL_ACTION = 'sentry.mail.actions.NotifyEmailAction';
-
-export function hasStreamlineTargeting(organization: Organization): boolean {
-  return organization.features.includes('streamline-targeting-context');
-}
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
@@ -55,12 +54,15 @@ function NumberField({
   fieldConfig,
   onPropertyChange,
 }: FieldProps) {
-  const value = data[name] && typeof data[name] !== 'boolean' ? Number(data[name]) : NaN;
+  const value =
+    (data[name] && typeof data[name] !== 'boolean') || data[name] === 0
+      ? Number(data[name])
+      : NaN;
 
   // Set default value of number fields to the placeholder value
   useEffect(() => {
     if (
-      data.id === 'sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter' &&
+      data.id === IssueAlertFilterType.ISSUE_OCCURRENCES &&
       isNaN(value) &&
       !isNaN(Number(fieldConfig.placeholder))
     ) {
@@ -100,12 +102,12 @@ function AssigneeFilterFields({
       ruleData={data}
       onChange={onMemberTeamChange}
       options={[
-        {value: AssigneeTargetType.Unassigned, label: t('No One')},
-        {value: AssigneeTargetType.Team, label: t('Team')},
-        {value: AssigneeTargetType.Member, label: t('Member')},
+        {value: AssigneeTargetType.UNASSIGNED, label: t('No One')},
+        {value: AssigneeTargetType.TEAM, label: t('Team')},
+        {value: AssigneeTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={AssigneeTargetType.Member}
-      teamValue={AssigneeTargetType.Team}
+      memberValue={AssigneeTargetType.MEMBER}
+      teamValue={AssigneeTargetType.TEAM}
     />
   );
 }
@@ -118,10 +120,7 @@ function MailActionFields({
   onMemberTeamChange,
 }: FieldProps) {
   const isInitialized = data.targetType !== undefined && `${data.targetType}`.length > 0;
-  let issueOwnersLabel = t('Issue Owners');
-  if (hasStreamlineTargeting(organization)) {
-    issueOwnersLabel = t('Suggested Assignees');
-  }
+  const issueOwnersLabel = t('Suggested Assignees');
   return (
     <MemberTeamFields
       disabled={disabled}
@@ -131,12 +130,12 @@ function MailActionFields({
       ruleData={data as IssueAlertRuleAction}
       onChange={onMemberTeamChange}
       options={[
-        {value: MailActionTargetType.IssueOwners, label: issueOwnersLabel},
-        {value: MailActionTargetType.Team, label: t('Team')},
-        {value: MailActionTargetType.Member, label: t('Member')},
+        {value: MailActionTargetType.ISSUE_OWNERS, label: issueOwnersLabel},
+        {value: MailActionTargetType.TEAM, label: t('Team')},
+        {value: MailActionTargetType.MEMBER, label: t('Member')},
       ]}
-      memberValue={MailActionTargetType.Member}
-      teamValue={MailActionTargetType.Team}
+      memberValue={MailActionTargetType.MEMBER}
+      teamValue={MailActionTargetType.TEAM}
     />
   );
 }
@@ -237,8 +236,7 @@ interface Props {
   project: Project;
   incompatibleBanner?: boolean;
   incompatibleRule?: boolean;
-  node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
-  ownership?: null | IssueOwnership;
+  node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
 }
 
 function RuleNode({
@@ -251,7 +249,6 @@ function RuleNode({
   onDelete,
   onPropertyChange,
   onReset,
-  ownership,
   incompatibleRule,
   incompatibleBanner,
 }: Props) {
@@ -280,6 +277,16 @@ function RuleNode({
       onPropertyChange,
       onReset,
     };
+
+    if (name === 'environment') {
+      return (
+        <ChoiceField
+          {...merge(fieldProps, {
+            fieldConfig: {choices: project.environments.map(env => [env, env])},
+          })}
+        />
+      );
+    }
 
     switch (fieldConfig.type) {
       case 'choice':
@@ -310,12 +317,15 @@ function RuleNode({
     let {label} = node;
 
     if (
-      data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType !== MailActionTargetType.IssueOwners &&
-      organization.features.includes('issue-alert-fallback-targeting')
+      data.id === IssueAlertActionType.NOTIFY_EMAIL &&
+      data.targetType !== MailActionTargetType.ISSUE_OWNERS
     ) {
       // Hide the fallback options when targeting team or member
       label = 'Send a notification to {targetType}';
+    }
+
+    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
+      label = t('The issue changes state from archived to escalating');
     }
 
     const parts = label.split(/({\w+})/).map((part, i) => {
@@ -332,7 +342,7 @@ function RuleNode({
       }
       return (
         <Separator key={key}>
-          {node.formFields && node.formFields.hasOwnProperty(key)
+          {node.formFields?.hasOwnProperty(key)
             ? getField(key, node.formFields[key])
             : part}
         </Separator>
@@ -350,8 +360,71 @@ function RuleNode({
     );
   }
 
+  /**
+   * Displays a button to open a custom modal for sentry apps or ticket integrations
+   */
+  function renderIntegrationButton() {
+    if (!node || !('actionType' in node)) {
+      return null;
+    }
+
+    if (node.actionType === 'ticket') {
+      return (
+        <Button
+          size="sm"
+          icon={<IconSettings />}
+          onClick={() =>
+            openModal(deps => (
+              <TicketRuleModal
+                {...deps}
+                formFields={node.formFields || {}}
+                link={node.link!}
+                ticketType={node.ticketType!}
+                instance={data}
+                index={index}
+                onSubmitAction={updateParentFromTicketRule}
+                organization={organization}
+              />
+            ))
+          }
+        >
+          {t('Issue Link Settings')}
+        </Button>
+      );
+    }
+
+    if (node.actionType === 'sentryapp' && node.sentryAppInstallationUuid) {
+      return (
+        <Button
+          size="sm"
+          icon={<IconSettings />}
+          disabled={Boolean(data.disabled) || disabled}
+          onClick={() => {
+            openModal(
+              deps => (
+                <SentryAppRuleModal
+                  {...deps}
+                  sentryAppInstallationUuid={node.sentryAppInstallationUuid!}
+                  config={node.formFields as SchemaFormConfig}
+                  appName={node.prompt ?? node.label}
+                  onSubmitSuccess={updateParentFromSentryAppRule}
+                  resetValues={data}
+                />
+              ),
+              {closeEvents: 'escape-key'}
+            );
+          }}
+        >
+          {t('Settings')}
+        </Button>
+      );
+    }
+
+    return null;
+  }
+
   function conditionallyRenderHelpfulBanner() {
-    if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+    if (data.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT) {
       if (!project.platform || !releaseHealth.includes(project.platform)) {
         return (
           <MarginlessAlert type="error">
@@ -381,18 +454,19 @@ function RuleNode({
       );
     }
 
-    if (data.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+    if (data.id === IssueAlertActionType.SLACK) {
       return (
         <MarginlessAlert
           type="info"
           showIcon
           trailingItems={
-            <Button
+            <LinkButton
               href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              external
               size="xs"
             >
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
@@ -400,66 +474,22 @@ function RuleNode({
       );
     }
 
-    if (
-      data.id === NOTIFY_EMAIL_ACTION &&
-      data.targetType === MailActionTargetType.IssueOwners &&
-      !organization.features.includes('issue-alert-fallback-targeting')
-    ) {
+    if (data.id === IssueAlertActionType.DISCORD) {
       return (
-        <MarginlessAlert type="warning">
-          {!ownership
-            ? tct(
-                'If there are no matching [issueOwners], ownership is determined by the [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )
-            : ownership.fallthrough
-            ? tct(
-                'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )
-            : tct(
-                'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )}
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <LinkButton
+              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
+              external
+              size="xs"
+            >
+              {t('Learn More')}
+            </LinkButton>
+          }
+        >
+          {t('Note that you must enter a Discord channel ID, not a channel name.')}
         </MarginlessAlert>
       );
     }
@@ -526,63 +556,13 @@ function RuleNode({
     [index, onPropertyChange]
   );
 
-  const {actionType, id, sentryAppInstallationUuid} = node || {};
-  const ticketRule = actionType === 'ticket';
-  const sentryAppRule = actionType === 'sentryapp' && sentryAppInstallationUuid;
-  const isNew = id === EVENT_FREQUENCY_PERCENT_CONDITION;
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
       <RuleRow>
         <Rule>
-          {isNew && <StyledFeatureBadge type="new" />}
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
-          {ticketRule && node && (
-            <Button
-              size="sm"
-              icon={<IconSettings size="xs" />}
-              onClick={() =>
-                openModal(deps => (
-                  <TicketRuleModal
-                    {...deps}
-                    formFields={node.formFields || {}}
-                    link={node.link}
-                    ticketType={node.ticketType}
-                    instance={data}
-                    index={index}
-                    onSubmitAction={updateParentFromTicketRule}
-                    organization={organization}
-                  />
-                ))
-              }
-            >
-              {t('Issue Link Settings')}
-            </Button>
-          )}
-          {sentryAppRule && node && (
-            <Button
-              size="sm"
-              icon={<IconSettings size="xs" />}
-              disabled={Boolean(data.disabled) || disabled}
-              onClick={() => {
-                openModal(
-                  deps => (
-                    <SentryAppRuleModal
-                      {...deps}
-                      sentryAppInstallationUuid={sentryAppInstallationUuid}
-                      config={node.formFields as SchemaFormConfig}
-                      appName={node.prompt}
-                      onSubmitSuccess={updateParentFromSentryAppRule}
-                      resetValues={data}
-                    />
-                  ),
-                  {closeEvents: 'escape-key'}
-                );
-              }}
-            >
-              {t('Settings')}
-            </Button>
-          )}
+          {renderIntegrationButton()}
         </Rule>
         <DeleteButton
           disabled={disabled}
@@ -653,8 +633,4 @@ const MarginlessAlert = styled(Alert)`
   border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
   padding: ${space(1)} ${space(1)};
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin: 0 ${space(1)} 0 0;
 `;

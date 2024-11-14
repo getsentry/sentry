@@ -20,3 +20,7 @@ export function filterItems<I extends object, K extends string>({
     }) || []
   );
 }
+
+export function operationName(op: string) {
+  return op.split('.')?.[1] ?? op;
+}

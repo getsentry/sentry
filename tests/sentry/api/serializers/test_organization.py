@@ -1,9 +1,10 @@
+import datetime
 from unittest import mock
 
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, killswitches, options
 from sentry.api.serializers import (
     DetailedOrganizationSerializer,
     DetailedOrganizationSerializerWithProjectsAndTeams,
@@ -13,11 +14,24 @@ from sentry.api.serializers import (
 from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
-from sentry.models import OrganizationOnboardingTask
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.organizationonboardingtask import (
+    OnboardingTask,
+    OnboardingTaskStatus,
+    OrganizationOnboardingTask,
+)
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
+
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
 
 mock_options_as_features = {
     "sentry:set_no_value": [
@@ -39,7 +53,6 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -52,34 +65,38 @@ class OrganizationSerializerTest(TestCase):
             "advanced-search",
             "change-alerts",
             "crash-rate-alerts",
-            "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
             "discover-basic",
             "discover-query",
-            "discover-query-builder-as-landing-page",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-codeowners",
             "integrations-deployment",
+            "integrations-enterprise-alert-rule",
+            "integrations-enterprise-incident-management",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "performance-tracing-without-performance",
             "invite-members",
-            "invite-members-rate-limits",
             "minute-resolution-sessions",
+            "new-page-filter",
             "open-membership",
             "relay",
             "shared-issues",
+            "session-replay-ui",
             "sso-basic",
             "sso-saml2",
             "symbol-sources",
             "team-insights",
-            "performance-issues-search",
+            "team-roles",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -87,8 +104,8 @@ class OrganizationSerializerTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
-        features.add("organizations:test-feature", OrganizationFeature)
-        features.add("organizations:disabled-feature", OrganizationFeature)
+        features.add("organizations:test-feature", OrganizationFeature, api_expose=True)
+        features.add("organizations:disabled-feature", OrganizationFeature, api_expose=True)
         mock_batch.return_value = {
             f"organization:{organization.id}": {
                 "organizations:test-feature": True,
@@ -125,7 +142,6 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -137,13 +153,13 @@ class DetailedOrganizationSerializerTest(TestCase):
 
         assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
+        assert result["requiresSso"] == acc.requires_sso
 
 
-@region_silo_test
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized
@@ -155,10 +171,49 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
 
         assert result["id"] == str(self.organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
+
+    def test_disable_last_deploys_killswitch(self):
+        self.team
+        self.project
+        self.release = self.create_release(self.project)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=datetime.UTC)
+        self.environment_1 = Environment.objects.create(
+            organization_id=self.organization.id, name="production"
+        )
+        self.environment_1.add_project(self.project)
+        self.environment_1.save()
+        deploy = Deploy.objects.create(
+            environment_id=self.environment_1.id,
+            organization_id=self.organization.id,
+            release=self.release,
+            date_finished=self.date,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project.id,
+            release_id=self.release.id,
+            environment_id=self.environment_1.id,
+            last_deploy_id=deploy.id,
+        )
+        acc = access.from_user(self.user, self.organization)
+        serializer = DetailedOrganizationSerializerWithProjectsAndTeams()
+        result = serialize(self.organization, self.user, serializer, access=acc)
+
+        assert result["projects"][0]["latestDeploys"]
+
+        opt_val = killswitches.validate_user_input(
+            "api.organization.disable-last-deploys", [{"organization_id": self.organization.id}]
+        )
+        options.set("api.organization.disable-last-deploys", opt_val)
+
+        result = serialize(self.organization, self.user, serializer, access=acc)
+        assert not result["projects"][0].get("latestDeploys")
+
+        opt_val = killswitches.validate_user_input("api.organization.disable-last-deploys", [])
+        options.set("api.organization.disable-last-deploys", opt_val)
 
 
 class OnboardingTasksSerializerTest(TestCase):
@@ -166,10 +221,10 @@ class OnboardingTasksSerializerTest(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 
@@ -185,10 +240,10 @@ class TrustedRelaySerializer(TestCase):
         completion_seen = timezone.now()
         serializer = OnboardingTasksSerializer()
         task = OrganizationOnboardingTask.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             task=OnboardingTask.FIRST_PROJECT,
             status=OnboardingTaskStatus.PENDING,
-            user=self.user,
+            user_id=self.user.id,
             completion_seen=completion_seen,
         )
 

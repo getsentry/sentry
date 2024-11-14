@@ -26,12 +26,12 @@ SUPPORT_FRAMEWORK_RE = re.compile(
 )
 
 
-def _is_support_framework(package):
+def _is_support_framework(package: str) -> bool:
     return SUPPORT_FRAMEWORK_RE.search(package) is not None
 
 
 # TODO(ja): Translate these rules to grouping enhancers
-def is_known_third_party(package, sdk_info=None):
+def is_known_third_party(package: str, os: str | None) -> bool:
     """
     Checks whether this package matches one of the well-known system image
     locations across platforms. The given package must not be ``None``.
@@ -54,12 +54,11 @@ def is_known_third_party(package, sdk_info=None):
         return False
 
     # Check for OS-specific rules
-    sdk_name = sdk_info["sdk_name"].lower() if sdk_info else ""
-    if sdk_name == "macos":
+    if os == "macos":
         return not any(p in package for p in MACOS_APP_PATHS)
-    if sdk_name == "linux":
+    if os == "linux":
         return package.startswith(LINUX_SYS_PATHS)
-    if sdk_name == "windows":
+    if os == "windows":
         return WINDOWS_SYS_PATH_RE.match(package) is not None
 
     # Everything else we don't know is considered third_party
@@ -67,7 +66,7 @@ def is_known_third_party(package, sdk_info=None):
 
 
 # TODO(ja): Improve reprocessing heuristics
-def is_optional_package(package, sdk_info=None):
+def is_optional_package(package: str) -> bool:
     """
     Determines whether the given package is considered optional.
 

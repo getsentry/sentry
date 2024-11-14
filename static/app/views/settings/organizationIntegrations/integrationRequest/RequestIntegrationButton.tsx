@@ -5,7 +5,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationType, Organization} from 'sentry/types';
+import type {IntegrationType} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
 

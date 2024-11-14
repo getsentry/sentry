@@ -2,12 +2,13 @@ import groupBy from 'lodash/groupBy';
 import invertBy from 'lodash/invertBy';
 import pick from 'lodash/pick';
 
-import {Permissions} from 'sentry/types';
+import type {Permissions} from 'sentry/types/integrations';
 
 const PERMISSION_LEVELS = {
-  read: 0,
-  write: 1,
-  admin: 2,
+  'no-access': 0,
+  read: 1,
+  write: 2,
+  admin: 3,
 };
 
 const HUMAN_RESOURCE_NAMES = {
@@ -29,6 +30,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 };
 
 const PROJECT_RELEASES = 'project:releases';
+const ORG_INTEGRATIONS = 'org:integrations';
 
 type PermissionLevelResources = {
   admin: string[];
@@ -45,6 +47,9 @@ const permissionLevel = (scope: string): number => {
 };
 
 const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
+
+const comparePermissionLevels = (a: string, b: string) =>
+  PERMISSION_LEVELS[a] - PERMISSION_LEVELS[b];
 
 /**
  * Return the most permissive scope for each resource.
@@ -89,6 +94,12 @@ function toResourcePermissions(scopes: string[]): Permissions {
     filteredScopes = scopes.filter((scope: string) => scope !== PROJECT_RELEASES); // remove project:releases
   }
 
+  // We have a special case with the org:integrations scope. This scope is
+  // added when selecting org:admin for hierarchy, but the reverse is not true.
+  // It doesn't indicate any specific org permission, so we can remove it
+  // entirely.
+  filteredScopes = filteredScopes.filter((scope: string) => scope !== ORG_INTEGRATIONS);
+
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':');
@@ -125,4 +136,4 @@ function toPermissions(scopes: string[]): PermissionLevelResources {
   return {...defaultPermissions, ...permissions};
 }
 
-export {toPermissions, toResourcePermissions};
+export {comparePermissionLevels, toPermissions, toResourcePermissions};

@@ -1,29 +1,44 @@
 import styled from '@emotion/styled';
 
-import {PanelHeader} from 'sentry/components/panels';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+
+import type {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;
   narrowGroups?: boolean;
-  showLastTriggered?: boolean;
+  withColumns?: GroupListColumn[];
 };
 
-const GroupListHeader = ({
+function GroupListHeader({
   withChart = true,
   narrowGroups = false,
-  showLastTriggered = false,
-}: Props) => (
-  <PanelHeader disablePadding>
-    <IssueWrapper>{t('Issue')}</IssueWrapper>
-    {withChart && <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>}
-    <EventUserWrapper>{t('events')}</EventUserWrapper>
-    <EventUserWrapper>{t('users')}</EventUserWrapper>
-    <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
-    {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
-  </PanelHeader>
-);
+  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
+}: Props) {
+  return (
+    <PanelHeader disablePadding>
+      <IssueWrapper>{t('Issue')}</IssueWrapper>
+      {withChart && withColumns.includes('graph') && (
+        <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
+      )}
+      {withColumns.includes('event') && (
+        <EventUserWrapper>{t('events')}</EventUserWrapper>
+      )}
+      {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
+      {withColumns.includes('priority') && (
+        <PriorityWrapper narrowGroups={narrowGroups}>{t('Priority')}</PriorityWrapper>
+      )}
+      {withColumns.includes('assignee') && (
+        <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+      )}
+      {withColumns.includes('lastTriggered') && (
+        <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
+      )}
+    </PanelHeader>
+  );
+}
 
 export default GroupListHeader;
 
@@ -58,14 +73,24 @@ const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
   width: 160px;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+      p.narrowGroups ? p.theme.breakpoints.xxlarge : p.theme.breakpoints.xlarge}) {
+    display: none;
+  }
+`;
+
+const PriorityWrapper = styled(Heading)<{narrowGroups: boolean}>`
+  justify-content: flex-end;
+  width: 70px;
+
+  @media (max-width: ${p =>
+      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;
 
 const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
   justify-content: flex-end;
-  width: 80px;
+  width: 60px;
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {

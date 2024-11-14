@@ -1,19 +1,13 @@
-import {PlainRoute} from 'react-router';
-import type {Location} from 'history';
-
-import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
+import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 interface Props {
-  location: Location;
   organization: Organization;
   projectSlug: string;
-  routes: PlainRoute[];
   title: string;
   alertName?: string;
-  alertType?: string;
-  canChangeProject?: boolean;
 }
 
 function BuilderBreadCrumbs({title, alertName, projectSlug, organization}: Props) {

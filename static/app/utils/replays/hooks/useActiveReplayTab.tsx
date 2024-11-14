@@ -3,34 +3,52 @@ import {useCallback} from 'react';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
-  console = 'console',
-  dom = 'dom',
-  network = 'network',
-  trace = 'trace',
-  issues = 'issues',
-  memory = 'memory',
+  BREADCRUMBS = 'breadcrumbs',
+  CONSOLE = 'console',
+  ERRORS = 'errors',
+  MEMORY = 'memory',
+  NETWORK = 'network',
+  TAGS = 'tags',
+  TRACE = 'trace',
 }
 
-function isReplayTab(tab: string): tab is TabKey {
-  return tab in TabKey;
+function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
+  const supportedVideoTabs = [
+    TabKey.TAGS,
+    TabKey.ERRORS,
+    TabKey.BREADCRUMBS,
+    TabKey.NETWORK,
+    TabKey.CONSOLE,
+    TabKey.TRACE,
+  ];
+
+  if (isVideoReplay) {
+    return supportedVideoTabs.includes(tab as TabKey);
+  }
+
+  return Object.values<string>(TabKey).includes(tab);
 }
 
-const DEFAULT_TAB = TabKey.console;
+function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
+  const defaultTab = TabKey.BREADCRUMBS;
+  const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 
-function useActiveReplayTab() {
-  const {getParamValue, setParamValue} = useUrlParams('t_main', DEFAULT_TAB);
-
-  const paramValue = getParamValue();
+  const paramValue = getParamValue()?.toLowerCase() ?? '';
 
   return {
     getActiveTab: useCallback(
-      () => (isReplayTab(paramValue || '') ? (paramValue as TabKey) : DEFAULT_TAB),
-      [paramValue]
+      () => (isReplayTab({tab: paramValue, isVideoReplay}) ? paramValue : defaultTab),
+      [paramValue, defaultTab, isVideoReplay]
     ),
     setActiveTab: useCallback(
-      (value: string) =>
-        isReplayTab(value) ? setParamValue(value) : setParamValue(DEFAULT_TAB),
-      [setParamValue]
+      (value: string) => {
+        setParamValue(
+          isReplayTab({tab: value.toLowerCase(), isVideoReplay})
+            ? value.toLowerCase()
+            : defaultTab
+        );
+      },
+      [setParamValue, defaultTab, isVideoReplay]
     ),
   };
 }

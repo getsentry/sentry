@@ -1,9 +1,7 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import path from 'path';
-import process from 'process';
-
 import type {Config} from '@jest/types';
+import path from 'node:path';
+import process from 'node:process';
 
 import babelConfig from './babel.config';
 
@@ -18,6 +16,8 @@ const {
   GITHUB_RUN_ID,
   GITHUB_RUN_ATTEMPT,
 } = process.env;
+
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
 
 const BALANCE_RESULTS_PATH = path.resolve(
   __dirname,
@@ -203,7 +203,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
+const ESM_NODE_MODULES = ['screenfull'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -215,11 +215,11 @@ const config: Config.InitialOptions = {
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
     '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
-    'integration-docs-platforms': '<rootDir>/fixtures/integration-docs/_platforms.json',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
@@ -233,7 +233,6 @@ const config: Config.InitialOptions = {
   setupFilesAfterEnv: [
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
-    '@testing-library/jest-dom/extend-expect',
   ],
   testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
@@ -247,9 +246,13 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
-  transformIgnorePatterns: [`/node_modules/(?!${ESM_NODE_MODULES.join('|')})`],
+  transformIgnorePatterns: [
+    ESM_NODE_MODULES.length
+      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
+  ],
 
-  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
   globals: {},
 
   testResultsProcessor: JEST_TEST_BALANCER
@@ -265,16 +268,25 @@ const config: Config.InitialOptions = {
       },
     ],
   ],
+  /**
+   * jest.clearAllMocks() automatically called before each test
+   * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
+   */
+  clearMocks: true,
 
-  testEnvironment: '<rootDir>/tests/js/instrumentedEnv',
+  // To disable the sentry jest integration, set this to 'jsdom'
+  testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)
-        dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
-        environment: CI ? 'ci' : 'local',
-        tracesSampleRate: 1,
-        profilesSampleRate: 0.1,
+        dsn: CI
+          ? 'https://3fe1dce93e3a4267979ebad67f3de327@o1.ingest.us.sentry.io/4857230'
+          : false,
+        // Use production env to reduce sampling of commits on master
+        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
       transactionOptions: {
@@ -287,7 +299,6 @@ const config: Config.InitialOptions = {
         },
       },
     },
-    output: path.resolve(__dirname, '.artifacts', 'visual-snapshots', 'jest'),
   },
 };
 

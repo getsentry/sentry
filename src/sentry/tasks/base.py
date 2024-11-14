@@ -1,21 +1,62 @@
 from __future__ import annotations
 
+import logging
 import resource
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
+from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Sequence, Type
+from typing import Any, TypeVar
 
-# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-import celery
-
-if celery.version_info >= (5, 2):
-    from celery import current_task
-else:
-    from celery.task import current as current_task
+from celery import current_task
+from django.conf import settings
+from django.db.models import Model
 
 from sentry.celery import app
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
-from sentry.utils.sdk import capture_exception, configure_scope
+from sentry.utils.sdk import Scope, capture_exception
+
+ModelT = TypeVar("ModelT", bound=Model)
+
+logger = logging.getLogger(__name__)
+
+
+class TaskSiloLimit(SiloLimit):
+    """
+    Silo limiter for celery tasks
+
+    We don't want tasks to be spawned in the incorrect silo.
+    We can't reliably cause tasks to fail as not all tasks use
+    the ORM (which also has silo bound safety).
+    """
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(*args: Any, **kwargs: Any) -> Any:
+            name = original_method.__name__
+            message = f"Cannot call or spawn {name} in {current_mode},"
+            raise self.AvailabilityError(message)
+
+        return handle
+
+    def __call__(self, decorated_task: Any) -> Any:
+        # Replace the celery.Task interface we use.
+        replacements = {"delay", "apply_async", "s", "signature", "retry", "apply", "run"}
+        for attr_name in replacements:
+            task_attr = getattr(decorated_task, attr_name)
+            if callable(task_attr):
+                limited_attr = self.create_override(task_attr)
+                setattr(decorated_task, attr_name, limited_attr)
+
+        limited_func = self.create_override(decorated_task)
+        if hasattr(decorated_task, "name"):
+            limited_func.name = decorated_task.name
+        return limited_func
 
 
 def get_rss_usage():
@@ -28,25 +69,44 @@ def track_memory_usage(metric, **kwargs):
     try:
         yield
     finally:
-        metrics.timing(metric, get_rss_usage() - before, **kwargs)
+        metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
-def load_model_from_db(cls, instance_or_id, allow_cache=True):
+def load_model_from_db(
+    tp: type[ModelT], instance_or_id: ModelT | int, allow_cache: bool = True
+) -> ModelT:
     """Utility function to allow a task to transition to passing ids rather than model instances."""
     if isinstance(instance_or_id, int):
-        if hasattr(cls.objects, "get_from_cache") and allow_cache:
-            return cls.objects.get_from_cache(pk=instance_or_id)
-        return cls.objects.get(pk=instance_or_id)
+        if hasattr(tp.objects, "get_from_cache") and allow_cache:
+            return tp.objects.get_from_cache(pk=instance_or_id)
+        return tp.objects.get(pk=instance_or_id)
     return instance_or_id
 
 
-def instrumented_task(name, stat_suffix=None, **kwargs):
+def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=False, **kwargs):
+    """
+    Decorator for defining celery tasks.
+
+    Includes a few application specific batteries like:
+
+    - statsd metrics for duration and memory usage.
+    - sentry sdk tagging.
+    - hybrid cloud silo restrictions
+    - disabling of result collection.
+    """
+
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            record_queue_wait_time = record_timing
+
+            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
+            # Unhandled exception could cause all tasks to be effected and not work
+
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
+            start_time = kwargs.pop("__start_time", None)
 
             key = "jobs.duration"
             if stat_suffix:
@@ -54,31 +114,50 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
             else:
                 instance = name
 
-            with configure_scope() as scope:
-                scope.set_tag("task_name", name)
-                scope.set_tag("transaction_id", transaction_id)
+            if start_time and record_queue_wait_time:
+                curr_time = datetime.now().timestamp()
+                duration = (curr_time - start_time) * 1000
+                metrics.distribution(
+                    "jobs.queue_time", duration, instance=instance, unit="millisecond"
+                )
 
-            with metrics.timer(key, instance=instance), track_memory_usage(
-                "jobs.memory_change", instance=instance
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("task_name", name)
+            scope.set_tag("transaction_id", transaction_id)
+
+            with (
+                metrics.timer(key, instance=instance),
+                track_memory_usage("jobs.memory_change", instance=instance),
             ):
                 result = func(*args, **kwargs)
 
             return result
 
+        # If the split task router is configured for the task, always use queues defined
+        # in the split task configuration
+        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES and "queue" in kwargs:
+            q = kwargs.pop("queue")
+            logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
+
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
         # being OOM killed.
         kwargs["trail"] = False
-        return app.task(name=name, **kwargs)(_wrapped)
+        task = app.task(name=name, **kwargs)(_wrapped)
+
+        if silo_mode:
+            silo_limiter = TaskSiloLimit(silo_mode)
+            return silo_limiter(task)
+        return task
 
     return wrapped
 
 
 def retry(
     func: Callable[..., Any] | None = None,
-    on: Sequence[Type[Exception]] = (Exception,),
-    exclude: Sequence[Type[Exception]] = (),
-    ignore: Sequence[Type[Exception]] = (),
+    on: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+    exclude: type[Exception] | tuple[type[Exception], ...] = (),
+    ignore: type[Exception] | tuple[type[Exception], ...] = (),
 ) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))

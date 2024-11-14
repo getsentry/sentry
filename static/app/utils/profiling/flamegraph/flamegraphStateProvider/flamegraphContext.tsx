@@ -1,8 +1,11 @@
 import {createContext} from 'react';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import {UndoableReducer, UndoableReducerAction} from 'sentry/utils/useUndoableReducer';
+import type {
+  UndoableReducer,
+  UndoableReducerAction,
+} from 'sentry/utils/useUndoableReducer';
 
 import {flamegraphPreferencesReducer} from './reducers/flamegraphPreferences';
 import {flamegraphProfilesReducer} from './reducers/flamegraphProfiles';
@@ -13,26 +16,27 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     selectedRoot: null,
     threadId: null,
-    highlightFrames: null,
   },
   position: {
     view: Rect.Empty(),
   },
   preferences: {
     timelines: {
-      ui_frames: true,
+      battery_chart: false,
+      cpu_chart: false,
+      memory_chart: false,
       minimap: true,
       transaction_spans: true,
+      ui_frames: false,
     },
-    colorCoding: 'by symbol name',
+    colorCoding: 'by system vs application frame',
     sorting: 'call order',
-    type: 'flamechart',
     view: 'top down',
-    xAxis: 'transaction',
     layout: 'table bottom',
   },
   search: {
     index: null,
+    highlightFrames: null,
     results: {
       frames: new Map(),
       spans: new Map(),
@@ -56,7 +60,7 @@ export type FlamegraphStateValue = [
   {
     nextState: FlamegraphState | undefined;
     previousState: FlamegraphState | undefined;
-  }
+  },
 ];
 
 export type FlamegraphStateDispatch = React.Dispatch<

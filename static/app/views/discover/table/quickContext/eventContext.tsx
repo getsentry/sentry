@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {
   getStacktrace,
@@ -8,13 +8,12 @@ import {
 } from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {getDuration} from 'sentry/utils/formatters';
-import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
-import {useQuery} from 'sentry/utils/queryClient';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type EventView from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {
   getStatusBodyText,
   HttpStatus,
@@ -31,7 +30,8 @@ import {
   NoContextWrapper,
   Wrapper,
 } from './styles';
-import {BaseContextProps, ContextType, tenSecondInMs} from './utils';
+import type {BaseContextProps} from './utils';
+import {ContextType, tenSecondInMs} from './utils';
 
 interface EventContextProps extends BaseContextProps {
   eventView?: EventView;
@@ -40,8 +40,8 @@ interface EventContextProps extends BaseContextProps {
 }
 
 function EventContext(props: EventContextProps) {
-  const {organization, dataRow, eventView, location, projects} = props;
-  const {isLoading, isError, data} = useQuery<Event>(
+  const {organization, dataRow, eventView, location} = props;
+  const {isPending, isError, data} = useApiQuery<Event>(
     [
       `/organizations/${organization.slug}/events/${dataRow['project.name']}:${dataRow.id}/`,
     ],
@@ -52,7 +52,7 @@ function EventContext(props: EventContextProps) {
 
   useEffect(() => {
     if (data) {
-      trackAdvancedAnalyticsEvent('discover_v2.quick_context_hover_contexts', {
+      trackAnalytics('discover_v2.quick_context_hover_contexts', {
         organization,
         contextType: ContextType.EVENT,
         eventType: data.type,
@@ -60,19 +60,17 @@ function EventContext(props: EventContextProps) {
     }
   }, [data, organization]);
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   if (data.type === 'transaction') {
-    const traceId = data.contexts?.trace?.trace_id ?? '';
-    const {start, end} = getTraceTimeRangeFromEvent(data);
-    const project = projects?.find(p => p.slug === data.projectID);
     const transactionDuration = getDuration(
       data.endTimestamp - data.startTimestamp,
       2,
       true
     );
+    const status = getStatusBodyText(data);
     return (
       <Wrapper data-test-id="quick-context-hover-body">
         <EventContextContainer>
@@ -94,43 +92,30 @@ function EventContext(props: EventContextProps) {
         </EventContextContainer>
         {location && (
           <EventContextContainer>
-            <TraceMetaQuery
-              location={location}
-              orgSlug={organization.slug}
-              traceId={traceId}
-              start={start}
-              end={end}
-            >
-              {metaResults => {
-                const status = getStatusBodyText(project, data, metaResults?.meta);
-                return (
-                  <Fragment>
-                    <ContextHeader>
-                      <ContextTitle>{t('Status')}</ContextTitle>
-                      {location && eventView && (
-                        <ActionDropDown
-                          dataRow={dataRow}
-                          contextValueType={ContextValueType.STRING}
-                          location={location}
-                          eventView={eventView}
-                          organization={organization}
-                          queryKey="transaction.status"
-                          value={status}
-                        />
-                      )}
-                    </ContextHeader>
-                    <EventContextBody>
-                      <ContextRow>
-                        {status}
-                        <HttpStatusWrapper>
-                          (<HttpStatus event={data} />)
-                        </HttpStatusWrapper>
-                      </ContextRow>
-                    </EventContextBody>
-                  </Fragment>
-                );
-              }}
-            </TraceMetaQuery>
+            <Fragment>
+              <ContextHeader>
+                <ContextTitle>{t('Status')}</ContextTitle>
+                {location && eventView && (
+                  <ActionDropDown
+                    dataRow={dataRow}
+                    contextValueType={ContextValueType.STRING}
+                    location={location}
+                    eventView={eventView}
+                    organization={organization}
+                    queryKey="transaction.status"
+                    value={status}
+                  />
+                )}
+              </ContextHeader>
+              <EventContextBody>
+                <ContextRow>
+                  {status}
+                  <HttpStatusWrapper>
+                    (<HttpStatus event={data} />)
+                  </HttpStatusWrapper>
+                </ContextRow>
+              </EventContextBody>
+            </Fragment>
           </EventContextContainer>
         )}
       </Wrapper>
@@ -201,7 +186,6 @@ const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;
-    box-shadow: none;
   }
   border-radius: ${p => p.theme.borderRadius};
 `;

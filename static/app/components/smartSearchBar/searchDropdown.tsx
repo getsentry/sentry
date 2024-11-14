@@ -1,23 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TagCollection} from 'sentry/types';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
-import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
-import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
+import {SearchInvalidTag} from './searchInvalidTag';
+import type {SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
@@ -29,16 +30,29 @@ type Props = {
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  booleanKeys?: Set<string>;
   className?: string;
-  customPerformanceMetrics?: CustomMeasurementCollection;
+  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
+  dateKeys?: Set<string>;
+  disallowFreeText?: boolean;
+  disallowWildcard?: boolean;
+  disallowedLogicalOperators?: Set<BooleanOperator>;
+  durationKeys?: Set<string>;
+  invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
+  mergeItemsWith?: Record<string, SearchItem>;
+  numericKeys?: Set<string>;
+  onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
+  percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
+  sizeKeys?: Set<string>;
   supportedTags?: TagCollection;
+  textOperatorKeys?: Set<string>;
   visibleShortcuts?: Shortcut[];
 };
 
-const SearchDropdown = ({
+function SearchDropdown({
   className,
   loading,
   items,
@@ -48,76 +62,106 @@ const SearchDropdown = ({
   onIconClick,
   searchSubstring = '',
   onClick = () => {},
-  customPerformanceMetrics,
   supportedTags,
-}: Props) => (
-  <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
-    {loading ? (
-      <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
-        <LoadingIndicator mini />
-      </LoadingWrapper>
-    ) : (
-      <SearchItemsList maxMenuHeight={maxMenuHeight}>
-        {items.map(item => {
-          const isEmpty = item.children && !item.children.length;
+  customInvalidTagMessage,
+  mergeItemsWith,
+  booleanKeys,
+  dateKeys,
+  durationKeys,
+  numericKeys,
+  percentageKeys,
+  onDocsOpen,
+  sizeKeys,
+  textOperatorKeys,
+  disallowedLogicalOperators,
+  disallowWildcard,
+  disallowFreeText,
+  invalidMessages,
+}: Props) {
+  return (
+    <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
+      {loading ? (
+        <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+          <LoadingIndicator mini />
+        </LoadingWrapper>
+      ) : (
+        <SearchItemsList maxMenuHeight={maxMenuHeight}>
+          {items.map(item => {
+            const isEmpty = item.children && !item.children.length;
+            const Wrapper = item.childrenWrapper ?? Fragment;
 
-          // Hide header if `item.children` is defined, an array, and is empty
-          return (
-            <Fragment key={item.title}>
-              {item.type === 'header' && <HeaderItem group={item} />}
-              {item.children &&
-                item.children.map(child => (
-                  <DropdownItem
-                    key={getDropdownItemKey(child)}
-                    item={child}
-                    searchSubstring={searchSubstring}
-                    onClick={onClick}
-                    onIconClick={onIconClick}
-                    additionalSearchConfig={{
-                      ...getSearchConfigFromCustomPerformanceMetrics(
-                        customPerformanceMetrics
-                      ),
-                      supportedTags,
-                    }}
+            // Hide header if `item.children` is defined, an array, and is empty
+            return (
+              <Fragment key={item.title}>
+                {item.type === 'header' && <HeaderItem group={item} />}
+                <Wrapper>
+                  {item.children?.map(child => (
+                    <DropdownItem
+                      key={getDropdownItemKey(child)}
+                      item={{
+                        ...child,
+                        ...mergeItemsWith?.[child.title!],
+                      }}
+                      searchSubstring={searchSubstring}
+                      onClick={onClick}
+                      onIconClick={onIconClick}
+                      additionalSearchConfig={{
+                        supportedTags,
+                        disallowWildcard,
+                        disallowedLogicalOperators,
+                        disallowFreeText,
+                        invalidMessages,
+                        booleanKeys,
+                        dateKeys,
+                        durationKeys,
+                        numericKeys,
+                        percentageKeys,
+                        sizeKeys,
+                        textOperatorKeys,
+                      }}
+                      customInvalidTagMessage={customInvalidTagMessage}
+                    />
+                  ))}
+                </Wrapper>
+                {isEmpty && <Info>{t('No items found')}</Info>}
+              </Fragment>
+            );
+          })}
+        </SearchItemsList>
+      )}
+
+      <DropdownFooter>
+        <ButtonBar gap={1}>
+          {runShortcut &&
+            visibleShortcuts?.map(shortcut => (
+              <Button
+                borderless
+                size="xs"
+                key={shortcut.text}
+                onClick={() => runShortcut(shortcut)}
+              >
+                <HotkeyGlyphWrapper>
+                  <HotkeysLabel
+                    value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
                   />
-                ))}
-              {isEmpty && <Info>{t('No items found')}</Info>}
-            </Fragment>
-          );
-        })}
-      </SearchItemsList>
-    )}
-
-    <DropdownFooter>
-      <ButtonBar gap={1}>
-        {runShortcut &&
-          visibleShortcuts?.map(shortcut => (
-            <Button
-              borderless
-              size="xs"
-              key={shortcut.text}
-              onClick={() => runShortcut(shortcut)}
-            >
-              <HotkeyGlyphWrapper>
-                <HotkeysLabel
-                  value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
-                />
-              </HotkeyGlyphWrapper>
-              <IconWrapper>{shortcut.icon}</IconWrapper>
-              {shortcut.text}
-            </Button>
-          ))}
-      </ButtonBar>
-      <Button
-        size="xs"
-        href="https://docs.sentry.io/product/sentry-basics/search/"
-        external
-      >
-        Read the docs
-      </Button>
-    </DropdownFooter>
-  </SearchDropdownOverlay>
-);
+                </HotkeyGlyphWrapper>
+                <IconWrapper>{shortcut.icon}</IconWrapper>
+                {shortcut.text}
+              </Button>
+            ))}
+        </ButtonBar>
+        <LinkButton
+          size="xs"
+          href="https://docs.sentry.io/product/sentry-basics/search/"
+          external
+          onClick={() => onDocsOpen?.()}
+        >
+          {t('Read the docs')}
+        </LinkButton>
+      </DropdownFooter>
+    </SearchDropdownOverlay>
+  );
+}
 
 export default SearchDropdown;
 
@@ -125,15 +169,17 @@ type HeaderItemProps = {
   group: SearchGroup;
 };
 
-const HeaderItem = ({group}: HeaderItemProps) => (
-  <SearchDropdownGroup key={group.title}>
-    <SearchDropdownGroupTitle>
-      {group.icon}
-      {group.title && group.title}
-      {group.desc && <span>{group.desc}</span>}
-    </SearchDropdownGroupTitle>
-  </SearchDropdownGroup>
-);
+function HeaderItem({group}: HeaderItemProps) {
+  return (
+    <SearchDropdownGroup key={group.title}>
+      <SearchDropdownGroupTitle>
+        {group.icon}
+        {group.title && group.title}
+        {group.desc && <span>{group.desc}</span>}
+      </SearchDropdownGroupTitle>
+    </SearchDropdownGroup>
+  );
+}
 
 type HighlightedRestOfWordsProps = {
   combinedRestWords: string;
@@ -143,17 +189,16 @@ type HighlightedRestOfWordsProps = {
   isFirstWordHidden?: boolean;
 };
 
-const HighlightedRestOfWords = ({
+function HighlightedRestOfWords({
   combinedRestWords,
   searchSubstring,
   firstWord,
   isFirstWordHidden,
   hasSplit,
-}: HighlightedRestOfWordsProps) => {
-  const remainingSubstr =
-    searchSubstring.indexOf(firstWord) === -1
-      ? searchSubstring
-      : searchSubstring.slice(firstWord.length + 1);
+}: HighlightedRestOfWordsProps) {
+  const remainingSubstr = !searchSubstring.includes(firstWord)
+    ? searchSubstring
+    : searchSubstring.slice(firstWord.length + 1);
   const descIdx = combinedRestWords.indexOf(remainingSubstr);
 
   if (descIdx > -1) {
@@ -172,7 +217,7 @@ const HighlightedRestOfWords = ({
       .{combinedRestWords}
     </RestOfWordsContainer>
   );
-};
+}
 
 type ItemTitleProps = {
   item: SearchItem;
@@ -181,7 +226,7 @@ type ItemTitleProps = {
   isChild?: boolean;
 };
 
-const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
+function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   if (!item.title) {
     return null;
   }
@@ -222,6 +267,7 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
               hasSplit={words.length > 1}
             />
           )}
+          {item.titleBadge}
         </SearchItemTitleWrapper>
       );
     }
@@ -238,16 +284,17 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
           .{combinedRestWords}
         </RestOfWordsContainer>
       )}
+      {item.titleBadge}
     </SearchItemTitleWrapper>
   );
-};
+}
 
 type KindTagProps = {
   kind: FieldKind;
   deprecated?: boolean;
 };
 
-const KindTag = ({kind, deprecated}: KindTagProps) => {
+function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
     return <Tag type="error">deprecated</Tag>;
   }
@@ -264,38 +311,48 @@ const KindTag = ({kind, deprecated}: KindTagProps) => {
     default:
       return <Tag>{kind}</Tag>;
   }
-};
+}
 
 type DropdownItemProps = {
   item: SearchItem;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   additionalSearchConfig?: Partial<SearchConfig>;
+  customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   isChild?: boolean;
   onIconClick?: any;
 };
 
-const DropdownItem = ({
+function DropdownItem({
   item,
   isChild,
   searchSubstring,
   onClick,
   onIconClick,
   additionalSearchConfig,
-}: DropdownItemProps) => {
+  customInvalidTagMessage,
+}: DropdownItemProps) {
   const isDisabled = item.value === null;
-
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
-  } else if (item.type === ItemType.INVALID_TAG) {
-    children = (
-      <Invalid>
-        {tct("The field [field] isn't supported here. ", {
-          field: <code>{item.desc}</code>,
-        })}
-        <Highlight>{t('See all searchable properties in the docs.')}</Highlight>
-      </Invalid>
+  } else if (item.type && invalidTypes.includes(item.type)) {
+    const customInvalidMessage = customInvalidTagMessage?.(item);
+    children = customInvalidMessage ?? (
+      <SearchInvalidTag
+        highlightMessage={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t('For more information, please see the documentation')
+            : undefined
+        }
+        message={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t("Wildcards aren't supported here.")
+            : tct("The field [field] isn't supported here.", {
+                field: <code>{item.desc}</code>,
+              })
+        }
+      />
     );
   } else if (item.type === ItemType.LINK) {
     children = (
@@ -311,6 +368,12 @@ const DropdownItem = ({
           />
         )}
       </Fragment>
+    );
+  } else if (item.type === ItemType.RECOMMENDED) {
+    children = (
+      <RecommendedItem>
+        <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
+      </RecommendedItem>
     );
   } else {
     children = (
@@ -337,10 +400,14 @@ const DropdownItem = ({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          !isDisabled ? item.callback ?? onClick.bind(this, item.value, item) : undefined
+          !isDisabled
+            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
+              ? undefined
+              : item.callback ?? onClick.bind(null, item.value, item)
+            : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-        isGrouped={isChild}
+        isChild={isChild}
         isDisabled={isDisabled}
       >
         {children}
@@ -358,17 +425,17 @@ const DropdownItem = ({
         ))}
     </Fragment>
   );
-};
+}
 
 type DropdownDocumentationProps = {
   searchSubstring: string;
   documentation?: React.ReactNode;
 };
 
-const DropdownDocumentation = ({
+function DropdownDocumentation({
   documentation,
   searchSubstring,
-}: DropdownDocumentationProps) => {
+}: DropdownDocumentationProps) {
   if (documentation && typeof documentation === 'string') {
     const startIndex =
       documentation.toLocaleLowerCase().indexOf(searchSubstring.toLocaleLowerCase()) ??
@@ -387,14 +454,14 @@ const DropdownDocumentation = ({
   }
 
   return <Documentation>{documentation}</Documentation>;
-};
+}
 
 type QueryItemProps = {
   item: SearchItem;
   additionalSearchConfig?: Partial<SearchConfig>;
 };
 
-const QueryItem = ({item, additionalSearchConfig}: QueryItemProps) => {
+function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   if (!item.value) {
     return null;
   }
@@ -410,7 +477,7 @@ const QueryItem = ({item, additionalSearchConfig}: QueryItemProps) => {
       <HighlightQuery parsedQuery={parsedQuery} />
     </QueryItemWrapper>
   );
-};
+}
 
 const SearchDropdownOverlay = styled(Overlay)`
   position: absolute;
@@ -438,13 +505,7 @@ const Info = styled('div')`
   }
 `;
 
-const ListItem = styled('li')`
-  &:not(:first-child):not(.group-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const SearchDropdownGroup = styled(ListItem)``;
+const SearchDropdownGroup = styled('li')``;
 
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;
@@ -452,7 +513,7 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -481,12 +542,13 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   }}
 `;
 
-const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boolean}>`
+const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: 4px ${space(2)};
 
-  min-height: ${p => (p.isGrouped ? '30px' : '36px')};
+  min-height: ${p => (p.isChild ? '30px' : '36px')};
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
 
   ${p => {
     if (!p.isDisabled) {
@@ -503,6 +565,7 @@ const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boole
     return '';
   }}
 
+
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -517,7 +580,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
@@ -592,21 +655,6 @@ const IconWrapper = styled('span')`
   }
 `;
 
-const Invalid = styled(`span`)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.gray400};
-
-  code {
-    font-weight: bold;
-    padding: 0;
-  }
-`;
-
-const Highlight = styled(`strong`)`
-  color: ${p => p.theme.linkColor};
-`;
-
 const QueryItemWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
@@ -628,4 +676,12 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 
 const IconOpenWithMargin = styled(IconOpen)`
   margin-left: ${space(1)};
+`;
+
+const RecommendedItem = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const RecommendedItemTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;

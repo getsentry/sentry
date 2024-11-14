@@ -1,7 +1,7 @@
 from celery import current_app
 from django.conf import settings
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class CeleryQueueRegisteredTest(TestCase):

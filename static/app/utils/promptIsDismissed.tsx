@@ -1,6 +1,18 @@
-import {PromptData} from 'sentry/actionCreators/prompts';
+import moment from 'moment-timezone';
 
-import {snoozedDays} from './promptsActivity';
+import type {PromptData} from 'sentry/actionCreators/prompts';
+
+/**
+ * Given a snoozed unix timestamp in seconds, returns the number of days since
+ * the prompt was snoozed.
+ *
+ * @param snoozedTs Snoozed timestamp
+ */
+function snoozedDays(snoozedTs: number) {
+  const now = moment.utc();
+  const snoozedOn = moment.unix(snoozedTs).utc();
+  return now.diff(snoozedOn, 'days');
+}
 
 export const DEFAULT_SNOOZE_PROMPT_DAYS = 14;
 export const promptIsDismissed = (
@@ -17,18 +29,3 @@ export const promptIsDismissed = (
 
   return false;
 };
-
-export function promptCanShow(prompt: string, uuid: string): boolean {
-  /**
-   * This is to ensure that only one of suspect_commits
-   * or distributed_tracing is shown at a given time.
-   */
-  const x = (parseInt(uuid.charAt(0), 16) || 0) % 2;
-  if (prompt === 'suspect_commits') {
-    return x === 1;
-  }
-  if (prompt === 'distributed_tracing') {
-    return x === 0;
-  }
-  return true;
-}

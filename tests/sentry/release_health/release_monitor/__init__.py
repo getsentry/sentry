@@ -1,5 +1,15 @@
-class BaseFetchProjectsWithRecentSessionsTest:
-    backend_class = None
+from __future__ import annotations
+
+from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
+from sentry.testutils.abstract import Abstract
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
+from sentry.testutils.helpers import override_options
+
+
+class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         super().setUp()
@@ -9,7 +19,35 @@ class BaseFetchProjectsWithRecentSessionsTest:
         self.environment = self.create_environment(project=self.project2)
         self.backend = self.backend_class()
 
-    def test_monitor_release_adoption(self):
+    def test_monitor_release_adoption_with_offset(self):
+        self.org2 = self.create_organization()
+        self.org2_project = self.create_project(organization=self.org2)
+        self.org2_release = self.create_release(project=self.org2_project, version="org@2.0.0")
+        self.org2_environment = self.create_environment(project=self.org2_project)
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    org_id=self.org2,
+                    project_id=self.org2_project,
+                    release=self.org2_release,
+                    environment=self.org2_environment,
+                )
+                for _ in range(2)
+            ]
+            + [self.build_session(project_id=self.project1) for _ in range(3)]
+            + [
+                self.build_session(project_id=self.project2, environment=self.environment)
+                for _ in range(1)
+            ]
+        )
+        results = self.backend.fetch_projects_with_recent_sessions()
+        assert results == {
+            self.organization.id: [self.project1.id, self.project2.id],
+            self.org2.id: [self.org2_project.id],
+        }
+
+    @override_options({"release-health.use-org-and-project-filter": True})
+    def test_monitor_release_adoption_with_filter(self):
         self.org2 = self.create_organization()
         self.org2_project = self.create_project(organization=self.org2)
         self.org2_release = self.create_release(project=self.org2_project, version="org@2.0.0")
@@ -37,8 +75,10 @@ class BaseFetchProjectsWithRecentSessionsTest:
         }
 
 
-class BaseFetchProjectReleaseHealthTotalsTest:
-    backend_class = None
+class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
+    __test__ = Abstract(__module__, __qualname__)
+
+    backend_class: type[BaseReleaseMonitorBackend]
 
     def setUp(self):
         self.project1 = self.create_project()

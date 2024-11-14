@@ -1,23 +1,18 @@
 from functools import cached_property
+from urllib.parse import parse_qs, urlparse
 
-import responses
+import orjson
 from django.core import mail
 from django.urls import reverse
 
-from sentry.models import (
-    InviteStatus,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    OrganizationOption,
-)
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_attachment_no_text
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 
 
-@region_silo_test
 class OrganizationInviteRequestListTest(APITestCase):
     endpoint = "sentry-api-0-organization-invite-request-index"
 
@@ -64,8 +59,9 @@ class OrganizationInviteRequestListTest(APITestCase):
         assert resp.data[0]["inviteStatus"] == "requested_to_be_invited"
 
 
-@region_silo_test
-class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotificationTest):
+class OrganizationInviteRequestCreateTest(
+    APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin
+):
     endpoint = "sentry-api-0-organization-invite-request-index"
     method = "post"
 
@@ -88,12 +84,13 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
 
         self.url = reverse(
             "sentry-api-0-organization-invite-request-index",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def test_simple(self):
         self.login_as(user=self.user)
-        with self.tasks():
+
+        with self.tasks(), outbox_runner():
             response = self.client.post(
                 self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
             )
@@ -106,15 +103,17 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
         member = OrganizationMember.objects.get(
             organization=self.organization, email=response.data["email"]
         )
-        assert member.user is None
+        assert member.user_id is None
         assert member.role == "member"
-        assert member.inviter == self.user
+        assert member.inviter_id == self.user.id
         assert member.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
         teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
 
         assert len(teams) == 1
         assert teams[0].team_id == self.team.id
+
+        self.assert_org_member_mapping(org_member=member)
 
     def test_higher_role(self):
         self.login_as(user=self.user)
@@ -173,7 +172,7 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
 
         members = OrganizationMember.objects.filter(organization=self.organization)
         join_request = members.get(email=resp.data["email"])
-        assert join_request.user is None
+        assert join_request.user_id is None
         assert join_request.role == "member"
         assert not join_request.invite_approved
 
@@ -185,7 +184,6 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
         assert mail.outbox[0].subject == expected_subject
         assert "eric@localhost" in mail.outbox[0].body
 
-    @responses.activate
     def test_request_to_invite_slack(self):
         with self.tasks():
             self.get_success_response(
@@ -196,41 +194,46 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
                 status_code=201,
             )
 
-        attachment = get_attachment_no_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+
         assert (
-            attachment["text"]
+            fallback_text
             == f"foo@localhost is requesting to invite eric@localhost into {self.organization.name}"
         )
-        assert attachment["actions"] == [
+        query_params = parse_qs(urlparse(blocks[1]["elements"][0]["text"]).query)
+        notification_uuid = query_params["notification_uuid"][0]
+        notification_uuid = notification_uuid.split("|")[
+            0
+        ]  # remove method of hyperlinking in slack
+        assert blocks[2]["elements"] == [
             {
-                "text": "Approve",
-                "name": "Approve",
-                "style": "primary",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "Approve"},
+                "action_id": "approve_request",
                 "value": "approve_member",
-                "action_id": "approve_request",
             },
             {
-                "text": "Reject",
-                "name": "Reject",
-                "style": "danger",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "Reject"},
+                "action_id": "reject_request",
                 "value": "reject_member",
-                "action_id": "approve_request",
             },
             {
-                "text": "See Members & Requests",
-                "name": "See Members & Requests",
-                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user",
                 "type": "button",
+                "text": {"type": "plain_text", "text": "See Members & Requests"},
+                "url": f"http://testserver/settings/{self.organization.slug}/members/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}",
+                "value": "link_clicked",
             },
         ]
+        footer = blocks[1]["elements"][0]["text"]
         assert (
-            attachment["footer"]
-            == "You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user|Notification Settings>"
+            footer
+            == f"You are receiving this notification because you have the scope member:write | <http://testserver/settings/account/notifications/approval/?referrer=invite_request-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         member = OrganizationMember.objects.get(email="eric@localhost")
-        assert json.loads(attachment["callback_id"]) == {
+        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
+        assert callback_id == {
             "member_id": member.id,
             "member_email": "eric@localhost",
         }

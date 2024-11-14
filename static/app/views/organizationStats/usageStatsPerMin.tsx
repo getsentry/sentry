@@ -1,20 +1,20 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
-import {DataCategoryInfo, Organization, Outcome} from 'sentry/types';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {UsageSeries} from './types';
+import type {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
+  dataCategoryApiName: DataCategoryInfo['apiName'];
   organization: Organization;
-} & AsyncComponent['props'];
-
-type State = {
-  orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+  projectIds: number[];
+};
 
 /**
  * Making 1 extra API call to display this number isn't very efficient.
@@ -26,44 +26,56 @@ type State = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-class UsageStatsPerMin extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
-  }
-
-  get endpointPath() {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/stats_v2/`;
-  }
-
-  get endpointQuery() {
-    return {
-      statsPeriod: '5m', // Any value <1h will return current hour's data
-      interval: '1m',
-      groupBy: ['category', 'outcome'],
-      field: ['sum(quantity)'],
-    };
-  }
-
-  get minuteData(): string | undefined {
-    const {dataCategory} = this.props;
-    const {loading, error, orgStats} = this.state;
-
-    if (loading || error || !orgStats || orgStats.intervals.length === 0) {
-      return undefined;
+function UsageStatsPerMin({
+  organization,
+  projectIds,
+  dataCategory,
+  dataCategoryApiName,
+}: Props) {
+  const {
+    data: orgStats,
+    isPending,
+    isError,
+  } = useApiQuery<UsageSeries>(
+    [
+      `/organizations/${organization.slug}/stats_v2/`,
+      {
+        query: {
+          statsPeriod: '5m', // Any value <1h will return current hour's data
+          interval: '1m',
+          groupBy: ['category', 'outcome'],
+          project: projectIds,
+          field: ['sum(quantity)'],
+        },
+      },
+    ],
+    {
+      staleTime: 0,
     }
+  );
 
+  if (isPending || isError || !orgStats || orgStats.intervals.length === 0) {
+    return null;
+  }
+
+  const minuteData = (): string | undefined => {
     // The last minute in the series is still "in progress"
     // Read data from 2nd last element for the latest complete minute
     const {intervals, groups} = orgStats;
     const lastMin = Math.max(intervals.length - 2, 0);
 
     const eventsLastMin = groups.reduce((count, group) => {
-      const {outcome, category} = group.by;
+      const {category, outcome} = group.by;
 
-      // HACK: The backend enum are singular, but the frontend enums are plural
-      if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
-        return count;
+      if (dataCategoryApiName === 'span_indexed') {
+        if (category !== 'span_indexed' || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
+      } else {
+        // HACK: The backend enum are singular, but the frontend enums are plural
+        if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
       }
 
       count += group.series['sum(quantity)'][lastMin];
@@ -75,19 +87,13 @@ class UsageStatsPerMin extends AsyncComponent<Props, State> {
       dataCategory,
       getFormatUsageOptions(dataCategory)
     );
-  }
+  };
 
-  renderComponent() {
-    if (!this.minuteData) {
-      return null;
-    }
-
-    return (
-      <Wrapper>
-        {this.minuteData} {t('in last min')}
-      </Wrapper>
-    );
-  }
+  return (
+    <Wrapper>
+      {minuteData()} {t('in last min')}
+    </Wrapper>
+  );
 }
 
 export default UsageStatsPerMin;

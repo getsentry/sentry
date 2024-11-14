@@ -1,5 +1,6 @@
 import itertools
 import textwrap
+from typing import IO, Any
 
 import click
 import yaml
@@ -8,11 +9,11 @@ from sentry.runner.decorators import configuration
 
 
 @click.group()
-def killswitches():
+def killswitches() -> None:
     "Manage killswitches for ingestion pipeline."
 
 
-def _get_edit_template(killswitch_name: str, option_value) -> str:
+def _get_edit_template(killswitch_name: str, option_value: Any) -> str:
     from sentry import killswitches
 
     comments = [
@@ -46,7 +47,7 @@ def _get_edit_template(killswitch_name: str, option_value) -> str:
 @click.argument("killswitch_name", required=True)
 @click.argument("outfile", type=click.File("w"), required=True)
 @configuration
-def _pull(killswitch_name, outfile):
+def _pull(killswitch_name: str, outfile: IO[str]) -> None:
     """
     Save the current state of the given killswitch in a file.
 
@@ -71,7 +72,7 @@ def _pull(killswitch_name, outfile):
 @click.argument("infile", type=click.File("r"), required=True)
 @click.option("--yes", is_flag=True, help="skip confirmation prompts, very dangerous")
 @configuration
-def _push(killswitch_name, infile, yes):
+def _push(killswitch_name: str, infile: IO[str], yes: bool) -> None:
     """
     Write back a killswitch into the DB.
 
@@ -109,7 +110,7 @@ def _push(killswitch_name, infile, yes):
         click.confirm(
             "Should the changes be applied?", default=False, show_default=True, abort=True
         )
-    options.set(killswitch_name, new_option_value)
+    options.set(killswitch_name, new_option_value, channel=options.UpdateChannel.KILLSWITCH)
     if callback := killswitches.ALL_KILLSWITCH_OPTIONS[killswitch_name].on_change:
         if not yes:
             click.confirm(f"Option set successfully. Run '{callback.title}'?", abort=True)
@@ -118,7 +119,7 @@ def _push(killswitch_name, infile, yes):
 
 @killswitches.command("list")
 @configuration
-def _list():
+def _list() -> None:
     """
     List all killswitches and whether they are enabled (and how).
     """

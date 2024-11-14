@@ -1,13 +1,17 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from .search import GitlabIssueSearchEndpoint
 from .webhooks import GitlabWebhookEndpoint
 
 urlpatterns = [
-    url(
-        r"^search/(?P<organization_slug>[^\/]+)/(?P<integration_id>\d+)/$",
+    re_path(
+        r"^search/(?P<organization_id_or_slug>[^\/]+)/(?P<integration_id>\d+)/$",
         GitlabIssueSearchEndpoint.as_view(),
         name="sentry-extensions-gitlab-search",
     ),
-    url(r"^webhook/$", GitlabWebhookEndpoint.as_view(), name="sentry-extensions-gitlab-webhook"),
+    re_path(
+        r"^webhook/$",
+        GitlabWebhookEndpoint.as_view(),
+        name="sentry-extensions-gitlab-webhook",
+    ),
 ]

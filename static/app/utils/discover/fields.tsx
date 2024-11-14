@@ -1,12 +1,18 @@
 import isEqual from 'lodash/isEqual';
 
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {MetricType} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
 
 import {
   AGGREGATION_FIELDS,
@@ -16,9 +22,12 @@ import {
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
+  MobileVital,
   SpanOpBreakdown,
   WebVital,
 } from '../fields';
+
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
 export type Sort = {
   field: string;
@@ -51,7 +60,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -105,7 +114,7 @@ export type QueryFieldValue =
         AggregationKeyWithAlias,
         string,
         AggregationRefinement,
-        AggregationRefinement
+        AggregationRefinement,
       ];
       kind: 'function';
       alias?: string;
@@ -116,51 +125,70 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
-  {
-    label: 'is equal to',
-    value: 'equals',
-  },
-  {
-    label: 'is not equal to',
-    value: 'notEquals',
-  },
-  {
-    label: 'is less than',
-    value: 'less',
-  },
-  {
-    label: 'is greater than',
-    value: 'greater',
-  },
-  {
-    label: 'is less than or equal to',
-    value: 'lessOrEquals',
-  },
-  {
-    label: 'is greater than or equal to',
-    value: 'greaterOrEquals',
-  },
-];
+export type CountUnit = 'count';
 
-const WEB_VITALS_QUALITY: SelectValue<string>[] = [
-  {
-    label: 'good',
-    value: 'good',
-  },
-  {
-    label: 'meh',
-    value: 'meh',
-  },
-  {
-    label: 'poor',
-    value: 'poor',
-  },
-  {
-    label: 'any',
-    value: 'any',
-  },
-];
+export type PercentageUnit = 'percentage';
+
+export type PercentChangeUnit = 'percent_change';
+
+export enum CurrencyUnit {
+  USD = 'usd',
+}
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
+export enum RateUnit {
+  PER_SECOND = '1/second',
+  PER_MINUTE = '1/minute',
+  PER_HOUR = '1/hour',
+}
+
+// Rates normalized to /second unit
+export const RATE_UNIT_MULTIPLIERS = {
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
+};
+
+export const RATE_UNIT_LABELS = {
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
+};
+
+export const RATE_UNIT_TITLE = {
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
+};
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -171,15 +199,17 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
+// When dealing with errors or transactions datasets, use getAggregations() instead because
+// there are dataset-specific overrides
 export const AGGREGATIONS = {
-  [AggregationKey.Count]: {
-    ...getDocsAndOutputType(AggregationKey.Count),
+  [AggregationKey.COUNT]: {
+    ...getDocsAndOutputType(AggregationKey.COUNT),
     parameters: [],
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.CountUnique]: {
-    ...getDocsAndOutputType(AggregationKey.CountUnique),
+  [AggregationKey.COUNT_UNIQUE]: {
+    ...getDocsAndOutputType(AggregationKey.COUNT_UNIQUE),
     parameters: [
       {
         kind: 'column',
@@ -191,8 +221,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.CountMiserable]: {
-    ...getDocsAndOutputType(AggregationKey.CountMiserable),
+  [AggregationKey.COUNT_MISERABLE]: {
+    ...getDocsAndOutputType(AggregationKey.COUNT_MISERABLE),
     getFieldOverrides({parameter}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
@@ -218,8 +248,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.CountIf]: {
-    ...getDocsAndOutputType(AggregationKey.CountIf),
+  [AggregationKey.COUNT_IF]: {
+    ...getDocsAndOutputType(AggregationKey.COUNT_IF),
     parameters: [
       {
         kind: 'column',
@@ -247,8 +277,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.CountWebVitals]: {
-    ...getDocsAndOutputType(AggregationKey.CountWebVitals),
+  [AggregationKey.COUNT_WEB_VITALS]: {
+    ...getDocsAndOutputType(AggregationKey.COUNT_WEB_VITALS),
     parameters: [
       {
         kind: 'column',
@@ -273,26 +303,26 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.Eps]: {
-    ...getDocsAndOutputType(AggregationKey.Eps),
+  [AggregationKey.EPS]: {
+    ...getDocsAndOutputType(AggregationKey.EPS),
     parameters: [],
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.Epm]: {
-    ...getDocsAndOutputType(AggregationKey.Epm),
+  [AggregationKey.EPM]: {
+    ...getDocsAndOutputType(AggregationKey.EPM),
     parameters: [],
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.FailureCount]: {
-    ...getDocsAndOutputType(AggregationKey.FailureCount),
+  [AggregationKey.FAILURE_COUNT]: {
+    ...getDocsAndOutputType(AggregationKey.FAILURE_COUNT),
     parameters: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Min]: {
-    ...getDocsAndOutputType(AggregationKey.Min),
+  [AggregationKey.MIN]: {
+    ...getDocsAndOutputType(AggregationKey.MIN),
     parameters: [
       {
         kind: 'column',
@@ -310,8 +340,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Max]: {
-    ...getDocsAndOutputType(AggregationKey.Max),
+  [AggregationKey.MAX]: {
+    ...getDocsAndOutputType(AggregationKey.MAX),
     parameters: [
       {
         kind: 'column',
@@ -329,8 +359,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Sum]: {
-    ...getDocsAndOutputType(AggregationKey.Sum),
+  [AggregationKey.SUM]: {
+    ...getDocsAndOutputType(AggregationKey.SUM),
     parameters: [
       {
         kind: 'column',
@@ -342,8 +372,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
-  [AggregationKey.Any]: {
-    ...getDocsAndOutputType(AggregationKey.Any),
+  [AggregationKey.ANY]: {
+    ...getDocsAndOutputType(AggregationKey.ANY),
     parameters: [
       {
         kind: 'column',
@@ -369,6 +399,19 @@ export const AGGREGATIONS = {
   },
   [AggregationKey.P75]: {
     ...getDocsAndOutputType(AggregationKey.P75),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
     parameters: [
       {
         kind: 'column',
@@ -420,8 +463,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Percentile]: {
-    ...getDocsAndOutputType(AggregationKey.Percentile),
+  [AggregationKey.PERCENTILE]: {
+    ...getDocsAndOutputType(AggregationKey.PERCENTILE),
     parameters: [
       {
         kind: 'column',
@@ -439,8 +482,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Avg]: {
-    ...getDocsAndOutputType(AggregationKey.Avg),
+  [AggregationKey.AVG]: {
+    ...getDocsAndOutputType(AggregationKey.AVG),
     parameters: [
       {
         kind: 'column',
@@ -452,8 +495,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.Apdex]: {
-    ...getDocsAndOutputType(AggregationKey.Apdex),
+  [AggregationKey.APDEX]: {
+    ...getDocsAndOutputType(AggregationKey.APDEX),
     parameters: [
       {
         kind: 'value',
@@ -465,8 +508,8 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.UserMisery]: {
-    ...getDocsAndOutputType(AggregationKey.UserMisery),
+  [AggregationKey.USER_MISERY]: {
+    ...getDocsAndOutputType(AggregationKey.USER_MISERY),
     parameters: [
       {
         kind: 'value',
@@ -478,23 +521,40 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.FailureRate]: {
-    ...getDocsAndOutputType(AggregationKey.FailureRate),
+  [AggregationKey.FAILURE_RATE]: {
+    ...getDocsAndOutputType(AggregationKey.FAILURE_RATE),
     parameters: [],
     isSortable: true,
     multiPlotType: 'line',
   },
-  [AggregationKey.LastSeen]: {
-    ...getDocsAndOutputType(AggregationKey.LastSeen),
+  [AggregationKey.LAST_SEEN]: {
+    ...getDocsAndOutputType(AggregationKey.LAST_SEEN),
     parameters: [],
     isSortable: true,
+  },
+  [AggregationKey.PERFORMANCE_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.PERFORMANCE_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
   },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
 export const ALIASES = {
-  tpm: AggregationKey.Epm,
-  tps: AggregationKey.Eps,
+  tpm: AggregationKey.EPM,
+  tps: AggregationKey.EPS,
 };
 
 assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
@@ -503,7 +563,7 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size' | 'rate'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';
@@ -571,7 +631,7 @@ export const SEMVER_TAGS = {
  * Some tag keys should never be formatted as `tag[...]`
  * when used as a filter because they are predefined.
  */
-const EXCLUDED_TAG_KEYS = new Set(['release', 'user']);
+const EXCLUDED_TAG_KEYS = new Set(['release', 'user', 'device.class']);
 
 export function formatTagKey(key: string): string {
   // Some tags may be normalized from context, but not all of them are.
@@ -596,6 +656,47 @@ export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
 }
 
+// Returns the AGGREGATIONS object with the expected defaults for the given dataset
+export function getAggregations(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.DISCOVER) {
+    return AGGREGATIONS;
+  }
+
+  return {
+    ...AGGREGATIONS,
+    [AggregationKey.COUNT_IF]: {
+      ...AGGREGATIONS[AggregationKey.COUNT_IF],
+      parameters: [
+        {
+          kind: 'column',
+          columnTypes: validateDenyListColumns(
+            ['string', 'duration', 'number'],
+            ['id', 'issue', 'user.display']
+          ),
+          defaultValue:
+            dataset === DiscoverDatasets.TRANSACTIONS
+              ? 'transaction.duration'
+              : 'event.type',
+          required: true,
+        },
+        {
+          kind: 'dropdown',
+          options: CONDITIONS_ARGUMENTS,
+          dataType: 'string',
+          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          required: true,
+        },
+        {
+          kind: 'value',
+          dataType: 'string',
+          defaultValue: dataset === DiscoverDatasets.TRANSACTIONS ? '300' : 'error',
+          required: true,
+        },
+      ],
+    },
+  } as const;
+}
+
 export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
 
 export function isRelativeSpanOperationBreakdownField(field: string) {
@@ -606,8 +707,8 @@ export const SPAN_OP_BREAKDOWN_FIELDS = Object.values(SpanOpBreakdown);
 
 // This list contains fields/functions that are available with performance-view feature.
 export const TRACING_FIELDS = [
-  AggregationKey.Avg,
-  AggregationKey.Sum,
+  AggregationKey.AVG,
+  AggregationKey.SUM,
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -617,17 +718,69 @@ export const TRACING_FIELDS = [
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
-  AggregationKey.Percentile,
-  AggregationKey.FailureRate,
-  AggregationKey.Apdex,
-  AggregationKey.CountMiserable,
-  AggregationKey.UserMisery,
-  AggregationKey.Eps,
-  AggregationKey.Epm,
+  AggregationKey.PERCENTILE,
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.APDEX,
+  AggregationKey.COUNT_MISERABLE,
+  AggregationKey.USER_MISERY,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
   'team_key_transaction',
   ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+];
+
+export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.PROFILE_ID,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
+];
+
+export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
+  f => !TRANSACTION_ONLY_FIELDS.includes(f)
+);
+
+export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.LOCATION,
+  FieldKey.EVENT_TYPE,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_RECEIVED,
+  FieldKey.ERROR_MAIN_THREAD,
+  FieldKey.LEVEL,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_IN_APP,
+  FieldKey.STACK_COLNO,
+  FieldKey.STACK_LINENO,
+  FieldKey.STACK_STACK_LEVEL,
+  FieldKey.EVENT_TYPE,
+];
+
+export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
+  f => !ERROR_ONLY_FIELDS.includes(f)
+);
+
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
@@ -676,39 +829,40 @@ export function parseFunction(field: string): ParsedFunction | null {
   if (results && results.length === 3) {
     return {
       name: results[1],
-      arguments: parseArguments(results[1], results[2]),
+      arguments: parseArguments(results[2]),
     };
   }
 
   return null;
 }
 
-export function parseArguments(functionText: string, columnText: string): string[] {
-  // Some functions take a quoted string for their arguments that may contain commas
-  // This function attempts to be identical with the similarly named parse_arguments
-  // found in src/sentry/search/events/fields.py
-  if (
-    (functionText !== 'to_other' &&
-      functionText !== 'count_if' &&
-      functionText !== 'spans_histogram') ||
-    columnText?.length === 0
-  ) {
-    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+function _lookback(columnText: string, j: number, str: string) {
+  // For parse_arguments, check that the current character is preceeded by string
+  if (j < str.length) {
+    return false;
   }
+  return columnText.substring(j - str.length, j) === str;
+}
 
+export function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
+  let inTag = false;
   let escaped = false;
 
   let i: number = 0;
   let j: number = 0;
 
   while (j < columnText?.length) {
-    if (i === j && columnText[j] === '"') {
+    if (!inTag && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+      // when the argument begins with tags[,
+      // then this is the beginning of the tag that may contain commas
+      inTag = true;
     } else if (i === j && columnText[j] === ' ') {
       // argument has leading spaces, skip over them
       i += 1;
@@ -720,12 +874,16 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       quoted = false;
+    } else if (inTag && !escaped && columnText[j] === ']') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      inTag = false;
     } else if (quoted && escaped) {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
       escaped = false;
-    } else if (quoted && columnText[j] === ',') {
-      // when we are inside a quoted string and see
+    } else if ((quoted || inTag) && columnText[j] === ',') {
+      // when we are inside a quoted string or tag and see
       // a comma, it should not be considered an
       // argument separator
     } else if (columnText[j] === ',') {
@@ -818,7 +976,7 @@ export function generateAggregateFields(
       const newField = `${func}(${parameters
         .map(param => param.defaultValue)
         .join(',')})`;
-      if (fields.indexOf(newField) === -1 && excludeFields.indexOf(newField) === -1) {
+      if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
       }
     }
@@ -1026,6 +1184,14 @@ export function aggregateFunctionOutputType(
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
+  if (firstArg && STARFISH_FIELDS[firstArg]) {
+    return STARFISH_FIELDS[firstArg].outputType;
+  }
+
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
+  }
+
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
   const fieldDef = getFieldDefinition(firstArg ?? '');
@@ -1162,7 +1328,15 @@ function validateAllowedColumns(validColumns: string[]): ValidateColumnValueFunc
   };
 }
 
-const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+const alignedTypes: ColumnValueType[] = [
+  'number',
+  'duration',
+  'integer',
+  'percentage',
+  'percent_change',
+  'rate',
+  'size',
+];
 
 export function fieldAlignment(
   columnName: string,
@@ -1170,6 +1344,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1187,7 +1364,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
@@ -1229,4 +1406,245 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
     return false;
   }
   return columnList.filter(newColumn => isEqual(newColumn, column)).length > 1;
+}
+
+// Search categorizations for the new `SearchQueryBuilder` component.
+// Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
+
+export const TRANSACTION_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event',
+  children: [
+    FieldKey.TRANSACTION_DURATION,
+    FieldKey.TRANSACTION_OP,
+    FieldKey.TRANSACTION_STATUS,
+    FieldKey.TRANSACTION,
+    SpanOpBreakdown.SPANS_BROWSER,
+    SpanOpBreakdown.SPANS_DB,
+    SpanOpBreakdown.SPANS_HTTP,
+    SpanOpBreakdown.SPANS_RESOURCE,
+    SpanOpBreakdown.SPANS_UI,
+  ],
+};
+
+export const USER_FILTERS: FilterKeySection = {
+  value: 'user_filters',
+  label: 'User',
+  children: [
+    FieldKey.USER,
+    FieldKey.USER_DISPLAY,
+    FieldKey.USER_EMAIL,
+    FieldKey.USER_ID,
+    FieldKey.USER_IP,
+    FieldKey.USER_USERNAME,
+  ],
+};
+
+export const GEO_FILTERS: FilterKeySection = {
+  value: 'geo_filters',
+  label: 'Geo',
+  children: [
+    FieldKey.GEO_CITY,
+    FieldKey.GEO_COUNTRY_CODE,
+    FieldKey.GEO_REGION,
+    FieldKey.GEO_SUBDIVISION,
+  ],
+};
+
+export const HTTP_FILTERS: FilterKeySection = {
+  value: 'http_filters',
+  label: 'HTTP',
+  children: [
+    FieldKey.HTTP_METHOD,
+    FieldKey.HTTP_REFERER,
+    FieldKey.HTTP_STATUS_CODE,
+    FieldKey.HTTP_URL,
+  ],
+};
+
+export const WEB_VITAL_FILTERS: FilterKeySection = {
+  value: 'web_filters',
+  label: 'Web Vitals',
+  children: [
+    WebVital.CLS,
+    WebVital.FCP,
+    WebVital.FID,
+    WebVital.FP,
+    WebVital.INP,
+    WebVital.LCP,
+    WebVital.REQUEST_TIME,
+  ],
+};
+
+export const MOBILE_VITAL_FILTERS: FilterKeySection = {
+  value: 'mobile_vitals_filters',
+  label: 'Mobile Vitals',
+  children: [
+    MobileVital.APP_START_COLD,
+    MobileVital.APP_START_WARM,
+    MobileVital.FRAMES_FROZEN,
+    MobileVital.FRAMES_FROZEN_RATE,
+    MobileVital.FRAMES_SLOW,
+    MobileVital.FRAMES_SLOW_RATE,
+    MobileVital.FRAMES_TOTAL,
+    MobileVital.STALL_COUNT,
+    MobileVital.STALL_LONGEST_TIME,
+    MobileVital.STALL_PERCENTAGE,
+    MobileVital.STALL_TOTAL_TIME,
+    MobileVital.TIME_TO_FULL_DISPLAY,
+    MobileVital.TIME_TO_INITIAL_DISPLAY,
+  ],
+};
+
+export const DEVICE_FILTERS: FilterKeySection = {
+  value: 'device_filters',
+  label: 'Device',
+  children: [
+    FieldKey.DEVICE_ARCH,
+    FieldKey.DEVICE_BATTERY_LEVEL,
+    FieldKey.DEVICE_BRAND,
+    FieldKey.DEVICE_CHARGING,
+    FieldKey.DEVICE_CLASS,
+    FieldKey.DEVICE_FAMILY,
+    FieldKey.DEVICE_LOCALE,
+    // FieldKey.DEVICE_MODEL_ID,
+    FieldKey.DEVICE_NAME,
+    FieldKey.DEVICE_ONLINE,
+    FieldKey.DEVICE_ORIENTATION,
+    FieldKey.DEVICE_SCREEN_DENSITY,
+    FieldKey.DEVICE_SCREEN_DPI,
+    FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
+    FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
+    FieldKey.DEVICE_SIMULATOR,
+    FieldKey.DEVICE_UUID,
+  ],
+};
+
+export const RELEASE_FILTERS: FilterKeySection = {
+  value: 'release_filters',
+  label: 'Release',
+  children: [
+    FieldKey.RELEASE,
+    FieldKey.RELEASE_BUILD,
+    FieldKey.RELEASE_PACKAGE,
+    FieldKey.RELEASE_STAGE,
+    FieldKey.RELEASE_VERSION,
+  ],
+};
+
+export const STACKTRACE_FILTERS: FilterKeySection = {
+  value: 'stacktrace_filters',
+  label: 'Stacktrace',
+  children: [
+    FieldKey.STACK_ABS_PATH,
+    FieldKey.STACK_COLNO,
+    FieldKey.STACK_FILENAME,
+    FieldKey.STACK_FUNCTION,
+    FieldKey.STACK_IN_APP,
+    FieldKey.STACK_LINENO,
+    FieldKey.STACK_MODULE,
+    FieldKey.STACK_PACKAGE,
+    FieldKey.STACK_STACK_LEVEL,
+  ],
+};
+
+export const ERROR_DETAIL_FILTERS: FilterKeySection = {
+  value: 'error_detail_filters',
+  label: 'Error',
+  children: [
+    FieldKey.LEVEL,
+    FieldKey.MESSAGE,
+    FieldKey.ERROR_TYPE,
+    FieldKey.ERROR_VALUE,
+    FieldKey.ERROR_MECHANISM,
+    FieldKey.ERROR_HANDLED,
+    FieldKey.ERROR_UNHANDLED,
+    FieldKey.ERROR_RECEIVED,
+    FieldKey.ERROR_MAIN_THREAD,
+  ],
+};
+
+export const MISC_FILTERS: FilterKeySection = {
+  value: 'misc_filters',
+  label: 'Misc',
+  children: [FieldKey.HAS, FieldKey.DIST],
+};
+
+export const TRANSACTION_EVENT_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const ERROR_EVENT_FILTERS: FilterKeySection = {
+  value: 'error_event_filters',
+  label: 'Event',
+  children: [
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const COMBINED_EVENT_FILTERS: FilterKeySection = {
+  value: 'combined_event_filters',
+  label: 'Event',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+export const USER_CONTEXT_FILTERS: FilterKeySection = {
+  value: 'user_context_filters',
+  label: 'User',
+  children: [
+    ...USER_FILTERS.children,
+    ...GEO_FILTERS.children,
+    ...DEVICE_FILTERS.children,
+  ],
+};
+
+export const PERFORMANCE_FILTERS: FilterKeySection = {
+  value: 'performance_filters',
+  label: 'Performance',
+  children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
+};
+
+export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const ERRORS_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  ERROR_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  COMBINED_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+// TODO: In followup PR, add this
+// export const PLATFORM_KEY_TO_FILTER_SECTIONS
+// will take in a project platform key, and output only the relevant filter key sections.
+// This way, users will not be suggested mobile fields for a backend transaction, for example.
+
+export const TYPED_TAG_KEY_RE = /tags\[(.*),(.*)\]/;
+
+export function formatParsedFunction(func: ParsedFunction) {
+  const args = func.arguments.map(arg => {
+    const result = arg.match(TYPED_TAG_KEY_RE);
+    return result?.[1] ?? arg;
+  });
+  return `${func.name}(${args.join(',')})`;
 }

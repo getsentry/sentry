@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -7,19 +8,30 @@ import {space} from 'sentry/styles/space';
 type Props = {
   details: ThreadInfo;
   id: number;
+  name?: string | null;
 };
 
 type ThreadInfo = {
   filename?: string;
   label?: string;
+  state?: ThreadStates;
 };
 
-const SelectedOption = ({id, details}: Props) => (
-  <Wrapper>
-    <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{details?.label || `<${t('unknown')}>`}</Label>
-  </Wrapper>
-);
+function getThreadLabel(details: ThreadInfo, name?: string | null) {
+  if (name?.length) {
+    return name;
+  }
+  return details?.label || `<${t('unknown')}>`;
+}
+
+function SelectedOption({id, name, details}: Props) {
+  return (
+    <Wrapper>
+      <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
+      <Label>{getThreadLabel(details, name)}</Label>
+    </Wrapper>
+  );
+}
 
 export default SelectedOption;
 
@@ -35,5 +47,5 @@ const ThreadId = styled(TextOverflow)`
 `;
 
 const Label = styled(ThreadId)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

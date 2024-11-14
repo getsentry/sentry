@@ -1,10 +1,12 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
-import {EventsResults} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 
 function customEncodeURIComponent(str) {
   return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
@@ -12,7 +14,7 @@ function customEncodeURIComponent(str) {
   });
 }
 
-const project = TestStubs.Project({
+const project = ProjectFixture({
   id: '1',
   slug: 'foo',
 });
@@ -23,7 +25,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders loading', function () {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -39,14 +41,14 @@ describe('ProfileEventsTable', function () {
         isLoading
         sort={sort}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
 
   it('renders error', function () {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -62,14 +64,14 @@ describe('ProfileEventsTable', function () {
         isLoading={false}
         sort={sort}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
   });
 
   it('renders asc sort links on the header', function () {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -86,7 +88,7 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -98,7 +100,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders desc sort links on the header', function () {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
 
     const columns = ['count()' as const];
     const sort = {
@@ -115,7 +117,7 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -127,7 +129,7 @@ describe('ProfileEventsTable', function () {
   });
 
   it('renders formatted values', function () {
-    const {organization, routerContext} = initializeOrg();
+    const {organization, router} = initializeOrg();
 
     const columns = [
       'id',
@@ -187,14 +189,14 @@ describe('ProfileEventsTable', function () {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // id
     expect(screen.getByRole('cell', {name: 'aaaaaaaa'})).toBeInTheDocument();
 
     // project
-    expect(screen.getByRole('cell', {name: 'foo'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
 
     // the transaction is both a cell and a link
     expect(screen.getByRole('link', {name: 'bar'})).toBeInTheDocument();

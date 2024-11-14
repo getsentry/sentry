@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {Integration} from 'sentry/types';
+import type {Integration} from 'sentry/types/integrations';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = {
@@ -44,7 +44,7 @@ const Labels = styled('div')<{compact: boolean}>`
 
 const IntegrationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 // Not using the overflowEllipsis style import here

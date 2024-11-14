@@ -1,16 +1,19 @@
-import {useCallback, useContext, useEffect, useMemo, useState} from 'react';
+import {useContext, useMemo} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
-import {useResizeObserver} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
-import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
+import type {DropdownMenuListProps} from './list';
+import DropdownMenuList, {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 
@@ -45,7 +48,7 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface DropdownMenuProps
+export interface DropdownMenuProps
   extends Omit<
       DropdownMenuListProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
@@ -58,7 +61,10 @@ interface DropdownMenuProps
       | 'isDismissable'
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
+      | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
+      | 'flipOptions'
     > {
   /**
    * Items to display inside the dropdown menu. If the item has a `children`
@@ -77,16 +83,11 @@ interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactChild;
   /**
-   * Whether the menu should always be wider than the trigger. If true (default), then
-   * the menu will have a min width equal to the trigger's width.
+   * Reference to the container element that the portal should be rendered into.
    */
-  menuWiderThanTrigger?: boolean;
-  /**
-   * Minimum menu width, in pixels
-   */
-  minMenuWidth?: number;
+  portalContainerRef?: React.RefObject<HTMLElement>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -102,9 +103,8 @@ interface DropdownMenuProps
    * features won't work correctly.
    */
   trigger?: (
-    props: Omit<React.HTMLAttributes<Element>, 'children'> & {
-      onClick?: (e: MouseEvent) => void;
-    }
+    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
+    isOpen: boolean
   ) => React.ReactNode;
   /**
    * By default, the menu trigger will be rendered as a button, with
@@ -117,6 +117,14 @@ interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
+
+  /**
+   * Whether to render the menu inside a React portal (false by default). This should
+   * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
+   * scrollable container that messes with the menu's position. Some features, namely
+   * submenus, will not work correctly inside portals.
+   */
+  usePortal?: boolean;
 }
 
 /**
@@ -131,19 +139,22 @@ function DropdownMenu({
   triggerProps = {},
   isDisabled: disabledProp,
   isOpen: isOpenProp,
-  minMenuWidth,
-  menuWiderThanTrigger = true,
   renderWrapAs = 'div',
   size = 'md',
   className,
 
   // Overlay props
+  usePortal = false,
   offset = 8,
   position = 'bottom-start',
   isDismissable = true,
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
+  onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
+  flipOptions,
+  portalContainerRef,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -161,9 +172,13 @@ function DropdownMenu({
     offset,
     position,
     isDismissable,
+    disableTrigger: isDisabled,
     shouldCloseOnBlur,
     shouldCloseOnInteractOutside,
+    onInteractOutside,
     preventOverflowOptions,
+    flipOptions,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -171,6 +186,9 @@ function DropdownMenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
+  // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
+  // Avoids the menu from focusing before popper has placed it in the correct position
+  menuProps.autoFocus = false;
 
   const {buttonProps} = useButton(
     {
@@ -180,48 +198,17 @@ function DropdownMenu({
     triggerRef
   );
 
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    if (!menuWiderThanTrigger) {
-      return;
-    }
-
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-    setTriggerWidth(triggerRef.current?.offsetWidth ?? 0);
-  }, [menuWiderThanTrigger, triggerRef]);
-
-  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
-
   function renderTrigger() {
     if (trigger) {
-      return trigger({
-        size,
-        isOpen,
-        ...triggerProps,
-        ...overlayTriggerProps,
-        ...buttonProps,
-      });
+      return trigger({...buttonProps, ...overlayTriggerProps}, isOpen);
     }
     return (
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>
@@ -236,12 +223,11 @@ function DropdownMenu({
       return null;
     }
 
-    return (
+    const menu = (
       <DropdownMenuList
         {...props}
         {...menuProps}
         size={size}
-        minWidth={Math.max(minMenuWidth ?? 0, triggerWidth ?? 0)}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={overlayProps}
         overlayState={overlayState}
@@ -267,6 +253,10 @@ function DropdownMenu({
         }}
       </DropdownMenuList>
     );
+
+    return usePortal
+      ? createPortal(menu, portalContainerRef?.current ?? document.body)
+      : menu;
   }
 
   return (
@@ -280,5 +270,6 @@ function DropdownMenu({
 export {DropdownMenu};
 
 const DropdownMenuWrap = styled('div')`
+  display: contents;
   list-style-type: none;
 `;

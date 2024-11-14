@@ -1,6 +1,20 @@
 import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
+  describe('MutableSearch.fromQueryObject', function () {
+    it.each([
+      [{transaction: '/index'}, 'transaction:/index'],
+      [{transaction: '/index', has: 'span.domain'}, 'transaction:/index has:span.domain'],
+      [{transaction: '/index', 'span.domain': undefined}, 'transaction:/index'],
+      [{'span.domain': '*hello*'}, 'span.domain:*hello*'],
+      [{'span.description': '*hello*'}, 'span.description:*hello*'],
+      [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
+      [{transaction: '(empty)'}, '!has:transaction'],
+    ])('converts %s to search string', (query, result) => {
+      expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
+    });
+  });
+
   describe('new MutableSearch()', function () {
     const cases = [
       {
@@ -211,6 +225,13 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toEqual(
         'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2'
       );
+    });
+
+    it('adds individual values to query object', function () {
+      const results = new MutableSearch([]);
+
+      results.addFilterValue('e', 'e1*e2\\e3');
+      expect(results.formatString()).toEqual('e:"e1\\*e2\\e3"');
     });
 
     it('add text searches to query object', function () {

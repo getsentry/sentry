@@ -7,13 +7,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
-  const {routerContext, organization, project, router} = initializeOrg();
-  const params = {...router.params, projectId: project.slug};
+  const {organization, project, router} = initializeOrg();
+  const params = {...router.params, projectId: project.slug} as any;
 
   beforeEach(() => {
     PageFiltersStore.reset();
     ProjectsStore.reset();
-    // @ts-ignore no-console
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
@@ -23,7 +22,7 @@ describe('ProjectDetail', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
   });
@@ -51,10 +50,21 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <ProjectDetails
+          organization={organization}
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+        />,
+        {
+          router,
+          organization,
+        }
+      );
 
       expect(
         screen.queryByText(
@@ -86,10 +96,21 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <ProjectDetails
+          organization={organization}
+          router={router}
+          location={router.location}
+          params={params}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+        />,
+        {
+          router,
+          organization,
+        }
+      );
 
       expect(
         await screen.findByText(

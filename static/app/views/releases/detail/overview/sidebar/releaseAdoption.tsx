@@ -1,30 +1,27 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import {
   ADOPTION_STAGE_LABELS,
@@ -63,7 +60,6 @@ function ReleaseAdoption({
   errored,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
@@ -310,7 +306,6 @@ function ReleaseAdoption({
               <TransitionChart loading={loading} reloading={reloading} height="280px">
                 <TransparentLoadingMask visible={reloading} />
                 <ChartZoom
-                  router={router}
                   period={period ?? undefined}
                   utc={utc === 'true'}
                   start={start}

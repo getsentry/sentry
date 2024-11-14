@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
-type FieldWrapperProps = Pick<
-  FieldGroupProps,
-  'hasControlState' | 'highlighted' | 'inline' | 'stacked'
->;
+interface FieldWrapperProps
+  extends Pick<
+    FieldGroupProps,
+    'hasControlState' | 'highlighted' | 'inline' | 'stacked'
+  > {}
 
 const inlineStyle = (p: FieldWrapperProps) =>
   p.inline
@@ -50,10 +51,7 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
         content: '';
         display: block;
         position: absolute;
-        top: -1px;
-        left: -1px;
-        right: -1px;
-        bottom: -1px;
+        inset: -1px;
         border: 1px solid ${p.theme.purple300};
         pointer-events: none;
       }

@@ -1,15 +1,24 @@
 import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {WebVital} from 'sentry/utils/fields';
+import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import type {WebVital} from 'sentry/utils/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {
+  getIsMetricsDataFromResults,
+  useMEPDataContext,
+} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPSettingProvider,
   useMEPSettingContext,
@@ -21,10 +30,7 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  getTransactionMEPParamsIfApplicable,
-  getUnfilteredTotalsEventView,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
 import {
@@ -32,7 +38,8 @@ import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
 } from '../filter';
-import PageLayout, {ChildProps} from '../pageLayout';
+import type {ChildProps} from '../pageLayout';
+import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -61,7 +68,7 @@ function TransactionOverview(props: Props) {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
-    trackAdvancedAnalyticsEvent('performance_views.transaction_summary.view', {
+    trackAnalytics('performance_views.transaction_summary.view', {
       organization,
     });
   }, [selection, organization, api]);
@@ -72,13 +79,23 @@ function TransactionOverview(props: Props) {
         location={location}
         organization={organization}
         projects={projects}
-        tab={Tab.TransactionSummary}
+        tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={OverviewContentWrapper}
+        childComponent={CardinalityLoadingWrapper}
       />
     </MEPSettingProvider>
   );
+}
+
+function CardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OverviewContentWrapper {...props} />;
 }
 
 function OverviewContentWrapper(props: ChildProps) {
@@ -92,11 +109,13 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
 
+  const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
+  const mepCardinalityContext = useMetricsCardinalityContext();
   const queryExtras = getTransactionMEPParamsIfApplicable(
     mepSetting,
-    organization,
-    location
+    mepCardinalityContext,
+    organization
   );
 
   const queryData = useDiscoverQuery({
@@ -107,6 +126,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
     queryExtras,
+    options: {
+      refetchOnWindowFocus: false,
+    },
   });
 
   // Count has to be total indexed events count because it's only used
@@ -120,37 +142,22 @@ function OverviewContentWrapper(props: ChildProps) {
     referrer: 'api.performance.transaction-summary',
   });
 
-  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
-  const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location, ['tpm']),
-    orgSlug: organization.slug,
-    location,
-    transactionThreshold,
-    transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
-    queryExtras: unfilteredQueryExtras,
-  });
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
 
-  const {data: tableData, isLoading, error} = queryData;
-  const {
-    data: unfilteredTableData,
-    isLoading: isAdditionalQueryLoading,
-    error: additionalQueryError,
-  } = additionalQueryData;
+  const {data: tableData, isPending, error} = queryData;
   const {
     data: totalCountTableData,
-    isLoading: isTotalCountQueryLoading,
+    isPending: isTotalCountQueryLoading,
     error: totalCountQueryError,
   } = totalCountQueryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
-    trackAdvancedAnalyticsEvent('performance_views.filter_dropdown.selection', {
+    trackAnalytics('performance_views.filter_dropdown.selection', {
       organization,
       action: newFilter as string,
     });
@@ -160,7 +167,7 @@ function OverviewContentWrapper(props: ChildProps) {
       ...filterToLocationQuery(newFilter),
     };
 
-    if (newFilter === SpanOperationBreakdownFilter.None) {
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
 
@@ -181,9 +188,6 @@ function OverviewContentWrapper(props: ChildProps) {
   // while other fields could be either metrics or index based
   totals = {...totals, ...totalCountData};
 
-  const unfilteredTotals: TotalValues | null =
-    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
-
   return (
     <SummaryContent
       location={location}
@@ -191,12 +195,11 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading || isAdditionalQueryLoading || isTotalCountQueryLoading}
-      error={error || additionalQueryError || totalCountQueryError}
+      isLoading={isPending || isTotalCountQueryLoading}
+      error={error || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-      unfilteredTotalValues={unfilteredTotals}
     />
   );
 }
@@ -312,7 +315,7 @@ function getTotalsEventView(
         ({
           kind: 'function',
           function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
-        } as Column)
+        }) as Column
     ),
   ]);
 }

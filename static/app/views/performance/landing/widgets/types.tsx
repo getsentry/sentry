@@ -1,13 +1,14 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
-import BaseChart from 'sentry/components/charts/baseChart';
-import {RenderProps} from 'sentry/components/charts/eventsRequest';
-import {DateString, Organization, OrganizationSummary} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Client} from 'sentry/api';
+import type BaseChart from 'sentry/components/charts/baseChart';
+import type {RenderProps} from 'sentry/components/charts/eventsRequest';
+import type {DateString} from 'sentry/types/core';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
 
-import {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
-import {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
+import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
+import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
 export enum VisualizationDataState {
   ERROR = 'error',
@@ -17,16 +18,21 @@ export enum VisualizationDataState {
 }
 
 export enum GenericPerformanceWidgetDataType {
-  histogram = 'histogram',
-  area = 'area',
-  vitals = 'vitals',
-  line_list = 'line_list',
-  trends = 'trends',
-  stacked_area = 'stacked_area',
+  HISTOGRAM = 'histogram',
+  AREA = 'area',
+  VITALS = 'vitals',
+  LINE_LIST = 'line_list',
+  TRENDS = 'trends',
+  STACKED_AREA = 'stacked_area',
+  PERFORMANCE_SCORE = 'performance_score',
+  SLOW_SCREENS_BY_TTID = 'slow_screens_by_ttid',
+  PERFORMANCE_SCORE_LIST = 'performance_score_list',
+  SLOW_SCREENS_BY_COLD_START = 'slow_screens_by_cold_start',
+  SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
 export type PerformanceWidgetProps = {
-  ContainerActions: React.FC<{isLoading: boolean}> | null;
+  ContainerActions: React.ComponentType<{isLoading: boolean}> | null;
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
@@ -37,10 +43,11 @@ export type PerformanceWidgetProps = {
   organization: Organization;
   title: string;
   titleTooltip: string;
-
-  InteractiveTitle?: React.FC<{isLoading: boolean}> | null;
+  InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
+
+  subTitle?: string;
 
   withStaticFilters?: boolean;
 };
@@ -57,7 +64,7 @@ export interface WidgetDataConstraint {
 export type QueryChildren = {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = React.FC<
+export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   QueryChildren & {
     eventView: EventView;
     orgSlug: string;
@@ -78,7 +85,7 @@ export type QueryFC<T extends WidgetDataConstraint> = React.FC<
 
 export type QueryDefinition<
   T extends WidgetDataConstraint,
-  S extends WidgetDataResult | undefined
+  S extends WidgetDataResult | undefined,
 > = {
   component: QueryFC<T>;
   fields: string | string[];
@@ -95,7 +102,7 @@ export type Queries<T extends WidgetDataConstraint> = Record<
 >;
 
 type Visualization<T> = {
-  component: React.FC<{
+  component: React.ComponentType<{
     widgetData: T;
     grid?: React.ComponentProps<typeof BaseChart>['grid'];
     height?: number;
@@ -111,13 +118,13 @@ type Visualization<T> = {
 
 type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
 
-type HeaderActions<T> = React.FC<{
+type HeaderActions<T> = React.ComponentType<{
   widgetData: T;
 }>;
 
-type InteractiveTitle<T> = React.FC<{widgetData: T}>;
+type InteractiveTitle<T> = React.ComponentType<{widgetData: T}>;
 
-type Subtitle<T> = React.FC<{
+type Subtitle<T> = React.ComponentType<{
   widgetData: T;
 }>;
 
@@ -139,9 +146,9 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   // Header;
   title: string;
   titleTooltip: string;
-  EmptyComponent?: React.FC<{height?: number}>;
-
+  EmptyComponent?: React.ComponentType<{height?: number}>;
   HeaderActions?: HeaderActions<T>;
+
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
 };

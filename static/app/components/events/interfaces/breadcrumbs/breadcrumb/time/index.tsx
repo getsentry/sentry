@@ -5,9 +5,8 @@ import Highlight from 'sentry/components/highlight';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-import {getFormattedTimestamp} from './utils';
 
 type Props = {
   searchTerm: string;
@@ -43,7 +42,6 @@ const Time = memo(function Time({
           </Title>
         }
         containerDisplayMode="inline-flex"
-        disableForVisualTest
       >
         {getDynamicText({
           value: <Highlight text={searchTerm}>{displayTime}</Highlight>,

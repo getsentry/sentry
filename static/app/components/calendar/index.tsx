@@ -6,10 +6,13 @@ import Placeholder from 'sentry/components/placeholder';
 import type {DatePickerProps} from './datePicker';
 import type {DateRangePickerProps} from './dateRangePicker';
 
-const LazyDatePicker = lazy(() => import('./datePicker'));
-const LazyDateRangePicker = lazy(() => import('./dateRangePicker'));
+// Explicity set component type to avoid complex React.lazy type
+const LazyDatePicker: React.FC<DatePickerProps> = lazy(() => import('./datePicker'));
+const LazyDateRangePicker: React.FC<DateRangePickerProps> = lazy(
+  () => import('./dateRangePicker')
+);
 
-const CalendarSuspenseWrapper: React.FC = ({children}) => {
+function CalendarSuspenseWrapper({children}: {children: React.ReactNode}) {
   return (
     <Suspense
       fallback={
@@ -21,20 +24,20 @@ const CalendarSuspenseWrapper: React.FC = ({children}) => {
       {children}
     </Suspense>
   );
-};
+}
 
-export const DatePicker = (props: DatePickerProps) => {
+export function DatePicker(props: DatePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDatePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}
 
-export const DateRangePicker = (props: DateRangePickerProps) => {
+export function DateRangePicker(props: DateRangePickerProps) {
   return (
     <CalendarSuspenseWrapper>
       <LazyDateRangePicker {...props} />
     </CalendarSuspenseWrapper>
   );
-};
+}

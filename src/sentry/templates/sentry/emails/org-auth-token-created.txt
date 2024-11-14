@@ -1,0 +1,21 @@
+{% spaceless %}
+{% load sentry_helpers %}
+{% autoescape off %}
+Security Notice
+---------------
+User {{ actor.email }} has created a new Organization Auth Token "{{ token_name }}" for your Sentry organization {{ organization.name }}.
+
+Details
+-------
+
+Account: {{ actor.email }}
+IP: {{ ip_address }}
+When: {{ datetime }} UTC
+{% block security_metadata %}{% endblock %}
+
+This activity looks suspicious?
+------------------------------
+
+We recommend to check with {{ actor.email }} if you are unsure about the purpose of this token. If you determine that this activity is malicious please contact {% security_contact %}.
+{% endautoescape %}
+{% endspaceless %}

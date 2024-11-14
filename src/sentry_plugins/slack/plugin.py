@@ -1,9 +1,9 @@
 from rest_framework import status
 
 from sentry import tagstore
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
-from sentry.plugins.base import Notification
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
+from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases import notify
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
@@ -42,10 +42,10 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         )
     ]
 
-    def is_configured(self, project):
+    def is_configured(self, project) -> bool:
         return bool(self.get_option("webhook", project))
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             {
                 "name": "webhook",
@@ -148,7 +148,8 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             return ()
 
         return (
-            (tagstore.get_tag_key_label(k), tagstore.get_tag_value_label(k, v)) for k, v in tag_list
+            (tagstore.backend.get_tag_key_label(k), tagstore.backend.get_tag_value_label(k, v))
+            for k, v in tag_list
         )
 
     def get_tag_list(self, name, project):
@@ -216,7 +217,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             excluded_tags = set(self.get_tag_list("excluded_tag_keys", project) or [])
             for tag_key, tag_value in self._get_tags(event):
                 key = tag_key.lower()
-                std_key = tagstore.get_standardized_key(key)
+                std_key = tagstore.backend.get_standardized_key(key)
                 if included_tags and key not in included_tags and std_key not in included_tags:
                     continue
                 if excluded_tags and (key in excluded_tags or std_key in excluded_tags):
@@ -257,7 +258,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
             if raise_exception or not (
                 e.text in IGNORABLE_SLACK_ERRORS or e.code in IGNORABLE_SLACK_ERROR_CODES
             ):
-                raise e
+                raise
 
     def get_client(self, project):
         webhook = self.get_option("webhook", project).strip()

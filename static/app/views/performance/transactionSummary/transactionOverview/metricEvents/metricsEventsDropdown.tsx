@@ -1,12 +1,12 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   AutoSampleState,
   MEPState,
-  MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
@@ -17,9 +17,9 @@ interface MetricsEventsOption {
 }
 
 const autoTextMap: Record<AutoSampleState, string> = {
-  [AutoSampleState.unset]: t('Auto'),
-  [AutoSampleState.metrics]: t('Auto (metrics)'),
-  [AutoSampleState.transactions]: t('Auto (transactions)'),
+  [AutoSampleState.UNSET]: t('Auto'),
+  [AutoSampleState.METRICS]: t('Auto (metrics)'),
+  [AutoSampleState.TRANSACTIONS]: t('Auto (transactions)'),
 };
 
 function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOption[] {
@@ -29,17 +29,17 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
 
   return [
     {
-      value: MEPState.auto,
+      value: MEPState.AUTO,
       prefix,
       label: autoText,
     },
     {
-      value: MEPState.metricsOnly,
+      value: MEPState.METRICS_ONLY,
       prefix,
       label: t('Processed'),
     },
     {
-      value: MEPState.transactionsOnly,
+      value: MEPState.TRANSACTIONS_ONLY,
       prefix,
       label: t('Indexed'),
     },
@@ -48,7 +48,7 @@ function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOpt
 
 export function MetricsEventsDropdown() {
   return (
-    <Feature features={['performance-use-metrics']}>
+    <Feature features="performance-use-metrics">
       <InnerDropdown />
     </Feature>
   );

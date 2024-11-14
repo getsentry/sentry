@@ -16,7 +16,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
       "id": "133d60480286590a610a0eb7352ff6e02b9674c4",
       "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
       "distinct": true,
-      "message": "Update README.md (àgain)",
+      "message": "Update hello.py",
       "timestamp": "2015-05-05T19:45:15-04:00",
       "url": "https://github.com/baxterthehacker/public-repo/commit/133d60480286590a610a0eb7352ff6e02b9674c4",
       "author": {
@@ -33,10 +33,10 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
 
       ],
       "removed": [
-
+        "setup.jsx"
       ],
       "modified": [
-        "README.md"
+        "hello.py"
       ]
     },
     {
@@ -57,7 +57,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
         "username": "baxterthehacker"
       },
       "added": [
-
+        "setup.jsx"
       ],
       "removed": [
 
@@ -98,7 +98,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
     "id": "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
     "tree_id": "f9d2a07e9488b91af2641b26b9407fe22a451433",
     "distinct": true,
-    "message": "Update README.md",
+    "message": "Update hello.py",
     "timestamp": "2015-05-05T19:40:15-04:00",
     "url": "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
     "author": {
@@ -118,7 +118,7 @@ PUSH_EVENT_EXAMPLE_INSTALLATION = r"""{
 
     ],
     "modified": [
-      "README.md"
+      "hello.py"
     ]
   },
   "repository": {
@@ -602,6 +602,53 @@ INSTALLATION_EVENT_EXAMPLE = """{
   }
 }"""
 
+INSTALLATION_DELETE_EVENT_EXAMPLE = """{
+  "action": "deleted",
+  "installation": {
+    "id": 2,
+    "account": {
+      "login": "octocat",
+      "id": 1,
+      "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/octocat",
+      "html_url": "https://github.com/octocat",
+      "followers_url": "https://api.github.com/users/octocat/followers",
+      "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+      "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+      "organizations_url": "https://api.github.com/users/octocat/orgs",
+      "repos_url": "https://api.github.com/users/octocat/repos",
+      "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/octocat/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "access_tokens_url": "https://api.github.com/installations/2/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories"
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/octocat",
+    "html_url": "https://github.com/octocat",
+    "followers_url": "https://api.github.com/users/octocat/followers",
+    "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+    "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+    "organizations_url": "https://api.github.com/users/octocat/orgs",
+    "repos_url": "https://api.github.com/users/octocat/repos",
+    "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/octocat/received_events",
+    "type": "User",
+    "site_admin": false
+  }
+}"""
+
 INSTALLATION_REPO_EVENT = """{
   "action": "added",
   "installation": {
@@ -661,7 +708,7 @@ INSTALLATION_REPO_EVENT = """{
   }
 }"""
 
-INTSTALLATION_REPOSITORIES_API_RESPONSE = """{
+INSTALLATION_REPOSITORIES_API_RESPONSE = """{
   "total_count": 1,
   "repositories": [
     {
@@ -761,6 +808,46 @@ INTSTALLATION_REPOSITORIES_API_RESPONSE = """{
       "network_count": 0
     }
   ]
+}"""
+
+INSTALLATION_API_RESPONSE = """{
+  "id": 2,
+  "account": {
+    "login": "octocat",
+    "id": 2,
+    "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/octocat",
+    "html_url": "https://github.com/octocat",
+    "followers_url": "https://api.github.com/users/octocat/followers",
+    "following_url": "https://api.github.com/users/octocat/following{/other_user}",
+    "gists_url": "https://api.github.com/users/octocat/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/octocat/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/octocat/subscriptions",
+    "organizations_url": "https://api.github.com/users/octocat/orgs",
+    "repos_url": "https://api.github.com/users/octocat/repos",
+    "events_url": "https://api.github.com/users/octocat/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/octocat/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "access_tokens_url": "https://api.github.com/installations/1/access_tokens",
+  "repositories_url": "https://api.github.com/installation/repositories",
+  "html_url": "https://github.com/organizations/github/settings/installations/1",
+  "app_id": 1,
+  "target_id": 1,
+  "target_type": "Organization",
+  "permissions": {
+    "metadata": "read",
+    "contents": "read",
+    "issues": "write",
+    "single_file": "write"
+  },
+  "events": [
+    "push",
+    "pull_request"
+  ],
+  "single_file_name": "config.yml"
 }"""
 
 LIST_INSTALLATION_API_RESPONSE = """{
@@ -2088,6 +2175,44 @@ PULL_REQUEST_CLOSED_EVENT_EXAMPLE = b"""{
     "site_admin": false
   }
 }"""
+
+# https://api.github.com/users/baxterthehacker
+API_GITHUB_COM_USERS_BAXTERTHEHACKER = """\
+{
+  "login": "baxterthehacker",
+  "id": 6752317,
+  "node_id": "MDQ6VXNlcjY3NTIzMTc=",
+  "avatar_url": "https://avatars.githubusercontent.com/u/6752317?v=4",
+  "gravatar_id": "",
+  "url": "https://api.github.com/users/baxterthehacker",
+  "html_url": "https://github.com/baxterthehacker",
+  "followers_url": "https://api.github.com/users/baxterthehacker/followers",
+  "following_url": "https://api.github.com/users/baxterthehacker/following{/other_user}",
+  "gists_url": "https://api.github.com/users/baxterthehacker/gists{/gist_id}",
+  "starred_url": "https://api.github.com/users/baxterthehacker/starred{/owner}{/repo}",
+  "subscriptions_url": "https://api.github.com/users/baxterthehacker/subscriptions",
+  "organizations_url": "https://api.github.com/users/baxterthehacker/orgs",
+  "repos_url": "https://api.github.com/users/baxterthehacker/repos",
+  "events_url": "https://api.github.com/users/baxterthehacker/events{/privacy}",
+  "received_events_url": "https://api.github.com/users/baxterthehacker/received_events",
+  "type": "User",
+  "site_admin": false,
+  "name": null,
+  "company": null,
+  "blog": "",
+  "location": null,
+  "email": null,
+  "hireable": null,
+  "bio": null,
+  "twitter_username": null,
+  "public_repos": 6,
+  "public_gists": 0,
+  "followers": 9,
+  "following": 1,
+  "created_at": "2014-02-21T22:24:28Z",
+  "updated_at": "2023-12-22T12:36:56Z"
+}
+"""
 
 # Example taken from github with additional example commit added https://docs.github.com/en/rest/commits/commits#compare-two-commits
 COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE = """{

@@ -18,6 +18,8 @@ const message = (
   </Fragment>
 );
 
-const RemoveConfirm = (props: Props) => <Confirm {...props} message={message} />;
+function RemoveConfirm(props: Props) {
+  return <Confirm {...props} message={message} />;
+}
 
 export default RemoveConfirm;

@@ -1,33 +1,44 @@
-import logging
+from __future__ import annotations
+
+from typing import Any
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
+    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.models import Identity, Repository
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
+from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.tasks.integrations import migrate_repo
+from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
 
-from .client import BitbucketServer, BitbucketServerSetupClient
+from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
-
-logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket Server, enabling the following features:
@@ -129,7 +140,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -153,39 +164,38 @@ class OAuthLoginView(PipelineView):
     and redirecting the user to approve it.
     """
 
-    @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
-        if "oauth_token" in request.GET:
-            return pipeline.next_step()
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_LOGIN,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            if "oauth_token" in request.GET:
+                return pipeline.next_step()
 
-        config = pipeline.fetch_state("installation_data")
-        client = BitbucketServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-
-        try:
-            request_token = client.get_request_token()
-        except ApiError as error:
-            logger.info(
-                "identity.bitbucket-server.request-token",
-                extra={"url": config.get("url"), "error": error},
+            config = pipeline.fetch_state("installation_data")
+            client = BitbucketServerSetupClient(
+                config.get("url"),
+                config.get("consumer_key"),
+                config.get("private_key"),
+                config.get("verify_ssl"),
             )
-            return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
-        pipeline.bind_state("request_token", request_token)
-        if not request_token.get("oauth_token"):
-            logger.info(
-                "identity.bitbucket-server.oauth-token",
-                extra={"url": config.get("url")},
-            )
-            return pipeline.error("Missing oauth_token")
+            try:
+                request_token = client.get_request_token()
+            except ApiError as error:
+                lifecycle.record_failure(str(error), extra={"url": config.get("url")})
+                return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
-        authorize_url = client.get_authorize_url(request_token)
+            pipeline.bind_state("request_token", request_token)
+            if not request_token.get("oauth_token"):
+                lifecycle.record_failure("missing oauth_token", extra={"url": config.get("url")})
+                return pipeline.error("Missing oauth_token")
 
-        return self.redirect(authorize_url)
+            authorize_url = client.get_authorize_url(request_token)
+
+            return self.redirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -194,37 +204,46 @@ class OAuthCallbackView(PipelineView):
     into an access token.
     """
 
-    @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
-        config = pipeline.fetch_state("installation_data")
-        client = BitbucketServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-
-        try:
-            access_token = client.get_access_token(
-                pipeline.fetch_state("request_token"), request.GET["oauth_token"]
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_CALLBACK,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            config = pipeline.fetch_state("installation_data")
+            client = BitbucketServerSetupClient(
+                config.get("url"),
+                config.get("consumer_key"),
+                config.get("private_key"),
+                config.get("verify_ssl"),
             )
 
-            pipeline.bind_state("access_token", access_token)
+            try:
+                access_token = client.get_access_token(
+                    pipeline.fetch_state("request_token"), request.GET["oauth_token"]
+                )
 
-            return pipeline.next_step()
-        except ApiError as error:
-            logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
+                pipeline.bind_state("access_token", access_token)
+
+                return pipeline.next_step()
+            except ApiError as error:
+                lifecycle.record_failure(str(error))
+                return pipeline.error(
+                    f"Could not fetch an access token from Bitbucket. {str(error)}"
+                )
 
 
-class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
+class BitbucketServerIntegration(RepositoryIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
 
-    repo_search = True
-
     default_identity = None
+
+    @property
+    def integration_name(self) -> str:
+        return "bitbucket_server"
 
     def get_client(self):
         if self.default_identity is None:
@@ -233,18 +252,17 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             except Identity.DoesNotExist:
                 raise IntegrationError("Identity not found.")
 
-        return BitbucketServer(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+        return BitbucketServerClient(
+            integration=self.model,
+            identity=self.default_identity,
         )
 
-    @property
-    def username(self):
-        return self.model.name
+    # IntegrationInstallation methods
 
     def error_message_from_json(self, data):
         return data.get("error", {}).get("message", "unknown error")
+
+    # RepositoryIntegration methods
 
     def get_repositories(self, query=None):
         if not query:
@@ -272,7 +290,7 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             for repo in resp.get("values", [])
         ]
 
-    def has_repo_access(self, repo):
+    def has_repo_access(self, repo: RpcRepository) -> bool:
         """
         We can assume user always has repo access, since the Bitbucket API is limiting the results based on the REPO_ADMIN permission
         """
@@ -280,16 +298,31 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
         return True
 
     def get_unmigratable_repositories(self):
-        repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="bitbucket_server"
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["bitbucket_server"]
         )
 
         accessible_repos = [r["identifier"] for r in self.get_repositories()]
 
         return list(filter(lambda repo: repo.name not in accessible_repos, repos))
 
-    def reinstall(self):
-        self.reinstall_repositories()
+    def source_url_matches(self, url: str) -> bool:
+        raise IntegrationFeatureNotImplementedError
+
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    # Bitbucket Server only methods
+
+    @property
+    def username(self):
+        return self.model.name
 
 
 class BitbucketServerIntegrationProvider(IntegrationProvider):
@@ -298,24 +331,28 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
-    can_add = True
     features = frozenset([IntegrationFeatures.COMMITS])
     setup_dialog_config = {"width": 1030, "height": 1000}
 
     def get_pipeline_views(self):
         return [InstallationConfigView(), OAuthLoginView(), OAuthCallbackView()]
 
-    def post_install(self, integration, organization, extra=None):
-        repo_ids = Repository.objects.filter(
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["bitbucket_server", "integrations:bitbucket_server"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["bitbucket_server", "integrations:bitbucket_server"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }

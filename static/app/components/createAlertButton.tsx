@@ -4,25 +4,27 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import type {AlertType, AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {
-  AlertType,
-  AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-export type CreateAlertFromViewButtonProps = ButtonProps & {
+export type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
   /**
    * Discover query used to create the alert
    */
@@ -115,7 +117,7 @@ type CreateAlertButtonProps = {
   showPermissionGuide?: boolean;
 } & ButtonProps;
 
-const CreateAlertButton = ({
+export default function CreateAlertButton({
   organization,
   projectSlug,
   iconProps,
@@ -125,9 +127,10 @@ const CreateAlertButton = ({
   alertOption,
   onEnter,
   ...buttonProps
-}: CreateAlertButtonProps) => {
+}: CreateAlertButtonProps) {
   const router = useRouter();
   const api = useApi();
+  const {projects} = useProjects();
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
     if (referrer) {
@@ -191,28 +194,21 @@ const CreateAlertButton = ({
   );
 
   const showGuide = !organization.alertsMemberWrite && !!showPermissionGuide;
+  const canCreateAlert =
+    hasEveryAccess(['alerts:write'], {organization}) ||
+    projects.some(p => hasEveryAccess(['alerts:write'], {project: p}));
+  const hasOrgWrite = hasEveryAccess(['org:write'], {organization});
 
-  return (
-    <Access organization={organization} access={['alerts:write']}>
-      {({hasAccess}) =>
-        showGuide ? (
-          <Access organization={organization} access={['org:write']}>
-            {({hasAccess: isOrgAdmin}) => (
-              <GuideAnchor
-                target={isOrgAdmin ? 'alerts_write_owner' : 'alerts_write_member'}
-                onFinish={isOrgAdmin ? enableAlertsMemberWrite : undefined}
-              >
-                {renderButton(hasAccess)}
-              </GuideAnchor>
-            )}
-          </Access>
-        ) : (
-          renderButton(hasAccess)
-        )
-      }
-    </Access>
+  return showGuide ? (
+    <GuideAnchor
+      target={hasOrgWrite ? 'alerts_write_owner' : 'alerts_write_member'}
+      onFinish={hasOrgWrite ? enableAlertsMemberWrite : undefined}
+    >
+      {renderButton(canCreateAlert)}
+    </GuideAnchor>
+  ) : (
+    renderButton(canCreateAlert)
   );
-};
+}
 
 export {CreateAlertFromViewButton};
-export default CreateAlertButton;

@@ -1,16 +1,21 @@
+import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Config, User} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
+import type {User} from 'sentry/types/user';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
   const user: User = {
-    ...TestStubs.User(),
+    ...UserFixture(),
     options: {
+      ...UserFixture().options,
       clock24Hours: true,
       timezone: 'America/Los_Angeles',
     },
@@ -30,7 +35,7 @@ describe('OrganizationAuditLog', function () {
         rows: [
           {
             id: '4500000',
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'project.remove',
             ipAddress: '127.0.0.1',
             note: 'removed project test',
@@ -41,7 +46,7 @@ describe('OrganizationAuditLog', function () {
           },
           {
             id: '430000',
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'org.create',
             ipAddress: '127.0.0.1',
             note: 'created the organization',
@@ -51,12 +56,11 @@ describe('OrganizationAuditLog', function () {
             dateCreated: '2016-11-21T04:02:45.929313Z',
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNamesFixture(),
       },
     });
 
-    const {routerContext, router} = initializeOrg({
-      ...initializeOrg(),
+    const {router} = initializeOrg({
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
@@ -64,7 +68,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
@@ -74,8 +78,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
-    const {routerContext, router, project, projects, organization} = initializeOrg({
-      ...initializeOrg(),
+    const {router, project, projects, organization} = initializeOrg({
       router: {
         params: {orgId: 'org-slug'},
       },
@@ -89,44 +92,44 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'sampling_priority.enabled',
             ipAddress: '127.0.0.1',
             id: '14',
-            note: 'enabled dynamic sampling priority "boostKeyTransactions"',
+            note: 'enabled dynamic sampling priority "boostLatestRelease"',
             targetObject: 4504363022811136,
             targetUser: null,
             data: {
               id: project.id,
-              name: 'boostKeyTransactions',
+              name: 'boostLatestRelease',
               public: false,
               slug: project.slug,
               status: 0,
             },
           },
           {
-            actor: TestStubs.User(),
+            actor: UserFixture(),
             event: 'sampling_priority.disabled',
             ipAddress: '127.0.0.1',
             id: '15',
-            note: 'disabled dynamic sampling priority "boostKeyTransactions"',
+            note: 'disabled dynamic sampling priority "boostLatestRelease"',
             targetObject: 4504363022811136,
             targetUser: null,
             data: {
               id: project.id,
-              name: 'boostKeyTransactions',
+              name: 'boostLatestRelease',
               public: false,
               slug: project.slug,
               status: 0,
             },
           },
         ],
-        options: TestStubs.AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNamesFixture(),
       },
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Enabled dynamic sampling priority
@@ -134,7 +137,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Enabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+          `Enabled retention priority "Prioritize new releases" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -144,7 +147,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Disabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+          `Disabled retention priority "Prioritize new releases" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -153,7 +156,7 @@ describe('OrganizationAuditLog', function () {
     for (const link of screen.getAllByRole('link', {name: project.slug})) {
       expect(link).toHaveAttribute(
         'href',
-        `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+        `/settings/${organization.slug}/projects/${project.slug}/performance/`
       );
     }
   });

@@ -1,9 +1,11 @@
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import all_silo_test
 
 
+@all_silo_test
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class Error500Test(TestCase):
     def test_renders(self):

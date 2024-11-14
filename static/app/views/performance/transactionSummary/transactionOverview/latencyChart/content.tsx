@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
@@ -7,20 +7,20 @@ import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,
 } from 'sentry/utils/performance/histogram/utils';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {filterToColor, filterToField, SpanOperationBreakdownFilter} from '../../filter';
 
 import {decodeHistogramZoom, ZOOM_END, ZOOM_START} from './utils';
@@ -57,9 +57,6 @@ function Content({
   totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
-  const displayCountAsPercentage = organization.features.includes(
-    'performance-metrics-backed-transaction-summary'
-  );
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
@@ -70,7 +67,7 @@ function Content({
 
   function parseHistogramData(data: HistogramData): HistogramData {
     // display each bin's count as a % of total count
-    if (displayCountAsPercentage && totalCount) {
+    if (totalCount) {
       return data.map(({bin, count}) => ({bin, count: count / totalCount}));
     }
     return data;
@@ -87,7 +84,7 @@ function Content({
     };
 
     const colors =
-      currentFilter === SpanOperationBreakdownFilter.None
+      currentFilter === SpanOperationBreakdownFilter.NONE
         ? [...theme.charts.getColorPalette(1)]
         : [filterToColor(currentFilter)];
 
@@ -100,10 +97,8 @@ function Content({
         if (!zoomError) {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
-            const label = displayCountAsPercentage ? t('Transactions') : item.seriesName;
-            const value = displayCountAsPercentage
-              ? formatPercentage(item.value[1])
-              : item.value[1].toLocaleString();
+            const label = t('Transactions');
+            const value = formatPercentage(item.value[1]);
 
             return [
               '<div class="tooltip-series">',
@@ -149,10 +144,7 @@ function Content({
             yAxis={{
               type: 'value',
               axisLabel: {
-                formatter: value =>
-                  displayCountAsPercentage
-                    ? formatPercentage(value, 0)
-                    : formatAbbreviatedNumber(value),
+                formatter: value => formatPercentage(value, 0),
               },
             }}
             series={[series]}

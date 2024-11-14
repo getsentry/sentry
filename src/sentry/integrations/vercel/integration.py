@@ -1,32 +1,35 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlencode
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.mediators.sentry_apps import InternalCreator
-from sentry.models import (
-    Organization,
-    Project,
-    ProjectKey,
-    SentryAppInstallation,
-    SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
-    User,
-)
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.projects.services.project_key import project_key_service
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 from .client import VercelClient
@@ -62,7 +65,6 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
-create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
@@ -93,14 +95,11 @@ class VercelIntegration(IntegrationInstallation):
         return self.model.metadata
 
     def get_dynamic_display_information(self):
-        organization = Organization.objects.get_from_cache(id=self.organization_id)
         qs = urlencode({"category": "source code management"})
-        source_code_link = absolute_uri(f"/settings/{organization.slug}/integrations/?{qs}")
-        add_project_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
+        source_code_link = absolute_uri(f"/settings/{self.organization.slug}/integrations/?{qs}")
         return {
             "configure_integration": {
                 "instructions": [
-                    create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
             }
@@ -151,14 +150,10 @@ class VercelIntegration(IntegrationInstallation):
             for p in vercel_client.get_projects()
         ]
 
-        proj_fields = ["id", "platform", "name", "slug"]
         sentry_projects = [
-            {key: proj[key] for key in proj_fields}
-            for proj in Project.objects.filter(
-                organization_id=self.organization_id, status=ObjectStatus.VISIBLE
-            )
-            .order_by("slug")
-            .values(*proj_fields)
+            {"id": proj.id, "platform": proj.platform, "name": proj.name, "slug": proj.slug}
+            for proj in sorted(self.organization.projects, key=(lambda proj: proj.slug))
+            if proj.status == ObjectStatus.ACTIVE
         ]
 
         fields = [
@@ -195,56 +190,76 @@ class VercelIntegration(IntegrationInstallation):
 
         old_mappings = config.get("project_mappings") or []
 
+        sentry_projects = {proj.id: proj for proj in self.organization.projects}
+
         for mapping in new_mappings:
             # skip any mappings that already exist
             if mapping in old_mappings:
                 continue
 
             [sentry_project_id, vercel_project_id] = mapping
-            sentry_project = Project.objects.get(id=sentry_project_id)
+            sentry_project = sentry_projects[sentry_project_id]
 
-            enabled_dsn = ProjectKey.get_default(project=sentry_project)
+            enabled_dsn = project_key_service.get_default_project_key(
+                organization_id=self.organization_id, project_id=sentry_project_id
+            )
             if not enabled_dsn:
                 raise ValidationError(
                     {"project_mappings": ["You must have an enabled DSN to continue!"]}
                 )
 
-            sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+            sentry_project_dsn = enabled_dsn.dsn_public
 
             vercel_project = vercel_client.get_project(vercel_project_id)
-            source_code_provider = vercel_project.get("link", {}).get("type")
-
-            if not source_code_provider:
-                raise ValidationError(
-                    {
-                        "project_mappings": [
-                            "You must connect your Vercel project to a Git repository to continue!"
-                        ]
-                    }
-                )
 
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
             sentry_auth_token = SentryAppInstallationToken.objects.get_token(
-                sentry_project.organization.id,
+                sentry_project.organization_id,
                 "vercel",
             )
 
             env_var_map = {
-                "SENTRY_ORG": {"type": "encrypted", "value": sentry_project.organization.slug},
-                "SENTRY_PROJECT": {"type": "encrypted", "value": sentry_project.slug},
-                dsn_env_name: {"type": "encrypted", "value": sentry_project_dsn},
+                "SENTRY_ORG": {
+                    "type": "encrypted",
+                    "value": self.organization.slug,
+                    "target": ["production", "preview"],
+                },
+                "SENTRY_PROJECT": {
+                    "type": "encrypted",
+                    "value": sentry_project.slug,
+                    "target": ["production", "preview"],
+                },
+                dsn_env_name: {
+                    "type": "encrypted",
+                    "value": sentry_project_dsn,
+                    "target": [
+                        "production",
+                        "preview",
+                        "development",  # The DSN is the only value that makes sense to have available locally via Vercel CLI's `vercel dev` command
+                    ],
+                },
                 "SENTRY_AUTH_TOKEN": {
                     "type": "encrypted",
                     "value": sentry_auth_token,
+                    "target": ["production", "preview"],
                 },
-                "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+                "VERCEL_GIT_COMMIT_SHA": {
+                    "type": "system",
+                    "value": "VERCEL_GIT_COMMIT_SHA",
+                    "target": ["production", "preview"],
+                },
             }
 
             for env_var, details in env_var_map.items():
                 self.create_env_var(
-                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                    vercel_client,
+                    vercel_project_id,
+                    env_var,
+                    details["value"],
+                    details["type"],
+                    details["target"],
                 )
         config.update(data)
         self.org_integration = integration_service.update_organization_integration(
@@ -252,11 +267,11 @@ class VercelIntegration(IntegrationInstallation):
             config=config,
         )
 
-    def create_env_var(self, client, vercel_project_id, key, value, type):
+    def create_env_var(self, client, vercel_project_id, key, value, type, target):
         data = {
             "key": key,
             "value": value,
-            "target": ["production"],
+            "target": target,
             "type": type,
         }
         try:
@@ -288,7 +303,13 @@ class VercelIntegration(IntegrationInstallation):
 
     def uninstall(self):
         client = self.get_client()
-        client.uninstall(self.get_configuration_id())
+        try:
+            client.uninstall(self.get_configuration_id())
+        except ApiError as error:
+            if error.code == 403:
+                pass
+            else:
+                raise
 
 
 class VercelIntegrationProvider(IntegrationProvider):
@@ -343,10 +364,15 @@ class VercelIntegrationProvider(IntegrationProvider):
 
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         # check if we have an Vercel internal installation already
         if SentryAppInstallationForProvider.objects.filter(
-            organization=organization, provider="vercel"
+            organization_id=organization.id, provider="vercel"
         ).exists():
             logger.info(
                 "vercel.post_install.installation_exists",
@@ -355,19 +381,19 @@ class VercelIntegrationProvider(IntegrationProvider):
             return
 
         user = User.objects.get(id=extra.get("user_id"))
-        data = {
-            "name": "Vercel Internal Integration",
-            "author": "Auto-generated by Sentry",
-            "organization": organization,
-            "overview": internal_integration_overview.strip(),
-            "user": user,
-            "scopes": ["project:releases", "project:read", "project:write"],
-        }
         # create the internal integration and link it to the join table
-        sentry_app = InternalCreator.run(**data)
+        sentry_app = SentryAppCreator(
+            name="Vercel Internal Integration",
+            author="Auto-generated by Sentry",
+            organization_id=organization.id,
+            is_internal=True,
+            verify_install=False,
+            overview=internal_integration_overview.strip(),
+            scopes=["project:releases", "project:read", "project:write"],
+        ).run(user=user)
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(
             sentry_app_installation=sentry_app_installation,
-            organization=organization,
+            organization_id=organization.id,
             provider="vercel",
         )

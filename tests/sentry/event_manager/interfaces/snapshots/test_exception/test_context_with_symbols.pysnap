@@ -1,6 +1,4 @@
 ---
-created: '2019-04-30T08:25:08.369051Z'
-creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
 errors: null
@@ -22,10 +20,12 @@ get_api_context:
         inApp: true
         instructionAddr: null
         lineNo: 1
+        lock: null
         module: null
         package: null
         platform: null
         rawFunction: null
+        sourceLink: null
         symbol: Class.myfunc
         symbolAddr: null
         trust: null

@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import itertools
+from collections.abc import Generator
 from datetime import timedelta
+from typing import Any
 from uuid import uuid4
 
 from django.db import connections, router
@@ -70,14 +74,14 @@ class BulkDeleteQuery:
             cursor.execute(query)
             results = cursor.rowcount > 0
 
-    def iterator(self, chunk_size=100, batch_size=100000):
+    def iterator(self, chunk_size=100, batch_size=100000) -> Generator[tuple[int, ...]]:
         assert self.days is not None
         assert self.dtfield is not None and self.dtfield == self.order_by
 
         dbc = connections[self.using]
         quote_name = dbc.ops.quote_name
 
-        position = None
+        position: object | None = None
         cutoff = timezone.now() - timedelta(days=self.days)
 
         with dbc.get_new_connection(dbc.get_connection_params()) as conn:
@@ -91,7 +95,9 @@ class BulkDeleteQuery:
                 # large quantity of rows from postgres incrementally, without
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
-                    where = [(f"{quote_name(self.dtfield)} < %s", [cutoff])]
+                    where: list[tuple[str, list[Any]]] = [
+                        (f"{quote_name(self.dtfield)} < %s", [cutoff])
+                    ]
 
                     if self.project_id:
                         where.append(("project_id = %s", [self.project_id]))

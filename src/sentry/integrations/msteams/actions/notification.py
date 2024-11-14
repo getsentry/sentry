@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import List
-
+from sentry import features
+from sentry.eventstore.models import GroupEvent
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.utils import get_channel_id
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.rules.actions import IntegrationEventAction
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils import metrics
 
 
@@ -29,14 +29,18 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
 
-    def get_integrations(self) -> List[RpcIntegration]:
+    def get_integrations(self) -> list[RpcIntegration]:
+        # The MSTeams tenant limitation does not seem to be true anymore
+        # Test out the integration through FF to contain the exposure
+        if features.has("organizations:integrations-msteams-tenant", self.project.organization):
+            return [a for a in super().get_integrations()]
         # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
         # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
         return [
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event, state):
+    def after(self, event: GroupEvent, notification_uuid: str | None = None):
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()
@@ -47,10 +51,12 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             rules = [f.rule for f in futures]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration
-            ).build_group_card()
+            ).build_group_card(notification_uuid=notification_uuid)
 
             client = MsTeamsClient(integration)
             client.send_card(channel, card)
+            rule = rules[0] if rules else None
+            self.record_notification_sent(event, channel, rule, notification_uuid)
 
         key = f"msteams:{integration.id}:{channel}"
 

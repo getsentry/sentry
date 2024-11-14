@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -30,6 +31,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
+  tooltipPosition?: PopperProps<any>['placement'];
 }
 
 /**
@@ -38,14 +40,14 @@ interface BaseRadioGroupProps<C extends string> {
 export type RadioOption<C extends string = string> = [
   id: C,
   label: React.ReactNode,
-  description?: React.ReactNode
+  description?: React.ReactNode,
 ];
 
 export interface RadioGroupProps<C extends string = string>
   extends BaseRadioGroupProps<C>,
     Omit<ContainerProps, 'onChange'> {}
 
-const RadioGroup = <C extends string>({
+function RadioGroup<C extends string>({
   value,
   disabled: groupDisabled,
   disabledChoices = [],
@@ -53,48 +55,57 @@ const RadioGroup = <C extends string>({
   label,
   onChange,
   orientInline,
+  tooltipPosition,
   ...props
-}: RadioGroupProps<C>) => (
-  <Container orientInline={orientInline} {...props} role="radiogroup" aria-label={label}>
-    {choices.map(([id, name, description], index) => {
-      const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
-      const disabledChoiceReason = disabledChoice?.[1];
-      const disabled = !!disabledChoice || groupDisabled;
+}: RadioGroupProps<C>) {
+  return (
+    <Container
+      orientInline={orientInline}
+      {...props}
+      role="radiogroup"
+      aria-label={label}
+    >
+      {choices.map(([id, name, description], index) => {
+        const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
+        const disabledChoiceReason = disabledChoice?.[1];
+        const disabled = !!disabledChoice || groupDisabled;
 
-      // TODO(epurkhiser): There should be a `name` and `label` attribute in
-      // the options type to allow for the aria label to work correctly. For
-      // now we slap a `toString` on there, but it may sometimes return
-      // [object Object] if the name is a react node.
+        // TODO(epurkhiser): There should be a `name` and `label` attribute in
+        // the options type to allow for the aria label to work correctly. For
+        // now we slap a `toString` on there, but it may sometimes return
+        // [object Object] if the name is a react node.
 
-      return (
-        <Tooltip
-          key={index}
-          disabled={!disabledChoiceReason}
-          title={disabledChoiceReason}
-        >
-          <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
-            <Radio
-              aria-label={name?.toString()}
-              disabled={disabled}
-              checked={value === id}
-              onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                !disabled && onChange(id, e)
-              }
-            />
-            <RadioLineText disabled={disabled}>{name}</RadioLineText>
-            {description && (
-              <Fragment>
-                {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
-                <div />
-                <Description>{description}</Description>
-              </Fragment>
-            )}
-          </RadioLineItem>
-        </Tooltip>
-      );
-    })}
-  </Container>
-);
+        return (
+          <Tooltip
+            key={index}
+            disabled={!disabledChoiceReason}
+            title={disabledChoiceReason}
+            position={tooltipPosition}
+          >
+            <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
+              <Radio
+                aria-label={name?.toString()}
+                disabled={disabled}
+                checked={value === id}
+                onChange={(e: React.FormEvent<HTMLInputElement>) =>
+                  !disabled && onChange(id, e)
+                }
+              />
+              <RadioLineText disabled={disabled}>{name}</RadioLineText>
+              {description && (
+                <Fragment>
+                  {/* If there is a description then we want to have a 2x2 grid so the first column width aligns with Radio Button */}
+                  <div />
+                  <Description>{description}</Description>
+                </Fragment>
+              )}
+            </RadioLineItem>
+          </Tooltip>
+        );
+      })}
+    </Container>
+  );
+}
 
 const Container = styled('div')<ContainerProps>`
   display: flex;
@@ -115,7 +126,7 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

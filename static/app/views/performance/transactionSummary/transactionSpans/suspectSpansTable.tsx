@@ -1,22 +1,23 @@
-import {ReactNode} from 'react';
-import {Location} from 'history';
+import type {ReactNode} from 'react';
+import type {Location} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container as TableCellContainer} from 'sentry/utils/discover/styles';
-import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import type {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
 
 import {spanDetailsRouteWithQuery} from './spanDetails/utils';
-import {SpanSort, SpanSortOthers, SpanSortPercentiles, SpansTotalValues} from './types';
+import type {SpanSort, SpansTotalValues} from './types';
+import {SpanSortOthers, SpanSortPercentiles} from './types';
 
 type Props = {
   isLoading: boolean;
@@ -56,12 +57,7 @@ export default function SuspectSpansTable(props: Props) {
     p75ExclusiveTime: suspectSpan.p75ExclusiveTime,
     p95ExclusiveTime: suspectSpan.p95ExclusiveTime,
     p99ExclusiveTime: suspectSpan.p99ExclusiveTime,
-    sumExclusiveTime:
-      totals &&
-      defined(totals?.['sum(transaction.duration)']) &&
-      defined(suspectSpan.sumExclusiveTime)
-        ? suspectSpan.sumExclusiveTime / totals['sum(transaction.duration)']
-        : null,
+    sumExclusiveTime: suspectSpan.sumExclusiveTime,
   }));
 
   return (
@@ -79,7 +75,6 @@ export default function SuspectSpansTable(props: Props) {
           project
         ),
       }}
-      location={location}
     />
   );
 }
@@ -103,7 +98,10 @@ function renderBodyCellWithMeta(
   transactionName: string,
   project?: Project
 ) {
-  return (column: TableColumn, dataRow: TableDataRowWithExtras): React.ReactNode => {
+  return function (
+    column: TableColumn,
+    dataRow: TableDataRowWithExtras
+  ): React.ReactNode {
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
 
     if (column.key === 'description') {
@@ -233,7 +231,7 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
   sumExclusiveTime: {
     key: 'sumExclusiveTime',
-    name: t('Total Self Time %'),
+    name: t('Total Self Time'),
     width: COL_WIDTH_UNDEFINED,
   },
 };
@@ -247,5 +245,5 @@ const COLUMN_TYPE: Record<TableColumnKey, ColumnType> = {
   p75ExclusiveTime: 'duration',
   p95ExclusiveTime: 'duration',
   p99ExclusiveTime: 'duration',
-  sumExclusiveTime: 'percentage',
+  sumExclusiveTime: 'duration',
 };

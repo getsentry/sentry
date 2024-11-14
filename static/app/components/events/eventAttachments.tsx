@@ -5,59 +5,36 @@ import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
-import AttachmentUrl from 'sentry/components/events/attachmentUrl';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
-import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
-import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
-import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
+import {LinkButton} from 'sentry/components/button';
 import EventAttachmentActions from 'sentry/components/events/eventAttachmentActions';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';
 
 type EventAttachmentsProps = {
   event: Event;
-  projectSlug: string;
+  /**
+   * Group is not available everywhere this component is used
+   */
+  group: Group | undefined;
+  project: Project;
 };
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
-
-interface InlineAttachmentsProps
-  extends Pick<EventAttachmentsProps, 'event' | 'projectSlug'> {
-  attachment: IssueAttachment;
-  attachmentPreviews: AttachmentPreviewOpenMap;
-}
-
-const getInlineAttachmentRenderer = (attachment: IssueAttachment) => {
-  switch (attachment.mimetype) {
-    case 'text/plain':
-      return attachment.size > 0 ? LogFileViewer : undefined;
-    case 'text/json':
-    case 'text/x-json':
-    case 'application/json':
-      if (attachment.name === 'rrweb.json' || attachment.name.startsWith('rrweb-')) {
-        return RRWebJsonViewer;
-      }
-      return JsonViewer;
-    case 'image/jpeg':
-    case 'image/png':
-    case 'image/gif':
-      return ImageViewer;
-    default:
-      return undefined;
-  }
-};
-
-const hasInlineAttachmentRenderer = (attachment: IssueAttachment): boolean => {
-  return !!getInlineAttachmentRenderer(attachment);
-};
 
 const attachmentPreviewIsOpen = (
   attachmentPreviews: Record<string, boolean>,
@@ -66,32 +43,24 @@ const attachmentPreviewIsOpen = (
   return attachmentPreviews[attachment.id] === true;
 };
 
-const InlineEventAttachment = ({
-  attachmentPreviews,
-  attachment,
-  projectSlug,
-  event,
-}: InlineAttachmentsProps) => {
-  const organization = useOrganization();
-  const AttachmentComponent = getInlineAttachmentRenderer(attachment);
-
-  if (!AttachmentComponent || !attachmentPreviewIsOpen(attachmentPreviews, attachment)) {
-    return null;
-  }
+function ViewAllGroupAttachmentsButton() {
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
 
   return (
-    <AttachmentPreviewWrapper>
-      <AttachmentComponent
-        orgId={organization.slug}
-        projectSlug={projectSlug}
-        eventId={event.id}
-        attachment={attachment}
-      />
-    </AttachmentPreviewWrapper>
+    <LinkButton
+      size="xs"
+      to={{
+        pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+        query: location.query,
+      }}
+    >
+      {t('View All Attachments')}
+    </LinkButton>
   );
-};
+}
 
-const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) => {
+function EventAttachmentsContent({event, project, group}: EventAttachmentsProps) {
   const organization = useOrganization();
   const {
     data: attachments = [],
@@ -99,23 +68,24 @@ const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) =>
     refetch,
   } = useFetchEventAttachments({
     orgSlug: organization.slug,
-    projectSlug,
+    projectSlug: project.slug,
     eventId: event.id,
   });
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
   const [attachmentPreviews, setAttachmentPreviews] = useState<AttachmentPreviewOpenMap>(
     {}
   );
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const crashFileStripped = event.metadata.stripped_crash;
 
   if (isError) {
     return (
-      <EventDataSection type="attachments" title="Attachments">
+      <InterimSection type={SectionKey.ATTACHMENTS} title={t('Attachments')}>
         <LoadingError
           onRetry={refetch}
           message={t('An error occurred while fetching attachments')}
         />
-      </EventDataSection>
+      </InterimSection>
     );
   }
 
@@ -137,11 +107,17 @@ const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) =>
   };
 
   return (
-    <EventDataSection type="attachments" title={title}>
+    <InterimSection
+      type={SectionKey.ATTACHMENTS}
+      title={title}
+      actions={
+        hasStreamlinedUI && project && group ? <ViewAllGroupAttachmentsButton /> : null
+      }
+    >
       {crashFileStripped && (
         <EventAttachmentsCrashReportsNotice
           orgSlug={organization.slug}
-          projectSlug={projectSlug}
+          projectSlug={project.slug}
           groupId={event.groupID!}
         />
       )}
@@ -156,42 +132,36 @@ const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) =>
         >
           {attachments.map(attachment => (
             <Fragment key={attachment.id}>
-              <Name>{attachment.name}</Name>
+              <FlexCenter>
+                <Name>{attachment.name}</Name>
+              </FlexCenter>
               <Size>
                 <FileSize bytes={attachment.size} />
               </Size>
-              <AttachmentUrl
-                projectSlug={projectSlug}
-                eventId={event.id}
-                attachment={attachment}
-              >
-                {url => (
-                  <div>
-                    <EventAttachmentActions
-                      url={url}
-                      onDelete={(attachmentId: string) =>
-                        deleteAttachment({
-                          orgSlug: organization.slug,
-                          projectSlug,
-                          eventId: event.id,
-                          attachmentId,
-                        })
-                      }
-                      onPreview={_attachmentId => togglePreview(attachment)}
-                      withPreviewButton
-                      previewIsOpen={attachmentPreviewIsOpen(
-                        attachmentPreviews,
-                        attachment
-                      )}
-                      hasPreview={hasInlineAttachmentRenderer(attachment)}
-                      attachmentId={attachment.id}
-                    />
-                  </div>
-                )}
-              </AttachmentUrl>
-              <InlineEventAttachment
-                {...{attachment, attachmentPreviews, event, projectSlug}}
-              />
+              <div>
+                <EventAttachmentActions
+                  withPreviewButton
+                  attachment={attachment}
+                  projectSlug={project.slug}
+                  onDelete={() =>
+                    deleteAttachment({
+                      orgSlug: organization.slug,
+                      projectSlug: project.slug,
+                      eventId: event.id,
+                      attachmentId: attachment.id,
+                    })
+                  }
+                  onPreviewClick={() => togglePreview(attachment)}
+                  previewIsOpen={attachmentPreviewIsOpen(attachmentPreviews, attachment)}
+                />
+              </div>
+              {attachmentPreviewIsOpen(attachmentPreviews, attachment) ? (
+                <InlineEventAttachment
+                  attachment={attachment}
+                  eventId={event.id}
+                  projectSlug={project.slug}
+                />
+              ) : null}
               {/* XXX: hack to deal with table grid borders */}
               {lastAttachmentPreviewed && (
                 <Fragment>
@@ -203,11 +173,11 @@ const EventAttachmentsContent = ({event, projectSlug}: EventAttachmentsProps) =>
           ))}
         </StyledPanelTable>
       )}
-    </EventDataSection>
+    </InterimSection>
   );
-};
+}
 
-export const EventAttachments = (props: EventAttachmentsProps) => {
+export function EventAttachments(props: EventAttachmentsProps) {
   const organization = useOrganization();
 
   if (!organization.features.includes('event-attachments')) {
@@ -215,22 +185,26 @@ export const EventAttachments = (props: EventAttachmentsProps) => {
   }
 
   return <EventAttachmentsContent {...props} />;
-};
+}
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr auto auto;
 `;
 
+const FlexCenter = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  align-items: center;
+`;
+
 const Name = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
 `;
 
 const Size = styled('div')`
-  text-align: right;
-`;
-
-const AttachmentPreviewWrapper = styled('div')`
-  grid-column: auto / span 3;
-  border: none;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
 `;

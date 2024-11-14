@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import Repository
+from sentry.models.repository import Repository
 
 
 @register(Repository)
 class RepositorySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         external_slug = None
         integration_id = None
         if obj.integration_id:
@@ -25,4 +25,5 @@ class RepositorySerializer(Serializer):
             "dateCreated": obj.date_added,
             "integrationId": integration_id,
             "externalSlug": external_slug,
+            "externalId": obj.external_id,
         }

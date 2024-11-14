@@ -1,23 +1,34 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import JsonForm from 'sentry/components/forms/jsonForm';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {fields} from 'sentry/data/forms/accountNotificationSettings';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {Organization, Project, UserEmail} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {UserEmail} from 'sentry/types/user';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import AsyncView from 'sentry/views/asyncView';
-import {
-  ACCOUNT_NOTIFICATION_FIELDS,
-  FineTuneField,
-} from 'sentry/views/settings/account/notifications/fields';
+import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
+import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
+import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {
   getNotificationTypeFromPathname,
   groupByOrganization,
@@ -40,6 +51,8 @@ const accountNotifications = [
   'approval',
   'quota',
   'spikeProtection',
+  'reports',
+  'brokenMonitors',
 ];
 
 type ANBPProps = {
@@ -47,7 +60,7 @@ type ANBPProps = {
   projects: Project[];
 };
 
-const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
+function AccountNotificationsByProject({projects, field}: ANBPProps) {
   const projectsByOrg = groupByOrganization(projects);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -61,7 +74,14 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
       // `name` key refers to field name
       // we use project.id because slugs are not unique across orgs
       name: project.id,
-      label: project.slug,
+      label: (
+        <ProjectBadge
+          project={project}
+          avatarSize={20}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+        />
+      ),
     })),
   }));
 
@@ -69,7 +89,6 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
     <Fragment>
       {data.map(({name, projects: projectFields}) => (
         <div key={name}>
-          <PanelHeader>{name}</PanelHeader>
           {projectFields.map(f => (
             <PanelBodyLineItem key={f.name}>
               <SelectField
@@ -84,14 +103,15 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
       ))}
     </Fragment>
   );
-};
+}
 
 type ANBOProps = {
   field: FineTuneField;
-  organizations: Organization[];
 };
 
-const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) => {
+function AccountNotificationsByOrganization({field}: ANBOProps) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {title, description, ...fieldConfig} = field;
 
@@ -118,155 +138,222 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
       ))}
     </Fragment>
   );
-};
+}
 
-const AccountNotificationsByOrganizationContainer = withOrganizations(
-  AccountNotificationsByOrganization
-);
+interface AccountNotificationFineTuningProps {
+  organizations: Organization[];
+}
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{fineTuneType: string}, {}> & {
-    organizations: Organization[];
-  };
+function AccountNotificationFineTuning({
+  organizations,
+}: AccountNotificationFineTuningProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams<{fineTuneType: string}>();
+  const {fineTuneType: pathnameType} = params;
+  const fineTuneType = getNotificationTypeFromPathname(pathnameType);
+  const config = useLegacyStore(ConfigStore);
 
-type State = AsyncView['state'] & {
-  emails: UserEmail[] | null;
-  fineTuneData: Record<string, any> | null;
-  notifications: Record<string, any> | null;
-  projects: Project[] | null;
-};
+  // Get org id from:
+  // - query param
+  // - subdomain
+  // - default to first org
+  const organizationId =
+    (location?.query?.organizationId as string | undefined) ??
+    organizations.find(({slug}) => slug === config?.customerDomain?.subdomain)?.id ??
+    organizations[0]?.id;
 
-class AccountNotificationFineTuning extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {fineTuneType: pathnameType} = this.props.params;
-    const fineTuneType = getNotificationTypeFromPathname(pathnameType);
-    const endpoints = [
-      ['notifications', '/users/me/notifications/'],
-      ['fineTuneData', `/users/me/notifications/${fineTuneType}/`],
-    ];
-
-    if (isGroupedByProject(fineTuneType)) {
-      endpoints.push(['projects', '/projects/']);
+  const {
+    data: notifications,
+    isPending: isPendingNotifications,
+    isError: isErrorNotifications,
+  } = useApiQuery<Record<string, any>>(['/users/me/notifications/'], {staleTime: 0});
+  const projectsEnabled = isGroupedByProject(fineTuneType);
+  const {
+    data: projects,
+    isPending: isPendingProjects,
+    isError: isErrorProjects,
+    getResponseHeader: getProjectsResponseHeader,
+  } = useApiQuery<Project[]>(
+    [
+      '/projects/',
+      {
+        query: {
+          organizationId,
+          cursor: location.query.cursor,
+          query: location.query.query,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+      enabled: projectsEnabled,
     }
+  );
+  const isLoadingProjects = projectsEnabled ? isPendingProjects : false;
 
-    endpoints.push(['emails', '/users/me/emails/']);
-    if (fineTuneType === 'email') {
-      endpoints.push(['emails', '/users/me/emails/']);
-    }
+  // Extra data specific to email notifications
+  const isEmail = fineTuneType === 'email';
+  const {
+    data: emails = [],
+    isPending: isPendingEmails,
+    isError: isErrorEmails,
+  } = useApiQuery<UserEmail[]>(['/users/me/emails/'], {
+    staleTime: 0,
+    enabled: isEmail,
+  });
+  const {
+    data: emailsByProject,
+    isPending: isPendingEmailsByProject,
+    isError: isErrorEmailsByProject,
+    refetch: refetchEmailsByProject,
+  } = useApiQuery<Record<string, any>>(['/users/me/notifications/email/'], {
+    staleTime: 0,
+    enabled: isEmail,
+    placeholderData: keepPreviousData,
+  });
 
-    return endpoints as ReturnType<AsyncView['getEndpoints']>;
+  if (accountNotifications.includes(fineTuneType)) {
+    return <NotificationSettingsByType notificationType={fineTuneType} />;
   }
 
-  // Return a sorted list of user's verified emails
-  get emailChoices() {
-    return (
-      this.state.emails
-        ?.filter(({isVerified}) => isVerified)
-        ?.sort((a, b) => {
-          // Sort by primary -> email
-          if (a.isPrimary) {
-            return -1;
-          }
-          if (b.isPrimary) {
-            return 1;
-          }
-
-          return a.email < b.email ? -1 : 1;
-        }) ?? []
+  const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
+  const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+  // TODO(isabella): once GA, remove this
+  if (
+    fineTuneType === 'quota' &&
+    organizations.some(org => org.features?.includes('spend-visibility-notifications'))
+  ) {
+    field.title = t('Spend Notifications');
+    field.description = t(
+      'Control the notifications you receive for organization spend.'
     );
   }
 
-  renderBody() {
-    const {params} = this.props;
-    const {fineTuneType: pathnameType} = params;
-    const fineTuneType = getNotificationTypeFromPathname(pathnameType);
+  if (isEmail) {
+    // Vrified email addresses
+    const emailChoices: UserEmail[] = emails
+      .filter(({isVerified}) => isVerified)
+      .sort((a, b) => {
+        // Sort by primary -> email
+        if (a.isPrimary) {
+          return -1;
+        }
+        if (b.isPrimary) {
+          return 1;
+        }
 
-    if (accountNotifications.includes(fineTuneType)) {
-      return <NotificationSettingsByType notificationType={fineTuneType} />;
-    }
+        return a.email < b.email ? -1 : 1;
+      });
+    field.options = emailChoices.map(({email}) => ({value: email, label: email}));
+  }
 
-    const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
+  if (
+    isErrorProjects ||
+    isErrorNotifications ||
+    isErrorEmails ||
+    isErrorEmailsByProject
+  ) {
+    return <LoadingError />;
+  }
 
-    const isProject = isGroupedByProject(fineTuneType);
-    const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
-    const {title, description} = field;
+  if (!notifications || (!emailsByProject && fineTuneType === 'email')) {
+    return null;
+  }
 
-    const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
-    const hasProjects = !!projects?.length;
+  const hasProjects = !!projects?.length;
+  const mainContent =
+    isLoadingProjects ||
+    isPendingNotifications ||
+    (isEmail && (isPendingEmailsByProject || isPendingEmails)) ? (
+      <LoadingIndicator />
+    ) : (
+      <Fragment>
+        {isProject && hasProjects && (
+          <AccountNotificationsByProject projects={projects!} field={field} />
+        )}
 
-    if (fineTuneType === 'email') {
-      // Fetch verified email addresses
-      field.options = this.emailChoices.map(({email}) => ({value: email, label: email}));
-    }
+        {isProject && !hasProjects && (
+          <EmptyMessage>{t('No projects found')}</EmptyMessage>
+        )}
 
-    if (!notifications || !fineTuneData) {
-      return null;
-    }
+        {!isProject && <AccountNotificationsByOrganization field={field} />}
+      </Fragment>
+    );
 
-    return (
-      <div>
-        <SettingsPageHeader title={title} />
-        {description && <TextBlock>{description}</TextBlock>}
-
-        {field &&
-          field.defaultFieldName &&
-          // not implemented yet
-          field.defaultFieldName !== 'weeklyReports' && (
-            <Form
-              saveOnBlur
-              apiMethod="PUT"
-              apiEndpoint="/users/me/notifications/"
-              initialData={notifications}
-            >
-              <JsonForm
-                title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
+  return (
+    <div>
+      <SettingsPageHeader title={field.title} />
+      {field.description && <TextBlock>{field.description}</TextBlock>}
+      <Panel>
+        <StyledPanelHeader hasButtons={isProject}>
+          {isProject ? (
+            <Fragment>
+              <OrganizationSelectHeader
+                organizations={organizations}
+                organizationId={organizationId}
+                handleOrgChange={(newOrgId: string) => {
+                  navigate(
+                    {
+                      ...location,
+                      query: {organizationId: newOrgId},
+                    },
+                    {replace: true}
+                  );
+                }}
               />
-            </Form>
+              <SearchBar
+                placeholder={t('Search Projects')}
+                query={location.query.query as string | undefined}
+                onSearch={value => {
+                  navigate(
+                    {
+                      ...location,
+                      query: {...location.query, query: value, cursor: undefined},
+                    },
+                    {replace: true}
+                  );
+                }}
+              />
+            </Fragment>
+          ) : (
+            <Heading>{t('Organizations')}</Heading>
           )}
-        <Panel>
-          <PanelBody>
-            <PanelHeader hasButtons={isProject}>
-              <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
-              <div>
-                {isProject &&
-                  this.renderSearchInput({
-                    placeholder: t('Search Projects'),
-                    url,
-                    stateKey,
-                  })}
-              </div>
-            </PanelHeader>
-
+        </StyledPanelHeader>
+        <PanelBody>
+          {/* Only email needs the form to change the emmail */}
+          {fineTuneType === 'email' && emailsByProject && !isPendingEmailsByProject ? (
             <Form
               saveOnBlur
               apiMethod="PUT"
-              apiEndpoint={`/users/me/notifications/${fineTuneType}/`}
-              initialData={fineTuneData}
+              apiEndpoint="/users/me/notifications/email/"
+              initialData={emailsByProject}
+              onSubmitSuccess={() => {
+                refetchEmailsByProject();
+              }}
             >
-              {isProject && hasProjects && (
-                <AccountNotificationsByProject projects={projects!} field={field} />
-              )}
-
-              {isProject && !hasProjects && (
-                <EmptyMessage>{t('No projects found')}</EmptyMessage>
-              )}
-
-              {!isProject && (
-                <AccountNotificationsByOrganizationContainer field={field} />
-              )}
+              {mainContent}
             </Form>
-          </PanelBody>
-        </Panel>
-
-        {projects && <Pagination pageLinks={projectsPageLinks} {...this.props} />}
-      </div>
-    );
-  }
+          ) : (
+            mainContent
+          )}
+        </PanelBody>
+      </Panel>
+      {projects && <Pagination pageLinks={getProjectsResponseHeader?.('Link')} />}
+    </div>
+  );
 }
 
 const Heading = styled('div')`
   flex: 1;
 `;
 
-export default AccountNotificationFineTuning;
+const StyledPanelHeader = styled(PanelHeader)`
+  flex-wrap: wrap;
+  gap: ${space(1)};
+  & > form:last-child {
+    flex-grow: 1;
+  }
+`;
+
+export default withOrganizations(AccountNotificationFineTuning);

@@ -1,12 +1,16 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from sentry.constants import MAX_TAG_VALUE_LENGTH
 from sentry.plugins.base.v2 import Plugin2
 
 
 class TagPlugin(Plugin2):
-    tag = None
+    tag: ClassVar[str]
     project_default_enabled = True
 
-    def get_tag_values(self, event, **kwargs):
+    def get_tag_values(self, event) -> list[str]:
         """
         Must return a list of values.
 

@@ -1,7 +1,7 @@
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import DefaultIssueActions from 'sentry/plugins/components/issueActions';
-import {Writable} from 'sentry/types';
+import type {Writable} from 'sentry/types/core';
 
 class IssueActions extends DefaultIssueActions {
   changeField = (
@@ -30,9 +30,9 @@ class IssueActions extends DefaultIssueActions {
                 // Try not to change things the user might have edited
                 // unless they're no longer valid
                 const oldData = this.state.createFormData;
-                const createFormData = {};
+                const createFormData: Record<string, any> = {};
                 data?.forEach(field => {
-                  let val;
+                  let val: any;
                   if (
                     field.choices &&
                     !field.choices.find(c => c[0] === oldData[field.name])

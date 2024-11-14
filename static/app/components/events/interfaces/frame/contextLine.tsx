@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Coverage} from 'sentry/types';
+import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
   isActive: boolean;
@@ -122,7 +122,11 @@ const StyledLi = styled('li')`
 `;
 
 // TODO(scttcper): The parent component should be a grid, currently has too many other children
+// If the grid was higher up we wouldn't have to hardcode the line number width and could fit larger line numbers
+const lineNumberWidth = '58px';
+const padding = space(2);
 const LineContent = styled('div')`
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${padding});
+  gap: ${space(0.5)};
 `;

@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:29.325194Z'
+created: '2024-10-24T14:19:11.212073+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,13 +7,13 @@ app:
   hash: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace
-        frame (non app frame)
+      stacktrace (ignored because it contains no in-app frames)
+        frame (marked out of app by stack trace rule (module:sun.* -app))
           module* (removed reflection marker)
             "sun.reflect.GeneratedMethodAccessor"
           function*
             "invoke"
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:jdk.* -app))
           module* (removed reflection marker)
             "jdk.internal.reflect.GeneratedMethodAccessor"
           function*
@@ -24,12 +24,12 @@ system:
   component:
     system*
       stacktrace*
-        frame*
+        frame* (marked out of app by stack trace rule (module:sun.* -app))
           module* (removed reflection marker)
             "sun.reflect.GeneratedMethodAccessor"
           function*
             "invoke"
-        frame*
+        frame* (marked out of app by stack trace rule (module:jdk.* -app))
           module* (removed reflection marker)
             "jdk.internal.reflect.GeneratedMethodAccessor"
           function*

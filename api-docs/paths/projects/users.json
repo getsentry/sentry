@@ -5,18 +5,18 @@
     "operationId": "List a Project's Users",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The ID or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"
@@ -40,14 +40,8 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "required": ["dateCreated", "id", "username", "email"],
+                "required": ["username", "email"],
                 "properties": {
-                  "dateCreated": {
-                    "type": "string"
-                  },
-                  "id": {
-                    "type": "string"
-                  },
                   "username": {
                     "type": "string",
                     "nullable": true
@@ -61,8 +55,6 @@
             },
             "example": [
               {
-                "dateCreated": "2020-07-16T00:50:40.342174Z",
-                "id": "21077833046",
                 "username": "sentry",
                 "email": "sentry@example.com"
               }

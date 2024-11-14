@@ -1,28 +1,37 @@
+from __future__ import annotations
+
+import enum
 import re
+import secrets
+from typing import Any, ClassVar
 from urllib.parse import urlparse
-from uuid import uuid4
 
 import petname
 from django.conf import settings
-from django.db import ProgrammingError, models, transaction
+from django.db import ProgrammingError, models
+from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import features, options
+from sentry.backup.dependencies import ImportKind
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
+from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
-_uuid4_re = re.compile(r"^[a-f0-9]{32}$")
+_token_re = re.compile(r"^[a-f0-9]{32}$")
 
 # TODO(dcramer): pull in enum library
 
@@ -32,51 +41,61 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(BaseManager):
-    def post_save(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_save"
-            )
+class ProjectKeyManager(BaseManager["ProjectKey"]):
+    def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_delete"
-            )
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
+    def for_request(self, request):
+        """Return objects that the given request user is allowed to access"""
+        from sentry.auth.superuser import is_active_superuser
 
-@region_silo_only_model
+        qs = self.get_queryset()
+        if not is_active_superuser(request):
+            qs = qs.filter(use_case=UseCase.USER.value)
+
+        return qs
+
+
+class UseCase(enum.Enum):
+    """What the DSN is used for (user vs. internal submissions)"""
+
+    """A user-visible project key"""
+    USER = "user"
+    """An internal project key for submitting aggregate function metrics."""
+    PROFILING = "profiling"
+    """ An internal project key for submitting escalating issues metrics."""
+    ESCALATING_ISSUES = "escalating_issues"
+
+
+@region_silo_model
 class ProjectKey(Model):
-    __include_in_export__ = True
+    __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    roles = BitField(
-        flags=(
-            # access to post events to the store endpoint
-            ("store", "Event API access"),
-            # read/write access to rest API
-            ("api", "Web API access"),
-        ),
-        default=["store"],
-    )
+
+    class roles(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
+        # access to post events to the store endpoint
+        store: bool
+        # read/write access to rest API
+        api: bool
+
+        bitfield_default = ["store"]
+
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
@@ -90,14 +109,20 @@ class ProjectKey(Model):
     rate_limit_count = BoundedPositiveIntegerField(null=True)
     rate_limit_window = BoundedPositiveIntegerField(null=True)
 
-    objects = ProjectKeyManager(
+    objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),
         # store projectkeys in memcached for longer than other models,
         # specifically to make the relay_projectconfig endpoint faster.
         cache_ttl=60 * 30,
     )
 
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+
+    use_case = models.CharField(
+        max_length=32,
+        choices=[(v.value, v.value) for v in UseCase],
+        default=UseCase.USER.value,
+    )
 
     # support legacy project keys in API
     scopes = (
@@ -121,11 +146,11 @@ class ProjectKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return uuid4().hex
+        return secrets.token_hex(nbytes=16)
 
     @classmethod
     def looks_like_api_key(cls, key):
-        return bool(_uuid4_re.match(key))
+        return bool(_token_re.match(key))
 
     @classmethod
     def from_dsn(cls, dsn):
@@ -166,7 +191,7 @@ class ProjectKey(Model):
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
         if not self.label:
-            self.label = petname.Generate(2, " ", letters=10).title()
+            self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
@@ -175,6 +200,7 @@ class ProjectKey(Model):
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
         else:
+            assert self.public_key is not None
             key = self.public_key
 
         # If we do not have a scheme or domain/hostname, dsn is never valid
@@ -217,6 +243,12 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
+    def nel_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
+
+    @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
@@ -225,6 +257,10 @@ class ProjectKey(Model):
     @property
     def unreal_endpoint(self):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
+
+    @property
+    def crons_endpoint(self):
+        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self) -> str:
@@ -237,30 +273,23 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    @property
-    def js_sdk_dynamic_loader_cdn_url(self) -> str:
-        if settings.JS_SDK_LOADER_CDN_URL:
-            return f"{settings.JS_SDK_LOADER_CDN_URL}dynamic/{self.public_key}.min.js"
-        else:
-            endpoint = self.get_endpoint()
-            return "{}{}".format(
-                endpoint,
-                reverse("sentry-js-sdk-dynamic-loader", args=[self.public_key, ".min"]),
-            )
-
     def get_endpoint(self, public=True):
+        from sentry.api.utils import generate_region_url
+
         if public:
             endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
         else:
             endpoint = settings.SENTRY_ENDPOINT
 
+        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
+            endpoint = generate_region_url()
         if not endpoint:
             endpoint = options.get("system.url-prefix")
 
         has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
-                "organizations:org-subdomains", self.project.organization
+                "organizations:org-ingest-subdomains", self.project.organization
             )
         except ProgrammingError:
             # This happens during migration generation for the organization model.
@@ -270,12 +299,12 @@ class ProjectKey(Model):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
                 endpoint = "{}://{}.{}{}".format(
-                    urlparts.scheme,
+                    str(urlparts.scheme),
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
                         organization_id=self.project.organization_id
                     ),
-                    urlparts.netloc,
-                    urlparts.path,
+                    str(urlparts.netloc),
+                    str(urlparts.path),
                 )
 
         return endpoint
@@ -298,3 +327,26 @@ class ProjectKey(Model):
 
     def get_scopes(self):
         return self.scopes
+
+    def write_relocation_import(
+        self, _s: ImportScope, _f: ImportFlags
+    ) -> tuple[int, ImportKind] | None:
+        # If there is a key collision, generate new keys.
+        matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
+        if not self.public_key or matching_public_key:
+            self.public_key = self.generate_api_key()
+        matching_secret_key = self.__class__.objects.filter(secret_key=self.secret_key).first()
+        if not self.secret_key or matching_secret_key:
+            self.secret_key = self.generate_api_key()
+
+        # ProjectKeys for the project are automatically generated at insertion time via a
+        # `post_save()` hook, so the keys for the project should already exist. We simply need to
+        # update them with the correct values here.
+        (key, _) = ProjectKey.objects.get_or_create(
+            project=self.project, defaults=model_to_dict(self)
+        )
+        if key:
+            self.pk = key.pk
+            self.save()
+
+        return (self.pk, ImportKind.Inserted)

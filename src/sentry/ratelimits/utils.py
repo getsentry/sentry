@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
+import logging
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.models.apitoken import ApiToken, is_api_token_auth
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -15,9 +17,12 @@ from sentry.utils.hashlib import md5_text
 
 from . import backend as ratelimiter
 
+logger = logging.getLogger("sentry.api.rate-limit")
+
 if TYPE_CHECKING:
-    from sentry.models import Organization, User
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.models.apitoken import ApiToken
+    from sentry.models.organization import Organization
+    from sentry.users.models.user import User
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]
@@ -43,17 +48,19 @@ def concurrent_limiter() -> ConcurrentRateLimiter:
 
 def get_rate_limit_key(
     view_func: EndpointFunction,
-    request: Request,
+    request: HttpRequest,
     rate_limit_group: str,
     rate_limit_config: RateLimitConfig | None = None,
 ) -> str | None:
     """Construct a consistent global rate limit key using the arguments provided"""
+    from sentry.models.apitoken import ApiToken, is_api_token_auth
+
     if not hasattr(view_func, "view_class") or request.path_info.startswith(
         settings.ANONYMOUS_STATIC_PREFIXES
     ):
         return None
 
-    view = view_func.__qualname__
+    view = view_func.view_class.__name__
     http_method = request.method
 
     # This avoids touching user session, which means we avoid
@@ -63,13 +70,16 @@ def get_rate_limit_key(
         return None
 
     ip_address = request.META.get("REMOTE_ADDR")
-    request_auth: (AuthenticatedToken | ApiToken | None) = getattr(request, "auth", None)
+    request_auth: AuthenticatedToken | ApiToken | ApiTokenReplica | None = getattr(
+        request, "auth", None
+    )
     request_user = getattr(request, "user", None)
 
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.auth.system import is_system_auth
-    from sentry.models import ApiKey
+    from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
+    from sentry.models.apikey import ApiKey
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
@@ -78,14 +88,21 @@ def get_rate_limit_key(
     if is_api_token_auth(request_auth) and request_user:
         if isinstance(request_auth, ApiToken):
             token_id = request_auth.id
-        elif isinstance(request_auth, AuthenticatedToken):
+        elif isinstance(request_auth, AuthenticatedToken) and request_auth.entity_id is not None:
             token_id = request_auth.entity_id
+        elif isinstance(request_auth, ApiTokenReplica) and request_auth.apitoken_id is not None:
+            token_id = request_auth.apitoken_id
         else:
             assert False  # Can't happen as asserted by is_api_token_auth check
 
         if request_user.is_sentry_app:
             category = "org"
             id = get_organization_id_from_token(token_id)
+
+            # Fallback to IP address limit if we can't find the organization
+            if id is None and ip_address is not None:
+                category = "ip"
+                id = ip_address
         else:
             category = "user"
             id = request_auth.user_id
@@ -98,7 +115,7 @@ def get_rate_limit_key(
         category = "user"
         id = request_user.id
 
-    # ApiKeys will be treated with IP ratelimits
+    # ApiKeys & OrgAuthTokens will be treated with IP ratelimits
     elif ip_address is not None:
         category = "ip"
         id = ip_address
@@ -115,15 +132,21 @@ def get_rate_limit_key(
         return f"{category}:{rate_limit_group}:{http_method}:{id}"
 
 
-def get_organization_id_from_token(token_id: str) -> int | None:
-    from sentry.models import SentryAppInstallation
+def get_organization_id_from_token(token_id: int) -> int | None:
+    from sentry.sentry_apps.services.app import app_service
 
-    installation = SentryAppInstallation.objects.get_by_api_token(token_id).first()
-    return installation.organization_id if installation else None
+    organization_id = app_service.get_installation_org_id_by_token_id(token_id=token_id)
+    # Return None to avoid collisions caused by tokens not being associated with
+    # a SentryAppInstallation. We fallback to IP address rate limiting in this case.
+    if not organization_id:
+        logger.info("installation.not_found", extra={"token_id": token_id})
+        return None
+
+    return organization_id
 
 
 def get_rate_limit_config(
-    view_cls: Type[object],
+    view_cls: type[object],
     view_args: Any = None,
     view_kwargs: Any = None,
 ) -> RateLimitConfig | None:
@@ -211,14 +234,18 @@ def for_organization_member_invite(
 
     return any(
         (
-            ratelimiter.is_limited(
-                "members:invite-by-user:{}".format(
-                    md5_text(user.id if user and user.is_authenticated else str(auth)).hexdigest()
-                ),
-                **config["members:invite-by-user"],
-            )
-            if (user or auth)
-            else None,
+            (
+                ratelimiter.is_limited(
+                    "members:invite-by-user:{}".format(
+                        md5_text(
+                            user.id if user and user.is_authenticated else str(auth)
+                        ).hexdigest()
+                    ),
+                    **config["members:invite-by-user"],
+                )
+                if (user or auth)
+                else None
+            ),
             ratelimiter.is_limited(
                 f"members:invite-by-org:{md5_text(organization.id).hexdigest()}",
                 **config["members:invite-by-org"],

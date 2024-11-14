@@ -2,153 +2,103 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
-import {PanelItem} from 'sentry/components/panels';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import PanelItem from 'sentry/components/panels/panelItem';
+import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, TeamMember, User} from 'sentry/types';
-import {
-  hasOrgRoleOverwrite,
-  RoleOverwriteIcon,
-} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
-const TeamMembersRow = (props: {
+interface Props {
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
+  team: Team;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
-}) => {
-  const {organization, member, user, hasWriteAccess, removeMember, updateMemberRole} =
-    props;
+}
+
+function TeamMembersRow({
+  organization,
+  team,
+  member,
+  user,
+  hasWriteAccess,
+  removeMember,
+  updateMemberRole,
+}: Props) {
+  const isSelf = user.email === member.email;
 
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
-        <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+        <IdBadge avatarSize={36} member={member} />
       </div>
-      <div>
+      <RoleSelectWrapper>
         <TeamRoleSelect
-          hasWriteAccess={hasWriteAccess}
-          updateMemberRole={updateMemberRole}
+          disabled={isSelf || !hasWriteAccess}
           organization={organization}
+          team={team}
           member={member}
+          onChangeTeamRole={newRole => updateMemberRole(member, newRole)}
         />
-      </div>
+      </RoleSelectWrapper>
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
+          isSelf={isSelf}
           onClick={() => removeMember(member)}
           member={member}
-          user={user}
         />
       </div>
     </TeamRolesPanelItem>
   );
-};
+}
 
-const TeamRoleSelect = (props: {
+function RemoveButton(props: {
   hasWriteAccess: boolean;
-  member: TeamMember;
-  organization: Organization;
-  updateMemberRole: (member: TeamMember, newRole: string) => void;
-}) => {
-  const {hasWriteAccess, organization, member, updateMemberRole} = props;
-  const {orgRoleList, teamRoleList, features} = organization;
-  if (!features.includes('team-roles')) {
-    return null;
-  }
-
-  const {orgRole: orgRoleId} = member;
-  const orgRole = orgRoleList.find(r => r.id === orgRoleId);
-
-  const teamRoleId = member.teamRole || orgRole?.minimumTeamRole;
-  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
-
-  if (
-    !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: orgRoleId, orgRoleList, teamRoleList})
-  ) {
-    return (
-      <RoleName>
-        {teamRole.name}
-        <IconWrapper>
-          <RoleOverwriteIcon
-            orgRole={orgRoleId}
-            orgRoleList={orgRoleList}
-            teamRoleList={teamRoleList}
-          />
-        </IconWrapper>
-      </RoleName>
-    );
-  }
-
-  return (
-    <RoleSelectWrapper>
-      <RoleSelectControl
-        roles={teamRoleList}
-        value={teamRole.id}
-        onChange={option => updateMemberRole(member, option.value)}
-        disableUnallowed
-      />
-    </RoleSelectWrapper>
-  );
-};
-
-const RemoveButton = (props: {
-  hasWriteAccess: boolean;
+  isSelf: boolean;
   member: TeamMember;
   onClick: () => void;
-  user: User;
-}) => {
-  const {member, user, hasWriteAccess, onClick} = props;
+}) {
+  const {member, hasWriteAccess, isSelf, onClick} = props;
 
-  const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
-    return null;
-  }
-
-  if (member.flags['idp:provisioned']) {
     return (
       <Button
         size="xs"
         disabled
-        icon={<IconSubtract size="xs" isCircled />}
-        onClick={onClick}
+        icon={<IconSubtract isCircled />}
         aria-label={t('Remove')}
-        title={t(
-          "Membership to this team is managed through your organization's identity provider."
-        )}
+        title={t('You do not have permission to remove a member from this team.')}
       >
         {t('Remove')}
       </Button>
     );
   }
 
+  const isIdpProvisioned = member.flags['idp:provisioned'];
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
+
+  const buttonRemoveText = isSelf ? t('Leave') : t('Remove');
   return (
     <Button
+      data-test-id={`button-remove-${member.id}`}
       size="xs"
-      disabled={!canRemoveMember}
-      icon={<IconSubtract size="xs" isCircled />}
+      disabled={!canRemoveMember || isIdpProvisioned}
+      icon={<IconSubtract isCircled />}
       onClick={onClick}
-      aria-label={t('Remove')}
+      aria-label={buttonRemoveText}
+      title={buttonHelpText}
     >
-      {t('Remove')}
+      {buttonRemoveText}
     </Button>
   );
-};
-
-const RoleName = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-const IconWrapper = styled('div')`
-  height: ${space(2)};
-  margin-left: ${space(1)};
-`;
+}
 
 const RoleSelectWrapper = styled('div')`
   display: flex;
@@ -160,10 +110,14 @@ const RoleSelectWrapper = styled('div')`
   }
 `;
 
-const TeamRolesPanelItem = styled(PanelItem)`
+export const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(120px, 4fr) minmax(120px, 2fr) minmax(100px, 1fr);
-  gap: ${space(2)};
+  grid-template-columns: minmax(100px, 1fr) 200px 150px;
+  gap: ${space(1)};
+`;
+
+const TeamRolesPanelItem = styled(PanelItem)`
+  ${GRID_TEMPLATE};
   align-items: center;
 
   > div:last-child {

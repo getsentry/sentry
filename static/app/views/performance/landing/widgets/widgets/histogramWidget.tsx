@@ -9,8 +9,12 @@ import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/hi
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import {PerformanceWidgetProps, WidgetDataResult} from '../types';
-import {getMEPQueryParams} from '../utils';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  WidgetDataResult,
+} from '../types';
+import {getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
@@ -22,13 +26,14 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
 
-  const Queries = useMemo(() => {
+  const Queries = useMemo((): GenericPerformanceWidgetProps<AreaDataType>['Queries'] => {
     return {
       chart: {
         fields: props.fields,
         component: provided => (
           <HistogramQuery
-            {...provided}
+            limit={QUERY_LIMIT_PARAM}
+            {...(provided as any)}
             eventView={provided.eventView}
             location={location}
             numBuckets={20}

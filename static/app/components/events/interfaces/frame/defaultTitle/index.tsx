@@ -3,24 +3,26 @@ import styled from '@emotion/styled';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, Meta, PlatformType} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import type {Frame} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {FunctionName} from '../functionName';
 import GroupingIndicator from '../groupingIndicator';
 import {getPlatform, isDotnet, trimPackage} from '../utils';
 
-import OriginalSourceInfo from './originalSourceInfo';
-
 type Props = {
   frame: Frame;
-  platform: PlatformType;
+  platform: PlatformKey;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
@@ -31,13 +33,13 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({
+function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
-}: Props) => {
+}: Props) {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
@@ -96,10 +98,7 @@ const DefaultTitle = ({
     // prioritize module name for Java as filename is often only basename
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    // we do not want to show path in title on csharp platform
-    const pathNameOrModule = isDotnet(framePlatform)
-      ? getModule()
-      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
       defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 
@@ -194,17 +193,25 @@ const DefaultTitle = ({
     );
   }
 
-  if (defined(frame.origAbsPath)) {
+  if (defined(frame.origAbsPath) && (frame.mapUrl || frame.map)) {
+    const text = (frame.mapUrl ?? frame.map) as string;
     title.push(
-      <Tooltip
+      <StyledQuestionTooltip
         key="info-tooltip"
-        title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        isHoverable
+        size="xs"
         delay={tooltipDelay}
-      >
-        <a className="in-at original-src">
-          <IconQuestion size="xs" />
-        </a>
-      </Tooltip>
+        overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}
+        skipWrapper
+        title={
+          <Fragment>
+            <div>
+              <strong>{t('Source Map')}</strong>
+            </div>
+            {text}
+          </Fragment>
+        }
+      />
     );
   }
 
@@ -213,7 +220,7 @@ const DefaultTitle = ({
   }
 
   return <Fragment>{title}</Fragment>;
-};
+}
 
 export default DefaultTitle;
 
@@ -230,4 +237,8 @@ const InFramePosition = styled('span')`
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
   margin-left: ${space(0.75)};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;

@@ -12,24 +12,21 @@ describe('Checkbox', function () {
 
   describe('snapshots', function () {
     it('unchecked state', async function () {
-      const {container} = render(<Checkbox {...defaultProps} />);
+      render(<Checkbox {...defaultProps} />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
 
     it('checked state', async function () {
-      const {container} = render(<Checkbox {...defaultProps} checked />);
+      render(<Checkbox {...defaultProps} checked />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
 
     it('indeterminate state', async function () {
-      const {container} = render(<Checkbox {...defaultProps} checked="indeterminate" />);
+      render(<Checkbox {...defaultProps} checked="indeterminate" />);
 
       expect(await screen.findByRole('checkbox')).toBeInTheDocument();
-      expect(container).toSnapshot();
     });
   });
 
@@ -50,11 +47,11 @@ describe('Checkbox', function () {
       );
     }
 
-    it('toggles on click', function () {
+    it('toggles on click', async function () {
       render(<CheckboxWithLabel />);
 
       expect(screen.getByRole('checkbox')).not.toBeChecked();
-      userEvent.click(screen.getByLabelText('Label text'));
+      await userEvent.click(screen.getByLabelText('Label text'));
       expect(screen.getByRole('checkbox')).toBeChecked();
     });
   });

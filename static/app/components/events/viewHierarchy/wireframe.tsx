@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
-import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getDeepestNodeAtPoint,
@@ -14,13 +14,12 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {
-  getCenterScaleMatrixFromConfigPosition,
-  Rect,
-} from 'sentry/utils/profiling/gl/utils';
+import type {Project} from 'sentry/types/project';
+import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 
 const MIN_BORDER_SIZE = 20;
+const MOUSE_DRAG_THRESHOLD = 3;
 
 export interface ViewNode {
   node: ViewHierarchyWindow;
@@ -38,8 +37,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
-  const [zoomIn, setZoomIn] = useState<HTMLButtonElement | null>(null);
-  const [zoomOut, setZoomOut] = useState<HTMLButtonElement | null>(null);
+  const [zoomIn, setZoomIn] = useState<HTMLElement | null>(null);
+  const [zoomOut, setZoomOut] = useState<HTMLElement | null>(null);
 
   const canvases = useMemo(() => {
     return canvasRef && overlayRef ? [canvasRef, overlayRef] : [];
@@ -84,11 +83,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
     // prettier-ignore
-    return mat3.fromValues(
-      scale, 0, 0,
-      0, scale, 0,
-      xCenter, yCenter, 1
-    );
+    return mat3.fromValues(scale, 0, 0, 0, scale, 0, xCenter, yCenter, 1);
   }, [
     canvasSize.height,
     canvasSize.width,
@@ -185,14 +180,23 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
+        const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
+        const delta = vec2.sub(vec2.create(), currPosition, start);
+
+        // If the mouse hasn't moved significantly, then don't consider
+        // this a drag. This prevents missed selections when the user
+        // moves their mouse slightly when clicking
+        const distance = vec2.len(delta);
+        if (!isDragging && distance < MOUSE_DRAG_THRESHOLD) {
+          return;
+        }
+
         overlayRef.style.cursor = 'grabbing';
         isDragging = true;
         hoveredRect = null;
-        const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
 
         // Delta needs to be scaled by the devicePixelRatio and how
         // much we've zoomed the image by to get an accurate translation
-        const delta = vec2.sub(vec2.create(), currPosition, start);
         vec2.scale(delta, delta, window.devicePixelRatio / transformationMatrix[0]);
 
         // Translate from the original matrix as a starting point

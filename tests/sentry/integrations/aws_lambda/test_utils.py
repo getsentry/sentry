@@ -18,8 +18,7 @@ from sentry.integrations.aws_lambda.utils import (
     parse_arn,
 )
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
+from sentry.testutils.cases import TestCase
 
 
 class ParseArnTest(TestCase):
@@ -92,27 +91,22 @@ class GetFunctionLayerArns(TestCase):
 
 
 class GetSupportedFunctionsTest(TestCase):
-    mock_client = Mock()
-    mock_paginate = MagicMock()
-    mock_paginate.paginate = MagicMock(
-        return_value=[
-            {
-                "Functions": [
-                    {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
-                    {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                ]
-            },
-            {
-                "Functions": [
-                    {"FunctionName": "lambdaC", "Runtime": "nodejs12.x"},
-                    {"FunctionName": "lambdaD", "Runtime": "python3.6"},
-                    {"FunctionName": "lambdaE", "Runtime": "nodejs14.x"},
-                ]
-            },
-        ]
-    )
-
-    mock_client.get_paginator = MagicMock(return_value=mock_paginate)
+    mock_client = MagicMock()
+    mock_client.get_paginator.return_value.paginate.return_value = [
+        {
+            "Functions": [
+                {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
+                {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
+            ]
+        },
+        {
+            "Functions": [
+                {"FunctionName": "lambdaC", "Runtime": "nodejs12.x"},
+                {"FunctionName": "lambdaD", "Runtime": "python3.6"},
+                {"FunctionName": "lambdaE", "Runtime": "nodejs14.x"},
+            ]
+        },
+    ]
 
     assert get_supported_functions(mock_client) == [
         {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
@@ -143,7 +137,7 @@ class GetOptionValueTest(TestCase):
             "account_number": "943013980633",
             "layer_name": "SentryNodeServerlessSDK",
             "repo_url": "https://github.com/getsentry/sentry-javascript",
-            "main_docs_url": "https://docs.sentry.io/platforms/node/guides/aws-lambda",
+            "main_docs_url": "https://docs.sentry.io/platforms/javascript/guides/aws-lambda",
             "regions": [
                 {"region": "us-east-2", "version": "19"},
                 {"region": "us-west-1", "version": "17"},

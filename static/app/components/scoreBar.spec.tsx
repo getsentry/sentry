@@ -8,32 +8,27 @@ describe('ScoreBar', function () {
   afterEach(function () {});
 
   it('renders', function () {
-    const {container} = render(<ScoreBar size={60} thickness={2} score={3} />);
-    expect(container).toSnapshot();
+    render(<ScoreBar size={60} thickness={2} score={3} />);
   });
 
   it('renders vertically', function () {
-    const {container} = render(<ScoreBar size={60} thickness={2} vertical score={2} />);
-    expect(container).toSnapshot();
+    render(<ScoreBar size={60} thickness={2} vertical score={2} />);
   });
 
   it('renders with score = 0', function () {
-    const {container} = render(<ScoreBar size={60} thickness={2} score={0} />);
-    expect(container).toSnapshot();
+    render(<ScoreBar size={60} thickness={2} score={0} />);
   });
 
   it('renders with score > max score', function () {
-    const {container} = render(<ScoreBar size={60} thickness={2} score={10} />);
-    expect(container).toSnapshot();
+    render(<ScoreBar size={60} thickness={2} score={10} />);
   });
 
   it('renders with < 0 score', function () {
-    const {container} = render(<ScoreBar size={60} thickness={2} score={-2} />);
-    expect(container).toSnapshot();
+    render(<ScoreBar size={60} thickness={2} score={-2} />);
   });
 
   it('has custom palette', function () {
-    const {container} = render(
+    render(
       <ScoreBar
         vertical
         size={60}
@@ -42,6 +37,5 @@ describe('ScoreBar', function () {
         palette={['white', 'red', 'red', 'pink', 'pink', 'purple', 'purple', 'black']}
       />
     );
-    expect(container).toSnapshot();
   });
 });

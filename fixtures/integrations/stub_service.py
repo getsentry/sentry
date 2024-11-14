@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import os
 from copy import deepcopy
+from typing import Any
+
+import orjson
 
 from fixtures.integrations import FIXTURE_DIRECTORY
-from sentry.utils import json
 
 
 class StubService:
@@ -15,8 +19,8 @@ class StubService:
     end tests.
     """
 
-    stub_data_cache = {}
-    service_name = None
+    stub_data_cache: dict[str, Any] = {}
+    service_name: str
 
     @staticmethod
     def get_stub_json(service_name, name):
@@ -45,7 +49,7 @@ class StubService:
         if cached:
             data = cached
         else:
-            data = json.loads(StubService.get_stub_json(service_name, name))
+            data = orjson.loads(StubService.get_stub_json(service_name, name))
             StubService.stub_data_cache[cache_key] = data
         return deepcopy(data)
 

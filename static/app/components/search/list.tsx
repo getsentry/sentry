@@ -1,12 +1,12 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import type AutoComplete from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {Result} from './sources/types';
+import type {Result} from './sources/types';
 import SearchResult from './searchResult';
 import SearchResultWrapper from './searchResultWrapper';
 
@@ -136,12 +136,12 @@ export default List;
 const DropdownBox = styled('div')`
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.modalBorderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   position: absolute;
   top: 36px;
   right: 0;
   width: 400px;
-  border-radius: 5px;
   overflow: auto;
   max-height: 60vh;
 `;

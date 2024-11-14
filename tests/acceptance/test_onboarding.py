@@ -2,13 +2,13 @@ from unittest import mock
 
 from selenium.common.exceptions import TimeoutException
 
-from sentry.models import Project
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.project import Project
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.retries import TimedRetryPolicy
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationOnboardingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -26,16 +26,13 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
 
         # Welcome step
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.snapshot(name="onboarding - new - welcome")
 
         # Platform selection step
         self.browser.click('[aria-label="Start"]')
         self.browser.wait_until('[data-test-id="onboarding-step-select-platform"]')
 
-        self.browser.snapshot(name="onboarding - new - select platform")
-
-        # Select and create node JS project
-        self.browser.click('[data-test-id="platform-node"]')
+        # Select and create nest JS project
+        self.browser.click('[data-test-id="platform-node-nestjs"]')
         self.browser.wait_until_not('[data-test-id="platform-select-next"][aria-disabled="true"]')
         self.browser.wait_until('[data-test-id="platform-select-next"][aria-disabled="false"]')
 
@@ -46,13 +43,8 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
             browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
 
         click_platform_select_name(self.browser)
-        self.browser.snapshot(name="onboarding - new - setup docs")
 
         # Verify project was created for org
         project = Project.objects.get(organization=self.org)
-        assert project.name == "node"
-        assert project.platform == "node"
-
-        # The homepage should redirect to onboarding
-        self.browser.get("/")
-        self.browser.wait_until('[data-test-id="onboarding-step-setup-docs"]')
+        assert project.name == "node-nestjs"
+        assert project.platform == "node-nestjs"

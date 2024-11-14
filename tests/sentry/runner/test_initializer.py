@@ -1,23 +1,21 @@
+import types
+
 import pytest
 
-from sentry.runner.importer import ConfigurationError
-from sentry.runner.initializer import apply_legacy_settings, bootstrap_options
+from sentry.runner.initializer import ConfigurationError, apply_legacy_settings, bootstrap_options
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
 @pytest.fixture
 def settings():
-    class Settings:
-        pass
-
-    s = Settings()
-    s.TIME_ZONE = "UTC"
-    s.ALLOWED_HOSTS = []
-    s.SENTRY_FEATURES = {}
-    s.SENTRY_OPTIONS = {}
-    s.SENTRY_DEFAULT_OPTIONS = {}
-    s.SENTRY_EMAIL_BACKEND_ALIASES = {"dummy": "alias-for-dummy"}
-    return s
+    return types.SimpleNamespace(
+        TIME_ZONE="UTC",
+        ALLOWED_HOSTS=[],
+        SENTRY_FEATURES={},
+        SENTRY_OPTIONS={},
+        SENTRY_DEFAULT_OPTIONS={},
+        SENTRY_EMAIL_BACKEND_ALIASES={"dummy": "alias-for-dummy"},
+    )
 
 
 @pytest.fixture
@@ -187,21 +185,6 @@ def test_bootstrap_options_empty_file(settings, config_yml):
     assert settings.SENTRY_OPTIONS == {}
 
 
-def test_legacy_url_prefix_warning(settings, config_yml):
-    config_yml.write(
-        """\
-        SENTRY_URL_PREFIX: http://sentry.example.com
-        """
-    )
-    with pytest.warns(DeprecatedSettingWarning) as warninfo:
-        bootstrap_options(settings, str(config_yml))
-    assert settings.SENTRY_OPTIONS["system.url-prefix"] == "http://sentry.example.com"
-    assert settings.SENTRY_OPTIONS["SENTRY_URL_PREFIX"] == "http://sentry.example.com"
-    _assert_settings_warnings(
-        warninfo, {("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")}
-    )
-
-
 def test_apply_legacy_settings(settings):
     settings.ALLOWED_HOSTS = []
     settings.SENTRY_USE_QUEUE = True
@@ -215,6 +198,9 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_OPTIONS = {"system.secret-key": "secret-key", "mail.from": "mail-from"}
     settings.SENTRY_FILESTORE = "some-filestore"
     settings.SENTRY_FILESTORE_OPTIONS = {"filestore-foo": "filestore-bar"}
+    settings.SENTRY_FILESTORE_RELOCATION = {"relocation-baz": "relocation-qux"}
+    settings.SENTRY_RELOCATION_BACKEND = "some-other-filestore"
+    settings.SENTRY_RELOCATION_OPTIONS = {"relocation-baz": "relocation-qux"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
     assert settings.CELERY_ALWAYS_EAGER is False
@@ -230,6 +216,8 @@ def test_apply_legacy_settings(settings):
         "mail.mailgun-api-key": "mailgun-api-key",
         "filestore.backend": "some-filestore",
         "filestore.options": {"filestore-foo": "filestore-bar"},
+        "filestore.relocation-backend": "some-other-filestore",
+        "filestore.relocation-options": {"relocation-baz": "relocation-qux"},
     }
     assert settings.DEFAULT_FROM_EMAIL == "mail-from"
     assert settings.ALLOWED_HOSTS == ["*"]
@@ -243,6 +231,11 @@ def test_apply_legacy_settings(settings):
             ("SENTRY_ENABLE_EMAIL_REPLIES", "SENTRY_OPTIONS['mail.enable-replies']"),
             ("SENTRY_FILESTORE", "SENTRY_OPTIONS['filestore.backend']"),
             ("SENTRY_FILESTORE_OPTIONS", "SENTRY_OPTIONS['filestore.options']"),
+            ("SENTRY_RELOCATION_BACKEND", "SENTRY_OPTIONS['filestore.relocation-backend']"),
+            (
+                "SENTRY_RELOCATION_OPTIONS",
+                "SENTRY_OPTIONS['filestore.relocation-options']",
+            ),
             ("SENTRY_REDIS_OPTIONS", 'SENTRY_OPTIONS["redis.clusters"]'),
             ("SENTRY_SMTP_HOSTNAME", "SENTRY_OPTIONS['mail.reply-hostname']"),
             ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "SENTRY_OPTIONS['system.rate-limit']"),

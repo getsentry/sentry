@@ -1,3 +1,7 @@
+from collections.abc import Mapping, Sequence
+from typing import Any, TypeVar, cast
+
+from django.db.models import Model
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -39,13 +43,13 @@ class BitFieldFlags:
             yield Bit(self._flags.index(flag))
 
     def items(self):
-        return list(self.iteritems())  # NOQA
+        return list(self.iteritems())
 
     def keys(self):
-        return list(self.iterkeys())  # NOQA
+        return list(self.iterkeys())
 
     def values(self):
-        return list(self.itervalues())  # NOQA
+        return list(self.itervalues())
 
 
 class BitFieldCreator:
@@ -74,8 +78,8 @@ class BitFieldCreator:
 
 
 class BitField(BigIntegerField):
-    def contribute_to_class(self, cls, name, **kwargs):
-        super().contribute_to_class(cls, name, **kwargs)
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
 
     def __init__(self, flags, default=None, *args, **kwargs):
@@ -108,7 +112,8 @@ class BitField(BigIntegerField):
                 new_value |= Bit(flags.index(flag))
             default = new_value
 
-        BigIntegerField.__init__(self, default=default, *args, **kwargs)
+        kwargs["default"] = default
+        BigIntegerField.__init__(self, *args, **kwargs)
         self.flags = flags
         self.labels = labels
 
@@ -144,8 +149,78 @@ class BitField(BigIntegerField):
 
     def deconstruct(self):
         name, path, args, kwargs = super().deconstruct()
-        args.insert(0, self._arg_flags)
+        args = [self._arg_flags, *args]
         return name, path, args, kwargs
+
+
+def flags_from_annotations(annotations: Mapping[str, type]) -> Sequence[str]:
+    flags = []
+    for attr, ty in annotations.items():
+        assert ty in ("bool", bool), f"bitfields can only hold bools, {attr} is {ty!r}"
+        flags.append(attr)
+
+    return flags
+
+
+class TypedBitfieldMeta(type):
+    def __new__(cls, name, bases, clsdict):
+        if name == "TypedClassBitField":
+            return type.__new__(cls, name, bases, clsdict)
+
+        flags = {}
+        for attr, ty in clsdict["__annotations__"].items():
+            if attr.startswith("_"):
+                continue
+
+            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
+                continue
+
+            flags[attr] = ty
+
+        return BitField(
+            flags=flags_from_annotations(flags),
+            default=clsdict.get("bitfield_default"),
+            null=clsdict.get("bitfield_null") or False,
+            db_column=clsdict.get("bitfield_db_column"),
+        )
+
+    def __int__(self) -> int:
+        raise NotImplementedError()
+
+
+class TypedClassBitField(metaclass=TypedBitfieldMeta):
+    """
+    A wrapper around BitField that allows you to access its fields as instance
+    attributes in a type-safe way.
+    """
+
+    bitfield_default: Any | None
+    bitfield_null: bool
+
+    _value: int
+
+
+T = TypeVar("T")
+
+
+def typed_dict_bitfield(definition: type[T], default=None, null=False) -> T:
+    """
+    A wrapper around BitField that allows you to access its fields as
+    dictionary keys attributes in a type-safe way.
+
+    Prefer `TypedClassBitField` over this if you can help it. This function
+    only exists to make it simpler to type bitfields with fields that are not
+    valid Python identifiers, but has limitations for how far it can provide
+    type safety.
+    """
+    assert issubclass(definition, dict)
+
+    return cast(
+        T,
+        BitField(
+            flags=flags_from_annotations(definition.__annotations__), default=default, null=null
+        ),
+    )
 
 
 BitField.register_lookup(BitQueryExactLookupStub)

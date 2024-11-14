@@ -1,10 +1,10 @@
-import {Organization} from 'sentry/types';
-import {
+import type {
   ExperimentAssignment,
   ExperimentKey,
   Experiments,
   ExperimentType,
 } from 'sentry/types/experiments';
+import type {Organization} from 'sentry/types/organization';
 import {useExperiment} from 'sentry/utils/useExperiment';
 
 type Options<E extends ExperimentKey, L extends boolean> = {
@@ -70,7 +70,7 @@ type LogExperimentProps = {
 function withExperiment<
   E extends ExperimentKey,
   L extends boolean,
-  P extends InjectedExperimentProps<E, L>
+  P extends InjectedExperimentProps<E, L>,
 >(
   ExperimentComponent: React.ComponentType<P>,
   {experiment, injectLogExperiment}: Options<E, L>

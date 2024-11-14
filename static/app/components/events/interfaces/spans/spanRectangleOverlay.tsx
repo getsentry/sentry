@@ -1,20 +1,23 @@
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   getDurationDisplay,
   getHumanDuration,
-  toPercent,
 } from 'sentry/components/performance/waterfall/utils';
+import toPercent from 'sentry/utils/number/toPercent';
 
-import {EnhancedSpan} from './types';
-import {getSpanGroupTimestamps, SpanViewBoundsType} from './utils';
+import type {EnhancedSpan} from './types';
+import type {SpanViewBoundsType} from './utils';
+import {getSpanGroupTimestamps} from './utils';
 
 export function SpanRectangleOverlay({
   bounds,
   spanGrouping,
+  spanBarType,
 }: {
   bounds: SpanViewBoundsType;
   spanGrouping: EnhancedSpan[];
+  spanBarType?: SpanBarType;
 }) {
   const {startTimestamp, endTimestamp} = getSpanGroupTimestamps(spanGrouping);
   const duration = Math.abs(endTimestamp - startTimestamp);
@@ -31,7 +34,7 @@ export function SpanRectangleOverlay({
       <DurationPill
         durationDisplay={durationDisplay}
         showDetail={false}
-        spanBarType={SpanBarType.AUTOGROUPED}
+        spanBarType={spanBarType}
       >
         {durationString}
       </DurationPill>

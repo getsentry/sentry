@@ -9,7 +9,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": "",
-        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+        "value": {
+          "type": "valueDuration",
+          "value": "1.5",
+          "unit": "s",
+          "parsed": {"value": 1500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -24,7 +29,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": ">",
-        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+        "value": {
+          "type": "valueDuration",
+          "value": "1.5",
+          "unit": "s",
+          "parsed": {"value": 1500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -39,7 +49,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "spans.browser", "quoted": false},
         "operator": "<",
-        "value": {"type": "valueDuration", "value": 1.5, "unit": "s"}
+        "value": {
+          "type": "valueDuration",
+          "value": "1.5",
+          "unit": "s",
+          "parsed": {"value": 1500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]

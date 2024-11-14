@@ -1,14 +1,16 @@
 import {Component} from 'react';
-import {PlainRoute} from 'react-router';
 
-import {openHelpSearchModal, openSudo} from 'sentry/actionCreators/modal';
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {openSudo} from 'sentry/actionCreators/sudoModal';
 import Access from 'sentry/components/acl/access';
-import {NODE_ENV, usingCustomerDomain} from 'sentry/constants';
+import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 
-import {ChildProps, ResultItem} from './types';
+import type {ChildProps, ResultItem} from './types';
 
 type Action = {
   action: () => void;
@@ -67,9 +69,9 @@ const ACTIONS: Action[] = [
 ];
 
 // Add a command palette option for opening in production when using dev-ui
-if (NODE_ENV === 'development' && window?.__initialData?.isOnPremise === false) {
+if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false) {
   const customerUrl = new URL(
-    usingCustomerDomain && window?.__initialData?.customerDomain?.organizationUrl
+    USING_CUSTOMER_DOMAIN && window?.__initialData?.customerDomain?.organizationUrl
       ? window.__initialData.customerDomain.organizationUrl
       : window.__initialData?.links?.sentryUrl
   );
@@ -163,10 +165,12 @@ class CommandSource extends Component<Props, State> {
   }
 }
 
-const CommandSourceWithFeature = (props: Omit<Props, 'isSuperuser'>) => (
-  <Access isSuperuser>
-    {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
-  </Access>
-);
+function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
+  return (
+    <Access access={[]} isSuperuser>
+      {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
+    </Access>
+  );
+}
 export default CommandSourceWithFeature;
 export {CommandSource};

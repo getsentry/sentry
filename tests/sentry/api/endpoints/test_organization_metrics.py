@@ -1,27 +1,25 @@
 import copy
-import time
 from functools import partial
-from operator import itemgetter
-from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
 
-from sentry.models import ApiToken
+from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics import TransactionStatusTagValue, TransactionTagsKey
-from sentry.snuba.metrics.fields import (
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo.base import SiloMode
+from sentry.snuba.metrics import (
     DERIVED_METRICS,
+    SessionMRI,
     SingularEntityDerivedMetric,
-    TransactionSatisfactionTagValue,
+    complement,
+    division_float,
 )
-from sentry.snuba.metrics.fields.snql import complement, division_float
-from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.testutils import APITestCase
-from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -33,410 +31,83 @@ MOCKED_DERIVED_METRICS.update(
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="percentage",
-            snql=lambda *args, entity, metric_ids, alias=None: complement(
-                division_float(*args, entity, metric_ids), alias="crash_free_fake"
+            snql=lambda crashed_count, errored_set, entity, metric_ids, alias=None: complement(
+                division_float(crashed_count, errored_set, alias=alias), alias="crash_free_fake"
             ),
         )
     }
 )
-
-pytestmark = pytest.mark.sentry_metrics
 
 
 def mocked_mri_resolver(metric_names, mri_func):
     return lambda x: x if x in metric_names else mri_func(x)
 
 
-def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
+    ret = indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+    assert ret is not None
+    return ret
 
 
-perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
-rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
+rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
-@region_silo_test(stable=True)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
-        ("sentry-api-0-organization-metrics-index",),
-        ("sentry-api-0-organization-metric-details", "foo"),
-        ("sentry-api-0-organization-metrics-tags",),
-        ("sentry-api-0-organization-metrics-tag-details", "foo"),
-        ("sentry-api-0-organization-metrics-data",),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-details",
+        ),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-tags",
+        ),
+        ("get", "sentry-api-0-organization-metrics-tag-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-data",
+        ),
+        (
+            "post",
+            "sentry-api-0-organization-metrics-query",
+        ),
+        ("get", "sentry-api-0-organization-metrics-samples"),
     )
-
-    def send_get_request(self, token, endpoint, *args):
-        url = reverse(endpoint, args=(self.project.organization.slug,) + args)
-        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
-
-    def test_permissions(self):
-
-        with exempt_from_silo_limits():
-            token = ApiToken.objects.create(user=self.user, scope_list=[])
-
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
-            assert response.status_code == 403
-
-        with exempt_from_silo_limits():
-            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
-
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
-            assert response.status_code in (200, 400, 404)
-
-
-@region_silo_test(stable=True)
-class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
-
-    endpoint = "sentry-api-0-organization-metrics-index"
 
     def setUp(self):
-        super().setUp()
-        self.proj2 = self.create_project(organization=self.organization)
-        self.transaction_proj = self.create_project(organization=self.organization)
-        self.session_metrics_meta = [
-            {
-                "name": "sentry.sessions.session",
-                "type": "counter",
-                "operations": ["max_timestamp", "min_timestamp", "sum"],
-                "unit": None,
-            },
-            {
-                "name": "sentry.sessions.user",
-                "type": "set",
-                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                "unit": None,
-            },
-            {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
-            {"name": "session.abnormal_user", "operations": [], "type": "numeric", "unit": "users"},
-            {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
-            {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
-            {"name": "session.anr_rate", "operations": [], "type": "numeric", "unit": "percentage"},
-            {"name": "session.crash_free", "operations": [], "type": "numeric", "unit": "sessions"},
-            {
-                "name": "session.crash_free_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_free_user",
-                "operations": [],
-                "type": "numeric",
-                "unit": "users",
-            },
-            {
-                "name": "session.crash_free_user_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {
-                "name": "session.crash_user_rate",
-                "type": "numeric",
-                "operations": [],
-                "unit": "percentage",
-            },
-            {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
-            {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
-            {
-                "name": "session.errored_preaggregated",
-                "operations": [],
-                "type": "numeric",
-                "unit": "sessions",
-            },
-            {
-                "name": "session.errored_user",
-                "type": "numeric",
-                "operations": [],
-                "unit": "users",
-            },
-            {
-                "name": "session.foreground_anr_rate",
-                "operations": [],
-                "type": "numeric",
-                "unit": "percentage",
-            },
-            {
-                "name": "session.healthy_user",
-                "type": "numeric",
-                "operations": [],
-                "unit": "users",
-            },
-        ]
+        self.create_project(name="Bar", slug="bar", teams=[self.team], fire_project_created=True)
 
-    # TODO do we really need this test ?
-    @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
-        mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
-    )
-    def test_metrics_index(self):
-        """
-
-        Note that this test will fail once we have a metrics meta store,
-        because the setUp bypasses it.
-        """
-        response = self.get_success_response(self.organization.slug, project=[self.project.id])
-
-        assert response.data == [
-            {
-                "name": "metric1",
-                "type": "counter",
-                "operations": ["max_timestamp", "min_timestamp", "sum"],
-                "unit": None,
-            },
-            {
-                "name": "metric2",
-                "type": "set",
-                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                "unit": None,
-            },
-            {
-                "name": "metric3",
-                "type": "set",
-                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                "unit": None,
-            },
-        ]
-
-        self.store_session(
-            self.build_session(
-                project_id=self.proj2.id,
-                started=(time.time() // 60) * 60,
-                status="ok",
-                release="foobar@1.0",
-            )
+    def send_request(self, organization, token, method, endpoint, *args):
+        url = reverse(endpoint, args=(organization.slug,) + args)
+        return getattr(self.client, method)(
+            url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
         )
 
-        response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
-        # RaduW This is ridiculous we are asserting on a canned response of metric values
-        # It will break every time we add a new public metric or every time we change in any
-        # way the order in which the metrics are returned !
-        assert response.data == self.session_metrics_meta
+    def test_access_with_wrong_permission_scopes(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-    # TODO what exactly are we testing here ?
-    @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
-    def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
-        for errors, minute in [(0, 0), (2, 1)]:
-            self.store_session(
-                self.build_session(
-                    project_id=self.proj2.id,
-                    started=(time.time() // 60 - minute) * 60,
-                    status="ok",
-                    release="foobar@2.0",
-                    errors=errors,
-                )
-            )
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            assert response.status_code == 403
 
-        response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
-        assert response.data == sorted(
-            self.session_metrics_meta
-            + [
-                {
-                    "name": "sentry.sessions.session.error",
-                    "type": "set",
-                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                    "unit": None,
-                },
-                {
-                    "name": "session.errored",
-                    "type": "numeric",
-                    "operations": [],
-                    "unit": "sessions",
-                },
-                {
-                    "name": "session.healthy",
-                    "type": "numeric",
-                    "operations": [],
-                    "unit": "sessions",
-                },
-                {
-                    "name": "sessions.errored.unique",
-                    "operations": [],
-                    "type": "numeric",
-                    "unit": "sessions",
-                },
-            ],
-            key=itemgetter("name"),
-        )
+    def test_access_of_another_organization(self):
+        other_user = self.create_user("admin_2@localhost", is_superuser=True, is_staff=True)
+        self.create_organization(name="foo", slug="foo", owner=other_user)
 
-    def test_metrics_index_transaction_derived_metrics(self):
-        user_ts = time.time()
-        org_id = self.organization.id
-        tx_duration_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
-        # TODO: check that this is correct, because APDEX is the only derived metric that has either DURATION or LCP
-        #  in the required metrics.
-        tx_lcp_metric = perf_indexer_record(org_id, TransactionMRI.MEASUREMENTS_LCP.value)
-        tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
-        tx_satisfaction = perf_indexer_record(
-            self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
-        )
-        tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=other_user, scope_list=["org:read"])
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_duration_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.transaction_proj.id,
-                    "metric_id": tx_lcp_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        tx_satisfaction: perf_indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                        tx_status: perf_indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
-        )
-        response = self.get_success_response(
-            self.organization.slug, project=[self.transaction_proj.id]
-        )
-        assert response.data == sorted(
-            [
-                {
-                    "name": "transaction.apdex",
-                    "type": "numeric",
-                    "operations": [],
-                    "unit": "percentage",
-                },
-                {
-                    "name": "transaction.duration",
-                    "type": "distribution",
-                    "operations": [
-                        "avg",
-                        "count",
-                        "histogram",
-                        "max",
-                        "max_timestamp",
-                        "min",
-                        "min_timestamp",
-                        "p50",
-                        "p75",
-                        "p90",
-                        "p95",
-                        "p99",
-                        "sum",
-                    ],
-                    "unit": None,
-                },
-                {
-                    "name": "transaction.failure_count",
-                    "operations": [],
-                    "type": "numeric",
-                    "unit": "transactions",
-                },
-                {
-                    "name": "transaction.failure_rate",
-                    "type": "numeric",
-                    "operations": [],
-                    "unit": "transactions",
-                },
-                {
-                    "name": "transaction.measurements.lcp",
-                    "operations": [
-                        "avg",
-                        "count",
-                        "histogram",
-                        "max",
-                        "max_timestamp",
-                        "min",
-                        "min_timestamp",
-                        "p50",
-                        "p75",
-                        "p90",
-                        "p95",
-                        "p99",
-                        "sum",
-                    ],
-                    "type": "distribution",
-                    "unit": None,
-                },
-                {
-                    "name": "transaction.miserable_user",
-                    "type": "numeric",
-                    "operations": [],
-                    "unit": "users",
-                },
-                {
-                    "name": "transaction.user",
-                    "type": "set",
-                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
-                    "unit": None,
-                },
-                {
-                    "name": "transaction.user_misery",
-                    "operations": [],
-                    "type": "numeric",
-                    "unit": "percentage",
-                },
-            ],
-            key=itemgetter("name"),
-        )
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            assert response.status_code == 403
+
+    def test_access_with_permissions(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            assert response.status_code in (200, 400, 404)

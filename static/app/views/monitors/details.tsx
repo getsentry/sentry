@@ -1,113 +1,209 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import sortBy from 'lodash/sortBy';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
+import {
+  deleteMonitorProcessingErrorByType,
+  updateMonitor,
+} from 'sentry/actionCreators/monitors';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
+import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
-import MonitorCheckIns from './monitorCheckIns';
-import MonitorHeader from './monitorHeader';
-import MonitorIssues from './monitorIssues';
-import MonitorStats from './monitorStats';
-import MonitorOnboarding from './onboarding';
-import {Monitor} from './types';
+import MonitorCheckIns from './components/monitorCheckIns';
+import MonitorHeader from './components/monitorHeader';
+import MonitorIssues from './components/monitorIssues';
+import MonitorStats from './components/monitorStats';
+import MonitorOnboarding from './components/onboarding';
+import {StatusToggleButton} from './components/statusToggleButton';
+import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 
-type Props = AsyncView['props'] &
-  WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorId: string}, {}> & {
-    organization: Organization;
+const DEFAULT_POLL_INTERVAL_MS = 5000;
+
+type Props = RouteComponentProps<{monitorSlug: string; projectId: string}, {}>;
+
+function hasLastCheckIn(monitor: Monitor) {
+  return monitor.environments.some(e => e.lastCheckIn);
+}
+
+function MonitorDetails({params, location}: Props) {
+  const api = useApi();
+
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const queryKey = makeMonitorDetailsQueryKey(
+    organization,
+    params.projectId,
+    params.monitorSlug,
+    {
+      environment: location.query.environment,
+    }
+  );
+
+  const {data: monitor, isError} = useApiQuery<Monitor>(queryKey, {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    // Refetches while we are waiting for the user to send their first check-in
+    refetchInterval: query => {
+      if (!query.state.data) {
+        return false;
+      }
+      const [monitorData] = query.state.data;
+      return hasLastCheckIn(monitorData) ? false : DEFAULT_POLL_INTERVAL_MS;
+    },
+  });
+
+  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
+    CheckinProcessingError[]
+  >(makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug), {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
+  function onUpdate(data: Monitor) {
+    const updatedMonitor = {
+      ...data,
+      // TODO(davidenwang): This is a bit of a hack, due to the PUT request
+      // which pauses/unpauses a monitor not returning monitor environments
+      // we should reuse the environments retrieved from the initial request
+      environments: monitor?.environments,
+    };
+    setApiQueryData(queryClient, queryKey, updatedMonitor);
+  }
+
+  const handleUpdate = async (data: Partial<Monitor>) => {
+    if (monitor === undefined) {
+      return;
+    }
+    const resp = await updateMonitor(api, organization.slug, monitor, data);
+
+    if (resp !== null) {
+      onUpdate(resp);
+    }
   };
 
-type State = AsyncView['state'] & {
-  monitor: Monitor | null;
-};
-
-class MonitorDetails extends AsyncView<Props, State> {
-  get orgSlug() {
-    return this.props.organization.slug;
-  }
-
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params, location} = this.props;
-    return [
-      [
-        'monitor',
-        `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`,
-        {query: location.query},
-      ],
-    ];
-  }
-
-  getTitle() {
-    if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
-    }
-    return `Monitors - ${this.orgSlug}`;
-  }
-
-  onUpdate = (data: Monitor) =>
-    this.setState(state => ({monitor: {...state.monitor, ...data}}));
-
-  onRequestSuccess(response) {
-    this.props.setEventNames(
-      'monitors.details_page_viewed',
-      'Monitors: Details Page Viewed'
+  function handleDismissError(errortype: ProcessingErrorType) {
+    deleteMonitorProcessingErrorByType(
+      api,
+      organization.slug,
+      params.projectId,
+      params.monitorSlug,
+      errortype
     );
-    this.props.setRouteAnalyticsParams({
-      empty_state: !response.data?.lastCheckIn,
-    });
+    refetchErrors();
   }
 
-  renderBody() {
-    const {monitor} = this.state;
+  if (isError) {
+    return (
+      <LoadingError message={t('The monitor you were looking for was not found.')} />
+    );
+  }
 
-    if (monitor === null) {
-      return null;
-    }
-
+  if (!monitor) {
     return (
       <Layout.Page>
-        <MonitorHeader monitor={monitor} orgId={this.orgSlug} onUpdate={this.onUpdate} />
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            {!monitor.lastCheckIn ? (
-              <MonitorOnboarding />
-            ) : (
-              <Fragment>
-                <StyledPageFilterBar condensed>
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-
-                <MonitorStats monitor={monitor} orgId={this.orgSlug} />
-
-                <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
-
-                <Panel>
-                  <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
-
-                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
-                </Panel>
-              </Fragment>
-            )}
-          </Layout.Main>
-        </Layout.Body>
+        <LoadingIndicator />
       </Layout.Page>
     );
   }
+
+  const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
+
+  return (
+    <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
+      <Layout.Page>
+        <MonitorHeader
+          monitor={monitor}
+          orgSlug={organization.slug}
+          onUpdate={onUpdate}
+        />
+        <Layout.Body>
+          <Layout.Main>
+            <StyledPageFilterBar condensed>
+              <DatePageFilter />
+              <EnvironmentPageFilter />
+            </StyledPageFilterBar>
+            {monitor.status === 'disabled' && (
+              <Alert
+                type="muted"
+                showIcon
+                trailingItems={
+                  <StatusToggleButton
+                    monitor={monitor}
+                    size="xs"
+                    onToggleStatus={status => handleUpdate({status})}
+                  >
+                    {t('Enable')}
+                  </StatusToggleButton>
+                }
+              >
+                {t('This monitor is disabled and is not accepting check-ins.')}
+              </Alert>
+            )}
+            {!!checkinErrors?.length && (
+              <MonitorProcessingErrors
+                checkinErrors={checkinErrors}
+                onDismiss={handleDismissError}
+              >
+                {t('Errors were encountered while ingesting check-ins for this monitor')}
+              </MonitorProcessingErrors>
+            )}
+            {!hasLastCheckIn(monitor) ? (
+              <MonitorOnboarding monitor={monitor} />
+            ) : (
+              <Fragment>
+                <DetailsTimeline organization={organization} monitor={monitor} />
+                <MonitorStats
+                  orgSlug={organization.slug}
+                  monitor={monitor}
+                  monitorEnvs={monitor.environments}
+                />
+
+                <MonitorIssues
+                  orgSlug={organization.slug}
+                  monitor={monitor}
+                  monitorEnvs={monitor.environments}
+                />
+
+                <MonitorCheckIns
+                  orgSlug={organization.slug}
+                  monitor={monitor}
+                  monitorEnvs={monitor.environments}
+                />
+              </Fragment>
+            )}
+          </Layout.Main>
+          <Layout.Side>
+            <DetailsSidebar
+              monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
+              monitor={monitor}
+            />
+          </Layout.Side>
+        </Layout.Body>
+      </Layout.Page>
+    </SentryDocumentTitle>
+  );
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(2)};
 `;
 
-export default withRouteAnalytics(withOrganization(MonitorDetails));
+export default MonitorDetails;

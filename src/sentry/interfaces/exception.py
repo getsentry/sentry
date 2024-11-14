@@ -1,13 +1,13 @@
-__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
+from __future__ import annotations
 
-import re
+from typing import Any
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
-_type_value_re = re.compile(r"^(\w+):(.*)$")
+__all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 
 def upgrade_legacy_mechanism(data):
@@ -61,7 +61,7 @@ def upgrade_legacy_mechanism(data):
     if data is None or data.get("type") is not None:
         return data
 
-    result = {"type": "generic"}
+    result: dict[str, Any] = {"type": "generic"}
 
     # "posix_signal" and "mach_exception" were optional root-level objects,
     # which have now moved to special keys inside "meta". We only create "meta"
@@ -128,7 +128,19 @@ class Mechanism(Interface):
 
     @classmethod
     def to_python(cls, data, **kwargs):
-        for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
+        for key in (
+            "type",
+            "synthetic",
+            "description",
+            "help_link",
+            "handled",
+            "data",
+            "meta",
+            "source",
+            "is_exception_group",
+            "exception_id",
+            "parent_id",
+        ):
             data.setdefault(key, None)
 
         return super().to_python(data, **kwargs)
@@ -143,6 +155,10 @@ class Mechanism(Interface):
                 "handled": self.handled,
                 "data": self.data or None,
                 "meta": prune_empty_keys(self.meta) or None,
+                "source": self.source,
+                "is_exception_group": self.is_exception_group,
+                "exception_id": self.exception_id,
+                "parent_id": self.parent_id,
             }
         )
 
@@ -151,6 +167,9 @@ class Mechanism(Interface):
 
         if self.handled is not None:
             yield ("handled", self.handled and "yes" or "no")
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> id:{self.exception_id}, parent_id:{self.parent_id}, source:{self.source}, type:{self.type}"
 
 
 def uncontribute_non_stacktrace_variants(variants):
@@ -167,7 +186,7 @@ def uncontribute_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
-    for (key, component) in variants.items():
+    for key, component in variants.items():
         if any(
             s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
         ):
@@ -316,7 +335,7 @@ class SingleException(Interface):
         )
 
         stacktrace_meta = (
-            self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform)
+            self.stacktrace.get_api_meta(meta["stacktrace"], is_public=is_public, platform=platform)
             if self.stacktrace and meta.get("stacktrace")
             else None
         )
@@ -330,6 +349,12 @@ class SingleException(Interface):
             "module": meta.get("module"),
             "stacktrace": stacktrace_meta,
         }
+
+    def __str__(self) -> str:
+        return f"{type(self).__name__}: {self.type}: {self.value}"
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> {self.type}: {self.value}"
 
 
 class Exception(Interface):
@@ -429,7 +454,7 @@ class Exception(Interface):
 
         return {"values": result}
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         if not self.values:
             return ""
 
@@ -446,18 +471,18 @@ class Exception(Interface):
                     )
                     + "\n\n"
                 )
-        return ("".join(output)).strip()
+        return "".join(output).strip()
 
     def get_stacktrace(self, *args, **kwargs):
-        exc = self.values[0]
+        exc = self.values[-1]
         if exc.stacktrace:
             return exc.stacktrace.get_stacktrace(*args, **kwargs)
         return ""
 
     def iter_tags(self):
-        if not self.values or not self.values[0]:
+        if not self.values or not self.values[-1]:
             return
 
-        mechanism = self.values[0].mechanism
+        mechanism = self.values[-1].mechanism
         if mechanism:
             yield from mechanism.iter_tags()

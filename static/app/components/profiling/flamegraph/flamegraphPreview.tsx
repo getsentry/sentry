@@ -1,21 +1,25 @@
-import {CSSProperties, useCallback, useEffect, useMemo, useState} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
+import {type mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
+import {useCanvasScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasScroll';
+import {useCanvasZoomOrScroll} from 'sentry/components/profiling/flamegraph/interactions/useCanvasZoomOrScroll';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
+import type {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 
 interface FlamegraphPreviewProps {
@@ -93,7 +97,7 @@ export function FlamegraphPreview({
 
     return new FlamegraphRenderer2D(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
       draw_border: true,
-      colorCoding: 'by symbol name',
+      colorCoding: 'by system vs application frame',
     });
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
@@ -103,6 +107,35 @@ export function FlamegraphPreview({
     }
     return new FlamegraphTextRenderer(flamegraphCanvasRef, flamegraphTheme, flamegraph);
   }, [flamegraph, flamegraphCanvasRef, flamegraphTheme]);
+
+  // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
+  // any of the children components effects actually run. This way we do not lose events
+  // when we register/unregister these top level listeners.
+  useLayoutEffect(() => {
+    if (!flamegraphCanvas || !flamegraphView) {
+      return undefined;
+    }
+
+    const onTransformConfigView = (
+      mat: mat3,
+      sourceTransformConfigView: CanvasView<any>
+    ) => {
+      if (sourceTransformConfigView === flamegraphView) {
+        flamegraphView.transformConfigView(mat);
+      }
+      canvasPoolManager.draw();
+    };
+
+    /**
+     * There are other events that the scheduler can subscribe to but
+     * this is all that's supported on the preview.
+     */
+    scheduler.on('transform config view', onTransformConfigView);
+
+    return () => {
+      scheduler.off('transform config view', onTransformConfigView);
+    };
+  }, [canvasPoolManager, flamegraphCanvas, flamegraphView, scheduler]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer || !textRenderer) {
@@ -191,6 +224,19 @@ export function FlamegraphPreview({
     flamegraphView
   );
 
+  const onCanvasScroll = useCanvasScroll(
+    flamegraphCanvas,
+    flamegraphView,
+    canvasPoolManager,
+    true // disables x panning
+  );
+
+  useCanvasZoomOrScroll({
+    setConfigSpaceCursor,
+    handleScroll: onCanvasScroll,
+    canvas: flamegraphCanvasRef,
+  });
+
   return (
     <CanvasContainer>
       <Canvas
@@ -206,6 +252,7 @@ export function FlamegraphPreview({
       hoveredNode ? (
         <FlamegraphTooltip
           frame={hoveredNode}
+          flamegraph={flamegraph}
           configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}
           flamegraphRenderer={flamegraphRenderer}

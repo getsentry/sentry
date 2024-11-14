@@ -1,44 +1,46 @@
 import {useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {Field} from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {Field} from 'sentry/utils/discover/fields';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
+import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import {
-  ChartDefinition,
-  PerformanceWidgetSetting,
-  WIDGET_DEFINITIONS,
-} from '../widgetDefinitions';
+import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
+import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from '../widgets/singleFieldAreaWidget';
 import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget';
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
-import {ChartRowProps} from './widgetChartRow';
+import type {ChartRowProps} from './widgetChartRow';
 
-type Props = {
+interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
   chartHeight: number;
   defaultChartSetting: PerformanceWidgetSetting;
@@ -50,7 +52,7 @@ type Props = {
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
-} & ChartRowProps;
+}
 
 function trackChartSettingChange(
   previousChartSetting: PerformanceWidgetSetting,
@@ -58,7 +60,7 @@ function trackChartSettingChange(
   fromDefault: boolean,
   organization: Organization
 ) {
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.widget.switch', {
+  trackAnalytics('performance_views.landingv3.widget.switch', {
     organization,
     from_widget: previousChartSetting,
     to_widget: chartSetting,
@@ -67,7 +69,7 @@ function trackChartSettingChange(
   });
 }
 
-const _WidgetContainer = (props: Props) => {
+function _WidgetContainer(props: Props) {
   const {
     organization,
     index,
@@ -131,20 +133,21 @@ const _WidgetContainer = (props: Props) => {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
-    InteractiveTitle: showNewWidgetDesign
-      ? containerProps => (
-          <WidgetInteractiveTitle
-            {...containerProps}
-            eventView={widgetEventView}
-            allowedCharts={allowedCharts}
-            chartSetting={chartSetting}
-            setChartSetting={setChartSetting}
-            rowChartSettings={rowChartSettings}
-          />
-        )
-      : null,
+    InteractiveTitle:
+      showNewWidgetDesign && allowedCharts.length > 2
+        ? (containerProps: any) => (
+            <WidgetInteractiveTitle
+              {...containerProps}
+              eventView={widgetEventView}
+              allowedCharts={allowedCharts}
+              chartSetting={chartSetting}
+              setChartSetting={setChartSetting}
+              rowChartSettings={rowChartSettings}
+            />
+          )
+        : null,
     ContainerActions: !showNewWidgetDesign
-      ? containerProps => (
+      ? (containerProps: any) => (
           <WidgetContainerActions
             {...containerProps}
             eventView={widgetEventView}
@@ -168,11 +171,11 @@ const _WidgetContainer = (props: Props) => {
   const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
 
   switch (widgetProps.dataType) {
-    case GenericPerformanceWidgetDataType.trends:
+    case GenericPerformanceWidgetDataType.TRENDS:
       return (
         <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.area:
+    case GenericPerformanceWidgetDataType.AREA:
       return (
         <SingleFieldAreaWidget
           {...passedProps}
@@ -180,11 +183,11 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.vitals:
+    case GenericPerformanceWidgetDataType.VITALS:
       return (
         <VitalWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.line_list:
+    case GenericPerformanceWidgetDataType.LINE_LIST:
       return (
         <LineChartListWidget
           {...passedProps}
@@ -192,24 +195,38 @@ const _WidgetContainer = (props: Props) => {
           titleTooltip={titleTooltip}
         />
       );
-    case GenericPerformanceWidgetDataType.histogram:
+    case GenericPerformanceWidgetDataType.HISTOGRAM:
       return (
         <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
       );
-    case GenericPerformanceWidgetDataType.stacked_area:
+    case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
+      return <PerformanceScoreListWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
+      return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START:
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START:
+      return <MobileReleaseComparisonListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
-};
+}
 
-export const WidgetInteractiveTitle = ({
+export function WidgetInteractiveTitle({
   chartSetting,
   eventView,
   setChartSetting,
   allowedCharts,
   rowChartSettings,
-}) => {
+}: {
+  allowedCharts: PerformanceWidgetSetting[];
+  chartSetting: PerformanceWidgetSetting;
+  eventView: EventView;
+  rowChartSettings: PerformanceWidgetSetting[];
+  setChartSetting: (setting: PerformanceWidgetSetting) => void;
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<string>[] = [];
 
@@ -229,13 +246,13 @@ export const WidgetInteractiveTitle = ({
     menuOptions.push({label: t('Open in Discover'), value: 'open_in_discover'});
   }
 
-  const handleChange = option => {
+  const handleChange = (option: {value: string | number}) => {
     if (option.value === 'open_in_discover') {
       browserHistory.push(
         normalizeUrl(getEventViewDiscoverPath(organization, eventView))
       );
     } else {
-      setChartSetting(option.value);
+      setChartSetting(option.value as PerformanceWidgetSetting);
     }
   };
 
@@ -245,23 +262,25 @@ export const WidgetInteractiveTitle = ({
       value={chartSetting}
       onChange={handleChange}
       triggerProps={{borderless: true, size: 'zero'}}
+      offset={4}
     />
   );
-};
+}
 
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
-  font-weight: normal;
-  margin: 0 -${space(0.5)};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 
   button {
+    padding: ${space(0.5)} ${space(1)};
     font-size: ${p => p.theme.fontSizeLarge};
   }
 `;
 
-export const WidgetContainerActions = ({
+export function WidgetContainerActions({
   chartSetting,
   eventView,
   setChartSetting,
@@ -273,7 +292,7 @@ export const WidgetContainerActions = ({
   eventView: EventView;
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
-}) => {
+}) {
   const organization = useOrganization();
   const menuOptions: SelectOption<PerformanceWidgetSetting>[] = [];
 
@@ -289,7 +308,7 @@ export const WidgetContainerActions = ({
 
   const chartDefinition = WIDGET_DEFINITIONS({organization})[chartSetting];
 
-  function handleWidgetActionChange(value) {
+  function handleWidgetActionChange(value: string) {
     if (value === 'open_in_discover') {
       browserHistory.push(
         normalizeUrl(getEventViewDiscoverPath(organization, eventView))
@@ -326,13 +345,17 @@ export const WidgetContainerActions = ({
       )}
     </CompositeSelect>
   );
-};
+}
 
 const getEventViewDiscoverPath = (
   organization: Organization,
   eventView: EventView
 ): string => {
-  const discoverUrlTarget = eventView.getResultsViewUrlTarget(organization.slug);
+  const discoverUrlTarget = eventView.getResultsViewUrlTarget(
+    organization.slug,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
+  );
 
   // The landing page EventView has some additional conditions, but
   // `EventView#getResultsViewUrlTarget` omits those! Get them manually
@@ -357,7 +380,7 @@ const makeEventViewForWidget = (
   widgetEventView.yAxis = chartDefinition.fields[0]; // All current widgets only have one field
   widgetEventView.display = DisplayModes.PREVIOUS;
   widgetEventView.fields = ['transaction', 'project', ...chartDefinition.fields].map(
-    fieldName => ({field: fieldName} as Field)
+    fieldName => ({field: fieldName}) as Field
   );
 
   return widgetEventView;

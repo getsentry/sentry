@@ -1,8 +1,10 @@
 import {Fragment} from 'react';
+import upperFirst from 'lodash/upperFirst';
 
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
@@ -48,6 +50,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['slack', t('Slack')],
       ['msteams', t('Microsoft Teams')],
     ],
+    help: t('Where personal notifications will be sent.'),
     multiple: true,
     onChange: val => {
       // This is a little hack to prevent this field from being empty.
@@ -60,12 +63,12 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   approval: {
     name: 'approval',
     type: 'select',
-    label: t('Approvals'),
+    label: t('Nudges'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Notifications from teammates that require review or approval.'),
+    help: t('Notifications that require review or approval.'),
   },
   quota: {
     name: 'quota',
@@ -75,13 +78,17 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Error, transaction, and attachment quota limits.'),
+    help: t('Error, transaction, replay, attachment, and cron monitor quota limits.'),
   },
   reports: {
-    name: 'weekly reports',
-    type: 'blank',
+    name: 'reports',
+    type: 'select',
     label: t('Weekly Reports'),
     help: t('A summary of the past week for an organization.'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
   },
   email: {
     name: 'email routing',
@@ -99,6 +106,19 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t('Notifications about spikes on a per project basis.'),
   },
+  brokenMonitors: {
+    name: 'brokenMonitors',
+    type: 'select',
+    label: t('Broken Monitors'),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t(
+      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+    ),
+  },
+  // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
     type: 'select',
@@ -112,15 +132,36 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   selfAssignOnResolve: {
     name: 'selfAssignOnResolve',
     type: 'select',
-    label: t('Claim Unassigned Issues I’ve Resolved'),
+    label: t('Resolve and Auto-Assign'),
     choices: [
       [true as any, t('On')],
       [false as any, t('Off')],
     ],
-    help: t('You’ll receive notifications about any changes that happen afterwards.'),
+    help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
 };
 
+const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
+  .filter(categoryInfo => categoryInfo.isBilledCategory)
+  .map(categoryInfo => {
+    return {
+      name: 'quota' + upperFirst(categoryInfo.plural),
+      label: categoryInfo.titleName,
+      help: tct(
+        `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
+        {
+          displayName: categoryInfo.displayName,
+          learnMore: <ExternalLink href={getDocsLinkForEventType(categoryInfo.name)} />,
+        }
+      ),
+      choices: [
+        ['always', t('On')],
+        ['never', t('Off')],
+      ] as const,
+    };
+  });
+
+// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
@@ -132,56 +173,7 @@ export const QUOTA_FIELDS = [
       ['never', t('100%')],
     ] as const,
   },
-  {
-    name: 'quotaErrors',
-    label: t('Errors'),
-    help: tct('Receive notifications about your error quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('error')} />,
-    }),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaTransactions',
-    label: t('Transactions'),
-    help: tct(
-      'Receive notifications about your transaction quota. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaReplays',
-    label: t('Replays'),
-    help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('replay')} />,
-    }),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaAttachments',
-    label: t('Attachments'),
-    help: tct(
-      'Receive notifications about your attachment quota. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
+  ...CATEGORY_QUOTA_FIELDS,
   {
     name: 'quotaSpendAllocations',
     label: (
@@ -196,4 +188,28 @@ export const QUOTA_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
+];
+
+export const SPEND_FIELDS = [
+  {
+    name: 'quota',
+    label: t('Spend Notifications'),
+    help: tct(
+      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
+      {
+        learnMore: (
+          <ExternalLink
+            href={
+              'https://docs.sentry.io/product/alerts/notifications/#spend-notifications'
+            }
+          />
+        ),
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  ...QUOTA_FIELDS.slice(1),
 ];

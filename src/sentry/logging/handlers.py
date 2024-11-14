@@ -7,18 +7,6 @@ from structlog.processors import _json_fallback_handler
 
 from sentry.utils import json, metrics
 
-_default_encoder = json.JSONEncoder(
-    separators=(",", ":"),
-    ignore_nan=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
-    default=_json_fallback_handler,
-).encode
-
 # These are values that come default from logging.LogRecord.
 # They are defined here:
 # https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
@@ -45,9 +33,35 @@ throwaways = frozenset(
 )
 
 
+def _json_encoder(*, skipkeys: bool = False) -> json.JSONEncoder:
+    return json.JSONEncoder(
+        separators=(",", ":"),
+        ignore_nan=True,
+        skipkeys=skipkeys,
+        ensure_ascii=True,
+        check_circular=True,
+        allow_nan=True,
+        indent=None,
+        encoding="utf-8",
+        default=_json_fallback_handler,
+    )
+
+
+_json_encoder_skipkeys = _json_encoder(skipkeys=True)
+_json_encoder_no_skipkeys = _json_encoder(skipkeys=False)
+
+
 class JSONRenderer:
     def __call__(self, logger, name, event_dict):
-        return _default_encoder(event_dict)
+        try:
+            return _json_encoder_no_skipkeys.encode(event_dict)
+        except Exception:
+            logging.warning("Failed to serialize event", exc_info=True)
+            # in Production, we want to skip non-serializable keys, rather than raise an exception
+            if logging.raiseExceptions:
+                raise
+            else:
+                return _json_encoder_skipkeys.encode(event_dict)
 
 
 class HumanRenderer:
@@ -87,9 +101,13 @@ class StructLogHandler(logging.StreamHandler):
         # structlog, we have to strip all of the default attributes from
         # a record because the RootLogger will take the 'extra' dictionary
         # and just turn them into attributes.
-        if logger is None:
-            logger = get_logger()
-        logger.log(**self.get_log_kwargs(record=record, logger=logger))
+        try:
+            if logger is None:
+                logger = get_logger()
+            logger.log(**self.get_log_kwargs(record=record, logger=logger))
+        except Exception:
+            if logging.raiseExceptions:
+                raise
 
 
 class MessageContainsFilter(logging.Filter):

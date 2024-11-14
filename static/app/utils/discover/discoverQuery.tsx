@@ -1,11 +1,8 @@
-import {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
-import GenericDiscoverQuery, {
-  DiscoverQueryProps,
-  GenericChildrenProps,
-  useGenericDiscoverQuery,
-} from './genericDiscoverQuery';
+import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
+import GenericDiscoverQuery, {useGenericDiscoverQuery} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
@@ -33,13 +30,13 @@ export type EventsTableData = {
 
 export type TableDataWithTitle = TableData & {title: string};
 
-type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
-type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
+export type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 
@@ -59,7 +56,7 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
   return (
@@ -77,16 +74,20 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
 
-  return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
+  const res = useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
     route: 'events',
     shouldRefetchData,
     afterFetch,
     ...props,
   });
+
+  const pageLinks = res.response?.getResponseHeader('Link') ?? undefined;
+
+  return {...res, pageLinks};
 }
 
 export default DiscoverQuery;

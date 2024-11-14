@@ -2,14 +2,25 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
-from sentry.models import Repository
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     authentication_classes = ()
     permission_classes = ()
 
@@ -24,19 +35,23 @@ class BitbucketUninstalledEndpoint(Endpoint):
             return self.respond(status=400)
 
         try:
-            integration = get_integration_from_jwt(
+            rpc_integration = get_integration_from_jwt(
                 token, request.path, "bitbucket", request.GET, method="POST"
             )
         except AtlassianConnectValidationError:
             return self.respond(status=400)
 
+        integration = Integration.objects.get(id=rpc_integration.id)
         integration.update(status=ObjectStatus.DISABLED)
-        organizations = integration.organizations.all()
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
 
-        Repository.objects.filter(
-            organization_id__in=organizations.values_list("id", flat=True),
-            provider="integrations:bitbucket",
-            integration_id=integration.id,
-        ).update(status=ObjectStatus.DISABLED)
+        for oi in org_integrations:
+            repository_service.disable_repositories_for_integration(
+                organization_id=oi.organization_id,
+                integration_id=integration.id,
+                provider="integrations:bitbucket",
+            )
 
         return self.respond()

@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -7,35 +7,32 @@ import {
   createProgram,
   createShader,
   ELLIPSIS,
-  findRangeBinarySearch,
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
-  Rect,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
+
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
     // prettier-ignore
-    expect(makeProjectionMatrix(1024, 768)).toEqual(mat3.fromValues(
-      2/1024, 0, 0,
-      -0, -2/768, -0,
-      -1,1,1
-    ));
+    expect(makeProjectionMatrix(1024, 768)).toEqual(
+      mat3.fromValues(2 / 1024, 0, 0, -0, -2 / 768, -0, -1, 1, 1)
+    );
   });
 });
 
 describe('getContext', () => {
   it('throws if it cannot retrieve context', () => {
     expect(() =>
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, 'webgl')
     ).toThrow();
     expect(() =>
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => null)}, '2d')
     ).toThrow();
   });
@@ -43,7 +40,7 @@ describe('getContext', () => {
   it('returns ctx', () => {
     const ctx = {};
     expect(
-      // @ts-ignore partial canvas mock
+      // @ts-expect-error partial canvas mock
       getContext({getContext: jest.fn().mockImplementationOnce(() => ctx)}, 'webgl')
     ).toBe(ctx);
   });
@@ -56,7 +53,7 @@ describe('upperBound', () => {
     [[-3, -2, -1], -2, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 4],
-  ])(`inserts`, (args, target, insert) => {
+  ])(`inserts %p`, (args, target, insert) => {
     expect(
       upperBound(
         target,
@@ -82,7 +79,7 @@ describe('lowerBound', () => {
     [[-3, -2, -1], -1, 1],
     [[1, 2, 3], 10, 3],
     [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 5, 3],
-  ])(`inserts`, (args, target, insert) => {
+  ])(`inserts %p`, (args, target, insert) => {
     expect(
       lowerBound(
         target,
@@ -109,7 +106,7 @@ describe('createProgram', () => {
       }),
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createProgram(ctx, {}, {})).toThrow('Could not create program');
   });
   it('attaches both shaders and links program', () => {
@@ -126,7 +123,7 @@ describe('createProgram', () => {
     const vertexShader = {};
     const fragmentShader = {};
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     createProgram(ctx, vertexShader, fragmentShader);
 
     expect(ctx.createProgram).toHaveBeenCalled();
@@ -149,7 +146,7 @@ describe('createProgram', () => {
     const vertexShader = {};
     const fragmentShader = {};
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createProgram(ctx, vertexShader, fragmentShader)).toThrow();
 
     expect(ctx.createProgram).toHaveBeenCalled();
@@ -168,7 +165,7 @@ describe('createShader', () => {
     };
 
     const type = 0;
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, '')).toThrow();
     expect(ctx.createShader).toHaveBeenLastCalledWith(type);
   });
@@ -183,12 +180,12 @@ describe('createShader', () => {
       shaderSource: jest.fn(),
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 1),
-      COMPILE_STATUS: 1,
+      COMPILE_STATUS: 1 as any,
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).not.toThrow();
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(createShader(ctx, type, shaderSource)).toBe(shader);
     expect(ctx.shaderSource).toHaveBeenLastCalledWith(shader, shaderSource);
     expect(ctx.getShaderParameter).toHaveBeenLastCalledWith(shader, ctx.COMPILE_STATUS);
@@ -205,10 +202,10 @@ describe('createShader', () => {
       compileShader: jest.fn(),
       getShaderParameter: jest.fn().mockImplementation(() => 0),
       deleteShader: jest.fn(),
-      COMPILE_STATUS: 0,
+      COMPILE_STATUS: 0 as any,
     };
 
-    // @ts-ignore this is a partial mock
+    // @ts-expect-error this is a partial mock
     expect(() => createShader(ctx, type, shaderSource)).toThrow(
       'Failed to compile 0 shader'
     );
@@ -322,11 +319,7 @@ describe('Rect', () => {
     it('transformRect', () => {
       // prettier-ignore
       // Scale (10,20),translate by (3, 4)
-      const matrix = mat3.fromValues(
-        10,0,0,
-        0,20,0,
-        3,4,0,
-  )
+      const matrix = mat3.fromValues(10, 0, 0, 0, 20, 0, 3, 4, 0);
       expect(new Rect(1, 1, 1, 1).transformRect(matrix)).toEqual(
         new Rect(13, 24, 10, 20)
       );
@@ -625,11 +618,7 @@ describe('computeConfigViewWithStrategy', () => {
       // Scales by 2 along the x and y axis
       expect(actual).toEqual(
         // prettier-ignore
-        mat3.fromValues(
-          2, 0, 0,
-          0, 2, 0,
-          0, 0, 1
-        )
+        mat3.fromValues(2, 0, 0, 0, 2, 0, 0, 0, 1)
       );
     });
 
@@ -641,11 +630,7 @@ describe('computeConfigViewWithStrategy', () => {
 
       expect(actual).toEqual(
         // prettier-ignore
-        mat3.fromValues(
-          2, 0, 0,
-          0, 2, 0,
-          -5, -5, 1
-        )
+        mat3.fromValues(2, 0, 0, 0, 2, 0, -5, -5, 1)
       );
     });
   });

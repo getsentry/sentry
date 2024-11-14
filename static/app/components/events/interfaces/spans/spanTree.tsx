@@ -1,11 +1,10 @@
 import {Component, createRef, useEffect, useRef} from 'react';
+import type {ListRowProps, OverscanIndicesGetterParams} from 'react-virtualized';
 import {
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
-  ListRowProps,
-  OverscanIndicesGetterParams,
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
@@ -18,38 +17,34 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
-import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {ActiveOperationFilter} from './filter';
+import type {ScrollbarManagerChildrenProps} from './scrollbarManager';
+import {withScrollbarManager} from './scrollbarManager';
 import {ProfiledSpanBar} from './spanBar';
-import * as SpanContext from './spanContext';
+import type * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
-import {
+import type {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
-  GroupType,
   ParsedTraceType,
   SpanTreeNode,
-  SpanTreeNodeType,
   SpanType,
 } from './types';
-import {
-  getSpanID,
-  getSpanOperation,
-  isGapSpan,
-  setSpansOnTransaction,
-  spanTargetHash,
-} from './utils';
-import WaterfallModel from './waterfallModel';
+import {GroupType, SpanTreeNodeType} from './types';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
+import type WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  isEmbedded: boolean;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
@@ -76,7 +71,7 @@ class SpanTree extends Component<PropType> {
   };
 
   componentDidMount() {
-    setSpansOnTransaction(this.props.spans.length);
+    setGroupedEntityTag('spans.total', 1000, this.props.spans.length);
 
     if (location.hash) {
       const {spans} = this.props;
@@ -357,10 +352,9 @@ class SpanTree extends Component<PropType> {
         onClick={
           isClickable
             ? () => {
-                trackAdvancedAnalyticsEvent(
-                  'issue_details.performance.hidden_spans_expanded',
-                  {organization}
-                );
+                trackAnalytics('issue_details.performance.hidden_spans_expanded', {
+                  organization,
+                });
                 waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
 
                 // We must clear the cache at this point, since the code in componentDidUpdate is unable to effectively
@@ -407,6 +401,13 @@ class SpanTree extends Component<PropType> {
       addContentSpanBarRef,
       removeContentSpanBarRef,
       storeSpanBar,
+      getCurrentLeftPos,
+      onDragStart,
+      onScroll,
+      scrollBarAreaRef,
+      updateHorizontalScrollState,
+      updateScrollState,
+      virtualScrollbarRef,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
@@ -474,11 +475,19 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
+          const groupingContainsAffectedSpan = payload.spanNestedGrouping?.find(
+            ({span: s}) =>
+              !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+          );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.DESCENDANT_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -500,11 +509,19 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
+          const groupingContainsAffectedSpan = payload.spanSiblingGrouping?.find(
+            ({span: s}) =>
+              !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+          );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.SIBLING_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -557,9 +574,7 @@ class SpanTree extends Component<PropType> {
         }
 
         const isAffectedSpan =
-          !('type' in span) &&
-          isEmbeddedSpanTree &&
-          waterfallModel.affectedSpanIds?.includes(span.span_id);
+          !isGapSpan(span) && waterfallModel.affectedSpanIds?.includes(span.span_id);
 
         let spanBarType: SpanBarType | undefined = undefined;
 
@@ -574,6 +589,13 @@ class SpanTree extends Component<PropType> {
         acc.spanTree.push({
           type: SpanTreeNodeType.SPAN,
           props: {
+            getCurrentLeftPos,
+            onDragStart,
+            onScroll,
+            scrollBarAreaRef,
+            updateHorizontalScrollState,
+            updateScrollState,
+            virtualScrollbarRef,
             organization,
             event: waterfallModel.event,
             spanBarColor,
@@ -602,7 +624,7 @@ class SpanTree extends Component<PropType> {
             addContentSpanBarRef,
             removeContentSpanBarRef,
             storeSpanBar,
-            getCurrentLeftPos: this.props.getCurrentLeftPos,
+            isSpanInEmbeddedTree: waterfallModel.isEmbeddedSpanTree,
             resetCellMeasureCache: () => this.cache.clear(index, 0),
           },
         });
@@ -750,7 +772,7 @@ class SpanTree extends Component<PropType> {
                   autoHeight
                   isScrolling={isScrolling}
                   onScroll={onChildScroll}
-                  scrollTop={scrollTop}
+                  scrollTop={this.props.isEmbedded ? 0 : scrollTop}
                   deferredMeasurementCache={this.cache}
                   height={height}
                   width={width}

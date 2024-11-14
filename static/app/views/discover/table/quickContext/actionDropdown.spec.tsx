@@ -1,10 +1,12 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
 
@@ -25,7 +27,7 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
-const mockedLocation = TestStubs.location({
+const mockedLocation = LocationFixture({
   query: {
     field: 'title',
   },
@@ -38,7 +40,7 @@ const renderActionDropdown = (
   value: React.ReactText | string[],
   contextValueType: ContextValueType
 ) => {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
   render(
     <ActionDropDown
       dataRow={dataRow}
@@ -70,7 +72,7 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const menuOptions = await screen.findAllByRole('menuitemradio');
     expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -92,7 +94,7 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const menuOptions = await screen.findAllByRole('menuitemradio');
     expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -114,11 +116,11 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addAsColumn = await screen.findByRole('menuitemradio', {name: 'Add as column'});
 
-    userEvent.click(addAsColumn);
+    await userEvent.click(addAsColumn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,11 +144,11 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addToFilter = await screen.findByRole('menuitemradio', {name: 'Add to filter'});
 
-    userEvent.click(addToFilter);
+    await userEvent.click(addToFilter);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -170,13 +172,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addToFilter = await screen.findByRole('menuitemradio', {
       name: 'Exclude from filter',
     });
 
-    userEvent.click(addToFilter);
+    await userEvent.click(addToFilter);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -200,13 +202,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const showGreaterThanBtn = await screen.findByRole('menuitemradio', {
       name: 'Show values greater than',
     });
 
-    userEvent.click(showGreaterThanBtn);
+    await userEvent.click(showGreaterThanBtn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -230,13 +232,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const showLessThanBtn = await screen.findByRole('menuitemradio', {
       name: 'Show values less than',
     });
 
-    userEvent.click(showLessThanBtn);
+    await userEvent.click(showLessThanBtn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,149 +1,46 @@
-__all__ = ["timing", "incr"]
-
-
 import functools
 import logging
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from queue import Queue
 from random import random
-from threading import Thread, local
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from threading import Thread
+from typing import Any, TypeVar
 
+import sentry_sdk
 from django.conf import settings
+from rest_framework.request import Request
 
-from sentry.metrics.base import MetricsBackend
+from sentry.metrics.base import MetricsBackend, MutableTags, Tags
+from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
 
-metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
+metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
-_BAD_TAGS = frozenset(["event", "project", "group"])
-_METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
-    [
-        # snuba related tags
-        "process_message",
-        "commit_log_msg_latency",
-        "commit_log_latency",
-        "process_message.normalized",
-        "batching_consumer.batch.size",
-        "batching_consumer.batch.flush",
-        "batching_consumer.batch.flush.normalized",
-    ]
-)
+__all__ = [
+    "add_global_tags",
+    "global_tags",
+    "incr",
+    "timer",
+    "timing",
+    "gauge",
+    "backend",
+    "MutableTags",
+    "ensure_crash_rate_in_bounds",
+]
+
 
 T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
-
-# Note: One can pass a lot without TypeErrors, but some values such as None
-# don't actually get serialized as tags properly all the way to statsd (they
-# just get lost)
-# We still loosely type here because we have too many places where we send None
-# for a tag value, and sometimes even keys. It doesn't cause real bugs, your
-# monitoring is just slightly broken.
-TagValue = Union[str, int, float, None]
-Tags = Mapping[str, TagValue]
-MutableTags = MutableMapping[str, TagValue]
-
-_THREAD_LOCAL_TAGS = local()
-_GLOBAL_TAGS: List[Tags] = []
-
-
-def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]:
-    if _all_threads:
-        stack = _GLOBAL_TAGS
-    else:
-        if not hasattr(_THREAD_LOCAL_TAGS, "stack"):
-            stack = _THREAD_LOCAL_TAGS.stack = []
-        else:
-            stack = _THREAD_LOCAL_TAGS.stack
-
-    stack.append(tags)
-    return stack
-
-
-class BadMetricTags(RuntimeError):
-    pass
-
-
-def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
-    """Removes unwanted tags from the tag mapping and returns a filtered one."""
-    if key in _METRICS_THAT_CAN_HAVE_BAD_TAGS:
-        return tags
-
-    discarded = frozenset(key for key in tags if key.endswith("_id") or key in _BAD_TAGS)
-    if not discarded:
-        return tags
-
-    if settings.SENTRY_METRICS_DISALLOW_BAD_TAGS:
-        raise BadMetricTags(
-            f"discarded illegal metric tags: {sorted(discarded)} for metric {key!r}"
-        )
-    return {k: v for k, v in tags.items() if k not in discarded}
-
-
-def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
-    """
-    Set multiple metric tags onto the global or thread-local stack which then
-    apply to all metrics.
-
-    When used in combination with the `global_tags` context manager,
-    `add_global_tags` is reverted in any wrapping invocaation of `global_tags`.
-    For example::
-
-        with global_tags(tag_a=123):
-            add_global_tags(tag_b=123)
-
-        # tag_b is no longer visible
-    """
-    _add_global_tags(_all_threads=_all_threads, **tags)
-
-
-@contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
-    """
-    The context manager version of `add_global_tags` that reverts all tag
-    changes upon exit.
-
-    See docstring of `add_global_tags` for how those two methods interact.
-    """
-    stack = _add_global_tags(_all_threads=_all_threads, **tags)
-    old_len = len(stack) - 1
-
-    try:
-        yield
-    finally:
-        del stack[old_len:]
-
-
-def _get_current_global_tags() -> MutableTags:
-    rv: MutableTags = {}
-
-    for tags in _GLOBAL_TAGS:
-        rv.update(tags)
-
-    for tags in getattr(_THREAD_LOCAL_TAGS, "stack", None) or ():
-        rv.update(tags)
-
-    return rv
 
 
 def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    cls = import_string(settings.SENTRY_METRICS_BACKEND)
+    cls: type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
-    return cls(**settings.SENTRY_METRICS_OPTIONS)
+    return MiddlewareWrapper(cls(**settings.SENTRY_METRICS_OPTIONS))
 
 
 backend = get_default_backend()
@@ -160,7 +57,7 @@ def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value: Union[int, float], sample_rate: float) -> Union[int, float]:
+def _sampled_value(value: int, sample_rate: float) -> int:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
@@ -171,11 +68,12 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[Tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
+        q: Queue[tuple[str, str | None, Tags | None, int, float]]
         self.q = q = Queue()
 
         def worker() -> None:
             from sentry import tsdb
+            from sentry.tsdb.base import TSDBModel
 
             while True:
                 key, instance, tags, amount, sample_rate = q.get()
@@ -185,15 +83,14 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(tsdb.models.internal, full_key, count=amount)
+                    tsdb.backend.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")
                 finally:
                     q.task_done()
 
-        t = Thread(target=worker)
-        t.setDaemon(True)
+        t = Thread(target=worker, daemon=True)
         t.start()
 
         self._started = True
@@ -201,8 +98,8 @@ class InternalMetrics:
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         amount: int = 1,
         sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     ) -> None:
@@ -217,16 +114,13 @@ internal = InternalMetrics()
 def incr(
     key: str,
     amount: int = 1,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: str | None = None,
+    stacklevel: int = 0,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-    current_tags = _filter_tags(key, current_tags)
-
     should_send_internal = (
         not metrics_skip_all_internal
         and not skip_internal
@@ -235,10 +129,10 @@ def incr(
     )
 
     if should_send_internal:
-        internal.incr(key, instance, current_tags, amount, sample_rate)
+        internal.incr(key, instance, tags, amount, sample_rate)
 
     try:
-        backend.incr(key, instance, current_tags, amount, sample_rate)
+        backend.incr(key, instance, tags, amount, sample_rate, unit, stacklevel + 1)
         if should_send_internal:
             backend.incr("internal_metrics.incr", key, None, 1, sample_rate)
     except Exception:
@@ -249,17 +143,14 @@ def incr(
 def gauge(
     key: str,
     value: float,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: str | None = None,
+    stacklevel: int = 0,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-    current_tags = _filter_tags(key, current_tags)
-
     try:
-        backend.gauge(key, value, instance, current_tags, sample_rate)
+        backend.gauge(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -267,18 +158,30 @@ def gauge(
 
 def timing(
     key: str,
-    value: Union[int, float],
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    value: int | float,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> None:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-    current_tags = _filter_tags(key, current_tags)
-
     try:
-        backend.timing(key, value, instance, current_tags, sample_rate)
+        backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
+def distribution(
+    key: str,
+    value: int | float,
+    instance: str | None = None,
+    tags: Tags | None = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    unit: str | None = None,
+    stacklevel: int = 0,
+) -> None:
+    try:
+        backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
@@ -287,16 +190,13 @@ def timing(
 @contextmanager
 def timer(
     key: str,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Generator[MutableTags, None, None]:
-    current_tags = _get_current_global_tags()
-    if tags is not None:
-        current_tags.update(tags)
-    current_tags = _filter_tags(key, current_tags)
-
     start = time.monotonic()
+    current_tags: MutableTags = dict(tags or ())
     try:
         yield current_tags
     except Exception:
@@ -305,21 +205,126 @@ def timer(
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
+        # stacklevel must be increased by 2 because of the contextmanager indirection
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 2)
 
 
 def wraps(
     key: str,
-    instance: Optional[str] = None,
-    tags: Optional[Tags] = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+    stacklevel: int = 0,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            with timer(key, instance=instance, tags=tags, sample_rate=sample_rate):
+            with timer(
+                key,
+                instance=instance,
+                tags=tags,
+                sample_rate=sample_rate,
+                stacklevel=stacklevel + 1,
+            ):
                 return f(*args, **kwargs)
 
-        return inner  # type: ignore
+        return inner  # type: ignore[return-value]
 
     return wrapper
+
+
+def event(
+    title: str,
+    message: str,
+    alert_type: str | None = None,
+    aggregation_key: str | None = None,
+    source_type_name: str | None = None,
+    priority: str | None = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
+    stacklevel: int = 0,
+) -> None:
+    try:
+        backend.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            tags,
+            stacklevel + 1,
+        )
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
+def ensure_crash_rate_in_bounds(
+    data: Any,
+    request: Request,
+    organization,
+    CRASH_RATE_METRIC_KEY: str,
+    lower_bound: float = 0.0,
+    upper_bound: float = 1.0,
+):
+    """
+    Ensures that crash rate metric will always have value in expected bounds, and
+    that invalid value is never returned to the customer by replacing all the invalid values with
+    the bound value.
+    Invalid crash rate can happen due to the corrupted data that is used to calculate the metric
+    (see: https://github.com/getsentry/sentry/issues/73172)
+
+    Example format of data argument:
+    {
+        ...
+        "groups" : [
+            ...
+            "series": {..., "session.crash_free_rate": [..., None, 0.35]},
+            "totals": {..., "session.crash_free_rate": 0.35}
+        ]
+    }
+    """
+    groups = data["groups"]
+    for group in groups:
+        if "series" in group:
+            series = group["series"]
+            if CRASH_RATE_METRIC_KEY in series:
+                for i, value in enumerate(series[CRASH_RATE_METRIC_KEY]):
+                    try:
+                        value = float(value)
+                        if value < lower_bound or value > upper_bound:
+                            with sentry_sdk.isolation_scope() as scope:
+                                scope.set_tag("organization", organization.id)
+                                scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value in series", value)
+                                scope.set_extra("request_query_params", request.query_params)
+                                sentry_sdk.capture_message(
+                                    f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                                )
+                            if value < lower_bound:
+                                series[CRASH_RATE_METRIC_KEY][i] = lower_bound
+                            else:
+                                series[CRASH_RATE_METRIC_KEY][i] = upper_bound
+                    except TypeError:
+                        # value is not a number
+                        continue
+
+        if "totals" in group:
+            totals = group["totals"]
+            if CRASH_RATE_METRIC_KEY not in totals or totals[CRASH_RATE_METRIC_KEY] is None:
+                # no action is needed
+                continue
+            value = totals[CRASH_RATE_METRIC_KEY]
+            if value < lower_bound or value > upper_bound:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("organization", organization.id)
+                    scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value", totals[CRASH_RATE_METRIC_KEY])
+                    scope.set_extra("request_query_params", request.query_params)
+                    sentry_sdk.capture_message(
+                        f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                    )
+                if value < lower_bound:
+                    totals[CRASH_RATE_METRIC_KEY] = lower_bound
+                else:
+                    totals[CRASH_RATE_METRIC_KEY] = upper_bound

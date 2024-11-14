@@ -1,56 +1,118 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import {
+  SearchQueryBuilder,
+  type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import {t} from 'sentry/locale';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withIssueTags, {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
+import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getSupportedTags = (supportedTags: TagCollection) =>
-  Object.fromEntries(
-    Object.keys(supportedTags).map(key => [
-      key,
-      {
-        ...supportedTags[key],
-        kind:
-          getFieldDefinition(key)?.kind ??
-          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
-      },
-    ])
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+  const allTags: Tag[] = Object.values(tags).filter(
+    tag => !EXCLUDED_TAGS.includes(tag.key)
   );
+  const issueFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+    ['key']
+  ).map(tag => tag.key);
+  const eventFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+    ['key']
+  ).map(tag => tag.key);
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
 
-interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTagsProps {
+  return [
+    {
+      value: FieldKind.ISSUE_FIELD,
+      label: t('Issues'),
+      children: issueFields,
+    },
+    {
+      value: FieldKind.EVENT_FIELD,
+      label: t('Event Filters'),
+      children: eventFields,
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Event Tags'),
+      children: eventTags,
+    },
+  ];
+};
+
+interface Props extends Partial<SearchQueryBuilderProps> {
   organization: Organization;
 }
 
 const EXCLUDED_TAGS = ['environment'];
 
-function IssueListSearchBar({organization, tags, ...props}: Props) {
+function IssueListSearchBar({
+  organization,
+  searchSource = 'issues',
+  initialQuery = '',
+  ...props
+}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
+  const filterKeys = useIssueListFilterKeys();
 
   const tagValueLoader = useCallback(
-    (key: string, search: string) => {
+    async (key: string, search: string) => {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
-        start: getUtcDateString(pageFilters.datetime.start),
-        end: getUtcDateString(pageFilters.datetime.end),
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
 
-      return fetchTagValues({
+      const fetchTagValuesPayload = {
         api,
         orgSlug,
         tagKey: key,
         search,
         projectIds,
         endpointParams,
-      });
+        sort: '-count' as const,
+      };
+
+      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ERRORS,
+        }),
+        fetchTagValues({
+          ...fetchTagValuesPayload,
+          dataset: Dataset.ISSUE_PLATFORM,
+        }),
+      ]);
+
+      return mergeAndSortTagValues(
+        eventsDatasetValues,
+        issuePlatformDatasetValues,
+        'count'
+      );
     },
     [
       api,
@@ -62,26 +124,28 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     ]
   );
 
-  const getTagValues = useCallback(
-    async (tag: Tag, query: string): Promise<string[]> => {
-      const values = await tagValueLoader(tag.key, query);
-      return values.map(({value}) => value);
-    },
+  const getTagValues = useMemo(
+    () => makeGetIssueTagValues(tagValueLoader),
     [tagValueLoader]
   );
 
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(filterKeys);
+  }, [filterKeys]);
+
   return (
-    <SmartSearchBar
-      hasRecentSearches
-      savedSearchType={SavedSearchType.ISSUE}
-      onGetTagValues={getTagValues}
-      excludedTags={EXCLUDED_TAGS}
-      maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags)}
-      organization={organization}
+    <SearchQueryBuilder
+      initialQuery={initialQuery}
+      getTagValues={getTagValues}
+      filterKeySections={filterKeySections}
+      filterKeys={filterKeys}
+      recentSearches={SavedSearchType.ISSUE}
+      disallowLogicalOperators
+      showUnsubmittedIndicator
+      searchSource={searchSource}
       {...props}
     />
   );
 }
 
-export default withIssueTags(IssueListSearchBar);
+export default IssueListSearchBar;

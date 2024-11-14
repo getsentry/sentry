@@ -4,16 +4,14 @@ from unittest import mock
 
 from django.http import HttpResponse
 from django.urls import reverse
-from freezegun import freeze_time
 
 from sentry.api.endpoints.organization_transaction_anomaly_detection import get_time_params
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 @freeze_time("2022-02-21")
-@region_silo_test
-class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase):
+class OrganizationTransactionAnomalyDetectionEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-transaction-anomaly-detection"
 
     def setUp(self):
@@ -26,7 +24,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
     def do_request(self, data, url=None, features=None):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
         if features is None:
@@ -41,7 +39,7 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
     def test_without_feature(self):
         self.url = reverse(
             "sentry-api-0-organization-transaction-anomaly-detection",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
         response = self.client.get(self.url, data={}, format="json")

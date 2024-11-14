@@ -57,6 +57,21 @@ redis.clusters:
       0:
         host: 127.0.0.1
         port: 6379
+  rc-default:
+    is_redis_cluster: true
+    hosts:
+      - host: 127.0.0.1
+        port: 7000
+      - host: 127.0.0.1
+        port: 7001
+      - host: 127.0.0.1
+        port: 7002
+      - host: 127.0.0.1
+        port: 7003
+      - host: 127.0.0.1
+        port: 7004
+      - host: 127.0.0.1
+        port: 7005
 
 ################
 # File storage #
@@ -68,15 +83,26 @@ redis.clusters:
 filestore.backend: 'filesystem'
 filestore.options:
   location: '/tmp/sentry-files'
+filestore.relocation-backend: 'filesystem'
+filestore.relocation-options:
+  location: '/tmp/sentry-relocation-files'
 
 # NOTE: See docs/filestore for instructions on configuring the shell environment
 #       with authentication credentials for Google Cloud.
 # filestore.backend: 'gcs'
 # filestore.options:
-#   bucket_name: 's3-bucket-name'
+#   bucket_name: 'gcs-bucket-name'
+# filestore.relocation-backend: 'gcs'
+# filestore.relocation-options:
+#   bucket_name: 'gcs-relocation-bucket-name'
 
 # filestore.backend: 's3'
 # filestore.options:
 #   access_key: 'AKIXXXXXX'
 #   secret_key: 'XXXXXXX'
 #   bucket_name: 's3-bucket-name'
+# filestore.relocation-backend: 's3'
+# filestore.relocation-options:
+#   access_key: 'AKIXXXXXX'
+#   secret_key: 'XXXXXXX'
+#   bucket_name: 's3-relocation-bucket-name'

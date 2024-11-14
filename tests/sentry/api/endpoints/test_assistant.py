@@ -3,12 +3,12 @@ from functools import cached_property
 from django.utils import timezone
 
 from sentry.assistant import manager
-from sentry.models import AssistantActivity
-from sentry.testutils import APITestCase
+from sentry.models.assistant import AssistantActivity
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AssistantActivityTest(APITestCase):
     endpoint = "sentry-api-0-assistant"
 
@@ -48,7 +48,7 @@ class AssistantActivityTest(APITestCase):
         assert {"guide": guide, "seen": True} in resp.data
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class AssistantActivityUpdateTest(APITestCase):
     endpoint = "sentry-api-0-assistant"
     method = "put"

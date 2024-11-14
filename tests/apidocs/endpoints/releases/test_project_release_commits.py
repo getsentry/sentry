@@ -2,11 +2,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Commit, ReleaseCommit
-from sentry.testutils.silo import region_silo_test
+from sentry.models.commit import Commit
+from sentry.models.releasecommit import ReleaseCommit
 
 
-@region_silo_test
 class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")
@@ -28,8 +27,8 @@ class ProjectReleaseCommitsListDocsTest(APIDocsTestCase):
         self.url = reverse(
             "sentry-api-0-project-release-commits",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

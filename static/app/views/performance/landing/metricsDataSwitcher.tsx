@@ -1,15 +1,13 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  MetricDataSwitcherOutcome,
-  useMetricsCardinalityContext,
-} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   canUseMetricsData,
   MEPState,
@@ -92,7 +90,7 @@ function MetricsSwitchHandler({
   const {query} = location;
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
   const hasQuery = decodeScalar(query.query, '');
-  const queryIsTransactionsBased = mepSearchState === MEPState.transactionsOnly;
+  const queryIsTransactionsBased = mepSearchState === MEPState.TRANSACTIONS_ONLY;
 
   const shouldAdjustQuery =
     hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;

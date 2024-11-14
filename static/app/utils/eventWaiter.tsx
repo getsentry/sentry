@@ -1,26 +1,13 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
-import {Group, Organization, Project} from 'sentry/types';
-import {analytics} from 'sentry/utils/analytics';
+import type {Client} from 'sentry/api';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
-
-const recordAnalyticsFirstEvent = ({
-  key,
-  organization,
-  project,
-}: {
-  key: 'first_event_recieved' | 'first_transaction_recieved' | 'first_replay_recieved';
-  organization: Organization;
-  project: Project;
-}) =>
-  analytics(`onboarding_v2.${key}`, {
-    org_id: parseInt(organization.id, 10),
-    project: String(project.id),
-  });
 
 /**
  * When no event has been received this will be set to null or false.
@@ -131,26 +118,10 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
 
       // The event may have expired, default to true
       firstIssue = issues.find((issue: Group) => issue.firstSeen === firstEvent) || true;
-
-      recordAnalyticsFirstEvent({
-        key: 'first_event_recieved',
-        organization,
-        project,
-      });
     } else if (eventType === 'transaction') {
       firstIssue = Boolean(firstEvent);
-      recordAnalyticsFirstEvent({
-        key: 'first_transaction_recieved',
-        organization,
-        project,
-      });
     } else if (eventType === 'replay') {
       firstIssue = Boolean(firstEvent);
-      recordAnalyticsFirstEvent({
-        key: 'first_replay_recieved',
-        organization,
-        project,
-      });
     }
 
     if (onIssueReceived) {

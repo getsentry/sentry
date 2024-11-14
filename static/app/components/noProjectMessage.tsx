@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   organization: Organization;
@@ -22,17 +23,16 @@ function NoProjectMessage({
   organization,
   superuserNeedsToBeProjectMember,
 }: Props) {
+  const user = useUser();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
   const orgSlug = organization.slug;
-  const canCreateProject = organization.access.includes('project:write');
+  const canUserCreateProject = canCreateProject(organization);
   const canJoinTeam = organization.access.includes('team:read');
-
-  const {isSuperuser} = ConfigStore.get('user');
 
   const orgHasProjects = !!projects?.length;
   const hasProjectAccess =
-    isSuperuser && !superuserNeedsToBeProjectMember
+    user.isSuperuser && !superuserNeedsToBeProjectMember
       ? !!projects?.some(p => p.hasAccess)
       : !!projects?.some(p => p.isMember && p.hasAccess);
 
@@ -45,29 +45,29 @@ function NoProjectMessage({
   // action is to create a project.
 
   const joinTeamAction = (
-    <Button
+    <LinkButton
       title={canJoinTeam ? undefined : t('You do not have permission to join a team.')}
       disabled={!canJoinTeam}
       priority={orgHasProjects ? 'primary' : 'default'}
       to={`/settings/${orgSlug}/teams/`}
     >
       {t('Join a Team')}
-    </Button>
+    </LinkButton>
   );
 
   const createProjectAction = (
-    <Button
+    <LinkButton
       title={
-        canCreateProject
+        canUserCreateProject
           ? undefined
           : t('You do not have permission to create a project.')
       }
-      disabled={!canCreateProject}
+      disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
       to={`/organizations/${orgSlug}/projects/new/`}
     >
       {t('Create project')}
-    </Button>
+    </LinkButton>
   );
 
   return (

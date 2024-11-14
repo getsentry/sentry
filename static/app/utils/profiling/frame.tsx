@@ -1,32 +1,48 @@
+import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
-import {WeightedNode} from './weightedNode';
-
-export class Frame extends WeightedNode {
+const ROOT_KEY = 'sentry root';
+const BROWSER_EXTENSION_REGEXP = /^(\@moz-extension\:\/\/|chrome-extension\:\/\/)/;
+export class Frame {
   readonly key: string | number;
   readonly name: string;
-  readonly file?: string;
-  readonly line?: number;
+
   readonly column?: number;
-  readonly is_application: boolean;
-  readonly path?: string;
-  readonly image?: string;
-  readonly resource?: string;
-  readonly threadId?: number;
+  readonly file?: string;
   readonly inline?: boolean;
+  readonly instructionAddr?: string;
+  readonly is_application: boolean;
+  readonly is_browser_extension?: boolean;
+  readonly line?: number;
+  readonly module?: string;
+  readonly package?: string;
+  readonly path?: string;
+  readonly platform?: string;
+  readonly resource?: string;
+  readonly symbol?: string;
+  readonly symbolAddr?: string;
+  readonly symbolicatorStatus?: SymbolicatorStatus;
+  readonly threadId?: number;
 
-  static Root = new Frame(
-    {
-      key: 'sentry root',
-      name: 'sentry root',
-      is_application: false,
-    },
-    'mobile'
-  );
+  readonly isRoot: boolean;
 
-  constructor(frameInfo: Profiling.FrameInfo, type?: 'mobile' | 'web' | 'node') {
-    super();
+  totalWeight: number = 0;
+  selfWeight: number = 0;
+  aggregateDuration: number = 0;
 
+  static Root = new Frame({
+    key: ROOT_KEY,
+    name: ROOT_KEY,
+    is_application: false,
+  });
+
+  constructor(
+    frameInfo: Profiling.FrameInfo,
+    type?: 'mobile' | 'javascript' | 'node' | string,
+    // In aggregate mode, we miss certain info like lineno/col and so
+    // we need to make sure we don't try to use it or infer data based on it
+    mode?: 'detailed' | 'aggregate'
+  ) {
     this.key = frameInfo.key;
     this.file = frameInfo.file;
     this.name = frameInfo.name;
@@ -34,9 +50,16 @@ export class Frame extends WeightedNode {
     this.line = frameInfo.line;
     this.column = frameInfo.column;
     this.is_application = !!frameInfo.is_application;
-    this.image = frameInfo.image;
+    this.package = frameInfo.package;
+    this.module = frameInfo.module ?? frameInfo.image;
     this.threadId = frameInfo.threadId;
     this.path = frameInfo.path;
+    this.platform = frameInfo.platform;
+    this.instructionAddr = frameInfo.instructionAddr;
+    this.symbol = frameInfo.symbol;
+    this.symbolAddr = frameInfo.symbolAddr;
+    this.symbolicatorStatus = frameInfo.symbolicatorStatus;
+    this.isRoot = this.key === ROOT_KEY;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
@@ -52,17 +75,29 @@ export class Frame extends WeightedNode {
 
     // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
     // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
-    if (type === 'web' || type === 'node') {
+    if (type === 'javascript' || type === 'node') {
       if (this.name === '(garbage collector)' || this.name === '(root)') {
         this.is_application = false;
       }
 
-      if (!this.name || this.name.startsWith('unknown ')) {
+      if (!this.name || this.name === 'unknown') {
         this.name = t('<anonymous>');
       }
+
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
-      if (this.line === undefined && this.column === undefined) {
+      if (this.line === undefined && this.column === undefined && mode !== 'aggregate') {
         this.name += ` ${t('[native code]')}`;
+        this.is_application = false;
+      }
+
+      if (!this.file && this.path) {
+        this.file = this.path;
+      }
+
+      this.is_browser_extension = !!(
+        this.file && BROWSER_EXTENSION_REGEXP.test(this.file)
+      );
+      if (this.is_browser_extension && this.is_application) {
         this.is_application = false;
       }
 
@@ -75,7 +110,7 @@ export class Frame extends WeightedNode {
           this.is_application = false;
         }
 
-        if (this.image === undefined && pathOrFile) {
+        if (this.module === undefined && pathOrFile) {
           const match =
             /node_modules(\/|\\)(?<maybeScopeOrPackage>.*?)(\/|\\)((?<maybePackage>.*)((\/|\\)))?/.exec(
               pathOrFile
@@ -84,9 +119,9 @@ export class Frame extends WeightedNode {
             const {maybeScopeOrPackage, maybePackage} = match.groups;
 
             if (maybeScopeOrPackage.startsWith('@')) {
-              this.image = `${maybeScopeOrPackage}/${maybePackage}`;
+              this.module = `${maybeScopeOrPackage}/${maybePackage}`;
             } else {
-              this.image = match.groups.maybeScopeOrPackage;
+              this.module = match.groups.maybeScopeOrPackage;
             }
             this.is_application = false;
           }
@@ -111,7 +146,9 @@ export class Frame extends WeightedNode {
             image += pathOrFile.charAt(i);
           }
 
-          this.image = image;
+          if (image) {
+            this.module = image;
+          }
         }
       }
     }
@@ -121,7 +158,12 @@ export class Frame extends WeightedNode {
     }
   }
 
-  isRoot(): boolean {
-    return this.name === Frame.Root.name;
+  getSourceLocation(): string {
+    const packageFileOrPath: string =
+      this.file ?? this.module ?? this.package ?? this.path ?? '<unknown>';
+
+    const line = typeof this.line === 'number' ? this.line : '<unknown line>';
+    const column = typeof this.column === 'number' ? this.column : '<unknown column>';
+    return `${packageFileOrPath}:${line}:${column}`;
   }
 }

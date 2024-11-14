@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -28,7 +29,7 @@ def get_mail_backend() -> Backend:
         return backend
 
 
-class PreviewBackend(BaseEmailBackend):  # type: ignore
+class PreviewBackend(BaseEmailBackend):
     """
     Email backend that can be used in local development to open messages in the
     local mail client as they are sent.

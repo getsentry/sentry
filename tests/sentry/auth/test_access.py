@@ -1,25 +1,29 @@
-from unittest.mock import Mock
+from datetime import timedelta
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.test import override_settings
+from django.utils import timezone
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
-from sentry.models import (
-    ApiKey,
-    AuthIdentity,
-    AuthProvider,
-    ObjectStatus,
-    Organization,
-    TeamStatus,
-    User,
-    UserPermission,
-    UserRole,
-)
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
-from sentry.testutils import TestCase
+from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.services.access.service import access_service
+from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
+from sentry.constants import ObjectStatus
+from sentry.models.apikey import ApiKey
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
+from sentry.models.team import TeamStatus
+from sentry.organizations.services.organization import organization_service
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits, no_silo_test
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRole
 
 
 def silo_from_user(
@@ -27,6 +31,7 @@ def silo_from_user(
     organization=None,
     scopes=None,
     is_superuser=False,
+    is_staff=False,
 ) -> Access:
     rpc_user_org_context = None
     if organization:
@@ -37,11 +42,12 @@ def silo_from_user(
         user=user,
         rpc_user_org_context=rpc_user_org_context,
         is_superuser=is_superuser,
+        is_staff=is_staff,
         scopes=scopes,
     )
 
 
-def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
+def silo_from_request(request, organization: Organization | None = None, scopes=None) -> Access:
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = organization_service.get_organization_by_id(
@@ -63,20 +69,20 @@ class AccessFactoryTestCase(TestCase):
             return access.from_request(*args, **kwds)
         return silo_from_request(*args, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(self, organization: Organization, **kwds):
-        return ApiKey.objects.create(organization=organization, **kwds)
+        return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_provider(self, organization: Organization, **kwds):
-        return AuthProvider.objects.create(organization=organization, **kwds)
+        return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromUserTest(AccessFactoryTestCase):
     def test_no_access(self):
         organization = self.create_organization()
@@ -268,36 +274,65 @@ class FromUserTest(AccessFactoryTestCase):
             assert result.has_project_membership(project)
 
     @with_feature("organizations:team-roles")
-    def test_has_scope_from_team_role(self):
-        user = self.create_user()
+    def test_has_project_scope_from_team_role(self):
         organization = self.create_organization()
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, teams=[team])
+        team_other = self.create_team(organization=organization)
+        project_other = self.create_project(organization=organization, teams=[team_other])
+
+        # Team Contributor
+        user = self.create_user()
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="contributor")
+
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            # Does not have scopes from org-role
+            assert not result.has_scope("team:admin")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+
+            # Has scopes from team-role
+            assert not result.has_team_scope(team, "team:admin")
+            assert not result.has_team_scope(team, "team:write")
+            assert result.has_team_scope(team, "team:read")
+            assert not result.has_project_scope(project, "project:admin")
+            assert not result.has_project_scope(project, "project:write")
+            assert result.has_project_scope(project, "project:read")
+
+        # Team Admin
+        user = self.create_user()
         member = self.create_member(organization=organization, user=user)
         self.create_team_membership(team, member, role="admin")
 
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
-
         for result in results:
+            # Does not have scopes from org-role
             assert not result.has_scope("team:admin")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+
+            # Has scopes from team-role
             assert result.has_team_scope(team, "team:admin")
-            assert result.has_project_scope(project, "team:admin")
+            assert result.has_team_scope(team, "team:write")
+            assert result.has_team_scope(team, "team:read")
+            assert result.has_project_scope(project, "project:admin")
+            assert result.has_project_scope(project, "project:write")
+            assert result.has_project_scope(project, "project:read")
 
-    def test_get_organization_roles_from_teams(self):
-        user = self.create_user()
-        organization = self.create_organization()
-        owner_team = self.create_team(organization=organization, org_role="owner")
-        admin_team = self.create_team(organization=organization, org_role="admin")
-        self.create_member(organization=organization, user=user, teams=[owner_team, admin_team])
-
-        request = self.make_request(user=user)
-        results = [self.from_user(user, organization), self.from_request(request, organization)]
-
-        for result in results:
-            assert "owner" in result.roles
-            assert "member" in result.roles
-            assert "admin" in result.roles
+            # Does not have scope from other team
+            assert not result.has_team_scope(team_other, "team:admin")
+            assert not result.has_team_scope(team_other, "team:write")
+            assert result.has_team_scope(team_other, "team:read")
+            assert not result.has_project_scope(project_other, "project:admin")
+            assert not result.has_project_scope(project_other, "project:write")
+            assert result.has_project_scope(project_other, "project:read")
 
     def test_unlinked_sso(self):
         user = self.create_user()
@@ -311,6 +346,42 @@ class FromUserTest(AccessFactoryTestCase):
         for result in results:
             assert not result.sso_is_valid
             assert result.requires_sso
+
+    def test_last_verified_sso(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        ai = self.create_auth_identity(auth_provider=ap, user=user)
+
+        om = organization_service.check_membership_by_id(
+            organization_id=organization.id, user_id=ai.user_id
+        )
+        assert om
+        setattr(om.flags, "sso:linked", True)
+        organization_service.update_membership_flags(organization_member=om)
+
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert result.sso_is_valid
+            assert result.requires_sso
+
+        # If the auth identity has not been updated in awhile, it is not valid.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ai.update(last_verified=timezone.now() - timedelta(days=10))
+
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+        for result in results:
+            assert not result.sso_is_valid
+            assert result.requires_sso
+
+        # but it is valid if the requires_fresh is False
+        with patch.object(DummyProvider, "requires_refresh", False):
+            results = [self.from_user(user, organization), self.from_request(request, organization)]
+            for result in results:
+                assert result.sso_is_valid
+                assert result.requires_sso
 
     def test_unlinked_sso_with_owner_from_team(self):
         organization = self.create_organization()
@@ -369,10 +440,9 @@ class FromUserTest(AccessFactoryTestCase):
         for result in results:
             assert result is access.DEFAULT
 
-    def test_superuser_permissions(self):
+    def test_user_permissions_as_superuser(self):
         user = self.create_user(is_superuser=True)
-        with exempt_from_silo_limits():
-            UserPermission.objects.create(user=user, permission="test.permission")
+        self.add_user_permission(user, "test.permission")
 
         result = self.from_user(user)
         assert not result.has_permission("test.permission")
@@ -380,15 +450,75 @@ class FromUserTest(AccessFactoryTestCase):
         result = self.from_user(user, is_superuser=True)
         assert result.has_permission("test.permission")
 
+    def test_user_permissions_as_staff(self):
+        user = self.create_user(is_staff=True)
+        self.add_user_permission(user, "test.permission")
 
-@all_silo_test(stable=True)
+        result = self.from_user(user)
+        assert not result.has_permission("test.permission")
+
+        result = self.from_user(user, is_staff=True)
+        assert result.has_permission("test.permission")
+
+    @with_feature("organizations:team-roles")
+    def test_enforce_upper_bound_scope(self):
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        team_other = self.create_team(organization=organization)
+        project_other = self.create_project(organization=organization, teams=[team_other])
+
+        # Team Admin
+        user = self.create_user()
+        member = self.create_member(organization=organization, user=user)
+        self.create_team_membership(team, member, role="admin")
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read", "team:admin"]),
+            self.from_request(request, organization, scopes=["org:read", "team:admin"]),
+        ]
+        for result in results:
+            # Does not have scopes from org-role
+            assert not result.has_scope("org:admin")
+            assert not result.has_scope("org:write")
+            assert result.has_scope("org:read")
+            assert not result.has_scope("team:admin")  # Org-member do not have team:admin scope
+            assert not result.has_scope("team:read")
+            assert not result.has_scope("team:write")
+            assert not result.has_scope("project:admin")
+            assert not result.has_scope("project:write")
+            assert not result.has_scope("project:read")
+
+            # Has scopes from team-role
+            assert result.has_team_scope(team, "team:admin")  # From being a team-admin
+            assert not result.has_team_scope(team, "team:write")
+            assert not result.has_team_scope(team, "team:read")
+            assert not result.has_project_scope(project, "project:admin")
+            assert not result.has_project_scope(project, "project:write")
+            assert not result.has_project_scope(project, "project:read")
+
+            # Does not have scope from other team
+            assert not result.has_team_scope(team_other, "team:admin")
+            assert not result.has_team_scope(team_other, "team:write")
+            assert not result.has_team_scope(team_other, "team:read")
+            assert not result.has_project_scope(project_other, "project:admin")
+            assert not result.has_project_scope(project_other, "project:write")
+            assert not result.has_project_scope(project_other, "project:read")
+
+
+@all_silo_test
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
-        UserPermission.objects.create(user=self.superuser, permission="test.permission")
+        self.add_user_permission(self.superuser, "test.permission")
+        self.staff = self.create_user(is_staff=True)
+        self.add_user_permission(self.staff, "test.permission")
 
         self.org = self.create_organization()
-        AuthProvider.objects.create(organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            AuthProvider.objects.create(organization_id=self.org.id)
 
         self.team1 = self.create_team(organization=self.org)
         self.project1 = self.create_project(organization=self.org, teams=[self.team1])
@@ -397,7 +527,23 @@ class FromRequestTest(AccessFactoryTestCase):
 
         super().setUp()
 
-    def test_superuser(self):
+    def _assert_memberships(self, result: Access) -> None:
+        assert result.role == "admin"
+
+        assert result.team_ids_with_membership == frozenset({self.team1.id})
+        assert result.has_team_access(self.team1)
+        assert result.project_ids_with_team_membership == frozenset({self.project1.id})
+        assert result.has_project_access(self.project1)
+        assert result.has_project_membership(self.project1)
+        assert not result.has_project_membership(self.project2)
+
+        # Even if not superuser/staff, still has these because of role.is_global
+        # which checks that open membership is on
+        assert result.has_global_access
+        assert result.has_team_access(self.team2)
+        assert result.has_project_access(self.project2)
+
+    def test_superuser_user_permissions(self):
         request = self.make_request(user=self.superuser, is_superuser=False)
         result = self.from_request(request)
         assert not result.has_permission("test.permission")
@@ -406,34 +552,109 @@ class FromRequestTest(AccessFactoryTestCase):
         result = self.from_request(request)
         assert result.has_permission("test.permission")
 
+    def test_staff_user_permissions(self):
+        request = self.make_request(user=self.staff, is_staff=False)
+        result = self.from_request(request)
+        assert not result.has_permission("test.permission")
+
+        request = self.make_request(user=self.staff, is_staff=True)
+        result = self.from_request(request)
+        assert result.has_permission("test.permission")
+
+    def test_superuser_scopes(self):
+        # superuser not in organization
+        request = self.make_request(user=self.superuser, is_superuser=True)
+
+        # needs org in request in order to assign any scopes
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
+
+        # superuser in organization
+        self.create_member(user=self.superuser, organization=self.org, role="member")
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
+
+    @override_options({"superuser.read-write.ga-rollout": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_readonly_scopes(self):
+        # superuser not in organization
+        request = self.make_request(user=self.superuser, is_superuser=True)
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_READONLY_SCOPES
+
+        # superuser in organization
+        member = self.create_member(user=self.superuser, organization=self.org, role="member")
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_READONLY_SCOPES
+
+        # readonly scopes does not override owner scopes if passed in
+        with assume_test_silo_mode(SiloMode.REGION):
+            member.update(role="owner")
+
+        result = self.from_request(request, self.org, scopes=member.get_scopes())
+        assert result.scopes == set(member.get_scopes()).union({"org:superuser"})
+
+    @override_options({"superuser.read-write.ga-rollout": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_write_scopes(self):
+        self.add_user_permission(self.superuser, "superuser.write")
+
+        # superuser not in organization
+        request = self.make_request(user=self.superuser, is_superuser=True)
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
+
+        # superuser in organization
+        self.create_member(user=self.superuser, organization=self.org, role="member")
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
+
+    @override_options({"superuser.read-write.ga-rollout": True})
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_superuser_in_organization_write_scopes(self):
+        self.add_user_permission(self.superuser, "superuser.write")
+
+        request = self.make_request(user=self.superuser, is_superuser=True)
+
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
+
     def test_superuser_in_organization(self):
         self.create_member(
             user=self.superuser, organization=self.org, role="admin", teams=[self.team1]
         )
 
-        def assert_memberships(result: Access) -> None:
-            assert result.role == "admin"
-
-            assert result.team_ids_with_membership == frozenset({self.team1.id})
-            assert result.has_team_access(self.team1)
-            assert result.project_ids_with_team_membership == frozenset({self.project1.id})
-            assert result.has_project_access(self.project1)
-            assert result.has_project_membership(self.project1)
-            assert not result.has_project_membership(self.project2)
-
-            # Even if not superuser, still has these because of role.is_global
-            assert result.has_global_access
-            assert result.has_team_access(self.team2)
-            assert result.has_project_access(self.project2)
-
         request = self.make_request(self.superuser, is_superuser=False)
         result = self.from_request(request, self.org)
-        assert_memberships(result)
+        self._assert_memberships(result)
         assert not result.has_permission("test.permission")
+        assert "org:superuser" not in result.scopes
 
         request = self.make_request(user=self.superuser, is_superuser=True)
         result = self.from_request(request, self.org)
-        assert_memberships(result)
+        self._assert_memberships(result)
+        assert result.has_permission("test.permission")
+        assert result.requires_sso
+        assert not result.sso_is_valid
+        # org:superuser is only attached when an org is present + active superuser
+        assert "org:superuser" in result.scopes
+
+    def test_staff_in_organization(self):
+        self.create_member(user=self.staff, organization=self.org, role="admin", teams=[self.team1])
+
+        request = self.make_request(self.staff, is_staff=False)
+        result = self.from_request(request, self.org)
+        self._assert_memberships(result)
+        assert not result.has_permission("test.permission")
+
+        request = self.make_request(user=self.staff, is_staff=True)
+        result = self.from_request(request, self.org)
+        self._assert_memberships(result)
         assert result.has_permission("test.permission")
         assert result.requires_sso
         assert not result.sso_is_valid
@@ -442,6 +663,8 @@ class FromRequestTest(AccessFactoryTestCase):
         request = self.make_request(user=self.superuser, is_superuser=True)
         result = self.from_request(request, self.org)
         assert result.has_permission("test.permission")
+        # org:superuser is only attached when an org is present + active superuser
+        assert "org:superuser" in result.scopes
 
         assert not result.requires_sso
         assert result.sso_is_valid
@@ -450,9 +673,23 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.project_ids_with_team_membership == frozenset()
         assert result.has_project_access(self.project1)
 
+    def test_staff_with_organization_without_membership(self):
+        request = self.make_request(user=self.staff, is_staff=True)
+        result = self.from_request(request, self.org)
+        assert result.has_permission("test.permission")
+
+        assert not result.requires_sso
+        # We do not allow staff who are not members of orgs bypass SSO.
+        assert not result.sso_is_valid
+        # Staff should not have team or project access for another organization
+        assert result.team_ids_with_membership == frozenset()
+        assert not result.has_team_access(self.team1)
+        assert result.project_ids_with_team_membership == frozenset()
+        assert not result.has_project_access(self.project1)
+
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -476,7 +713,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)
@@ -547,7 +784,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_global_access is False
 
 
-@all_silo_test(stable=True)
+@all_silo_test
 class FromSentryAppTest(AccessFactoryTestCase):
     def setUp(self):
         super().setUp()
@@ -653,7 +890,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
     def test_has_app_scopes(self):
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             app_with_scopes.update(scope_list=["team:read", "team:write"])
         self.create_sentry_app_installation(
             organization=self.org, slug=app_with_scopes.slug, user=self.user
@@ -667,7 +904,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:admin") is False
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class DefaultAccessTest(TestCase):
     def test_no_access(self):
         result = access.DEFAULT
@@ -682,7 +919,7 @@ class DefaultAccessTest(TestCase):
         assert not result.permissions
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class SystemAccessTest(TestCase):
     def test_system_access(self):
         org = self.create_organization()
@@ -698,15 +935,15 @@ class SystemAccessTest(TestCase):
         assert result.has_team_access(team)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):
         user = self.user
 
-        UserPermission.objects.create(user=user, permission="test.permission")
+        self.add_user_permission(user, "test.permission")
         role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
         role.users.add(user)
 
-        assert sorted(access.get_permissions_for_user(user.id)) == sorted(
+        assert sorted(access_service.get_permissions_for_user(user.id)) == sorted(
             ["test.permission", "test.permission-role"]
         )

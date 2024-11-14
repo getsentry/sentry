@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import {useRole} from 'sentry/components/acl/useRole';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import FileSize from 'sentry/components/fileSize';
@@ -13,23 +13,26 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
+import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
-  downloadRole: string;
   downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
   orgSlug: string;
+  associations?: ProguardMappingAssociation;
 };
 
-const ProjectProguardRow = ({
+function ProjectProguardRow({
+  associations = {releases: []},
   mapping,
   onDelete,
   downloadUrl,
-  downloadRole,
   orgSlug,
-}: Props) => {
+}: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -40,6 +43,7 @@ const ProjectProguardRow = ({
     <Fragment>
       <NameColumn>
         <Name>{debugId || uuid || `(${t('empty')})`}</Name>
+        <ProguardAssociations associations={associations} />
         <TimeWrapper>
           <IconClock size="sm" />
           <TimeSince date={dateCreated} />
@@ -50,31 +54,27 @@ const ProjectProguardRow = ({
       </SizeColumn>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                title={tct(
-                  'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                disabled={hasRole}
-                isHoverable
-              >
-                <Button
-                  size="sm"
-                  icon={<IconDownload size="sm" />}
-                  disabled={!hasRole}
-                  href={downloadUrl}
-                  title={hasRole ? t('Download Mapping') : undefined}
-                  aria-label={t('Download Mapping')}
-                />
-              </Tooltip>
+          <Tooltip
+            title={tct(
+              'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
+            disabled={hasRole}
+            isHoverable
+          >
+            <LinkButton
+              size="sm"
+              icon={<IconDownload size="sm" />}
+              disabled={!hasRole}
+              href={downloadUrl}
+              title={hasRole ? t('Download Mapping') : undefined}
+              aria-label={t('Download Mapping')}
+            />
+          </Tooltip>
 
           <Access access={['project:releases']}>
             {({hasAccess}) => (
@@ -102,7 +102,7 @@ const ProjectProguardRow = ({
       </ActionsColumn>
     </Fragment>
   );
-};
+}
 
 const NameColumn = styled('div')`
   display: flex;

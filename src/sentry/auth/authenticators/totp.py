@@ -1,9 +1,9 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from .base import AuthenticatorInterface, OtpMixin
+from .base import OtpMixin
 
 
-class TotpInterface(OtpMixin, AuthenticatorInterface):
+class TotpInterface(OtpMixin):
     """This interface uses TOTP with an authenticator."""
 
     type = 1
@@ -24,5 +24,5 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
         "replaced and will no longer work to access your account."
     )
 
-    def get_provision_url(self, user, issuer=None):
+    def get_provision_url(self, user: str, issuer: str | None = None) -> str:
         return self.make_otp().get_provision_url(user, issuer=issuer)

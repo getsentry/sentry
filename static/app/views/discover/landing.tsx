@@ -1,31 +1,30 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import {stringify} from 'query-string';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import AsyncComponent from 'sentry/components/asyncComponent';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery, SelectValue} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {SelectValue} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
-import Banner from './banner';
-import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
 import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
@@ -43,14 +42,14 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class DiscoverLanding extends AsyncComponent<Props, State> {
+class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -79,7 +78,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
     const views = getPrebuiltQueries(organization);
@@ -99,11 +98,16 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
         const needleSearch = searchQuery.toLowerCase();
 
         const numOfPrebuiltQueries = views.reduce((sum, view) => {
-          const eventView = EventView.fromNewQueryWithLocation(view, location);
+          const newQuery = organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(view) as NewQuery)
+            : view;
+          const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries
-          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+          if (eventView.name?.toLowerCase().includes(needleSearch)) {
             return sum + 1;
           }
 
@@ -170,7 +174,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location, organization} = this.props;
-    trackAdvancedAnalyticsEvent('discover_v2.change_sort', {organization, sort: value});
+    trackAnalytics('discover_v2.change_sort', {organization, sort: value});
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -180,19 +184,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       },
     });
   };
-
-  renderBanner() {
-    const {location, organization} = this.props;
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = eventView.getResultsViewUrlTarget(organization.slug);
-    const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
-
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      return null;
-    }
-
-    return <Banner organization={organization} resultsUrl={resultsUrl} />;
-  }
 
   renderActions() {
     const activeSort = this.getActiveSort();
@@ -280,53 +271,37 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   render() {
-    const {location, organization} = this.props;
-    const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
-    const to = organization.features.includes('discover-query-builder-as-landing-page')
-      ? `/organizations/${organization.slug}/discover/homepage/`
-      : eventView.getResultsViewUrlTarget(organization.slug);
+    const {organization} = this.props;
+    const to = `/organizations/${organization.slug}/discover/homepage/`;
 
     return (
       <Feature
         organization={organization}
-        features={['discover-query']}
+        features="discover-query"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
           <Layout.Page>
             <Layout.Header>
-              <Layout.HeaderContent>
-                {organization.features.includes(
-                  'discover-query-builder-as-landing-page'
-                ) ? (
-                  this.renderBreadcrumbs()
-                ) : (
-                  <Layout.Title>
-                    <GuideAnchor target="discover_landing_header">
-                      {t('Discover')}
-                    </GuideAnchor>
-                  </Layout.Title>
-                )}
-              </Layout.HeaderContent>
+              <Layout.HeaderContent>{this.renderBreadcrumbs()}</Layout.HeaderContent>
               <Layout.HeaderActions>
-                <Button
+                <LinkButton
                   data-test-id="build-new-query"
                   to={to}
                   size="sm"
                   priority="primary"
                   onClick={() => {
-                    trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {
+                    trackAnalytics('discover_v2.build_new_query', {
                       organization,
                     });
                   }}
                 >
                   {t('Build a new query')}
-                </Button>
+                </LinkButton>
               </Layout.HeaderActions>
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                {this.renderBanner()}
                 {this.renderActions()}
                 {this.renderComponent()}
               </Layout.Main>
@@ -342,7 +317,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

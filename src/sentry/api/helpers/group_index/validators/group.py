@@ -1,21 +1,27 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
-from sentry.models import Actor, Team, User
 from sentry.models.group import STATUS_UPDATE_CHOICES
+from sentry.types.actor import Actor
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
-class GroupValidator(serializers.Serializer):  # type: ignore
+class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField()
     inboxDetails = InboxDetailsValidator()
     status = serializers.ChoiceField(
         choices=list(zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys()))
     )
     statusDetails = StatusDetailsValidator()
+    substatus = serializers.ChoiceField(
+        choices=list(zip(SUBSTATUS_UPDATE_CHOICES.keys(), SUBSTATUS_UPDATE_CHOICES.keys())),
+        allow_null=True,
+    )
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
     isPublic = serializers.BooleanField()
@@ -30,22 +36,30 @@ class GroupValidator(serializers.Serializer):  # type: ignore
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     assignedTo = ActorField()
+    priority = serializers.ChoiceField(
+        choices=list(
+            zip(
+                [p.to_str() for p in PriorityLevel],
+                [p.to_str() for p in PriorityLevel],
+            )
+        )
+    )
 
     # TODO(dcramer): remove in 9.0
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)
 
-    def validate_assignedTo(self, value: "Actor") -> "Actor":
+    def validate_assignedTo(self, value: Actor) -> Actor:
         if (
             value
-            and value.type is User
+            and value.is_user
             and not self.context["project"].member_set.filter(user_id=value.id).exists()
         ):
             raise serializers.ValidationError("Cannot assign to non-team member")
 
         if (
             value
-            and value.type is Team
+            and value.is_team
             and not self.context["project"].teams.filter(id=value.id).exists()
         ):
             raise serializers.ValidationError(

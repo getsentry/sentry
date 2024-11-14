@@ -1,6 +1,11 @@
-import {SavedSearch, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
-import {useMutation, UseMutationOptions, useQueryClient} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {
+  SavedSearch,
+  SavedSearchType,
+  SavedSearchVisibility,
+} from 'sentry/types/group';
+import type {UseMutationOptions} from 'sentry/utils/queryClient';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchSavedSearchesForOrgQueryKey} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
@@ -37,7 +42,8 @@ export const useCreateSavedSearch = (
           data,
         }),
       onSuccess: (savedSearch, parameters, context) => {
-        queryClient.setQueryData(
+        setApiQueryData(
+          queryClient,
           makeFetchSavedSearchesForOrgQueryKey({orgSlug: parameters.orgSlug}),
           oldData => {
             if (!Array.isArray(oldData)) {

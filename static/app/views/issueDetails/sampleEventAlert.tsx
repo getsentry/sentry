@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 function SampleEventAlert({
   organization,
@@ -23,14 +24,14 @@ function SampleEventAlert({
           'You are viewing a sample error. Configure Sentry to start viewing real errors.'
         )}
       </TextWrapper>
-      <Button
+      <LinkButton
         size="xs"
         priority="primary"
         to={`/${organization.slug}/${project.slug}/getting-started/${
           project.platform || ''
         }`}
         onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.sample_error_onboarding_link_clicked', {
+          trackAnalytics('growth.sample_error_onboarding_link_clicked', {
             project_id: project.id?.toString(),
             organization,
             platform: project.platform,
@@ -38,7 +39,7 @@ function SampleEventAlert({
         }
       >
         {t('Get Started')}
-      </Button>
+      </LinkButton>
     </PageAlertBar>
   );
 }

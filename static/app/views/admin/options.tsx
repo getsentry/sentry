@@ -1,12 +1,10 @@
 import keyBy from 'lodash/keyBy';
 
-import {
-  BooleanField,
-  EmailField,
-  NumberField,
-  RadioField,
-  TextField,
-} from 'sentry/components/forms';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
+import EmailField from 'sentry/components/forms/fields/emailField';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -18,7 +16,7 @@ type Section = {
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
-type Field = {
+export type Field = {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
@@ -28,6 +26,7 @@ type Field = {
   disabled?: boolean;
   disabledReason?: string;
   help?: React.ReactNode;
+  isSet?: boolean;
   max?: number;
   min?: number;
   placeholder?: string;
@@ -372,6 +371,52 @@ const performanceOptionDefinitions: Field[] = [
     ),
   },
   {
+    key: 'performance.issues.consecutive_http.max_duration_between_spans',
+    label: t('Time Between Spans'),
+    help: t(
+      'Maximum time, in ms, between consecutive HTTP spans to be considered part of the same problem.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.consecutive_count_threshold',
+    label: t('Consecutive Count Threshold'),
+    help: t('The minimum number of offending spans that must occur consecutively.'),
+    defaultValue: () => '3',
+    component: NumberField,
+    min: 1,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.consecutive_http.span_duration_threshold',
+    label: t('Span Duration Threshold'),
+    help: t(
+      'The duration, in ms, that a span must exceed for it to be considered an offending span.'
+    ),
+    defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
     key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
     label: t('Limited Availability Detection Rate'),
     help: t(
@@ -490,7 +535,7 @@ const definitions: Field[] = [
   },
   {
     key: 'api.rate-limit.org-create',
-    label: 'Organization Creation Rate Limit',
+    label: t('Organization Creation Rate Limit'),
     placeholder: 'e.g. 5',
     help: t(
       'The maximum number of organizations which may be created by a single account in a one hour window.'
@@ -502,14 +547,34 @@ const definitions: Field[] = [
     component: RadioField,
     // yes and no are inverted here due to the nature of this configuration
     choices: [
-      ['false', 'Send my contact information along with usage statistics'],
-      ['true', 'Please keep my usage information anonymous'],
+      ['false', t('Send my contact information along with usage statistics')],
+      ['true', t('Please keep my usage information anonymous')],
     ],
     help: tct(
       'If enabled, any stats reported to sentry.io will exclude identifying information (such as your administrative email address). By anonymizing your installation the Sentry team will be unable to contact you about security updates. For more information on what data is sent to Sentry, see the [link:documentation]. Note: This is separate from error-reporting for the self-hosted installer. The data reported to the beacon only includes usage stats from your running self-hosted instance.',
       {
         link: <ExternalLink href="https://develop.sentry.dev/self-hosted/" />,
       }
+    ),
+  },
+  {
+    key: 'beacon.record_cpu_ram_usage',
+    label: 'RAM/CPU usage',
+    component: RadioField,
+    defaultValue: () => 'true',
+    choices: [
+      [
+        'true',
+        t(
+          'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
+        ),
+      ],
+      ['false', t('No, I would prefer to keep CPU/RAM usage private')],
+    ],
+    help: tct(
+      `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
+      is being typically used, and to keep track of improvements that we hope to bring you in the future.`,
+      {link: <ExternalLink href="https://sentry.io/privacy/" />}
     ),
   },
   {
@@ -557,15 +622,6 @@ const definitions: Field[] = [
     component: BooleanField,
     defaultValue: () => false,
   },
-  {
-    key: 'processing.view-hierarchies-deobfuscation-general-availability',
-    label: t('View Hierarchies Deobfuscation GA'),
-    defaultValue: () => 0.0,
-    component: NumberField,
-    min: 0.0,
-    max: 1.0,
-    step: 0.0001,
-  },
   ...performanceOptionDefinitions,
 ];
 
@@ -605,7 +661,7 @@ export function getOptionField(option: string, field: Field) {
   );
 }
 
-function getSectionFieldSet(section: Section, fields: Field[]) {
+function getSectionFieldSet(section: Section, fields: React.ReactNode[]) {
   return (
     <fieldset key={section.key}>
       {section.heading && <legend>{section.heading}</legend>}
@@ -614,11 +670,11 @@ function getSectionFieldSet(section: Section, fields: Field[]) {
   );
 }
 
-export function getForm(fieldMap: Record<string, Field>) {
+export function getForm(fieldMap: Record<string, React.ReactNode>) {
   const sets: React.ReactNode[] = [];
 
   for (const section of sections) {
-    const set: Field[] = [];
+    const set: React.ReactNode[] = [];
 
     for (const option of optionsForSection(section)) {
       if (fieldMap[option.key]) {

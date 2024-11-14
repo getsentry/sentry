@@ -5,7 +5,7 @@ from hashlib import sha1
 from os import urandom
 
 from django.utils.encoding import force_bytes
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from .base import AuthenticatorInterface
 
@@ -46,6 +46,8 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         if not self.is_enrolled():
             raise RuntimeError("Interface is not enrolled")
         self.config.update(self.generate_new_config())
+
+        assert self.authenticator, "Cannot regenerate codes without self.authenticator"
         self.authenticator.reset_fields(save=False)
         if save:
             self.authenticator.save()

@@ -1,16 +1,14 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Clipboard from 'sentry/components/clipboard';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCopy} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {formatVersion} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -37,6 +35,10 @@ type Props = {
    */
   projectId?: string;
   /**
+   * Should the release text break and wrap onto the next line
+   */
+  shouldWrapText?: boolean;
+  /**
    * Should there be a tooltip with raw version on hover
    */
   tooltipRawVersion?: boolean;
@@ -50,7 +52,7 @@ type Props = {
   withPackage?: boolean;
 };
 
-const Version = ({
+function Version({
   version,
   organization,
   anchor = true,
@@ -59,8 +61,9 @@ const Version = ({
   withPackage,
   projectId,
   truncate,
+  shouldWrapText = false,
   className,
-}: Props) => {
+}: Props) {
   const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
@@ -87,19 +90,27 @@ const Version = ({
       if (preservePageFilters) {
         return (
           <GlobalSelectionLink {...props}>
-            <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+            <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+              {versionToDisplay}
+            </VersionText>
           </GlobalSelectionLink>
         );
       }
       return (
         <Link {...props}>
-          <VersionText truncate={truncate}>{versionToDisplay}</VersionText>
+          <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+            {versionToDisplay}
+          </VersionText>
         </Link>
       );
     }
 
     return (
-      <VersionText className={className} truncate={truncate}>
+      <VersionText
+        className={className}
+        truncate={truncate}
+        shouldWrapText={shouldWrapText}
+      >
         {versionToDisplay}
       </VersionText>
     );
@@ -112,12 +123,7 @@ const Version = ({
       }}
     >
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-
-      <Clipboard value={version}>
-        <TooltipClipboardIconWrapper>
-          <IconCopy size="xs" />
-        </TooltipClipboardIconWrapper>
-      </Clipboard>
+      <CopyToClipboardButton borderless text={version} size="zero" iconSize="xs" />
     </TooltipContent>
   );
 
@@ -146,7 +152,7 @@ const Version = ({
       {renderVersion()}
     </Tooltip>
   );
-};
+}
 
 // TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
@@ -156,15 +162,17 @@ const Version = ({
 //   display: inline-block;
 // `;
 
-const VersionText = styled('span')<{truncate?: boolean}>`
-  ${p =>
-    p.truncate &&
-    `max-width: 100%;
-    display: block;
+const truncateStyles = css`
+  max-width: 100%;
+  display: block;
   overflow: hidden;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
-  white-space: nowrap;`}
+`;
+
+const VersionText = styled('span')<{shouldWrapText?: boolean; truncate?: boolean}>`
+  ${p => p.truncate && truncateStyles}
+  white-space: ${p => (p.shouldWrapText ? 'normal' : 'nowrap')};
 `;
 
 const TooltipContent = styled('span')`
@@ -174,16 +182,6 @@ const TooltipContent = styled('span')`
 
 const TooltipVersionWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis}
-`;
-
-const TooltipClipboardIconWrapper = styled('span')`
-  margin-left: ${space(0.5)};
-  position: relative;
-  bottom: -${space(0.25)};
-
-  &:hover {
-    cursor: pointer;
-  }
 `;
 
 export default withOrganization(Version);

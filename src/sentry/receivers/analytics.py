@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 
 from sentry import analytics
-from sentry.models import User
+from sentry.users.models.user import User
 
 
 def capture_signal(type):

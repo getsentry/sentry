@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
-import {PanelItem} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AuthProvider} from 'sentry/types';
-import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {AuthProvider} from 'sentry/types/auth';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {
@@ -29,21 +29,13 @@ type LockedFeatureProps = {
   className?: string;
 };
 
-type FeatureRenderProps = {
-  features: string[];
-  hasFeature: boolean;
-  renderDisabled: (p: LockedFeatureProps) => React.ReactNode;
-  renderInstallButton: (p: RenderInstallButtonProps) => React.ReactNode;
-  children?: (p: FeatureRenderProps) => React.ReactNode;
-};
-
 type Props = {
   active: boolean;
   provider: AuthProvider;
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-const ProviderItem = ({provider, active, onConfigure}: Props) => {
+function ProviderItem({provider, active, onConfigure}: Props) {
   const handleConfigure = (e: React.MouseEvent) => {
     onConfigure?.(provider.key, e);
   };
@@ -103,12 +95,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
         children({...props, renderDisabled: renderDisabledLock as any})
       }
     >
-      {({
-        hasFeature,
-        features,
-        renderDisabled,
-        renderInstallButton,
-      }: FeatureRenderProps) => (
+      {({hasFeature, features, renderDisabled, renderInstallButton}) => (
         <PanelItem center>
           <ProviderInfo>
             <ProviderLogo
@@ -128,21 +115,27 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
           </ProviderInfo>
 
           <FeatureBadge>
-            {!hasFeature && renderDisabled({provider, features})}
+            {!hasFeature &&
+              // renderDisabled is overridden by renderDisabled above
+              (renderDisabled as typeof renderDisabledLock)({provider, features})}
           </FeatureBadge>
 
           <div>
             {active ? (
               <ActiveIndicator />
             ) : (
-              (renderInstallButton ?? defaultRenderInstallButton)({provider, hasFeature})
+              // renderInstallButton is overridden by renderDisabled above
+              (
+                (renderInstallButton as typeof defaultRenderInstallButton) ??
+                defaultRenderInstallButton
+              )({provider, hasFeature})
             )}
           </div>
         </PanelItem>
       )}
     </Feature>
   );
-};
+}
 
 export default ProviderItem;
 
@@ -162,7 +155,7 @@ const ProviderLogo = styled('div')`
 `;
 
 const ProviderName = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ProviderDescription = styled('div')`
@@ -190,20 +183,22 @@ const DisabledHovercard = styled(Hovercard)`
   width: 350px;
 `;
 
-const LockedFeature = ({provider, features, className}: LockedFeatureProps) => (
-  <DisabledHovercard
-    containerClassName={className}
-    body={
-      <FeatureDisabled
-        features={features}
-        hideHelpToggle
-        message={t('%s SSO is disabled.', provider.name)}
-        featureName={t('SSO Auth')}
-      />
-    }
-  >
-    <Tag role="status" icon={<IconLock isSolid />}>
-      {t('disabled')}
-    </Tag>
-  </DisabledHovercard>
-);
+function LockedFeature({provider, features, className}: LockedFeatureProps) {
+  return (
+    <DisabledHovercard
+      containerClassName={className}
+      body={
+        <FeatureDisabled
+          features={features}
+          hideHelpToggle
+          message={t('%s SSO is disabled.', provider.name)}
+          featureName={t('SSO Auth')}
+        />
+      }
+    >
+      <Tag role="status" icon={<IconLock locked />}>
+        {t('disabled')}
+      </Tag>
+    </DisabledHovercard>
+  );
+}

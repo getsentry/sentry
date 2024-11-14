@@ -1,17 +1,21 @@
 from datetime import datetime, timedelta
 
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.api.serializers import serialize
-from sentry.models import Rule, RuleFireHistory
+from sentry.models.rule import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
-from sentry.testutils import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import control_silo_test
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
+@control_silo_test
 class TimeSeriesValueSerializerTest(TestCase):
     def test(self):
         time_series_value = TimeSeriesValue(datetime.now(), 30)
@@ -25,7 +29,6 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
@@ -61,8 +64,8 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=6)),
-            end=iso_format(before_now(days=0)),
+            start=before_now(days=6),
+            end=before_now(days=0),
         )
         assert len(resp.data) == 144
         now = timezone.now().replace(minute=0, second=0, microsecond=0)

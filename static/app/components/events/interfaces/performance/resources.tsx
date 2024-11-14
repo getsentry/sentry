@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group} from 'sentry/types';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-
-import {EventDataSection} from '../../eventDataSection';
+import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type ResourceLink = {
   link: string;
@@ -14,51 +14,56 @@ export type ResourceLink = {
 };
 
 type Props = {
-  event: Event;
-  group: Group;
+  configResources: NonNullable<IssueTypeConfig['resources']>;
+  eventPlatform: Event['platform'];
+  groupId: string;
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources({group, event}: Props) {
-  const config = getConfigForIssueType(group);
-
-  if (!config.resources) {
-    return null;
-  }
-
+export function Resources({configResources, eventPlatform, groupId}: Props) {
+  const organization = useOrganization();
   const links = [
-    ...config.resources.links,
-    ...(config.resources.linksByPlatform[event.platform ?? ''] ?? []),
+    ...configResources.links,
+    ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
   ];
 
   return (
-    <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
-      {config.resources.description}
+    <div>
+      {configResources.description}
       <LinkSection>
         {links.map(({link, text}) => (
-          <a key={link} href={link} target="_blank" rel="noreferrer">
+          // Please note that the UI will not fit a very long text and if we need to support that we will need to update the UI
+          <ExternalLink
+            onClick={() =>
+              trackAnalytics('issue_details.resources_link_clicked', {
+                organization,
+                resource: text,
+                group_id: groupId,
+              })
+            }
+            key={link}
+            href={link}
+            openInNewTab
+          >
             <IconDocs /> {text}
-          </a>
+          </ExternalLink>
         ))}
       </LinkSection>
-    </EventDataSection>
+    </div>
   );
 }
 
 const LinkSection = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-row-gap: ${space(1)};
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 
   margin-top: ${space(2)};
 
   a {
     display: flex;
     align-items: center;
+    width: max-content;
   }
 
   svg {

@@ -1,13 +1,15 @@
 from django.urls import reverse
 
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.datasource.redis import _get_redis_key, get_redis_client
-from sentry.testutils import APITestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
+pytestmark = [requires_snuba]
 
-@region_silo_test
+
 class ProjectTransactionNamesClusterTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -34,7 +36,9 @@ class ProjectTransactionNamesClusterTest(APITestCase):
             event["transaction_info"] = {"source": "url"}
             self.store_event(event, project_id=self.project.id)
 
-            redis_client.sadd(_get_redis_key(self.project), transaction)
+            redis_client.sadd(
+                _get_redis_key(ClustererNamespace.TRANSACTIONS, self.project), transaction
+            )
 
     def _test_get(self, datasource):
         response = self.client.get(
@@ -56,7 +60,9 @@ class ProjectTransactionNamesClusterTest(APITestCase):
         assert data == {
             "rules": ["/a/*/**"],
             "meta": {
-                "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"]
+                "rules_projectoption": {},
+                "rules_redis": {},
+                "unique_transaction_names": ["/a/b/c/", "/a/foo", "/a/whathever/c/d/", "/not_a/"],
             },
         }
 

@@ -1,30 +1,37 @@
+from __future__ import annotations
+
 from django.conf import settings
-from django.conf.urls import url
-from django.urls import reverse
-from django.utils.html import format_html
+from django.urls import re_path, reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 # api compat
 from sentry.exceptions import PluginError  # NOQA
-from sentry.models import Activity, GroupMeta
+from sentry.models.activity import Activity
+from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-from social_auth.models import UserSocialAuth
 
 
 # TODO(dcramer): remove this in favor of GroupEndpoint
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
+    }
     view_method_name = None
     plugin = None
 
@@ -35,13 +42,13 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
 
 class IssueTrackingPlugin2(Plugin):
-    auth_provider = None
+    auth_provider: str | None = None
 
     allowed_actions = ("create", "link", "unlink")
 
     # we default this to None to support legacy integrations, but newer style
     # should explicitly call out what is stored
-    issue_fields = None
+    issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
 
     def configure(self, project, request):
@@ -56,7 +63,7 @@ class IssueTrackingPlugin2(Plugin):
     def get_group_body(self, request: Request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
-            output = safe_execute(interface.to_string, event, _with_transaction=False)
+            output = safe_execute(interface.to_string, event)
             if output:
                 result.append(output)
         return "\n\n".join(result)
@@ -72,7 +79,7 @@ class IssueTrackingPlugin2(Plugin):
     def get_group_title(self, request: Request, group, event):
         return event.title
 
-    def is_configured(self, request: Request, project, **kwargs):
+    def is_configured(self, project) -> bool:
         raise NotImplementedError
 
     def get_group_urls(self):
@@ -80,26 +87,26 @@ class IssueTrackingPlugin2(Plugin):
         for action in self.allowed_actions:
             view_method_name = "view_%s" % action
             _urls.append(
-                url(
+                re_path(
                     r"^%s/" % action,
                     PluginGroupEndpoint.as_view(view=getattr(self, view_method_name)),
                 )
             )
         return _urls
 
-    def get_auth_for_user(self, user, **kwargs):
+    def get_auth_for_user(self, user, **kwargs) -> RpcUserSocialAuth:
         """
-        Return a ``UserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
+        Return a ``RpcUserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
         if not user.is_authenticated:
             return None
 
-        try:
-            return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider)[0]
-        except IndexError:
-            return None
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": user.id, "provider": self.auth_provider}
+        )
+        return auth
 
     def needs_auth(self, request: Request, project, **kwargs):
         """
@@ -112,9 +119,10 @@ class IssueTrackingPlugin2(Plugin):
         if not request.user.is_authenticated:
             return True
 
-        return not UserSocialAuth.objects.filter(
-            user=request.user, provider=self.auth_provider
-        ).exists()
+        auth = usersocialauth_service.get_one_or_none(
+            filter={"user_id": request.user.id, "provider": self.auth_provider}
+        )
+        return not bool(auth)
 
     def get_new_issue_fields(self, request: Request, group, event, **kwargs):
         """
@@ -138,34 +146,22 @@ class IssueTrackingPlugin2(Plugin):
     def get_link_existing_issue_fields(self, request: Request, group, event, **kwargs):
         return []
 
-    def _get_issue_url_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_url(group, issue["id"])
-        return self.get_issue_url(group, issue)
-
-    def _get_issue_label_compat(self, group, issue, **kwargs):
-        if self.issue_fields is None:
-            return self.get_issue_label(group, issue["id"])
-        return self.get_issue_label(group, issue)
-
-    def get_issue_url(self, group, issue, **kwargs):
+    def get_issue_url(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return an absolute URL to the issue's details
+        Given an issue context (issue_id string) return an absolute URL to the issue's details
         page.
         """
         raise NotImplementedError
 
-    def get_issue_label(self, group, issue, **kwargs):
+    def get_issue_label(self, group, issue_id: str) -> str:
         """
-        Given an issue context (issue_id string or issue dict) return a string representing the issue.
+        Given an issue context (issue_id string) return a string representing the issue.
 
         e.g. GitHub represents issues as GH-XXX
         """
-        if isinstance(issue, dict):
-            return "#{}".format(issue["id"])
-        return f"#{issue}"
+        return f"#{issue_id}"
 
-    def create_issue(self, request: Request, group, form_data, **kwargs):
+    def create_issue(self, request: Request, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
 
@@ -266,14 +262,14 @@ class IssueTrackingPlugin2(Plugin):
             or request.data.get("title")
             or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
 
@@ -282,9 +278,9 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response(
             {
-                "issue_url": self.get_issue_url(group, issue),
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "issue_url": self.get_issue_url(group, issue["id"]),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -333,21 +329,21 @@ class IssueTrackingPlugin2(Plugin):
         issue_information = {
             "title": issue.get("title") or self._get_issue_label_compat(group, issue),
             "provider": self.get_title(),
-            "location": self._get_issue_url_compat(group, issue),
-            "label": self._get_issue_label_compat(group, issue),
+            "location": self.get_issue_url(group, issue["id"]),
+            "label": self.get_issue_label(group, issue["id"]),
         }
         Activity.objects.create(
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
         return Response(
             {
                 "message": "Successfully linked issue.",
-                "link": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "link": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
                 "id": issue["id"],
             }
         )
@@ -362,9 +358,9 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
-            return plugin_issues
+    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
+        if not self.is_configured(project=group.project):
+            return
 
         item = {
             "slug": self.slug,
@@ -375,24 +371,22 @@ class IssueTrackingPlugin2(Plugin):
         if issue:
             item["issue"] = {
                 "issue_id": issue.get("id"),
-                "url": self._get_issue_url_compat(group, issue),
-                "label": self._get_issue_label_compat(group, issue),
+                "url": self.get_issue_url(group, issue["id"]),
+                "label": self.get_issue_label(group, issue["id"]),
             }
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
-        return plugin_issues
 
-    def get_config(self, *args, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         # TODO(dcramer): update existing plugins to just use get_config
-        # TODO(dcramer): remove request kwarg after sentry-plugins has been
-        # updated
-        kwargs.setdefault("request", None)
-        return self.get_configure_plugin_fields(*args, **kwargs)
+        return self.get_configure_plugin_fields(
+            project=project, user=user, initial=initial, add_additional_fields=add_additional_fields
+        )
 
     def check_config_and_auth(self, request: Request, group):
         has_auth_configured = self.has_auth_configured()
-        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+        if not (has_auth_configured and self.is_configured(project=group.project)):
             if self.auth_provider:
                 required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
             else:
@@ -408,12 +402,14 @@ class IssueTrackingPlugin2(Plugin):
         if self.needs_auth(project=group.project, request=request):
             return {
                 "error_type": "auth",
-                "auth_url": reverse("socialauth_associate", args=[self.auth_provider]),
+                "auth_url": absolute_uri(
+                    reverse("socialauth_associate", args=[self.auth_provider])
+                ),
             }
 
     # TODO: should we get rid of this (move it to react?)
     def tags(self, request: Request, group, tag_list, **kwargs):
-        if not self.is_configured(request=request, project=group.project):
+        if not self.is_configured(project=group.project):
             return tag_list
 
         issue = self.build_issue(group)
@@ -421,11 +417,10 @@ class IssueTrackingPlugin2(Plugin):
             return tag_list
 
         tag_list.append(
-            format_html(
-                '<a href="{}">{}</a>',
-                self._get_issue_url_compat(group, issue),
-                self._get_issue_label_compat(group, issue),
-            )
+            {
+                "url": self.get_issue_url(group, issue["id"]),
+                "displayName": self.get_issue_label(group, issue["id"]),
+            }
         )
 
         return tag_list

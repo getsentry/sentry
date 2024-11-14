@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
-from sentry.integrations.slack.unfurl import LinkType, match_link
+from sentry.integrations.slack.unfurl.handlers import match_link
+from sentry.integrations.slack.unfurl.types import LinkType
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 
 
 def has_discover_links(links: list[str]) -> bool:
     return any(match_link(link)[0] == LinkType.DISCOVER for link in links)
+
+
+def is_event_challenge(data: Mapping[str, Any]) -> bool:
+    return data.get("type", "") == "url_verification"
 
 
 class SlackEventRequest(SlackDMRequest):
@@ -32,7 +38,7 @@ class SlackEventRequest(SlackDMRequest):
             # Challenge requests only include the Token and data to verify the
             # request, so only validate those.
             self._info("slack.event.url_verification")
-            self._authorize()
+            self.authorize()
             super(SlackDMRequest, self)._validate_data()
         else:
             # Non-Challenge requests need to validate everything plus the data
@@ -42,8 +48,7 @@ class SlackEventRequest(SlackDMRequest):
 
     def is_challenge(self) -> bool:
         """We need to call this before validation."""
-        _is_challenge: bool = self.request.data.get("type") == "url_verification"
-        return _is_challenge
+        return is_event_challenge(self.request.data)
 
     @property
     def dm_data(self) -> Mapping[str, Any]:
@@ -70,8 +75,8 @@ class SlackEventRequest(SlackDMRequest):
             self._error("slack.event.invalid-event-type")
             raise SlackRequestError(status=400)
 
-    def _validate_integration(self) -> None:
-        super()._validate_integration()
+    def validate_integration(self) -> None:
+        super().validate_integration()
 
         if (self.text in COMMANDS) or (
             self.type == "link_shared" and has_discover_links(self.links)

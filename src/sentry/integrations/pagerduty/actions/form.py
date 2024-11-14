@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from sentry.models import PagerDutyService
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.pagerduty.metrics import record_event
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:
@@ -42,31 +46,33 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].choices = services
         self.fields["service"].widget.choices = self.fields["service"].choices
 
-    def _validate_service(self, service_id: int, integration_id: int | None) -> None:
-        params = {
-            "account": dict(self.fields["account"].choices).get(integration_id),
-            "service": dict(self.fields["service"].choices).get(service_id),
-        }
+    def _validate_service(self, service_id: int, integration_id: int) -> None:
+        with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture():
+            params = {
+                "account": dict(self.fields["account"].choices).get(integration_id),
+                "service": dict(self.fields["service"].choices).get(service_id),
+            }
 
-        try:
-            service = PagerDutyService.objects.get(id=service_id)
-        except PagerDutyService.DoesNotExist:
-            raise forms.ValidationError(
-                _('The service "%(service)s" does not exist in the %(account)s Pagerduty account.'),
-                code="invalid",
-                params=params,
+            org_integrations = integration_service.get_organization_integrations(
+                integration_id=integration_id,
+                providers=[ExternalProviders.PAGERDUTY.name],
             )
 
-        if service.organization_integration.integration_id != integration_id:
-            # We need to make sure that the service actually belongs to that integration,
-            # meaning that it belongs under the appropriate account in PagerDuty.
-            raise forms.ValidationError(
-                _(
-                    'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
-                ),
-                code="invalid",
-                params=params,
-            )
+            if not any(
+                pds
+                for oi in org_integrations
+                for pds in oi.config.get("pagerduty_services", [])
+                if pds["id"] == service_id
+            ):
+                # We need to make sure that the service actually belongs to that integration,
+                # meaning that it belongs under the appropriate account in PagerDuty.
+                raise forms.ValidationError(
+                    _(
+                        'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
+                    ),
+                    code="invalid",
+                    params=params,
+                )
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()

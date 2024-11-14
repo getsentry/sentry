@@ -34,6 +34,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
 
+from __future__ import annotations
 
 import mimetypes
 import os
@@ -50,7 +51,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.core.files.base import File
 from django.core.files.storage import Storage
-from django.utils.encoding import filepath_to_uri, force_bytes, force_text, smart_str
+from django.utils.encoding import filepath_to_uri, force_bytes, force_str, smart_str
 from django.utils.timezone import localtime
 
 from sentry.utils import metrics
@@ -83,9 +84,9 @@ def safe_join(base, *paths):
     Paths outside the base path indicate a possible security
     sensitive operation.
     """
-    base_path = force_text(base)
+    base_path = force_str(base)
     base_path = base_path.rstrip("/")
-    paths = [force_text(p) for p in paths]
+    paths = tuple(force_str(p) for p in paths)
 
     final_path = base_path
     for path in paths:
@@ -155,7 +156,8 @@ class S3Boto3StorageFile(File):
     def size(self):
         return self.obj.content_length
 
-    def _get_file(self):
+    @property
+    def file(self):
         if self._file is None:
             with metrics.timer("filestore.read", instance="s3"):
                 self._file = BytesIO()
@@ -167,10 +169,9 @@ class S3Boto3StorageFile(File):
                     self._file = GzipFile(mode=self._mode, fileobj=self._file, mtime=0.0)
         return self._file
 
-    def _set_file(self, value):
+    @file.setter
+    def file(self, value):
         self._file = value
-
-    file = property(_get_file, _set_file)
 
     def read(self, *args, **kwargs):
         if "r" not in self._mode:
@@ -211,12 +212,14 @@ class S3Boto3StorageFile(File):
         if self._buffer_file_size:
             self._write_counter += 1
             self.file.seek(0)
+            assert self._multipart is not None
             part = self._multipart.Part(self._write_counter)
             part.upload(Body=self.file.read())
 
     def close(self):
         if self._is_dirty:
             self._flush_write_buffer()
+            assert self._multipart is not None
             # TODO: Possibly cache the part ids as they're being uploaded
             # instead of requesting parts from server. For now, emulating
             # s3boto's behavior.
@@ -261,7 +264,7 @@ class S3Boto3Storage(Storage):
     access_key = None
     secret_key = None
     file_overwrite = True
-    object_parameters = {}
+    object_parameters: dict[str, str] = {}
     bucket_name = None
     auto_create_bucket = False
     default_acl = "public-read"
@@ -272,7 +275,7 @@ class S3Boto3Storage(Storage):
     reduced_redundancy = False
     location = ""
     encryption = False
-    custom_domain = None
+    custom_domain: str | None = None
     addressing_style = None
     secure_urls = True
     file_name_charset = "utf-8"
@@ -406,24 +409,6 @@ class S3Boto3Storage(Storage):
                         "the region to connect to by setting "
                         "AWS_S3_REGION_NAME to the correct region." % name
                     )
-                    # Notes: When using the us-east-1 Standard endpoint, you can create
-                    # buckets in other regions. The same is not true when hitting region specific
-                    # endpoints. However, when you create the bucket not in the same region, the
-                    # connection will fail all future requests to the Bucket after the creation
-                    # (301 Moved Permanently).
-                    #
-                    # For simplicity, we enforce in S3Boto3Storage that any auto-created
-                    # bucket must match the region that the connection is for.
-                    #
-                    # Also note that Amazon specifically disallows "us-east-1" when passing bucket
-                    # region names; LocationConstraint *must* be blank to create in US Standard.
-                    bucket_params = {"ACL": self.bucket_acl}
-                    region_name = self.connection.meta.client.meta.region_name
-                    if region_name != "us-east-1":
-                        bucket_params["CreateBucketConfiguration"] = {
-                            "LocationConstraint": region_name
-                        }
-                    bucket.create(ACL=self.bucket_acl)
                 else:
                     raise ImproperlyConfigured(
                         "Bucket %s does not exist. Buckets "
@@ -463,7 +448,7 @@ class S3Boto3Storage(Storage):
         return smart_str(name, encoding=self.file_name_charset)
 
     def _decode_name(self, name):
-        return force_text(name, encoding=self.file_name_charset)
+        return force_str(name, encoding=self.file_name_charset)
 
     def _compress_content(self, content):
         """Gzip a given string content."""

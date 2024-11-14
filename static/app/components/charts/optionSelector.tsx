@@ -1,13 +1,14 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  CompactSelect,
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import type {
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
 } from 'sentry/components/compactSelect';
-import FeatureBadge from 'sentry/components/featureBadge';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -17,7 +18,10 @@ type BaseProps = {
 };
 
 interface SingleProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      SingleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   onChange: (value: string) => void;
   selected: string;
@@ -26,7 +30,10 @@ interface SingleProps
 }
 
 interface MultipleProps
-  extends Omit<MultipleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+  extends Omit<
+      MultipleSelectProps<string>,
+      'onChange' | 'defaultValue' | 'multiple' | 'title'
+    >,
     BaseProps {
   multiple: true;
   onChange: (value: string[]) => void;
@@ -42,6 +49,7 @@ function OptionSelector({
   featureType,
   multiple,
   defaultValue,
+  closeOnSelect,
   ...rest
 }: SingleProps | MultipleProps) {
   const mappedOptions = useMemo(() => {
@@ -62,6 +70,7 @@ function OptionSelector({
         onChange: (sel: SelectOption<string>[]) => {
           onChange?.(sel.map(o => o.value));
         },
+        closeOnSelect,
       };
     }
 
@@ -70,17 +79,18 @@ function OptionSelector({
       value: selected,
       defaultValue,
       onChange: opt => onChange?.(opt.value),
+      closeOnSelect,
     };
-  }, [multiple, selected, defaultValue, onChange]);
+  }, [multiple, selected, defaultValue, onChange, closeOnSelect]);
 
-  function isOptionDisabled(option) {
-    return (
+  function isOptionDisabled(option: SelectOptionWithKey<string>) {
+    return Boolean(
       // Option is explicitly marked as disabled
-      option.disabled ||
       // The user has reached the maximum number of selections (3), and the option hasn't
       // yet been selected. These options should be disabled to visually indicate that the
       // user has reached the max.
-      (multiple && selected.length === 3 && !selected.includes(option.value))
+      option.disabled ||
+        (multiple && selected.length === 3 && !selected.includes(option.value))
     );
   }
 

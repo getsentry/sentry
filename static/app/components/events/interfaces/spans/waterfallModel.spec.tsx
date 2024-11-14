@@ -1,7 +1,9 @@
-import {ActiveFilter, noFilter} from 'sentry/components/events/interfaces/spans/filter';
-import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {ActiveFilter} from 'sentry/components/events/interfaces/spans/filter';
+import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
+import type {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {EntryType, EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 
 describe('WaterfallModel', () => {
@@ -37,7 +39,7 @@ describe('WaterfallModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/organizations/?member=1',
             },
@@ -55,7 +57,7 @@ describe('WaterfallModel', () => {
               'http.status_code': '200',
             },
             data: {
-              method: 'GET',
+              'http.method': 'GET',
               type: 'fetch',
               url: '/api/0/internal/health/',
             },
@@ -69,9 +71,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'a453cc713e5baf9c',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -83,9 +85,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'a23f26b939d1a735',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -97,9 +99,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'a0e89ce4e0900ad5',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -111,9 +113,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'a0e89ce4e0900ad5',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -125,9 +127,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'a934857184bdf5a6',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -139,9 +141,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'b5795cf4ba68bbb4',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -153,9 +155,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'b5795cf4ba68bbb5',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           {
@@ -167,9 +169,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'b5795cf4ba68bbb6',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
         ],
@@ -213,7 +215,11 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         status: 'ok',
         tags: {'http.status_code': '200'},
-        data: {method: 'GET', type: 'fetch', url: '/api/0/organizations/?member=1'},
+        data: {
+          'http.method': 'GET',
+          type: 'fetch',
+          url: '/api/0/organizations/?member=1',
+        },
       },
       numOfSpanChildren: 0,
       treeDepth: 1,
@@ -232,7 +238,7 @@ describe('WaterfallModel', () => {
         type: 'gap',
         start_timestamp: 1622079937.227645,
         timestamp: 1622079937.907515,
-        description: 'Missing instrumentation',
+        description: 'Missing span instrumentation',
         isOrphan: false,
       },
       numOfSpanChildren: 0,
@@ -256,7 +262,7 @@ describe('WaterfallModel', () => {
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         status: 'ok',
         tags: {'http.status_code': '200'},
-        data: {method: 'GET', type: 'fetch', url: '/api/0/internal/health/'},
+        data: {'http.method': 'GET', type: 'fetch', url: '/api/0/internal/health/'},
       },
       numOfSpanChildren: 1,
       treeDepth: 1,
@@ -280,9 +286,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'a453cc713e5baf9c',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 1,
@@ -307,9 +313,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'a23f26b939d1a735',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 2,
@@ -334,9 +340,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'a0e89ce4e0900ad5',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,
@@ -361,9 +367,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'a0e89ce4e0900ad5',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,
@@ -383,7 +389,7 @@ describe('WaterfallModel', () => {
         type: 'gap',
         start_timestamp: 1622079938.20331,
         timestamp: 1622079938.31431,
-        description: 'Missing instrumentation',
+        description: 'Missing span instrumentation',
         isOrphan: false,
       },
       numOfSpanChildren: 0,
@@ -406,9 +412,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'a934857184bdf5a6',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 1,
@@ -433,9 +439,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'b5795cf4ba68bbb6',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       treeDepth: 2,
@@ -452,9 +458,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'b5795cf4ba68bbb4',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           numOfSpanChildren: 1,
@@ -479,9 +485,9 @@ describe('WaterfallModel', () => {
             parent_span_id: 'b5795cf4ba68bbb5',
             trace_id: '8cbbc19c0f54447ab702f00263262726',
             data: {
-              'Decoded Body Size': 159248,
-              'Encoded Body Size': 159248,
-              'Transfer Size': 275,
+              'http.decoded_response_content_length': 159248,
+              'http.response_content_length': 159248,
+              'http.response_transfer_size': 275,
             },
           },
           numOfSpanChildren: 1,
@@ -511,9 +517,9 @@ describe('WaterfallModel', () => {
         parent_span_id: 'b5795cf4ba68bbb6',
         trace_id: '8cbbc19c0f54447ab702f00263262726',
         data: {
-          'Decoded Body Size': 159248,
-          'Encoded Body Size': 159248,
-          'Transfer Size': 275,
+          'http.decoded_response_content_length': 159248,
+          'http.response_content_length': 159248,
+          'http.response_transfer_size': 275,
         },
       },
       numOfSpanChildren: 0,

@@ -1,18 +1,106 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
-const user = TestStubs.User();
+import type {JsonFormObject} from './types';
+
+const user = UserFixture();
 
 describe('JsonForm', function () {
   describe('form prop', function () {
     it('default', function () {
-      const {container} = render(
-        <JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />
+      render(<JsonForm forms={accountDetailsFields} additionalFieldProps={{user}} />);
+    });
+
+    it('initiallyCollapsed json form prop collapses forms', function () {
+      const forms: JsonFormObject[] = [
+        {
+          title: 'Form1 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 1 ',
+              placeholder: 'e.g. John Doe',
+            },
+          ],
+        },
+        {
+          title: 'Form2 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 2',
+              placeholder: 'e.g. Abdullah Khan',
+            },
+          ],
+        },
+      ];
+      render(
+        <JsonForm
+          forms={forms}
+          additionalFieldProps={{user}}
+          collapsible
+          initiallyCollapsed
+        />
       );
-      expect(container).toSnapshot();
+
+      expect(screen.getByText('Form1 title')).toBeInTheDocument();
+      expect(screen.getByText('Form2 title')).toBeInTheDocument();
+
+      expect(screen.queryByText('Field Label 1')).not.toBeVisible();
+      expect(screen.queryByText('Field Label 2')).not.toBeVisible();
+    });
+
+    it('initiallyCollapsed prop from children form groups override json form initiallyCollapsed prop', function () {
+      const forms: JsonFormObject[] = [
+        {
+          title: 'Form1 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 1 ',
+              placeholder: 'e.g. John Doe',
+            },
+          ],
+        },
+        {
+          title: 'Form2 title',
+          fields: [
+            {
+              name: 'name',
+              type: 'string',
+              required: true,
+              label: 'Field Label 2',
+              placeholder: 'e.g. Abdullah Khan',
+            },
+          ],
+          initiallyCollapsed: false, // Prevents this form group from being collapsed
+        },
+      ];
+      render(
+        <JsonForm
+          forms={forms}
+          additionalFieldProps={{user}}
+          collapsible
+          initiallyCollapsed
+        />
+      );
+
+      expect(screen.getByText('Form1 title')).toBeInTheDocument();
+      expect(screen.getByText('Form2 title')).toBeInTheDocument();
+
+      expect(screen.queryByText('Field Label 1')).not.toBeVisible();
+      expect(screen.queryByText('Field Label 2')).toBeVisible();
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {
@@ -83,8 +171,7 @@ describe('JsonForm', function () {
     const jsonFormFields = [fields.name, fields.platform];
 
     it('default', function () {
-      const {container} = render(<JsonForm fields={jsonFormFields} />);
-      expect(container).toSnapshot();
+      render(<JsonForm fields={jsonFormFields} />);
     });
 
     it('missing additionalFieldProps required in "valid" prop', function () {

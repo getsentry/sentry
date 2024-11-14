@@ -1,17 +1,22 @@
-import logging
+from __future__ import annotations
 
-from django.utils.translation import ugettext_lazy as _
+import logging
+from typing import Any
+
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
 
 from .card_builder.installation import (
@@ -67,7 +72,8 @@ metadata = IntegrationMetadata(
 
 
 class MsTeamsIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> MsTeamsClient:
+        return MsTeamsClient(self.model)
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):
@@ -112,7 +118,12 @@ class MsTeamsIntegrationProvider(IntegrationProvider):
         }
         return integration
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         client = MsTeamsClient(integration)
         card = (
             build_team_installation_confirmation_message(organization)

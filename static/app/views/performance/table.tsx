@@ -1,39 +1,46 @@
-import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {Component, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-} from 'sentry/components/gridEditable';
+import type {GridColumn} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
-import {tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery, {
-  TableData,
-  TableDataRow,
-} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
+import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  type DomainViewFilters,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
+import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
+import type {TransactionThresholdMetric} from './transactionSummary/transactionThresholdModal';
 import TransactionThresholdModal, {
   modalCss,
-  TransactionThresholdMetric,
 } from './transactionSummary/transactionThresholdModal';
 import {
   normalizeSearchConditionsWithTransactionName,
@@ -42,6 +49,7 @@ import {
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  getProject,
   getProjectID,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
@@ -55,6 +63,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
   columnTitles?: string[];
+  domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
 
@@ -64,6 +73,46 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
+
+function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
+  const fourteen_days_ago = new Date(+new Date() - 12096e5);
+  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const firstEventDate = new Date(project?.firstEvent ?? '');
+  if (firstEventDate > fourteen_days_ago) {
+    return '14d';
+  }
+  if (firstEventDate > thirty_days_ago) {
+    return '30d';
+  }
+  return '>30d';
+}
+
+function _TrackHasDataAnalytics({
+  children,
+  isLoading,
+  tableData,
+}: {
+  children: React.ReactNode;
+  isLoading: boolean;
+  tableData: TableData | null;
+}): React.ReactNode {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoading) {
+      trackAnalytics('performance_views.overview.has_data', {
+        table_data_state:
+          !!tableData?.data && tableData.data.length > 0 ? 'has_data' : 'no_data',
+        tab: getLandingDisplayFromParam(location)?.field,
+        organization,
+      });
+    }
+  }, [isLoading, organization, tableData?.data, location]);
+
+  return children;
+}
+
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -72,11 +121,60 @@ class _Table extends Component<Props, State> {
     transactionThresholdMetric: undefined,
   };
 
+  componentDidMount(): void {
+    const {organization} = this.props;
+    if (!this.tableMetricSet) {
+      this.tableMetricSet = true;
+      trackAnalytics('performance_views.landing.table.seen', {
+        organization,
+      });
+    }
+  }
+  unparameterizedMetricSet = false;
+  tableMetricSet = false;
+
+  sendUnparameterizedAnalytic(project: Project | undefined) {
+    const {organization, eventView} = this.props;
+    const statsPeriod = eventView.statsPeriod ?? 'other';
+    const projectMetadata = this.getProjectWithinMetadata(project);
+
+    trackAnalytics('performance_views.landing.table.unparameterized', {
+      organization,
+      first_event: projectMetadata.firstEventWithin,
+      sent_transaction: projectMetadata.sentTransaction,
+      single_project: projectMetadata.isSingleProject,
+      stats_period: statsPeriod,
+      hit_multi_project_cap: projectMetadata.isAtMultiCap,
+    });
+  }
+
+  /**
+   * Used for cluster warning and analytics.
+   */
+  getProjectWithinMetadata(project: Project | undefined) {
+    let firstEventWithin: 'none' | '14d' | '30d' | '>30d' = 'none';
+    if (!project) {
+      return {
+        isSingleProject: false,
+        firstEventWithin,
+        sentTransaction: false,
+        isAtMultiCap: false,
+      };
+    }
+    firstEventWithin = getProjectFirstEventGroup(project);
+    return {
+      isSingleProject: true,
+      firstEventWithin,
+      sentTransaction: project?.firstTransactionEvent ?? false,
+      isAtMultiCap: false,
+    };
+  }
+
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, projects} = this.props;
 
-      trackAdvancedAnalyticsEvent('performance_views.overview.cellaction', {
+      trackAnalytics('performance_views.overview.cellaction', {
         organization,
         action,
       });
@@ -150,8 +248,13 @@ class _Table extends Component<Props, State> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
+
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      unit: tableMeta.units?.[column.key],
+    });
 
     const allowActions = [
       Actions.ADD,
@@ -162,9 +265,11 @@ class _Table extends Component<Props, State> {
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
+    const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
 
     if (field === 'transaction') {
-      const projectID = getProjectID(dataRow, projects);
+      const project = getProject(dataRow, projects);
+      const projectID = project?.id;
       const summaryView = eventView.clone();
       if (dataRow['http.method']) {
         summaryView.additionalConditions.setFilterValues('http.method', [
@@ -172,7 +277,12 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
+        this.sendUnparameterizedAnalytic(project);
+        this.unparameterizedMetricSet = true;
+      }
+      const {isInDomainView, view} = this.props.domainViewFilters ?? {};
+
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,
@@ -183,6 +293,7 @@ class _Table extends Component<Props, State> {
             transaction: String(dataRow.transaction) || '',
             query: summaryView.generateQueryStringObject(),
             projectID,
+            view: (isInDomainView && view) || undefined,
           });
 
       return (
@@ -205,12 +316,35 @@ class _Table extends Component<Props, State> {
 
     if (field.startsWith('team_key_transaction')) {
       // don't display per cell actions for team_key_transaction
+
+      const project = getProject(dataRow, projects);
+      const projectMetadata = this.getProjectWithinMetadata(project);
+      if (isUnparameterizedRow) {
+        if (projectMetadata.firstEventWithin === '14d') {
+          return (
+            <Tooltip
+              title={t(
+                'Transactions are grouped together until we receive enough data to identify parameter patterns.'
+              )}
+            >
+              <UnparameterizedTooltipWrapper data-test-id="unparameterized-indicator">
+                <LoadingIndicator
+                  mini
+                  size={16}
+                  style={{margin: 0, width: 16, height: 16}}
+                />
+              </UnparameterizedTooltipWrapper>
+            </Tooltip>
+          );
+        }
+        return <span />;
+      }
       return rendered;
     }
 
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
-    if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
+    if (tableMeta[fieldName] === 'integer' && typeof value === 'number' && value > 999) {
       return (
         <Tooltip
           title={value.toLocaleString()}
@@ -250,7 +384,7 @@ class _Table extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv2.transactions.sort', {
+    trackAnalytics('performance_views.landingv2.transactions.sort', {
       organization,
       field: currentSortField,
       direction: currentSortKind,
@@ -259,7 +393,7 @@ class _Table extends Component<Props, State> {
 
   paginationAnalyticsEvent = (direction: string) => {
     const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.landingv3.table_pagination', {
+    trackAnalytics('performance_views.landingv3.table_pagination', {
       organization,
       direction,
     });
@@ -339,7 +473,7 @@ class _Table extends Component<Props, State> {
             <TeamKeyTransactionWrapper>
               <IconStar
                 key="keyTransaction"
-                color="yellow400"
+                color="yellow300"
                 isSolid
                 data-test-id="team-key-transaction-header"
               />
@@ -355,7 +489,7 @@ class _Table extends Component<Props, State> {
 
   handleSummaryClick = () => {
     const {organization, location, projects} = this.props;
-    trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
+    trackAnalytics('performance_views.overview.navigate.summary', {
       organization,
       project_platforms: getSelectedProjectPlatforms(location, projects),
     });
@@ -423,30 +557,37 @@ class _Table extends Component<Props, State> {
                   queryExtras={getMEPQueryParams(value)}
                 >
                   {({pageLinks, isLoading, tableData}) => (
-                    <Fragment>
-                      <GridEditable
+                    <_TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                      <VisuallyCompleteWithData
+                        id="PerformanceTable"
+                        hasData={
+                          !isLoading && !!tableData?.data && tableData.data.length > 0
+                        }
                         isLoading={isLoading}
-                        data={tableData ? tableData.data : []}
-                        columnOrder={columnOrder}
-                        columnSortBy={columnSortBy}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          renderPrependColumns: this.renderPrependCellWithData(
-                            tableData
-                          ) as any,
-                          prependColumnWidths,
-                        }}
-                        location={location}
-                      />
+                      >
+                        <GridEditable
+                          isLoading={isLoading}
+                          data={tableData ? tableData.data : []}
+                          columnOrder={columnOrder}
+                          columnSortBy={columnSortBy}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
+                            prependColumnWidths,
+                          }}
+                        />
+                      </VisuallyCompleteWithData>
                       <Pagination
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </Fragment>
+                    </_TrackHasDataAnalytics>
                   )}
                 </DiscoverQuery>
               );
@@ -462,13 +603,27 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
-  return <_Table {...props} summaryConditions={summaryConditions} />;
+  const domainViewFilters = useDomainViewFilters();
+
+  return (
+    <_Table
+      {...props}
+      summaryConditions={summaryConditions}
+      domainViewFilters={domainViewFilters}
+    />
+  );
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table
 // rows, which have 2px padding + 1px border.
 const TeamKeyTransactionWrapper = styled('div')`
   padding: 3px;
+`;
+
+const UnparameterizedTooltipWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export default Table;

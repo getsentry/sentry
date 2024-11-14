@@ -1,18 +1,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import type {Group, Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
+import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
-function useReplayFromIssue({
+export default function useReplaysFromIssue({
   group,
   location,
   organization,
@@ -23,45 +23,38 @@ function useReplayFromIssue({
 }) {
   const api = useApi();
 
-  const [response, setResponse] = useState<{
-    pageLinks: null | string;
-    replayIds: undefined | string[];
-  }>({pageLinks: null, replayIds: undefined});
+  const [replayIds, setReplayIds] = useState<string[]>();
 
   const [fetchError, setFetchError] = useState();
 
-  const {cursor} = location.query;
+  // use Discover for errors and Issue Platform for everything else
+  const dataSource =
+    group.issueCategory === IssueCategory.ERROR ? 'discover' : 'search_issues';
+
   const fetchReplayIds = useCallback(async () => {
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: `Errors within replay`,
-      version: 2,
-      fields: ['replayId', 'count()'],
-      query: `issue.id:${group.id} !replayId:""`,
-      projects: [Number(group.project.id)],
-    });
-
     try {
-      const [{data}, _textStatus, resp] = await doDiscoverQuery<TableData>(
-        api,
-        `/organizations/${organization.slug}/events/`,
-        eventView.getEventsAPIPayload({
-          query: {cursor},
-        } as Location<ReplayListLocationQuery>)
+      const response = await api.requestPromise(
+        `/organizations/${organization.slug}/replay-count/`,
+        {
+          query: {
+            returnIds: true,
+            query: `issue.id:[${group.id}]`,
+            data_source: dataSource,
+            statsPeriod: '90d',
+            environment: location.query.environment,
+            project: ALL_ACCESS_PROJECTS,
+          },
+        }
       );
-
-      setResponse({
-        pageLinks: resp?.getResponseHeader('Link') ?? '',
-        replayIds: data.map(record => String(record.replayId)),
-      });
-    } catch (err) {
-      Sentry.captureException(err);
-      setFetchError(err);
+      setReplayIds(response[group.id] || []);
+    } catch (error) {
+      Sentry.captureException(error);
+      setFetchError(error);
     }
-  }, [api, cursor, organization.slug, group.id, group.project.id]);
+  }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
   const eventView = useMemo(() => {
-    if (!response.replayIds) {
+    if (!replayIds || !replayIds.length) {
       return null;
     }
     return EventView.fromSavedQuery({
@@ -69,13 +62,17 @@ function useReplayFromIssue({
       name: '',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
-      projects: [Number(group.project.id)],
-      query: `id:[${String(response.replayIds)}]`,
+      query: replayIds.length ? `id:[${String(replayIds)}]` : `id:1`,
+      range: '90d',
+      projects: [],
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
-  }, [location.query.sort, group.project.id, response.replayIds]);
+  }, [location.query.sort, replayIds]);
 
-  useCleanQueryParamsOnRouteLeave({fieldsToClean: ['cursor']});
+  useCleanQueryParamsOnRouteLeave({
+    fieldsToClean: ['cursor'],
+    shouldClean: newLocation => newLocation.pathname.includes(`/issues/${group.id}/`),
+  });
   useEffect(() => {
     fetchReplayIds();
   }, [fetchReplayIds]);
@@ -83,8 +80,7 @@ function useReplayFromIssue({
   return {
     eventView,
     fetchError,
-    pageLinks: response.pageLinks,
+    isFetching: replayIds === undefined,
+    pageLinks: null,
   };
 }
-
-export default useReplayFromIssue;

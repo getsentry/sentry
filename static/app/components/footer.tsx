@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Hook from 'sentry/components/hook';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,6 +10,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import useOrganization from 'sentry/utils/useOrganization';
+
+const SentryLogoHook = HookOrDefault({
+  hookName: 'component:sentry-logo',
+  defaultComponent: () => <IconSentry size="lg" />,
+});
 
 type Props = {
   className?: string;
@@ -17,6 +24,7 @@ type Props = {
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =
     useLegacyStore(ConfigStore);
+  const organization = useOrganization({allowNull: true});
 
   return (
     <footer className={className}>
@@ -39,7 +47,12 @@ function BaseFooter({className}: Props) {
         {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}
         {termsUrl && <FooterLink href={termsUrl}>{t('Terms of Use')}</FooterLink>}
       </LeftLinks>
-      <LogoLink />
+      <SentryLogoLink href="https://sentry.io/welcome/" tabIndex={-1}>
+        <SentryLogoHook
+          size="lg"
+          pride={(organization?.features ?? []).includes('sentry-pride-logo-footer')}
+        />
+      </SentryLogoLink>
       <RightLinks>
         {!isSelfHosted && (
           <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
@@ -78,17 +91,13 @@ const RightLinks = styled('div')`
 
 const FooterLink = styled(ExternalLink)`
   color: ${p => p.theme.subText};
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: ${p => p.theme.blue300} 0 2px 0;
   }
 `;
 
-const LogoLink = styled(props => (
-  <ExternalLink href="https://sentry.io/welcome/" tabIndex={-1} {...props}>
-    <IconSentry size="lg" />
-  </ExternalLink>
-))`
+const SentryLogoLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   margin: 0 auto;
@@ -98,7 +107,7 @@ const LogoLink = styled(props => (
 const Build = styled('span')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   color: ${p => p.theme.subText};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-left: ${space(1)};
 `;
 

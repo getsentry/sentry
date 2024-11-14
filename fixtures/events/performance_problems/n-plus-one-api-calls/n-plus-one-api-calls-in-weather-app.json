@@ -55,7 +55,7 @@
       "trace_id": "5e4bea914d3944d3b2d0e31b079d1db5",
       "status": "ok",
       "tags": {"http.status_code": "200"},
-      "data": {"method": "GET", "type": "fetch", "url": "/cities.json"},
+      "data": {"http.method": "GET", "type": "fetch", "url": "/cities.json"},
       "hash": "743372e8fa81c1b0"
     },
     {
@@ -70,7 +70,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1001"
       },
@@ -88,7 +88,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1002"
       },
@@ -106,7 +106,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1003"
       },
@@ -124,7 +124,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1004"
       },
@@ -142,7 +142,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1005"
       },
@@ -160,7 +160,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1006"
       },
@@ -178,7 +178,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1007"
       },
@@ -196,7 +196,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1008"
       },
@@ -214,7 +214,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1009"
       },
@@ -232,7 +232,7 @@
       "status": "ok",
       "tags": {"http.status_code": "200"},
       "data": {
-        "method": "GET",
+        "http.method": "GET",
         "type": "fetch",
         "url": "/country/canada/weather?city_id=1010"
       },

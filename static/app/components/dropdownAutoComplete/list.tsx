@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {AutoSizer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Row from './row';
-import {ItemsAfterFilter} from './types';
+import type {ItemsAfterFilter} from './types';
 
 type RowProps = Pick<
   React.ComponentProps<typeof Row>,
-  'itemSize' | 'inputValue' | 'getItemProps' | 'registerVisibleItem'
+  'itemSize' | 'getItemProps' | 'registerVisibleItem'
 >;
 
 type Props = {
@@ -57,7 +57,7 @@ function getHeight(
   return Math.min(minHeight, maxHeight);
 }
 
-const List = ({
+function List({
   virtualizedHeight,
   virtualizedLabelHeight,
   onScroll,
@@ -65,7 +65,7 @@ const List = ({
   highlightedIndex,
   maxHeight,
   ...rowProps
-}: Props) => {
+}: Props) {
   if (virtualizedHeight) {
     return (
       <AutoSizer disableHeight>
@@ -115,6 +115,6 @@ const List = ({
       ))}
     </Fragment>
   );
-};
+}
 
 export default List;

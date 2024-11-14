@@ -6,9 +6,8 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import RouteError from 'sentry/views/routeError';
 
 describe('RouteError', function () {
-  const {routerContext} = initializeOrg({
-    ...initializeOrg(),
-    router: TestStubs.router({
+  const {router} = initializeOrg({
+    router: {
       routes: [
         {path: '/'},
         {path: '/:orgId/'},
@@ -16,12 +15,12 @@ describe('RouteError', function () {
         {path: '/organizations/:orgId/'},
         {path: 'api-keys/', name: 'API Key'},
       ],
-    }),
+    },
   });
 
   it('captures errors with sentry', async function () {
     render(<RouteError error={new Error('Big Bad Error')} />, {
-      context: routerContext,
+      router,
     });
 
     await waitFor(() =>

@@ -1,6 +1,11 @@
-import selectEvent from 'react-select-event';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -11,16 +16,16 @@ import {
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 
 describe('AddCodeOwnerModal', function () {
-  const org = TestStubs.Organization({features: ['integrations-codeowners']});
-  const project = TestStubs.ProjectDetails();
-  const integration = TestStubs.GitHubIntegration();
-  const repo = TestStubs.Repository({
+  const org = OrganizationFixture({features: ['integrations-codeowners']});
+  const project = ProjectFixture();
+  const integration = GitHubIntegrationFixture();
+  const repo = RepositoryFixture({
     integrationId: integration.id,
     id: '5',
     name: 'example/hello-there',
   });
 
-  const codeMapping = TestStubs.RepositoryProjectPathConfig({
+  const codeMapping = RepositoryProjectPathConfigFixture({
     project,
     repo,
     integration,
@@ -77,7 +82,10 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
     expect(screen.getByTestId('icon-check-mark')).toBeInTheDocument();
 
@@ -106,7 +114,10 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
     expect(screen.getByText('No codeowner file found.')).toBeInTheDocument();
   });
@@ -138,9 +149,12 @@ describe('AddCodeOwnerModal', function () {
       />
     );
 
-    await selectEvent.select(screen.getByText('--'), 'example/hello-there');
+    await selectEvent.select(
+      screen.getByText('--'),
+      `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`
+    );
 
-    userEvent.click(screen.getByRole('button', {name: 'Add File'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
 
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(

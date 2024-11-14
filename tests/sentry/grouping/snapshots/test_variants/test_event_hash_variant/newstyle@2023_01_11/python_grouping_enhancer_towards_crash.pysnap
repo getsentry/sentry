@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:28.231655Z'
+created: '2024-10-24T14:21:57.991389+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,8 +8,8 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no contributing frames)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.core.handlers.base"
             filename (module takes precedence)
@@ -18,7 +18,7 @@ app:
               "get_response"
             context-line*
               "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -27,7 +27,7 @@ app:
               "view"
             context-line*
               "return self.dispatch(request, *args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -36,7 +36,7 @@ app:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.views.decorators.csrf"
             filename (module takes precedence)
@@ -45,7 +45,7 @@ app:
               "wrapped_view"
             context-line*
               "return view_func(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -63,7 +63,7 @@ app:
               "dispatch"
             context-line*
               "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.views.generic.base"
             filename (module takes precedence)
@@ -90,7 +90,7 @@ app:
               "handle"
             context-line*
               "email = request.POST['user']"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
             module*
               "django.utils.datastructures"
             filename (module takes precedence)

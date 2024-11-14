@@ -1,30 +1,46 @@
+from typing import Any
+
 from bs4 import BeautifulSoup
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import pending_silo_endpoint
-from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import control_silo_endpoint
+from sentry.integrations.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.jira_server.integration import JiraServerIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
 from .utils import build_user_choice
 
 
-@pending_silo_endpoint
+@control_silo_endpoint
 class JiraServerSearchEndpoint(IntegrationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
     provider = "jira_server"
 
-    def _get_integration(self, organization, integration_id):
+    def _get_integration(self, organization, integration_id) -> Integration:
         return Integration.objects.get(
-            organizations=organization, id=integration_id, provider=self.provider
+            organizationintegration__organization_id=organization.id,
+            id=integration_id,
+            provider=self.provider,
         )
 
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = self._get_integration(organization, integration_id)
         except Integration.DoesNotExist:
             return Response(status=404)
         installation = integration.get_installation(organization.id)
+
+        assert isinstance(installation, JiraServerIntegration), installation
         jira_client = installation.get_client()
 
         field = request.GET.get("field")

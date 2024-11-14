@@ -1,27 +1,30 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import type {Client} from 'sentry/api';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
 
@@ -126,11 +129,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   }, [fetchIssuesCount]);
 
   function handleOpenInIssuesClick() {
-    trackAdvancedAnalyticsEvent('project_detail.open_issues', {organization});
+    trackAnalytics('project_detail.open_issues', {organization});
   }
 
   function handleOpenInDiscoverClick() {
-    trackAdvancedAnalyticsEvent('project_detail.open_discover', {organization});
+    trackAnalytics('project_detail.open_discover', {organization});
   }
 
   function handleFetchSuccess(groupListState, cursorHandler) {
@@ -149,10 +152,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        sort: ['-count'],
+        sort: '-count',
         query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
+        ...appendQueryDatasetParam(organization, SavedQueryDatasets.ERRORS),
       },
     };
   }
@@ -164,7 +168,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: 5,
+    limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
@@ -256,14 +260,14 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
           ))}
         </SegmentedControl>
         <OpenInButtonBar gap={1}>
-          <Button
+          <LinkButton
             data-test-id="issues-open"
             size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
             {t('Open in Issues')}
-          </Button>
+          </LinkButton>
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
@@ -276,10 +280,8 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       </ControlsWrapper>
 
       <GroupList
-        orgId={organization.slug}
-        endpointPath={endpointPath}
+        orgSlug={organization.slug}
         queryParams={queryParams}
-        query=""
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}
         withChart={false}

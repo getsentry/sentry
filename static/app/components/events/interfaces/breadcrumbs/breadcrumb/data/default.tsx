@@ -1,26 +1,39 @@
+import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
-import {Organization, Project} from 'sentry/types';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import withProjects from 'sentry/utils/withProjects';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 
 import Summary from './summary';
 
 type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
   meta?: Record<any, any>;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
-export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
+export function Default({
+  meta,
+  breadcrumb,
+  event,
+  organization,
+  searchTerm,
+  transactionEvents,
+}: Props) {
   const {message, data} = breadcrumb;
+
   return (
     <Summary kvData={data} meta={meta}>
       {meta?.message?.[''] ? (
@@ -30,9 +43,10 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
           <FormatMessage
             searchTerm={searchTerm}
             event={event}
-            orgSlug={orgSlug}
+            organization={organization}
             breadcrumb={breadcrumb}
             message={message}
+            transactionEvents={transactionEvents}
           />
         )
       )}
@@ -40,47 +54,68 @@ export function Default({meta, breadcrumb, event, orgSlug, searchTerm}: Props) {
   );
 }
 
-function isEventId(maybeEventId: string): boolean {
+export function isEventId(maybeEventId: string): boolean {
   // maybeEventId is an event id if it's a hex string of 32 characters long
   return /^[a-fA-F0-9]{32}$/.test(maybeEventId);
 }
 
-const FormatMessage = withProjects(function FormatMessageInner({
+function FormatMessage({
   searchTerm,
   event,
   message,
   breadcrumb,
-  projects,
-  loadingProjects,
-  orgSlug,
+  organization,
+  transactionEvents,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
-  loadingProjects: boolean;
   message: string;
-  orgSlug: Organization['slug'];
-  projects: Project[];
+  organization: Organization;
   searchTerm: string;
   event?: Event;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 }) {
+  const location = useLocation();
   const content = <Highlight text={searchTerm}>{message}</Highlight>;
-  if (
-    !loadingProjects &&
-    breadcrumb.category === 'sentry.transaction' &&
-    isEventId(message)
-  ) {
-    const maybeProject = projects.find(project => {
-      return event && project.id === event.projectID;
-    });
 
+  const isSentryTransaction =
+    breadcrumb.category === 'sentry.transaction' && isEventId(message);
+
+  const {projects, fetching: fetchingProjects} = useProjects();
+  const maybeProject = !fetchingProjects
+    ? projects.find(project => {
+        return event && project.id === event.projectID;
+      })
+    : null;
+
+  const transactionData = transactionEvents?.find(
+    transaction => transaction.id === message
+  );
+
+  if (isSentryTransaction) {
     if (!maybeProject) {
       return content;
     }
 
     const projectSlug = maybeProject.slug;
-    const eventSlug = generateEventSlug({project: projectSlug, id: message});
+    const description = transactionData ? (
+      <Link
+        to={generateLinkToEventInTraceView({
+          eventId: message,
+          timestamp: transactionData.timestamp,
+          traceSlug: transactionData.trace,
+          projectSlug,
+          organization,
+          location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},
+        })}
+      >
+        <Highlight text={searchTerm}>{transactionData.title}</Highlight>
+      </Link>
+    ) : (
+      content
+    );
 
-    return <Link to={getTransactionDetailsUrl(orgSlug, eventSlug)}>{content}</Link>;
+    return description;
   }
 
   return content;
-});
+}

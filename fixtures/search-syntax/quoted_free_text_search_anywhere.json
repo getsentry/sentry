@@ -3,7 +3,7 @@
     "query": "\"hello there\" user.email:foo@example.com \"general kenobi\"",
     "result": [
       {"type": "spaces", "value": ""},
-      {"type": "freeText", "value": "hello there", "quoted": true},
+      {"type": "freeText", "value": "hello there", "quoted": true, "invalid": null},
       {"type": "spaces", "value": " "},
       {
         "type": "filter",
@@ -14,7 +14,7 @@
         "value": {"type": "valueText", "value": "foo@example.com", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "general kenobi", "quoted": true},
+      {"type": "freeText", "value": "general kenobi", "quoted": true, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -22,7 +22,7 @@
     "query": " \" hello \" ",
     "result": [
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": " hello ", "quoted": true},
+      {"type": "freeText", "value": " hello ", "quoted": true, "invalid": null},
       {"type": "spaces", "value": " "}
     ]
   },
@@ -30,7 +30,7 @@
     "query": " \" he\\\"llo \" ",
     "result": [
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": " he\\\"llo ", "quoted": true},
+      {"type": "freeText", "value": " he\\\"llo ", "quoted": true, "invalid": null},
       {"type": "spaces", "value": " "}
     ]
   }

@@ -1,9 +1,15 @@
-from django import forms
-from rest_framework.request import Request
-from rest_framework.response import Response
+from __future__ import annotations
 
-from sentry.auth.view import AuthView, ConfigureView
-from sentry.models import AuthIdentity
+from django import forms
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
+
+from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
+from sentry.models.authidentity import AuthIdentity
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.plugins.base.response import DeferredResponse
+from sentry.utils.forms import set_field_choices
 
 from .client import GitHubClient
 from .constants import (
@@ -30,10 +36,14 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: HttpRequest, helper) -> HttpResponse:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             if self.org is not None:
+                # if we have a configured org (self.org) for our oauth provider
                 if not client.is_org_member(self.org["id"]):
+                    # `is_org_member` fetches provider orgs for the auth'd provider user.
+                    # if our configured org is not in the users list of orgs, then that user
+                    # does not have access to the provisioned org and we will prevent access
                     return helper.error(ERR_NO_ORG_ACCESS)
 
             user = client.get_user()
@@ -75,7 +85,7 @@ class ConfirmEmailForm(forms.Form):
 
 
 class ConfirmEmail(AuthView):
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         user = helper.fetch_state("user")
 
         # TODO(dcramer): this isn't ideal, but our current flow doesnt really
@@ -107,15 +117,14 @@ class SelectOrganizationForm(forms.Form):
     def __init__(self, org_list, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["org"].choices = [(o["id"], o["login"]) for o in org_list]
-        self.fields["org"].widget.choices = self.fields["org"].choices
+        set_field_choices(self.fields["org"], [(o["id"], o["login"]) for o in org_list])
 
 
 class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: HttpRequest, helper) -> HttpResponseBase:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             org_list = client.get_org_list()
 
@@ -131,6 +140,7 @@ class SelectOrganization(AuthView):
         )
 
 
-class GitHubConfigureView(ConfigureView):
-    def dispatch(self, request: Request, organization, auth_provider):
-        return self.render("sentry_auth_github/configure.html")
+def github_configure_view(
+    request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
+) -> DeferredResponse:
+    return DeferredResponse("sentry_auth_github/configure.html")

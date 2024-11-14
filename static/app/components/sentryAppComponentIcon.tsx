@@ -2,17 +2,18 @@ import styled from '@emotion/styled';
 
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import ConfigStore from 'sentry/stores/configStore';
-import {SentryAppComponent} from 'sentry/types';
+import type {SentryAppComponent} from 'sentry/types/integrations';
 
 type Props = {
   sentryAppComponent: SentryAppComponent;
+  size?: number;
 };
 
 /**
  * Icon Renderer for SentryAppComponents with UI
  * (e.g. Issue Linking, Stacktrace Linking)
  */
-const SentryAppComponentIcon = ({sentryAppComponent}: Props) => {
+function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
   const selectedAvatar = sentryAppComponent.sentryApp?.avatars?.find(
     ({color}) => color === false
   );
@@ -26,12 +27,12 @@ const SentryAppComponentIcon = ({sentryAppComponent}: Props) => {
     >
       <SentryAppAvatar
         sentryApp={sentryAppComponent.sentryApp}
-        size={20}
+        size={size}
         isColor={false}
       />
     </SentryAppAvatarWrapper>
   );
-};
+}
 
 export default SentryAppComponentIcon;
 

@@ -1,12 +1,13 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
-const mockProject = TestStubs.Project();
-const {router, organization, routerContext} = initializeOrg({
+const mockProject = ProjectFixture();
+const {router, organization} = initializeOrg({
   organization: {},
-  project: mockProject,
   projects: [mockProject],
   router: {
     routes: [],
@@ -16,15 +17,15 @@ const {router, organization, routerContext} = initializeOrg({
     },
   },
 });
+
 describe('Tag Facets', function () {
-  let tagsMock;
-  const project = TestStubs.Project();
+  const project = ProjectFixture();
   project.platform = 'android';
   const tags = ['os', 'device', 'release'];
 
   beforeEach(function () {
-    tagsMock = MockApiClient.addMockResponse({
-      url: '/issues/1/tags/',
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/1/tags/`,
       body: {
         release: {
           key: 'release',
@@ -99,8 +100,8 @@ describe('Tag Facets', function () {
 
   describe('Tag Distributions', function () {
     it('does not display anything if no tag values recieved', async function () {
-      tagsMock = MockApiClient.addMockResponse({
-        url: '/issues/1/tags/',
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/1/tags/`,
         body: {},
       });
       render(
@@ -116,14 +117,14 @@ describe('Tag Facets', function () {
         }
       );
       await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
       expect(screen.queryByText('os')).not.toBeInTheDocument();
       expect(screen.queryByText('device')).not.toBeInTheDocument();
       expect(screen.queryByText('release')).not.toBeInTheDocument();
     });
 
-    it('displays os, device, and release tags', async function () {
+    it('displays os, device, async and release tags', async function () {
       render(
         <TagFacets
           environments={[]}
@@ -137,11 +138,10 @@ describe('Tag Facets', function () {
         }
       );
       await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
+        expect(screen.getByRole('listitem', {name: 'os'})).toBeInTheDocument();
+        expect(screen.getByRole('listitem', {name: 'device'})).toBeInTheDocument();
+        expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
       });
-      expect(screen.getByRole('listitem', {name: 'os'})).toBeInTheDocument();
-      expect(screen.getByRole('listitem', {name: 'device'})).toBeInTheDocument();
-      expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
     });
 
     it('expands first tag distribution by default', async function () {
@@ -157,11 +157,8 @@ describe('Tag Facets', function () {
           organization,
         }
       );
-      await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
-      });
       expect(
-        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+        await screen.findByRole('button', {name: 'Collapse os tag distribution'})
       ).toBeInTheDocument();
     });
 
@@ -179,12 +176,14 @@ describe('Tag Facets', function () {
         }
       );
       await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
       expect(
-        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+        await screen.findByRole('button', {name: 'Collapse os tag distribution'})
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Collapse os tag distribution'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+      );
       expect(
         screen.getByRole('button', {name: 'Expand os tag distribution'})
       ).toBeInTheDocument();
@@ -200,15 +199,14 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          context: routerContext,
-          organization,
           router,
+          organization,
         }
       );
       await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Expand device tag distribution'})
       );
       expect(
@@ -231,15 +229,14 @@ describe('Tag Facets', function () {
           tagFormatter={TAGS_FORMATTER}
         />,
         {
-          context: routerContext,
-          organization,
           router,
+          organization,
         }
       );
       await waitFor(() => {
-        expect(tagsMock).toHaveBeenCalled();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Expand device tag distribution'})
       );
       expect(

@@ -1,10 +1,10 @@
 import {createStore} from 'reflux';
 
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 import ProjectsStore from './projectsStore';
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;
@@ -14,11 +14,10 @@ type State = {
   teams: Team[];
 };
 
-interface TeamStoreDefinition extends CommonStoreDefinition<State> {
+interface TeamStoreDefinition extends StrictStoreDefinition<State> {
   getAll(): Team[];
   getById(id: string): Team | null;
   getBySlug(slug: string): Team | null;
-  init(): void;
   initialized: boolean;
   loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
   loadUserTeams(userTeams: Team[]): void;
@@ -26,8 +25,8 @@ interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
-
-  state: State;
+  setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null): void;
+  updateTeams(teams: Team[]): Team[];
 }
 
 const teamStoreConfig: TeamStoreDefinition = {

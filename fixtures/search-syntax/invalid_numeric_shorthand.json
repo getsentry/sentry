@@ -8,6 +8,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-number",
           "reason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)",
           "expectedType": ["numeric", "numericIn"]
         },

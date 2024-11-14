@@ -2,23 +2,25 @@ from datetime import timedelta
 
 from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
-from freezegun import freeze_time
 
-from sentry.models import Activity, Group, GroupInbox, GroupInboxReason
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+
+pytestmark = [requires_snuba]
 
 
 @freeze_time()
-@region_silo_test
 class ProjectRulePreviewEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-preview"
     method = "post"
 
     def setUp(self):
         self.login_as(self.user)
-        self.features = ["organizations:issue-alert-preview"]
 
     def test(self):
         group = Group.objects.create(
@@ -26,7 +28,53 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             first_seen=timezone.now() - timedelta(hours=1),
             data={"metadata": {"title": "title"}},
         )
-        with self.feature(self.features):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
+        assert len(resp.data) == 1
+        assert resp.data[0]["id"] == str(group.id)
+
+    def test_invalid_conditions(self):
+        conditions = [
+            [],
+            [{"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}],
+        ]
+        for invalid_condition in conditions:
+            resp = self.get_response(
+                self.organization.slug,
+                self.project.slug,
+                conditions=invalid_condition,
+                filters=[],
+                actionMatch="any",
+                filterMatch="all",
+                frequency=10,
+            )
+            assert resp.status_code == 400
+
+    def test_invalid_filters(self):
+        invalid_filter = [{"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}]
+        condition = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+        Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
+        resp = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=condition,
+            filters=invalid_filter,
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
+        assert resp.status_code == 400
+
+    def test_endpoint(self):
+        time_to_freeze = timezone.now()
+        with freeze_time(time_to_freeze) as frozen_time:
             resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
@@ -37,78 +85,26 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 actionMatch="any",
                 filterMatch="all",
                 frequency=10,
+                endpoint=None,
             )
-        assert len(resp.data) == 1
-        assert resp.data[0]["id"] == str(group.id)
 
-    def test_invalid_conditions(self):
-        conditions = [
-            [],
-            [{"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}],
-        ]
-        with self.feature(self.features):
-            for invalid_condition in conditions:
-                resp = self.get_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=invalid_condition,
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                )
-                assert resp.status_code == 400
+            result = parse_datetime(resp["endpoint"])
+            endpoint = time_to_freeze.replace(tzinfo=result.tzinfo)
+            assert result == endpoint
+            frozen_time.shift(1)
 
-    def test_invalid_filters(self):
-        invalid_filter = [{"id": "sentry.rules.filters.latest_release.LatestReleaseFilter"}]
-        condition = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
-        Group.objects.create(project=self.project, first_seen=timezone.now() - timedelta(hours=1))
-        with self.feature(self.features):
-            resp = self.get_response(
+            resp = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
-                conditions=condition,
-                filters=invalid_filter,
+                conditions=[
+                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+                ],
+                filters=[],
                 actionMatch="any",
                 filterMatch="all",
                 frequency=10,
+                endpoint=endpoint,
             )
-        assert resp.status_code == 400
-
-    def test_endpoint(self):
-        with freeze_time(timezone.now()) as frozen_time:
-            with self.feature(self.features):
-                resp = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=[
-                        {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                    ],
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                    endpoint=None,
-                )
-
-            result = parse_datetime(resp["endpoint"])
-            endpoint = frozen_time.time_to_freeze.replace(tzinfo=result.tzinfo)
-            assert result == endpoint
-            frozen_time.tick(1)
-
-            with self.feature(self.features):
-                resp = self.get_success_response(
-                    self.organization.slug,
-                    self.project.slug,
-                    conditions=[
-                        {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                    ],
-                    filters=[],
-                    actionMatch="any",
-                    filterMatch="all",
-                    frequency=10,
-                    endpoint=endpoint,
-                )
 
             assert parse_datetime(resp["endpoint"]) == endpoint
 
@@ -122,26 +118,23 @@ class ProjectRulePreviewEndpointTest(APITestCase):
             GroupInbox.objects.create(group=group, project=self.project, reason=reason.value)
             group_reason.append((group, reason))
 
-        with self.feature(self.features):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=10,
-            )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=10,
+        )
 
-            for (group, reason) in group_reason:
-                assert any([int(g["id"]) == group.id for g in resp.data])
+        for group, reason in group_reason:
+            assert any([int(g["id"]) == group.id for g in resp.data])
 
-                for preview_group in resp.data:
-                    if int(preview_group["id"]) == group.id:
-                        assert preview_group["inbox"]["reason"] == reason.value
-                        break
+            for preview_group in resp.data:
+                if int(preview_group["id"]) == group.id:
+                    assert preview_group["inbox"]["reason"] == reason.value
+                    break
 
     def test_last_triggered(self):
         prev_hour = timezone.now() - timedelta(hours=1)
@@ -154,29 +147,28 @@ class ProjectRulePreviewEndpointTest(APITestCase):
                 datetime=time,
             )
 
-        with self.feature(self.features):
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=60,
-            )
-            assert resp.data[0]["lastTriggered"] == prev_hour
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=60,
+        )
+        assert resp.data[0]["lastTriggered"] == prev_hour
 
-            resp = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                conditions=[
-                    {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-                ],
-                filters=[],
-                actionMatch="any",
-                filterMatch="all",
-                frequency=180,
-            )
-            assert resp.data[0]["lastTriggered"] == prev_two_hour
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            conditions=[
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
+            ],
+            filters=[],
+            actionMatch="any",
+            filterMatch="all",
+            frequency=180,
+        )
+        assert resp.data[0]["lastTriggered"] == prev_two_hour

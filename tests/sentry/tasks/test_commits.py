@@ -2,20 +2,20 @@ from unittest.mock import patch
 
 from django.core import mail
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.locks import locks
-from sentry.models import (
-    Commit,
-    Deploy,
-    Integration,
-    LatestRepoReleaseEnvironment,
-    Release,
-    ReleaseHeadCommit,
-    Repository,
-)
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
+from sentry.models.release import Release
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
+from sentry.models.repository import Repository
+from sentry.silo.base import SiloMode
 from sentry.tasks.commits import fetch_commits, handle_invalid_identity
-from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from social_auth.models import UserSocialAuth
 
 
@@ -75,13 +75,14 @@ class FetchCommitsTest(TestCase):
         org = self.create_organization(owner=self.user, name="baz")
         self._test_simple_action(user=self.user, org=org)
 
-    def test_simple_owner_from_team(self):
-        user = self.create_user()
-        self.login_as(user=user)
-        org = self.create_organization(name="baz")
-        owner_team = self.create_team(organization=org, org_role="owner")
-        self.create_member(organization=org, user=user, teams=[owner_team])
-        self._test_simple_action(user=user, org=org)
+    def test_duplicate_repositories(self):
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        Repository.objects.create(
+            name="example", provider="dummy", organization_id=org.id, status=ObjectStatus.DISABLED
+        )
+        Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        self._test_simple_action(user=self.user, org=org)
 
     def test_release_locked(self):
         self.login_as(user=self.user)
@@ -130,7 +131,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = InvalidIdentity(identity=usa)
 
@@ -158,7 +160,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = Exception("secrets")
 
@@ -228,7 +231,8 @@ class FetchCommitsTest(TestCase):
 
         release2 = Release.objects.create(organization_id=org.id, version="12345678")
 
-        UserSocialAuth.objects.create(user=self.user, provider="dummy")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserSocialAuth.objects.create(user=self.user, provider="dummy")
 
         mock_compare_commits.side_effect = PluginError("You can read me")
 
@@ -249,8 +253,9 @@ class FetchCommitsTest(TestCase):
         self.login_as(user=self.user)
         org = self.create_organization(owner=self.user, name="baz")
 
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="example", name="Example")
+            integration.add_organization(org)
 
         repo = Repository.objects.create(
             name="example",
@@ -282,6 +287,11 @@ class FetchCommitsTest(TestCase):
         assert msg.subject == "Unable to Fetch Commits"
         assert msg.to == [self.user.email]
         assert "Repository not found" in msg.body
+
+
+@apply_feature_flag_on_cls("organizations:set-commits-updated")
+class FetchCommitsTestUpdated(FetchCommitsTest):
+    pass
 
 
 @control_silo_test

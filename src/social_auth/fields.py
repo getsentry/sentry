@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from django.core.exceptions import ValidationError
-from django.db.models import TextField
-from django.utils.encoding import smart_text
+from django.db.models import Model, TextField
+from django.utils.encoding import smart_str
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
@@ -11,12 +13,12 @@ class JSONField(TextField):
     on database.
     """
 
-    def contribute_to_class(self, cls, name):
+    def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super().contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
@@ -53,7 +55,7 @@ class JSONField(TextField):
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
-        return smart_text(self.value_from_object(obj))
+        return smart_str(self.value_from_object(obj))
 
     def value_from_object(self, obj):
         """Return value dumped to string."""

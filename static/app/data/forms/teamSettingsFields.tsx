@@ -1,9 +1,10 @@
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/teams/:teamId/settings/';
+// TODO: :teamId is not a valid route parameter
+// export const route = '/settings/:orgId/teams/:teamId/settings/';
 
 const formGroups: JsonFormObject[] = [
   {
@@ -14,12 +15,11 @@ const formGroups: JsonFormObject[] = [
         name: 'slug',
         type: 'string',
         required: true,
-        label: t('Name'),
+        label: t('Team Slug'),
         placeholder: 'e.g. api-team',
         help: t('A unique ID used to identify the team'),
-        disabled: ({access}) => !access.has('team:write'),
         transformInput: slugify,
-
+        disabled: ({hasTeamWrite}) => !hasTeamWrite,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
         saveMessage: t('You will be redirected to the new team slug after saving'),

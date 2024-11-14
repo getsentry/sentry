@@ -1,19 +1,21 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 
-import ActionLink from 'sentry/components/actions/actionLink';
-import IgnoreActions from 'sentry/components/actions/ignore';
+import ArchiveActions from 'sentry/components/actions/archive';
+import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {BaseGroup, Project, ResolutionStatus} from 'sentry/types';
+import type {BaseGroup} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
-import Projects from 'sentry/utils/projects';
-import useMedia from 'sentry/utils/useMedia';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -27,7 +29,7 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onUpdate: (data?: any) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
   selectedProjectSlug?: string;
@@ -53,7 +55,6 @@ function ActionSet({
     allInQuerySelected,
     query,
     queryCount,
-    organization,
   });
 
   const label = getLabel(numIssues, allInQuerySelected);
@@ -81,7 +82,10 @@ function ActionSet({
   const canRemoveBookmark =
     allInQuerySelected || selectedIssues.some(issue => issue.isBookmarked);
   const canSetUnresolved =
-    allInQuerySelected || selectedIssues.some(issue => issue.status === 'resolved');
+    allInQuerySelected ||
+    selectedIssues.some(
+      issue => issue.status === 'resolved' || issue.status === 'ignored'
+    );
 
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
@@ -95,16 +99,12 @@ function ActionSet({
     return '';
   };
 
-  // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
-  // the dropdown menu based on the current screen size
-  const theme = useTheme();
-  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const nestReview = !FOR_REVIEW_QUERIES.includes(query);
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
-      hidden: !nestMergeAndReview,
       disabled: mergeDisabled,
       details: makeMergeTooltip(),
       onAction: () => {
@@ -119,7 +119,7 @@ function ActionSet({
     {
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
-      hidden: !nestMergeAndReview,
+      hidden: !nestReview,
       disabled: !canMarkReviewed,
       onAction: () => onUpdate({inbox: false}),
     },
@@ -160,7 +160,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -186,77 +186,66 @@ function ActionSet({
 
   return (
     <Fragment>
-      {selectedProjectSlug ? (
-        <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
-          {({projects, initiallyLoaded, fetchError}) => {
-            const selectedProject = projects[0];
-            return (
-              <ResolveActions
-                onShouldConfirm={onShouldConfirm}
-                onUpdate={onUpdate}
-                anySelected={anySelected}
-                orgSlug={organization.slug}
-                params={{
-                  hasReleases: selectedProject.hasOwnProperty('features')
-                    ? (selectedProject as Project).features.includes('releases')
-                    : false,
-                  latestRelease: selectedProject.hasOwnProperty('latestRelease')
-                    ? (selectedProject as Project).latestRelease
-                    : undefined,
-                  projectId: selectedProject.slug,
-                  confirm,
-                  label,
-                  loadingProjects: !initiallyLoaded,
-                  projectFetchError: !!fetchError,
-                }}
-              />
-            );
+      {query.includes('is:archived') ? (
+        <Button
+          size="xs"
+          onClick={() => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
+              onConfirm: () =>
+                onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
+              message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
+              confirmText: label('unarchive'),
+            });
           }}
-        </Projects>
-      ) : (
-        <ResolveActions
-          onShouldConfirm={onShouldConfirm}
-          onUpdate={onUpdate}
-          anySelected={anySelected}
-          orgSlug={organization.slug}
-          params={{
-            hasReleases: false,
-            confirm,
-            label,
-          }}
-        />
-      )}
-
-      <IgnoreActions
+          disabled={!anySelected}
+        >
+          {t('Unarchive')}
+        </Button>
+      ) : null}
+      <ResolveActions
+        onShouldConfirm={onShouldConfirm}
         onUpdate={onUpdate}
-        shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
-        confirmLabel={label('ignore')}
+        anySelected={anySelected}
+        confirm={confirm}
+        label={label}
+        selectedProjectSlug={selectedProjectSlug}
+      />
+      <ArchiveActions
+        onUpdate={onUpdate}
+        shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
+        confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
+        confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
-      {!nestMergeAndReview && (
-        <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
-      )}
-      {!nestMergeAndReview && (
-        <ActionLink
-          aria-label={t('Merge Selected Issues')}
-          type="button"
-          disabled={mergeDisabled}
-          onAction={onMerge}
-          shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
-          confirmLabel={label('merge')}
-          title={makeMergeTooltip()}
-        >
-          {t('Merge')}
-        </ActionLink>
-      )}
+      <DropdownMenu
+        triggerLabel={t('Set Priority')}
+        size="xs"
+        items={makeGroupPriorityDropdownOptions({
+          onChange: priority => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
+              onConfirm: () => onUpdate({priority}),
+              message: confirm({
+                action: ConfirmAction.SET_PRIORITY,
+                append: ` to ${priority}`,
+                canBeUndone: true,
+              }),
+              confirmText: label('reprioritize'),
+            });
+          },
+          hasIssueStreamTableLayout: organization.features.includes(
+            'issue-stream-table-layout'
+          ),
+        })}
+      />
+      {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}
       <DropdownMenu
         size="sm"
         items={menuItems}
         triggerProps={{
           'aria-label': t('More issue actions'),
-          icon: <IconEllipsis size="xs" />,
+          icon: <IconEllipsis />,
           showChevron: false,
           size: 'xs',
         }}
@@ -271,7 +260,7 @@ function isActionSupported(
   actionType: keyof IssueTypeConfig['actions']
 ) {
   for (const issue of selectedIssues) {
-    const info = getConfigForIssueType(issue).actions[actionType];
+    const info = getConfigForIssueType(issue, issue.project).actions[actionType];
 
     if (!info.enabled) {
       return info;

@@ -1,16 +1,16 @@
-import {InjectedRouter} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Query} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -25,7 +25,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -50,7 +49,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   onLegendSelectChanged,
 }: Props) {
   if (errored) {
@@ -106,7 +104,7 @@ function Content({
   };
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

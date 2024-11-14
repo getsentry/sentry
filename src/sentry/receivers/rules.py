@@ -1,8 +1,9 @@
-from sentry.models import Rule
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.signals import project_created
 
-DEFAULT_RULE_LABEL = "Send a notification for new issues"
+DEFAULT_RULE_LABEL = "Send a notification for high priority issues"
 DEFAULT_RULE_ACTIONS = [
     {
         "id": "sentry.mail.actions.NotifyEmailAction",
@@ -12,13 +13,20 @@ DEFAULT_RULE_ACTIONS = [
     }
 ]
 DEFAULT_RULE_DATA = {
-    "match": "all",
-    "conditions": [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}],
+    "action_match": "any",
+    "conditions": [
+        {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
+        {"id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"},
+    ],
     "actions": DEFAULT_RULE_ACTIONS,
 }
 
 
-def create_default_rules(project, default_rules=True, RuleModel=Rule, **kwargs):
+# TODO(snigdha): Remove this constant when seer-based-priority is GA
+PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
+
+
+def create_default_rules(project: Project, default_rules=True, RuleModel=Rule, **kwargs):
     if not default_rules:
         return
 

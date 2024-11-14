@@ -1,16 +1,14 @@
 import ActionLink from 'sentry/components/actions/actionLink';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 type Props = {
-  onUpdate: (data: {inbox: boolean}) => void;
+  onUpdate: (data: IssueUpdateData) => void;
   disabled?: boolean;
   tooltip?: string;
-  tooltipProps?: Omit<
-    React.ComponentProps<typeof Tooltip>,
-    'children' | 'title' | 'skipWrapper'
-  >;
+  tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
 };
 
 function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {

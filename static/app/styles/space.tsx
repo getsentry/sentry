@@ -1,5 +1,4 @@
 const SPACES = {
-  0: '0',
   0.25: '2px',
   0.5: '4px',
   0.75: '6px',
@@ -17,7 +16,3 @@ function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
 }
 
 export {space};
-
-// TODO(epurkhiser): Remove once migrated off it
-const DO_NOT_USE_space = space;
-export default DO_NOT_USE_space;

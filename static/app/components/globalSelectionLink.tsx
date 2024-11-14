@@ -1,7 +1,8 @@
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -41,12 +42,20 @@ function GlobalSelectionLink(props: Props) {
   const query =
     typeof to === 'object' && to.query ? {...globalQuery, ...to.query} : globalQuery;
 
+  if (typeof to === 'object' && to.query && Object.keys(to.query).length === 0) {
+    delete to.query;
+  }
+
   if (location) {
     const toWithGlobalQuery: LocationDescriptor = !hasGlobalQuery
       ? {}
       : typeof to === 'string'
-      ? {pathname: to, query}
-      : {...to, query};
+        ? {pathname: to, query}
+        : {...to, query};
+
+    if (toWithGlobalQuery.query && Object.keys(toWithGlobalQuery.query).length === 0) {
+      delete toWithGlobalQuery.query;
+    }
 
     const routerProps = hasGlobalQuery
       ? {...props, to: toWithGlobalQuery}
@@ -55,7 +64,7 @@ function GlobalSelectionLink(props: Props) {
     return <Link {...routerProps} />;
   }
 
-  let queryStringObject = {};
+  let queryStringObject: typeof globalQuery = {};
   if (typeof to === 'object' && to.search) {
     queryStringObject = qs.parse(to.search);
   }

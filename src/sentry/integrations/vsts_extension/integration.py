@@ -1,9 +1,10 @@
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.vsts.integration import AccountConfigView, VstsIntegrationProvider
 from sentry.pipeline import Pipeline, PipelineView
@@ -34,7 +35,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
 
 
 class VstsExtensionFinishedView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
         response = pipeline.finish_pipeline()
 
         integration = getattr(pipeline, "integration", None)

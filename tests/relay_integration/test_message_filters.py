@@ -4,9 +4,13 @@ from sentry.ingest.inbound_filters import (
     _localhost_filter,
     _web_crawlers_filter,
 )
-from sentry.models import ProjectOption
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.relay import RelayStoreHelper
+from sentry.testutils.skips import requires_kafka
 from sentry.utils.safe import set_path
+
+pytestmark = [requires_kafka]
 
 
 class FilterTests(RelayStoreHelper, TransactionTestCase):

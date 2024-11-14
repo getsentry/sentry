@@ -1,9 +1,10 @@
 import {useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useParams} from 'sentry/utils/useParams';
 
 type Props = RouteComponentProps<{}, {}>;
 
@@ -20,11 +21,13 @@ type Props = RouteComponentProps<{}, {}>;
 function ProjectEventRedirect({router}: Props) {
   const [error, setError] = useState<string | null>(null);
 
+  const params = useParams();
+
   useEffect(() => {
     // This presumes that _this_ React view/route is only reachable at
     // /:org/:project/events/:eventId (the same URL which serves the ProjectEventRedirect
     // Django view).
-    const endpoint = router.location.pathname;
+    const endpoint = `/organizations/${params.orgId}/projects/${params.projectId}/events/${params.eventId}/`;
 
     // Use XmlHttpRequest directly instead of our client API helper (fetch),
     // because you can't reach the underlying XHR via $.ajax, and we need
@@ -47,15 +50,22 @@ function ProjectEventRedirect({router}: Props) {
       // responseURL is the URL of the document the browser ultimately loaded,
       // after following any redirects. It _should_ be the page we're trying
       // to reach; use the router to go there.
-
+      //
       // Use `replace` so that hitting the browser back button will skip all
       // this redirect business.
-      router.replace(xhr.responseURL);
+      const url = new URL(xhr.responseURL);
+      if (url.origin === window.location.origin) {
+        router.replace(url.pathname);
+      } else {
+        // If the origin has changed, we cannot do a simple replace with the router.
+        // Instead, we opt to do a full redirect.
+        window.location.replace(xhr.responseURL);
+      }
     };
     xhr.onerror = () => {
       setError(t('Could not load the requested event'));
     };
-  });
+  }, [params, router]);
 
   return error ? (
     <DetailedError heading={t('Not found')} message={error} hideSupportLinks />

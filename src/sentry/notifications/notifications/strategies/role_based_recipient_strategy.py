@@ -1,60 +1,68 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
+from collections.abc import MutableMapping
+from typing import TYPE_CHECKING
+
+from django.db.models import QuerySet
 
 from sentry import roles
-from sentry.models import OrganizationMember
+from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Organization
+    from sentry.models.organization import Organization
 
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
-    role: Optional[OrganizationRole] = None
-    scope: Optional[str] = None
+    role: OrganizationRole | None = None
+    scope: str | None = None
 
     def __init__(self, organization: Organization):
         self.organization = organization
 
-    def get_member(self, user: RpcUser) -> OrganizationMember:
+    def get_member(self, user: RpcUser | Actor) -> OrganizationMember:
         # cache the result
-        if user.class_name() != "User":
+        actor = Actor.from_object(user)
+        if actor.actor_type != ActorType.USER:
             raise OrganizationMember.DoesNotExist()
-        if user.id not in self.member_by_user_id:
-            self.member_by_user_id[user.id] = OrganizationMember.objects.get(
-                user_id=user.id, organization=self.organization
+        user_id = actor.id
+        if user_id not in self.member_by_user_id:
+            self.member_by_user_id[user_id] = OrganizationMember.objects.get(
+                user_id=user_id, organization=self.organization
             )
-        return self.member_by_user_id[user.id]
+        return self.member_by_user_id[user_id]
 
     def set_member_in_cache(self, member: OrganizationMember) -> None:
         """
         A way to set a member in a cache to avoid a query.
         """
-        self.member_by_user_id[member.user_id] = member
+        if member.user_id is not None:
+            self.member_by_user_id[member.user_id] = member
 
     def determine_recipients(
         self,
-    ) -> Iterable[RpcUser]:
+    ) -> list[RpcUser]:
         members = self.determine_member_recipients()
         # store the members in our cache
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return user_service.get_many(filter={"user_ids": [member.user_id for member in members]})
+        return user_service.get_many_by_id(
+            ids=[member.user_id for member in members if member.user_id]
+        )
 
-    def determine_member_recipients(self) -> Iterable[OrganizationMember]:
+    def determine_member_recipients(self) -> QuerySet[OrganizationMember]:
         """
         Depending on the type of request this might be all organization owners,
         a specific person, or something in between.
         """
         # default strategy is OrgMembersRecipientStrategy
-        members: Iterable[
-            OrganizationMember
-        ] = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
+        members = OrganizationMember.objects.get_contactable_members_for_org(self.organization.id)
 
         if not self.scope and not self.role:
             return members
@@ -67,11 +75,7 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         elif self.scope:
             valid_roles = [r.id for r in roles.get_all() if r.has_scope(self.scope)]
 
-        member_ids = self.organization.get_members_with_org_roles(roles=valid_roles).values_list(
-            "id", flat=True
-        )
-        # ignore type because of optional filtering
-        members = members.filter(id__in=member_ids)  # type: ignore[attr-defined]
+        members = members.filter(role__in=valid_roles)
 
         return members
 

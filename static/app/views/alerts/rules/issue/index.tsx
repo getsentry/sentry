@@ -1,9 +1,10 @@
-import {ChangeEvent, ReactNode} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {ChangeEvent, ReactNode} from 'react';
+import {Fragment} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -15,16 +16,19 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
+import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
@@ -33,49 +37,53 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
-import {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {
-  Environment,
-  IssueOwnership,
-  Member,
-  OnboardingTaskKey,
-  Organization,
-  Project,
-  Team,
-} from 'sentry/types';
-import {
+import type {
+  IssueAlertConfiguration,
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
-  IssueAlertRuleConditionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
-import {metric} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
+} from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import PreviewTable from 'sentry/views/alerts/rules/issue/previewTable';
+import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
+import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
+import SetupMessagingIntegrationButton, {
+  MessagingIntegrationAnalyticsView,
+} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+
+import {getProjectOptions} from '../utils';
 
 import RuleNodeList from './ruleNodeList';
-import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -101,9 +109,10 @@ const ACTION_MATCH_OPTIONS_MIGRATED = [
 ];
 
 const defaultRule: UnsavedIssueAlertRule = {
-  actionMatch: 'all',
+  actionMatch: 'any',
   filterMatch: 'all',
   actions: [],
+  // note we update the default conditions in onLoadAllEndpointsSuccess
   conditions: [],
   filters: [],
   name: '',
@@ -113,10 +122,7 @@ const defaultRule: UnsavedIssueAlertRule = {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
-const SENTRY_ISSUE_ALERT_DOCS_URL =
-  'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
-
-type ConditionOrActionProperty = 'conditions' | 'actions' | 'filters';
+type ConfigurationKey = keyof IssueAlertConfiguration;
 
 type RuleTaskResponse = {
   status: 'pending' | 'failed' | 'success';
@@ -142,30 +148,18 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = AsyncView['state'] & {
-  configs: {
-    actions: IssueAlertRuleActionTemplate[];
-    conditions: IssueAlertRuleConditionTemplate[];
-    filters: IssueAlertRuleConditionTemplate[];
-  } | null;
+type State = DeprecatedAsyncView['state'] & {
+  configs: IssueAlertConfiguration | null;
   detailedError: null | {
     [key: string]: string[];
   };
   environments: Environment[] | null;
   incompatibleConditions: number[] | null;
   incompatibleFilters: number[] | null;
-  issueCount: number;
-  loadingPreview: boolean;
-  previewCursor: string | null | undefined;
-  previewEndpoint: null | string;
-  previewError: null | string;
-  previewGroups: string[] | null;
-  previewPage: number;
   project: Project;
   sendingNotification: boolean;
-  uuid: null | string;
+  acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
-  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -173,9 +167,17 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
 
-class IssueRuleEditor extends AsyncView<Props, State> {
+/**
+ * Expecting "This rule is an exact duplicate of '{duplicate_rule.label}' in this project and may not be created."
+ */
+const isExactDuplicateExp = /duplicate of '(.*)'/;
+
+class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
-  trackIncompatibleAnalytics: boolean = false;
+  trackIncompatibleAnalytics = false;
+  trackNoisyWarningViewed = false;
+  isUnmounted = false;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -183,32 +185,31 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
-  componentWillMount() {
-    this.fetchPreview();
+  componentDidMount() {
+    super.componentDidMount();
   }
 
   componentWillUnmount() {
-    GroupStore.reset();
+    super.componentWillUnmount();
+    this.isUnmounted = true;
     window.clearTimeout(this.pollingTimeout);
+    this.checkIncompatibleRuleDebounced.cancel();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.previewCursor !== this.state.previewCursor) {
-      this.fetchPreview();
-    } else if (this.isRuleStateChange(prevState)) {
+    if (this.isRuleStateChange(prevState)) {
       this.setState({
-        loadingPreview: true,
         incompatibleConditions: null,
         incompatibleFilters: null,
       });
-      this.fetchPreviewDebounced();
-      this.checkIncompatibleRule();
+      this.checkIncompatibleRuleDebounced();
     }
     if (prevState.project.id === this.state.project.id) {
       return;
     }
 
     this.fetchEnvironments();
+    this.refetchConfigs();
   }
 
   isRuleStateChange(prevState: State): boolean {
@@ -230,7 +231,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ruleName = rule?.name;
 
     return routeTitleGen(
-      ruleName ? t('Alert %s', ruleName) : '',
+      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
       organization.slug,
       false,
       project?.slug
@@ -245,18 +246,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       detailedError: null,
       rule: {...defaultRule},
       environments: [],
-      uuid: null,
       project,
-      previewGroups: null,
-      previewCursor: null,
-      previewError: null,
-      issueCount: 0,
-      previewPage: 0,
-      loadingPreview: false,
       sendingNotification: false,
       incompatibleConditions: null,
       incompatibleFilters: null,
-      previewEndpoint: null,
     };
 
     const projectTeamIds = new Set(project.teams.map(({id}) => id));
@@ -266,7 +259,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},
@@ -286,7 +279,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${organization.slug}/${project.slug}/rules/configuration/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
@@ -322,12 +314,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     const {rule} = this.state;
+    const {
+      params: {ruleId},
+    } = this.props;
     if (rule) {
       ((rule as IssueAlertRule)?.errors || []).map(({detail}) =>
         addErrorMessage(detail, {append: true})
       );
     }
+
+    if (!ruleId && !this.isDuplicateRule) {
+      // now that we've loaded all the possible conditions, we can populate the
+      // value of conditions for a new alert
+      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+    }
   }
+
   pollHandler = async (quitTime: number) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
@@ -336,12 +338,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
 
     const {organization} = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
     const origRule = this.state.rule;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/rule-task/${this.uuid}/`
       );
 
       const {status, rule, error} = response;
@@ -373,95 +375,23 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }
   };
 
-  fetchPreview = (resetCursor = false) => {
-    const {organization} = this.props;
-    const {project, rule, previewCursor, previewEndpoint} = this.state;
-
-    if (!rule || !organization.features.includes('issue-alert-preview')) {
-      return;
-    }
-
-    this.setState({loadingPreview: true});
-    if (resetCursor) {
-      this.setState({previewCursor: null, previewPage: 0});
-    }
-    // we currently don't have a way to parse objects from query params, so this method is POST for now
-    this.api
-      .requestPromise(`/projects/${organization.slug}/${project.slug}/rules/preview`, {
-        method: 'POST',
-        includeAllArgs: true,
-        query: {
-          cursor: resetCursor ? null : previewCursor,
-          per_page: 5,
-        },
-        data: {
-          conditions: rule?.conditions || [],
-          filters: rule?.filters || [],
-          actionMatch: rule?.actionMatch || 'all',
-          filterMatch: rule?.filterMatch || 'all',
-          frequency: rule?.frequency || 60,
-          endpoint: previewEndpoint,
-        },
-      })
-      .then(([data, _, resp]) => {
-        GroupStore.add(data);
-
-        const pageLinks = resp?.getResponseHeader('Link');
-        const hits = resp?.getResponseHeader('X-Hits');
-        const endpoint = resp?.getResponseHeader('Endpoint');
-        const issueCount =
-          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
-        this.setState({
-          previewGroups: data.map(g => g.id),
-          previewError: null,
-          pageLinks: pageLinks ?? '',
-          issueCount,
-          loadingPreview: false,
-          previewEndpoint: endpoint ?? null,
-        });
-      })
-      .catch(_ => {
-        const errorMessage =
-          rule?.conditions.length || rule?.filters.length
-            ? t('Preview is not supported for these conditions')
-            : t('Select a condition to generate a preview');
-        this.setState({
-          previewError: errorMessage,
-          loadingPreview: false,
-        });
-      });
-  };
-
-  fetchPreviewDebounced = debounce(() => {
-    this.fetchPreview(true);
-  }, 1000);
-
   // As more incompatible combinations are added, we will need a more generic way to check for incompatibility.
-  checkIncompatibleRule = debounce(() => {
-    if (this.props.organization.features.includes('issue-alert-incompatible-rules')) {
-      const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
-      if (
-        !this.trackIncompatibleAnalytics &&
-        (conditionIndices !== null || filterIndices !== null)
-      ) {
-        this.trackIncompatibleAnalytics = true;
-        trackAdvancedAnalyticsEvent('edit_alert_rule.incompatible_rule', {
-          organization: this.props.organization,
-        });
-      }
-      this.setState({
-        incompatibleConditions: conditionIndices,
-        incompatibleFilters: filterIndices,
+  checkIncompatibleRuleDebounced = debounce(() => {
+    const {conditionIndices, filterIndices} = findIncompatibleRules(this.state.rule);
+    if (
+      !this.trackIncompatibleAnalytics &&
+      (conditionIndices !== null || filterIndices !== null)
+    ) {
+      this.trackIncompatibleAnalytics = true;
+      trackAnalytics('edit_alert_rule.incompatible_rule', {
+        organization: this.props.organization,
       });
     }
-  }, 500);
-
-  onPreviewCursor: CursorHandler = (cursor, _1, _2, direction) => {
     this.setState({
-      previewCursor: cursor,
-      previewPage: this.state.previewPage + direction,
+      incompatibleConditions: conditionIndices,
+      incompatibleFilters: filterIndices,
     });
-  };
+  }, 500);
 
   fetchEnvironments() {
     const {organization} = this.props;
@@ -476,6 +406,20 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       .then(response => this.setState({environments: response}))
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
+
+  refetchConfigs = () => {
+    const {organization} = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rules/configuration/`
+      )
+      .then(response => this.setState({configs: response}))
+      .catch(() => {
+        // No need to alert user if this fails, can use existing data
+      });
+  };
 
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
@@ -492,7 +436,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   testNotifications = () => {
     const {organization} = this.props;
     const {project, rule} = this.state;
-    this.setState({sendingNotification: true});
+    this.setState({detailedError: null, sendingNotification: true});
     const actions = rule?.actions ? rule?.actions.length : 0;
     addLoadingMessage(
       tn('Sending a test notification...', 'Sending test notifications...', actions)
@@ -506,14 +450,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       })
       .then(() => {
         addSuccessMessage(tn('Notification sent!', 'Notifications sent!', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: true,
         });
       })
-      .catch(() => {
+      .catch(error => {
         addErrorMessage(tn('Notification failed', 'Notifications failed', actions));
-        trackAdvancedAnalyticsEvent('edit_alert_rule.notification_test', {
+        this.setState({detailedError: error.responseJSON || null});
+        trackAnalytics('edit_alert_rule.notification_test', {
           organization,
           success: false,
         });
@@ -526,8 +471,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    this.setState({detailedError: null, loading: false, rule});
-
     // The onboarding task will be completed on the server side when the alert
     // is created
     updateOnboardingTask(null, organization, {
@@ -535,7 +478,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       status: 'complete',
     });
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
       normalizeUrl({
@@ -547,7 +490,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   handleRuleSaveFailure(msg: ReactNode) {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   }
 
   handleSubmit = async () => {
@@ -562,49 +505,75 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       delete rule.environment;
     }
 
+    // Check conditions exist or they've accepted a noisy alert
+    if (this.displayNoConditionsWarning() && !this.state.acceptedNoisyAlert) {
+      this.setState({detailedError: {acceptedNoisyAlert: [t('Required')]}});
+      return;
+    }
+
     addLoadingMessage();
 
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', 'issue');
-      transaction.setTag('operation', isNew ? 'create' : 'edit');
-      if (rule) {
-        for (const action of rule.actions) {
-          // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
-          const splitActionId = action.id.split('.');
-          const actionName = splitActionId[splitActionId.length - 1];
-          if (actionName === 'SlackNotifyServiceAction') {
-            transaction.setTag(actionName, true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', 'issue');
+        scope.setTag('operation', isNew ? 'create' : 'edit');
+
+        if (rule) {
+          for (const action of rule.actions) {
+            if (action.id === IssueAlertActionType.SLACK) {
+              scope?.setTag('SlackNotifyServiceAction', true);
+            }
+            // to avoid storing inconsistent data in the db, don't pass the name fields
+            delete action.name;
+          }
+          for (const condition of rule.conditions) {
+            // values of 0 must be manually changed to strings, otherwise they will be interpreted as missing by the serializer
+            if ('value' in condition && condition.value === 0) {
+              condition.value = '0';
+            }
+            delete condition.name;
+          }
+          for (const filter of rule.filters) {
+            delete filter.name;
+          }
+          scope.setExtra('actions', rule.actions);
+
+          // Check if rule is currently disabled or going to be disabled
+          if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+            rule.optOutEdit = true;
           }
         }
-        transaction.setData('actions', rule.actions);
-      }
-      const [data, , resp] = await this.api.requestPromise(endpoint, {
-        includeAllArgs: true,
-        method: isNew ? 'POST' : 'PUT',
-        data: rule,
-        query: {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-        },
-      });
 
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        this.setState({detailedError: null, loading: true, uuid: data.uuid});
-        this.fetchStatus();
-        addLoadingMessage(t('Looking through all your channels...'));
-      } else {
-        this.handleRuleSuccess(isNew, data);
+        metric.startSpan({name: 'saveAlertRule'});
+
+        const [data, , resp] = await this.api.requestPromise(endpoint, {
+          includeAllArgs: true,
+          method: isNew ? 'POST' : 'PUT',
+          data: rule,
+          query: {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+          },
+        });
+
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          this.uuid = data.uuid;
+          this.setState({detailedError: null, loading: true});
+          this.fetchStatus();
+          addLoadingMessage(t('Looking through all your channels...'));
+        } else {
+          this.handleRuleSuccess(isNew, data);
+        }
+      } catch (err) {
+        this.setState({
+          detailedError: err.responseJSON || {__all__: 'Unknown error'},
+          loading: false,
+        });
+        this.handleRuleSaveFailure(t('An error occurred'));
       }
-    } catch (err) {
-      this.setState({
-        detailedError: err.responseJSON || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      this.handleRuleSaveFailure(t('An error occurred'));
-    }
+    });
   };
 
   handleDeleteRule = async () => {
@@ -676,7 +645,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handlePropertyChange = <T extends keyof IssueAlertRuleAction>(
-    type: ConditionOrActionProperty,
+    type: ConfigurationKey,
     idx: number,
     prop: T,
     val: IssueAlertRuleAction[T]
@@ -688,7 +657,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  getInitialValue = (type: ConditionOrActionProperty, id: string) => {
+  getInitialValue = (
+    type: ConfigurationKey,
+    id: string
+  ): IssueAlertConfiguration[ConfigurationKey] => {
     const configuration = this.state.configs?.[type]?.find(c => c.id === id);
 
     const hasChangeAlerts =
@@ -712,7 +684,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
-    type: ConditionOrActionProperty,
+    type: ConfigurationKey,
     idx: number,
     prop: T,
     val: IssueAlertRuleAction[T]
@@ -733,10 +705,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleAddRow = (
-    type: ConditionOrActionProperty,
-    item: IssueAlertRuleActionTemplate
-  ) => {
+  handleAddRow = (type: ConfigurationKey, item: IssueAlertRuleActionTemplate) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
@@ -754,7 +723,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const {organization} = this.props;
     const {project} = this.state;
-    trackAdvancedAnalyticsEvent('edit_alert_rule.add_row', {
+    trackAnalytics('edit_alert_rule.add_row', {
       organization,
       project_id: project.id,
       type,
@@ -762,7 +731,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     });
   };
 
-  handleDeleteRow = (type: ConditionOrActionProperty, idx: number) => {
+  handleDeleteRow = (type: ConfigurationKey, idx: number) => {
     this.setState(prevState => {
       const clonedState = cloneDeep(prevState);
 
@@ -770,6 +739,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
+
+      const {organization} = this.props;
+      const {project} = this.state;
+      const deletedItem = prevState.rule ? prevState.rule[type][idx] : null;
+      trackAnalytics('edit_alert_rule.delete_row', {
+        organization,
+        project_id: project.id,
+        type,
+        name: deletedItem?.id ?? '',
+      });
       return clonedState;
     });
   };
@@ -812,30 +791,47 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     }));
   };
 
-  getConditions() {
+  getConditions(): IssueAlertConfiguration['conditions'] | null {
     const {organization} = this.props;
 
     if (!organization.features.includes('change-alerts')) {
       return this.state.configs?.conditions ?? null;
     }
+    let conditions = this.state.configs?.conditions ?? null;
 
-    return (
-      this.state.configs?.conditions?.map(condition =>
-        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? ({
-              ...condition,
-              label: CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id],
-            } as IssueAlertRuleConditionTemplate)
-          : condition
-      ) ?? null
+    if (conditions === null) {
+      return null;
+    }
+
+    if (
+      !organization.features.includes(
+        'event-unique-user-frequency-condition-with-conditions'
+      )
+    ) {
+      conditions = conditions?.filter(
+        condition =>
+          condition.id !==
+          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
+      );
+    }
+
+    conditions = conditions?.map(condition =>
+      CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+        ? {
+            ...condition,
+            label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
+          }
+        : condition
     );
+
+    return conditions;
   }
 
   getTeamId = () => {
     const {rule} = this.state;
     const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
+    return owner?.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value: string}) => {
@@ -861,11 +857,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
+    // Duplicate errors display on the "name" field but we're showing them in a banner
+    // Remove them from the name detailed error
+    const filteredDetailedError =
+      detailedError?.name?.filter(str => !isExactDuplicateExp.test(str)) ?? [];
+
     return (
       <StyledField
         label={null}
         help={null}
-        error={detailedError?.name?.[0]}
+        error={filteredDetailedError[0]}
         disabled={disabled}
         required
         stacked
@@ -897,12 +898,109 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           value={this.getTeamId()}
           project={project}
           onChange={this.handleOwnerChange}
-          teamFilter={(team: Team) => team.isMember || team.id === ownerId}
+          teamFilter={(team: Team) =>
+            team.isMember || team.id === ownerId || team.access.includes('team:admin')
+          }
           useId
           includeUnassigned
           disabled={disabled}
         />
       </StyledField>
+    );
+  }
+
+  renderDuplicateErrorAlert() {
+    const {organization} = this.props;
+    const {detailedError, project} = this.state;
+    const duplicateName = isExactDuplicateExp.exec(detailedError?.name?.[0] ?? '')?.[1];
+    const duplicateRuleId = detailedError?.ruleId?.[0] ?? '';
+
+    // We want this to open in a new tab to not lose the current state of the rule editor
+    return (
+      <AlertLink
+        openInNewTab
+        priority="error"
+        icon={<IconNot color="red300" />}
+        href={normalizeUrl(
+          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
+        )}
+      >
+        {tct(
+          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+          {
+            alertName: duplicateName,
+            projectName: project.name,
+          }
+        )}
+      </AlertLink>
+    );
+  }
+
+  displayNoConditionsWarning(): boolean {
+    const {rule} = this.state;
+    const acceptedNoisyActionIds: string[] = [
+      // Webhooks
+      IssueAlertActionType.NOTIFY_EVENT_SERVICE_ACTION,
+      // Legacy integrations
+      IssueAlertActionType.NOTIFY_EVENT_ACTION,
+    ];
+
+    return (
+      !!rule &&
+      !isSavedAlertRule(rule) &&
+      rule.conditions.length === 0 &&
+      rule.filters.length === 0 &&
+      !rule.actions.every(action => acceptedNoisyActionIds.includes(action.id))
+    );
+  }
+
+  renderAcknowledgeNoConditions(disabled: boolean) {
+    const {detailedError, acceptedNoisyAlert} = this.state;
+
+    // Bit goofy to do in render but should only track onceish
+    if (!this.trackNoisyWarningViewed) {
+      this.trackNoisyWarningViewed = true;
+      trackAnalytics('alert_builder.noisy_warning_viewed', {
+        organization: this.props.organization,
+      });
+    }
+
+    return (
+      <Alert type="warning" showIcon>
+        <div>
+          {t(
+            'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
+          )}
+        </div>
+        <AcknowledgeField
+          label={null}
+          help={null}
+          error={detailedError?.acceptedNoisyAlert?.[0]}
+          disabled={disabled}
+          required
+          stacked
+          flexibleControlStateSize
+          inline
+        >
+          <AcknowledgeLabel>
+            <Checkbox
+              size="sm"
+              name="acceptedNoisyAlert"
+              checked={acceptedNoisyAlert}
+              onChange={() => {
+                this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                if (!acceptedNoisyAlert) {
+                  trackAnalytics('alert_builder.noisy_warning_agreed', {
+                    organization: this.props.organization,
+                  });
+                }
+              }}
+              disabled={disabled}
+            />
+            {t('Yes, I don’t mind if this alert gets noisy')}
+          </AcknowledgeLabel>
+        </AcknowledgeField>
+      </Alert>
     );
   }
 
@@ -960,86 +1058,15 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderPreviewText() {
-    const {issueCount, previewError} = this.state;
-    if (previewError) {
-      return t(
-        "Select a condition above to see which issues would've triggered this alert"
-      );
-    }
-    return tct(
-      "[issueCount] issues would have triggered this rule in the past 14 days [approximately:approximately]. If you're looking to reduce noise then make sure to [link:read the docs].",
-      {
-        issueCount,
-        approximately: (
-          <Tooltip
-            title={t('Previews that include issue frequency conditions are approximated')}
-            showUnderline
-          />
-        ),
-        link: <ExternalLink href={SENTRY_ISSUE_ALERT_DOCS_URL} />,
-      }
-    );
-  }
-
-  renderPreviewTable() {
-    const {members} = this.props;
-    const {
-      previewGroups,
-      previewError,
-      pageLinks,
-      issueCount,
-      previewPage,
-      loadingPreview,
-    } = this.state;
-    return (
-      <PreviewTable
-        previewGroups={previewGroups}
-        members={members}
-        pageLinks={pageLinks}
-        onCursor={this.onPreviewCursor}
-        issueCount={issueCount}
-        page={previewPage}
-        loading={loadingPreview}
-        error={previewError}
-      />
-    );
-  }
-
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
     const {rule} = this.state;
-    const hasOpenMembership = organization.features.includes('open-membership');
-    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
-    const allProjects = projects.filter(
-      project => project.hasAccess && !project.isMember
-    );
 
-    const myProjectOptions = myProjects.map(myProject => ({
-      value: myProject.id,
-      label: myProject.slug,
-      leadingItems: this.renderIdBadge(myProject),
-    }));
-
-    const openMembershipProjects = [
-      {
-        label: t('My Projects'),
-        options: myProjectOptions,
-      },
-      {
-        label: t('All Projects'),
-        options: allProjects.map(allProject => ({
-          value: allProject.id,
-          label: allProject.slug,
-          leadingItems: this.renderIdBadge(allProject),
-        })),
-      },
-    ];
-
-    const projectOptions =
-      hasOpenMembership || isActiveSuperuser()
-        ? openMembershipProjects
-        : myProjectOptions;
+    const projectOptions = getProjectOptions({
+      organization,
+      projects,
+      isFormDisabled: disabled,
+    });
 
     return (
       <FormField
@@ -1138,13 +1165,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, members} = this.props;
     const {
       project,
       rule,
       detailedError,
       loading,
-      ownership,
       sendingNotification,
       incompatibleConditions,
       incompatibleFilters,
@@ -1154,321 +1180,333 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
+    const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
+    const disabled = loading || !(canCreateAlert || isActiveSuperuser());
+    const displayDuplicateError =
+      detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
+
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
-      <Access access={['alerts:write']}>
-        {({hasAccess}) => {
-          // check if superuser or if user is on the alert's team
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
-
-          return (
-            <Main fullWidth>
-              <StyledForm
-                key={isSavedAlertRule(rule) ? rule.id : undefined}
-                onCancel={this.handleCancel}
-                onSubmit={this.handleSubmit}
-                initialData={{
-                  ...rule,
-                  environment,
-                  frequency: `${frequency}`,
-                  projectId: project.id,
-                }}
-                submitDisabled={
-                  disabled ||
-                  incompatibleConditions !== null ||
-                  incompatibleFilters !== null
-                }
-                submitLabel={t('Save Rule')}
-                extraButton={
-                  isSavedAlertRule(rule) ? (
-                    <Confirm
-                      disabled={disabled}
-                      priority="danger"
-                      confirmText={t('Delete Rule')}
-                      onConfirm={this.handleDeleteRule}
-                      header={t('Delete Rule')}
-                      message={t('Are you sure you want to delete this rule?')}
-                    >
-                      <Button priority="danger">{t('Delete Rule')}</Button>
-                    </Confirm>
-                  ) : null
-                }
+      <Main fullWidth>
+        <PermissionAlert access={['alerts:write']} project={project} />
+        <StyledForm
+          key={isSavedAlertRule(rule) ? rule.id : undefined}
+          onCancel={this.handleCancel}
+          onSubmit={this.handleSubmit}
+          initialData={{
+            ...rule,
+            environment,
+            frequency: `${frequency}`,
+            projectId: project.id,
+          }}
+          submitDisabled={
+            disabled || incompatibleConditions !== null || incompatibleFilters !== null
+          }
+          submitLabel={t('Save Rule')}
+          extraButton={
+            isSavedAlertRule(rule) ? (
+              <Confirm
+                disabled={disabled}
+                priority="danger"
+                confirmText={t('Delete Rule')}
+                onConfirm={this.handleDeleteRule}
+                header={<h5>{t('Delete Alert Rule?')}</h5>}
+                message={t(
+                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                  rule.name
+                )}
               >
-                <List symbol="colored-numeric">
-                  {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
-                  <StyledListItem>
-                    <StepHeader>{t('Select an environment and project')}</StepHeader>
-                  </StyledListItem>
-                  <ContentIndent>
-                    <SettingsContainer>
-                      {this.renderEnvironmentSelect(disabled)}
-                      {this.renderProjectSelect(disabled)}
-                    </SettingsContainer>
-                  </ContentIndent>
-                  <SetConditionsListItem>
-                    <StepHeader>{t('Set conditions')}</StepHeader>
-                    <SetupAlertIntegrationButton
-                      projectSlug={project.slug}
-                      organization={organization}
-                    />
-                  </SetConditionsListItem>
-                  <ContentIndent>
-                    <ConditionsPanel>
-                      <PanelBody>
-                        <Step>
-                          <StepConnector />
-                          <StepContainer>
-                            <ChevronContainer>
-                              <IconChevron
-                                color="gray200"
-                                isCircled
-                                direction="right"
-                                size="sm"
-                              />
-                            </ChevronContainer>
-                            <StepContent>
-                              <StepLead>
-                                {tct(
-                                  '[when:When] an event is captured by Sentry and [selector] of the following happens',
-                                  {
-                                    when: <Badge />,
-                                    selector: (
-                                      <EmbeddedWrapper>
-                                        <EmbeddedSelectField
-                                          className={classNames({
-                                            error: this.hasError('actionMatch'),
-                                          })}
-                                          styles={{
-                                            control: provided => ({
-                                              ...provided,
-                                              minHeight: '21px',
-                                              height: '21px',
-                                            }),
-                                          }}
-                                          inline={false}
-                                          isSearchable={false}
-                                          isClearable={false}
-                                          name="actionMatch"
-                                          required
-                                          flexibleControlStateSize
-                                          options={ACTION_MATCH_OPTIONS_MIGRATED}
-                                          onChange={val =>
-                                            this.handleChange('actionMatch', val)
-                                          }
-                                          size="xs"
-                                          disabled={disabled}
-                                        />
-                                      </EmbeddedWrapper>
-                                    ),
-                                  }
-                                )}
-                              </StepLead>
-                              <RuleNodeList
-                                nodes={this.getConditions()}
-                                items={conditions ?? []}
-                                selectType="grouped"
-                                placeholder={t('Add optional trigger...')}
-                                onPropertyChange={this.handleChangeConditionProperty}
-                                onAddRow={this.handleAddCondition}
-                                onResetRow={this.handleResetCondition}
-                                onDeleteRow={this.handleDeleteCondition}
-                                organization={organization}
-                                project={project}
-                                disabled={disabled}
-                                error={
-                                  this.hasError('conditions') && (
-                                    <StyledAlert type="error">
-                                      {detailedError?.conditions[0]}
-                                    </StyledAlert>
-                                  )
-                                }
-                                incompatibleRules={incompatibleConditions}
-                                incompatibleBanner={
-                                  incompatibleFilters === null &&
-                                  incompatibleConditions !== null
-                                    ? incompatibleConditions.at(-1)
-                                    : null
-                                }
-                              />
-                            </StepContent>
-                          </StepContainer>
-                        </Step>
-
-                        <Step>
-                          <StepConnector />
-
-                          <StepContainer>
-                            <ChevronContainer>
-                              <IconChevron
-                                color="gray200"
-                                isCircled
-                                direction="right"
-                                size="sm"
-                              />
-                            </ChevronContainer>
-
-                            <StepContent>
-                              <StepLead>
-                                {tct('[if:If][selector] of these filters match', {
-                                  if: <Badge />,
-                                  selector: (
-                                    <EmbeddedWrapper>
-                                      <EmbeddedSelectField
-                                        className={classNames({
-                                          error: this.hasError('filterMatch'),
-                                        })}
-                                        styles={{
-                                          control: provided => ({
-                                            ...provided,
-                                            minHeight: '21px',
-                                            height: '21px',
-                                          }),
-                                        }}
-                                        inline={false}
-                                        isSearchable={false}
-                                        isClearable={false}
-                                        name="filterMatch"
-                                        required
-                                        flexibleControlStateSize
-                                        options={ACTION_MATCH_OPTIONS}
-                                        onChange={val =>
-                                          this.handleChange('filterMatch', val)
-                                        }
-                                        size="xs"
-                                        disabled={disabled}
-                                      />
-                                    </EmbeddedWrapper>
-                                  ),
-                                })}
-                              </StepLead>
-                              <RuleNodeList
-                                nodes={this.state.configs?.filters ?? null}
-                                items={filters ?? []}
-                                placeholder={t('Add optional filter...')}
-                                onPropertyChange={this.handleChangeFilterProperty}
-                                onAddRow={this.handleAddFilter}
-                                onResetRow={this.handleResetFilter}
-                                onDeleteRow={this.handleDeleteFilter}
-                                organization={organization}
-                                project={project}
-                                disabled={disabled}
-                                error={
-                                  this.hasError('filters') && (
-                                    <StyledAlert type="error">
-                                      {detailedError?.filters[0]}
-                                    </StyledAlert>
-                                  )
-                                }
-                                incompatibleRules={incompatibleFilters}
-                                incompatibleBanner={
-                                  incompatibleFilters ? incompatibleFilters.at(-1) : null
-                                }
-                              />
-                            </StepContent>
-                          </StepContainer>
-                        </Step>
-
-                        <Step>
-                          <StepContainer>
-                            <ChevronContainer>
-                              <IconChevron
-                                isCircled
-                                color="gray200"
-                                direction="right"
-                                size="sm"
-                              />
-                            </ChevronContainer>
-                            <StepContent>
-                              <StepLead>
-                                {tct('[then:Then] perform these actions', {
-                                  then: <Badge />,
-                                })}
-                              </StepLead>
-
-                              <RuleNodeList
-                                nodes={this.state.configs?.actions ?? null}
-                                selectType="grouped"
-                                items={actions ?? []}
-                                placeholder={t('Add action...')}
-                                onPropertyChange={this.handleChangeActionProperty}
-                                onAddRow={this.handleAddAction}
-                                onResetRow={this.handleResetAction}
-                                onDeleteRow={this.handleDeleteAction}
-                                organization={organization}
-                                project={project}
-                                disabled={disabled}
-                                ownership={ownership}
-                                error={
-                                  this.hasError('actions') && (
-                                    <StyledAlert type="error">
-                                      {detailedError?.actions[0]}
-                                    </StyledAlert>
-                                  )
-                                }
-                              />
-                              <Feature
-                                organization={organization}
-                                features={['issue-alert-test-notifications']}
-                              >
-                                <TestButtonWrapper>
-                                  <Button
-                                    onClick={this.testNotifications}
-                                    disabled={
-                                      sendingNotification ||
-                                      rule?.actions === undefined ||
-                                      rule?.actions.length === 0
+                <Button priority="danger">{t('Delete Rule')}</Button>
+              </Confirm>
+            ) : null
+          }
+        >
+          <List symbol="colored-numeric">
+            {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
+            <StyledListItem>
+              <StepHeader>{t('Select an environment and project')}</StepHeader>
+            </StyledListItem>
+            <ContentIndent>
+              <SettingsContainer>
+                {this.renderEnvironmentSelect(disabled)}
+                {this.renderProjectSelect(disabled)}
+              </SettingsContainer>
+            </ContentIndent>
+            <SetConditionsListItem>
+              <StepHeader>{t('Set conditions')}</StepHeader>{' '}
+              <SetupMessagingIntegrationButton
+                projectId={project.id}
+                refetchConfigs={this.refetchConfigs}
+                analyticsParams={{
+                  view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
+                }}
+              />
+            </SetConditionsListItem>
+            <ContentIndent>
+              <ConditionsPanel>
+                <PanelBody>
+                  <Step>
+                    <StepConnector />
+                    <StepContainer>
+                      <ChevronContainer>
+                        <IconChevron
+                          color="gray200"
+                          isCircled
+                          direction="right"
+                          size="sm"
+                        />
+                      </ChevronContainer>
+                      <StepContent>
+                        <StepLead>
+                          {tct(
+                            '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                            {
+                              when: <Badge />,
+                              selector: (
+                                <EmbeddedWrapper>
+                                  <EmbeddedSelectField
+                                    className={classNames({
+                                      error: this.hasError('actionMatch'),
+                                    })}
+                                    styles={{
+                                      control: provided => ({
+                                        ...provided,
+                                        minHeight: '21px',
+                                        height: '21px',
+                                      }),
+                                    }}
+                                    inline={false}
+                                    isSearchable={false}
+                                    isClearable={false}
+                                    name="actionMatch"
+                                    required
+                                    flexibleControlStateSize
+                                    options={ACTION_MATCH_OPTIONS_MIGRATED}
+                                    onChange={val =>
+                                      this.handleChange('actionMatch', val)
                                     }
-                                  >
-                                    {t('Send Test Notification')}
-                                  </Button>
-                                </TestButtonWrapper>
-                              </Feature>
-                            </StepContent>
-                          </StepContainer>
-                        </Step>
-                      </PanelBody>
-                    </ConditionsPanel>
-                  </ContentIndent>
-                  <StyledListItem>
-                    <StepHeader>{t('Set action interval')}</StepHeader>
-                    <StyledFieldHelp>
-                      {t('Perform the actions above once this often for an issue')}
-                    </StyledFieldHelp>
-                  </StyledListItem>
-                  <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
-                  <Feature organization={organization} features={['issue-alert-preview']}>
-                    <StyledListItem>
-                      <StyledListItemSpaced>
-                        <div>
-                          <StepHeader>{t('Preview')}</StepHeader>
-                          <StyledFieldHelp>{this.renderPreviewText()}</StyledFieldHelp>
-                        </div>
-                      </StyledListItemSpaced>
-                    </StyledListItem>
-                    <ContentIndent>{this.renderPreviewTable()}</ContentIndent>
-                  </Feature>
-                  <StyledListItem>
-                    <StepHeader>{t('Add a name and owner')}</StepHeader>
-                    <StyledFieldHelp>
-                      {t(
-                        'This name will show up in notifications and the owner will give permissions to your whole team to edit and view this alert.'
-                      )}
-                    </StyledFieldHelp>
-                  </StyledListItem>
-                  <ContentIndent>
-                    <StyledFieldWrapper>
-                      {this.renderRuleName(disabled)}
-                      {this.renderTeamSelect(disabled)}
-                    </StyledFieldWrapper>
-                  </ContentIndent>
-                </List>
-              </StyledForm>
-            </Main>
-          );
-        }}
-      </Access>
+                                    size="xs"
+                                    disabled={disabled}
+                                  />
+                                </EmbeddedWrapper>
+                              ),
+                            }
+                          )}
+                        </StepLead>
+                        <RuleNodeList
+                          nodes={this.getConditions()}
+                          items={conditions ?? []}
+                          selectType="grouped"
+                          placeholder={t('Add optional trigger...')}
+                          onPropertyChange={this.handleChangeConditionProperty}
+                          onAddRow={this.handleAddCondition}
+                          onResetRow={this.handleResetCondition}
+                          onDeleteRow={this.handleDeleteCondition}
+                          organization={organization}
+                          project={project}
+                          disabled={disabled}
+                          error={
+                            this.hasError('conditions') && (
+                              <StyledAlert type="error">
+                                {detailedError?.conditions[0]}
+                                {(detailedError?.conditions[0] || '').startsWith(
+                                  'You may not exceed'
+                                ) && (
+                                  <Fragment>
+                                    {' '}
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/#alert-limits">
+                                      {t('View Docs')}
+                                    </ExternalLink>
+                                  </Fragment>
+                                )}
+                              </StyledAlert>
+                            )
+                          }
+                          incompatibleRules={incompatibleConditions}
+                          incompatibleBanner={
+                            incompatibleFilters === null &&
+                            incompatibleConditions !== null
+                              ? incompatibleConditions.at(-1)
+                              : null
+                          }
+                        />
+                      </StepContent>
+                    </StepContainer>
+                  </Step>
+
+                  <Step>
+                    <StepConnector />
+
+                    <StepContainer>
+                      <ChevronContainer>
+                        <IconChevron
+                          color="gray200"
+                          isCircled
+                          direction="right"
+                          size="sm"
+                        />
+                      </ChevronContainer>
+
+                      <StepContent data-test-id="rule-filters">
+                        <StepLead>
+                          {tct('[if:If][selector] of these filters match', {
+                            if: <Badge />,
+                            selector: (
+                              <EmbeddedWrapper>
+                                <EmbeddedSelectField
+                                  className={classNames({
+                                    error: this.hasError('filterMatch'),
+                                  })}
+                                  styles={{
+                                    control: provided => ({
+                                      ...provided,
+                                      minHeight: '21px',
+                                      height: '21px',
+                                    }),
+                                  }}
+                                  inline={false}
+                                  isSearchable={false}
+                                  isClearable={false}
+                                  name="filterMatch"
+                                  required
+                                  flexibleControlStateSize
+                                  options={ACTION_MATCH_OPTIONS}
+                                  onChange={val => this.handleChange('filterMatch', val)}
+                                  size="xs"
+                                  disabled={disabled}
+                                />
+                              </EmbeddedWrapper>
+                            ),
+                          })}
+                        </StepLead>
+                        <RuleNodeList
+                          nodes={this.state.configs?.filters ?? null}
+                          items={filters ?? []}
+                          placeholder={t('Add optional filter...')}
+                          onPropertyChange={this.handleChangeFilterProperty}
+                          onAddRow={this.handleAddFilter}
+                          onResetRow={this.handleResetFilter}
+                          onDeleteRow={this.handleDeleteFilter}
+                          organization={organization}
+                          project={project}
+                          disabled={disabled}
+                          error={
+                            this.hasError('filters') && (
+                              <StyledAlert type="error">
+                                {detailedError?.filters[0]}
+                              </StyledAlert>
+                            )
+                          }
+                          incompatibleRules={incompatibleFilters}
+                          incompatibleBanner={
+                            incompatibleFilters ? incompatibleFilters.at(-1) : null
+                          }
+                        />
+                        <FeedbackAlertBanner
+                          filters={this.state.rule?.filters}
+                          projectSlug={this.state.project.slug}
+                        />
+                      </StepContent>
+                    </StepContainer>
+                  </Step>
+
+                  <Step>
+                    <StepContainer>
+                      <ChevronContainer>
+                        <IconChevron
+                          isCircled
+                          color="gray200"
+                          direction="right"
+                          size="sm"
+                        />
+                      </ChevronContainer>
+                      <StepContent>
+                        <StepLead>
+                          {tct('[then:Then] perform these actions', {
+                            then: <Badge />,
+                          })}
+                        </StepLead>
+
+                        <RuleNodeList
+                          nodes={this.state.configs?.actions ?? null}
+                          selectType="grouped"
+                          items={actions ?? []}
+                          placeholder={t('Add action...')}
+                          onPropertyChange={this.handleChangeActionProperty}
+                          onAddRow={this.handleAddAction}
+                          onResetRow={this.handleResetAction}
+                          onDeleteRow={this.handleDeleteAction}
+                          organization={organization}
+                          project={project}
+                          disabled={disabled}
+                          error={
+                            this.hasError('actions') && (
+                              <StyledAlert type="error">
+                                {detailedError?.actions[0]}
+                              </StyledAlert>
+                            )
+                          }
+                          additionalAction={{
+                            label: 'Notify integration\u{2026}',
+                            option: {
+                              label: 'Missing an integration? Click here to refresh',
+                              value: {
+                                enabled: true,
+                                id: 'refresh_configs',
+                                label: 'Refresh Integration List',
+                              },
+                            },
+                            onClick: () => {
+                              this.refetchConfigs();
+                            },
+                          }}
+                        />
+                        <TestButtonWrapper>
+                          <Button
+                            onClick={this.testNotifications}
+                            disabled={sendingNotification || rule?.actions?.length === 0}
+                          >
+                            {t('Send Test Notification')}
+                          </Button>
+                        </TestButtonWrapper>
+                      </StepContent>
+                    </StepContainer>
+                  </Step>
+                </PanelBody>
+              </ConditionsPanel>
+            </ContentIndent>
+            <StyledListItem>
+              <StepHeader>{t('Set action interval')}</StepHeader>
+              <StyledFieldHelp>
+                {t('Perform the actions above once this often for an issue')}
+              </StyledFieldHelp>
+            </StyledListItem>
+            <ContentIndent>{this.renderActionInterval(disabled)}</ContentIndent>
+            <ErrorBoundary mini>
+              <PreviewIssues members={members} rule={rule} project={project} />
+            </ErrorBoundary>
+            <StyledListItem>
+              <StepHeader>{t('Add a name and owner')}</StepHeader>
+              <StyledFieldHelp>
+                {t(
+                  'This name will show up in notifications and the owner will give permissions to your whole team to edit and view this alert.'
+                )}
+              </StyledFieldHelp>
+            </StyledListItem>
+            <ContentIndent>
+              <StyledFieldWrapper>
+                {this.renderRuleName(disabled)}
+                {this.renderTeamSelect(disabled)}
+              </StyledFieldWrapper>
+              {displayDuplicateError && this.renderDuplicateErrorAlert()}
+              {this.displayNoConditionsWarning() &&
+                this.renderAcknowledgeNoConditions(disabled)}
+            </ContentIndent>
+          </List>
+        </StyledForm>
+      </Main>
     );
   }
 }
@@ -1493,17 +1531,20 @@ export const findIncompatibleRules = (
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
       const id = conditions[i].id;
-      if (id.endsWith('FirstSeenEventCondition')) {
+      if (id === IssueAlertConditionType.FIRST_SEEN_EVENT) {
         firstSeen = i;
-      } else if (id.endsWith('RegressionEventCondition')) {
+      } else if (id === IssueAlertConditionType.REGRESSION_EVENT) {
         regression = i;
-      } else if (id.endsWith('ReappearedEventCondition')) {
+      } else if (id === IssueAlertConditionType.REAPPEARED_EVENT) {
         reappeared = i;
-      } else if (id.endsWith('EventFrequencyCondition') && conditions[i].value >= 1) {
+      } else if (
+        id === IssueAlertConditionType.EVENT_FREQUENCY &&
+        (conditions[i].value as number) >= 1
+      ) {
         eventFrequency = i;
       } else if (
-        id.endsWith('EventUniqueUserFrequencyCondition') &&
-        conditions[i].value >= 1
+        id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY &&
+        (conditions[i].value as number) >= 1
       ) {
         userFrequency = i;
       }
@@ -1530,17 +1571,17 @@ export const findIncompatibleRules = (
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i];
       const id = filter.id;
-      if (id.endsWith('IssueOccurrencesFilter')) {
+      if (id === IssueAlertFilterType.ISSUE_OCCURRENCES && filter) {
         if (
-          (rule.filterMatch === 'all' && filter.value > 1) ||
-          (rule.filterMatch === 'none' && filter.value <= 1)
+          (rule.filterMatch === 'all' && (filter.value as number) > 1) ||
+          (rule.filterMatch === 'none' && (filter.value as number) <= 1)
         ) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
-        if (rule.filterMatch === 'any' && filter.value > 1) {
+        if (rule.filterMatch === 'any' && (filter.value as number) > 1) {
           incompatibleFilters += 1;
         }
-      } else if (id.endsWith('AgeComparisonFilter')) {
+      } else if (id === IssueAlertFilterType.AGE_COMPARISON) {
         if (rule.filterMatch !== 'none') {
           if (filter.comparison_type === 'older') {
             if (rule.filterMatch === 'all') {
@@ -1548,7 +1589,7 @@ export const findIncompatibleRules = (
             }
             incompatibleFilters += 1;
           }
-        } else if (filter.comparison_type === 'newer' && filter.value > 0) {
+        } else if (filter.comparison_type === 'newer' && (filter.value as number) > 0) {
           return {conditionIndices: [firstSeen], filterIndices: [i]};
         }
       }
@@ -1562,6 +1603,10 @@ export const findIncompatibleRules = (
   }
   return {conditionIndices: null, filterIndices: null};
 };
+
+const Main = styled(Layout.Main)`
+  max-width: 1000px;
+`;
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<FormProps>`
@@ -1580,11 +1625,6 @@ const StyledAlert = styled(Alert)`
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const StyledListItemSpaced = styled('div')`
-  display: flex;
-  justify-content: space-between;
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
@@ -1655,7 +1695,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.5;
 `;
 
@@ -1665,7 +1705,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 
@@ -1697,7 +1737,6 @@ const StyledFieldWrapper = styled('div')`
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
   }
-  margin-bottom: 60px;
 `;
 
 const ContentIndent = styled('div')`
@@ -1706,6 +1745,25 @@ const ContentIndent = styled('div')`
   }
 `;
 
-const Main = styled(Layout.Main)`
-  padding: ${space(2)} ${space(4)};
+const AcknowledgeLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  line-height: 2;
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const AcknowledgeField = styled(FieldGroup)`
+  padding: 0;
+  display: flex;
+  align-items: center;
+  margin-top: ${space(1)};
+
+  & > div {
+    padding-left: 0;
+    display: flex;
+    align-items: baseline;
+    flex: unset;
+    gap: ${space(1)};
+  }
 `;

@@ -1,29 +1,37 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {TOP_N} from 'sentry/utils/discover/types';
+import {DatasetSource, TOP_N} from 'sentry/utils/discover/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -31,9 +39,6 @@ const defaultOrgFeatures = [
   'global-views',
   'dashboards-mep',
 ];
-
-// Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
@@ -54,15 +59,16 @@ function renderTestComponent({
   orgFeatures,
   onSave,
   params,
+  updateDashboardSplitDecision,
 }: {
   dashboard?: WidgetBuilderProps['dashboard'];
   onSave?: WidgetBuilderProps['onSave'];
   orgFeatures?: string[];
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
+  updateDashboardSplitDecision?: WidgetBuilderProps['updateDashboardSplitDecision'];
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
-    ...initializeOrg(),
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -74,6 +80,15 @@ function renderTestComponent({
         },
       },
     },
+  });
+
+  ProjectsStore.loadInitialData(projects);
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
   });
 
   render(
@@ -99,9 +114,11 @@ function renderTestComponent({
         dashboardId: dashboard?.id ?? 'new',
         ...params,
       }}
+      updateDashboardSplitDecision={updateDashboardSplitDecision}
+      widgetLegendState={widgetLegendState}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -204,11 +221,6 @@ describe('WidgetBuilder', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-geo/',
-      body: {data: [], meta: {}},
-    });
-
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
     });
@@ -216,23 +228,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
-      }),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({
-        field: 'sum(sentry.sessions.session)',
-      }),
+      body: MetricsFieldFixture('session.all'),
     });
 
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: TestStubs.Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -257,6 +265,10 @@ describe('WidgetBuilder', function () {
       url: '/organizations/org-slug/releases/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
+      body: [],
+    });
 
     TagStore.reset();
   });
@@ -264,7 +276,6 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
   });
 
   it('no feature access', function () {
@@ -273,7 +284,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('widget not found', function () {
+  it('widget not found', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -310,11 +321,11 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
-  it('renders a widget not found message if the widget index url is not an integer', function () {
+  it('renders a widget not found message if the widget index url is not an integer', async function () {
     const widget: Widget = {
       displayType: DisplayType.AREA,
       interval: '1d',
@@ -343,7 +354,7 @@ describe('WidgetBuilder', function () {
     });
 
     expect(
-      screen.getByText('The widget you want to edit was not found.')
+      await screen.findByText('The widget you want to edit was not found.')
     ).toBeInTheDocument();
   });
 
@@ -362,7 +373,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget')).toBeInTheDocument();
 
     // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
@@ -410,8 +421,8 @@ describe('WidgetBuilder', function () {
     });
 
     // Switch to line chart for time series
-    userEvent.click(screen.getByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
     // Header - Breadcrumbs
     expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
@@ -427,7 +438,7 @@ describe('WidgetBuilder', function () {
     expect(screen.getByText('Widget Builder')).toBeInTheDocument();
 
     // Header - Widget Title
-    expect(screen.getByRole('heading', {name: 'Custom Widget'})).toBeInTheDocument();
+    expect(screen.getByText('Custom Widget')).toBeInTheDocument();
 
     // Footer - Actions
     expect(screen.getByLabelText('Cancel')).toBeInTheDocument();
@@ -463,18 +474,18 @@ describe('WidgetBuilder', function () {
       query: {source: DashboardWidgetSource.DISCOVERV2},
     });
 
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
-    userEvent.keyboard('{enter}');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('Unique Users');
+    await userEvent.keyboard('{enter}');
 
     expect(screen.queryByText('Custom Widget')).not.toBeInTheDocument();
 
-    expect(screen.getAllByText('Unique Users')).toHaveLength(2);
+    expect(screen.getByText('Unique Users')).toBeInTheDocument();
   });
 
   it('can add query conditions', async function () {
@@ -483,17 +494,13 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    const search = await screen.findByTestId(/smart-search-input/);
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.paste('color:blue');
+    await userEvent.keyboard('{enter}');
 
-    userEvent.click(search);
-
-    // Use fireEvent for performance reasons as this test suite is slow
-    fireEvent.paste(search, {
-      target: {value: 'color:blue'},
-      clipboardData: {getData: () => 'color:blue'},
-    });
-    userEvent.keyboard('{enter}');
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(
@@ -513,6 +520,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -525,7 +533,7 @@ describe('WidgetBuilder', function () {
       dashboard: testDashboard,
     });
 
-    expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
+    expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
     // No delete button as there is only one query.
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
@@ -536,7 +544,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(countFields[1], ['last_seen()']);
 
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenCalledWith(
@@ -556,6 +564,7 @@ describe('WidgetBuilder', function () {
             utc: null,
             project: [],
             environment: [],
+            widgetType: 'discover',
           },
         })
       );
@@ -567,16 +576,16 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({onSave: handleSave});
 
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
-    // Click the add overlay button
-    userEvent.click(screen.getByLabelText('Add Overlay'));
+    // Click the Add Series button
+    await userEvent.click(screen.getByLabelText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
-    userEvent.click(screen.getByLabelText('Add Widget'));
+    await userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -603,23 +612,57 @@ describe('WidgetBuilder', function () {
     expect(handleSave).toHaveBeenCalledTimes(1);
   });
 
+  it('can add additional fields and equation for Big Number with selection', async function () {
+    renderTestComponent({
+      query: {
+        displayType: DisplayType.BIG_NUMBER,
+      },
+      orgFeatures: [...defaultOrgFeatures, 'dashboards-bignumber-equations'],
+    });
+
+    // Add new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
+    expect(screen.getByRole('radio', {name: 'field1'})).toBeChecked();
+
+    // Add another new field
+    await userEvent.click(screen.getByLabelText('Add Field'));
+    expect(screen.getByText('(Required)')).toBeInTheDocument();
+    await selectEvent.select(screen.getByText('(Required)'), ['eps()']);
+    expect(screen.getByRole('radio', {name: 'field2'})).toBeChecked();
+
+    // Add an equation
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
+    expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'field3'})).toBeChecked();
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('eps() + 100');
+
+    // Check if right value is displayed from equation
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('2 * 100');
+    expect(screen.getByText('200')).toBeInTheDocument();
+  });
+
   it('can add equation fields', async function () {
     const handleSave = jest.fn();
 
     renderTestComponent({onSave: handleSave});
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
     // Select line chart display
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Line Chart'));
 
     // Click the add an equation button
-    userEvent.click(screen.getByLabelText('Add an Equation'));
+    await userEvent.click(screen.getByLabelText('Add an Equation'));
 
     expect(screen.getByPlaceholderText('Equation')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() + 100');
+    await userEvent.click(screen.getByPlaceholderText('Equation'));
+    await userEvent.paste('count() + 100');
 
-    userEvent.click(screen.getByLabelText('Add Widget'));
+    await userEvent.click(screen.getByLabelText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -647,22 +690,28 @@ describe('WidgetBuilder', function () {
   });
 
   it('can respond to validation feedback', async function () {
-    jest.spyOn(indicators, 'addErrorMessage');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        title: ['This field may not be blank.'],
+      },
+    });
 
     renderTestComponent();
 
-    userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(await screen.findByText('Table'));
 
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
 
-    userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByText('Add Widget'));
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith('Widget title is required');
+    await screen.findByText('This field may not be blank.');
   });
 
   it('sets up widget data in edit correctly', async function () {
@@ -705,10 +754,10 @@ describe('WidgetBuilder', function () {
 
     // Filters
     expect(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
+      await screen.findAllByRole('grid', {name: 'Create a search query'})
     ).toHaveLength(2);
-    expect(screen.getByText('event.type:csp')).toBeInTheDocument();
-    expect(screen.getByText('event.type:error')).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:csp'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'event.type:error'})).toBeInTheDocument();
 
     // Y-axis
     expect(screen.getAllByRole('button', {name: 'Remove query'})).toHaveLength(2);
@@ -778,15 +827,15 @@ describe('WidgetBuilder', function () {
     // Should be in edit 'mode'
     expect(screen.getByText('Update Widget')).toBeInTheDocument();
 
-    const customWidgetLabels = screen.getAllByText(widget.title);
+    const customWidgetLabels = screen.getByText(widget.title);
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
-    userEvent.click(customWidgetLabels[0]);
+    expect(customWidgetLabels).toBeInTheDocument();
 
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'New Title');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('New Title');
 
-    userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -826,9 +875,9 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
 
     // Should set widget data up.
-    expect(screen.getByRole('heading', {name: widget.title})).toBeInTheDocument();
+    expect(screen.getByText(widget.title)).toBeInTheDocument();
     expect(screen.getByText('Table')).toBeInTheDocument();
-    expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+    await screen.findByRole('grid', {name: 'Create a search query'});
 
     // Should have an orderby select
     expect(screen.getByText('Sort by a column')).toBeInTheDocument();
@@ -864,11 +913,11 @@ describe('WidgetBuilder', function () {
     // Should be in edit 'mode'
     expect(await screen.findByText('Update Widget')).toBeInTheDocument();
     // Add a column, and choose a value,
-    userEvent.click(screen.getByLabelText('Add a Column'));
+    await userEvent.click(screen.getByLabelText('Add a Column'));
     await selectEvent.select(screen.getByText('(Required)'), 'trace');
 
     // Save widget
-    userEvent.click(screen.getByLabelText('Update Widget'));
+    await userEvent.click(screen.getByLabelText('Update Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -918,8 +967,8 @@ describe('WidgetBuilder', function () {
     });
 
     expect(await screen.findByText('Line Chart')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Line Chart'));
-    userEvent.click(screen.getByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(screen.getByText('Table'));
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenLastCalledWith(
@@ -950,10 +999,12 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    expect(await screen.findByText('tag:value')).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: 'tag:value'})).toBeInTheDocument();
 
     // Table display, column, and sort field
-    expect(screen.getAllByText('count()')).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByText('count()')).toHaveLength(3);
+    });
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
@@ -1005,10 +1056,10 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({onSave: handleSave, dashboard, params: {widgetIndex: '0'}});
 
-    userEvent.click(await screen.findByText('Delete'));
+    await userEvent.click(await screen.findByText('Delete'));
 
     renderGlobalModal();
-    userEvent.click(await screen.findByText('Confirm'));
+    await userEvent.click(await screen.findByText('Confirm'));
 
     await waitFor(() => {
       // The only widget was deleted
@@ -1044,7 +1095,7 @@ describe('WidgetBuilder', function () {
       query: {statsPeriod: '90d'},
     });
 
-    userEvent.click(screen.getByText('Update Widget'));
+    await userEvent.click(screen.getByText('Update Widget'));
 
     await waitFor(() => {
       expect(router.push).toHaveBeenLastCalledWith(
@@ -1061,7 +1112,7 @@ describe('WidgetBuilder', function () {
   it('renders page filters in the filter step', async () => {
     const mockReleases = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     renderTestComponent({
@@ -1072,7 +1123,7 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByTestId('page-filter-timerange-selector')).toBeDisabled();
     expect(screen.getByTestId('page-filter-environment-selector')).toBeDisabled();
-    expect(screen.getByTestId('page-filter-project-selector-loading')).toBeDisabled();
+    expect(screen.getByTestId('page-filter-project-selector')).toBeDisabled();
     expect(mockReleases).toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: /all releases/i})).toBeDisabled();
@@ -1081,7 +1132,7 @@ describe('WidgetBuilder', function () {
   it('appends dashboard filters to widget builder fetch data request', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [TestStubs.Release()],
+      body: [ReleaseFixture()],
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -1109,7 +1160,7 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            query: ' release:abc@1.2.0 ',
+            query: ' release:"abc@1.2.0" ',
           }),
         })
       );
@@ -1117,7 +1168,6 @@ describe('WidgetBuilder', function () {
   });
 
   it('does not error when query conditions field is blurred', async function () {
-    jest.useFakeTimers();
     const widget: Widget = {
       id: '0',
       title: 'sdk usage',
@@ -1140,32 +1190,32 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
-    userEvent.click(await screen.findByLabelText('Add Query'));
+    await userEvent.click(await screen.findByLabelText('Add Query'), {delay: null});
 
     // Triggering the onBlur of the new field should not error
-    userEvent.click(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+    await userEvent.click(
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      {delay: null}
     );
-    userEvent.keyboard('{esc}');
+    await userEvent.keyboard('{Escape}', {delay: null});
 
     // Run all timers because the handleBlur contains a setTimeout
-    jest.runAllTimers();
+    await act(tick);
   });
 
   it('does not wipe column changes when filters are modified', async function () {
-    jest.useFakeTimers();
-
     // widgetIndex: undefined means creating a new widget
     renderTestComponent({params: {widgetIndex: undefined}});
 
-    userEvent.click(await screen.findByLabelText('Add a Column'));
+    await userEvent.click(await screen.findByLabelText('Add a Column'), {delay: null});
     await selectEvent.select(screen.getByText('(Required)'), /project/);
 
     // Triggering the onBlur of the filter should not error
-    userEvent.click(
-      screen.getByPlaceholderText('Search for events, users, tags, and more')
+    await userEvent.click(
+      screen.getByPlaceholderText('Search for events, users, tags, and more'),
+      {delay: null}
     );
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}', {delay: null});
 
     expect(await screen.findAllByText('project')).toHaveLength(2);
   });
@@ -1209,7 +1259,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
     // Add a group by
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
@@ -1241,7 +1291,7 @@ describe('WidgetBuilder', function () {
 
   it('does not fetch tags when tag store is not empty', async function () {
     await act(async () => {
-      TagStore.loadTagsSuccess(TestStubs.Tags());
+      TagStore.loadTagsSuccess(TagsFixture());
       renderTestComponent();
       await tick();
     });
@@ -1258,7 +1308,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
@@ -1280,7 +1330,7 @@ describe('WidgetBuilder', function () {
     });
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
-    userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Query'));
 
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1324,51 +1374,64 @@ describe('WidgetBuilder', function () {
 
     screen.getByText('Limit to 5 results');
 
-    userEvent.click(screen.getByText('Add Query'));
-    userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Series'));
 
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
 
-  it('alerts the user if there are unsaved changes', async function () {
-    const {router} = renderTestComponent();
+  it('alerts the user if there are unsaved title changes', async function () {
+    renderTestComponent();
+    window.confirm = jest.fn();
 
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
-    });
-
-    const customWidgetLabels = await screen.findAllByText('Custom Widget');
+    const customWidgetLabels = await screen.findByText('Custom Widget');
     // EditableText and chart title
-    expect(customWidgetLabels).toHaveLength(2);
+    expect(customWidgetLabels).toBeInTheDocument();
 
     // Change title text
-    userEvent.click(customWidgetLabels[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
-    userEvent.paste(screen.getByRole('textbox', {name: 'Widget title'}), 'Unique Users');
-    userEvent.keyboard('{enter}');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Widget title'}));
+    await userEvent.paste('Unique Users');
+    await userEvent.keyboard('{Enter}');
 
     // Click Cancel
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
 
     // Assert an alert was triggered
-    expect(alertMock).toHaveBeenCalled();
+    expect(window.confirm).toHaveBeenCalled();
+  });
+
+  it('alerts the user if there are unsaved description changes', async function () {
+    renderTestComponent();
+    window.confirm = jest.fn();
+
+    const descriptionTextArea = await screen.findByRole('textbox', {
+      name: 'Widget Description',
+    });
+    expect(descriptionTextArea).toBeInTheDocument();
+    expect(descriptionTextArea).toHaveAttribute(
+      'placeholder',
+      'Enter description (Optional)'
+    );
+
+    // Change description text
+    await userEvent.clear(descriptionTextArea);
+    await userEvent.click(descriptionTextArea);
+    await userEvent.paste('This is a description');
+    await userEvent.keyboard('{Enter}');
+
+    // Click Cancel
+    await userEvent.click(screen.getByText('Cancel'));
+
+    // Assert an alert was triggered
+    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('does not trigger alert dialog if no changes', async function () {
-    const {router} = renderTestComponent();
+    renderTestComponent();
+    const alertMock = jest.spyOn(window, 'confirm');
 
-    const alertMock = jest.fn();
-    const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
-    setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
-      alertMock();
-    });
-
-    // Click Cancel
-    userEvent.click(await screen.findByText('Cancel'));
-
-    // Assert an alert was triggered
+    await userEvent.click(await screen.findByText('Cancel'));
     expect(alertMock).not.toHaveBeenCalled();
   });
 
@@ -1378,7 +1441,7 @@ describe('WidgetBuilder', function () {
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
 
-      userEvent.click(await screen.findByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1398,6 +1461,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );
@@ -1410,7 +1474,7 @@ describe('WidgetBuilder', function () {
         dashboard: testDashboard,
       });
 
-      userEvent.click(await screen.findByText('Add Widget'));
+      await userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1430,6 +1494,7 @@ describe('WidgetBuilder', function () {
               utc: null,
               project: [],
               environment: [],
+              widgetType: 'discover',
             },
           })
         );
@@ -1458,10 +1523,11 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Line Chart'));
-      userEvent.click(screen.getByText('Table'));
+      await userEvent.click(await screen.findByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'));
 
-      expect(screen.getByText('count_unique(user)')).toBeInTheDocument();
+      expect(screen.getAllByText('count_unique(user)')[0]).toBeInTheDocument();
+
       await waitFor(() => {
         expect(eventsMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/events/',
@@ -1549,13 +1615,15 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.paste(screen.getByPlaceholderText('Alias'), 'First Alias');
+    await userEvent.click(screen.getByPlaceholderText('Alias'));
+    await userEvent.paste('First Alias');
 
-    userEvent.click(screen.getByLabelText('Add a Column'));
+    await userEvent.click(screen.getByLabelText('Add a Column'));
 
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias');
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('Second Alias');
 
-    userEvent.click(screen.getByText('Add Widget'));
+    await userEvent.click(screen.getByText('Add Widget'));
 
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
@@ -1573,9 +1641,10 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(screen.getByText('Add an Equation'));
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
-    userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+    await userEvent.click(screen.getByText('Add an Equation'));
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('This should persist');
+    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
 
     expect(await screen.findByText('This should persist')).toBeInTheDocument();
   });
@@ -1585,10 +1654,11 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(screen.getByText('Add an Equation'));
-    userEvent.paste(screen.getAllByPlaceholderText('Alias')[1], 'This should persist');
+    await userEvent.click(screen.getByText('Add an Equation'));
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.paste('This should persist');
 
-    // 1 for the table, 1 for the the column selector, 1 for the sort
+    // 1 for the table, 1 for the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
     await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
 
@@ -1600,8 +1670,8 @@ describe('WidgetBuilder', function () {
       orgFeatures: [...defaultOrgFeatures],
     });
 
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
     await selectEvent.select(screen.getByText('Select group'), 'project');
     await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
 
@@ -1611,7 +1681,7 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
-    userEvent.click(screen.getByText('Add Query'));
+    await userEvent.click(screen.getByText('Add Query'));
 
     // Assert on two calls, one for each query
     const expectedArgs = expect.objectContaining({
@@ -1636,18 +1706,557 @@ describe('WidgetBuilder', function () {
     renderTestComponent({
       orgFeatures: [...defaultOrgFeatures],
     });
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Line Chart'));
+    await userEvent.click(await screen.findByText('Table'));
+    await userEvent.click(screen.getByText('Line Chart'));
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.type(screen.getByTestId('smart-search-input'), 'transaction.duration:123a');
+    await userEvent.click(
+      await screen.findByRole('combobox', {name: 'Add a search term'})
+    );
+    await userEvent.paste('transaction.duration:123a');
 
     // Unfocus input
-    userEvent.click(screen.getByText('Filter your results'));
+    await userEvent.click(screen.getByText('Filter your results'));
 
     expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
     expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+  });
+
+  describe('discover dataset split', function () {
+    let widget, dashboard;
+    describe('events', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.TABLE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+
+      it('selects the error discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('selects the transaction discover split type as the dataset when the events request completes', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('persists the query state for tables when switching between errors and transactions', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['p99(transaction.duration)'],
+                  columns: [],
+                  aggregates: ['p99(transaction.duration)'],
+                  conditions: 'testFilter:value',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+
+        // Switch to errors
+        await userEvent.click(screen.getByRole('radio', {name: /errors/i}));
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).not.toBeChecked();
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+
+        // The state is still the same
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.TABLE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      });
+    });
+
+    describe('events-stats', function () {
+      beforeEach(function () {
+        widget = {
+          displayType: DisplayType.LINE,
+          interval: '1d',
+          queries: [
+            {
+              name: 'Test Widget',
+              fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+              columns: ['project'],
+              aggregates: ['count()', 'count_unique(user)', 'epm()'],
+              conditions: '',
+              orderby: '',
+            },
+          ],
+          title: 'Transactions',
+          id: '1',
+        };
+
+        dashboard = mockDashboard({widgets: [widget]});
+      });
+
+      it('selects the error discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.ERRORS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.ERRORS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('selects the transaction discover split type as the dataset when the request completes', async function () {
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {discoverSplitDecision: WidgetType.TRANSACTIONS},
+            data: [],
+          },
+        });
+        const mockUpdateDashboardSplitDecision = jest.fn();
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+          updateDashboardSplitDecision: mockUpdateDashboardSplitDecision,
+        });
+
+        await waitFor(() => {
+          expect(eventsStatsMock).toHaveBeenCalled();
+        });
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        expect(mockUpdateDashboardSplitDecision).toHaveBeenCalledWith(
+          '1',
+          WidgetType.TRANSACTIONS
+        );
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Transactions. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('persists the query state for timeseries when switching between errors and transactions', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['p99(transaction.duration)'],
+                  columns: [],
+                  aggregates: ['p99(transaction.duration)'],
+                  conditions: 'testFilter:value',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument(); // Check for query builder token
+        expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+
+        // Switch to errors
+        await userEvent.click(screen.getByRole('radio', {name: /errors/i}));
+
+        expect(screen.getByRole('radio', {name: /transactions/i})).not.toBeChecked();
+        expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+
+        // The state is still the same
+        expect(await screen.findByText(/p99\(…\)/i)).toBeInTheDocument();
+        expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'testFilter:value'})).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the errors dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.ERRORS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('event.type');
+        expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+      });
+
+      it('sets the correct default count_if parameters for the transactions dataset', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              displayType: DisplayType.LINE,
+              widgetType: WidgetType.TRANSACTIONS,
+              queries: [
+                {
+                  name: 'Test Widget',
+                  fields: ['count()'],
+                  columns: [],
+                  aggregates: ['count()'],
+                  conditions: '',
+                  orderby: '',
+                },
+              ],
+            }),
+          ],
+        });
+
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await userEvent.click(await screen.findByTestId('label'));
+        await userEvent.click(screen.getByText(/count_if/));
+
+        const fieldLabels = screen.getAllByTestId('label');
+        expect(fieldLabels[0]).toHaveTextContent(/count_if/);
+        expect(fieldLabels[1]).toHaveTextContent('transaction.duration');
+        expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+      });
+    });
+
+    describe('discover split warning', function () {
+      it('does not show the alert if the widget type is already split', async function () {
+        dashboard = mockDashboard({
+          widgets: [WidgetFixture({widgetType: WidgetType.TRANSACTIONS})],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /transactions/i})).toBeChecked();
+        });
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows the alert if the widget is split but the decision is forced', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              widgetType: WidgetType.ERRORS,
+              datasetSource: DatasetSource.FORCED,
+            }),
+          ],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await waitFor(() => {
+          expect(screen.getByRole('radio', {name: /errors/i})).toBeChecked();
+        });
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+      });
+
+      it('is dismissable', async function () {
+        dashboard = mockDashboard({
+          widgets: [
+            WidgetFixture({
+              widgetType: WidgetType.ERRORS,
+              datasetSource: DatasetSource.FORCED,
+            }),
+          ],
+        });
+        eventsStatsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {},
+            data: [],
+          },
+        });
+        renderTestComponent({
+          orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(
+          await screen.findByText(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this widget to Errors. Edit as you see fit."
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+
+        expect(
+          screen.queryByText(/we're splitting our datasets/i)
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('Widget Library', function () {
@@ -1656,19 +2265,19 @@ describe('WidgetBuilder', function () {
       renderTestComponent();
       await screen.findByText('Widget Library');
 
-      userEvent.click(screen.getByText('Duration Distribution'));
+      await userEvent.click(screen.getByText('Duration Distribution'));
 
       // Widget Library, Builder title, and Chart title
-      expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
+      expect(screen.getAllByText('Duration Distribution')).toHaveLength(2);
 
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
-      userEvent.click(screen.getByText('High Throughput Transactions'));
+      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      await userEvent.click(screen.getByText('High Throughput Transactions'));
 
       // Should not have overwritten widget data, and confirm modal should open
-      expect(screen.getAllByText('Duration Distribution')).toHaveLength(3);
+      expect(screen.getAllByText('Duration Distribution')).toHaveLength(2);
       expect(mockModal).toHaveBeenCalled();
     });
   });
@@ -1682,7 +2291,7 @@ describe('WidgetBuilder', function () {
 
       expect(await screen.findByText('Select group')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Select group'));
+      await userEvent.click(screen.getByText('Select group'));
 
       // Only one f(x) field set in the y-axis selector
       expect(screen.getByText('f(x)')).toBeInTheDocument();
@@ -1694,7 +2303,7 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Add Group'));
+      await userEvent.click(await screen.findByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
     });
 
@@ -1705,8 +2314,12 @@ describe('WidgetBuilder', function () {
       });
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
-      userEvent.click(screen.getAllByText('count()')[0], undefined, {skipHover: true});
-      userEvent.click(screen.getByText(/count_unique/), undefined, {skipHover: true});
+      await userEvent.click(screen.getAllByText('count()')[0], {
+        skipHover: true,
+      });
+      await userEvent.click(screen.getByText(/count_unique/), {
+        skipHover: true,
+      });
 
       expect(await screen.findByText('project')).toBeInTheDocument();
     });
@@ -1719,8 +2332,8 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Area Chart'));
+      await userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Area Chart'));
 
       expect(await screen.findByText('project')).toBeInTheDocument();
     });
@@ -1731,8 +2344,8 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Group your results'));
-      userEvent.type(screen.getByText('Select group'), 'project{enter}');
+      await userEvent.click(await screen.findByText('Group your results'));
+      await userEvent.type(screen.getByText('Select group'), 'project{enter}');
 
       await waitFor(() =>
         expect(eventsStatsMock).toHaveBeenNthCalledWith(
@@ -1757,10 +2370,10 @@ describe('WidgetBuilder', function () {
         orgFeatures: [...defaultOrgFeatures],
       });
 
-      userEvent.click(await screen.findByText('Add Group'));
+      await userEvent.click(await screen.findByText('Add Group'));
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
-      userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      await userEvent.click(screen.getAllByLabelText('Remove group')[1]);
       await waitFor(() =>
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
@@ -1779,7 +2392,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByLabelText('Remove group')).toBeInTheDocument();
       expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Add Group'));
+      await userEvent.click(screen.getByText('Add Group'));
 
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
       expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(2);
@@ -1804,7 +2417,7 @@ describe('WidgetBuilder', function () {
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Add Widget'));
+      await userEvent.click(screen.getByText('Add Widget'));
 
       await waitFor(() =>
         expect(handleSave).toHaveBeenCalledWith([
@@ -1823,8 +2436,8 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-      userEvent.click(screen.getByText('Limit to 5 results'));
-      userEvent.click(screen.getByText('Limit to 2 results'));
+      await userEvent.click(screen.getByText('Limit to 5 results'));
+      await userEvent.click(screen.getByText('Limit to 2 results'));
 
       await waitFor(() =>
         expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1852,7 +2465,7 @@ describe('WidgetBuilder', function () {
 
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Remove group'));
+      await userEvent.click(screen.getByLabelText('Remove group'));
 
       await waitFor(() =>
         expect(screen.queryByText('Limit to 5 results')).not.toBeInTheDocument()
@@ -1887,8 +2500,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Table'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       expect(screen.getByText('Limit to 3 results')).toBeInTheDocument();
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1930,8 +2543,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Area Chart'));
-      userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(await screen.findByText('Area Chart'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
       expect(screen.getByText('Limit to 1 result')).toBeInTheDocument();
       expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -1973,8 +2586,8 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      userEvent.click(await screen.findByText('Area Chart'));
-      userEvent.click(screen.getByText('Table'));
+      await userEvent.click(await screen.findByText('Area Chart'));
+      await userEvent.click(screen.getByText('Table'));
 
       expect(screen.queryByText('Limit to 1 result')).not.toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledWith(
@@ -1985,6 +2598,114 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('Spans Dataset', () => {
+    it('queries for span tags and returns the correct data', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'plan',
+            name: 'Plan',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'string';
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'lcp.size',
+            name: 'Lcp.Size',
+          },
+          {
+            key: 'something.else',
+            name: 'Something.Else',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'number';
+          },
+        ],
+      });
+
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(tags[lcp.size,number])'],
+                columns: [],
+                aggregates: ['count(tags[lcp.size,number])'],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click the argument to the count() function
+      expect(await screen.findByText('lcp.size')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('lcp.size'));
+
+      // The option now appears in the aggregate property dropdown
+      expect(screen.queryAllByText('lcp.size')).toHaveLength(2);
+      expect(screen.getByText('something.else')).toBeInTheDocument();
+
+      // Click count() to verify the string tag is in the dropdown
+      expect(screen.queryByText('plan')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText(`count(…)`));
+      expect(screen.getByText('plan')).toBeInTheDocument();
+    });
+
+    it('does not show the Add Query button', async function () {
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            // Add Query is only available for timeseries charts
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(span.duration)'],
+                columns: [],
+                conditions: '',
+                orderby: '',
+                aggregates: ['count(span.duration)'],
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Line Chart');
+      expect(screen.queryByText('Add Query')).not.toBeInTheDocument();
     });
   });
 });

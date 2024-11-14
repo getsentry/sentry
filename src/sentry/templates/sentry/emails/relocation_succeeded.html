@@ -1,0 +1,18 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Relocation Succeeded</h3>
+    <p>Your relocation request was successful! The following organizations were moved to sentry.io:</p>
+<ul>
+{% for org in orgs %}
+<li>
+    <a>{{ org }}</a>
+</li>
+{% endfor %}
+</ul>
+    <p>You are now an owner of all of these organizations. Please note that the <a href="https://docs.sentry.io/product/sentry-basics/concepts/dsn-explainer/">DSNs</a> for your relocated projects have changed, and will need to be updated in their respective clients.</p>
+    <p>Welcome to sentry.io!</p>
+    <p><small><i>ID: {{ uuid }}</i></small></p>
+{% endblock %}

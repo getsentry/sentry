@@ -1,4 +1,7 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {
   render,
@@ -6,44 +9,44 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModalContainer from 'sentry/components/globalModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 describe('SavedIssueSearches', function () {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
 
-  const recommendedSearch = TestStubs.Search({
+  const recommendedSearch = SearchFixture({
     id: 'global-search',
     isGlobal: true,
     name: 'Assigned to Me',
     query: 'is:unresolved assigned:me',
-    visibility: SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.ORGANIZATION,
   });
 
-  const userSearch = TestStubs.Search({
+  const userSearch = SearchFixture({
     id: 'user-search',
     isGlobal: false,
     name: 'Just Firefox',
     query: 'browser:firefox',
-    visibility: SavedSearchVisibility.Owner,
+    visibility: SavedSearchVisibility.OWNER,
   });
 
-  const orgSearch = TestStubs.Search({
+  const orgSearch = SearchFixture({
     id: 'org-search',
     isGlobal: false,
     name: 'Last 4 Hours',
     query: 'age:-4h',
-    visibility: SavedSearchVisibility.Organization,
+    visibility: SavedSearchVisibility.ORGANIZATION,
+    sort: 'date',
   });
 
-  const pinnedSearch = TestStubs.Search({
+  const pinnedSearch = SearchFixture({
     id: 'pinned-search',
     isGlobal: false,
     isPinned: true,
@@ -61,7 +64,15 @@ describe('SavedIssueSearches', function () {
   beforeEach(() => {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {
@@ -70,11 +81,11 @@ describe('SavedIssueSearches', function () {
       body: [userSearch, recommendedSearch, orgSearch, pinnedSearch],
     });
 
-    const {container} = render(<SavedIssueSearches {...defaultProps} />);
+    render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(container).toSnapshot();
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   it('hides saves searches by default past first 4', async function () {
@@ -89,10 +100,8 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(screen.getAllByText('Test Search')).toHaveLength(4);
-    userEvent.click(screen.getByRole('button', {name: /show 2 more/i}));
+    expect(await screen.findAllByText('Test Search')).toHaveLength(4);
+    await userEvent.click(screen.getByRole('button', {name: /show 2 more/i}));
     expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
 
@@ -104,12 +113,10 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.click(screen.getByRole('button', {name: 'Assigned to Me'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Assigned to Me'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(recommendedSearch);
 
-    userEvent.click(screen.getByRole('button', {name: 'Last 4 Hours'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Last 4 Hours'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(orgSearch);
   });
 
@@ -121,9 +128,9 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(screen.getByText(/You don't have any saved searches/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/You don't have any saved searches/i)
+    ).toBeInTheDocument();
   });
 
   it('does not show overflow menu for recommended searches', async function () {
@@ -133,11 +140,11 @@ describe('SavedIssueSearches', function () {
     });
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(
-      screen.queryByRole('button', {name: /saved search options/i})
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', {name: /saved search options/i})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('can delete an org saved search with correct permissions', async function () {
@@ -153,16 +160,16 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: /delete/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: /delete/i}));
 
     const modal = screen.getByRole('dialog');
 
     expect(within(modal).getByText(/are you sure/i)).toBeInTheDocument();
 
-    userEvent.click(within(modal).getByRole('button', {name: /confirm/i}));
+    await userEvent.click(within(modal).getByRole('button', {name: /confirm/i}));
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalledTimes(1);
@@ -191,17 +198,17 @@ describe('SavedIssueSearches', function () {
       </Fragment>
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: /edit/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: /edit/i}));
 
     const modal = screen.getByRole('dialog');
 
-    userEvent.clear(within(modal).getByRole('textbox', {name: /name/i}));
-    userEvent.type(within(modal).getByRole('textbox', {name: /name/i}), 'new name');
+    await userEvent.clear(within(modal).getByRole('textbox', {name: /name/i}));
+    await userEvent.type(within(modal).getByRole('textbox', {name: /name/i}), 'new name');
 
-    userEvent.click(within(modal).getByRole('button', {name: /save/i}));
+    await userEvent.click(within(modal).getByRole('button', {name: /save/i}));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
@@ -232,9 +239,9 @@ describe('SavedIssueSearches', function () {
       />
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
 
     expect(
       screen.getByText('You do not have permission to delete this search.')
@@ -260,18 +267,16 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.click(screen.getByRole('button', {name: /create a new saved search/i}));
+    await userEvent.click(await screen.findByRole('button', {name: /add saved search/i}));
 
     const modal = screen.getByRole('dialog');
 
-    userEvent.type(
+    await userEvent.type(
       within(modal).getByRole('textbox', {name: /name/i}),
       'new saved search'
     );
 
-    userEvent.click(within(modal).getByRole('button', {name: /save/i}));
+    await userEvent.click(within(modal).getByRole('button', {name: /save/i}));
 
     await waitFor(() => {
       expect(mockSave).toHaveBeenCalledWith(
@@ -286,6 +291,8 @@ describe('SavedIssueSearches', function () {
     });
 
     // Modal should close
-    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

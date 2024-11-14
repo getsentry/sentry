@@ -1,6 +1,6 @@
-import {FieldKind} from 'sentry/utils/fields';
+import type {FieldKind} from 'sentry/utils/fields';
 
-import {Token, TokenResult} from '../searchSyntax/parser';
+import type {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -10,22 +10,35 @@ export enum ItemType {
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
+  INVALID_QUERY_WITH_WILDCARD = 'invalid-tag-with-wildcard',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
   LINK = 'link',
+  RECOMMENDED = 'recommended',
 }
+
+export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
 export type SearchGroup = {
   children: SearchItem[];
   icon: React.ReactNode;
   title: string;
   type: ItemType | 'header';
+  /**
+   * A wrapper around the children, useful for adding a custom layout
+   */
+  childrenWrapper?: React.FC<{children: React.ReactNode}>;
   desc?: string;
+  documentation?: React.ReactNode;
   value?: string;
 };
 
 export type SearchItem = {
   active?: boolean;
+  /**
+   * When this item is selected, apply a filter to the search query
+   */
+  applyFilter?: (item: SearchItem) => void;
   /**
    * Call a callback instead of setting a value in the search query
    */
@@ -44,6 +57,7 @@ export type SearchItem = {
   ignoreMaxSearchItems?: boolean;
   kind?: FieldKind;
   title?: string;
+  titleBadge?: React.ReactNode;
   type?: ItemType;
   /**
    * A value of null means that this item is not selectable in the search dropdown
@@ -59,10 +73,10 @@ export type Tag = {
 };
 
 export enum ShortcutType {
-  Delete = 'delete',
-  Negate = 'negate',
-  Next = 'next',
-  Previous = 'previous',
+  DELETE = 'delete',
+  NEGATE = 'negate',
+  NEXT = 'next',
+  PREVIOUS = 'previous',
 }
 
 export type Shortcut = {
@@ -81,7 +95,7 @@ export type Shortcut = {
 
 export type AutocompleteGroup = {
   recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[];
+  searchItems: SearchItem[] | SearchGroup[];
   tagName: string;
   type: ItemType;
 };

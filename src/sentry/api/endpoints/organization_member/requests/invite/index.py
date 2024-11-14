@@ -1,20 +1,22 @@
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 
 from ... import save_team_assignments
-from ...index import OrganizationMemberSerializer
 
 
 class InviteRequestPermissions(OrganizationPermission):
@@ -26,11 +28,15 @@ class InviteRequestPermissions(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user__isnull=True),
+            Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
             | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
             organization=organization,
@@ -55,7 +61,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         Creates an invite request given an email and suggested role / teams.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :pparam string organization_id_or_slug: the id or slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the suggested role of the new member
         :param string orgRole: the suggested org-role of the new member
@@ -64,7 +70,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             context={"organization": organization, "allowed_roles": roles.get_all()},
         )
@@ -74,12 +80,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        with transaction.atomic():
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
+        ):
             om = OrganizationMember.objects.create(
-                organization=organization,
+                organization_id=organization.id,
+                role=result["role"] or organization.default_role,
                 email=result["email"],
-                role=result["role"],
-                inviter=request.user,
+                inviter_id=request.user.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
@@ -90,13 +98,13 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 ]
                 save_team_assignments(om, teams)
 
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                data=om.get_audit_log_data(),
-                event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
-            )
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            data=om.get_audit_log_data(),
+            event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
+        )
 
         async_send_notification(InviteRequestNotification, om, request.user)
 

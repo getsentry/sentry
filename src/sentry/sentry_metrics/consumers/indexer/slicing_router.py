@@ -1,4 +1,7 @@
-from typing import MutableMapping, Optional, Sequence
+from __future__ import annotations
+
+from collections.abc import MutableMapping, Sequence
+from typing import Final
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer
@@ -36,9 +39,9 @@ def _validate_slicing_config() -> None:
     Validates the generalized slicing config (not focusing on an individual
     sliceable)
     """
-    for (sliceable, assignments) in settings.SENTRY_SLICING_CONFIG.items():
+    for sliceable, assignments in settings.SENTRY_SLICING_CONFIG.items():
         acc = {}
-        for ((assign_lo, assign_hi), _slice_id) in assignments.items():
+        for (assign_lo, assign_hi), _slice_id in assignments.items():
             for logical_part in range(assign_lo, assign_hi):
                 if logical_part in acc:
                     raise SlicingConfigurationException(
@@ -137,10 +140,10 @@ class SlicingRouter(MessageRouter):
         return producer
 
 
-def get_slicing_router(config: MetricsIngestConfiguration) -> Optional[SlicingRouter]:
+def get_slicing_router(config: MetricsIngestConfiguration) -> SlicingRouter | None:
     if config.is_output_sliced:
         if config.use_case_id == UseCaseKey.PERFORMANCE:
-            sliceable = "generic_metrics"
+            sliceable: Final = "generic_metrics"
         else:
             raise SlicingConfigurationException(
                 f"Slicing not supported for " f"{config.use_case_id}"

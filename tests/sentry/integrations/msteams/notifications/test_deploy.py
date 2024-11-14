@@ -3,17 +3,18 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.utils import timezone
 
-from sentry.models import Activity, Deploy
-from sentry.notifications.notifications.activity import ReleaseActivityNotification
+from sentry.models.activity import Activity
+from sentry.models.deploy import Deploy
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.types.activity import ActivityType
 
 
 @patch(
-    "sentry.integrations.msteams.MsTeamsAbstractClient.get_user_conversation_id",
+    "sentry.integrations.msteams.MsTeamsClientMixin.get_user_conversation_id",
     Mock(return_value="some_conversation_id"),
 )
-@patch("sentry.integrations.msteams.MsTeamsAbstractClient.send_card")
+@patch("sentry.integrations.msteams.MsTeamsClientMixin.send_card")
 class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
     @skip("Flaky test")
     def test_deploy(self, mock_send_card: MagicMock):
@@ -37,7 +38,7 @@ class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
         notification = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
@@ -72,6 +73,7 @@ class MSTeamsDeployNotificationTest(MSTeamsActivityNotificationTest):
                 == f"http://testserver/organizations/{self.organization.slug}/releases/"
                 f"{release.version}/?project={project.id}&unselectedSeries=Healthy/"
             )
+        assert first_project is not None
 
         assert (
             f"{first_project.slug} | [Notification Settings](http://testserver/settings/account/notifications/deploy/?referrer=release\\_activity-msteams-user)"

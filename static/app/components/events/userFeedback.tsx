@@ -1,23 +1,31 @@
 import styled from '@emotion/styled';
 
-import ActivityAuthor from 'sentry/components/activity/author';
-import ActivityItem from 'sentry/components/activity/item';
-import Clipboard from 'sentry/components/clipboard';
+import {ActivityAuthor} from 'sentry/components/activity/author';
+import {ActivityItem} from 'sentry/components/activity/item';
+import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {UserReport} from 'sentry/types';
+import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = {
   issueId: string;
-  orgId: string;
+  orgSlug: string;
   report: UserReport;
   className?: string;
+  showEventLink?: boolean;
 };
 
-export function EventUserFeedback({className, report, orgId, issueId}: Props) {
+export function EventUserFeedback({
+  className,
+  report,
+  orgSlug,
+  issueId,
+  showEventLink = true,
+}: Props) {
   const user = report.user || {
     name: report.name,
     email: report.email,
@@ -26,28 +34,37 @@ export function EventUserFeedback({className, report, orgId, issueId}: Props) {
     ip_address: '',
   };
 
+  const {onClick, label} = useCopyToClipboard({text: report.email});
+
   return (
     <div className={className}>
       <StyledActivityItem
         date={report.dateCreated}
         author={{type: 'user', user}}
         header={
-          <div>
+          <Items>
             <ActivityAuthor>{report.name}</ActivityAuthor>
-            <Clipboard value={report.email}>
-              <Email>
-                {report.email}
-                <StyledIconCopy size="xs" />
-              </Email>
-            </Clipboard>
-            {report.eventID && (
+            <CopyButton
+              aria-label={label}
+              borderless
+              onClick={onClick}
+              size="zero"
+              title={label}
+              tooltipProps={{delay: 0}}
+              translucentBorder
+              icon={<StyledIconCopy size="xs" />}
+            >
+              {report.email}
+            </CopyButton>
+
+            {report.eventID && showEventLink && (
               <ViewEventLink
-                to={`/organizations/${orgId}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
+                to={`/organizations/${orgSlug}/issues/${issueId}/events/${report.eventID}/?referrer=user-feedback`}
               >
                 {t('View event')}
               </ViewEventLink>
             )}
-          </div>
+          </Items>
         }
       >
         <p
@@ -64,19 +81,21 @@ const StyledActivityItem = styled(ActivityItem)`
   margin-bottom: 0;
 `;
 
-const Email = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
-  cursor: pointer;
-  margin-left: ${space(1)};
+const Items = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
+
+const CopyButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const StyledIconCopy = styled(IconCopy)``;
 
 const ViewEventLink = styled(Link)`
-  font-weight: 300;
-  margin-left: ${space(1)};
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: 0.9em;
-`;
-
-const StyledIconCopy = styled(IconCopy)`
-  margin-left: ${space(1)};
 `;

@@ -1,12 +1,12 @@
 import type {Frame} from './event';
 
-export enum STACK_VIEW {
+export enum StackView {
   RAW = 'raw',
   FULL = 'full',
   APP = 'app',
 }
 
-export enum STACK_TYPE {
+export enum StackType {
   ORIGINAL = 'original',
   MINIFIED = 'minified',
 }
@@ -44,7 +44,11 @@ export type StackTraceMechanism = {
   type: string;
   data?: object;
   description?: string;
+  exception_id?: number;
   help_link?: string;
+  is_exception_group?: boolean;
   meta?: MechanismMeta;
+  parent_id?: number;
+  source?: string;
   synthetic?: boolean;
 };

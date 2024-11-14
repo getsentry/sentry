@@ -1,3 +1,5 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ViewHierarchy} from '.';
@@ -49,23 +51,23 @@ describe('View Hierarchy', function () {
   let project;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
-    project = TestStubs.Project();
+    project = ProjectFixture();
   });
 
-  it('can continue make selections for inspecting data', function () {
+  it('can continue make selections for inspecting data', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
 
-    userEvent.click(screen.getByText('Nested Container - nested'));
+    await userEvent.click(screen.getByText('Nested Container - nested'));
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
     // Only visible in the tree node
     expect(screen.getByText('Container - test_identifier')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('Text'));
+    await userEvent.click(screen.getByText('Text'));
 
     // 1 for the tree node, 1 for the details panel header, 1 for the details value
     expect(screen.getAllByText('Text')).toHaveLength(3);
@@ -73,12 +75,12 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Nested Container - nested')).toBeInTheDocument();
   });
 
-  it('can expand and collapse by clicking the icon', function () {
+  it('can expand and collapse by clicking the icon', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     expect(screen.queryByText('Text')).toBeInTheDocument();
 
-    userEvent.click(
+    await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
         name: 'Collapse',
       })
@@ -86,32 +88,32 @@ describe('View Hierarchy', function () {
 
     expect(screen.queryByText('Text')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
     expect(screen.queryByText('Text')).toBeInTheDocument();
   });
 
-  it('can navigate with keyboard shortcuts after a selection', function () {
+  it('can navigate with keyboard shortcuts after a selection', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
 
-    userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Nested Container - nested')).toHaveLength(2);
   });
 
-  it('can expand/collapse with the keyboard', function () {
+  it('can expand/collapse with the keyboard', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
 
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.queryByText('Text')).not.toBeInTheDocument();
 
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
@@ -138,13 +140,13 @@ describe('View Hierarchy', function () {
   });
 
   it('does not render the wireframe for the Unity platform', function () {
-    const mockUnityProject = TestStubs.Project({platform: 'unity'});
+    const mockUnityProject = ProjectFixture({platform: 'unity'});
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
 
     expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
   });
 
-  it('draws the selected node when a tree selection is made', function () {
+  it('draws the selected node when a tree selection is made', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     const canvas = screen.getByTestId(
@@ -158,7 +160,7 @@ describe('View Hierarchy', function () {
 
     expect(context.fillRect).not.toHaveBeenCalledWith(210, 11, 3, 4);
 
-    userEvent.click(screen.getByText('Nested Container - nested'));
+    await userEvent.click(screen.getByText('Nested Container - nested'));
 
     // This is the nested container, the x, y positions are shifted by the parent
     expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
@@ -194,18 +196,14 @@ describe('View Hierarchy', function () {
   });
 
   it('renders with depth markers', function () {
-    const {container} = render(
-      <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
-    );
-
-    expect(container).toSnapshot();
+    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
   });
 
   it('renders an icon with a tooltip for the rendering system', async function () {
     MOCK_DATA.rendering_system = 'flutter';
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    userEvent.hover(screen.getByTestId('rendering-system-icon'));
+    await userEvent.hover(screen.getByTestId('rendering-system-icon'));
     expect(await screen.findByText('Rendering System: flutter')).toBeInTheDocument();
   });
 });

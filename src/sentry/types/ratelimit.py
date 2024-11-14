@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from django.conf import settings
 
@@ -27,7 +26,7 @@ class RateLimit:
 
     limit: int
     window: int
-    concurrent_limit: Optional[int] = field(default=settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
+    concurrent_limit: int | None = field(default=settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT)
 
 
 class RateLimitType(Enum):

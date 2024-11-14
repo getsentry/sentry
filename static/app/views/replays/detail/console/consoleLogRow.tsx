@@ -1,126 +1,108 @@
-import {CSSProperties, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import classNames from 'classnames';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {IconFire, IconWarning} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
+import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
-import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
-import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-type Props = {
-  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+interface Props extends ReturnType<typeof useCrumbHandlers> {
+  currentHoverTime: number | undefined;
+  currentTime: number;
+  frame: BreadcrumbFrame;
+  index: number;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
   startTimestampMs: number;
   style: CSSProperties;
-};
+  expandPaths?: string[];
+}
 
-function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
-
-  const {handleMouseEnter, handleMouseLeave, handleClick} =
-    useCrumbHandlers(startTimestampMs);
-
-  const onClickTimestamp = useCallback(
-    () => handleClick(breadcrumb),
-    [handleClick, breadcrumb]
+export default function ConsoleLogRow({
+  currentHoverTime,
+  currentTime,
+  expandPaths,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+  onClickTimestamp,
+  onDimensionChange,
+  startTimestampMs,
+  style,
+}: Props) {
+  const handleDimensionChange = useCallback(
+    (path, expandedState) => onDimensionChange?.(index, path, expandedState),
+    [onDimensionChange, index]
   );
-  const onMouseEnter = useCallback(
-    () => handleMouseEnter(breadcrumb),
-    [handleMouseEnter, breadcrumb]
-  );
-  const onMouseLeave = useCallback(
-    () => handleMouseLeave(breadcrumb),
-    [handleMouseLeave, breadcrumb]
-  );
 
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
-
-  const hasOccurred =
-    currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
   return (
     <ConsoleLog
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined && isBeforeHover,
+        afterHoverTime: currentHoverTime !== undefined && !isBeforeHover,
+      })}
       hasOccurred={hasOccurred}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
-      level={breadcrumb.level}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      level={(frame as ConsoleFrame).level}
+      onMouseEnter={() => onMouseEnter(frame)}
+      onMouseLeave={() => onMouseLeave(frame)}
       style={style}
     >
-      <Icon level={breadcrumb.level} />
+      <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
       <Message>
-        {breadcrumbHasIssue(breadcrumb) ? (
-          <IssueLinkWrapper>
-            <ViewIssueLink breadcrumb={breadcrumb} />
-          </IssueLinkWrapper>
-        ) : null}
         <ErrorBoundary mini>
-          <MessageFormatter breadcrumb={breadcrumb} />
+          <MessageFormatter
+            expandPaths={expandPaths}
+            frame={frame}
+            onExpand={handleDimensionChange}
+          />
         </ErrorBoundary>
       </Message>
       <TimestampButton
-        onClick={onClickTimestamp}
+        onClick={event => {
+          event.stopPropagation();
+          onClickTimestamp(frame);
+        }}
         startTimestampMs={startTimestampMs}
-        timestampMs={breadcrumb.timestamp || ''}
+        timestampMs={frame.timestampMs}
       />
     </ConsoleLog>
   );
 }
 
-const IssueLinkWrapper = styled('div')`
-  float: right;
-`;
-
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
-  isCurrent: boolean;
-  isHovered: boolean;
-  level: string;
+  level: undefined | string;
 }>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
   gap: ${space(0.75)};
+  align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 
   background-color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].backgroundLight
+    ['warning', 'error'].includes(String(p.level))
+      ? p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
-  border-bottom: 1px solid
-    ${p =>
-      p.isCurrent ? p.theme.purple300 : p.isHovered ? p.theme.purple200 : 'transparent'};
-
-  color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].iconColor
-      : p.hasOccurred
-      ? 'inherit'
-      : p.theme.gray300};
+  color: ${p => p.theme.gray400};
 
   /*
   Show the timestamp button "Play" icon when we hover the row.
@@ -133,19 +115,38 @@ const ConsoleLog = styled('div')<{
 `;
 
 const ICONS = {
-  error: <IconFire size="xs" />,
-  warning: <IconWarning size="xs" />,
+  [BreadcrumbLevelType.ERROR]: (
+    <Tooltip title={BreadcrumbLevelType.ERROR}>
+      <IconClose size="xs" color="red400" isCircled />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.WARNING]: (
+    <Tooltip title={BreadcrumbLevelType.WARNING}>
+      <IconWarning color="yellow400" size="xs" />
+    </Tooltip>
+  ),
+  [BreadcrumbLevelType.INFO]: (
+    <Tooltip title={BreadcrumbLevelType.INFO}>
+      <IconInfo color="gray400" size="xs" />
+    </Tooltip>
+  ),
 };
 
-function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) {
-  return <span>{ICONS[level]}</span>;
+const MediumFontSize = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+function ConsoleLevelIcon({level}: {level: string | undefined}) {
+  return level && level in ICONS ? (
+    <MediumFontSize>{ICONS[level]}</MediumFontSize>
+  ) : (
+    <i />
+  );
 }
 
 const Message = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+
   white-space: pre-wrap;
   word-break: break-word;
 `;
-
-export default ConsoleMessage;

@@ -1,12 +1,9 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
-import * as Sentry from '@sentry/react';
 import Jed from 'jed';
-import isObject from 'lodash/isObject';
-import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
+import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
-import toArray from 'sentry/utils/toArray';
 
 const markerStyles = {
   background: '#ff801790',
@@ -42,6 +39,7 @@ export function toggleLocaleDebug() {
  * Global Jed locale object loaded with translations via setLocale
  */
 let i18n: Jed | null = null;
+const staticTranslations = new Set<string>();
 
 /**
  * Set the current application locale.
@@ -50,7 +48,7 @@ let i18n: Jed | null = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(translations: any) {
+export function setLocale(translations: any): Jed {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -72,12 +70,20 @@ function getClient(): Jed | null {
   if (!i18n) {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
-    const warning = new Error('Locale not set, defaulting to English');
-    Sentry.captureException(warning);
+    // eslint-disable-next-line no-console
+    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
   return i18n;
+}
+
+export function isStaticString(formatString: string): boolean {
+  if (formatString.trim() === '') {
+    return false;
+  }
+
+  return staticTranslations.has(formatString);
 }
 
 /**
@@ -89,7 +95,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
 
   // always re-parse, do not cache, because we change the match
   sprintf.parse(formatString).forEach((match: any, idx: number) => {
-    if (isString(match)) {
+    if (typeof match === 'string') {
       nodes.push(match);
       return;
     }
@@ -129,7 +135,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
     return true;
   }
 
-  if (args.length !== 1 || !isObject(args[0])) {
+  if (args.length !== 1 || !args[0] || typeof args[0] !== 'object') {
     return false;
   }
 
@@ -143,7 +149,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
  * this represents either a portion of the string, or a object with the group
  * key indicating the group to lookup the group value in.
  */
-type TemplateSubvalue = string | {group: string};
+type TemplateSubvalue = string | {group: string; id: string};
 
 /**
  * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
@@ -170,6 +176,7 @@ type ComponentMap = {[group: string]: React.ReactNode};
  */
 export function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
+  let groupId = 1;
 
   function process(startPos: number, group: string, inGroup: boolean) {
     const regex = /\[(.*?)(:|\])|\]/g;
@@ -182,7 +189,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      const substr = template.substr(pos, match.index - pos);
+      const substr = template.substring(pos, match.index);
       if (substr !== '') {
         buf.push(substr);
       }
@@ -199,17 +206,20 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
         }
       }
 
+      const currentGroupId = groupId.toString();
+      groupId++;
+
       if (closeBraceOrValueSeparator === ']') {
         pos = regex.lastIndex;
       } else {
-        pos = regex.lastIndex = process(regex.lastIndex, groupName, true);
+        pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName});
+      buf.push({group: groupName, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }
@@ -235,21 +245,21 @@ export function renderTemplate(
 ): React.ReactNode {
   let idx = 0;
 
-  function renderGroup(groupKey: string) {
+  function renderGroup(name: string, id: string) {
     const children: React.ReactNode[] = [];
-    const group = template[groupKey] || [];
+    const group = template[id] || [];
 
     for (const item of group) {
-      if (isString(item)) {
+      if (typeof item === 'string') {
         children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
-        children.push(renderGroup(item.group));
+        children.push(renderGroup(item.group, item.id));
       }
     }
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] ?? <Fragment key={idx++} />;
+    let reference = components[name] ?? <Fragment key={idx++} />;
 
     if (!isValidElement(reference)) {
       reference = <Fragment key={idx++}>{reference}</Fragment>;
@@ -262,7 +272,7 @@ export function renderTemplate(
       : cloneElement(element, {key: idx++}, children);
   }
 
-  return <Fragment>{renderGroup('root')}</Fragment>;
+  return <Fragment>{renderGroup('root', 'root')}</Fragment>;
 }
 
 /**
@@ -293,7 +303,8 @@ function mark<T extends React.ReactNode>(node: T): T {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as T;
+  // TODO(TS): Should proxy be created using `React.createElement`?
+  return proxy as any as T;
 }
 
 /**
@@ -324,6 +335,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
+    staticTranslations.add(val);
     return mark(val);
   }
 

@@ -1,39 +1,36 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {BuiltinSymbolSource} from 'sentry/types/debugFiles';
-import {
-  CandidateDownloadStatus,
-  ImageCandidate,
-  ImageFeature,
-} from 'sentry/types/debugImage';
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {ImageCandidate} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
 export function getImageFeatureDescription(type: ImageFeature) {
   switch (type) {
-    case ImageFeature.has_debug_info:
+    case ImageFeature.HAS_DEBUG_INFO:
       return {
         label: t('debug'),
         description: t(
           'Debug information provides function names and resolves inlined frames during symbolication'
         ),
       };
-    case ImageFeature.has_sources:
+    case ImageFeature.HAS_SOURCES:
       return {
         label: t('sources'),
         description: t(
           'Source code information allows Sentry to display source code context for stack frames'
         ),
       };
-    case ImageFeature.has_symbols:
+    case ImageFeature.HAS_SYMBOLS:
       return {
         label: t('symtab'),
         description: t(
           'Symbol tables are used as a fallback when full debug information is not available'
         ),
       };
-    case ImageFeature.has_unwind_info:
+    case ImageFeature.HAS_UNWIND_INFO:
       return {
         label: t('unwind'),
         description: t(

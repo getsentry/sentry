@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -8,7 +9,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-interface ExportProfileButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
+interface ExportProfileButtonProps
+  extends Omit<LinkButtonProps, 'onClick' | 'children' | 'external'> {
   eventId: string | undefined;
   orgId: string;
   projectId: string | undefined;
@@ -37,7 +39,7 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       <IconDownload size="xs" />
     </StyledButtonSmall>
   ) : (
-    <Button
+    <LinkButton
       icon={<IconDownload />}
       title={title}
       href={href}
@@ -45,11 +47,11 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
       {...props}
     >
       {props.children}
-    </Button>
+    </LinkButton>
   );
 }
 
-const StyledButtonSmall = styled(Button)`
+const StyledButtonSmall = styled(LinkButton)`
   border: none;
   background-color: transparent;
   box-shadow: none;

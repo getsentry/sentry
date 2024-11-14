@@ -1,15 +1,19 @@
-import {Organization} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
 import localStorage from 'sentry/utils/localStorage';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
   MEPState,
-  MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import type {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
+
+export const QUERY_LIMIT_PARAM = 4;
+
+export const TOTAL_EXPANDABLE_ROWS_HEIGHT = 37 * QUERY_LIMIT_PARAM;
 
 export const eventsRequestQueryProps = [
   'children',
@@ -27,17 +31,23 @@ function setWidgetStorageObject(localObject: Record<string, string>) {
   localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
 }
 
-const mepQueryParamBase = {};
+const mepQueryParamBase: Record<string, string> = {};
 
-export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
-  let queryParams = {};
+export function getMEPQueryParams(
+  mepContext: MetricsEnhancedSettingContext,
+  forceAuto?: boolean
+) {
+  let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
-  if (mepContext.shouldQueryProvideMEPAutoParams) {
+  if (mepContext.shouldQueryProvideMEPAutoParams || forceAuto) {
     queryParams = {
       ...queryParams,
       ...base,
       dataset: 'metricsEnhanced',
     };
+    if (forceAuto) {
+      return queryParams;
+    }
   }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};
@@ -47,7 +57,7 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   }
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
-  return objectIsEmpty(queryParams) ? undefined : queryParams;
+  return isEmptyObject(queryParams) ? undefined : queryParams;
 }
 
 export function getMetricOnlyQueryParams() {
@@ -75,7 +85,7 @@ export function getMEPParamsIfApplicable(
 const getContainerLocalStorageObjectKey = 'landing-chart-container';
 const getContainerKey = (
   index: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   height: number
 ) => `landing-chart-container#${performanceType}#${height}#${index}`;
 
@@ -89,7 +99,7 @@ function getWidgetStorageObject() {
 export const getChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   defaultType: PerformanceWidgetSetting,
   forceDefaultChartSetting?: boolean // Used for testing.
 ): PerformanceWidgetSetting => {
@@ -112,7 +122,7 @@ export const getChartSetting = (
 export const _setChartSetting = (
   index: number,
   height: number,
-  performanceType: PROJECT_PERFORMANCE_TYPE,
+  performanceType: ProjectPerformanceType,
   setting: PerformanceWidgetSetting
 ) => {
   const key = getContainerKey(index, performanceType, height);
@@ -137,7 +147,7 @@ export function filterAllowedChartsMetrics(
   if (
     !canUseMetricsData(organization) ||
     organization.features.includes('performance-mep-reintroduce-histograms') ||
-    mepSetting.metricSettingState === MEPState.transactionsOnly
+    mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
   ) {
     return allowedCharts;
   }

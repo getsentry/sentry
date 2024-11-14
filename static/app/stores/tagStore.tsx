@@ -1,25 +1,12 @@
 import {createStore} from 'reflux';
 
-import {IssueCategory, IssueType, Organization, Tag, TagCollection} from 'sentry/types';
-import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
+import type {Tag, TagCollection} from 'sentry/types/group';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
-// This list is only used on issues. Events/discover
-// have their own field list that exists elsewhere.
-// contexts.key and contexts.value omitted on purpose.
-const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
-  acc[tag] = {key: tag, name: tag};
-  return acc;
-}, {});
-
-interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getIssueAttributes(org: Organization): TagCollection;
-  getIssueTags(org: Organization): TagCollection;
+interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
-  state: TagCollection;
 }
 
 const storeConfig: TagStoreDefinition = {
@@ -29,142 +16,6 @@ const storeConfig: TagStoreDefinition = {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
     this.state = {};
-  },
-
-  /**
-   * Gets only predefined issue attributes
-   */
-  getIssueAttributes(org: Organization) {
-    // TODO(mitsuhiko): what do we do with translations here?
-    const isSuggestions = [
-      'resolved',
-      'unresolved',
-      'ignored',
-      'assigned',
-      'for_review',
-      'unassigned',
-      'linked',
-      'unlinked',
-    ];
-
-    const sortedTagKeys = Object.keys(this.state).sort((a, b) => {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
-
-    const tagCollection = {
-      [FieldKey.IS]: {
-        key: FieldKey.IS,
-        name: 'Status',
-        values: isSuggestions,
-        maxSuggestedValues: isSuggestions.length,
-        predefined: true,
-      },
-      [FieldKey.HAS]: {
-        key: FieldKey.HAS,
-        name: 'Has Tag',
-        values: sortedTagKeys,
-        predefined: true,
-      },
-      [FieldKey.ASSIGNED]: {
-        key: FieldKey.ASSIGNED,
-        name: 'Assigned To',
-        values: [],
-        predefined: true,
-      },
-      [FieldKey.BOOKMARKS]: {
-        key: FieldKey.BOOKMARKS,
-        name: 'Bookmarked By',
-        values: [],
-        predefined: true,
-      },
-      [FieldKey.ISSUE_CATEGORY]: {
-        key: FieldKey.ISSUE_CATEGORY,
-        name: 'Issue Category',
-        values: [
-          IssueCategory.ERROR,
-          IssueCategory.PERFORMANCE,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
-        ],
-        predefined: true,
-      },
-      [FieldKey.ISSUE_TYPE]: {
-        key: FieldKey.ISSUE_TYPE,
-        name: 'Issue Type',
-        values: [
-          IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-          IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-          IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-          IssueType.PERFORMANCE_SLOW_DB_QUERY,
-          ...(org.features.includes('issue-platform')
-            ? [IssueType.PROFILE_BLOCKED_THREAD]
-            : []),
-        ],
-        predefined: true,
-      },
-      [FieldKey.LAST_SEEN]: {
-        key: FieldKey.LAST_SEEN,
-        name: 'Last Seen',
-        values: [],
-        predefined: false,
-      },
-      [FieldKey.FIRST_SEEN]: {
-        key: FieldKey.FIRST_SEEN,
-        name: 'First Seen',
-        values: [],
-        predefined: false,
-      },
-      [FieldKey.FIRST_RELEASE]: {
-        key: FieldKey.FIRST_RELEASE,
-        name: 'First Release',
-        values: ['latest'],
-        predefined: true,
-      },
-      [FieldKey.EVENT_TIMESTAMP]: {
-        key: FieldKey.EVENT_TIMESTAMP,
-        name: 'Event Timestamp',
-        values: [],
-        predefined: true,
-      },
-      [FieldKey.TIMES_SEEN]: {
-        key: FieldKey.TIMES_SEEN,
-        name: 'Times Seen',
-        isInput: true,
-        // Below values are required or else SearchBar will attempt to get values
-        // This is required or else SearchBar will attempt to get values
-        values: [],
-        predefined: true,
-      },
-      [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-        key: FieldKey.ASSIGNED_OR_SUGGESTED,
-        name: 'Assigned or Suggested',
-        isInput: true,
-        values: [],
-        predefined: true,
-      },
-    };
-
-    // Ony include fields that that are part of the ISSUE_FIELDS. This is
-    // because we may sometimes have fields that are turned off by removing
-    // them from ISSUE_FIELDS
-    const filteredCollection = Object.entries(tagCollection).filter(([key]) =>
-      ISSUE_FIELDS.includes(key as FieldKey)
-    );
-
-    return Object.fromEntries(filteredCollection);
-  },
-
-  /**
-   * Get all tags including builtin issue tags and issue attributes
-   */
-  getIssueTags(org: Organization) {
-    return {
-      ...BUILTIN_TAGS,
-      ...SEMVER_TAGS,
-      // State tags should overwrite built ins.
-      ...this.state,
-      // We want issue attributes to overwrite any built in and state tags
-      ...this.getIssueAttributes(org),
-    };
   },
 
   getState() {
@@ -181,7 +32,7 @@ const storeConfig: TagStoreDefinition = {
     // assign to this.state directly, but there is a change someone may
     // be relying on referential equality somewhere in the codebase and
     // we dont want to risk breaking that.
-    const newState = {};
+    const newState: TagCollection = {};
 
     for (let i = 0; i < data.length; i++) {
       const tag = data[i];

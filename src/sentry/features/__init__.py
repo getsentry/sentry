@@ -1,10 +1,7 @@
-from .base import (  # NOQA
-    Feature,
-    OrganizationFeature,
-    ProjectFeature,
-    ProjectPluginFeature,
-    UserFeature,
-)
+from sentry.features.permanent import register_permanent_features
+from sentry.features.temporary import register_temporary_features
+
+from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
@@ -12,10 +9,10 @@ from .manager import *  # NOQA
 #
 # Registering a new feature:
 #
-# - Determine what scope your feature falls under. By convention we have a
-#   organizations and project scope which map to the OrganizationFeature and
-#   ProjectFeature feature objects. Scoping will provide the feature with
-#   context.
+# - Determine what scope your feature falls under. By convention we have
+#   organization and project scopes, which map to the OrganizationFeature and
+#   ProjectFeature feature objects, respectively. Scoping will provide the feature
+#   with context.
 #
 #   Organization and Project scoped features will automatically be added into
 #   the Organization and Project serialized representations.
@@ -26,12 +23,17 @@ from .manager import *  # NOQA
 #   NOTE: There is no currently established convention for features which do not
 #         fall under these scopes. Use your best judgment for these.
 #
+# - Decide if your feature needs to be exposed in API responses or not
+#   If your feature is not used in the frontend, it is recommended that you don't
+#   expose the feature flag as feature flag checks add latency and bloat to organization
+#   details and project details responses.
+#
 # - Set a default for your features.
 #
-#   Feature defaults are configured in the sentry.conf.server.SENTRY_FEATURES
-#   module variable. This is the DEFAULT value for a feature, the default may be
-#   overridden by the logic in the exposed feature.manager.FeatureManager
-#   instance. See the ``has`` method here for a detailed understanding of how
+#   Feature defaults are configured with the `default` parameter. Default values
+#   can also be defined in `settings.SENTRY_FEATURES`. Default values
+#   are used if no registered handler makes a decision for the feature.
+#   See the ``has`` method here for a detailed understanding of how
 #   the default values is overridden.
 #
 # - Use your feature.
@@ -46,227 +48,16 @@ from .manager import *  # NOQA
 #
 #   NOTE: The actor kwarg should be passed when it's expected that the handler
 #         needs context of the user.
-#
-#   NOTE: Features that require Snuba to function, add to the
-#         `requires_snuba` tuple.
 
 default_manager = FeatureManager()  # NOQA
 
-# No formatting so that we can keep them as single lines
-# fmt: off
-
-# Unscoped features
-default_manager.add("auth:register")
-default_manager.add("organizations:create")
-
-# Organization scoped features that are in development or in customer trials.
-default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature)
-default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
-default_manager.add("organizations:alert-filters", OrganizationFeature)
-default_manager.add("organizations:api-keys", OrganizationFeature)
-default_manager.add("organizations:crash-rate-alerts", OrganizationFeature)
-default_manager.add("organizations:custom-event-title", OrganizationFeature)
-default_manager.add("organizations:customer-domains", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
-default_manager.add("organizations:discover", OrganizationFeature)
-default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
-default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
-default_manager.add("organizations:ds-prioritise-by-project-bias", OrganizationFeature)
-default_manager.add("organizations:ds-prioritise-by-transaction-bias", OrganizationFeature)
-default_manager.add("organizations:enterprise-perf", OrganizationFeature)
-default_manager.add("organizations:fix-source-map-cta", OrganizationFeature, True)
-default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
-default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
-default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
-default_manager.add("organizations:higher-ownership-limit", OrganizationFeature)
-default_manager.add("organizations:invite-members", OrganizationFeature)
-default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
-default_manager.add("organizations:issue-alert-fallback-targeting", OrganizationFeature, True)
-default_manager.add("organizations:issue-alert-incompatible-rules", OrganizationFeature, True)
-default_manager.add("organizations:issue-alert-preview", OrganizationFeature, True)
-default_manager.add("organizations:issue-alert-test-notifications", OrganizationFeature, True)
-default_manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, True)
-default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
-default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
-default_manager.add("organizations:issue-platform", OrganizationFeature, True)
-default_manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, True)
-default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
-default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, True)
-default_manager.add("organizations:js-sdk-dynamic-loader", OrganizationFeature, True)
-default_manager.add("organizations:large-debug-files", OrganizationFeature)
-default_manager.add("organizations:mep-rollout-flag", OrganizationFeature, True)
-default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature)
-default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
-default_manager.add("organizations:metrics", OrganizationFeature, True)
-default_manager.add("organizations:metrics-extraction", OrganizationFeature)
-default_manager.add("organizations:minute-resolution-sessions", OrganizationFeature)
-default_manager.add("organizations:mobile-view-hierarchies", OrganizationFeature, True)
-default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, True)
-default_manager.add("organizations:anr-rate", OrganizationFeature, True)
-default_manager.add("organizations:monitors", OrganizationFeature, True)
-default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
-default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
-default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
-default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
-default_manager.add("organizations:org-subdomains", OrganizationFeature)
-default_manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, True)
-default_manager.add("organizations:performance-chart-interpolation", OrganizationFeature, True)
-default_manager.add("organizations:performance-consecutive-db-issue", OrganizationFeature)
-default_manager.add("organizations:performance-n-plus-one-api-calls-detector", OrganizationFeature)
-default_manager.add("organizations:performance-issues-compressed-assets-detector", OrganizationFeature)
-default_manager.add("organizations:performance-issues-render-blocking-assets-detector", OrganizationFeature)
-default_manager.add("organizations:performance-issues-m-n-plus-one-db-detector", OrganizationFeature)
-default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
-default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
-default_manager.add("organizations:performance-issues-search", OrganizationFeature)
-default_manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature)
-default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
-default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
-default_manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, True)
-default_manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, True)
-default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
-default_manager.add("organizations:performance-vitals-inp", OrganizationFeature, True)
-default_manager.add("organizations:performance-landing-page-stats-period", OrganizationFeature, True)
-default_manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, True)
-default_manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, True)
-default_manager.add("organizations:performance-new-widget-designs", OrganizationFeature, True)
-default_manager.add("organizations:performance-metrics-backed-transaction-summary", OrganizationFeature, True)
-default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature)
-default_manager.add("organizations:profiling", OrganizationFeature)
-default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
-default_manager.add("organizations:profiling-flamegraphs", OrganizationFeature, True)
-default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
-default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
-default_manager.add("organizations:profiling-previews", OrganizationFeature, True)
-default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, True)
-default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
-default_manager.add("organizations:project-stats", OrganizationFeature, True)
-default_manager.add("organizations:related-events", OrganizationFeature)
-default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
-default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
-default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)
-default_manager.add("organizations:release-health-return-metrics", OrganizationFeature, True)
-default_manager.add("organizations:release-health-drop-sessions", OrganizationFeature, True)
-default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
-default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
-default_manager.add("organizations:rule-page", OrganizationFeature)
-default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
-default_manager.add("organizations:scaleable-codeowners-search", OrganizationFeature)
-default_manager.add("organizations:scim-orgmember-roles", OrganizationFeature, True)
-default_manager.add("organizations:scim-team-roles", OrganizationFeature, True)
-default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, True)
-default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
-default_manager.add("organizations:session-replay", OrganizationFeature)
-default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-ga", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, False)
-default_manager.add("organizations:set-grouping-config", OrganizationFeature)
-default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
-default_manager.add("organizations:streamline-targeting-context", OrganizationFeature, True)
-default_manager.add("organizations:symbol-sources", OrganizationFeature)
-default_manager.add("organizations:team-roles", OrganizationFeature)
-default_manager.add("organizations:transaction-name-normalize", OrganizationFeature)
-default_manager.add("organizations:transaction-name-clusterer", OrganizationFeature)
-default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, False)
-default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature)
-default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
-default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
-default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
-default_manager.add("organizations:commit-context-fallback", OrganizationFeature, True)
-
-# NOTE: Don't add features down here! Add them to their specific group and sort
-#       them alphabetically! The order features are registered is not important.
-
-# Organization Features that are part of sentry.io subscription plans
-# Features here should ideally be enabled sentry/conf/server.py so that
-# self-hosted and single-tenant are aligned with sentry.io. Features here should
-# also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
-# behaves correctly.
-default_manager.add("organizations:advanced-search", OrganizationFeature)
-default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature)
-default_manager.add("organizations:change-alerts", OrganizationFeature)
-default_manager.add('organizations:commit-context', OrganizationFeature)
-default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
-default_manager.add("organizations:dashboards-basic", OrganizationFeature)
-default_manager.add("organizations:dashboards-edit", OrganizationFeature)
-default_manager.add("organizations:data-forwarding", OrganizationFeature)
-default_manager.add("organizations:discover-basic", OrganizationFeature)
-default_manager.add("organizations:discover-query", OrganizationFeature)
-default_manager.add("organizations:dynamic-sampling", OrganizationFeature)
-default_manager.add("organizations:dynamic-sampling-transaction-name-priority", OrganizationFeature, True)
-default_manager.add("organizations:event-attachments", OrganizationFeature)
-default_manager.add("organizations:global-views", OrganizationFeature)
-default_manager.add("organizations:incidents", OrganizationFeature)
-default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)
-default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)
-default_manager.add("organizations:integrations-codeowners", OrganizationFeature)
-default_manager.add("organizations:integrations-custom-scm", OrganizationFeature)
-default_manager.add("organizations:integrations-deployment", OrganizationFeature)
-default_manager.add("organizations:integrations-event-hooks", OrganizationFeature)
-default_manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
-default_manager.add("organizations:integrations-incident-management", OrganizationFeature)
-default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)
-default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
-default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
-default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
-default_manager.add("organizations:onboarding-heartbeat-footer", OrganizationFeature, True)
-default_manager.add("organizations:onboarding-project-deletion-on-back-click", OrganizationFeature, True)
-default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, True)
-default_manager.add("organizations:performance-view", OrganizationFeature)
-default_manager.add("organizations:profile-blocked-main-thread-ingest", OrganizationFeature)
-default_manager.add("organizations:profile-blocked-main-thread-ppg", OrganizationFeature)
-default_manager.add("organizations:relay", OrganizationFeature)
-default_manager.add("organizations:sso-basic", OrganizationFeature)
-default_manager.add("organizations:sso-saml2", OrganizationFeature)
-default_manager.add("organizations:source-maps-cta", OrganizationFeature, True)
-default_manager.add("organizations:team-insights", OrganizationFeature)
-default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
-default_manager.add("organizations:derive-code-mappings-dry-run", OrganizationFeature)
-default_manager.add("organizations:codecov-stacktrace-integration", OrganizationFeature, True)
-default_manager.add("organizations:codecov-stacktrace-integration-v2", OrganizationFeature, True)
-default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, True)
-
-# Project scoped features
-default_manager.add("projects:alert-filters", ProjectFeature)
-default_manager.add("projects:custom-inbound-filters", ProjectFeature)
-default_manager.add("projects:data-forwarding", ProjectFeature)
-default_manager.add("projects:discard-groups", ProjectFeature)
-default_manager.add("projects:minidump", ProjectFeature)
-default_manager.add("projects:race-free-group-creation", ProjectFeature)
-default_manager.add("projects:rate-limits", ProjectFeature)
-default_manager.add("projects:servicehooks", ProjectFeature)
-default_manager.add("projects:similarity-indexing", ProjectFeature)
-default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
-default_manager.add("projects:similarity-view", ProjectFeature)
-default_manager.add("projects:similarity-view-v2", ProjectFeature)
-default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
-
-# Project plugin features
-default_manager.add("projects:plugins", ProjectPluginFeature)
-
-# Workflow 2.0 Project features
-default_manager.add("projects:auto-associate-commits-to-release", ProjectFeature)
-
-# fmt: on
-
-# This is a gross hardcoded list, but there's no
-# other sensible way to manage this right now without augmenting
-# features themselves in the manager with detections like this.
-requires_snuba = (
-    "organizations:discover",
-    "organizations:global-views",
-    "organizations:incidents",
-    "organizations:minute-resolution-sessions",
-    "organizations:performance-view",
-)
+register_permanent_features(default_manager)
+register_temporary_features(default_manager)
 
 # expose public api
 add = default_manager.add
 entity_features = default_manager.entity_features
+option_features = default_manager.option_features
 get = default_manager.get
 has = default_manager.has
 batch_has = default_manager.batch_has

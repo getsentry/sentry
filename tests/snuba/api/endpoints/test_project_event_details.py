@@ -1,14 +1,11 @@
 from django.urls import reverse
 
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
-from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-@region_silo_test
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -16,10 +13,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.setup_data()
 
     def setup_data(self):
-        one_min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
-        four_min_ago = iso_format(before_now(minutes=4))
+        one_min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
+        three_min_ago = before_now(minutes=3).isoformat()
+        four_min_ago = before_now(minutes=4).isoformat()
 
         self.prev_event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
@@ -58,8 +55,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -75,8 +72,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.prev_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -92,8 +89,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(
@@ -111,8 +108,8 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.next_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -122,49 +119,43 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] is None
 
 
-@region_silo_test
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
     def setup_data(self):
-        one_min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
-        four_min_ago = iso_format(before_now(minutes=4))
+        one_min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
+        three_min_ago = before_now(minutes=3).isoformat()
+        four_min_ago = before_now(minutes=4).isoformat()
 
         prev_event_id = "a" * 32
-        self.prev_event, prev_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=prev_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": prev_event_id,
-                "project_id": self.project.id,
+        self.prev_event, _ = self.process_occurrence(
+            event_id=prev_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": four_min_ago,
                 "message_timestamp": four_min_ago,
             },
         )
 
         cur_event_id = "b" * 32
-        self.cur_event, cur_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=cur_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": cur_event_id,
-                "project_id": self.project.id,
+        self.cur_event, cur_group_info = self.process_occurrence(
+            event_id=cur_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": three_min_ago,
                 "message_timestamp": three_min_ago,
             },
         )
+        assert cur_group_info is not None
         self.cur_group = cur_group_info.group
 
         next_event_id = "c" * 32
-        self.next_event, next_group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=next_event_id, project_id=self.project.id, fingerprint=["group-1"]
-            ),
-            {
-                "event_id": next_event_id,
-                "project_id": self.project.id,
+        self.next_event, _ = self.process_occurrence(
+            event_id=next_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-1"],
+            event_data={
                 "timestamp": two_min_ago,
                 "message_timestamp": two_min_ago,
                 "tags": {"environment": "production"},
@@ -172,26 +163,24 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         )
 
         unrelated_event_id = "d" * 32
-        process_event_and_issue_occurrence(
-            self.build_occurrence_data(
-                event_id=unrelated_event_id, project_id=self.project.id, fingerprint=["group-2"]
-            ),
-            {
-                "event_id": unrelated_event_id,
-                "project_id": self.project.id,
+        self.process_occurrence(
+            event_id=unrelated_event_id,
+            project_id=self.project.id,
+            fingerprint=["group-2"],
+            event_data={
                 "timestamp": one_min_ago,
                 "message_timestamp": one_min_ago,
                 "tags": {"environment": "production"},
             },
-        )[0]
+        )
 
     def test_generic_event_with_occurrence(self):
         url = reverse(
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_event.event_id,
-                "project_slug": self.project.slug,
-                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.cur_group.id})
@@ -202,73 +191,56 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         assert response.data["occurrence"]["id"] == self.cur_event.id
 
 
-@region_silo_test
-class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
+class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         project = self.create_project()
 
-        one_min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
-        four_min_ago = iso_format(before_now(minutes=4))
+        one_min_ago = before_now(minutes=1)
+        two_min_ago = before_now(minutes=2)
+        three_min_ago = before_now(minutes=3)
+        four_min_ago = before_now(minutes=4)
 
-        transaction_event_data = {
-            "level": "info",
-            "message": "ayoo",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
+        self.prev_transaction_event = self.create_performance_issue(
+            event_data=load_data(
+                event_id="a" * 32,
+                platform="transaction-n-plus-one",
+                timestamp=four_min_ago,
+                start_timestamp=four_min_ago,
+            ),
+            project_id=project.id,
+        )
+        self.group = self.prev_transaction_event.group
 
-        self.prev_transaction_event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": four_min_ago,
-                "start_timestamp": four_min_ago,
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
+        self.cur_transaction_event = self.create_performance_issue(
+            event_data=load_data(
+                event_id="b" * 32,
+                platform="transaction-n-plus-one",
+                timestamp=three_min_ago,
+                start_timestamp=three_min_ago,
+            ),
             project_id=project.id,
         )
 
-        self.cur_transaction_event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "b" * 32,
-                "timestamp": three_min_ago,
-                "start_timestamp": three_min_ago,
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
+        self.next_transaction_event = self.create_performance_issue(
+            event_data=load_data(
+                event_id="c" * 32,
+                platform="transaction-n-plus-one",
+                timestamp=two_min_ago,
+                start_timestamp=two_min_ago,
+            ),
             project_id=project.id,
         )
 
-        self.next_transaction_event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "c" * 32,
-                "timestamp": two_min_ago,
-                "start_timestamp": two_min_ago,
-                "environment": "production",
-                "tags": {"environment": "production"},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=project.id,
-        )
-
-        self.group = self.prev_transaction_event.groups[0]
-
-        # Event in different group
-        self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "d" * 32,
-                "timestamp": one_min_ago,
-                "start_timestamp": one_min_ago,
-                "environment": "production",
-                "tags": {"environment": "production"},
-            },
+        self.create_performance_issue(
+            event_data=load_data(
+                event_id="d" * 32,
+                platform="transaction-n-plus-one",
+                timestamp=one_min_ago,
+                start_timestamp=one_min_ago,
+            ),
+            fingerprint="other_group",
             project_id=project.id,
         )
 
@@ -278,8 +250,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
-                "project_slug": self.cur_transaction_event.project.slug,
-                "organization_slug": self.cur_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.cur_transaction_event.project.slug,
+                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -288,7 +260,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(self.cur_transaction_event.event_id)
         assert response.data["nextEventID"] == str(self.next_transaction_event.event_id)
         assert response.data["previousEventID"] == str(self.prev_transaction_event.event_id)
-        assert response.data["groupID"] == str(self.cur_transaction_event.groups[0].id)
+        assert response.data["groupID"] == str(self.cur_transaction_event.group.id)
 
     def test_no_previous_event(self):
         """Test the case in which there is no previous event"""
@@ -296,8 +268,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.prev_transaction_event.event_id,
-                "project_slug": self.prev_transaction_event.project.slug,
-                "organization_slug": self.prev_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.prev_transaction_event.project.slug,
+                "organization_id_or_slug": self.prev_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -306,7 +278,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
         assert response.data["id"] == str(self.prev_transaction_event.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == self.cur_transaction_event.event_id
-        assert response.data["groupID"] == str(self.prev_transaction_event.groups[0].id)
+        assert response.data["groupID"] == str(self.prev_transaction_event.group.id)
 
     def test_ignores_different_group(self):
         """Test that a different group's events aren't attributed to the one that was passed"""
@@ -314,8 +286,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.next_transaction_event.event_id,
-                "project_slug": self.next_transaction_event.project.slug,
-                "organization_slug": self.next_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.next_transaction_event.project.slug,
+                "organization_id_or_slug": self.next_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json", data={"group_id": self.group.id})
@@ -330,8 +302,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             "sentry-api-0-project-event-details",
             kwargs={
                 "event_id": self.cur_transaction_event.event_id,
-                "project_slug": self.cur_transaction_event.project.slug,
-                "organization_slug": self.cur_transaction_event.project.organization.slug,
+                "project_id_or_slug": self.cur_transaction_event.project.slug,
+                "organization_id_or_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
         response = self.client.get(url, format="json")
@@ -343,7 +315,6 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
         assert response.data["groupID"] is None
 
 
-@region_silo_test
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -363,8 +334,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": self.event_id,
             },
         )
@@ -384,8 +355,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": "no" * 16,
             },
         )
@@ -406,8 +377,8 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         url = reverse(
             "sentry-api-0-event-json",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": project2.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": project2.slug,
                 "event_id": self.event_id,
             },
         )

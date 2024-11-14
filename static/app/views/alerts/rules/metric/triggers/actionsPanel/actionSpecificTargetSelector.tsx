@@ -1,6 +1,7 @@
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import {Action, ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
+import type {Action} from 'sentry/views/alerts/rules/metric/types';
+import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
   action: Action;

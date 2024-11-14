@@ -1,57 +1,46 @@
 import logging
 import signal
+import time
+from threading import Thread
 
-from django.conf import settings
-
-from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
+from sentry import options
 
 logger = logging.getLogger(__name__)
 
 
-def create_batching_kafka_consumer(topic_names, worker, **options):
-    from sentry.utils import metrics
+def delay_kafka_rebalance(configured_delay: int) -> None:
+    """
+    Introduces a configurable delay to the consumer topic
+    subscription and consumer shutdown steps (handled by the
+    StreamProcessor). The idea behind is that by forcing
+    these steps to occur at certain time "ticks" (for example, at
+    every 15 second tick in a minute), we can reduce the number of
+    rebalances that are triggered during a deploy. This means
+    fewer "stop the world rebalancing" occurrences and more time
+    for the consumer group to stabilize and make progress.
+    """
 
-    # In some cases we want to override the configuration stored in settings from the command line
-    force_topic = options.pop("force_topic", None)
-    force_cluster = options.pop("force_cluster", None)
+    time_elapsed_in_slot = int(time.time()) % configured_delay
 
-    if force_topic and force_cluster:
-        topic_names = {force_topic}
-        cluster_names = {force_cluster}
-    elif force_topic or force_cluster:
-        raise ValueError(
-            "Both 'force_topic' and 'force_cluster' have to be provided to override the configuration"
-        )
-    else:
-        cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
-
-    if len(cluster_names) > 1:
-        raise ValueError(
-            f"Cannot launch Kafka consumer listening to multiple topics ({topic_names}) on different clusters ({cluster_names})"
-        )
-
-    (cluster_name,) = cluster_names
-
-    consumer = BatchingKafkaConsumer(
-        topics=topic_names,
-        cluster_name=cluster_name,
-        worker=worker,
-        metrics=metrics,
-        metrics_default_tags={
-            "topics": ",".join(sorted(topic_names)),
-            "group_id": options.get("group_id"),
-        },
-        **options,
-    )
-
-    return consumer
+    time.sleep(configured_delay - time_elapsed_in_slot)
 
 
-def run_processor_with_signals(processor):
+def delay_shutdown(consumer_name, processor) -> None:
+    if consumer_name == "ingest-generic-metrics" and options.get(
+        "sentry-metrics.synchronize-kafka-rebalances"
+    ):
+        configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
+        logger.info("Started delay in consumer shutdown step")
+        delay_kafka_rebalance(configured_delay)
+        logger.info("Finished delay in consumer shutdown step")
+    processor.signal_shutdown()
+
+
+def run_processor_with_signals(processor, consumer_name: str | None = None):
     def handler(signum, frame):
-        processor.signal_shutdown()
+        t = Thread(target=delay_shutdown, args=(consumer_name, processor))
+        t.start()
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
-
     processor.run()

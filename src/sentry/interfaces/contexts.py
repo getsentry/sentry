@@ -1,6 +1,10 @@
-import string
+from __future__ import annotations
 
-from django.utils.encoding import force_text
+import string
+from typing import Any, ClassVar, TypeVar
+
+import sentry_sdk
+from django.utils.encoding import force_str
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
@@ -8,7 +12,9 @@ from sentry.utils.safe import get_path
 
 __all__ = ("Contexts",)
 
-context_types = {}
+ContextTypeT = TypeVar("ContextTypeT", bound="ContextType")
+
+context_types: dict[str, type[ContextType]] = {}
 
 
 class _IndexFormatter(string.Formatter):
@@ -22,7 +28,7 @@ def format_index_expr(format_string, data):
     return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
 
-def contexttype(cls):
+def contexttype(cls: type[ContextTypeT]) -> type[ContextTypeT]:
     context_types[cls.type] = cls
     return cls
 
@@ -34,7 +40,7 @@ def contexttype(cls):
 
 
 class ContextType:
-    context_to_tag_mapping = None
+    context_to_tag_mapping: ClassVar[dict[str, str]] = {}
     """
     This indicates which fields should be promoted into tags during event
     normalization. (See EventManager)
@@ -74,7 +80,7 @@ class ContextType:
      - myContext.subkey: "whatever"
     """
 
-    type = None
+    type: str
     """This should match the `type` key in context object"""
 
     def __init__(self, alias, data):
@@ -87,7 +93,10 @@ class ContextType:
             # Even if the value is an empty string,
             # we still want to display the info the UI
             if value is not None:
-                ctx_data[force_text(key)] = value
+                ctx_data[force_str(key)] = value
+            # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
+            if isinstance(value, (int, float, list, dict)):
+                ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
     def to_json(self):
@@ -125,6 +134,16 @@ class ContextType:
                         yield (self.alias, value)
                     else:
                         yield (f"{self.alias}.{field}", value)
+
+    def change_type(self, value: int | float | list | dict) -> Any:
+        if isinstance(value, (float, int)) and len(str_value := force_str(value)) > 15:
+            return str_value
+        if isinstance(value, list):
+            return [self.change_type(el) for el in value]
+        elif isinstance(value, dict):
+            return {key: self.change_type(el) for key, el in value.items()}
+        else:
+            return value
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
@@ -175,7 +194,7 @@ class GpuContextType(ContextType):
 @contexttype
 class MonitorContextType(ContextType):
     type = "monitor"
-    context_to_tag_mapping = {"id": "{id}"}
+    context_to_tag_mapping = {"id": "{id}", "slug": "{slug}"}
 
 
 @contexttype
@@ -214,7 +233,12 @@ class Contexts(Interface):
     @classmethod
     def normalize_context(cls, alias, data):
         ctx_type = data.get("type", alias)
-        ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        try:
+            ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        except TypeError:
+            # Debugging information for SENTRY-FOR-SENTRY-2NH2.
+            sentry_sdk.set_context("ctx_type", ctx_type)
+            raise
         return ctx_cls(alias, data)
 
     def iter_contexts(self):

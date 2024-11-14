@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import progressbar
@@ -12,7 +14,14 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):
+def celery_run_batch_query(
+    filter,
+    batch_size,
+    referrer,
+    state=None,
+    fetch_events=True,
+    tenant_ids=None,
+):
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
     is used for celery tasks in issue merge/unmerge/reprocessing.
@@ -42,7 +51,9 @@ def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_event
             [["timestamp", "<", state["timestamp"]], ["event_id", "<", state["event_id"]]]
         )
 
-    method = eventstore.get_events if fetch_events else eventstore.get_unfetched_events
+    method = (
+        eventstore.backend.get_events if fetch_events else eventstore.backend.get_unfetched_events
+    )
 
     events = list(
         method(
@@ -50,6 +61,7 @@ def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_event
             limit=batch_size,
             referrer=referrer,
             orderby=["-timestamp", "-event_id"],
+            tenant_ids=tenant_ids,
         )
     )
 
@@ -78,6 +90,7 @@ class RangeQuerySetWrapper:
         order_by="pk",
         callbacks=(),
         result_value_getter=None,
+        override_unique_safety_check=False,
     ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (
@@ -102,8 +115,17 @@ class RangeQuerySetWrapper:
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
 
+        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
+        if not override_unique_safety_check and not order_by_col.unique:
+            # TODO: Ideally we could fix this bug and support ordering by a non unique col
+            raise InvalidQuerySetError(
+                "Order by column must be unique, otherwise this wrapper can get "
+                "stuck in an infinite loop. If you're sure your data is unique, "
+                "you can disable this by passing "
+                "`override_unique_safety_check=True`"
+            )
+
     def __iter__(self):
-        max_value = None
         if self.min_value is not None:
             cur_value = self.min_value
         else:
@@ -119,10 +141,10 @@ class RangeQuerySetWrapper:
             queryset = queryset.order_by(self.order_by)
 
         # we implement basic cursor pagination for columns that are not unique
-        last_object_pk = None
+        last_object_pk: int | None = None
         has_results = True
         while has_results:
-            if (max_value and cur_value >= max_value) or (limit and num >= limit):
+            if limit and num >= limit:
                 break
 
             start = num
@@ -166,13 +188,33 @@ class RangeQuerySetWrapper:
 
 
 class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
+    def get_total_count(self):
+        return self.queryset.count()
+
     def __iter__(self):
-        total_count = self.queryset.count()
-        if not total_count:
-            return iter([])
+        total_count = self.get_total_count()
         iterator = super().__iter__()
         label = self.queryset.model._meta.verbose_name_plural.title()
         return iter(WithProgressBar(iterator, total_count, label))
+
+
+class RangeQuerySetWrapperWithProgressBarApprox(RangeQuerySetWrapperWithProgressBar):
+    """
+    Works the same as `RangeQuerySetWrapperWithProgressBar`, but approximates the number of rows
+    in the table. This is intended for use on very large tables where we end up timing out
+    attempting to get an accurate count.
+
+    Note: This is only intended for queries that are iterating over an entire table. Will not
+    produce a useful total count on filtered queries.
+    """
+
+    def get_total_count(self):
+        cursor = connections[self.queryset.db].cursor()
+        cursor.execute(
+            "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
+            (self.queryset.model._meta.db_table,),
+        )
+        return cursor.fetchone()[0]
 
 
 class WithProgressBar:
@@ -184,26 +226,30 @@ class WithProgressBar:
         self.caption = str(caption or "Progress")
 
     def __iter__(self):
-        if self.count != 0:
-            widgets = [
+        pbar = progressbar.ProgressBar(
+            widgets=[
                 f"{self.caption}: ",
                 progressbar.Percentage(),
                 " ",
                 progressbar.Bar(),
                 " ",
                 progressbar.ETA(),
-            ]
-            pbar = progressbar.ProgressBar(widgets=widgets, max_value=self.count)
-            pbar.start()
-            for idx, item in enumerate(self.iterator):
-                yield item
-                # It's possible that we've exceeded the maxval, but instead
-                # of exploding on a ValueError, let's just cap it so we don't.
-                # this could happen if new rows were added between calculating `count()`
-                # and actually beginning iteration where we're iterating slightly more
-                # than we thought.
-                pbar.update(min(idx, self.count))
-            pbar.finish()
+            ],
+            max_value=self.count,
+            # The default update interval is every 0.1s,
+            # which for large migrations would easily logspam GoCD.
+            min_poll_interval=10,
+        )
+        pbar.start()
+        for idx, item in enumerate(self.iterator):
+            yield item
+            # It's possible that we've exceeded the maxval, but instead
+            # of exploding on a ValueError, let's just cap it so we don't.
+            # this could happen if new rows were added between calculating `count()`
+            # and actually beginning iteration where we're iterating slightly more
+            # than we thought.
+            pbar.update(min(idx, self.count))
+        pbar.finish()
 
 
 def bulk_delete_objects(
@@ -225,12 +271,12 @@ def bulk_delete_objects(
         if column.endswith("__in"):
             column, _ = column.split("__")
             query.append(f"{quote_name(column)} = ANY(%s)")
-            params.append(value)
+            params.append(list(value))
         else:
             query.append(f"{quote_name(column)} = %s")
             params.append(value)
 
-    query = """
+    query_s = """
         delete from %(table)s
         where %(partition_query)s id = any(array(
             select id
@@ -246,7 +292,7 @@ def bulk_delete_objects(
     )
 
     cursor = connection.cursor()
-    cursor.execute(query, params)
+    cursor.execute(query_s, params)
 
     has_more = cursor.rowcount > 0
 

@@ -1,22 +1,17 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.db import IntegrityError
-from django.http import Http404
-from rest_framework.request import Request
-from rest_framework.response import Response
+import logging
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.integrations.utils import get_identity_or_404
-from sentry.models import Identity
-from sentry.types.integrations import ExternalProviders
-from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
-from sentry.web.frontend.base import BaseView
-from sentry.web.helpers import render_to_response
-
-from ..utils import logger, send_slack_response
-from . import build_linking_url as base_build_linking_url
-from . import never_cache
+from sentry.integrations.messaging.linkage import UnlinkIdentityView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.utils.notifications import SlackCommandResponse
+from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
+from sentry.integrations.slack.views.linkage import SlackIdentityLinkageView
+from sentry.web.frontend.base import control_silo_view
 
 SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sentry account."
+
+_logger = logging.getLogger(__name__)
 
 
 def build_unlinking_url(
@@ -31,41 +26,20 @@ def build_unlinking_url(
     )
 
 
-class SlackUnlinkIdentityView(BaseView):
-    @transaction_start("SlackUnlinkIdentityView")
-    @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
-        try:
-            params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
-            return render_to_response(
-                "sentry/integrations/slack/expired-link.html",
-                request=request,
-            )
+@control_silo_view
+class SlackUnlinkIdentityView(SlackIdentityLinkageView, UnlinkIdentityView):
+    """
+    Django view for unlinking user from slack account. Deletes from Identity table.
+    """
 
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.SLACK,
-            request.user,
-            integration_id=params["integration_id"],
-        )
+    @property
+    def command_response(self) -> SlackCommandResponse:
+        return SlackCommandResponse("unlink", SUCCESS_UNLINKED_MESSAGE, "slack.unlink-identity")
 
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-unlink-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
-
-        try:
-            Identity.objects.filter(idp=idp, external_id=params["slack_id"]).delete()
-        except IntegrityError:
-            logger.exception("slack.unlink.integrity-error")
-            raise Http404
-
-        send_slack_response(integration, SUCCESS_UNLINKED_MESSAGE, params, command="unlink")
-
-        return render_to_response(
-            "sentry/integrations/slack/unlinked.html",
-            request=request,
-            context={"channel_id": params["channel_id"], "team_id": integration.external_id},
-        )
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        if integration is None:
+            raise ValueError
+        context = {"channel_id": params["channel_id"], "team_id": integration.external_id}
+        return "sentry/integrations/slack/unlinked.html", context

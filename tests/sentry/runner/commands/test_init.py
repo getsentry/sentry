@@ -1,7 +1,7 @@
 import os
 
 from sentry.runner.commands.init import init
-from sentry.testutils import CliTestCase
+from sentry.testutils.cases import CliTestCase
 
 
 class InitTest(CliTestCase):

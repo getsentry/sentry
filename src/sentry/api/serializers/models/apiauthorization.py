@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ApiAuthorization
+from sentry.models.apiauthorization import ApiAuthorization
 
 
 @register(ApiAuthorization)
 class ApiAuthorizationSerializer(Serializer):
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, **kwargs):
         apps = {
             d["id"]: d
             for d in serialize({i.application for i in item_list if i.application_id}, user)
@@ -17,7 +17,7 @@ class ApiAuthorizationSerializer(Serializer):
             }
         return attrs
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "scopes": obj.get_scopes(),

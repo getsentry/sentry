@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.utils import ErrorList
-from django.utils.encoding import force_text
-from django.utils.translation import ugettext_lazy as _
+from django.utils.encoding import force_str
+from django.utils.translation import gettext_lazy as _
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 from requests.exceptions import SSLError
 
@@ -43,7 +43,7 @@ def process_xml(form):
 
 
 class URLMetadataForm(forms.Form):
-    metadata_url = forms.URLField(label="Metadata URL")
+    metadata_url = forms.URLField(label="Metadata URL", assume_scheme="https")
     processor = process_url
 
 
@@ -54,8 +54,8 @@ class XMLMetadataForm(forms.Form):
 
 class SAMLForm(forms.Form):
     entity_id = forms.CharField(label="Entity ID")
-    sso_url = forms.URLField(label="Single Sign On URL")
-    slo_url = forms.URLField(label="Single Log Out URL", required=False)
+    sso_url = forms.URLField(label="Single Sign On URL", assume_scheme="https")
+    slo_url = forms.URLField(label="Single Log Out URL", required=False, assume_scheme="https")
     x509cert = forms.CharField(label="x509 public certificate", widget=forms.Textarea)
     processor = lambda d: d.cleaned_data
 
@@ -87,7 +87,7 @@ def process_metadata(form_cls, request, helper):
     saml_form = SAMLForm(data)
     if not saml_form.is_valid():
         field_errors = [
-            "{}: {}".format(k, ", ".join(force_text(i) for i in v))
+            "{}: {}".format(k, ", ".join(force_str(i) for i in v))
             for k, v in saml_form.errors.items()
         ]
         error_list = ", ".join(field_errors)

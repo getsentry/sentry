@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -9,15 +13,15 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 
 TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupTombstone(Model):
-    __include_in_export__ = False
+    __relocation_scope__ = RelocationScope.Excluded
 
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")
@@ -28,7 +32,9 @@ class GroupTombstone(Model):
     )
     message = models.TextField()
     culprit = models.CharField(max_length=MAX_CULPRIT_LENGTH, blank=True, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     actor_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:

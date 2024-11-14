@@ -10,12 +10,14 @@ type Props = {
   avatar?: React.ReactNode;
 };
 
-const ShortId = ({shortId, avatar}: Props) => (
-  <Wrapper>
-    <AvatarWrapper>{avatar}</AvatarWrapper>
-    <IdWrapper>{shortId}</IdWrapper>
-  </Wrapper>
-);
+function ShortId({shortId, avatar}: Props) {
+  return (
+    <Wrapper>
+      <AvatarWrapper>{avatar}</AvatarWrapper>
+      <IdWrapper>{shortId}</IdWrapper>
+    </Wrapper>
+  );
+}
 
 export default ShortId;
 
@@ -35,5 +37,4 @@ const IdWrapper = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 1px;
 `;

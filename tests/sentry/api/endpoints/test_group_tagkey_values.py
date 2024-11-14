@@ -1,18 +1,21 @@
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from datetime import timedelta
+from unittest import mock
+
+from django.utils import timezone
+
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
-@region_silo_test(stable=True)
-class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
+    @mock.patch("sentry.analytics.record")
+    def test_simple(self, mock_record):
         key, value = "foo", "bar"
 
         project = self.create_project()
 
         event = self.store_event(
-            data={"tags": {key: value}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {key: value}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         group = event.group
@@ -28,31 +31,23 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         assert response.data[0]["value"] == "bar"
 
+        mock_record.assert_called_with(
+            "eventuser_endpoint.request",
+            project_id=project.id,
+            endpoint="sentry.api.endpoints.group_tagkey_values.get",
+        )
+
     def test_simple_perf(self):
         key, value = "foo", "bar"
-
-        transaction_event_data = {
-            "message": "hello",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        event = self.store_event(
-            data={
-                **transaction_event_data,
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
-                "tags": {key: value},
-                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            },
-            project_id=self.project.id,
+        event = self.create_performance_issue(
+            tags=[[key, value]],
+            fingerprint="group1",
+            contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
 
         self.login_as(user=self.user)
 
-        url = f"/api/0/issues/{event.groups[0].id}/tags/{key}/values/"
+        url = f"/api/0/issues/{event.group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 
@@ -63,6 +58,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_user_tag(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "user": {
@@ -71,7 +68,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -91,6 +88,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_tag_value_with_backslash(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "message": "minidumpC:\\Users\\test",
@@ -100,7 +99,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=5)),
+                "timestamp": before_now(seconds=5).isoformat(),
                 "tags": {"message": "minidumpC:\\Users\\test"},
             },
             project_id=project.id,
@@ -122,6 +121,8 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
     def test_count_sort(self):
         project = self.create_project()
+        project.date_added = timezone.now() - timedelta(minutes=10)
+        project.save()
         event = self.store_event(
             data={
                 "message": "message 1",
@@ -132,7 +133,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -146,7 +147,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                     "username": "foo",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )
@@ -160,7 +161,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                     "username": "bar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project.id,
         )

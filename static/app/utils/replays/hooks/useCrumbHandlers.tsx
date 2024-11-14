@@ -1,84 +1,124 @@
-import {useCallback} from 'react';
+import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type {NetworkSpan} from 'sentry/views/replays/types';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-function useCrumbHandlers(startTimestampMs: number = 0) {
-  const {
-    clearAllHighlights,
-    highlight,
-    removeHighlight,
-    setCurrentHoverTime,
-    setCurrentTime,
-  } = useReplayContext();
-  const {setActiveTab} = useActiveReplayTab();
-
-  const handleMouseEnter = useCallback(
-    (item: Crumb | NetworkSpan) => {
-      if (startTimestampMs) {
-        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
+type RecordType = {
+  offsetMs: number;
+  data?:
+    | Record<string, any>
+    | {
+        nodeId: number;
+        label?: string;
       }
+    | {
+        element: {
+          element: string;
+          target: string[];
+        };
+        label: string;
+      };
+};
 
-      if (item.data && 'nodeId' in item.data) {
-        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
-        // crumb to a tooltip
-        clearAllHighlights();
-        highlight({nodeId: item.data.nodeId, annotation: item.data.label});
-      }
+function getNodeIdAndLabel(record: RecordType) {
+  if (!record.data || typeof record.data !== 'object') {
+    return undefined;
+  }
+  const data = record.data;
+  if (
+    'element' in data &&
+    'target' in data.element &&
+    Array.isArray(data.element.target)
+  ) {
+    return {
+      selector: data.element.target.join(' '),
+      annotation: data.label,
+    };
+  }
+  if ('nodeId' in data) {
+    return {nodeIds: [data.nodeId], annotation: record.data.label};
+  }
+  if ('nodeIds' in data) {
+    return {nodeIds: data.nodeIds, annotation: record.data.label};
+  }
+  return undefined;
+}
+
+function useCrumbHandlers() {
+  const {replay, clearAllHighlights, addHighlight, removeHighlight, setCurrentTime} =
+    useReplayContext();
+  const [, setCurrentHoverTime] = useCurrentHoverTime();
+  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
+
+  const mouseEnterCallback = useRef<{
+    id: RecordType | null;
+    timeoutId: NodeJS.Timeout | null;
+  }>({
+    id: null,
+    timeoutId: null,
+  });
+
+  const onMouseEnter = useCallback(
+    (record: RecordType, nodeId?: number) => {
+      // This debounces the mouseEnter callback in unison with mouseLeave.
+      // We ensure the pointer remains over the target element before dispatching
+      // state events in order to minimize unnecessary renders. This helps during
+      // scrolling or mouse move events which would otherwise fire in rapid
+      // succession slowing down our app.
+      mouseEnterCallback.current.id = record;
+      mouseEnterCallback.current.timeoutId = setTimeout(() => {
+        if (startTimestampMs) {
+          setCurrentHoverTime(record.offsetMs);
+        }
+
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
+        if (metadata) {
+          // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+          // crumb to a tooltip
+          clearAllHighlights();
+          addHighlight(metadata);
+        }
+        mouseEnterCallback.current.id = null;
+        mouseEnterCallback.current.timeoutId = null;
+      }, 250);
     },
-    [setCurrentHoverTime, startTimestampMs, highlight, clearAllHighlights]
+    [setCurrentHoverTime, startTimestampMs, addHighlight, clearAllHighlights]
   );
 
-  const handleMouseLeave = useCallback(
-    (item: Crumb | NetworkSpan) => {
-      setCurrentHoverTime(undefined);
-
-      if (item.data && 'nodeId' in item.data) {
-        removeHighlight({nodeId: item.data.nodeId});
+  const onMouseLeave = useCallback(
+    (record: RecordType, nodeId?: number) => {
+      if (mouseEnterCallback.current.id === record) {
+        // If there is a mouseEnter callback queued and we're leaving the node
+        // just cancel the timeout.
+        if (mouseEnterCallback.current.timeoutId) {
+          clearTimeout(mouseEnterCallback.current.timeoutId);
+        }
+        mouseEnterCallback.current.id = null;
+        mouseEnterCallback.current.timeoutId = null;
+      } else {
+        setCurrentHoverTime(undefined);
+        const metadata = nodeId
+          ? {annotations: undefined, nodeIds: [nodeId]}
+          : getNodeIdAndLabel(record);
+        if (metadata) {
+          removeHighlight(metadata);
+        }
       }
     },
     [setCurrentHoverTime, removeHighlight]
   );
 
-  const handleClick = useCallback(
-    (crumb: Crumb | NetworkSpan) => {
-      if (crumb.timestamp !== undefined) {
-        setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs));
-      }
-
-      if (
-        crumb.data &&
-        'action' in crumb.data &&
-        crumb.data.action === 'largest-contentful-paint'
-      ) {
-        setActiveTab('dom');
-        return;
-      }
-
-      if ('type' in crumb) {
-        switch (crumb.type) {
-          case BreadcrumbType.NAVIGATION:
-            setActiveTab('network');
-            break;
-          case BreadcrumbType.UI:
-            setActiveTab('dom');
-            break;
-          default:
-            setActiveTab('console');
-            break;
-        }
-      }
-    },
-    [setCurrentTime, startTimestampMs, setActiveTab]
+  const onClickTimestamp = useCallback(
+    (record: RecordType) => setCurrentTime(record.offsetMs),
+    [setCurrentTime]
   );
 
   return {
-    handleMouseEnter,
-    handleMouseLeave,
-    handleClick,
+    onMouseEnter,
+    onMouseLeave,
+    onClickTimestamp,
   };
 }
 

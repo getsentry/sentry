@@ -5,10 +5,9 @@ import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.plugins.bases.issue2 import PluginError
-from sentry.testutils import PluginTestCase
+from sentry.exceptions import PluginError
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.bitbucket.plugin import BitbucketPlugin
-from social_auth.models import UserSocialAuth
 
 
 class BitbucketPluginTest(PluginTestCase):
@@ -39,9 +38,9 @@ class BitbucketPluginTest(PluginTestCase):
         )
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("repo", "maxbittker/newsdiffs", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -67,7 +66,7 @@ class BitbucketPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user,
             provider=self.plugin.auth_provider,
             extra_data={
@@ -82,7 +81,7 @@ class BitbucketPluginTest(PluginTestCase):
         assert self.plugin.create_issue(request, group, form_data) == 1
 
         request = responses.calls[-1].request
-        assert request.headers.get("Authorization", b"").startswith(b"OAuth ")
+        assert request.headers["Authorization"].startswith("OAuth ")
 
     @responses.activate
     def test_link_issue(self):
@@ -108,7 +107,7 @@ class BitbucketPluginTest(PluginTestCase):
 
         request.user = self.user
         self.login_as(self.user)
-        UserSocialAuth.objects.create(
+        self.create_usersocialauth(
             user=self.user,
             provider=self.plugin.auth_provider,
             extra_data={

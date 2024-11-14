@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -15,15 +14,15 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
@@ -36,7 +35,6 @@ type Props = {
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
   const location = useLocation();
-  const router = useRouter();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
   const api = useApi();
@@ -86,13 +84,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
           )}
         />
       </HeaderTitleLegend>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
-        utc={utc === 'true'}
-      >
+      <ChartZoom period={period} start={start} end={end} utc={utc === 'true'}>
         {zoomRenderProps => (
           <EventsRequest
             api={api}

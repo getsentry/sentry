@@ -1,5 +1,8 @@
-import {Commit, Repository, User} from 'sentry/types';
-import {EventData} from 'sentry/utils/discover/eventView';
+import {UserFixture} from 'sentry-fixture/user';
+
+import type {Commit, Repository} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
+import type {EventData} from 'sentry/utils/discover/eventView';
 
 export const defaultRow: EventData = {
   id: '6b43e285de834ec5b5fe30d62d549b20',
@@ -30,18 +33,18 @@ export const mockedCommit: Commit = {
   releases: [],
 };
 
-export const mockedUser1 = {
+export const mockedUser1 = UserFixture({
   id: '2',
   username: 'author456',
   ip_address: '192.168.1.1',
   email: 'author1@commit.com',
   name: 'Key Name',
-} as User;
+});
 
-export const mockedUser2 = {
+export const mockedUser2 = UserFixture({
   id: '3',
   username: 'author123',
   ip_address: '192.168.1.3',
   email: 'author2@commit.com',
   name: 'Value Name',
-} as User;
+});

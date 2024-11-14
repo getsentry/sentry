@@ -1,10 +1,10 @@
 from selenium.webdriver.common.by import By
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it
@@ -52,7 +52,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until(xpath="//button//span[contains(text(), 'New Token')]", timeout=3)
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can edit an existing integration
@@ -102,11 +102,13 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_remove_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
+        self.create_internal_integration_token(user=self.user, internal_integration=internal_app)
         url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 
         self.load_page(url)
 
         self.browser.click('[data-test-id="token-delete"]')
+        self.browser.click('[data-test-id="confirm-button"]')
         self.browser.wait_until(".ref-success")
 
         assert self.browser.find_element(
@@ -119,7 +121,9 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.load_page(url)
 
+        assert self.browser.element_exists('[aria-label="Generated token"]') is False
+
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.elements('[data-test-id="token-delete"]')) == 2
+        assert len(self.browser.elements('[aria-label="Generated token"]')) == 1

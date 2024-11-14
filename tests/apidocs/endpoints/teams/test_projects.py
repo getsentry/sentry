@@ -11,7 +11,10 @@ class TeamsProjectsDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-team-project-index",
-            kwargs={"organization_slug": self.organization.slug, "team_slug": team.slug},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "team_id_or_slug": team.slug,
+            },
         )
 
         self.login_as(user=self.user)
@@ -19,12 +22,5 @@ class TeamsProjectsDocs(APIDocsTestCase):
     def test_get(self):
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
-
-        self.validate_schema(request, response)
-
-    def test_post(self):
-        data = {"name": "foo"}
-        response = self.client.post(self.url, data)
-        request = RequestFactory().post(self.url, data)
 
         self.validate_schema(request, response)

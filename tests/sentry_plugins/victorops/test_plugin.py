@@ -1,11 +1,12 @@
 from functools import cached_property
 
+import orjson
 import responses
 
-from sentry.models import Rule
+from sentry.interfaces.base import Interface
+from sentry.models.rule import Rule
 from sentry.plugins.base import Notification
-from sentry.testutils import PluginTestCase
-from sentry.utils import json
+from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.victorops.plugin import VictorOpsPlugin
 
 SUCCESS = """{
@@ -14,12 +15,8 @@ SUCCESS = """{
 }"""
 
 
-class UnicodeTestInterface:
-    def __init__(self, title, body):
-        self.title = title
-        self.body = body
-
-    def to_string(self, event):
+class UnicodeTestInterface(Interface):
+    def to_string(self, event) -> str:
         return self.body
 
     def get_title(self):
@@ -71,17 +68,17 @@ class VictorOpsPluginTest(PluginTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 
         notification = Notification(event=event, rule=rule)
 
-        with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.notify(notification)
+        self.plugin.notify(notification)
 
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert {
             "message_type": "WARNING",
             "entity_id": group.id,
@@ -89,7 +86,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "monitoring_tool": "sentry",
             "state_message": 'Stacktrace\n-----------\n\nStacktrace (most recent call last):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nMessage\n-----------\n\nHello world',
             "timestamp": int(event.datetime.strftime("%s")),
-            "issue_url": "http://example.com/organizations/baz/issues/%s/" % group.id,
+            "issue_url": group.get_absolute_url(),
             "issue_id": group.id,
             "project_id": group.project.id,
         } == payload
@@ -100,7 +97,9 @@ class VictorOpsPluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         event.interfaces = {
-            "Message": UnicodeTestInterface("abcd\xde\xb4", "\xdc\xea\x80\x80abcd\xde\xb4")
+            "Message": UnicodeTestInterface(
+                title="abcd\xde\xb4", body="\xdc\xea\x80\x80abcd\xde\xb4"
+            )
         }
 
         description = self.plugin.build_description(event)

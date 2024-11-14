@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-type Props = {
+export interface EventDataSectionProps {
   children: React.ReactNode;
   /**
    * The title of the section
@@ -23,14 +22,14 @@ type Props = {
   actions?: React.ReactNode;
   className?: string;
   /**
-   * If the section has a guide associated to it, you may specify the guide
-   * target and it will wrap the title with a GuideAnchor
-   */
-  guideTarget?: string;
-  /**
    * A description shown in a QuestionTooltip
    */
   help?: React.ReactNode;
+  /**
+   * If true, user is able to hover overlay without it disappearing. (nice if
+   * you want the overlay to be interactive)
+   */
+  isHelpHoverable?: boolean;
   /**
    * Should the permalink be enabled for this section?
    *
@@ -41,7 +40,7 @@ type Props = {
    * Should the title be wrapped in a h3?
    */
   wrapTitle?: boolean;
-};
+}
 
 function scrollToSection(element: HTMLDivElement) {
   if (window.location.hash && element) {
@@ -70,25 +69,17 @@ export function EventDataSection({
   title,
   help,
   actions,
-  guideTarget,
   wrapTitle = true,
   showPermalink = true,
+  isHelpHoverable = false,
   ...props
-}: Props) {
-  let titleNode = wrapTitle ? <h3>{title}</h3> : title;
-
-  titleNode = guideTarget ? (
-    <GuideAnchor target={guideTarget} position="bottom">
-      {titleNode}
-    </GuideAnchor>
-  ) : (
-    titleNode
-  );
+}: EventDataSectionProps) {
+  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
-      {title && (
-        <SectionHeader id={type}>
+      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+        {title && (
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
@@ -100,11 +91,13 @@ export function EventDataSection({
             ) : (
               titleNode
             )}
-            {help && <QuestionTooltip size="xs" title={help} />}
+            {help && (
+              <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
+            )}
           </Title>
-          {actions && <ActionContainer>{actions}</ActionContainer>}
-        </SectionHeader>
-      )}
+        )}
+        {actions && <ActionContainer>{actions}</ActionContainer>}
+      </SectionHeader>
       <SectionContents>{children}</SectionContents>
     </DataSection>
   );
@@ -155,7 +148,7 @@ const SectionHeader = styled('div')`
   & h3 a {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   & h3 {
@@ -171,7 +164,7 @@ const SectionHeader = styled('div')`
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

@@ -1,42 +1,36 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import EventMessage from 'sentry/components/events/eventMessage';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconMute, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {getLocation, getMessage} from 'sentry/utils/events';
+import type {Event} from 'sentry/types/event';
+import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
+import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import EventTitleError from './eventTitleError';
 
-type Size = 'small' | 'normal';
-
-type Props = {
-  data: Event | Group | GroupTombstone;
+interface EventOrGroupHeaderProps {
+  data: Event | Group | GroupTombstoneHelper;
   organization: Organization;
-  className?: string;
-  /* is issue breakdown? */
-  grouping?: boolean;
+  eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
-  includeLink?: boolean;
   index?: number;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
-  size?: Size;
   source?: string;
-};
+}
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -47,49 +41,30 @@ function EventOrGroupHeader({
   organization,
   query,
   onClick,
-  className,
   hideIcons,
-  hideLevel,
-  includeLink = true,
-  size = 'normal',
-  grouping = false,
+  eventId,
   source,
-}: Props) {
+}: EventOrGroupHeaderProps) {
   const location = useLocation();
 
-  const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   function getTitleChildren() {
-    const {level, status, isBookmarked, hasSeen} = data as Group;
+    const {isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
-        {!hideLevel && level && (
-          <Tooltip
-            skipWrapper
-            disabled={level === 'unknown'}
-            title={tct('Error level: [level]', {level: capitalize(level)})}
-          >
-            <GroupLevel level={level} />
-          </Tooltip>
-        )}
-        {!hideIcons && status === 'ignored' && (
-          <IconWrapper>
-            <IconMute color="red400" />
-          </IconWrapper>
-        )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
-            <IconStar isSolid color="yellow400" />
+            <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={<EventTitleError />} mini>
           <StyledEventOrGroupTitle
             data={data}
-            organization={organization}
-            hasSeen={hasGroupingTreeUI && hasSeen === undefined ? true : hasSeen}
+            // hasSeen is undefined for GroupTombstone
+            hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
-            hasGuideAnchor={index === 0}
-            grouping={grouping}
+            query={query}
           />
         </ErrorBoundary>
       </Fragment>
@@ -97,63 +72,63 @@ function EventOrGroupHeader({
   }
 
   function getTitle() {
-    const orgId = organization.slug;
-
-    const {id, status} = data as Group;
-    const {eventID, groupID} = data as Event;
+    const {status} = data as Group;
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
     };
 
-    if (includeLink) {
+    if (isTombstone(data)) {
       return (
-        <GlobalSelectionLink
-          {...commonEleProps}
-          to={{
-            pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
-              eventID ? `events/${eventID}/` : ''
-            }`,
-            query: {
-              referrer: source || 'event-or-group-header',
-              query,
-              // This adds sort to the query if one was selected from the
-              // issues list page
-              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
-              // This appends _allp to the URL parameters if they have no
-              // project selected ("all" projects included in results). This is
-              // so that when we enter the issue details page and lock them to
-              // a project, we can properly take them back to the issue list
-              // page with no project selected (and not the locked project
-              // selected)
-              ...(location.query.project !== undefined ? {} : {_allp: 1}),
-            },
-          }}
-          onClick={onClick}
-        >
-          {getTitleChildren()}
-        </GlobalSelectionLink>
+        <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>
       );
     }
 
-    return <span {...commonEleProps}>{getTitleChildren()}</span>;
+    const to = createIssueLink({
+      organization,
+      data,
+      eventId,
+      referrer: source,
+      streamIndex: index,
+      location,
+      query,
+    });
+
+    if (hasNewLayout) {
+      return (
+        <NewTitleWithLink
+          {...commonEleProps}
+          to={to}
+          onClick={onClick}
+          data-issue-title-link
+        >
+          {getTitleChildren()}
+        </NewTitleWithLink>
+      );
+    }
+
+    return (
+      <TitleWithLink {...commonEleProps} to={to} onClick={onClick}>
+        {getTitleChildren()}
+      </TitleWithLink>
+    );
   }
 
   const eventLocation = getLocation(data);
-  const message = getMessage(data);
 
   return (
-    <div className={className} data-test-id="event-issue-header">
-      <Title size={size} hasGroupingTreeUI={hasGroupingTreeUI}>
-        {getTitle()}
-      </Title>
-      {eventLocation && <Location size={size}>{eventLocation}</Location>}
-      {message && (
-        <StyledTagAndMessageWrapper size={size}>
-          {message && <Message>{message}</Message>}
-        </StyledTagAndMessageWrapper>
-      )}
+    <div data-test-id="event-issue-header">
+      <Title extraMargin={hasNewLayout}>{getTitle()}</Title>
+      {eventLocation && !hasNewLayout ? <Location>{eventLocation}</Location> : null}
+      {!hasNewLayout ? (
+        <StyledEventMessage
+          data={data}
+          level={'level' in data ? data.level : undefined}
+          message={getMessage(data)}
+          type={data.type}
+          levelIndicatorSize="9px"
+        />
+      ) : null}
     </div>
   );
 }
@@ -165,39 +140,20 @@ const truncateStyles = css`
   white-space: nowrap;
 `;
 
-const getMargin = ({size}: {size: Size}) => {
-  if (size === 'small') {
-    return 'margin: 0;';
-  }
-
-  return 'margin: 0 0 5px';
-};
-
-const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
-  line-height: 1;
-  margin-bottom: ${space(0.25)};
+const Title = styled('div')<{extraMargin: boolean}>`
+  margin-bottom: ${p => (p.extraMargin ? space(0.75) : space(0.25))};
+  font-size: ${p => p.theme.fontSizeLarge};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
-    font-weight: 300;
+    font-weight: ${p => p.theme.fontWeightNormal};
     color: ${p => p.theme.subText};
   }
-  ${p =>
-    !p.hasGroupingTreeUI
-      ? css`
-          ${truncateStyles}
-        `
-      : css`
-          > a:first-child {
-            display: inline-flex;
-            min-height: ${space(3)};
-          }
-        `}
 `;
 
 const LocationWrapper = styled('div')`
   ${truncateStyles};
-  ${getMargin};
+  margin: 0 0 5px;
   direction: rtl;
   text-align: left;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -218,30 +174,33 @@ function Location(props) {
   );
 }
 
-const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
-  ${getMargin};
-  line-height: 1.2;
-`;
-
-const Message = styled('div')`
-  ${truncateStyles};
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledEventMessage = styled(EventMessage)`
+  margin: 0 0 5px;
+  gap: ${space(0.5)};
+  font-size: inherit;
 `;
 
 const IconWrapper = styled('span')`
   position: relative;
-  display: flex;
   margin-right: 5px;
 `;
 
-const GroupLevel = styled('div')<{level: Level}>`
-  position: absolute;
-  left: -1px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
+const TitleWithLink = styled(GlobalSelectionLink)`
+  display: inline-flex;
+  align-items: center;
+`;
 
-  background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
+const NewTitleWithLink = styled(GlobalSelectionLink)`
+  ${p => p.theme.overflowEllipsis};
+  color: ${p => p.theme.textColor};
+
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const TitleWithoutLink = styled('span')`
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default withOrganization(EventOrGroupHeader);

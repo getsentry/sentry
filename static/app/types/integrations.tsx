@@ -1,14 +1,16 @@
-import type {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
+  PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
+import type {PlatformKey} from './project';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -72,6 +74,7 @@ export enum RepositoryStatus {
 
 export type Repository = {
   dateCreated: string;
+  externalId: string;
   externalSlug: string;
   id: string;
   integrationId: string;
@@ -178,14 +181,13 @@ export interface CodecovResponse {
   lineCoverage?: LineCoverage[];
 }
 
-export type StacktraceLinkResult = {
+export interface StacktraceLinkResult {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
-};
+}
 
 export type StacktraceErrorMessage =
   | 'file_not_found'
@@ -247,8 +249,12 @@ export type SentryAppInstallation = {
   code?: string;
 };
 
-export type SentryAppComponent = {
-  schema: SentryAppSchemaStacktraceLink;
+export type SentryAppComponent<
+  Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
+    | SentryAppSchemaStacktraceLink
+    | SentryAppSchemaElement,
+> = {
+  schema: Schema;
   sentryApp: {
     avatars: Avatar[];
     name: string;
@@ -288,7 +294,8 @@ export type IntegrationInstallationStatus =
   | typeof INSTALLED
   | typeof NOT_INSTALLED
   | typeof PENDING
-  | typeof DISABLED_STATUS;
+  | typeof DISABLED_STATUS
+  | typeof PENDING_DELETION;
 
 type IntegrationDialog = {
   actionText: string;
@@ -309,9 +316,7 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<
-    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
-  >;
+  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
   configure_integration?: {
     title: string;
   };
@@ -350,16 +355,19 @@ export interface OrganizationIntegrationProvider extends BaseIntegrationProvider
   aspects: IntegrationAspects;
 }
 
-export interface Integration {
-  accountType: string;
-  domainName: string;
-  gracePeriodEnd: string;
-  icon: string;
+interface CommonIntegration {
+  accountType: string | null;
+  domainName: string | null;
+  gracePeriodEnd: string | null;
+  icon: string | null;
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+}
+
+export interface Integration extends CommonIntegration {
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -375,21 +383,12 @@ type ConfigData = {
   installationType?: string;
 };
 
-export type OrganizationIntegration = {
-  accountType: string | null;
+export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
   configOrganization: Field[];
-  domainName: string | null;
   externalId: string;
-  gracePeriodEnd: string;
-  icon: string | null;
-  id: string;
-  name: string;
   organizationId: string;
-  organizationIntegrationStatus: ObjectStatus;
-  provider: OrganizationIntegrationProvider;
-  status: ObjectStatus;
-};
+}
 
 // we include the configOrganization when we need it
 export interface IntegrationWithConfig extends Integration {
@@ -419,6 +418,16 @@ export type PlatformExternalIssue = {
   issueId: string;
   serviceType: string;
   webUrl: string;
+};
+
+export type ExternalIssue = {
+  description: string;
+  displayName: string;
+  id: string;
+  integrationKey: string;
+  integrationName: string;
+  key: string;
+  title: string;
 };
 
 /**
@@ -464,7 +473,6 @@ export type PluginNoProject = {
   name: string;
   shortName: string;
   slug: string;
-  // TODO(ts)
   status: string;
   type: string;
   altIsSentryApp?: boolean;
@@ -472,6 +480,12 @@ export type PluginNoProject = {
   deprecationDate?: string;
   description?: string;
   firstPartyAlternative?: string;
+  issue?: {
+    issue_id: string;
+    // TODO(TS): Label can be an object, unknown shape
+    label: string | any;
+    url: string;
+  };
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };
@@ -518,6 +532,11 @@ export type ServiceHook = {
  */
 export type CodeOwner = {
   codeMappingId: string;
+  /**
+   * Link to the CODEOWNERS file in source control
+   * 'unknown' if the api fails to fetch the file
+   */
+  codeOwnersUrl: string | 'unknown';
   dateCreated: string;
   dateUpdated: string;
   errors: {
@@ -532,6 +551,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {
@@ -575,17 +595,4 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   runtime: string;
   version: number;
-};
-
-export type SentryFunction = {
-  author: string;
-  code: string;
-  name: string;
-  slug: string;
-  env_variables?: Array<{
-    name: string;
-    value: string;
-  }>;
-  events?: string[];
-  overview?: string;
 };

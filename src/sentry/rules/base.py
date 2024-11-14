@@ -3,15 +3,20 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Callable, Dict, MutableMapping, Sequence, Type
+from collections.abc import Callable, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project, Rule
+from sentry.models.project import Project
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.types.condition_activity import ConditionActivity
 from sentry.types.rules import RuleFuture
+
+if TYPE_CHECKING:
+    from sentry.models.rule import Rule
 
 """
 Rules apply either before an event gets stored, or immediately after.
@@ -50,7 +55,7 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleBase(abc.ABC):
-    form_cls: Type[forms.Form] = None  # type: ignore
+    form_cls: type[forms.Form] = None  # type: ignore[assignment]
 
     logger = logging.getLogger("sentry.rules")
 
@@ -59,21 +64,17 @@ class RuleBase(abc.ABC):
         project: Project,
         data: MutableMapping[str, Any] | None = None,
         rule: Rule | None = None,
+        rule_fire_history: RuleFireHistory | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
         self.rule = rule
+        self.rule_fire_history = rule_fire_history
 
-    @property
-    @abc.abstractmethod
-    def id(self) -> str:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def label(self) -> str:
-        pass
+    id: ClassVar[str]
+    label: ClassVar[str]
+    rule_type: ClassVar[str]
 
     def is_enabled(self) -> bool:
         return True
@@ -82,10 +83,7 @@ class RuleBase(abc.ABC):
         return self.data.get(key, default)
 
     def get_form_instance(self) -> forms.Form:
-        data: MutableMapping[str, Any] | None = None
-        if self.had_data:
-            data = self.data
-        return self.form_cls(data)
+        return self.form_cls(self.data if self.had_data else None)
 
     def render_label(self) -> str:
         return self.label.format(**self.data)
@@ -105,11 +103,11 @@ class RuleBase(abc.ABC):
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
         return {}
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         raise NotImplementedError
 
@@ -121,8 +119,10 @@ class EventState:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        has_escalated: bool,
     ) -> None:
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.has_escalated = has_escalated

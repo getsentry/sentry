@@ -1,19 +1,28 @@
 import responses
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
-from sentry.models import ExternalIssue, GroupLink, Integration, Rule
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.models.grouplink import GroupLink
+from sentry.models.rule import Rule
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
+
+pytestmark = [requires_snuba]
 
 
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = JiraCreateTicketAction
 
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -23,7 +32,6 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.jira_rule = self.get_rule(
@@ -76,7 +84,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             content_type="application/json",
         )
 
-        results = list(self.jira_rule.after(event=event, state=self.get_state()))
+        results = list(self.jira_rule.after(event=event))
         assert len(results) == 1
 
         # Trigger rule callback
@@ -104,16 +112,11 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         data = self.create_issue_base(event)
 
         # Make assertions about what would be POSTed to api/2/issue.
+        assert data["fields"]["summary"] == "N+1 Query"
         assert (
-            data["fields"]["summary"]
-            == 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
-        )
-        assert (
-            "*Transaction Name* | db - SELECT `books_author`.`id`, `books_author`"
+            "*Offending Spans* | db - SELECT `books_author`.`id`, `books_author`"
             in data["fields"]["description"]
         )
-        assert data["fields"]["issuetype"]["id"] == "1"
-
         external_issue = ExternalIssue.objects.get(key="APP-123")
         assert external_issue
 
@@ -156,7 +159,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={"provider": self.integration.provider},
         )
 
-        results = list(self.jira_rule.after(event=event, state=self.get_state()))
+        results = list(self.jira_rule.after(event=event))
         assert len(results) == 1
         results[0].callback(event, futures=[])
 
@@ -178,8 +181,9 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == """Create a Jira issue in Jira Cloud with these """
 
     def test_render_label_without_integration(self):
-        deleted_id = self.integration.id
-        self.integration.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            deleted_id = self.integration.id
+            self.integration.delete()
 
         rule = self.get_rule(data={"integration": deleted_id})
 

@@ -3,7 +3,9 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -49,7 +51,7 @@ describe('commitRow', () => {
     expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
   });
 
-  it('renders invite flow for non associated users', () => {
+  it('renders invite flow for non associated users', async () => {
     const commit: Commit = {
       ...baseCommit,
       author: {
@@ -58,7 +60,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />, {context: TestStubs.routerContext()});
+    render(<CommitRow commit={commit} />);
     expect(
       screen.getByText(
         textWithMarkupMatcher(
@@ -67,9 +69,9 @@ describe('commitRow', () => {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByText(/Invite/));
+    await userEvent.click(screen.getByText(/Invite/));
 
-    // @ts-ignore we are mocking this import
+    // @ts-expect-error we are mocking this import
     expect(openInviteMembersModal.mock.calls[0][0].initialData[0].emails).toEqual(
       new Set(['author@commit.com'])
     );
@@ -89,7 +91,7 @@ describe('commitRow', () => {
     expect(screen.getByText(/ref\(commitRow\): refactor to fc/)).toBeInTheDocument();
   });
 
-  it('renders pull request', () => {
+  it('renders pull request', async () => {
     const commit: Commit = {
       ...baseCommit,
       pullRequest: {
@@ -108,6 +110,7 @@ describe('commitRow', () => {
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',
           externalSlug: 'org-slug',
+          externalId: '1',
         },
       },
     };
@@ -122,7 +125,7 @@ describe('commitRow', () => {
       'https://github.com/getsentry/sentry/pull/1'
     );
 
-    userEvent.click(pullRequestButton);
+    await userEvent.click(pullRequestButton);
     expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
   });
 });

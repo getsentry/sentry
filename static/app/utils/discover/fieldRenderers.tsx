@@ -1,46 +1,62 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
-import {IconDownload, IconPlay} from 'sentry/icons';
+import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatApdex} from 'sentry/utils/number/formatApdex';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
-import toArray from 'sentry/utils/toArray';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
+import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
@@ -102,7 +118,9 @@ type FieldFormatters = {
   duration: FieldFormatter;
   integer: FieldFormatter;
   number: FieldFormatter;
+  percent_change: FieldFormatter;
   percentage: FieldFormatter;
+  rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
 };
@@ -220,6 +238,17 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       );
     },
   },
+  rate: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+      return (
+        <NumberContainer>
+          {formatRate(data[field], unit as RateUnit, {minimumValue: 0.01})}
+        </NumberContainer>
+      );
+    },
+  },
   integer: {
     isSortable: true,
     renderFunc: (field, data) => (
@@ -240,7 +269,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatPercentage(data[field], undefined, {minimumValue: 0.0001})
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -269,8 +300,8 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
         : defined(data[field])
-        ? data[field]
-        : emptyValue;
+          ? data[field]
+          : emptyValue;
       if (isUrl(value)) {
         return (
           <Container>
@@ -280,7 +311,15 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           </Container>
         );
       }
-      return <Container>{nullableValue(value)}</Container>;
+
+      const content =
+        value && typeof value === 'string' ? (
+          <span title={value}>{nullableValue(value)}</span>
+        ) : (
+          nullableValue(value)
+        );
+
+      return <Container>{content}</Container>;
     },
   },
   array: {
@@ -288,6 +327,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
+    },
+  },
+  percent_change: {
+    isSortable: true,
+    renderFunc: (fieldName, data) => {
+      return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
 };
@@ -303,6 +348,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
   'error.handled': SpecialField;
@@ -314,6 +360,8 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.status_code': SpecialField;
+  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -339,6 +387,18 @@ const RightAlignedContainer = styled('span')`
 const SPECIAL_FIELDS: SpecialFields = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
+  'apdex()': {
+    sortField: 'apdex()',
+    renderFunc: data => {
+      const field = 'apdex()';
+
+      return (
+        <NumberContainer>
+          {typeof data[field] === 'number' ? formatApdex(data[field]) : emptyValue}
+        </NumberContainer>
+      );
+    },
+  },
   attachments: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
@@ -417,6 +477,17 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
+  span_id: {
+    sortField: 'span_id',
+    renderFunc: data => {
+      const spanId: string | unknown = data?.span_id;
+      if (typeof spanId !== 'string') {
+        return null;
+      }
+
+      return <Container>{getShortEventId(spanId)}</Container>;
+    },
+  },
   trace: {
     sortField: 'trace',
     renderFunc: data => {
@@ -452,13 +523,7 @@ const SPECIAL_FIELDS: SpecialFields = {
         return emptyValue;
       }
 
-      return (
-        <Container>
-          <Button size="xs">
-            <IconPlay size="xs" />
-          </Button>
-        </Container>
-      );
+      return <Container>{getShortEventId(replayId)}</Container>;
     },
   },
   'profile.id': {
@@ -525,7 +590,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 project = projects.find(p => p.slug === data.project);
               }
               return (
-                <ProjectBadge
+                <StyledProjectBadge
                   project={project ? project : {slug: data.project}}
                   avatarSize={16}
                 />
@@ -630,14 +695,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   team_key_transaction: {
     sortField: null,
     renderFunc: (data, {organization}) => (
-      <Container>
-        <TeamKeyTransactionField
-          isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
+      <TeamKeyTransactionField
+        isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
+        organization={organization}
+        projectSlug={data.project}
+        transactionName={data.transaction}
+      />
     ),
   },
   'trend_percentage()': {
@@ -672,6 +735,18 @@ const SPECIAL_FIELDS: SpecialFields = {
       </Container>
     ),
   },
+  'span.status_code': {
+    sortField: 'span.status_code',
+    renderFunc: data => (
+      <Container>
+        {data['span.status_code'] ? (
+          <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
+        ) : (
+          t('Unknown')
+        )}
+      </Container>
+    ),
+  },
 };
 
 type SpecialFunctionFieldRenderer = (
@@ -679,6 +754,7 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  time_spent_percentage: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -744,6 +820,17 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  time_spent_percentage: fieldName => data => {
+    const parsedFunction = parseFunction(fieldName);
+    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
+    return (
+      <TimeSpentCell
+        percentage={data[fieldName]}
+        total={data[`sum(${column})`]}
+        op={data[`span.op`]}
+      />
     );
   },
 };
@@ -862,16 +949,13 @@ export const spanOperationRelativeBreakdownRenderer = (
                   }
                   event.stopPropagation();
                   const filter = stringToFilter(operationName);
-                  if (filter === SpanOperationBreakdownFilter.None) {
+                  if (filter === SpanOperationBreakdownFilter.NONE) {
                     return;
                   }
-                  trackAdvancedAnalyticsEvent(
-                    'performance_views.relative_breakdown.selection',
-                    {
-                      action: filter,
-                      organization,
-                    }
-                  );
+                  trackAnalytics('performance_views.relative_breakdown.selection', {
+                    action: filter,
+                    organization,
+                  });
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {
@@ -912,6 +996,12 @@ const StyledLink = styled(Link)`
   max-width: 100%;
 `;
 
+const StyledProjectBadge = styled(ProjectBadge)`
+  ${BadgeDisplayName} {
+    max-width: 100%;
+  }
+`;
+
 /**
  * Get the field renderer for the named field and metadata
  *
@@ -934,7 +1024,7 @@ export function getFieldRenderer(
   }
 
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
@@ -968,7 +1058,7 @@ export function getFieldFormatter(
   isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

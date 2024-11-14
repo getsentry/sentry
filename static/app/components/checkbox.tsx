@@ -1,13 +1,19 @@
-import {useEffect, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
-import styled, {Interpolation} from '@emotion/styled';
+import {useLayoutEffect, useRef} from 'react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import type {Interpolation} from '@emotion/styled';
+import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
+  /**
+   * The background color of the filled in checkbox.
+   */
+  checkboxColor?: string;
   /**
    * Is the checkbox active? Supports 'indeterminate'
    */
@@ -34,25 +40,25 @@ const checkboxSizeMap: Record<FormSize, CheckboxConfig> = {
   md: {box: '22px', borderRadius: '6px', icon: '18px'},
 };
 
-const Checkbox = ({
+function Checkbox({
+  checkboxColor,
   className,
   inputCss,
   checked = false,
   size = 'sm',
   ...props
-}: Props) => {
+}: Props) {
   const checkboxRef = useRef<HTMLInputElement>(null);
 
-  // Support setting the indeterminate value, which is only possible through
-  // setting this attribute
-  useEffect(() => {
+  // indeterminate attribute can only be set through javascript
+  useLayoutEffect(() => {
     if (checkboxRef.current) {
       checkboxRef.current.indeterminate = checked === 'indeterminate';
     }
   }, [checked]);
 
   return (
-    <Wrapper {...{className, checked, size}}>
+    <Wrapper className={className} checked={checked} size={size}>
       <HiddenInput
         ref={checkboxRef}
         css={inputCss}
@@ -61,7 +67,7 @@ const Checkbox = ({
         {...props}
       />
 
-      <StyledCheckbox aria-hidden checked={checked} size={size}>
+      <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
         {checked === true && (
           <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
@@ -80,7 +86,7 @@ const Checkbox = ({
       )}
     </Wrapper>
   );
-};
+}
 
 const Wrapper = styled('div')<{checked: Props['checked']; size: FormSize}>`
   position: relative;
@@ -102,16 +108,16 @@ const HiddenInput = styled('input')`
   padding: 0;
   cursor: pointer;
 
-  &.focus-visible + * {
+  &:focus-visible + * {
     ${p =>
       p.checked
-        ? `
-        box-shadow: ${p.theme.focus} 0 0 0 3px;
-      `
-        : `
-        border-color: ${p.theme.focusBorder};
-        box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
-      `}
+        ? css`
+            box-shadow: ${p.theme.focus} 0 0 0 3px;
+          `
+        : css`
+            border-color: ${p.theme.focusBorder};
+            box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
+          `}
   }
 
   &:disabled + * {
@@ -130,6 +136,7 @@ const HiddenInput = styled('input')`
 const StyledCheckbox = styled('div')<{
   checked: Props['checked'];
   size: FormSize;
+  color?: Props['checkboxColor'];
 }>`
   position: relative;
   display: flex;
@@ -145,7 +152,7 @@ const StyledCheckbox = styled('div')<{
   ${p =>
     p.checked
       ? css`
-          background: ${p.theme.active};
+          background: ${p.color ?? p.theme.active};
           border: 0;
         `
       : css`

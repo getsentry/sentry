@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import parse_qs
 
 from rest_framework import status
@@ -33,6 +34,6 @@ class SlackCommandRequest(SlackDMRequest):
         if not self._data.get("team_id"):
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
-    def _validate_integration(self) -> None:
-        super()._validate_integration()
+    def validate_integration(self) -> None:
+        super().validate_integration()
         self._validate_identity()

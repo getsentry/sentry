@@ -5,18 +5,18 @@
     "operationId": "List a Project Release's Commits",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the release belongs to.",
+        "description": "The ID or slug of the organization the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the release belongs to.",
+        "description": "The ID or slug of the project the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"

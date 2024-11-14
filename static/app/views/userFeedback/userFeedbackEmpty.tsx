@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -7,27 +7,48 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
+  issueTab?: boolean;
   projectIds?: string[];
 };
 
-export function UserFeedbackEmpty({projectIds}: Props) {
+export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();
   const loadingProjects = !initiallyLoaded;
   const organization = useOrganization();
+  const location = useLocation();
 
-  const selectedProjects =
-    projectIds && projectIds.length
-      ? projects.filter(({id}) => projectIds.includes(id))
-      : projects;
+  const selectedProjects = projectIds?.length
+    ? projects.filter(({id}) => projectIds.includes(id))
+    : projects;
 
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
+  const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
+
+  const navigate = useNavigate();
+  const setProjId = useCallback(() => {
+    navigate({
+      pathname: location.pathname,
+      query: {...location.query, project: projectIds?.[0]},
+      hash: location.hash,
+    });
+  }, [location.hash, location.query, location.pathname, projectIds, navigate]);
+
+  useEffect(() => {
+    if (issueTab) {
+      setProjId();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     window.sentryEmbedCallback = function (embed) {
@@ -44,23 +65,22 @@ export function UserFeedbackEmpty({projectIds}: Props) {
 
     if (hasAnyFeedback === false) {
       // send to reload only due to higher event volume
-      trackAdhocEvent({
-        eventKey: 'user_feedback.viewed',
-        org_id: parseInt(organization.id, 10),
-        projects: projectIds,
+      trackAnalytics('user_feedback.viewed', {
+        organization,
+        projects: projectIds?.join(',') || '',
       });
     }
     return () => {
       window.sentryEmbedCallback = null;
     };
-  }, [hasAnyFeedback, organization.id, projectIds]);
+  }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
-    trackAnalyticsEvent({
-      eventKey,
-      eventName,
-      organization_id: organization.id,
-      projects: projectIds,
+  function trackAnalyticsInternal(
+    eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
+  ) {
+    trackAnalytics(eventKey, {
+      organization,
+      projects: selectedProjects?.join(','),
     });
   }
 
@@ -87,17 +107,12 @@ export function UserFeedbackEmpty({projectIds}: Props) {
       </p>
       <ButtonList gap={1}>
         <Button
-          external
           priority="primary"
-          onClick={() =>
-            trackAnalytics({
-              eventKey: 'user_feedback.docs_clicked',
-              eventName: 'User Feedback Docs Clicked',
-            })
-          }
-          href="https://docs.sentry.io/product/user-feedback/"
+          onClick={activateSidebarIssueDetails}
+          analyticsEventName="Clicked Feedback Onboarding Setup - Issue Details"
+          analyticsEventKey="feedback.issue-details-click-onboarding-setup"
         >
-          {t('Read the docs')}
+          {t('Set up now')}
         </Button>
         <Button
           onClick={() => {
@@ -105,11 +120,7 @@ export function UserFeedbackEmpty({projectIds}: Props) {
               // should never make it to the Sentry API, but just in case, use throwaway id
               eventId: '00000000000000000000000000000000',
             });
-
-            trackAnalytics({
-              eventKey: 'user_feedback.dialog_opened',
-              eventName: 'User Feedback Dialog Opened',
-            });
+            trackAnalyticsInternal('user_feedback.dialog_opened');
           }}
         >
           {t('See an example')}

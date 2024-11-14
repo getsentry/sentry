@@ -23,7 +23,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 
 function initializeData(settings) {
   const data = _initializeData(settings);
-  ProjectsStore.loadInitialData(data.organization.projects);
+  ProjectsStore.loadInitialData(data.projects);
   return data;
 }
 
@@ -50,7 +50,7 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -61,7 +61,7 @@ describe('TraceView', () => {
       expect(screen.queryByTestId('span-row-3')).not.toBeInTheDocument();
     });
 
-    it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
+    it('should expand grouped siblings when clicked, async and then regroup when clicked again', async () => {
       const builder = new TransactionEventBuilder();
 
       builder.addSpan(
@@ -74,14 +74,14 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
       );
 
       const groupedSiblingsSpan = await screen.findByText('Autogrouped — http —');
-      userEvent.click(groupedSiblingsSpan);
+      await userEvent.click(groupedSiblingsSpan);
 
       await waitFor(() =>
         expect(screen.queryByText('Autogrouped — http —')).not.toBeInTheDocument()
@@ -93,7 +93,7 @@ describe('TraceView', () => {
 
       const regroupButton = await screen.findByText('Regroup');
       expect(regroupButton).toBeInTheDocument();
-      userEvent.click(regroupButton);
+      await userEvent.click(regroupButton);
 
       await waitFor(() =>
         expect(screen.queryByTestId('span-row-6')).not.toBeInTheDocument()
@@ -132,7 +132,7 @@ describe('TraceView', () => {
         })
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -153,7 +153,7 @@ describe('TraceView', () => {
 
       builder.addSpan(span);
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -163,7 +163,7 @@ describe('TraceView', () => {
       expect(grouped).toBeInTheDocument();
     });
 
-    it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
+    it('should expand/collapse only the sibling group that is clicked, async even if multiple groups have the same op and description', async () => {
       const builder = new TransactionEventBuilder();
 
       builder.addSpan(
@@ -195,7 +195,7 @@ describe('TraceView', () => {
         5
       );
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TraceView organization={data.organization} waterfallModel={waterfallModel} />
@@ -204,19 +204,19 @@ describe('TraceView', () => {
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
       const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
-      userEvent.click(firstGroup);
+      await userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
       const secondGroup = await screen.findByText('Autogrouped — http —');
-      userEvent.click(secondGroup);
+      await userEvent.click(secondGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
       const firstRegroup = screen.queryAllByText('Regroup')[0];
-      userEvent.click(firstRegroup);
+      await userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
       const secondRegroup = await screen.findByText('Regroup');
-      userEvent.click(secondRegroup);
+      await userEvent.click(secondRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(2);
     });
 
@@ -237,23 +237,26 @@ describe('TraceView', () => {
       const mockResponse = {
         method: 'GET',
         statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-        ],
+        body: {
+          transactions: [
+            event,
+            {
+              errors: [],
+              event_id: '998d7e2c304c45729545e4434e2967cb',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: '8596e2795f88471d',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'http.server',
+            },
+          ],
+          orphan_errors: [],
+        },
       };
 
       const eventsTraceMock = MockApiClient.addMockResponse({
@@ -306,7 +309,7 @@ describe('TraceView', () => {
         'embedded-transaction-badge'
       );
       expect(embeddedTransactionBadge).toBeInTheDocument();
-      userEvent.click(embeddedTransactionBadge);
+      await userEvent.click(embeddedTransactionBadge);
       expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
       expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
     });
@@ -327,37 +330,40 @@ describe('TraceView', () => {
       const mockResponse = {
         method: 'GET',
         statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-          {
-            errors: [],
-            event_id: '59e1fe369528499b87dab7221ce6b8a9',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: 'aa5abb302ad5b9e1',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'middleware.nextjs',
-          },
-        ],
+        body: {
+          transactions: [
+            event,
+            {
+              errors: [],
+              event_id: '998d7e2c304c45729545e4434e2967cb',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: '8596e2795f88471d',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'http.server',
+            },
+            {
+              errors: [],
+              event_id: '59e1fe369528499b87dab7221ce6b8a9',
+              generation: 1,
+              parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+              parent_span_id: 'b000000000000000',
+              project_id: project.id,
+              project_slug: project.slug,
+              span_id: 'aa5abb302ad5b9e1',
+              transaction:
+                '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+              'transaction.duration': 159,
+              'transaction.op': 'middleware.nextjs',
+            },
+          ],
+          orphan_errors: [],
+        },
       };
 
       const eventsTraceMock = MockApiClient.addMockResponse({
@@ -433,7 +439,7 @@ describe('TraceView', () => {
         'embedded-transaction-badge'
       );
       expect(embeddedTransactionBadge).toBeInTheDocument();
-      userEvent.click(embeddedTransactionBadge);
+      await userEvent.click(embeddedTransactionBadge);
       expect(fetchEmbeddedTransactionMock1).toHaveBeenCalled();
       expect(fetchEmbeddedTransactionMock2).toHaveBeenCalled();
       expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
@@ -457,7 +463,7 @@ describe('TraceView', () => {
       const {rerender} = render(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder1.getEvent())}
+          waterfallModel={new WaterfallModel(builder1.getEventFixture())}
         />
       );
       expect(await screen.findByTestId('span-row-2')).toHaveTextContent(
@@ -478,7 +484,7 @@ describe('TraceView', () => {
       rerender(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder2.getEvent())}
+          waterfallModel={new WaterfallModel(builder2.getEventFixture())}
         />
       );
 
@@ -499,7 +505,7 @@ describe('TraceView', () => {
       rerender(
         <TraceView
           organization={data.organization}
-          waterfallModel={new WaterfallModel(builder3.getEvent())}
+          waterfallModel={new WaterfallModel(builder3.getEventFixture())}
         />
       );
 
@@ -525,7 +531,7 @@ describe('TraceView', () => {
       // Manually set the hash here, the AnchorLinkManager is expected to automatically expand the group and scroll to the span with this id
       location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
@@ -553,7 +559,7 @@ describe('TraceView', () => {
 
       location.hash = spanTargetHash('0000000000000003');
 
-      const waterfallModel = new WaterfallModel(builder.getEvent());
+      const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
         <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>

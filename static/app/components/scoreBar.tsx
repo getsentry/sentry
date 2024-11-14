@@ -13,7 +13,7 @@ type Props = {
   vertical?: boolean;
 };
 
-const BaseScoreBar = ({
+function BaseScoreBar({
   score,
   className,
   vertical,
@@ -22,7 +22,7 @@ const BaseScoreBar = ({
   radius = 3,
   palette = theme.similarity.colors,
   ...props
-}: Props) => {
+}: Props) {
   const maxScore = palette.length;
 
   // Make sure score is between 0 and maxScore
@@ -48,7 +48,7 @@ const BaseScoreBar = ({
       ))}
     </div>
   );
-};
+}
 
 const ScoreBar = styled(BaseScoreBar)`
   display: flex;

@@ -1,10 +1,12 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -37,13 +39,13 @@ export const COLUMN_TITLES = [
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
-  if (organization?.features?.includes('performance-landing-page-stats-period')) {
+  if (organization.features.includes('performance-landing-page-stats-period')) {
     return '14d';
   }
   return DEFAULT_STATS_PERIOD;
 };
 
-export enum PERFORMANCE_TERM {
+export enum PerformanceTerm {
   TPM = 'tpm',
   THROUGHPUT = 'throughput',
   FAILURE_RATE = 'failureRate',
@@ -67,6 +69,12 @@ export enum PERFORMANCE_TERM {
   MOST_ISSUES = 'mostIssues',
   MOST_ERRORS = 'mostErrors',
   SLOW_HTTP_SPANS = 'slowHTTPSpans',
+  TIME_TO_FULL_DISPLAY = 'timeToFullDisplay',
+  TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
+  MOST_TIME_SPENT_DB_QUERIES = 'mostTimeSpentDbQueries',
+  MOST_TIME_CONSUMING_RESOURCES = 'mostTimeConsumingResources',
+  MOST_TIME_CONSUMING_DOMAINS = 'mostTimeConsumingDomains',
+  HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highestCacheMissRateTransactions',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -76,32 +84,32 @@ export type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: Organization): TooltipOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       value: 'apdex()',
       label: t('Apdex'),
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+      tooltip: getTermHelp(organization, PerformanceTerm.P50),
       value: 'p50()',
       label: t('p50 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
+      tooltip: getTermHelp(organization, PerformanceTerm.P95),
       value: 'p95()',
       label: t('p95 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
+      tooltip: getTermHelp(organization, PerformanceTerm.P99),
       value: 'p99()',
       label: t('p99 Duration'),
     },
@@ -120,27 +128,27 @@ export type AxisOption = TooltipOption & {
 export function getFrontendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
+      tooltip: getTermHelp(organization, PerformanceTerm.LCP),
       value: `p75(lcp)`,
       label: t('LCP p75'),
       field: 'p75(measurements.lcp)',
       isLeftDefault: true,
       backupOption: {
-        tooltip: getTermHelp(organization, PERFORMANCE_TERM.FCP),
+        tooltip: getTermHelp(organization, PerformanceTerm.FCP),
         value: `p75(fcp)`,
         label: t('FCP p75'),
         field: 'p75(measurements.fcp)',
       },
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       value: 'lcp_distribution',
       label: t('LCP Distribution'),
       field: 'measurements.lcp',
       isDistribution: true,
       isRightDefault: true,
       backupOption: {
-        tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+        tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
         value: 'fcp_distribution',
         label: t('FCP Distribution'),
         field: 'measurements.fcp',
@@ -148,7 +156,7 @@ export function getFrontendAxisOptions(organization: Organization): AxisOption[]
       },
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
       field: 'tpm()',
@@ -159,26 +167,26 @@ export function getFrontendAxisOptions(organization: Organization): AxisOption[]
 export function getFrontendOtherAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+      tooltip: getTermHelp(organization, PerformanceTerm.P50),
       value: `p50()`,
       label: t('Duration p50'),
       field: 'p50(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      tooltip: getTermHelp(organization, PerformanceTerm.P75),
       value: `p75()`,
       label: t('Duration p75'),
       field: 'p75(transaction.duration)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
+      tooltip: getTermHelp(organization, PerformanceTerm.P95),
       value: `p95()`,
       label: t('Duration p95'),
       field: 'p95(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
       field: 'transaction.duration',
@@ -191,44 +199,44 @@ export function getFrontendOtherAxisOptions(organization: Organization): AxisOpt
 export function getBackendAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+      tooltip: getTermHelp(organization, PerformanceTerm.P50),
       value: `p50()`,
       label: t('Duration p50'),
       field: 'p50(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      tooltip: getTermHelp(organization, PerformanceTerm.P75),
       value: `p75()`,
       label: t('Duration p75'),
       field: 'p75(transaction.duration)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
+      tooltip: getTermHelp(organization, PerformanceTerm.P95),
       value: `p95()`,
       label: t('Duration p95'),
       field: 'p95(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
+      tooltip: getTermHelp(organization, PerformanceTerm.P99),
       value: `p99()`,
       label: t('Duration p99'),
       field: 'p99(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
       field: 'tpm()',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
       field: 'failure_rate()',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
       field: 'transaction.duration',
@@ -236,7 +244,7 @@ export function getBackendAxisOptions(organization: Organization): AxisOption[] 
       isRightDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       value: 'apdex()',
       label: t('Apdex'),
       field: 'apdex()',
@@ -247,32 +255,32 @@ export function getBackendAxisOptions(organization: Organization): AxisOption[] 
 export function getMobileAxisOptions(organization: Organization): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       value: `p50(measurements.app_start_cold)`,
       label: t('Cold Start Duration p50'),
       field: 'p50(measurements.app_start_cold)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       value: `p75(measurements.app_start_cold)`,
       label: t('Cold Start Duration p75'),
       field: 'p75(measurements.app_start_cold)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       value: `p95(measurements.app_start_cold)`,
       label: t('Cold Start Duration p95'),
       field: 'p95(measurements.app_start_cold)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       value: `p99(measurements.app_start_cold)`,
       label: t('Cold Start Duration p99'),
       field: 'p99(measurements.app_start_cold)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       value: 'app_start_cold_distribution',
       label: t('Cold Start Distribution'),
       field: 'measurements.app_start_cold',
@@ -280,44 +288,44 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
       isRightDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       value: `p50(measurements.app_start_warm)`,
       label: t('Warm Start Duration p50'),
       field: 'p50(measurements.app_start_warm)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       value: `p75(measurements.app_start_warm)`,
       label: t('Warm Start Duration p75'),
       field: 'p75(measurements.app_start_warm)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       value: `p95(measurements.app_start_warm)`,
       label: t('Warm Start Duration p95'),
       field: 'p95(measurements.app_start_warm)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       value: `p99(measurements.app_start_warm)`,
       label: t('Warm Start Duration p99'),
       field: 'p99(measurements.app_start_warm)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      tooltip: getTermHelp(organization, PerformanceTerm.DURATION_DISTRIBUTION),
       value: 'app_start_warm_distribution',
       label: t('Warm Start Distribution'),
       field: 'measurements.app_start_warm',
       isDistribution: true,
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      tooltip: getTermHelp(organization, PerformanceTerm.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
       field: 'tpm()',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
       field: 'failure_rate()',
@@ -327,7 +335,7 @@ export function getMobileAxisOptions(organization: Organization): AxisOption[] {
 
 type TermFormatter = (organization: Organization) => string;
 
-export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
+export const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
@@ -375,11 +383,25 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   frozenFrames: () => t('The count of the number of frozen frames in the transaction.'),
   mostErrors: () => t('Transactions with the most associated errors.'),
   mostIssues: () => t('The most instances of an issue for a related transaction.'),
+  mostTimeSpentDbQueries: () =>
+    t('Database spans on which the application spent most of its total time.'),
+  mostTimeConsumingResources: () =>
+    t('Render blocking resources on which the application spent most of its total time.'),
+  mostTimeConsumingDomains: () =>
+    t('Outgoing HTTP domains on which the application spent most of its total time.'),
+  highestCacheMissRateTransactions: () =>
+    t('Transactions with the highest cache miss rate.'),
   slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
   stallPercentage: () =>
     t(
       'The percentage of the transaction duration in which the application is in a stalled state.'
     ),
+  timeToFullDisplay: () =>
+    t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+  timeToInitialDisplay: () =>
+    t('The time it takes for an application to produce its first frame'),
 };
 
 export function getTermHelp(
@@ -392,7 +414,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   const conditions = new MutableSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
@@ -416,7 +438,7 @@ function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   return conditions.formatString();
 }
 
-function generateGenericPerformanceEventView(
+export function generateGenericPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -466,7 +488,10 @@ function generateGenericPerformanceEventView(
     // projects and projectIds are not necessary here since trendParameter will always
     // be present in location and will not be determined based on the project type
     const trendParameter = getCurrentTrendParameter(location, [], []);
-    if (WEB_VITAL_DETAILS[trendParameter.column]) {
+    if (
+      WEB_VITAL_DETAILS[trendParameter.column] &&
+      !organization.features.includes('performance-new-trends')
+    ) {
       eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
     }
   }
@@ -474,7 +499,7 @@ function generateGenericPerformanceEventView(
   return eventView;
 }
 
-function generateBackendPerformanceEventView(
+export function generateBackendPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -483,10 +508,10 @@ function generateBackendPerformanceEventView(
 
   const fields = [
     'team_key_transaction',
-    'transaction',
-    'project',
-    'transaction.op',
     'http.method',
+    'transaction',
+    'transaction.op',
+    'project',
     'tpm()',
     'p50()',
     'p95()',
@@ -526,7 +551,7 @@ function generateBackendPerformanceEventView(
   return eventView;
 }
 
-function generateMobilePerformanceEventView(
+export function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
@@ -538,12 +563,15 @@ function generateMobilePerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
   ];
+  if (organization.features.includes('mobile-vitals')) {
+    fields.push('p75(measurements.time_to_initial_display)');
+  }
 
   // At this point, all projects are mobile projects.
   // If in addition to that, all projects are react-native projects,
@@ -641,7 +669,7 @@ function generateFrontendPageloadPerformanceEventView(
   return eventView;
 }
 
-function generateFrontendOtherPerformanceEventView(
+export function generateFrontendOtherPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -651,8 +679,8 @@ function generateFrontendOtherPerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p50(transaction.duration)',
     'p75(transaction.duration)',

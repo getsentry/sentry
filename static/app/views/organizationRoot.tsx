@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 
 import {setActiveProject} from 'sentry/actionCreators/projects';
 
-type Props = {children: React.ReactChildren};
+type Props = {children: React.ReactNode};
 
 /**
  * This is the parent container for organization-level views such

@@ -1,43 +1,115 @@
-import {Span} from '@sentry/types';
+import * as Sentry from '@sentry/react';
+import type {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import {CallTreeNode} from '../callTreeNode';
+import type {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 
-export function createSentrySampleProfileFrameIndex(
-  frames: Profiling.SentrySampledProfile['profile']['frames']
+export function createContinuousProfileFrameIndex(
+  frames: Profiling.SentryContinousProfileChunk['profile']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
 ): FrameIndex {
-  const frameIndex: FrameIndex = {};
+  const index: FrameIndex = {};
+  const insertionCache: Record<string, Frame> = {};
+  let idx = -1;
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i];
+    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
+      String(frame.lineno) ?? ''
+    }:${frame.instruction_addr ?? ''}`;
 
-    frameIndex[i] = new Frame({
-      key: i,
-      name: frame.function ?? 'unknown',
-      line: frame.lineno,
-      column: frame.colno,
-    });
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
+      continue;
+    }
+
+    const f = new Frame(
+      {
+        key: i,
+        is_application: frame.in_app,
+        file: frame.filename,
+        path: frame.abs_path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.function ?? 'unknown',
+        line: frame.lineno,
+        column: frame.colno ?? frame?.col ?? frame?.column,
+        instructionAddr: frame.instruction_addr,
+        symbol: frame.symbol,
+        symbolAddr: frame.sym_addr,
+        symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
   }
 
-  return frameIndex;
+  return index;
+}
+
+export function createSentrySampleProfileFrameIndex(
+  frames: Profiling.SentrySampledProfile['profile']['frames'],
+  platform: 'mobile' | 'node' | 'javascript' | string
+): FrameIndex {
+  const index: FrameIndex = {};
+  const insertionCache: Record<string, Frame> = {};
+  let idx = -1;
+
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i];
+    const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
+      String(frame.lineno) ?? ''
+    }:${frame.instruction_addr ?? ''}`;
+
+    const existing = insertionCache[frameKey];
+    if (existing) {
+      index[++idx] = existing;
+      continue;
+    }
+
+    const f = new Frame(
+      {
+        key: i,
+        is_application: frame.in_app,
+        file: frame.filename,
+        path: frame.abs_path,
+        module: frame.module,
+        package: frame.package,
+        name: frame.function ?? 'unknown',
+        line: frame.lineno,
+        column: frame.colno ?? frame?.col ?? frame?.column,
+        instructionAddr: frame.instruction_addr,
+        symbol: frame.symbol,
+        symbolAddr: frame.sym_addr,
+        symbolicatorStatus: frame.status,
+      },
+      platform
+    );
+    index[++idx] = f;
+    insertionCache[frameKey] = f;
+  }
+
+  return index;
 }
 
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<Profiling.Schema['shared']['frames']>
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<JSSelfProfiling.Frame[]>,
   trace: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex;
 export function createFrameIndex(
-  type: 'mobile' | 'node' | 'web',
+  type: 'mobile' | 'node' | 'javascript',
   frames: Readonly<Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[]>,
   trace?: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex {
@@ -52,7 +124,7 @@ export function createFrameIndex(
               : undefined,
           ...frame,
         },
-        'web'
+        'javascript'
       );
       return acc;
     }, {});
@@ -62,6 +134,7 @@ export function createFrameIndex(
     acc[index] = new Frame(
       {
         key: index,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         ...frame,
       },
       type
@@ -133,15 +206,11 @@ export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, optio
     return fn();
   }
 
-  const sentrySpan = parentSpan.startChild(options);
-  try {
-    return fn();
-  } catch (error) {
-    sentrySpan.setStatus('internal_error');
-    throw error;
-  } finally {
-    sentrySpan.finish();
-  }
+  return Sentry.withActiveSpan(parentSpan, () => {
+    return Sentry.startSpan(options, () => {
+      return fn();
+    });
+  });
 }
 
 export const isSystemCall = (node: CallTreeNode): boolean => {
@@ -229,3 +298,12 @@ export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFr
   const reversed = reverseTrail(leafNodes, nodeToParentIndex);
   return reversed;
 };
+
+export function resolveFlamegraphSamplesProfileIds(
+  samplesProfiles: Readonly<number[][]>,
+  profileIds: Profiling.ProfileReference[]
+): Profiling.ProfileReference[][] {
+  return samplesProfiles.map(profileIdIndices => {
+    return profileIdIndices.map(i => profileIds[i]);
+  });
+}

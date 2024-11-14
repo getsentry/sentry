@@ -1,4 +1,5 @@
-import {keyframes, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 
 export const growIn = keyframes`
   0% {
@@ -129,8 +130,8 @@ ${new Array(50)
   .map(
     (_, i) => `${i * 2}% {
   transform: translate(${Math.round(Math.random() * distance)}px, ${Math.round(
-      Math.random() * distance
-    )}px);
+    Math.random() * distance
+  )}px);
 }`
   )
   .join('\n')}

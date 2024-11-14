@@ -1,5 +1,5 @@
 {
-  "extra": {"session:duration": 146842},
+  "extra": { "session:duration": 146842 },
   "exception": {
     "values": [
       {
@@ -36,8 +36,7 @@
     "os": {
       "build": "17E199",
       "rooted": false,
-      "kernel_version":
-        "Darwin Kernel Version 17.5.0: Mon Mar  5 22:24:32 PST 2018; root:xnu-4570.51.1~1/RELEASE_X86_64",
+      "kernel_version": "Darwin Kernel Version 17.5.0: Mon Mar  5 22:24:32 PST 2018; root:xnu-4570.51.1~1/RELEASE_X86_64",
       "name": "iOS",
       "version": "11.3"
     },

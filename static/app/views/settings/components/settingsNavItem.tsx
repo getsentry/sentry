@@ -1,29 +1,32 @@
-import {Fragment, ReactElement} from 'react';
-import {Link as RouterLink} from 'react-router';
+import type {ReactElement} from 'react';
+import {Fragment} from 'react';
+import {NavLink as RouterNavLink} from 'react-router-dom';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
-import Badge from 'sentry/components/badge';
-import FeatureBadge from 'sentry/components/featureBadge';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 
 type Props = {
   label: React.ReactNode;
-  to: React.ComponentProps<RouterLink>['to'];
+  to: LocationDescriptor;
   badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 };
 
-const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
-  const LabelHook = HookOrDefault({
-    hookName: 'sidebar:item-label',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
+const LabelHook = HookOrDefault({
+  hookName: 'sidebar:item-label',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
+function SettingsNavItem({badge, label, index, id, to, ...props}: Props) {
   let renderedBadge: React.ReactNode;
 
   if (badge === 'new') {
@@ -43,14 +46,14 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
   }
 
   return (
-    <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>
+    <StyledNavItem end={index} to={locationDescriptorToTo(to)} {...props}>
       <LabelHook id={id}>{label}</LabelHook>
       {badge ? renderedBadge : null}
     </StyledNavItem>
   );
-};
+}
 
-const StyledNavItem = styled(RouterLink)`
+const StyledNavItem = styled(RouterNavLink)`
   display: block;
   color: ${p => p.theme.gray300};
   font-size: 14px;
@@ -72,7 +75,7 @@ const StyledNavItem = styled(RouterLink)`
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     background: ${p => p.theme.backgroundSecondary};
     padding-left: 15px;
@@ -98,7 +101,7 @@ const StyledNavItem = styled(RouterLink)`
 `;
 
 const StyledBadge = styled(Badge)`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   height: auto;
   line-height: 1;
   font-size: ${p => p.theme.fontSizeExtraSmall};

@@ -1,19 +1,15 @@
-import {browserHistory} from 'react-router';
-import {Theme, useTheme} from '@emotion/react';
-import type {LegendComponentOption} from 'echarts';
+import {useTheme} from '@emotion/react';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {
-  LineChart,
-  LineChartProps,
-  LineChartSeries,
-} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {t} from 'sentry/locale';
-import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
   axisLabelFormatter,
@@ -24,18 +20,19 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
-import {ViewProps} from '../types';
+import type {ViewProps} from '../types';
 
-import {
+import type {
   NormalizedTrendsTransaction,
   TrendChangeType,
   TrendFunctionField,
   TrendsStats,
 } from './types';
 import {
-  generateTrendFunctionAsString,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getUnselectedSeries,
@@ -49,25 +46,16 @@ type Props = ViewProps & {
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
+  additionalSeries?: LineSeriesOption[];
+  applyRegressionFormatToInterval?: boolean;
   disableLegend?: boolean;
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
   height?: number;
+  neutralColor?: boolean;
   transaction?: NormalizedTrendsTransaction;
   trendFunctionField?: TrendFunctionField;
 };
-
-function transformEventStats(data: EventsStatsData, seriesName?: string): Series[] {
-  return [
-    {
-      seriesName: seriesName || 'Current',
-      data: data.map(([timestamp, countsForTimestamp]) => ({
-        name: timestamp * 1000,
-        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-      })),
-    },
-  ];
-}
 
 function getLegend(trendFunction: string): LegendComponentOption {
   return {
@@ -90,142 +78,6 @@ function getLegend(trendFunction: string): LegendComponentOption {
   };
 }
 
-function getIntervalLine(
-  theme: Theme,
-  series: Series[],
-  intervalRatio: number,
-  transaction?: NormalizedTrendsTransaction
-): LineChartSeries[] {
-  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
-    return [];
-  }
-
-  const seriesStart = parseInt(series[0].data[0].name as string, 10);
-  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
-
-  if (seriesEnd < seriesStart) {
-    return [];
-  }
-
-  const periodLine: LineChartSeries = {
-    data: [],
-    color: theme.textColor,
-    markLine: {
-      data: [],
-      label: {},
-      lineStyle: {
-        color: theme.textColor,
-        type: 'dashed',
-        width: 1,
-      },
-      symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
-    },
-    seriesName: 'Baseline',
-  };
-
-  const periodLineLabel = {
-    fontSize: 11,
-    show: true,
-    color: theme.textColor,
-    silent: true,
-  };
-
-  const previousPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const currentPeriod = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Baseline',
-  };
-  const periodDividingLine = {
-    ...periodLine,
-    markLine: {...periodLine.markLine},
-    seriesName: 'Period split',
-  };
-
-  const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * intervalRatio + seriesStart;
-
-  previousPeriod.markLine.data = [
-    [
-      {value: 'Past', coord: [seriesStart, transaction.aggregate_range_1]},
-      {coord: [seriesLine, transaction.aggregate_range_1]},
-    ],
-  ];
-  previousPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_1, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  currentPeriod.markLine.data = [
-    [
-      {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
-      {coord: [seriesEnd, transaction.aggregate_range_2]},
-    ],
-  ];
-  currentPeriod.markLine.tooltip = {
-    formatter: () => {
-      return [
-        '<div class="tooltip-series tooltip-series-solo">',
-        '<div>',
-        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
-        // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_2, 'duration'),
-        '</div>',
-        '</div>',
-        '<div class="tooltip-arrow"></div>',
-      ].join('');
-    },
-  };
-  periodDividingLine.markLine = {
-    data: [
-      {
-        xAxis: seriesLine,
-      },
-    ],
-    label: {show: false},
-    lineStyle: {
-      color: theme.textColor,
-      type: 'solid',
-      width: 2,
-    },
-    symbol: ['none', 'none'],
-    tooltip: {
-      show: false,
-    },
-    silent: true,
-  };
-
-  previousPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Past',
-    position: 'insideStartBottom',
-  };
-  currentPeriod.markLine.label = {
-    ...periodLineLabel,
-    formatter: 'Present',
-    position: 'insideEndBottom',
-  };
-
-  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
-  return additionalLineSeries;
-}
-
 export function Chart({
   trendChangeType,
   statsPeriod,
@@ -237,13 +89,16 @@ export function Chart({
   trendFunctionField,
   disableXAxis,
   disableLegend,
+  neutralColor,
   grid,
   height,
   projects,
   project,
+  organization,
+  additionalSeries,
+  applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
   const handleLegendSelectChanged = legendChange => {
@@ -264,7 +119,11 @@ export function Chart({
     browserHistory.push(to);
   };
 
-  const lineColor = trendToColor[trendChangeType || ''];
+  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
+    ? transaction?.change
+    : trendChangeType;
+  const lineColor =
+    trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
     statsData && transaction?.project && transaction?.transaction
@@ -327,7 +186,15 @@ export function Chart({
       })
     : [];
 
-  const intervalSeries = getIntervalLine(theme, smoothedResults || [], 0.5, transaction);
+  const needsLabel = true;
+  const intervalSeries = getIntervalLine(
+    theme,
+    smoothedResults || [],
+    0.5,
+    needsLabel,
+    transaction,
+    applyRegressionFormatToInterval
+  );
 
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
@@ -354,13 +221,7 @@ export function Chart({
   };
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc === 'true'}
-    >
+    <ChartZoom period={statsPeriod} start={start} end={end} utc={utc === 'true'}>
       {zoomRenderProps => {
         return (
           <TransitionChart loading={loading} reloading={reloading}>
@@ -371,6 +232,7 @@ export function Chart({
                   height={height}
                   {...zoomRenderProps}
                   {...chartOptions}
+                  additionalSeries={additionalSeries}
                   onLegendSelectChanged={handleLegendSelectChanged}
                   series={series}
                   seriesOptions={{

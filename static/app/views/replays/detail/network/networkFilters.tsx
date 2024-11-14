@@ -1,55 +1,59 @@
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import type {NetworkSpan} from 'sentry/views/replays/types';
+import type useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 
 type Props = {
-  networkSpans: undefined | NetworkSpan[];
+  networkFrames: undefined | unknown[];
 } & ReturnType<typeof useNetworkFilters>;
 
 function NetworkFilters({
-  networkSpans,
+  getMethodTypes,
   getResourceTypes,
   getStatusTypes,
+  networkFrames,
   searchTerm,
+  selectValue,
+  setFilters,
   setSearchTerm,
-  setStatus,
-  setType,
-  status,
-  type,
 }: Props) {
+  const methodTypes = getMethodTypes();
   const statusTypes = getStatusTypes();
   const resourceTypes = getResourceTypes();
+
   return (
     <FiltersGrid>
       <CompactSelect
-        triggerProps={{prefix: t('Status')}}
-        triggerLabel={status.length === 0 ? t('Any') : null}
+        disabled={!methodTypes.length && !statusTypes.length && !resourceTypes}
         multiple
-        options={statusTypes}
+        onChange={setFilters as (selection: SelectOption<string>[]) => void}
+        options={[
+          {
+            label: t('Method'),
+            options: methodTypes,
+          },
+          {
+            label: t('Status'),
+            options: statusTypes,
+          },
+          {
+            label: t('Type'),
+            options: resourceTypes,
+          },
+        ]}
         size="sm"
-        onChange={selected => setStatus(selected.map(_ => _.value))}
-        value={status}
-        disabled={!statusTypes.length}
-      />
-      <CompactSelect
-        triggerProps={{prefix: t('Type')}}
-        triggerLabel={type.length === 0 ? t('Any') : null}
-        multiple
-        options={resourceTypes}
-        size="sm"
-        onChange={selected => setType(selected.map(_ => _.value))}
-        value={type}
-        disabled={!resourceTypes.length}
+        triggerLabel={selectValue?.length === 0 ? t('Any') : null}
+        triggerProps={{prefix: t('Filter')}}
+        value={selectValue}
       />
       <SearchBar
         size="sm"
         onChange={setSearchTerm}
         placeholder={t('Search Network Requests')}
         query={searchTerm}
-        disabled={!networkSpans || !networkSpans.length}
+        disabled={!networkFrames || !networkFrames.length}
       />
     </FiltersGrid>
   );

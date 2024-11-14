@@ -1,4 +1,5 @@
-import {Query} from 'history';
+import {useCallback} from 'react';
+import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 
@@ -7,13 +8,16 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Project, Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 
 type UpdateParams = {
   orgId: string;
@@ -55,7 +59,7 @@ export function loadStats(api: Client, params: StatsParams) {
 
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-const _projectStatsToFetch: Set<string> = new Set();
+export const _projectStatsToFetch: Set<string> = new Set();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout
@@ -306,14 +310,21 @@ export function sendSampleEvent(api: Client, orgSlug: string, projectSlug: strin
  * @param platform The platform key of the project
  * @param options Additional options such as creating default alert rules
  */
-export function createProject(
-  api: Client,
-  orgSlug: string,
-  team: string,
-  name: string,
-  platform: string,
-  options: {defaultRules?: boolean} = {}
-) {
+export function createProject({
+  api,
+  name,
+  options = {},
+  orgSlug,
+  platform,
+  team,
+}: {
+  api: Client;
+  name: string;
+  options: {defaultRules?: boolean};
+  orgSlug: string;
+  platform: string;
+  team: string;
+}) {
   return api.requestPromise(`/teams/${orgSlug}/${team}/projects/`, {
     method: 'POST',
     data: {name, platform, default_rules: options.defaultRules},
@@ -327,32 +338,21 @@ export function createProject(
  * @param orgSlug Organization Slug
  * @param projectSlug Project Slug
  */
-export function removeProject(
-  api: Client,
-  orgSlug: string,
-  projectSlug: Project['slug']
-) {
+export function removeProject({
+  api,
+  orgSlug,
+  projectSlug,
+  origin,
+}: {
+  api: Client;
+  orgSlug: string;
+  origin: 'onboarding' | 'settings' | 'getting_started';
+  projectSlug: Project['slug'];
+}) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
     method: 'DELETE',
+    data: {origin},
   });
-}
-
-/**
- * Load platform documentation specific to the project. The DSN and various
- * other project specific secrets will be included in the documentation.
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param platform Project platform.
- */
-export function loadDocs(
-  api: Client,
-  orgSlug: string,
-  projectSlug: string,
-  platform: PlatformKey
-) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 
 /**
@@ -388,4 +388,77 @@ export async function fetchAnyReleaseExistence(
   });
 
   return data.length > 0;
+}
+
+function makeProjectTeamsQueryKey({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}): ApiQueryKey {
+  return [`/projects/${orgSlug}/${projectSlug}/teams/`];
+}
+
+export function useFetchProjectTeams({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
+  return useApiQuery<Team[]>(makeProjectTeamsQueryKey({orgSlug, projectSlug}), {
+    staleTime: 0,
+    retry: false,
+    enabled: Boolean(orgSlug && projectSlug),
+  });
+}
+
+export function useAddTeamToProject({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (team: Team) => {
+      await addTeamToProject(api, orgSlug, projectSlug, team);
+
+      setApiQueryData<Team[]>(
+        queryClient,
+        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
+        prevData => (Array.isArray(prevData) ? [...prevData, team] : [team])
+      );
+    },
+    [api, orgSlug, projectSlug, queryClient]
+  );
+}
+
+export function useRemoveTeamFromProject({
+  orgSlug,
+  projectSlug,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    async (teamSlug: string) => {
+      await removeTeamFromProject(api, orgSlug, projectSlug, teamSlug);
+
+      setApiQueryData<Team[]>(
+        queryClient,
+        makeProjectTeamsQueryKey({orgSlug, projectSlug}),
+        prevData =>
+          Array.isArray(prevData) ? prevData.filter(team => team?.slug !== teamSlug) : []
+      );
+    },
+    [api, orgSlug, projectSlug, queryClient]
+  );
 }

@@ -1,12 +1,12 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {TimeseriesValue} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
@@ -36,11 +36,11 @@ const initialState: State = {
 class EventChart extends Component<Props, State> {
   state: State = initialState;
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.since !== nextProps.since) {
       this.setState(initialState, this.fetchData);
     }

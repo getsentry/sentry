@@ -5,7 +5,6 @@
 
 .group-detail {
   position: relative;
-  clear: both;
 
   h3 {
     font-size: 22px;
@@ -23,30 +22,9 @@
   }
 
   .count {
-    &.short-id-box {
-      min-width: 0;
-
-      span:not(.help-link) {
-        font-size: 18px;
-        line-height: 1.45;
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        direction: rtl;
-      }
-    }
-
-    span:not(.help-link) {
-      font-size: 22px;
-      display: inline-block;
-      line-height: 1.2;
-    }
-  }
-
-  .assigned-to {
-    text-align: right;
-    position: relative;
+    font-size: 22px;
+    display: inline-block;
+    line-height: 1.2;
   }
 
   .meta {
@@ -54,35 +32,11 @@
     color: #949ea4;
   }
 
-  .id-label {
-    background: #fff;
-    max-width: 200px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .severity {
     display: inline-block;
     position: relative;
     top: -7px;
     padding: 0 10px;
-  }
-
-  .nav-tabs {
-    margin-top: 20px;
-    margin-bottom: 0;
-  }
-
-  &:before {
-    position: absolute;
-    display: block;
-    content: '';
-    bottom: -1px;
-    left: -40px;
-    right: -40px;
-    height: 1px;
-    background: @trim;
   }
 }
 
@@ -104,17 +58,6 @@
 
   .primary {
     flex: 1;
-
-    .user-report {
-      border-radius: 0;
-      box-shadow: none;
-      padding: 20px 30px 0 40px;
-      border: 0;
-      border-top: 1px solid lighten(@trim, 4);
-      margin: 0;
-
-      padding-bottom: 0;
-    }
 
     @media (min-width: 1200px) {
       // TODO(dcramer): whatever flex is doing here is causing this to extend to
@@ -193,6 +136,19 @@
   }
 }
 
+.ai-loader {
+  height: 250px;
+  background: center / contain no-repeat url(../images/spot/ai-loader.gif);
+  margin-top: -20px;
+  margin-bottom: -35px;
+}
+
+.ai-suggestion-wheel-of-fortune {
+  height: 250px;
+  background: center / contain no-repeat
+    url(../images/spot/ai-suggestion-wheel-of-fortune.gif);
+}
+
 /**
 * Traceback
 * ============================================================================
@@ -203,7 +159,6 @@
   padding-left: 0;
   border: 1px solid @trim-dark;
   border-radius: 0 6px 6px 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   margin-bottom: 20px;
 }
 
@@ -246,15 +201,6 @@ div.traceback > ul {
 * Frame
 * ============================================================================
 */
-
-.exc-message {
-  margin: 15px 0 0;
-  word-wrap: break-word;
-  white-space: pre-wrap;
-  color: @gray-darker;
-  padding: 0;
-  background: none;
-}
 
 .frames-omitted,
 .exc-omitted {
@@ -304,22 +250,14 @@ div.traceback > ul {
 
     &.is-expandable .title {
       cursor: pointer;
-
-      &:hover {
-        background: lighten(@blue-light, 36);
-      }
-    }
-
-    &.system-frame.is-expandable .title:hover {
-      background: darken(@white-dark, 5);
     }
 
     .title {
-      padding: 8px 20px;
-      font-size: 13px;
+      padding: 6px 20px;
+      font-size: 12px;
       margin: 0;
       line-height: 16px;
-      background: lighten(@blue-light, 35);
+      background: #faf9fb;
 
       word-break: break-all;
       /* for firefox */
@@ -335,16 +273,12 @@ div.traceback > ul {
       }
     }
 
-    &.system-frame .title {
-      background: @white-dark;
-    }
-
     .title.as-table {
       width: 100%;
       padding-left: 15px;
 
       .package {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: bold;
         .truncate;
         flex-basis: 120px;
@@ -420,19 +354,6 @@ div.traceback > ul {
       margin: 0 2px;
     }
 
-    .blame {
-      color: lighten(@gray, 5);
-
-      a {
-        color: @gray;
-      }
-
-      .icon-mark-github {
-        position: relative;
-        top: 1px;
-      }
-    }
-
     .tooltip-inner {
       word-wrap: break-word;
       text-align: left;
@@ -456,22 +377,6 @@ div.traceback > ul {
       color: inherit;
     }
 
-    .empty-context {
-      padding: 20px;
-      color: @gray;
-
-      p {
-        display: inline-block;
-        margin-bottom: 0;
-      }
-
-      .icon {
-        opacity: 0.45;
-        margin-right: 10px;
-        font-size: 0.85em;
-      }
-    }
-
     .context {
       display: none;
       background: #fff;
@@ -480,7 +385,7 @@ div.traceback > ul {
       table.key-value {
         border-top: 1px solid @trim;
         padding: 0;
-        margin: 0 0 -8px;
+        margin: 0;
 
         td {
           border-bottom: 1px solid @trim !important;
@@ -565,10 +470,8 @@ div.traceback > ul {
 
     &.collapsed {
       .title {
-        opacity: 0.7;
-        font-size: 12px;
-        padding: 4px 20px 4px 20px;
-        background: lighten(@blue-light, 33);
+        background: #faf9fb;
+        min-height: 32px;
 
         &.is-expandable:hover {
           opacity: 1;
@@ -585,13 +488,13 @@ div.traceback > ul {
 
       .in-at-line,
       .lineno,
-      .btn-toggle,
       .address {
         display: none;
       }
 
       .leads-to-app-hint {
         display: inline;
+        color: @gray-light;
       }
     }
   }
@@ -801,48 +704,6 @@ span.val {
   overflow: auto;
 }
 
-.val-stripped {
-  color: darken(@red, 10);
-  background: transparent;
-}
-
-.val-bool,
-.val-null {
-  color: darken(@blue, 10);
-  font-weight: bold;
-}
-
-.val-dict {
-  display: inline;
-
-  .val-dict-items {
-    display: block;
-    padding: 0 0 0 15px;
-
-    .val-dict-pair {
-      display: block;
-    }
-  }
-
-  .val-dict-key,
-  .val-dict-key .val-string {
-    color: darken(@red, 5);
-    background: transparent;
-    border-radius: none;
-  }
-}
-
-.val-array {
-  .val-array-items {
-    display: block;
-    padding: 0 0 0 15px;
-
-    .val-array-item {
-      display: block;
-    }
-  }
-}
-
 /**
 * Exceptions and Threads
 * ============================================================================
@@ -884,20 +745,6 @@ span.val {
           &:hover {
             color: @gray-dark;
           }
-        }
-
-        .back-to,
-        .pull-right a {
-          font-size: 16px;
-        }
-
-        .back-to {
-          border-left: 1px solid @trim;
-          padding: 2px 10px;
-          display: inline-block;
-          margin-left: 7px;
-          position: relative;
-          top: -3px;
         }
       }
     }
@@ -1062,17 +909,6 @@ ul.crumbs {
 }
 
 /**
-* Responsive medium screen
-* ============================================================================
-*/
-
-@media (max-width: 991px) {
-  .group-stats-column {
-    float: none;
-  }
-}
-
-/**
 * Responsive small screen
 * ============================================================================
 */
@@ -1086,7 +922,7 @@ ul.crumbs {
     }
 
     .meta {
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .short-id-box {
@@ -1126,10 +962,6 @@ ul.crumbs {
         }
       }
 
-      .user-report {
-        padding: 15px 0;
-      }
-
       .exception {
         margin: 0;
         padding: 15px 0;
@@ -1151,27 +983,6 @@ ul.crumbs {
       padding: 0;
       border: 0;
       margin-bottom: 20px;
-    }
-
-    .detailed-error {
-      border-top: 1px solid @trim;
-    }
-  }
-
-  // Context callout
-
-  .context-summary {
-    flex-direction: column;
-    margin-top: 0;
-    padding: 0;
-    margin-bottom: 20px;
-  }
-
-  .context {
-    overflow: auto;
-
-    li {
-      width: 800px;
     }
   }
 }

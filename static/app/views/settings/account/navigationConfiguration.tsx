@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {Organization} from 'sentry/types';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {Organization} from 'sentry/types/organization';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/account';
 
@@ -76,7 +76,7 @@ function getConfiguration({organization}: ConfigParams): NavigationSection[] {
         },
         {
           path: `${pathPrefix}/api/auth-tokens/`,
-          title: t('Auth Tokens'),
+          title: t('User Auth Tokens'),
           description: t(
             "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
           ),

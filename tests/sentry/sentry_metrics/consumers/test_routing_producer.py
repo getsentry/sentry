@@ -1,5 +1,5 @@
+from collections.abc import MutableSequence, Sequence
 from datetime import datetime
-from typing import MutableSequence, Sequence
 from unittest import mock
 
 import pytest

@@ -1,17 +1,29 @@
 import isEqual from 'lodash/isEqual';
-import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
+import type {ObservableMap} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
-import {APIRequestMethod, Client} from 'sentry/api';
+import type {APIRequestMethod} from 'sentry/api';
+import {Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
-import type {Choice} from 'sentry/types';
+import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+
+export const fieldIsRequiredMessage = t('Field is required');
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | Choice | undefined; // is undefined valid here?
+export type FieldValue =
+  | string
+  | string[]
+  | Set<string>
+  | number
+  | boolean
+  | object
+  | Choice
+  | undefined; // is undefined valid here?
 
 export type FormOptions = {
   /**
@@ -34,6 +46,10 @@ export type FormOptions = {
    * Initial form data
    */
   initialData?: Record<string, FieldValue>;
+  /**
+   * Custom transformer function for use with the error response
+   */
+  mapFormErrors?: (responseJson: any) => any;
   /**
    * Callback triggered when a field changes value
    */
@@ -122,11 +138,13 @@ class FormModel {
       fieldState: observable,
       formState: observable,
 
+      isFormIncomplete: computed,
       isError: computed,
       isSaving: computed,
       formData: computed,
       formChanged: computed,
 
+      validateFormCompletion: action,
       resetForm: action,
       setFieldDescriptor: action,
       removeField: action,
@@ -188,6 +206,13 @@ class FormModel {
   }
 
   /**
+   * Are all required fields filled out
+   */
+  get isFormIncomplete() {
+    return this.formState === FormState.INCOMPLETE;
+  }
+
+  /**
    * Is form saving
    */
   get isSaving() {
@@ -217,7 +242,7 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = {...this.options, ...options} || {};
+    this.options = {...this.options, ...options};
   }
 
   /**
@@ -227,7 +252,7 @@ class FormModel {
     // TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
-    // Set default value iff initialData for field is undefined
+    // Set default value if initialData for field is undefined
     // This must take place before checking for `props.setValue` so that it can
     // be applied to `defaultValue`
     if (
@@ -246,14 +271,19 @@ class FormModel {
       this.initialData[id] = props.setValue(this.initialData[id], props);
       this.fields.set(id, this.initialData[id]);
     }
+
+    this.validateFormCompletion();
   }
 
   /**
    * Remove a field from the descriptor map and errors.
    */
   removeField(id: string) {
+    this.fields.delete(id);
+    this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
+    delete this.initialData[id];
   }
 
   /**
@@ -285,8 +315,15 @@ class FormModel {
     return fieldState[key];
   }
 
-  getValue(id: string) {
-    return this.fields.has(id) ? this.fields.get(id) : '';
+  getValue<T = FieldValue>(id: string, defaultValue?: T): T {
+    if (this.fields.has(id)) {
+      return this.fields.get(id) as T;
+    }
+
+    // XXX(epurkhiser): When you don't specify a default value it WILL become a
+    // empty string, which is not correctly accounted for in the types. We're
+    // doing this for legacy reasons
+    return defaultValue ?? ('' as T);
   }
 
   getTransformedValue(id: string) {
@@ -325,14 +362,32 @@ class FormModel {
     return this.errors.has(id) && this.errors.get(id);
   }
 
+  getErrors() {
+    return this.errors;
+  }
+
   /**
    * Returns true if not required or is required and is not empty
    */
   isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
+
+    if (!isRequired) {
+      return true;
+    }
+
     const value = this.getValue(id);
-    return !isRequired || (value !== '' && defined(value));
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (typeof value === 'boolean') {
+      return value === true;
+    }
+
+    return value !== '' && defined(value);
   }
 
   isValidField(id: string) {
@@ -392,8 +447,6 @@ class FormModel {
       // Returns "tuples" of [id, error string]
       errors = validate({model: this, id, form: this.getData()}) || [];
     }
-
-    const fieldIsRequiredMessage = t('Field is required');
 
     if (!this.isValidRequiredField(id)) {
       errors.push([id, fieldIsRequiredMessage]);
@@ -589,7 +642,7 @@ class FormModel {
         // API can return a JSON object with either:
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
-        if (resp && resp.responseJSON) {
+        if (resp?.responseJSON) {
           // non-field errors can be camelcase or snake case
           const nonFieldErrors =
             resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
@@ -618,7 +671,7 @@ class FormModel {
         }
 
         // eslint-disable-next-line no-console
-        console.error('Error saving form field', resp && resp.responseJSON);
+        console.error('Error saving form field', resp?.responseJSON);
       });
 
     return request;
@@ -699,7 +752,7 @@ class FormModel {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
-      this.formState = FormState.READY;
+      this.validateFormCompletion();
       this.errors.delete(id);
     }
 
@@ -714,6 +767,17 @@ class FormModel {
     Array.from(this.fieldDescriptor.keys()).forEach(id => !this.validateField(id));
 
     return !this.isError;
+  }
+
+  /**
+   * Validate if all required fields are filled out
+   */
+  validateFormCompletion() {
+    const formComplete = Array.from(this.fieldDescriptor.keys()).every(field =>
+      this.isValidRequiredField(field)
+    );
+
+    this.formState = !formComplete ? FormState.INCOMPLETE : FormState.READY;
   }
 
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
@@ -746,12 +810,12 @@ class FormModel {
 
   submitError(err: {responseJSON?: any}) {
     this.formState = FormState.ERROR;
-    this.formErrors = this.mapFormErrors(err.responseJSON);
-    this.handleErrorResponse({responseJSON: this.formErrors});
-  }
 
-  mapFormErrors(responseJSON?: any) {
-    return responseJSON;
+    this.formErrors = this.options.mapFormErrors
+      ? this.options.mapFormErrors(err.responseJSON)
+      : err.responseJSON;
+
+    this.handleErrorResponse({responseJSON: this.formErrors});
   }
 }
 

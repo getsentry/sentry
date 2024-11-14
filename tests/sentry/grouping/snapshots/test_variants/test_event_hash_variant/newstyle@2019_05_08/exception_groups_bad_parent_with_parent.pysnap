@@ -1,0 +1,14 @@
+---
+created: '2023-05-16T04:47:02.566841Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: "0809098f9f613b63467605dd1739cc9b"
+  component:
+    app*
+      exception*
+        type*
+          "System.AggregateException"
+        value*
+          "One or more errors occurred."

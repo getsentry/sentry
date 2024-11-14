@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:29.493940Z'
+created: '2024-10-24T14:20:57.203202+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             module*
               "app/utils/handleXhrErrorResponse"
@@ -16,7 +16,7 @@ app:
               "handlexhrerrorresponse.tsx"
             context-line*
               "Sentry.withScope(scope => {"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -25,7 +25,7 @@ app:
               "Sentry"
             context-line*
               "callOnHub('withScope', callback);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -34,7 +34,7 @@ app:
               "callOnHub"
             context-line*
               "return hub[method].apply(hub, __spread(args));"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/hub/esm/hub"
             filename (module takes precedence)
@@ -70,7 +70,7 @@ system:
               "handlexhrerrorresponse.tsx"
             context-line*
               "Sentry.withScope(scope => {"
-          frame*
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -79,7 +79,7 @@ system:
               "Sentry"
             context-line*
               "callOnHub('withScope', callback);"
-          frame*
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/minimal/esm/index"
             filename (module takes precedence)
@@ -88,7 +88,7 @@ system:
               "callOnHub"
             context-line*
               "return hub[method].apply(hub, __spread(args));"
-          frame*
+          frame* (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "@sentry/hub/esm/hub"
             filename (module takes precedence)

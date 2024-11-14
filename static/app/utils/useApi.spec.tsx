@@ -1,17 +1,16 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
   it('provides an api client', function () {
-    const {result} = reactHooks.renderHook(useApi);
+    const {result} = renderHook(useApi);
 
-    expect(result.current).toBeInstanceOf(Client);
+    expect(result.current).toBeInstanceOf(MockApiClient);
   });
 
   it('cancels pending API requests when unmounted', function () {
-    const {result, unmount} = reactHooks.renderHook(useApi);
+    const {result, unmount} = renderHook(useApi);
 
     jest.spyOn(result.current, 'clear');
     unmount();
@@ -20,7 +19,7 @@ describe('useApi', function () {
   });
 
   it('does not cancel inflights when persistInFlight is true', function () {
-    const {result, unmount} = reactHooks.renderHook(useApi, {
+    const {result, unmount} = renderHook(useApi, {
       initialProps: {persistInFlight: true},
     });
 
@@ -31,8 +30,8 @@ describe('useApi', function () {
   });
 
   it('uses pass through API when provided', function () {
-    const myClient = new Client();
-    const {unmount} = reactHooks.renderHook(useApi, {initialProps: {api: myClient}});
+    const myClient = new MockApiClient();
+    const {unmount} = renderHook(useApi, {initialProps: {api: myClient}});
 
     jest.spyOn(myClient, 'clear');
     unmount();

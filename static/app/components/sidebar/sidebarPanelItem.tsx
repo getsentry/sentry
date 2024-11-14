@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   /**
@@ -35,7 +37,7 @@ type Props = {
   titleAction?: React.ReactNode;
 };
 
-const SidebarPanelItem = ({
+function SidebarPanelItem({
   hasSeen,
   title,
   message,
@@ -43,34 +45,50 @@ const SidebarPanelItem = ({
   cta,
   titleAction,
   children,
-}: Props) => (
-  <SidebarPanelItemRoot>
-    {title && (
-      <TitleWrapper>
-        <Title hasSeen={hasSeen}>{title}</Title>
-        {titleAction}
-      </TitleWrapper>
-    )}
-    {message && <Message>{message}</Message>}
+}: Props) {
+  const organization = useOrganization();
+  return (
+    <SidebarPanelItemRoot>
+      {title && (
+        <TitleWrapper>
+          <Title hasSeen={hasSeen}>{title}</Title>
+          {titleAction}
+        </TitleWrapper>
+      )}
+      {message && <Message>{message}</Message>}
 
-    {children}
+      {children}
 
-    {link && (
-      <Text>
-        <ExternalLink href={link}>{cta || t('Read More')}</ExternalLink>
-      </Text>
-    )}
-  </SidebarPanelItemRoot>
-);
+      {link && (
+        <Text>
+          <ExternalLink
+            href={link}
+            onClick={() => {
+              if (!title) {
+                return;
+              }
+              trackAnalytics('whats_new.link_clicked', {organization, title});
+            }}
+          >
+            {cta || t('Read More')}
+          </ExternalLink>
+        </Text>
+      )}
+    </SidebarPanelItemRoot>
+  );
+}
 
 export default SidebarPanelItem;
 
 const SidebarPanelItemRoot = styled('div')`
   line-height: 1.5;
-  border-top: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(3)};
+
+  :not(:first-child) {
+    border-top: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 const TitleWrapper = styled('div')`
@@ -83,10 +101,10 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${p => !p.hasSeen && 'font-weight: 600;'};
+  ${p => !p.hasSeen && `font-weight: ${p.theme.fontWeightBold};`}
 
   .culprit {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 

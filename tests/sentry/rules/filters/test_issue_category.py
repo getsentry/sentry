@@ -1,8 +1,9 @@
-from sentry.eventstore.models import Event, GroupEvent
-from sentry.issues.grouptype import GroupCategory, PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
-from sentry.testutils import RuleTestCase, SnubaTestCase
-from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
 class IssueCategoryFilterErrorTest(RuleTestCase):
@@ -37,28 +38,22 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
             self.assertDoesNotPass(rule, event)
 
     def test_group_event(self):
-        event: Event = self.get_event()
-        group_event: GroupEvent = event.for_group(event.group)
+        event = self.get_event()
+        assert event.group is not None
+        group_event = event.for_group(event.group)
 
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), event)
         self.assertPasses(self.get_rule(data={"value": GroupCategory.ERROR.value}), group_event)
 
 
 class IssueCategoryFilterPerformanceTest(
-    RuleTestCase, SnubaTestCase, PerfIssueTransactionTestMixin
+    RuleTestCase,
+    SnubaTestCase,
+    PerformanceIssueTestCase,
 ):
     rule_cls = IssueCategoryFilter
 
     def test_transaction_category(self):
-        tx_event = self.store_transaction(
-            self.project.id,
-            "test_transaction_category",
-            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-        )
-
-        group_events = list(tx_event.build_group_events())
-        assert len(group_events) == 1
-
-        self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), group_events[0]
-        )
+        tx_event = self.create_performance_issue()
+        assert tx_event.group
+        self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)

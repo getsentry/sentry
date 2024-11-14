@@ -1,12 +1,20 @@
-from sentry.plugins.base.v2 import Plugin2
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
 from .errorlocale import translate_exception
 from .errormapping import rewrite_exception
-from .processor import JavaScriptStacktraceProcessor
+from .utils import generate_module
 
 
+# TODO: We still need `preprocess_event` tasks and the remaining, non-symbolication specific
+# code from `lang/javascript/processor.py` to run somewhere. Unless we want whole `processor.py`
+# to be moved to Rust side, including module generation, rewriting and translations.
 def preprocess_event(data):
     rewrite_exception(data)
     translate_exception(data)
@@ -15,8 +23,6 @@ def preprocess_event(data):
 
 
 def generate_modules(data):
-    from sentry.lang.javascript.processor import generate_module
-
     for info in find_stacktraces_in_data(data):
         for frame in get_path(info.stacktrace, "frames", filter=True, default=()):
             platform = frame.get("platform") or data["platform"]
@@ -33,13 +39,9 @@ class JavascriptPlugin(Plugin2):
     def can_configure_for_project(self, project, **kwargs):
         return False
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         # XXX: rewrite_exception we probably also want if the event
         # platform is something else? unsure
         if data.get("platform") in ("javascript", "node"):
             return [preprocess_event]
         return []
-
-    def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
-        if "javascript" in platforms or "node" in platforms:
-            return [JavaScriptStacktraceProcessor]

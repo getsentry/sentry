@@ -5,6 +5,34 @@
       <col style="width:130px;">
     </colgroup>
     <tbody>
+        {% if span_evidence_key_value %}
+        {% for item in span_evidence_key_value %}
+            {% if item.is_multi_value %}
+            <tr>
+                <th>{{ item.key }}</th>
+                <td>
+                    <code>{{ item.value.0|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% for val in item.value|slice:"1:" %}
+            <tr>
+                <th></th>
+                <td>
+                    <code>{{ val|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% else %}
+            <tr>
+                <th>{{ item.key }}</th>
+                <td>
+                    <code>{{ item.value|truncatechars:100 }}</code>
+                </td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
         {% if transaction_name %}
         <tr>
             <th>{% trans "Transaction Name" %}</th>
@@ -70,34 +98,6 @@
             </td>
             {% endfor %}
         </tr>
-        {% endif %}
-        {% if span_evidence_key_value %}
-        {% for item in span_evidence_key_value %}
-            {% if item.is_multi_value %}
-            <tr>
-                <th>{{ item.key }}</th>
-                <td>
-                    <code>{{ item.value.0|truncatechars:100 }}</code>
-                </td>
-            </tr>
-            {% for val in item.value|slice:"1:" %}
-            <tr>
-                <th></th>
-                <td>
-                    <code>{{ val|truncatechars:100 }}</code>
-                </td>
-            </tr>
-            {% endfor %}
-
-            {% else %}
-            <tr>
-                <th>{{ item.key }}</th>
-                <td>
-                    <code>{{ item.value|truncatechars:100 }}</code>
-                </td>
-            </tr>
-            {% endif %}
-        {% endfor %}
         {% endif %}
     </tbody>
 </table>

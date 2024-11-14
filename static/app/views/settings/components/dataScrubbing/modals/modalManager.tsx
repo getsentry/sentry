@@ -3,13 +3,15 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import submitRules from '../submitRules';
-import {EventIdStatus, KeysOfUnion, MethodType, Rule, RuleType} from '../types';
+import type {KeysOfUnion, Rule} from '../types';
+import {EventIdStatus, MethodType, RuleType} from '../types';
 import {valueSuggestions} from '../utils';
 
 import Form from './form';
@@ -171,7 +173,7 @@ class ModalManager extends Component<Props, State> {
 
   convertRequestError(error: ReturnType<typeof handleError>) {
     switch (error.type) {
-      case ErrorType.InvalidSelector:
+      case ErrorType.INVALID_SELECTOR:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,
@@ -179,7 +181,7 @@ class ModalManager extends Component<Props, State> {
           },
         }));
         break;
-      case ErrorType.RegexParse:
+      case ErrorType.REGEX_PARSE:
         this.setState(prevState => ({
           errors: {
             ...prevState.errors,

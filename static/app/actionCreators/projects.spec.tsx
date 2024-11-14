@@ -1,10 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {_debouncedLoadStats} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
 
 describe('Projects ActionCreators', function () {
-  const api = new Client();
+  const api = new MockApiClient();
   const {organization, project} = initializeOrg();
 
   it('loadStatsForProject', function () {
@@ -31,7 +30,7 @@ describe('Projects ActionCreators', function () {
     );
   });
 
-  it('loadStatsForProject() with additional query', function () {
+  it('loadStatsForProjectFixture() with additional query', function () {
     jest.useFakeTimers();
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

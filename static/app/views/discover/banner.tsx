@@ -6,15 +6,15 @@ import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
 import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
 
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import FeatureTourModal, {
   TourImage,
-  TourStep,
   TourText,
 } from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
@@ -22,9 +22,9 @@ import BackgroundSpace from './backgroundSpace';
 const docsUrl = 'https://docs.sentry.io/product/discover-queries/';
 
 const docsLink = (
-  <Button external href={docsUrl}>
+  <LinkButton external href={docsUrl}>
     {t('View Docs')}
-  </Button>
+  </LinkButton>
 );
 
 const TOUR_STEPS: TourStep[] = [
@@ -87,14 +87,14 @@ function DiscoverBanner({
   showBuildNewQueryButton = true,
 }: Props) {
   function onAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
+    trackAnalytics('discover_v2.tour.advance', {
       organization,
       step,
       duration,
     });
   }
   function onCloseModal(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('discover_v2.tour.close', {organization, step, duration});
+    trackAnalytics('discover_v2.tour.close', {organization, step, duration});
   }
 
   const theme = useTheme();
@@ -110,16 +110,16 @@ function DiscoverBanner({
       dismissKey="discover"
     >
       {showBuildNewQueryButton && (
-        <Button
+        <LinkButton
           size={isSmallBanner ? 'xs' : undefined}
           translucentBorder
           to={resultsUrl}
           onClick={() => {
-            trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
+            trackAnalytics('discover_v2.build_new_query', {organization});
           }}
         >
           {t('Build a new query')}
-        </Button>
+        </LinkButton>
       )}
       <FeatureTourModal
         steps={TOUR_STEPS}
@@ -133,7 +133,7 @@ function DiscoverBanner({
             size={isSmallBanner ? 'xs' : undefined}
             translucentBorder
             onClick={() => {
-              trackAdvancedAnalyticsEvent('discover_v2.tour.start', {organization});
+              trackAnalytics('discover_v2.tour.start', {organization});
               showModal();
             }}
           >

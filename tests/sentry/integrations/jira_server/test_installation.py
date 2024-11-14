@@ -1,15 +1,19 @@
+import orjson
 import responses
-from django.test.utils import override_settings
 from requests.exceptions import ReadTimeout
 
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
-from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
-from sentry.testutils import IntegrationTestCase
-from sentry.utils import json, jwt
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityProvider
+from sentry.utils import jwt
 
 from . import EXAMPLE_PRIVATE_KEY
 
 
+@control_silo_test
 class JiraServerInstallationTest(IntegrationTestCase):
     provider = JiraServerIntegrationProvider
 
@@ -266,7 +270,7 @@ class JiraServerInstallationTest(IntegrationTestCase):
         assert integration.metadata["webhook_secret"]
 
         org_integration = OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert org_integration.config == {}
 
@@ -301,14 +305,14 @@ class JiraServerInstallationTest(IntegrationTestCase):
         def webhook_response(request):
             # Ensure the webhook token contains our integration
             # external id
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             url = data["url"]
             token = url.split("/")[-2]
             token_data = jwt.peek_claims(token)
             assert "id" in token_data
             assert token_data["id"] == expected_id
 
-            return (204, {}, "")
+            return 204, {}, ""
 
         responses.add_callback(
             responses.POST,
@@ -427,7 +431,3 @@ class JiraServerInstallationTest(IntegrationTestCase):
         self.assertContains(resp, "Could not create issue webhook")
 
         assert Integration.objects.count() == 0
-
-    @override_settings(JIRA_USE_EMAIL_SCOPE=True)
-    def test_email_scope(self):
-        assert not self.provider.integration_cls.use_email_scope

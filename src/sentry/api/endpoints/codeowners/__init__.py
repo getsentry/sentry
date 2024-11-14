@@ -1,38 +1,36 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
-from sentry.models import Project, ProjectCodeOwners, RepositoryProjectPathConfig
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.project import Project
+from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 from sentry.utils import metrics
+from sentry.utils.codeowners import MAX_RAW_LENGTH
 
-# Max accepted string length of the CODEOWNERS file
-MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 3_000_000
+from .analytics import *  # NOQA
 
 
-class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
+class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
     code_mapping_id = serializers.IntegerField(required=True)
     raw = serializers.CharField(required=True)
     organization_integration_id = serializers.IntegerField(required=False)
+    date_updated = serializers.CharField(required=False)
 
     class Meta:
         model = ProjectCodeOwners
-        fields = ["raw", "code_mapping_id", "organization_integration_id"]
+        fields = ["raw", "code_mapping_id", "organization_integration_id", "date_updated"]
 
     def get_max_length(self) -> int:
-        if features.has(
-            "organizations:scaleable-codeowners-search",
-            self.context["project"].organization,
-        ):
-            return HIGHER_MAX_RAW_LENGTH
         return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -54,6 +52,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         existing_raw = self.instance.raw if self.instance else ""
         max_length = self.get_max_length()
         if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
+            analytics.record(
+                "codeowners.max_length_exceeded",
+                organization_id=self.context["project"].organization.id,
+            )
             raise serializers.ValidationError(
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
@@ -69,7 +71,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # Convert IssueOwner syntax into schema syntax
         try:
             validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                issue_owners=issue_owner_rules,
+                project_id=self.context["project"].id,
+                add_owner_ids=True,
             )
             return {
                 **attrs,
@@ -133,17 +137,9 @@ class ProjectCodeOwnersMixin:
 
 
 from .details import ProjectCodeOwnersDetailsEndpoint
-from .external_actor.team_details import ExternalTeamDetailsEndpoint
-from .external_actor.team_index import ExternalTeamEndpoint
-from .external_actor.user_details import ExternalUserDetailsEndpoint
-from .external_actor.user_index import ExternalUserEndpoint
 from .index import ProjectCodeOwnersEndpoint
 
 __all__ = (
-    "ExternalTeamEndpoint",
-    "ExternalTeamDetailsEndpoint",
-    "ExternalUserEndpoint",
-    "ExternalUserDetailsEndpoint",
     "ProjectCodeOwnersEndpoint",
     "ProjectCodeOwnersDetailsEndpoint",
 )

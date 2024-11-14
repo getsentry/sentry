@@ -1,8 +1,7 @@
-import {ReactChild} from 'react';
+import type {ReactChild} from 'react';
 
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 import {StackTracePreview} from './stackTracePreview';
@@ -10,53 +9,47 @@ import {StackTracePreview} from './stackTracePreview';
 type GroupPreviewTooltipProps = {
   children: ReactChild;
   groupId: string;
-  issueCategory: IssueCategory;
-  // we need eventId only when hovering over Event, not Group
-  // (different API call is made to get the stack trace then)
-  eventId?: string;
   groupingCurrentLevel?: number;
+  issueCategory?: IssueCategory;
   projectId?: string;
+  query?: string;
 };
 
-const GroupPreviewTooltip = ({
+function GroupPreviewTooltip({
   children,
-  eventId,
   groupId,
   groupingCurrentLevel,
   issueCategory,
-  projectId,
-}: GroupPreviewTooltipProps) => {
-  const projectSlug = eventId ? ProjectsStore.getById(projectId)?.slug : undefined;
+  query,
+}: GroupPreviewTooltipProps) {
+  if (!issueCategory) {
+    return null;
+  }
 
   switch (issueCategory) {
     case IssueCategory.ERROR:
       return (
         <StackTracePreview
-          issueId={groupId}
+          groupId={groupId}
           groupingCurrentLevel={groupingCurrentLevel}
-          eventId={eventId}
-          projectSlug={projectSlug}
+          query={query}
         >
           {children}
         </StackTracePreview>
       );
     case IssueCategory.PERFORMANCE:
       return (
-        <SpanEvidencePreview
-          groupId={groupId}
-          eventId={eventId}
-          projectSlug={projectSlug}
-        >
+        <SpanEvidencePreview groupId={groupId} query={query}>
           {children}
         </SpanEvidencePreview>
       );
     default:
       return (
-        <EvidencePreview groupId={groupId} eventId={eventId} projectSlug={projectSlug}>
+        <EvidencePreview groupId={groupId} query={query}>
           {children}
         </EvidencePreview>
       );
   }
-};
+}
 
 export default GroupPreviewTooltip;

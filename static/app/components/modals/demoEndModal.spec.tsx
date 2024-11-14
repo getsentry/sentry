@@ -1,12 +1,14 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import DemoEndModal from 'sentry/components/modals/demoEndModal';
 
 describe('DemoEndModal', function () {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
 
-  it('closes on close button click', function () {
+  it('closes on close button click', async function () {
     const closeModal = jest.fn();
 
     renderGlobalModal();
@@ -20,7 +22,7 @@ describe('DemoEndModal', function () {
       )
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeModal).toHaveBeenCalled();
   });
 
@@ -44,7 +46,7 @@ describe('DemoEndModal', function () {
       ))
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Restart Tour'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Restart Tour'}));
     await waitForModalToHide();
 
     expect(finishMock).toHaveBeenCalledWith(

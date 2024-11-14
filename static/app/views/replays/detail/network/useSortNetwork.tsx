@@ -1,19 +1,20 @@
 import {useCallback, useMemo} from 'react';
 
+import type {SpanFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import type {NetworkSpan} from 'sentry/views/replays/types';
 
 interface SortConfig {
   asc: boolean;
-  by: keyof NetworkSpan | string;
-  getValue: (row: NetworkSpan) => any;
+  by: keyof SpanFrame | string;
+  getValue: (row: SpanFrame) => any;
 }
 
 const SortStrategies: Record<string, (row) => any> = {
+  method: row => row.data.method || 'GET',
   status: row => row.data.statusCode,
   description: row => row.description,
   op: row => row.op,
-  size: row => row.data.size,
+  size: row => row.data.size ?? row.data.response?.size ?? row.data.responseBodySize,
   duration: row => row.endTimestamp - row.startTimestamp,
   startTimestamp: row => row.startTimestamp,
 };
@@ -21,7 +22,7 @@ const SortStrategies: Record<string, (row) => any> = {
 const DEFAULT_ASC = 'true';
 const DEFAULT_BY = 'startTimestamp';
 
-type Opts = {items: NetworkSpan[]};
+type Opts = {items: SpanFrame[]};
 
 function useSortNetwork({items}: Opts) {
   const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
@@ -32,6 +33,7 @@ function useSortNetwork({items}: Opts) {
     's_n_by',
     DEFAULT_BY
   );
+  const {setParamValue: setDetailRow} = useUrlParams('n_detail_row', '');
 
   const sortAsc = getSortAsc();
   const sortBy = getSortBy();
@@ -42,7 +44,7 @@ function useSortNetwork({items}: Opts) {
         asc: sortAsc === 'true',
         by: sortBy,
         getValue: SortStrategies[sortBy],
-      } as SortConfig),
+      }) as SortConfig,
     [sortAsc, sortBy]
   );
 
@@ -56,8 +58,9 @@ function useSortNetwork({items}: Opts) {
         setSortAsc('true');
         setSortBy(fieldName);
       }
+      setDetailRow('');
     },
-    [sortConfig, setSortAsc, setSortBy]
+    [sortConfig, setSortAsc, setSortBy, setDetailRow]
   );
 
   return {
@@ -67,7 +70,7 @@ function useSortNetwork({items}: Opts) {
   };
 }
 
-function sortNetwork(network: NetworkSpan[], sortConfig: SortConfig): NetworkSpan[] {
+function sortNetwork(network: SpanFrame[], sortConfig: SortConfig): SpanFrame[] {
   return [...network].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);

@@ -1,11 +1,11 @@
 import threading
-from typing import Callable
+from collections.abc import Callable
+from typing import Any
 
 from celery.signals import task_failure, task_success
 from django.core.signals import request_finished
 
 from sentry import app
-from sentry.utils.types import Any
 
 _cache = threading.local()
 

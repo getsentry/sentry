@@ -1,4 +1,4 @@
-import {render} from 'react-dom';
+import {createRoot} from 'react-dom/client';
 
 export function renderDom(
   Component: React.ComponentType,
@@ -13,5 +13,6 @@ export function renderDom(
     return;
   }
 
-  render(<Component {...props} />, rootEl);
+  const root = createRoot(rootEl);
+  root.render(<Component {...props} />);
 }

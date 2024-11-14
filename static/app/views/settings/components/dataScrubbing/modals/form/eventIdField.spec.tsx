@@ -21,7 +21,7 @@ describe('EventIdField', function () {
     expect(screen.getByPlaceholderText('XXXXXXXXXXXXXX')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveValue('');
 
-    userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByTestId('more-information'));
 
     expect(
       await screen.findByText(
@@ -29,7 +29,7 @@ describe('EventIdField', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox'),
       '887ab369df634e74aea708bcafe1a175{enter}'
     );
@@ -73,7 +73,7 @@ describe('EventIdField', function () {
       />
     );
 
-    userEvent.hover(screen.getByTestId('icon-close'));
+    await userEvent.hover(screen.getByTestId('icon-close'));
 
     expect(await screen.findByText('Clear event ID')).toBeInTheDocument();
 
@@ -86,7 +86,7 @@ describe('EventIdField', function () {
     ).toBeInTheDocument();
   });
 
-  it('INVALID status', function () {
+  it('INVALID status', async function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -94,12 +94,12 @@ describe('EventIdField', function () {
       />
     );
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
 
     expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
   });
 
-  it('NOTFOUND status', function () {
+  it('NOTFOUND status', async function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -107,7 +107,7 @@ describe('EventIdField', function () {
       />
     );
 
-    expect(screen.getByRole('textbox')).toHaveValue(eventIdValue);
+    expect(await screen.findByRole('textbox')).toHaveValue(eventIdValue);
 
     expect(
       screen.getByText('The chosen event ID was not found in projects you have access to')

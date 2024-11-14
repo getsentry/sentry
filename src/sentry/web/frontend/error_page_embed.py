@@ -1,19 +1,29 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django import forms
 from django.db import IntegrityError, router
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
 from sentry import eventstore
-from sentry.models import Project, ProjectKey, ProjectOption, UserReport
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
+from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
+from sentry.types.region import get_local_region
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
-from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
+from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
+from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -31,7 +41,7 @@ DEFAULT_COMMENTS_LABEL = _("What happened?")
 DEFAULT_CLOSE_LABEL = _("Close")
 DEFAULT_SUBMIT_LABEL = _("Submit Crash Report")
 
-DEFAULT_OPTIONS = {
+DEFAULT_OPTIONS: dict[str, Any] = {
     "title": DEFAULT_TITLE,
     "subtitle": DEFAULT_SUBTITLE,
     "subtitle2": DEFAULT_SUBTITLE2,
@@ -48,14 +58,16 @@ DEFAULT_OPTIONS = {
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(
-        max_length=128, widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")})
+        max_length=UserReport._meta.get_field("name").max_length,
+        widget=forms.TextInput(attrs={"placeholder": _("Jane Bloggs")}),
     )
     email = forms.EmailField(
-        max_length=75,
+        max_length=UserReport._meta.get_field("email").max_length,
         widget=forms.TextInput(attrs={"placeholder": _("jane@example.com"), "type": "email"}),
     )
     comments = forms.CharField(
-        widget=forms.Textarea(attrs={"placeholder": _("I clicked on 'X' and then hit 'Confirm'")})
+        max_length=UserReport._meta.get_field("comments").max_length,
+        widget=forms.Textarea(attrs={"placeholder": _("I clicked on 'X' and then hit 'Confirm'")}),
     )
 
     class Meta:
@@ -63,12 +75,9 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-from rest_framework.request import Request
-from rest_framework.response import Response
-
-
+@region_silo_view
 class ErrorPageEmbedView(View):
-    def _get_project_key(self, request: Request):
+    def _get_project_key(self, request: HttpRequest):
         try:
             dsn = request.GET["dsn"]
         except KeyError:
@@ -81,10 +90,10 @@ class ErrorPageEmbedView(View):
 
         return key
 
-    def _get_origin(self, request: Request):
+    def _get_origin(self, request: HttpRequest):
         return origin_from_request(request)
 
-    def _smart_response(self, request: Request, context=None, status=200):
+    def _smart_response(self, request: HttpRequest, context=None, status=200):
         json_context = json.dumps(context or {})
         accept = request.META.get("HTTP_ACCEPT") or ""
         if "text/javascript" in accept:
@@ -97,14 +106,16 @@ class ErrorPageEmbedView(View):
         response["Access-Control-Allow-Origin"] = request.META.get("HTTP_ORIGIN", "")
         response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response["Access-Control-Max-Age"] = "1000"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        response["Access-Control-Allow-Headers"] = (
+            "Content-Type, Authorization, X-Requested-With, baggage, sentry-trace"
+        )
         response["Vary"] = "Accept"
         if content == "" and context:
             response["X-Sentry-Context"] = json_context
         return response
 
     @csrf_exempt
-    def dispatch(self, request: Request) -> Response:
+    def dispatch(self, request: HttpRequest) -> HttpResponse:
         try:
             event_id = request.GET["eventId"]
         except KeyError:
@@ -150,7 +161,7 @@ class ErrorPageEmbedView(View):
             report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project_id, report.event_id)
+            event = eventstore.backend.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
                 report.environment_id = event.get_environment().id
@@ -184,10 +195,27 @@ class ErrorPageEmbedView(View):
                 sender=self,
             )
 
+            project = Project.objects.get(id=report.project_id)
+            if event is not None:
+                shim_to_feedback(
+                    {
+                        "name": report.name,
+                        "email": report.email,
+                        "comments": report.comments,
+                        "event_id": report.event_id,
+                        "level": "error",  # assume error level from error page embed
+                    },
+                    event,
+                    project,
+                    FeedbackCreationSource.CRASH_REPORT_EMBED_FORM,
+                )
+
             return self._smart_response(request)
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
+        region = get_local_region()
+        endpoint = region.to_url(request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"
@@ -212,7 +240,7 @@ class ErrorPageEmbedView(View):
         )
 
         context = {
-            "endpoint": mark_safe("*/" + json.dumps(absolute_uri(request.get_full_path())) + ";/*"),
+            "endpoint": mark_safe("*/" + json.dumps(endpoint) + ";/*"),
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": mark_safe(
                 "*/"
@@ -227,6 +255,11 @@ class ErrorPageEmbedView(View):
             ),
         }
 
-        return render_to_response(
+        errorPageEmbedResponse = render_to_response(
             "sentry/error-page-embed.js", context, request, content_type="text/javascript"
         )
+
+        # User feedback dialog should be available regardless of cross-origin policy
+        errorPageEmbedResponse["Access-Control-Allow-Origin"] = "*"
+
+        return errorPageEmbedResponse

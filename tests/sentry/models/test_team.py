@@ -1,24 +1,23 @@
-from sentry.models import (
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Project,
-    ProjectTeam,
-    Release,
-    ReleaseProject,
-    ReleaseProjectEnvironment,
-    Team,
-)
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from django.test import override_settings
+
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import Team
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test(stable=True)
 class TeamTest(TestCase):
     def test_global_member(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         assert list(team.member_set.all()) == [member]
 
@@ -26,7 +25,7 @@ class TeamTest(TestCase):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        OrganizationMember.objects.get(user=user, organization=org)
+        OrganizationMember.objects.get(user_id=user.id, organization=org)
 
         assert list(team.member_set.all()) == []
 
@@ -57,96 +56,47 @@ class TeamTest(TestCase):
         projects = team.get_projects()
         assert {_.id for _ in projects} == {project.id}
 
-
-class TransferTest(TestCase):
-    def test_simple(self):
+    @override_settings(SENTRY_USE_SNOWFLAKE=False)
+    def test_without_snowflake(self):
         user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
+        org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-        user2 = self.create_user("foo@example.com")
-        self.create_member(user=user2, organization=org, role="admin", teams=[team])
-        self.create_member(user=user2, organization=org2, role="member", teams=[])
-        team.transfer_to(org2)
+        assert team.id < 1_000_000_000
+        assert Team.objects.filter(id=team.id).exists()
 
-        assert team.organization == org2
-        team = Team.objects.get(id=team.id)
-        assert team.organization == org2
 
-        project = Project.objects.get(id=project.id)
-        assert project.organization == org2
+class TeamDeletionTest(TestCase):
+    def test_hybrid_cloud_deletion(self):
+        org = self.create_organization()
+        team = self.create_team(org)
+        base_params = {
+            "team_id": team.id,
+            "scope_type": "team",
+            "scope_identifier": team.id,
+            "value": "always",
+        }
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            NotificationSettingOption.objects.create(**base_params)
+            NotificationSettingProvider.objects.create(provider="slack", **base_params)
 
-        # owner does not exist on new org, so should not be transferred
-        assert not OrganizationMember.objects.filter(user=user, organization=org2).exists()
+        assert Team.objects.filter(id=team.id).exists()
 
-        # existing member should now have access
-        member = OrganizationMember.objects.get(user=user2, organization=org2)
-        assert list(member.teams.all()) == [team]
-        # role should not automatically upgrade
-        assert member.role == "member"
+        team_id = team.id
+        with outbox_runner():
+            team.delete()
 
-        # old member row should still exist
-        assert OrganizationMember.objects.filter(user=user2, organization=org).exists()
+        assert not Team.objects.filter(id=team_id).exists()
 
-        # no references to old org for this team should exist
-        assert not OrganizationMemberTeam.objects.filter(
-            organizationmember__organization=org, team=team
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # cascade is asynchronous, ensure there is still related search,
+            assert NotificationSettingOption.objects.filter(**base_params).exists()
+            assert NotificationSettingProvider.objects.filter(**base_params).exists()
 
-    def test_existing_team(self):
-        org = self.create_organization(name="foo")
-        org2 = self.create_organization(name="bar")
-        team = self.create_team(name="foo", organization=org)
-        team2 = self.create_team(name="foo", organization=org2)
-        project = self.create_project(teams=[team])
-        team.transfer_to(org2)
+        # Run foreign key cascades to remove control silo state.
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            schedule_hybrid_cloud_foreign_key_jobs_control()
 
-        project = Project.objects.get(id=project.id)
-        assert ProjectTeam.objects.filter(project=project, team=team2).exists()
-
-        assert not Team.objects.filter(id=team.id).exists()
-
-    def test_release_projects(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
-        team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-
-        release = Release.objects.create(version="a" * 7, organization=org)
-
-        release.add_project(project)
-
-        assert ReleaseProject.objects.filter(release=release, project=project).exists()
-
-        team.transfer_to(org2)
-
-        assert Release.objects.filter(id=release.id).exists()
-
-        assert not ReleaseProject.objects.filter(release=release, project=project).exists()
-
-    def test_release_project_envs(self):
-        user = self.create_user()
-        org = self.create_organization(name="foo", owner=user)
-        org2 = self.create_organization(name="bar", owner=None)
-        team = self.create_team(organization=org)
-        project = self.create_project(teams=[team])
-
-        release = Release.objects.create(version="a" * 7, organization=org)
-
-        release.add_project(project)
-        env = self.create_environment(name="prod", project=project)
-        ReleaseProjectEnvironment.objects.create(release=release, project=project, environment=env)
-
-        assert ReleaseProjectEnvironment.objects.filter(
-            release=release, project=project, environment=env
-        ).exists()
-
-        team.transfer_to(org2)
-
-        assert Release.objects.filter(id=release.id).exists()
-
-        assert not ReleaseProjectEnvironment.objects.filter(
-            release=release, project=project, environment=env
-        ).exists()
+        assert not Team.objects.filter(id=team_id).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert not NotificationSettingOption.objects.filter(**base_params).exists()
+            assert not NotificationSettingProvider.objects.filter(**base_params).exists()

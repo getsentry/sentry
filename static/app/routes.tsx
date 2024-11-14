@@ -1,49 +1,46 @@
-import React, {Fragment} from 'react';
-import {
-  IndexRedirect,
-  IndexRoute as BaseIndexRoute,
-  IndexRouteProps,
-  Redirect,
-  Route as BaseRoute,
-  RouteProps,
-} from 'react-router';
+import {Fragment, lazy} from 'react';
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
+import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {HookName} from 'sentry/types/hooks';
+import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
+import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
+import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
+import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
+import {ModuleName} from 'sentry/views/insights/types';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
-import OrganizationDetails from 'sentry/views/organizationDetails';
+import OrganizationContainer from 'sentry/views/organizationContainer';
+import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
-type CustomProps = {
-  name?: string;
-};
-
-/**
- * We add some additional props to our routes
- */
-
-const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
-const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
+import {IndexRedirect, IndexRoute, Redirect, Route} from './components/route';
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-const SafeLazyLoad = errorHandler(LazyLoad);
+// LazyExoticComponent Props get crazy when wrapped in an additional layer
+const SafeLazyLoad = errorHandler(LazyLoad) as unknown as React.ComponentType<
+  typeof LazyLoad
+>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
@@ -53,14 +50,22 @@ const SafeLazyLoad = errorHandler(LazyLoad);
  * _with_ the required props.
  */
 export function makeLazyloadComponent<C extends React.ComponentType<any>>(
-  resolve: () => Promise<{default: C}>
+  resolve: () => Promise<{default: C}>,
+  loadingFallback?: React.ReactNode
 ) {
+  const LazyComponent = lazy<C>(() => retryableImport(resolve));
   // XXX: Assign the component to a variable so it has a displayname
-  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+  function RouteLazyLoad(props: React.ComponentProps<C>) {
     // we can use this hook to set the organization as it's
     // a child of the organization context
-    return <SafeLazyLoad {...props} component={resolve} />;
-  };
+    return (
+      <SafeLazyLoad
+        {...props}
+        LazyComponent={LazyComponent}
+        loadingFallback={loadingFallback}
+      />
+    );
+  }
 
   return RouteLazyLoad;
 }
@@ -127,15 +132,13 @@ function buildRoutes() {
   // * `organizationRoutes`
   //
   //   This is where a majority of the app routes live. This is wrapped with
-  //   the <OrganizationDetails /> component, which provides the sidebar and
-  //   organization context.
+  //   the <OrganizationLayout /> component, which renders the sidebar and
+  //   loads the organiztion into context (though in some cases, there may be
+  //   no organiztion)
   //
-  //   When adding new routes make sure you have both a route that starts
-  //   with `/organizations/:orgId` and also 'customer-domains' route that
-  //   does not include `/organizations/:orgId`. Often you'll only need to
-  //   worry about this for the container route for that section of the UI.
-  //   Child routes should access the current organization with `useOrganization()`
-  //   or `withOrganization()` methods.
+  //   When adding new top-level organization routes, be sure the top level
+  //   route includes withOrgPath to support installs that are not using
+  //   customer domains.
   //
   //   Within these routes are a variety of subroutes. They are not all
   //   listed here as the subroutes will be added and removed, and most are
@@ -160,6 +163,7 @@ function buildRoutes() {
   const rootRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
+      {hook('routes:root')}
       <Route
         path="/accept/:orgId/:memberId/:token/"
         component={make(() => import('sentry/views/acceptOrganizationInvite'))}
@@ -172,14 +176,16 @@ function buildRoutes() {
         path="/accept-transfer/"
         component={make(() => import('sentry/views/acceptProjectTransfer'))}
       />
-      <Route
-        path="/extensions/external-install/:integrationSlug/:installationId"
-        component={make(() => import('sentry/views/integrationOrganizationLink'))}
-      />
-      <Route
-        path="/extensions/:integrationSlug/link/"
-        component={make(() => import('sentry/views/integrationOrganizationLink'))}
-      />
+      <Route component={errorHandler(OrganizationContainer)}>
+        <Route
+          path="/extensions/external-install/:integrationSlug/:installationId"
+          component={make(() => import('sentry/views/integrationOrganizationLink'))}
+        />
+        <Route
+          path="/extensions/:integrationSlug/link/"
+          component={make(() => import('sentry/views/integrationOrganizationLink'))}
+        />
+      </Route>
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
         component={make(() => import('sentry/views/sentryAppExternalInstallation'))}
@@ -195,41 +201,53 @@ function buildRoutes() {
         path="/organizations/:orgId/share/issue/:shareId/"
         component={make(() => import('sentry/views/sharedGroupDetails'))}
       />
+      {USING_CUSTOMER_DOMAIN && (
+        <Route
+          path="/unsubscribe/project/:id/"
+          component={make(() => import('sentry/views/unsubscribe/project'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/project/:id/"
+        component={make(() => import('sentry/views/unsubscribe/project'))}
+      />
+      {USING_CUSTOMER_DOMAIN && (
+        <Route
+          path="/unsubscribe/issue/:id/"
+          component={make(() => import('sentry/views/unsubscribe/issue'))}
+        />
+      )}
+      <Route
+        path="/unsubscribe/:orgId/issue/:id/"
+        component={make(() => import('sentry/views/unsubscribe/issue'))}
+      />
       <Route
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {usingCustomerDomain && (
-        <Route
-          path="/data-export/:dataExportId"
-          component={withDomainRequired(
-            make(() => import('sentry/views/dataExport/dataDownload'))
-          )}
-          key="orgless-data-export-route"
-        />
-      )}
       <Route
-        path="/organizations/:orgId/data-export/:dataExportId"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/dataExport/dataDownload'))
-        )}
-        key="org-data-export"
+        path="/data-export/:dataExportId"
+        component={make(() => import('sentry/views/dataExport/dataDownload'))}
+        withOrgPath
       />
-      {usingCustomerDomain && (
+      <Route component={errorHandler(OrganizationContainer)}>
         <Route
           path="/disabled-member/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/disabledMember'))
-          )}
-          key="orgless-disabled-member-route"
+          component={make(() => import('sentry/views/disabledMember'))}
+          withOrgPath
+        />
+      </Route>
+      {USING_CUSTOMER_DOMAIN && (
+        <Route
+          path="/restore/"
+          component={make(() => import('sentry/views/organizationRestore'))}
         />
       )}
       <Route
-        path="/organizations/:orgId/disabled-member/"
-        component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
-        key="org-disabled-member"
+        path="/organizations/:orgId/restore/"
+        component={make(() => import('sentry/views/organizationRestore'))}
       />
-      {usingCustomerDomain && (
+      {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/join-request/"
           component={withDomainRequired(
@@ -245,27 +263,39 @@ function buildRoutes() {
         )}
         key="org-join-request"
       />
-      {usingCustomerDomain && (
-        <Route
-          path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationContextContainer))}
-          key="orgless-onboarding"
-        >
-          <IndexRedirect to="welcome/" />
-          <Route
-            path=":step/"
-            component={make(() => import('sentry/views/onboarding'))}
-          />
-        </Route>
-      )}
       <Route
-        path="/onboarding/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationContextContainer))}
+        path="/relocation/"
+        component={make(() => import('sentry/views/relocation'))}
+        key="orgless-relocation"
+      >
+        <IndexRedirect to="get-started/" />
+        <Route path=":step/" component={make(() => import('sentry/views/relocation'))} />
+      </Route>
+      {USING_CUSTOMER_DOMAIN && (
+        <Fragment>
+          <Redirect from="/onboarding/" to="/onboarding/welcome/" />
+          <Route
+            path="/onboarding/:step/"
+            component={errorHandler(withDomainRequired(OrganizationContainer))}
+            key="orgless-onboarding"
+          >
+            <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
+          </Route>
+        </Fragment>
+      )}
+      <Redirect from="/onboarding/:orgId/" to="/onboarding/:orgId/welcome/" />
+      <Route
+        path="/onboarding/:orgId/:step/"
+        component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
-        <IndexRedirect to="welcome/" />
-        <Route path=":step/" component={make(() => import('sentry/views/onboarding'))} />
+        <IndexRoute component={make(() => import('sentry/views/onboarding'))} />
       </Route>
+      <Route
+        path="/stories/"
+        component={make(() => import('sentry/views/stories/index'))}
+        withOrgPath
+      />
     </Fragment>
   );
 
@@ -287,14 +317,19 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/settings/account/notifications/notificationSettings')
+              import(
+                'sentry/views/settings/account/notifications/notificationSettingsController'
+              )
           )}
         />
         <Route
           path=":fineTuneType/"
           name={t('Fine Tune Alerts')}
           component={make(
-            () => import('sentry/views/settings/account/accountNotificationFineTuning')
+            () =>
+              import(
+                'sentry/views/settings/account/accountNotificationFineTuningController'
+              )
           )}
         />
       </Route>
@@ -366,7 +401,7 @@ function buildRoutes() {
       />
       <Route path="api/" name={t('API')}>
         <IndexRedirect to="auth-tokens/" />
-        <Route path="auth-tokens/" name={t('Auth Tokens')}>
+        <Route path="auth-tokens/" name={t('User Auth Tokens')}>
           <IndexRoute
             component={make(() => import('sentry/views/settings/account/apiTokens'))}
           />
@@ -374,6 +409,13 @@ function buildRoutes() {
             path="new-token/"
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
+          />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
           />
         </Route>
         <Route path="applications/" name={t('Applications')}>
@@ -390,7 +432,6 @@ function buildRoutes() {
             )}
           />
         </Route>
-        {hook('routes:api')}
       </Route>
       <Route
         path="close-account/"
@@ -412,6 +453,7 @@ function buildRoutes() {
         name={t('General')}
         component={make(() => import('sentry/views/settings/projectGeneralSettings'))}
       />
+      <Redirect from="install/" to="/projects/:projectId/getting-started/" />
       <Route
         path="teams/"
         name={t('Teams')}
@@ -453,7 +495,7 @@ function buildRoutes() {
       </Route>
       <Route
         path="tags/"
-        name={t('Tags')}
+        name={t('Tags & Context')}
         component={make(() => import('sentry/views/settings/projectTags'))}
       />
       <Redirect from="issue-tracking/" to="/settings/:orgId/:projectId/plugins/" />
@@ -473,6 +515,11 @@ function buildRoutes() {
         path="data-forwarding/"
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
+      />
+      <Route
+        path="user-feedback/"
+        name={t('User Feedback')}
+        component={make(() => import('sentry/views/settings/projectUserFeedback'))}
       />
       <Route path="security-and-privacy/" name={t('Security & Privacy')}>
         <IndexRoute
@@ -502,27 +549,40 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route
-        path="source-maps/"
-        name={t('Source Maps')}
-        component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-      >
+      <Route path="metrics/" name={t('Metrics')}>
         <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSourceMaps/list'))}
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
         <Route
-          path=":name/"
-          name={t('Archive')}
-          component={make(() => import('sentry/views/settings/projectSourceMaps/detail'))}
+          name={t('Metrics Details')}
+          path=":mri/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
+          )}
         />
       </Route>
       <Route
-        path="processing-issues/"
-        name={t('Processing Issues')}
-        component={make(
-          () => import('sentry/views/settings/project/projectProcessingIssues')
-        )}
+        path="replays/"
+        name={t('Replays')}
+        component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
+      <Route
+        path="toolbar/"
+        name={t('Developer Toolbar')}
+        component={make(() => import('sentry/views/settings/project/projectToolbar'))}
+      />
+      <Route path="source-maps/" name={t('Source Maps')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
+        />
+        <Route
+          name={t('Source Map Uploads')}
+          path=":bundleId/"
+          component={make(() => import('sentry/views/settings/projectSourceMaps'))}
+        />
+        <Redirect from="source-maps/artifact-bundles/" to="source-maps/" />
+        <Redirect from="source-maps/release-bundles/" to="source-maps/" />
+      </Route>
       <Route
         path="filters/"
         name={t('Inbound Filters')}
@@ -531,15 +591,7 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-        <Route
-          path="rules/:rule/"
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-      </Route>
+      <Redirect from="dynamic-sampling/" to="performance/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -579,13 +631,14 @@ function buildRoutes() {
         />
       </Route>
       <Route
-        path="user-feedback/"
-        name={t('User Feedback')}
-        component={make(
-          () => import('sentry/views/settings/project/projectUserFeedback')
-        )}
+        path="loader-script/"
+        name={t('Loader Script')}
+        component={make(() => import('sentry/views/settings/project/loaderScript'))}
       />
-      <Redirect from="csp/" to="security-headers/" />
+      <Redirect
+        from="csp/"
+        to="/settings/:orgId/projects/:projectId/security-headers/csp/"
+      />
       <Route path="security-headers/" name={t('Security Headers')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSecurityHeaders'))}
@@ -622,18 +675,6 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/projectPlugins/details'))}
         />
       </Route>
-      <Route path="install/" name={t('Configuration')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
-        />
-        <Route
-          path=":platform/"
-          name={t('Docs')}
-          component={make(
-            () => import('sentry/views/projectInstall/platformOrIntegration')
-          )}
-        />
-      </Route>
     </Route>
   );
 
@@ -643,8 +684,8 @@ function buildRoutes() {
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
-      {hook('routes:organization')}
-      {!usingCustomerDomain && (
+      {hook('routes:settings')}
+      {!USING_CUSTOMER_DOMAIN && (
         <IndexRoute
           name={t('General')}
           component={make(
@@ -652,15 +693,13 @@ function buildRoutes() {
           )}
         />
       )}
-      {usingCustomerDomain && (
-        <Route
-          path="/settings/organization/"
-          name={t('General')}
-          component={make(
-            () => import('sentry/views/settings/organizationGeneralSettings')
-          )}
-        />
-      )}
+      <Route
+        path="organization/"
+        name={t('General')}
+        component={make(
+          () => import('sentry/views/settings/organizationGeneralSettings')
+        )}
+      />
       <Route
         path="projects/"
         name={t('Projects')}
@@ -693,23 +732,12 @@ function buildRoutes() {
       />
       <Redirect from="members/requests" to="members/" />
       <Route path="members/" name={t('Members')}>
-        <Route
+        <IndexRoute
           component={make(
             () =>
-              import(
-                'sentry/views/settings/organizationMembers/organizationMembersWrapper'
-              )
+              import('sentry/views/settings/organizationMembers/organizationMembersList')
           )}
-        >
-          <IndexRoute
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationMembers/organizationMembersList'
-                )
-            )}
-          />
-        </Route>
+        />
         <Route
           path=":memberId/"
           name={t('Details')}
@@ -862,8 +890,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
-      <Route path="developer-settings/" name={t('Developer Settings')}>
+      <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/settings/organizationDeveloperSettings')
@@ -909,29 +936,36 @@ function buildRoutes() {
               )
           )}
         />
-        <Route path="sentry-functions/" name={t('Sentry Functions')}>
-          <Route
-            path="new/"
-            name={t('Create Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-          <Route
-            path=":functionSlug/"
-            name={t('Edit Sentry Function')}
-            component={make(
-              () =>
-                import(
-                  'sentry/views/settings/organizationDeveloperSettings/sentryFunctionDetails'
-                )
-            )}
-          />
-        </Route>
       </Route>
+      <Route path="auth-tokens/" name={t('Auth Tokens')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/organizationAuthTokens'))}
+        />
+        <Route
+          path="new-token/"
+          name={t('Create New Auth Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+        <Route
+          path=":tokenId/"
+          name={t('Edit Auth Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
+          )}
+        />
+      </Route>
+      <Route
+        path="early-features/"
+        name={t('Early Features')}
+        component={make(() => import('sentry/views/settings/earlyFeatures'))}
+      />
+      <Route
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
+        component={make(() => import('sentry/views/settings/dynamicSampling'))}
+      />
     </Route>
   );
 
@@ -952,7 +986,7 @@ function buildRoutes() {
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
       <Fragment>
-        {usingCustomerDomain && (
+        {USING_CUSTOMER_DOMAIN && (
           <Route
             name={t('Organization')}
             component={withDomainRequired(NoOp)}
@@ -976,27 +1010,17 @@ function buildRoutes() {
     </Route>
   );
 
-  const projectsChildRoutes = (
-    <Fragment>
+  const projectsRoutes = (
+    <Route
+      path="/projects/"
+      component={make(() => import('sentry/views/projects/'))}
+      withOrgPath
+    >
       <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
       <Route
         path="new/"
         component={make(() => import('sentry/views/projectInstall/newProject'))}
       />
-      <Route
-        path=":projectId/getting-started/"
-        component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
-      >
-        <IndexRoute
-          component={make(() => import('sentry/views/projectInstall/overview'))}
-        />
-        <Route
-          path=":platform/"
-          component={make(
-            () => import('sentry/views/projectInstall/platformOrIntegration')
-          )}
-        />
-      </Route>
       <Route
         path=":projectId/"
         component={make(() => import('sentry/views/projectDetail'))}
@@ -1005,49 +1029,19 @@ function buildRoutes() {
         path=":projectId/events/:eventId/"
         component={errorHandler(ProjectEventRedirect)}
       />
-    </Fragment>
-  );
-  const projectsRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/projects/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-projects-route"
-        >
-          {projectsChildRoutes}
-        </Route>
-      )}
       <Route
-        path="/organizations/:orgId/projects/"
-        component={withDomainRedirect(NoOp)}
-        key="org-projects"
-      >
-        {projectsChildRoutes}
-      </Route>
-    </Fragment>
+        path=":projectId/getting-started/"
+        component={make(
+          () => import('sentry/views/projectInstall/platformOrIntegration')
+        )}
+      />
+    </Route>
   );
 
-  const dashboardWidgetRoutes = (
-    <Fragment>
-      <Route
-        path="widget/:widgetIndex/edit/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/new/"
-        component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
-      />
-      <Route
-        path="widget/:widgetId/"
-        component={make(() => import('sentry/views/dashboards/view'))}
-      />
-    </Fragment>
-  );
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
-        {usingCustomerDomain && (
+        {USING_CUSTOMER_DOMAIN && (
           <Route
             path="/dashboards/"
             component={withDomainRequired(make(() => import('sentry/views/dashboards')))}
@@ -1067,7 +1061,7 @@ function buildRoutes() {
         </Route>
       </Fragment>
       <Fragment>
-        {usingCustomerDomain && (
+        {USING_CUSTOMER_DOMAIN && (
           <Route
             path="/dashboards/new/"
             component={withDomainRequired(
@@ -1103,7 +1097,7 @@ function buildRoutes() {
         </Route>
       </Fragment>
       <Fragment>
-        {usingCustomerDomain && (
+        {USING_CUSTOMER_DOMAIN && (
           <Route
             path="/dashboards/new/:templateId"
             component={withDomainRequired(
@@ -1134,42 +1128,43 @@ function buildRoutes() {
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
-      {usingCustomerDomain && (
+      {USING_CUSTOMER_DOMAIN && (
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
       )}
-      <Fragment>
-        {usingCustomerDomain && (
-          <Route
-            path="/dashboard/:dashboardId/"
-            component={withDomainRequired(
-              make(() => import('sentry/views/dashboards/view'))
-            )}
-            key="orgless-dashboards-dashboard-id-route"
-          >
-            {dashboardWidgetRoutes}
-          </Route>
-        )}
+      <Route
+        path="/dashboard/:dashboardId/"
+        component={make(() => import('sentry/views/dashboards/view'))}
+        withOrgPath
+      >
         <Route
-          path="/organizations/:orgId/dashboard/:dashboardId/"
-          component={withDomainRedirect(
-            make(() => import('sentry/views/dashboards/view'))
-          )}
-          key="org-dashboards-dashboard-id"
-        >
-          {dashboardWidgetRoutes}
-        </Route>
-      </Fragment>
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
+        />
+        <Route
+          path="widget/:widgetId/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+      </Route>
     </Fragment>
   );
 
   const alertChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
+    // ALERT CHILD ROUTES
     return (
       <Fragment>
         <IndexRoute
           component={make(() => import('sentry/views/alerts/list/incidents'))}
         />
         <Route path="rules/">
-          <IndexRoute component={make(() => import('sentry/views/alerts/list/rules'))} />
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/alerts/list/rules/alertRulesList')
+            )}
+          />
           <Route
             path="details/:ruleId/"
             component={make(() => import('sentry/views/alerts/rules/metric/details'))}
@@ -1190,14 +1185,20 @@ function buildRoutes() {
               component={make(() => import('sentry/views/alerts/edit'))}
             />
           </Route>
-          <Route
-            path=":projectId/:ruleId/details/"
-            component={make(() => import('sentry/views/alerts/rules/issue/details'))}
-          >
+          <Route path=":projectId/:ruleId/details/">
             <IndexRoute
               component={make(
                 () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
               )}
+            />
+          </Route>
+          <Route
+            path="uptime/"
+            component={make(() => import('sentry/views/alerts/rules/uptime'))}
+          >
+            <Route
+              path=":projectId/:uptimeRuleId/details/"
+              component={make(() => import('sentry/views/alerts/rules/uptime/details'))}
             />
           </Route>
         </Route>
@@ -1218,6 +1219,17 @@ function buildRoutes() {
                   : '/organizations/:orgId/alerts/rules/'
               }
             />
+            <Route
+              path=":ruleId/"
+              component={make(() => import('sentry/views/alerts/edit'))}
+            />
+          </Route>
+        </Route>
+        <Route path="uptime-rules/">
+          <Route
+            path=":projectId/"
+            component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          >
             <Route
               path=":ruleId/"
               component={make(() => import('sentry/views/alerts/edit'))}
@@ -1266,9 +1278,10 @@ function buildRoutes() {
       </Fragment>
     );
   };
+  // ALERT ROUTES
   const alertRoutes = (
     <Fragment>
-      {usingCustomerDomain && (
+      {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/alerts/"
           component={withDomainRequired(make(() => import('sentry/views/alerts')))}
@@ -1287,94 +1300,53 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
-        <IndexRoute component={make(() => import('sentry/views/monitors/monitors'))} />
-        <Route
-          path={
-            forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
-          }
-          component={make(() => import('sentry/views/monitors/create'))}
-          key={forCustomerDomain ? 'orgless-monitors-create' : 'org-monitors-create'}
-        />
-        <Route
-          path={
-            forCustomerDomain
-              ? '/crons/:monitorId/'
-              : '/organizations/:orgId/crons/:monitorId/'
-          }
-          component={make(() => import('sentry/views/monitors/details'))}
-          key={
-            forCustomerDomain ? 'orgless-monitors-monitor-id' : 'org-monitors-monitor-id'
-          }
-        />
-        <Route
-          path={
-            forCustomerDomain
-              ? '/crons/:monitorId/edit/'
-              : '/organizations/:orgId/crons/:monitorId/edit/'
-          }
-          component={make(() => import('sentry/views/monitors/edit'))}
-          key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
-        />
-      </Fragment>
-    );
-  };
   const cronsRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/crons/"
-          component={withDomainRequired(make(() => import('sentry/views/monitors')))}
-          key="orgless-monitors-route"
-        >
-          {cronsChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
+    <Route
+      path="/crons/"
+      component={make(() => import('sentry/views/monitors'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
       <Route
-        path="/organizations/:orgId/crons/"
-        component={withDomainRedirect(make(() => import('sentry/views/monitors')))}
-        key="org-monitors"
-      >
-        {cronsChildRoutes({forCustomerDomain: false})}
-      </Route>
-    </Fragment>
+        path="create/"
+        component={make(() => import('sentry/views/monitors/create'))}
+      />
+      <Redirect from=":monitorSlug/" to="/crons/" />
+      <Redirect from=":monitorSlug/edit/" to="/crons/" />
+      <Route
+        path=":projectId/:monitorSlug/"
+        component={make(() => import('sentry/views/monitors/details'))}
+      />
+      <Route
+        path=":projectId/:monitorSlug/edit/"
+        component={make(() => import('sentry/views/monitors/edit'))}
+      />
+    </Route>
   );
 
-  const replayChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
+  const replayRoutes = (
+    <Route
+      path="/replays/"
+      component={make(() => import('sentry/views/replays/index'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
+      <Route
+        path="selectors/"
+        component={make(
+          () => import('sentry/views/replays/deadRageClick/deadRageClickList')
+        )}
+      />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
-    </Fragment>
-  );
-  const replayRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/replays/"
-          component={withDomainRequired(make(() => import('sentry/views/replays')))}
-          key="orgless-replays-route"
-        >
-          {replayChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/replays/"
-        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
-        key="org-replays"
-      >
-        {replayChildRoutes}
-      </Route>
-    </Fragment>
+    </Route>
   );
 
-  const releasesChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
+  const releasesRoutes = (
+    <Fragment>
+      <Route path="/releases/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
         <Route
           path=":release/"
@@ -1395,112 +1367,44 @@ function buildRoutes() {
               () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
             )}
           />
-          {forCustomerDomain ? null : (
-            <Fragment>
-              <Redirect
-                from="new-events/"
-                to="/organizations/:orgId/releases/:release/"
-              />
-              <Redirect
-                from="all-events/"
-                to="/organizations/:orgId/releases/:release/"
-              />
-            </Fragment>
-          )}
         </Route>
-      </Fragment>
-    );
-  };
-  const releasesRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/releases/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-releases-route"
-        >
-          {releasesChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/releases/"
-        component={withDomainRedirect(NoOp)}
-        key="org-releases"
-      >
-        {releasesChildRoutes({forCustomerDomain: false})}
       </Route>
-    </Fragment>
-  );
-
-  const activityRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/activity/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/organizationActivity'))
-          )}
-          key="orgless-activity-route"
-        />
-      )}
-      <Route
-        path="/organizations/:orgId/activity/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/organizationActivity'))
-        )}
-        key="org-activity"
+      <Redirect
+        from="/releases/new-events/"
+        to="/organizations/:orgId/releases/:release/"
+      />
+      <Redirect
+        from="/releases/all-events/"
+        to="/organizations/:orgId/releases/:release/"
       />
     </Fragment>
   );
 
-  const statsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
+  const statsRoutes = (
+    <Fragment>
+      <Route path="/stats/" withOrgPath>
         <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
         <Route
-          path="issues/"
           component={make(() => import('sentry/views/organizationStats/teamInsights'))}
         >
-          <IndexRoute
+          <Route
+            path="issues/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/issues')
             )}
           />
-        </Route>
-        <Route
-          path="health/"
-          component={make(() => import('sentry/views/organizationStats/teamInsights'))}
-        >
-          <IndexRoute
+          <Route
+            path="health/"
             component={make(
               () => import('sentry/views/organizationStats/teamInsights/health')
             )}
           />
         </Route>
-        {forCustomerDomain ? null : (
-          <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
-        )}
-      </Fragment>
-    );
-  };
-  const statsRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/stats/"
-          component={withDomainRequired(NoOp)}
-          key="orgless-stats-route"
-        >
-          {statsChildRoutes({forCustomerDomain: true})}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/stats/"
-        component={withDomainRedirect(NoOp)}
-        key="org-stats"
-      >
-        {statsChildRoutes({forCustomerDomain: false})}
       </Route>
+      <Redirect
+        from="/organizations/:orgId/stats/team/"
+        to="/organizations/:orgId/stats/issues/"
+      />
     </Fragment>
   );
 
@@ -1508,8 +1412,12 @@ function buildRoutes() {
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
   // /discover/queries and not /discover
-  const discoverChildRoutes = (
-    <Fragment>
+  const discoverRoutes = (
+    <Route
+      path="/discover/"
+      component={make(() => import('sentry/views/discover'))}
+      withOrgPath
+    >
       <IndexRedirect to="queries/" />
       <Route
         path="homepage/"
@@ -1527,98 +1435,535 @@ function buildRoutes() {
         path=":eventSlug/"
         component={make(() => import('sentry/views/discover/eventDetails'))}
       />
-    </Fragment>
-  );
-  const discoverRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/discover/"
-          component={withDomainRequired(make(() => import('sentry/views/discover')))}
-          key="orgless-discover-route"
-        >
-          {discoverChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/discover/"
-        component={withDomainRedirect(make(() => import('sentry/views/discover')))}
-        key="org-discover-route"
-      >
-        {discoverChildRoutes}
-      </Route>
-    </Fragment>
+    </Route>
   );
 
-  const performanceChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
-      <Route
-        path="trends/"
-        component={make(() => import('sentry/views/performance/trends'))}
-      />
-      <Route path="summary/">
+  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
+    <Redirect
+      from="/llm-monitoring/"
+      to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
+  ) : (
+    <Redirect
+      from="/organizations/:orgId/llm-monitoring/"
+      to={`/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
+  );
+
+  const insightsRedirects = Object.values(MODULE_BASE_URLS)
+    .map(
+      moduleBaseURL =>
+        moduleBaseURL && (
+          <Redirect
+            key={moduleBaseURL}
+            from={`${moduleBaseURL}/*`}
+            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/:splat`}
+          />
+        )
+    )
+    .filter(Boolean);
+
+  const insightsRoutes = (
+    <Route path={`/${INSIGHTS_BASE_URL}/`} withOrgPath>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/database/views/databaseLandingPage')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/http/views/httpLandingPage')
+          )}
+        />
+        <Route
+          path="domains/"
+          component={make(
+            () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/cache/views/cacheLandingPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/performance/transactionSummary/transactionOverview')
+              import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
           )}
         />
         <Route
-          path="replays/"
+          path="overview/"
           component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionReplays')
+            () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
           )}
         />
-        <Route
-          path="vitals/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionVitals')
-          )}
-        />
-        <Route
-          path="tags/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionTags')
-          )}
-        />
-        <Route
-          path="events/"
-          component={make(
-            () => import('sentry/views/performance/transactionSummary/transactionEvents')
-          )}
-        />
-        <Route
-          path="anomalies/"
+      </Route>
+      <Redirect
+        from="browser/resources/"
+        to={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
+      <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
+        <IndexRoute
           component={make(
             () =>
-              import('sentry/views/performance/transactionSummary/transactionAnomalies')
+              import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
           )}
         />
         <Route
-          path="profiles/"
+          path="spans/span/:groupId/"
           component={make(
             () =>
-              import('sentry/views/performance/transactionSummary/transactionProfiles')
+              import('sentry/views/insights/browser/resources/views/resourceSummaryPage')
           )}
         />
-        <Route path="spans/">
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/queues/views/queuesLandingPage')
+          )}
+        />
+        <Route
+          path="destination/"
+          component={make(
+            () => import('sentry/views/insights/queues/views/destinationSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import(
+                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
+              )
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () =>
+              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+          )}
+        />
+        <Route
+          path="spans/"
+          component={make(
+            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+          )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+          )}
+        />
+        <Route
+          path="details/"
+          component={make(
+            () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+          )}
+        />
+      </Route>
+      <Redirect
+        from="mobile/app-startup/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.APP_START]}/`}
+      />
+      <Redirect
+        from="mobile/screens/"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}
+      />
+      <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+        <IndexRoute
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
+          )}
+        />
+        <Route
+          path="pipeline-type/:groupId/"
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
+          )}
+        />
+      </Route>
+    </Route>
+  );
+
+  const transactionSummaryRoutes = (
+    <Route path="summary/">
+      <IndexRoute
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionOverview')
+        )}
+      />
+      <Route
+        path="replays/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionReplays')
+        )}
+      />
+      <Route
+        path="vitals/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionVitals')
+        )}
+      />
+      <Route
+        path="tags/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionTags')
+        )}
+      />
+      <Route
+        path="events/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionEvents')
+        )}
+      />
+      <Route
+        path="profiles/"
+        component={make(
+          () => import('sentry/views/performance/transactionSummary/transactionProfiles')
+        )}
+      />
+      <Route
+        path="aggregateWaterfall/"
+        component={make(
+          () =>
+            import('sentry/views/performance/transactionSummary/aggregateSpanWaterfall')
+        )}
+      />
+      <Route path="spans/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/transactionSummary/transactionSpans')
+          )}
+        />
+        <Route
+          path=":spanSlug/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+              )
+          )}
+        />
+      </Route>
+    </Route>
+  );
+
+  const domainViewRoutes = (
+    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
+      <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/frontend/frontendOverviewPage')
+          )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
           <IndexRoute
             component={make(
-              () => import('sentry/views/performance/transactionSummary/transactionSpans')
+              () => import('sentry/views/insights/http/views/httpLandingPage')
             )}
           />
           <Route
-            path=":spanSlug/"
+            path="domains/"
+            component={make(
+              () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.VITAL]}/`}>
+          <IndexRoute
             component={make(
               () =>
                 import(
-                  'sentry/views/performance/transactionSummary/transactionSpans/spanDetails'
+                  'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="overview/"
+            component={make(
+              () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/browser/resources/views/resourcesLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/span/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/browser/resources/views/resourceSummaryPage'
                 )
             )}
           />
         </Route>
       </Route>
+      <Route path={`${BACKEND_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/backend/backendOverviewPage')
+          )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/database/views/databaseLandingPage')
+            )}
+          />
+          <Route
+            path="spans/span/:groupId/"
+            component={make(
+              () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/http/views/httpLandingPage')
+            )}
+          />
+          <Route
+            path="domains/"
+            component={make(
+              () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/cache/views/cacheLandingPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/queues/views/queuesLandingPage')
+            )}
+          />
+          <Route
+            path="destination/"
+            component={make(
+              () => import('sentry/views/insights/queues/views/destinationSummaryPage')
+            )}
+          />
+        </Route>
+      </Route>
+      <Route path={`${MOBILE_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/insights/pages/mobile/mobileOverviewPage')
+          )}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_SCREENS]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/screens/views/screensLandingPage')
+            )}
+          />
+          <Route
+            path="details/"
+            component={make(
+              () => import('sentry/views/insights/mobile/screens/views/screenDetailsPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_RENDERING]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenRendering/screenRenderingLandingPage'
+                )
+            )}
+          />
+          <Route
+            path={`${SUMMARY_PAGE_BASE_URL}/`}
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenRendering/screenRenderingSummaryPage'
+                )
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/appStarts/views/appStartsLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
+          <IndexRoute
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
+            )}
+          />
+        </Route>
+        <Route path={`${MODULE_BASE_URLS[ModuleName.SCREEN_LOAD]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="spans/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage'
+                )
+            )}
+          />
+        </Route>
+      </Route>
+      <Route path={`${AI_LANDING_SUB_PATH}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/pages/ai/aiOverviewPage'))}
+        />
+        {transactionSummaryRoutes}
+        <Route
+          path="trace/:traceSlug/"
+          component={make(() => import('sentry/views/performance/traceDetails'))}
+        />
+        <Route
+          path="trends/"
+          component={make(() => import('sentry/views/performance/trends'))}
+        />
+        <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
+          <IndexRoute
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage'
+                )
+            )}
+          />
+          <Route
+            path="pipeline-type/:groupId/"
+            component={make(
+              () =>
+                import(
+                  'sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage'
+                )
+            )}
+          />
+        </Route>
+      </Route>
+    </Route>
+  );
+
+  const performanceRoutes = (
+    <Route
+      path="/performance/"
+      component={make(() => import('sentry/views/performance'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/performance/content'))} />
+      <Route
+        path="trends/"
+        component={make(() => import('sentry/views/performance/trends'))}
+      />
+      {transactionSummaryRoutes}
       <Route
         path="vitaldetail/"
         component={make(() => import('sentry/views/performance/vitalDetail'))}
@@ -1627,70 +1972,61 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
+      {insightsRedirects}
+      <Redirect
+        from="browser/resources"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
+      <Redirect
+        from="browser/assets"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
+      <Redirect
+        from="browser/pageloads"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.VITAL]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
       />
-    </Fragment>
+    </Route>
   );
-  const performanceRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/performance/"
-          component={withDomainRequired(make(() => import('sentry/views/performance')))}
-          key="orgless-performance-route"
-        >
-          {performanceChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/performance/"
-        component={withDomainRedirect(make(() => import('sentry/views/performance')))}
-        key="org-performance"
-      >
-        {performanceChildRoutes}
-      </Route>
-    </Fragment>
+
+  const tracesRoutes = (
+    <Route
+      path="/traces/"
+      component={make(() => import('sentry/views/traces'))}
+      withOrgPath
+    >
+      <IndexRoute component={make(() => import('sentry/views/traces/content'))} />
+    </Route>
   );
 
   const userFeedbackRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/user-feedback/"
-          component={withDomainRequired(make(() => import('sentry/views/userFeedback')))}
-          key="orgless-user-feedback-route"
-        />
-      )}
-      <Route
-        path="/organizations/:orgId/user-feedback/"
-        component={withDomainRedirect(make(() => import('sentry/views/userFeedback')))}
-        key="org-user-feedback"
+    <Route
+      path="/user-feedback/"
+      component={make(() => import('sentry/views/userFeedback'))}
+      withOrgPath
+    />
+  );
+
+  const feedbackv2Routes = (
+    <Route
+      path="/feedback/"
+      component={make(() => import('sentry/views/feedback/index'))}
+      withOrgPath
+    >
+      <IndexRoute
+        component={make(() => import('sentry/views/feedback/feedbackListPage'))}
       />
-    </Fragment>
+    </Route>
   );
 
   const issueListRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/issues/(searches/:searchId/)"
-          component={withDomainRequired(errorHandler(IssueListContainer))}
-          key="orgless-issues-route"
-        >
-          <IndexRoute component={errorHandler(IssueListOverview)} />
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/issues/(searches/:searchId/)"
-        component={withDomainRedirect(errorHandler(IssueListContainer))}
-        key="org-issues"
-      >
-        <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
-        <IndexRoute component={errorHandler(IssueListOverview)} />
-      </Route>
-    </Fragment>
+    <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
+      <IndexRoute component={errorHandler(IssueListOverview)} />
+      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+    </Route>
   );
 
   // Once org issues is complete, these routes can be nested under
@@ -1701,7 +2037,11 @@ function buildRoutes() {
       <Fragment>
         <IndexRoute
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventDetails'))
+            make(
+              () =>
+                import('sentry/views/issueDetails/groupEventDetails/groupEventDetails'),
+              <GroupEventDetailsLoading />
+            )
           )}
         />
         <Route
@@ -1718,7 +2058,9 @@ function buildRoutes() {
         />
         <Route
           path={TabPaths[Tab.TAGS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupTags')))}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))
+          )}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
@@ -1739,16 +2081,19 @@ function buildRoutes() {
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={hoc(
-            make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
+            make(
+              () =>
+                import(
+                  'sentry/views/issueDetails/groupSimilarIssues/groupSimilarIssuesTab'
+                )
+            )
           )}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
-        />
-        <Route
-          path={TabPaths[Tab.GROUPING]}
-          component={hoc(make(() => import('sentry/views/issueDetails/grouping')))}
+          component={hoc(
+            make(() => import('sentry/views/issueDetails/groupMerged/groupMergedTab'))
+          )}
         />
       </Fragment>
     );
@@ -1765,15 +2110,19 @@ function buildRoutes() {
     <Fragment>
       <Route
         path="/organizations/:orgId/issues/:groupId/"
-        component={withDomainRedirect(make(() => import('sentry/views/issueDetails')))}
+        component={withDomainRedirect(
+          make(() => import('sentry/views/issueDetails/groupDetails'))
+        )}
         key="org-issues-group-id"
       >
         {issueDetailsChildRoutes({forCustomerDomain: false})}
       </Route>
-      {usingCustomerDomain && (
+      {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/issues/:groupId/"
-          component={withDomainRequired(make(() => import('sentry/views/issueDetails')))}
+          component={withDomainRequired(
+            make(() => import('sentry/views/issueDetails/groupDetails'))
+          )}
           key="orgless-issues-group-id-route"
         >
           {issueDetailsChildRoutes({forCustomerDomain: true})}
@@ -1850,133 +2199,109 @@ function buildRoutes() {
     <Route component={errorHandler(OrganizationRoot)}>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
-        {hook('routes:organization')}
-        <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
+        {hook('routes:legacy-organization-redirects')}
+        <IndexRedirect to="issues/" />
+        <Redirect from="teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/all-teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
         <Redirect
-          from="/organizations/:orgId/teams/your-teams/"
-          to="/settings/:orgId/teams/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/all-teams/"
-          to="/settings/:orgId/teams/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/:teamId/"
-          to="/settings/:orgId/teams/:teamId/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/:teamId/members/"
+          from="teams/:teamId/members/"
           to="/settings/:orgId/teams/:teamId/members/"
         />
         <Redirect
-          from="/organizations/:orgId/teams/:teamId/projects/"
+          from="teams/:teamId/projects/"
           to="/settings/:orgId/teams/:teamId/projects/"
         />
         <Redirect
-          from="/organizations/:orgId/teams/:teamId/settings/"
+          from="teams/:teamId/settings/"
           to="/settings/:orgId/teams/:teamId/settings/"
         />
-        <Redirect from="/organizations/:orgId/settings/" to="/settings/:orgId/" />
-        <Redirect
-          from="/organizations/:orgId/api-keys/"
-          to="/settings/:orgId/api-keys/"
-        />
-        <Redirect
-          from="/organizations/:orgId/api-keys/:apiKey/"
-          to="/settings/:orgId/api-keys/:apiKey/"
-        />
-        <Redirect from="/organizations/:orgId/members/" to="/settings/:orgId/members/" />
-        <Redirect
-          from="/organizations/:orgId/members/:memberId/"
-          to="/settings/:orgId/members/:memberId/"
-        />
-        <Redirect
-          from="/organizations/:orgId/rate-limits/"
-          to="/settings/:orgId/rate-limits/"
-        />
-        <Redirect from="/organizations/:orgId/repos/" to="/settings/:orgId/repos/" />
+        <Redirect from="settings/" to="/settings/:orgId/" />
+        <Redirect from="api-keys/" to="/settings/:orgId/api-keys/" />
+        <Redirect from="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
+        <Redirect from="members/" to="/settings/:orgId/members/" />
+        <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
+        <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
+        <Redirect from="repos/" to="/settings/:orgId/repos/" />
       </Route>
     </Route>
   );
 
-  const gettingStartedChildRoutes = (
-    <Fragment>
-      <IndexRoute
-        component={make(() => import('sentry/views/projectInstall/overview'))}
-      />
-      <Route
-        path=":platform/"
-        component={make(
-          () => import('sentry/views/projectInstall/platformOrIntegration')
-        )}
-      />
-    </Fragment>
-  );
   const gettingStartedRoutes = (
     <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/getting-started/:projectId/"
-          component={withDomainRequired(
-            make(() => import('sentry/views/projectInstall/gettingStarted'))
-          )}
-          key="orgless-getting-started-route"
-        >
-          {gettingStartedChildRoutes}
-        </Route>
+      {USING_CUSTOMER_DOMAIN && (
+        <Fragment>
+          <Redirect
+            from="/getting-started/:projectId/"
+            to="/projects/:projectId/getting-started/"
+          />
+          <Redirect
+            from="/getting-started/:projectId/:platform/"
+            to="/projects/:projectId/getting-started/"
+          />
+        </Fragment>
       )}
-      <Route
-        path="/:orgId/:projectId/getting-started/"
-        component={withDomainRedirect(
-          make(() => import('sentry/views/projectInstall/gettingStarted'))
-        )}
-        key="org-getting-started"
-      >
-        {gettingStartedChildRoutes}
-      </Route>
+      <Redirect
+        from="/:orgId/:projectId/getting-started/"
+        to="/organizations/:orgId/projects/:projectId/getting-started/"
+      />
+      <Redirect
+        from="/:orgId/:projectId/getting-started/:platform/"
+        to="/organizations/:orgId/projects/:projectId/getting-started/"
+      />
     </Fragment>
   );
 
-  const profilingChildRoutes = (
-    <Fragment>
+  const profilingRoutes = (
+    <Route
+      path="/profiling/"
+      component={make(() => import('sentry/views/profiling'))}
+      withOrgPath
+    >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
+        path="profile/:projectId/differential-flamegraph/"
+        component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
+      />
+      <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
+      </Route>
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
-        <Route
-          path="flamechart/"
+          path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
-    </Fragment>
+    </Route>
   );
-  const profilingRoutes = (
+
+  const metricsRoutes = (
     <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/profiling/"
-          component={withDomainRequired(make(() => import('sentry/views/profiling')))}
-          key="orgless-profiling-route"
-        >
-          {profilingChildRoutes}
-        </Route>
-      )}
       <Route
-        path="/organizations/:orgId/profiling/"
-        component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
-        key="org-profiling"
+        path="/metrics/"
+        component={make(() => import('sentry/views/metrics'))}
+        withOrgPath
       >
-        {profilingChildRoutes}
+        <IndexRoute component={make(() => import('sentry/views/metrics/metrics'))} />
       </Route>
+      {/* TODO(ddm): fade this out */}
+      <Redirect from="/ddm/" to="/metrics/" />
     </Fragment>
   );
 
@@ -1984,7 +2309,7 @@ function buildRoutes() {
   // canonical URLs.
   //
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
-  // or do these need to be nested into the OrganizationDetails tree?
+  // or do these need to be nested into the OrganizationLayout tree?
   const legacyOrgRedirects = (
     <Route path="/:orgId/:projectId/">
       <IndexRoute
@@ -2069,24 +2394,29 @@ function buildRoutes() {
   );
 
   const organizationRoutes = (
-    <Route component={errorHandler(OrganizationDetails)}>
+    <Route component={errorHandler(OrganizationLayout)}>
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
       {userFeedbackRoutes}
+      {feedbackv2Routes}
       {issueListRoutes}
       {issueDetailsRoutes}
       {alertRoutes}
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
-      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {domainViewRoutes}
+      {tracesRoutes}
+      {insightsRoutes}
+      {llmMonitoringRedirects}
       {profilingRoutes}
-      {adminManageRoutes}
+      {metricsRoutes}
       {gettingStartedRoutes}
+      {adminManageRoutes}
       {legacyOrganizationRootRoutes}
       {legacyOrgRedirects}
     </Route>
@@ -2139,10 +2469,6 @@ function buildRoutes() {
           from="debug-symbols/"
           to="/settings/:orgId/projects/:projectId/debug-symbols/"
         />
-        <Redirect
-          from="processing-issues/"
-          to="/settings/:orgId/projects/:projectId/processing-issues/"
-        />
         <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
         <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />
         <Redirect from="keys/" to="/settings/:orgId/projects/:projectId/keys/" />
@@ -2178,11 +2504,6 @@ function buildRoutes() {
         <Redirect
           from="integrations/:providerKey/"
           to="/settings/:orgId/projects/:projectId/integrations/:providerKey/"
-        />
-        <Redirect from="install/" to="/settings/:orgId/projects/:projectId/install/" />
-        <Redirect
-          from="install/:platform'"
-          to="/settings/:orgId/projects/:projectId/install/:platform/"
         />
       </Route>
       <Redirect from=":projectId/group/:groupId/" to="issues/:groupId/" />
@@ -2247,6 +2568,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp(props: {children: React.ReactNode}) {
-  return <Fragment>{props.children}</Fragment>;
+function NoOp({children}: {children: JSX.Element}) {
+  return children;
 }

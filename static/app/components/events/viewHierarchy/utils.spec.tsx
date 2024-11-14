@@ -1,13 +1,13 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/utils';
 import {defined} from 'sentry/utils';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const LEAF_NODE = {
   x: 2,

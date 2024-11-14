@@ -1,4 +1,6 @@
-import {browserHistory} from 'react-router';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,16 +13,19 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Config} from 'sentry/types/system';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
-jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
+jest.mock('sentry/utils/analytics');
 
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
   const {organization, router} = initializeOrg();
+  let configState: Config;
 
   const defaultProps = {
     organization,
@@ -33,10 +38,22 @@ describe('OrganizationGeneralSettings', function () {
   };
 
   beforeEach(function () {
+    configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
+      method: 'GET',
+      body: [GitHubIntegrationFixture()],
+    });
+  });
+
+  afterEach(function () {
+    act(function () {
+      ConfigStore.loadInitialData(configState);
     });
   });
 
@@ -47,7 +64,7 @@ describe('OrganizationGeneralSettings', function () {
       method: 'PUT',
     });
 
-    userEvent.click(screen.getByRole('checkbox', {name: /early adopter/i}));
+    await userEvent.click(screen.getByRole('checkbox', {name: /early adopter/i}));
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
@@ -60,15 +77,19 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    defaultProps.organization.features.push('codecov-stacktrace-integration');
-    organization.codecovAccess = false;
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    const organizationWithCodecovFeature = OrganizationFixture({
+      features: ['codecov-integration'],
+      codecovAccess: false,
+    });
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: organizationWithCodecovFeature,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
     });
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/i})
     );
 
@@ -81,21 +102,21 @@ describe('OrganizationGeneralSettings', function () {
       );
     });
 
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalled();
+    expect(trackAnalytics).toHaveBeenCalled();
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {router});
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       body: {...organization, slug: 'new-slug'},
     });
 
-    userEvent.clear(screen.getByRole('textbox', {name: /slug/i}));
-    userEvent.type(screen.getByRole('textbox', {name: /slug/i}), 'new-slug');
+    await userEvent.clear(screen.getByRole('textbox', {name: /slug/i}));
+    await userEvent.type(screen.getByRole('textbox', {name: /slug/i}), 'new-slug');
 
-    userEvent.click(screen.getByLabelText('Save'));
+    await userEvent.click(screen.getByLabelText('Save'));
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
@@ -104,26 +125,32 @@ describe('OrganizationGeneralSettings', function () {
           data: {slug: 'new-slug'},
         })
       );
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
+    });
+    await waitFor(() => {
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({pathname: '/settings/new-slug/'})
+      );
     });
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = TestStubs.Organization({features: ['customer-domains']});
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
+    const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={org} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
-    userEvent.clear(input);
-    userEvent.type(input, 'acme');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'acme');
 
-    userEvent.click(screen.getByLabelText('Save'));
+    await userEvent.click(screen.getByLabelText('Save'));
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
@@ -141,12 +168,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({access: ['org:read']})}
-      />
-    );
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
+
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: readOnlyOrg,
+    });
 
     const formElements = [
       ...screen.getAllByRole('textbox'),
@@ -166,14 +192,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button without org:admin permission', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({
-          access: ['org:write'],
-        })}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({
+        access: ['org:write'],
+      }),
+    });
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})
@@ -181,14 +204,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can remove organization when org admin', async function () {
-    act(() => ProjectsStore.loadInitialData([TestStubs.Project({slug: 'project'})]));
+    act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={TestStubs.Organization({access: ['org:admin']})}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({access: ['org:admin']}),
+    });
     renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({
@@ -196,7 +216,7 @@ describe('OrganizationGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    userEvent.click(screen.getByRole('button', {name: /remove organization/i}));
+    await userEvent.click(screen.getByRole('button', {name: /remove organization/i}));
 
     const modal = screen.getByRole('dialog');
 
@@ -205,7 +225,9 @@ describe('OrganizationGeneralSettings', function () {
     ).toBeInTheDocument();
     expect(within(modal).getByText('project')).toBeInTheDocument();
 
-    userEvent.click(within(modal).getByRole('button', {name: /remove organization/i}));
+    await userEvent.click(
+      within(modal).getByRole('button', {name: /remove organization/i})
+    );
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(

@@ -5,8 +5,11 @@ import responses
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
-from sentry.models import OrganizationIntegration
-from sentry.testutils import APITestCase
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
@@ -32,11 +35,12 @@ class JiraServerWebhookEndpointTest(APITestCase):
         self.get_error_response(" ", status_code=400)
 
     def test_post_missing_default_identity(self):
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
-        org_integration.update(default_auth_id=None, config={"sync_status_reverse": True})
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+            org_integration.update(default_auth_id=None, config={"sync_status_reverse": True})
 
         link_group(self.organization, self.integration, self.group)
 
@@ -71,8 +75,9 @@ class JiraServerWebhookEndpointTest(APITestCase):
             "issue": {"fields": {"assignee": {"emailAddress": "bob@example.org"}}, "key": "APP-1"},
         }
         self.get_success_response(self.jwt_token, **payload)
+        rpc_integration = serialize_integration(self.integration)
 
-        mock_sync.assert_called_with(self.integration, "bob@example.org", "APP-1", assign=True)
+        mock_sync.assert_called_with(rpc_integration, "bob@example.org", "APP-1", assign=True)
 
     @patch.object(JiraServerIntegration, "sync_status_inbound")
     def test_post_update_status(self, mock_sync):

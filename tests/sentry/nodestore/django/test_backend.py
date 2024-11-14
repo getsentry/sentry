@@ -8,12 +8,11 @@ from django.utils import timezone
 from sentry.nodestore.base import json_dumps
 from sentry.nodestore.django.backend import DjangoNodeStorage
 from sentry.nodestore.django.models import Node
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.strings import compress
 
 
-@region_silo_test(stable=True)
-@pytest.mark.django_db
+@django_db_all
 class TestDjangoNodeStorage:
     def setup_method(self):
         self.ns = DjangoNodeStorage()
@@ -54,13 +53,13 @@ class TestDjangoNodeStorage:
         )
 
     def test_delete(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete(node.id)
         assert not Node.objects.filter(id=node.id).exists()
 
     def test_delete_multi(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete_multi([node.id])
         assert not Node.objects.filter(id=node.id).exists()
@@ -70,11 +69,11 @@ class TestDjangoNodeStorage:
         cutoff = now - timedelta(days=1)
 
         node = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data=b'{"foo": "bar"}'
+            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data='{"foo": "bar"}'
         )
 
         node2 = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data=b'{"foo": "bar"}'
+            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data='{"foo": "bar"}'
         )
 
         self.ns.cleanup(cutoff)

@@ -1,23 +1,25 @@
-import {InjectedRouter} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Query} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 
@@ -26,13 +28,14 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
     end: number;
     start: number;
   };
+  transaction?: NormalizedTrendsTransaction;
+  withBreakpoint?: boolean;
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
@@ -51,7 +54,8 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
+  withBreakpoint,
+  transaction,
   onLegendSelectChanged,
 }: Props) {
   if (errored) {
@@ -77,6 +81,11 @@ function Content({
         .reverse()
     : [];
 
+  const needsLabel = false;
+  const breakpointSeries = withBreakpoint
+    ? getIntervalLine(theme, data || [], 0.5, needsLabel, transaction)
+    : [];
+
   const durationUnit = getDurationUnit(series, legend);
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
@@ -90,7 +99,6 @@ function Content({
       showSymbol: false,
     },
     tooltip: {
-      trigger: 'axis',
       valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
@@ -125,7 +133,7 @@ function Content({
     : [];
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}
@@ -146,7 +154,12 @@ function Content({
                     {...chartOptions}
                     legend={legend}
                     onLegendSelectChanged={onLegendSelectChanged}
-                    series={[...series, ...smoothedSeries, ...releaseSeries]}
+                    series={[
+                      ...series,
+                      ...smoothedSeries,
+                      ...releaseSeries,
+                      ...breakpointSeries,
+                    ]}
                   />
                 ),
                 fixed: <Placeholder height="200px" testId="skeleton-ui" />,

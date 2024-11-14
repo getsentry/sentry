@@ -28,13 +28,19 @@ default_manager.add(events.MemberLeaveTeamAuditLogEvent())
 default_manager.add(events.MemberPendingAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
-        event_id=10, name="ORG_ADD", api_name="org.create", template="created the organization"
+        event_id=10,
+        name="ORG_ADD",
+        api_name="org.create",
+        template="created the organization",
     )
 )
 default_manager.add(events.OrgEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
-        event_id=12, name="ORG_REMOVE", api_name="org.remove", template="removed the organization"
+        event_id=12,
+        name="ORG_REMOVE",
+        api_name="org.remove",
+        template="removed the organization",
     )
 )
 default_manager.add(
@@ -47,17 +53,19 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=20, name="TEAM_ADD", api_name="team.create", template="created team {slug}"
+        event_id=20,
+        name="TEAM_ADD",
+        api_name="team.create",
+        template="created team {slug}",
     )
 )
+default_manager.add(events.TeamEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
-        event_id=21, name="TEAM_EDIT", api_name="team.edit", template="edited team {slug}"
-    )
-)
-default_manager.add(
-    AuditLogEvent(
-        event_id=22, name="TEAM_REMOVE", api_name="team.remove", template="removed team {slug}"
+        event_id=22,
+        name="TEAM_REMOVE",
+        api_name="team.remove",
+        template="removed team {slug}",
     )
 )
 default_manager.add(
@@ -69,12 +77,21 @@ default_manager.add(
     )
 )
 default_manager.add(events.ProjectEditAuditLogEvent())
+default_manager.add(events.ProjectPerformanceDetectionSettingsAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=32,
         name="PROJECT_REMOVE",
         api_name="project.remove",
         template="removed project {slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=33,
+        name="PROJECT_REMOVE_WITH_ORIGIN",
+        api_name="project.remove-with-origin",
+        template="removed project {slug} in {origin}",
     )
 )
 default_manager.add(
@@ -111,14 +128,7 @@ default_manager.add(
         template="added project key {public_key}",
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=51,
-        name="PROJECTKEY_EDIT",
-        api_name="projectkey.edit",
-        template="edited project key {public_key}",
-    )
-)
+default_manager.add(events.ProjectKeyEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=52,
@@ -137,7 +147,10 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=60, name="SSO_ENABLE", api_name="sso.enable", template="enabled sso ({provider})"
+        event_id=60,
+        name="SSO_ENABLE",
+        api_name="sso.enable",
+        template="enabled sso ({provider})",
     )
 )
 default_manager.add(
@@ -159,12 +172,18 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=70, name="APIKEY_ADD", api_name="api-key.create", template="added api key {label}"
+        event_id=70,
+        name="APIKEY_ADD",
+        api_name="api-key.create",
+        template="added api key {label}",
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=71, name="APIKEY_EDIT", api_name="api-key.edit", template="edited api key {label}"
+        event_id=71,
+        name="APIKEY_EDIT",
+        api_name="api-key.edit",
+        template="edited api key {label}",
     )
 )
 default_manager.add(
@@ -177,22 +196,48 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=80, name="RULE_ADD", api_name="rule.create", template='added rule "{label}"'
+        event_id=80,
+        name="RULE_ADD",
+        api_name="rule.create",
+        template='added rule "{label}"',
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=81, name="RULE_EDIT", api_name="rule.edit", template='edited rule "{label}"'
+        event_id=81,
+        name="RULE_EDIT",
+        api_name="rule.edit",
+        template='edited rule "{label}"',
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=82, name="RULE_REMOVE", api_name="rule.remove", template='removed rule "{label}"'
+        event_id=82,
+        name="RULE_REMOVE",
+        api_name="rule.remove",
+        template='removed rule "{label}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=83,
+        name="RULE_SNOOZE",
+        api_name="rule.mute",
+        template='muted rule "{label}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=84,
+        name="RULE_DISABLE",
+        api_name="rule.disable",
+        template='disabled rule "{label}"',
     )
 )
 default_manager.add(events.ServiceHookAddAuditLogEvent())
 default_manager.add(events.ServiceHookEditAuditLogEvent())
 default_manager.add(events.ServiceHookRemoveAuditLogEvent())
+default_manager.add(events.IntegrationDisabledAuditLogEvent())
 default_manager.add(events.IntegrationUpgradeAuditLogEvent())
 default_manager.add(events.IntegrationAddAuditLogEvent())
 default_manager.add(events.IntegrationEditAuditLogEvent())
@@ -231,20 +276,54 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=120, name="MONITOR_ADD", api_name="monitor.add", template="Monitor added"
+        event_id=118,
+        name="INTEGRATION_ROTATE_CLIENT_SECRET",
+        api_name="integration.rotate-client-secret",
+        template="rotated a client secret for {status} integration {sentry_app}",
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=121, name="MONITOR_EDIT", api_name="monitor.edit", template="Monitor edited"
+        event_id=120,
+        name="MONITOR_ADD",
+        api_name="monitor.add",
+        template="added monitor {name}",
     )
 )
 default_manager.add(
     AuditLogEvent(
-        event_id=122, name="MONITOR_REMOVE", api_name="monitor.remove", template="Monitor removed"
+        event_id=121,
+        name="MONITOR_EDIT",
+        api_name="monitor.edit",
+        template="edited monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=122,
+        name="MONITOR_REMOVE",
+        api_name="monitor.remove",
+        template="removed monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=123,
+        name="MONITOR_ENVIRONMENT_REMOVE",
+        api_name="monitor.environment.remove",
+        template="removed an environment from monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=124,
+        name="MONITOR_ENVIRONMENT_EDIT",
+        api_name="monitor.environment.edit",
+        template="edited an environment from monitor {name}",
     )
 )
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
+default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=135,
@@ -303,6 +382,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=168,
+        name="ALERT_RULE_SNOOZE",
+        api_name="alertrule.mute",
+        template='muted metric alert rule "{label}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=163,
         name="SAMPLING_BIAS_ENABLED",
         api_name="sampling_priority.enabled",
@@ -315,5 +402,213 @@ default_manager.add(
         name="SAMPLING_BIAS_DISABLED",
         api_name="sampling_priority.disabled",
         template='disabled dynamic sampling priority "{name}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=165,
+        name="NOTIFICATION_ACTION_ADD",
+        api_name="notification_action.create",
+        template="added an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=166,
+        name="NOTIFICATION_ACTION_EDIT",
+        api_name="notification_action.edit",
+        template="edited an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=167,
+        name="NOTIFICATION_ACTION_REMOVE",
+        api_name="notification_action.remove",
+        template="removed an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=175,
+        name="TEAM_AND_PROJECT_CREATED",
+        api_name="team-and-project.created",
+        template="created team {team_slug} and added user as Team Admin while creating project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=176,
+        name="ORGAUTHTOKEN_ADD",
+        api_name="org-auth-token.create",
+        template="added org auth token {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=177,
+        name="ORGAUTHTOKEN_REMOVE",
+        api_name="org-auth-token.remove",
+        template="removed org auth token {name}",
+    )
+)
+default_manager.add(events.ProjectOwnershipRuleEditAuditLogEvent())
+default_manager.add(
+    AuditLogEvent(
+        event_id=180,
+        name="PROJECT_TEAM_REMOVE",
+        api_name="project-team.remove",
+        template="removed team {team_slug} from project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=181,
+        name="PROJECT_TEAM_ADD",
+        api_name="project-team.add",
+        template="added team {team_slug} to project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=182,
+        name="METRIC_BLOCK",
+        api_name="metric.block",
+        template="blocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=183,
+        name="METRIC_TAGS_BLOCK",
+        api_name="metric.tags.block",
+        template="blocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=184,
+        name="METRIC_UNBLOCK",
+        api_name="metric.unblock",
+        template="unblocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=185,
+        name="METRIC_TAGS_UNBLOCK",
+        api_name="metric.tags.unblock",
+        template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=186,
+        name="ISSUE_DELETE",
+        api_name="issue.delete",
+        template="Deleted issue {issue_id} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=187,
+        name="SPAN_BASED_METRIC_CREATE",
+        api_name="span_extraction_rule_config.create",
+        template="Created span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=188,
+        name="SPAN_BASED_METRIC_UPDATE",
+        api_name="span_extraction_rule_config.update",
+        template="Updated span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=189,
+        name="SPAN_BASED_METRIC_DELETE",
+        api_name="span_extraction_rule_config.delete",
+        template="Deleted span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=190,
+        name="PROJECT_TEMPLATE_CREATED",
+        api_name="project_template.create",
+        template="Created project template {name} for organization {organization_id}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=200,
+        name="UPTIME_MONITOR_ADD",
+        api_name="uptime_monitor.add",
+        template="added uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=201,
+        name="UPTIME_MONITOR_EDIT",
+        api_name="uptime_monitor.edit",
+        template="edited uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=202,
+        name="UPTIME_MONITOR_REMOVE",
+        api_name="uptime_monitor.remove",
+        template="removed uptime monitor {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=210,
+        name="WORKFLOW_ENGINE_DETECTOR_ADD",
+        api_name="workflow_engine_detector.add",
+        template="added workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=211,
+        name="WORKFLOW_ENGINE_DETECTOR_EDIT",
+        api_name="workflow_engine_detector.edit",
+        template="edited workflow engine detector {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=212,
+        name="WORKFLOW_ENGINE_DETECTOR_REMOVE",
+        api_name="workflow_engine_detector.remove",
+        template="removed workflow engine detector {name}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=204,
+        name="MEMBER_REINVITE",
+        api_name="member.reinvite",
+        template="reinvited member {email}",
+    )
+)
+
+default_manager.add(events.DataSecrecyWaivedAuditLogEvent())
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=1142,
+        name="DATA_SECRECY_REINSTATED",
+        api_name="data-secrecy.reinstated",
     )
 )

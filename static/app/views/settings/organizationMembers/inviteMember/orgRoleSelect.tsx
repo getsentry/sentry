@@ -1,16 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  Panel,
-  PanelAlert,
-  PanelBody,
-  PanelHeader,
-  PanelItem,
-} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
-import {t, tct} from 'sentry/locale';
-import {OrgRole} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {OrgRole} from 'sentry/types/organization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
@@ -23,9 +22,8 @@ const Label = styled('label')`
 type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
-  enforceIdpRoleRestricted: boolean;
   enforceRetired: boolean;
-  isCurrentUser: boolean;
+  helpText: string | undefined;
   roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
@@ -37,37 +35,25 @@ class OrganizationRoleSelect extends Component<Props> {
       disabled,
       enforceRetired,
       enforceAllowed,
-      isCurrentUser,
       roleList,
-      enforceIdpRoleRestricted,
       roleSelected,
       setSelected,
+      helpText,
     } = this.props;
 
     return (
       <Panel>
-        <PanelHeader>
+        <StyledPanelHeader>
           <div>{t('Organization Role')}</div>
-        </PanelHeader>
-        {enforceIdpRoleRestricted && (
-          <PanelAlert>
-            {tct(
-              "[person] organization-level role is managed through your organization's identity provider.",
-              {person: isCurrentUser ? 'Your' : "This member's"}
-            )}
-          </PanelAlert>
-        )}
+          {disabled && <QuestionTooltip size="sm" title={helpText} />}
+        </StyledPanelHeader>
 
         <PanelBody>
           {roleList.map(role => {
-            const {desc, name, id, allowed, isRetired: roleRetired} = role;
+            const {desc, name, id, isAllowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled =
-              disabled ||
-              isRetired ||
-              (enforceAllowed && !allowed) ||
-              enforceIdpRoleRestricted;
+            const isDisabled = disabled || isRetired || (enforceAllowed && !isAllowed);
 
             return (
               <PanelItem
@@ -92,5 +78,11 @@ class OrganizationRoleSelect extends Component<Props> {
     );
   }
 }
+
+const StyledPanelHeader = styled(PanelHeader)`
+  display: flex;
+  gap: ${space(0.5)};
+  justify-content: left;
+`;
 
 export default OrganizationRoleSelect;

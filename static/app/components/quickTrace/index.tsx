@@ -1,37 +1,41 @@
 import {Component, Fragment} from 'react';
-import {Theme} from '@emotion/react';
-import {Location, LocationDescriptor} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
+import type {
   ErrorDestination,
+  TransactionDestination,
+} from 'sentry/components/quickTrace/utils';
+import {
   generateSingleErrorTarget,
-  generateSingleTransactionTarget,
   generateTraceTarget,
   isQuickTraceEvent,
-  TransactionDestination,
 } from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import type {Event} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import localStorage from 'sentry/utils/localStorage';
-import {
+import type {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
   TraceError,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
-import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {isTraceError, parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 
 const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
+
+import type {Organization} from 'sentry/types/organization';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
 import {
   DropdownContainer,
@@ -63,7 +67,7 @@ type QuickTraceProps = Pick<
 > & {
   event: Event;
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   quickTrace: QuickTraceType;
 };
 
@@ -77,20 +81,53 @@ export default function QuickTrace({
   transactionDest,
 }: QuickTraceProps) {
   let parsedQuickTrace;
+  const traceSlug = event.contexts?.trace?.trace_id ?? '';
+  const noTrace = <Fragment>{'\u2014'}</Fragment>;
   try {
-    parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
+    if (quickTrace.orphanErrors && quickTrace.orphanErrors.length > 0) {
+      const orphanError = quickTrace.orphanErrors.find(e => e.event_id === event.id);
+
+      if (!orphanError) {
+        return noTrace;
+      }
+
+      parsedQuickTrace = {
+        current: orphanError,
+      };
+    } else {
+      parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
+    }
   } catch (error) {
-    return <Fragment>{'\u2014'}</Fragment>;
+    return noTrace;
   }
 
-  const traceLength = quickTrace.trace && quickTrace.trace.length;
+  const traceLength = quickTrace.trace?.length || quickTrace.orphanErrors?.length;
   const {root, ancestors, parent, children, descendants, current} = parsedQuickTrace;
 
   const nodes: React.ReactNode[] = [];
+  const isOrphanErrorNode = traceLength === 1 && isTraceError(current);
+
+  const currentNode = (
+    <EventNodeSelector
+      traceSlug={traceSlug}
+      key="current-node"
+      location={location}
+      organization={organization}
+      text={t('This Event')}
+      events={[current]}
+      currentEvent={event}
+      anchor={anchor}
+      nodeKey="current"
+      errorDest={errorDest}
+      isOrphanErrorNode={isOrphanErrorNode}
+      transactionDest={transactionDest}
+    />
+  );
 
   if (root) {
     nodes.push(
       <EventNodeSelector
+        traceSlug={traceSlug}
         key="root-node"
         location={location}
         organization={organization}
@@ -103,12 +140,34 @@ export default function QuickTrace({
         transactionDest={transactionDest}
       />
     );
-    nodes.push(<TraceConnector key="root-connector" />);
+    nodes.push(<TraceConnector key="root-connector" dashed={isOrphanErrorNode} />);
+  }
+
+  if (isOrphanErrorNode) {
+    nodes.push(
+      <EventNodeSelector
+        traceSlug={traceSlug}
+        key="root-node"
+        location={location}
+        organization={organization}
+        events={[]}
+        currentEvent={event}
+        text={t('Root')}
+        anchor={anchor}
+        nodeKey="root"
+        errorDest={errorDest}
+        transactionDest={transactionDest}
+      />
+    );
+    nodes.push(<TraceConnector key="root-connector" dashed />);
+    nodes.push(currentNode);
+    return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
   }
 
   if (ancestors?.length) {
     nodes.push(
       <EventNodeSelector
+        traceSlug={traceSlug}
         key="ancestors-node"
         location={location}
         organization={organization}
@@ -127,6 +186,7 @@ export default function QuickTrace({
   if (parent) {
     nodes.push(
       <EventNodeSelector
+        traceSlug={traceSlug}
         key="parent-node"
         location={location}
         organization={organization}
@@ -141,21 +201,6 @@ export default function QuickTrace({
     );
     nodes.push(<TraceConnector key="parent-connector" />);
   }
-
-  const currentNode = (
-    <EventNodeSelector
-      key="current-node"
-      location={location}
-      organization={organization}
-      text={t('This Event')}
-      events={[current]}
-      currentEvent={event}
-      anchor={anchor}
-      nodeKey="current"
-      errorDest={errorDest}
-      transactionDest={transactionDest}
-    />
-  );
 
   if (traceLength === 1) {
     nodes.push(
@@ -202,10 +247,11 @@ export default function QuickTrace({
     nodes.push(currentNode);
   }
 
-  if (children.length) {
+  if (children?.length) {
     nodes.push(<TraceConnector key="children-connector" />);
     nodes.push(
       <EventNodeSelector
+        traceSlug={traceSlug}
         key="children-node"
         location={location}
         organization={organization}
@@ -224,6 +270,7 @@ export default function QuickTrace({
     nodes.push(<TraceConnector key="descendants-connector" />);
     nodes.push(
       <EventNodeSelector
+        traceSlug={traceSlug}
         key="descendants-node"
         location={location}
         organization={organization}
@@ -241,22 +288,18 @@ export default function QuickTrace({
   return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
 }
 
-function handleNode(key: string, organization: OrganizationSummary) {
-  trackAdvancedAnalyticsEvent('quick_trace.node.clicked', {
+function handleNode(key: string, organization: Organization) {
+  trackAnalytics('quick_trace.node.clicked', {
     organization: organization.id,
     node_key: key,
   });
 }
 
-function handleDropdownItem(
-  key: string,
-  organization: OrganizationSummary,
-  extra: boolean
-) {
+function handleDropdownItem(key: string, organization: Organization, extra: boolean) {
   const eventKey = extra
     ? 'quick_trace.dropdown.clicked_extra'
     : 'quick_trace.dropdown.clicked';
-  trackAdvancedAnalyticsEvent(eventKey, {
+  trackAnalytics(eventKey, {
     organization: organization.id,
     node_key: key,
   });
@@ -269,13 +312,16 @@ type EventNodeSelectorProps = {
   events: QuickTraceEvent[];
   location: Location;
   nodeKey: keyof typeof TOOLTIP_PREFIX;
-  organization: OrganizationSummary;
+  organization: Organization;
   text: React.ReactNode;
+  traceSlug: string;
   transactionDest: TransactionDestination;
+  isOrphanErrorNode?: boolean;
   numEvents?: number;
 };
 
 function EventNodeSelector({
+  traceSlug,
   location,
   organization,
   events = [],
@@ -285,15 +331,19 @@ function EventNodeSelector({
   anchor,
   errorDest,
   transactionDest,
+  isOrphanErrorNode,
   numEvents = 5,
 }: EventNodeSelectorProps) {
   let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
+  let perfIssues: TracePerformanceIssue[] = events.flatMap(
+    event => event.performance_issues ?? []
+  );
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
 
-  const hasErrors = errors.length > 0;
+  const hasErrors = errors.length > 0 || perfIssues.length > 0;
 
-  if (hasErrors) {
+  if (hasErrors || isOrphanErrorNode) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <ErrorNodeContent>
@@ -301,37 +351,65 @@ function EventNodeSelector({
         {text}
       </ErrorNodeContent>
     );
+
+    if (isOrphanErrorNode) {
+      return (
+        <EventNode type={type} data-test-id="event-node">
+          {text}
+        </EventNode>
+      );
+    }
   }
 
+  const isError = currentEvent.hasOwnProperty('groupID') && currentEvent.groupID !== null;
   // make sure to exclude the current event from the dropdown
-  events = events.filter(event => event.event_id !== currentEvent.id);
+  events = events.filter(
+    event =>
+      event.event_id !== currentEvent.id ||
+      // if the current event is a perf issue, we don't want to filter out the matching txn
+      (event.event_id === currentEvent.id && isError)
+  );
   errors = errors.filter(error => error.event_id !== currentEvent.id);
+  perfIssues = perfIssues.filter(
+    issue =>
+      issue.event_id !== currentEvent.id ||
+      // if the current event is a txn, we don't want to filter out the matching perf issue
+      (issue.event_id === currentEvent.id && !isError)
+  );
 
-  if (events.length + errors.length === 0) {
+  const totalErrors = errors.length + perfIssues.length;
+
+  if (events.length + totalErrors === 0) {
     return (
       <EventNode type={type} data-test-id="event-node">
         {text}
       </EventNode>
     );
   }
-  if (events.length + errors.length === 1) {
+  if (events.length + totalErrors === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
      * the event without additional steps.
      */
-    const hoverText = errors.length ? (
+    const hoverText = totalErrors ? (
       t('View the error for this Transaction')
     ) : (
       <SingleEventHoverText event={events[0]} />
     );
     const target = errors.length
       ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
-      : generateSingleTransactionTarget(
-          events[0],
-          organization,
-          location,
-          transactionDest
-        );
+      : perfIssues.length
+        ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
+        : generateLinkToEventInTraceView({
+            traceSlug,
+            eventId: events[0].event_id,
+            projectSlug: events[0].project_slug,
+            timestamp: events[0].timestamp,
+            location,
+            organization,
+            transactionName: events[0].transaction,
+            type: transactionDest,
+          });
     return (
       <StyledEventNode
         text={text}
@@ -352,8 +430,8 @@ function EventNodeSelector({
       errors.length && events.length
         ? 'events'
         : events.length
-        ? 'transactions'
-        : 'errors',
+          ? 'transactions'
+          : 'errors',
   });
   return (
     <DropdownContainer>
@@ -362,17 +440,18 @@ function EventNodeSelector({
         title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight={anchor === 'right'}
       >
-        {errors.length > 0 && (
+        {totalErrors > 0 && (
           <DropdownMenuHeader first>
-            {tn('Related Error', 'Related Errors', errors.length)}
+            {tn('Related Issue', 'Related Issues', totalErrors)}
           </DropdownMenuHeader>
         )}
-        {errors.slice(0, numEvents).map(error => {
+        {[...errors, ...perfIssues].slice(0, numEvents).map(error => {
           const target = generateSingleErrorTarget(
             error,
             organization,
             location,
-            errorDest
+            errorDest,
+            'related-issues-of-trace'
           );
           return (
             <DropdownNodeItem
@@ -392,12 +471,16 @@ function EventNodeSelector({
           </DropdownMenuHeader>
         )}
         {events.slice(0, numEvents).map(event => {
-          const target = generateSingleTransactionTarget(
-            event,
-            organization,
+          const target = generateLinkToEventInTraceView({
+            traceSlug,
+            timestamp: event.timestamp,
+            projectSlug: event.project_slug,
+            eventId: event.event_id,
             location,
-            transactionDest
-          );
+            organization,
+            type: transactionDest,
+            transactionName: event.transaction,
+          });
           return (
             <DropdownNodeItem
               key={event.event_id}
@@ -417,7 +500,7 @@ function EventNodeSelector({
         })}
         {(errors.length > numEvents || events.length > numEvents) && (
           <DropdownItem
-            to={generateTraceTarget(currentEvent, organization)}
+            to={generateTraceTarget(currentEvent, organization, location)}
             allowDefaultEvent
             onSelect={() => handleDropdownItem(nodeKey, organization, true)}
           >
@@ -431,8 +514,8 @@ function EventNodeSelector({
 
 type DropdownNodeProps = {
   anchor: 'left' | 'right';
-  event: TraceError | QuickTraceEvent;
-  organization: OrganizationSummary;
+  event: TraceError | QuickTraceEvent | TracePerformanceIssue;
+  organization: Organization;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
   subtext?: string;
@@ -546,7 +629,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
       (now + HIDE_MISSING_EXPIRES).toString()
     );
     this.setState({hideMissing: true});
-    trackAdvancedAnalyticsEvent('quick_trace.missing_service.dismiss', {
+    trackAnalytics('quick_trace.missing_service.dismiss', {
       organization: organization.id,
       platform,
     });
@@ -554,7 +637,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
 
   trackExternalLink = () => {
     const {organization, platform} = this.props;
-    trackAdvancedAnalyticsEvent('quick_trace.missing_service.docs', {
+    trackAnalytics('quick_trace.missing_service.docs', {
       organization: organization.id,
       platform,
     });
@@ -570,11 +653,11 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
     const docPlatform = getDocsPlatform(platform, true);
     const docsHref =
       docPlatform === null || docPlatform === 'javascript'
-        ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
-        : `https://docs.sentry.io/platforms/${docPlatform}/performance/connect-services`;
+        ? 'https://docs.sentry.io/platforms/javascript/tracing/trace-propagation/'
+        : `https://docs.sentry.io/platforms/${docPlatform}/tracing/trace-propagation/`;
     return (
       <Fragment>
-        {connectorSide === 'left' && <TraceConnector />}
+        {connectorSide === 'left' && <TraceConnector dashed />}
         <DropdownContainer>
           <DropdownLink
             caret={false}
@@ -597,7 +680,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
             </DropdownItem>
           </DropdownLink>
         </DropdownContainer>
-        {connectorSide === 'right' && <TraceConnector />}
+        {connectorSide === 'right' && <TraceConnector dashed />}
       </Fragment>
     );
   }

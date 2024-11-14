@@ -1,22 +1,22 @@
 {
   "get": {
     "tags": ["Events"],
-    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"``, ``\"14d\"``",
+    "description": "Return a list of issues (groups) bound to a project.  All parameters are supplied as query string parameters. \n\n A default query of ``is:unresolved`` is applied. To return results with other statuses send an new query value (i.e. ``?query=`` for all results).\n\nThe ``statsPeriod`` parameter can be used to select the timeline stats which should be present. Possible values are: ``\"\"`` (disable),``\"24h\"`` (default), ``\"14d\"``\n\nUser feedback items from the [User Feedback Widget](https://docs.sentry.io/product/user-feedback/#user-feedback-widget) are built off the issue platform, so to return a list of user feedback items for a specific project, filter for `issue.category:feedback`.",
     "operationId": "List a Project's Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -25,7 +25,7 @@
       {
         "name": "statsPeriod",
         "in": "query",
-        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`).",
+        "description": "An optional stat period (can be one of `\"24h\"`, `\"14d\"`, and `\"\"`), defaults to \"24h\" if not provided.",
         "schema": {
           "type": "string"
         }
@@ -42,6 +42,14 @@
         "name": "query",
         "in": "query",
         "description": "An optional Sentry structured search query. If not provided an implied `\"is:unresolved\"` is assumed.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "hashes",
+        "in": "query",
+        "description": "A list of hashes of groups to return. Is not compatible with 'query' parameter. The maximum number of hashes that can be sent is 100. If more are sent, only the first 100 will be used.",
         "schema": {
           "type": "string"
         }
@@ -139,22 +147,22 @@
   },
   "put": {
     "tags": ["Events"],
-    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "description": "Bulk mutate various attributes on issues.  The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be modified.\n\n- For non-status updates, the `id` query parameter is required.\n- For status updates, the `id` query parameter may be omitted\nfor a batch \"update all\" query.\n- An optional `status` query parameter may be used to restrict\nmutations to only events with the given status.\n\nThe following attributes can be modified and are supplied as JSON object in the body:\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Mutate a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -172,7 +180,7 @@
       {
         "name": "status",
         "in": "query",
-        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"unresolved\"`, and `\"ignored\"`.",
+        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"reprocessing\"`, `\"unresolved\"`, and `\"ignored\"`.",
         "required": false,
         "schema": {
           "type": "string"
@@ -233,7 +241,7 @@
               },
               "assignedTo": {
                 "type": "string",
-                "description": "The actor id (or username) of the user or team that should be assigned to this issue."
+                "description": "The actor ID (or username) of the user or team that should be assigned to this issue."
               },
               "hasSeen": {
                 "type": "boolean",
@@ -294,28 +302,28 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["event:write"]
       }
     ]
   },
   "delete": {
     "tags": ["Events"],
-    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any ids are out of scope this operation will succeed without any data mutation.",
+    "description": "Permanently remove the given issues. The list of issues to modify is given through the `id` query parameter.  It is repeated for each issue that should be removed.\n\nOnly queries by 'id' are accepted.\n\nIf any IDs are out of scope this operation will succeed without any data mutation.",
     "operationId": "Bulk Remove a List of Issues",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the issues belong to.",
+        "description": "The ID or slug of the organization the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the issues belong to.",
+        "description": "The ID or slug of the project the issues belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -324,7 +332,7 @@
       {
         "name": "id",
         "in": "query",
-        "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue.",
+        "description": "A list of IDs of the issues to be removed. This parameter shall be repeated for each issue, e.g. `?id=1&id=2&id=3`. If this parameter is not provided, it will attempt to remove the first 1000 issues.",
         "schema": {
           "type": "integer"
         }
@@ -343,7 +351,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:admin"]
+        "auth_token": ["event:admin"]
       }
     ]
   }

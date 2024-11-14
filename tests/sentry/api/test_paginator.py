@@ -1,11 +1,26 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
 import pytest
+from django.db.models import DateTimeField, IntegerField, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.api.paginator import (
     BadPaginationError,
+    CallbackPaginator,
     ChainPaginator,
     CombinedQuerysetIntermediary,
     CombinedQuerysetPaginator,
@@ -16,12 +31,17 @@ from sentry.api.paginator import (
     SequencePaginator,
     reverse_bisect_left,
 )
-from sentry.incidents.models import AlertRule
-from sentry.models import Rule, User
-from sentry.testutils import APITestCase, TestCase
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
+from sentry.models.rule import Rule
+from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 from sentry.utils.cursors import Cursor
+from sentry.utils.snuba import raw_snql_query
 
 
+@control_silo_test
 class PaginatorTest(TestCase):
     cls = Paginator
 
@@ -80,6 +100,7 @@ class PaginatorTest(TestCase):
         assert len(result3) == 0, (result3, list(result3))
 
 
+@control_silo_test
 class OffsetPaginatorTest(TestCase):
     # offset paginator does not support dynamic limits on is_prev
     def test_simple(self):
@@ -176,6 +197,7 @@ class OffsetPaginatorTest(TestCase):
             paginator.get_result()
 
 
+@control_silo_test
 class DateTimePaginatorTest(TestCase):
     def test_ascending(self):
         joined = timezone.now()
@@ -538,15 +560,16 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
 
 class CombinedQuerysetPaginatorTest(APITestCase):
     def test_simple(self):
+        project = self.project
         Rule.objects.all().delete()
 
         alert_rule0 = self.create_alert_rule(name="alertrule0")
         alert_rule1 = self.create_alert_rule(name="alertrule1")
-        rule1 = Rule.objects.create(label="rule1", project=self.project)
+        rule1 = Rule.objects.create(label="rule1", project=project)
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = Rule.objects.create(label="rule2", project=self.project)
-        rule3 = Rule.objects.create(label="rule3", project=self.project)
+        rule2 = Rule.objects.create(label="rule2", project=project)
+        rule3 = Rule.objects.create(label="rule3", project=project)
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             AlertRule.objects.all(), ["date_added"]
@@ -576,7 +599,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        assert len(result) == 2
+        assert len(result) == 1
         assert page3_results[0].id == alert_rule0.id
 
         result = paginator.get_result(limit=3, cursor=prev_cursor)
@@ -589,25 +612,24 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=3, cursor=None)
         assert len(result) == 3
         page1_results = list(result)
-        assert page1_results[0].id == Rule.objects.all().first().id
-        assert page1_results[1].id == alert_rule0.id
-        assert page1_results[2].id == alert_rule1.id
+        assert page1_results[0].id == alert_rule0.id
+        assert page1_results[1].id == alert_rule1.id
+        assert page1_results[2].id == rule1.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[0].id == rule1.id
-        assert page2_results[1].id == alert_rule2.id
-        assert page2_results[2].id == alert_rule3.id
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == alert_rule3.id
+        assert page2_results[2].id == rule2.id
 
         next_cursor = result.next
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        assert len(result) == 2
-        assert page3_results[0].id == rule2.id
-        assert page3_results[1].id == rule3.id
+        assert len(result) == 1
+        assert page3_results[0].id == rule3.id
 
         result = paginator.get_result(limit=3, cursor=prev_cursor)
         assert list(result) == page1_results
@@ -626,6 +648,179 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             CombinedQuerysetPaginator(
                 intermediaries=[rule_intermediary, rule_intermediary2],
             )
+
+    def test_only_issue_alert_rules(self):
+        project = self.project
+        Rule.objects.all().delete()
+        rule_ids = []
+
+        for i in range(1, 9):
+            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule_ids.append(rule.id)
+
+        rules = Rule.objects.all()
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        rules = rules.annotate(date_triggered=far_past_date)
+        incident_status_value = Value(-2, output_field=IntegerField())
+        rules = rules.annotate(incident_status=incident_status_value)
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
+        page1_results = list(result)
+        assert page1_results[0].id == rule_ids[0]
+        assert page1_results[4].id == rule_ids[4]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[-1].id == rule_ids[-1]
+
+        prev_cursor = result.prev
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
+        assert result == page1_results
+
+    def test_only_metric_alert_rules(self):
+        project = self.project
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+        alert_rule_ids = []
+
+        for i in range(1, 9):
+            alert_rule = self.create_alert_rule(name=f"alertrule{i}", projects=[project])
+            alert_rule_ids.append(alert_rule.id)
+
+        rules = AlertRule.objects.all()
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        rules = rules.annotate(
+            date_triggered=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("date_started")[:1]
+                ),
+                far_past_date,
+            ),
+        )
+        rules = rules.annotate(
+            incident_status=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("status")[:1]
+                ),
+                Value(-1, output_field=IntegerField()),
+            )
+        )
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            Rule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
+        page1_results = list(result)
+        assert page1_results[0].id == alert_rule_ids[0]
+        assert page1_results[4].id == alert_rule_ids[4]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 3
+        assert page2_results[-1].id == alert_rule_ids[-1]
+
+        prev_cursor = result.prev
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
+        assert result == page1_results
+
+    def test_issue_and_metric_alert_rules(self):
+        project = self.project
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+        alert_rule_ids = []
+        rule_ids = []
+
+        for i in range(1, 4):
+            alert_rule = self.create_alert_rule(name=f"alertrule{i}")
+            alert_rule_ids.append(alert_rule.id)
+            rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
+            rule_ids.append(rule.id)
+
+        metric_alert_rules = AlertRule.objects.all()
+        issue_alert_rules = Rule.objects.all()
+
+        far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+        issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
+        metric_alert_rules = metric_alert_rules.annotate(
+            date_triggered=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("date_started")[:1]
+                ),
+                far_past_date,
+            ),
+        )
+        incident_status_value = Value(-2, output_field=IntegerField())
+        issue_alert_rules = issue_alert_rules.annotate(incident_status=incident_status_value)
+        metric_alert_rules = metric_alert_rules.annotate(
+            incident_status=Coalesce(
+                Subquery(
+                    Incident.objects.filter(alert_rule=OuterRef("pk"))
+                    .order_by("-date_started")
+                    .values("status")[:1]
+                ),
+                Value(-1, output_field=IntegerField()),
+            )
+        )
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            metric_alert_rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            issue_alert_rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=5, cursor=None)
+        page1_results = list(result)
+        assert len(result) == 5
+        assert result[0].id == alert_rule_ids[0]
+        assert result[4].id == rule_ids[1]
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=5, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 1
+        assert page2_results[0].id == 3
+
+        prev_cursor = result.prev
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
+        assert result == page1_results
 
 
 class TestChainPaginator(SimpleTestCase):
@@ -692,3 +887,71 @@ class TestChainPaginator(SimpleTestCase):
         assert len(third.results) == 2
         assert third.results == [7, 8]
         assert third.next.has_results is False
+
+
+def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
+    referrer = "tests.sentry.api.test_paginator"
+    query = Query(
+        match=Entity("events"),
+        select=[Column("event_id")],
+        where=[
+            Condition(Column("project_id"), Op.EQ, proj_id),
+            Condition(Column("timestamp"), Op.GTE, timestamp - timedelta(days=1)),
+            Condition(Column("timestamp"), Op.LT, timestamp + timedelta(days=1)),
+        ],
+        orderby=[OrderBy(Column("event_id"), Direction.ASC)],
+        offset=Offset(offset),
+        limit=Limit(limit),
+    )
+    request = Request(
+        dataset="events",
+        app_id=referrer,
+        query=query,
+        tenant_ids={"referrer": referrer, "organization_id": org_id},
+    )
+    return raw_snql_query(request, referrer)["data"]
+
+
+class CallbackPaginatorTest(APITestCase, SnubaTestCase):
+    cls = CallbackPaginator
+
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now()
+        self.project.date_added = self.now - timedelta(minutes=5)
+        for i in range(8):
+            self.store_event(
+                project_id=self.project.id,
+                data={
+                    "event_id": str(i) * 32,
+                    "timestamp": (self.now - timedelta(minutes=2)).isoformat(),
+                },
+            )
+
+    def test_simple(self):
+        paginator = self.cls(
+            callback=lambda limit, offset: dummy_snuba_request_method(
+                limit, offset, self.organization.id, self.project.id, self.now
+            ),
+        )
+        first_page = paginator.get_result(limit=3)
+        assert len(first_page.results) == 3
+        assert first_page.results == [{"event_id": str(i) * 32} for i in range(3)]
+        assert first_page.next.offset == 1
+        assert first_page.next.has_results
+        assert first_page.prev.has_results is False
+
+        second_page = paginator.get_result(limit=3, cursor=first_page.next)
+        assert len(second_page.results) == 3
+        assert second_page.results == [{"event_id": str(i) * 32} for i in range(3, 6)]
+        assert second_page.next.offset == 2
+        assert second_page.next.has_results
+        assert second_page.prev.offset == 0
+        assert second_page.prev.has_results
+
+        third_page = paginator.get_result(limit=3, cursor=second_page.next)
+        assert len(third_page.results) == 2
+        assert third_page.results == [{"event_id": str(i) * 32} for i in range(6, 8)]
+        assert third_page.next.has_results is False
+        assert third_page.prev.offset == 1
+        assert third_page.prev.has_results

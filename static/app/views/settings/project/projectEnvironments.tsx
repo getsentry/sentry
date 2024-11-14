@@ -1,21 +1,25 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Organization, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
@@ -25,17 +29,16 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 type Props = {
   api: Client;
   organization: Organization;
+  project: Project;
 } & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   environments: null | Environment[];
   isLoading: boolean;
-  project: null | Project;
 };
 
 class ProjectEnvironments extends Component<Props, State> {
   state: State = {
-    project: null,
     environments: null,
     isLoading: true,
   };
@@ -68,16 +71,6 @@ class ProjectEnvironments extends Component<Props, State> {
       },
       success: environments => {
         this.setState({environments, isLoading: false});
-      },
-    });
-  }
-
-  fetchProjectDetails() {
-    const {organization} = this.props;
-    const {projectId} = this.props.params;
-    this.props.api.request(`/projects/${organization.slug}/${projectId}/`, {
-      success: project => {
-        this.setState({project});
       },
     });
   }
@@ -136,8 +129,11 @@ class ProjectEnvironments extends Component<Props, State> {
     if (isHidden) {
       return null;
     }
+
+    const {project} = this.props;
     return (
       <EnvironmentRow
+        project={project}
         name={ALL_ENVIRONMENTS_KEY}
         environment={{
           id: ALL_ENVIRONMENTS_KEY,
@@ -150,6 +146,7 @@ class ProjectEnvironments extends Component<Props, State> {
   }
 
   renderEnvironmentList(envs: Environment[]) {
+    const {project} = this.props;
     const isHidden = this.props.location.pathname.endsWith('hidden/');
     const buttonText = isHidden ? t('Show') : t('Hide');
 
@@ -158,6 +155,7 @@ class ProjectEnvironments extends Component<Props, State> {
         {this.renderAllEnvironmentsSystemRow()}
         {envs.map(env => (
           <EnvironmentRow
+            project={project}
             key={env.id}
             name={env.name}
             environment={env}
@@ -188,7 +186,7 @@ class ProjectEnvironments extends Component<Props, State> {
   }
 
   render() {
-    const {routes, params, location} = this.props;
+    const {routes, params, location, project} = this.props;
     const isHidden = location.pathname.endsWith('hidden/');
 
     const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
@@ -208,7 +206,7 @@ class ProjectEnvironments extends Component<Props, State> {
             </NavTabs>
           }
         />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <Panel>
           <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
@@ -222,6 +220,7 @@ class ProjectEnvironments extends Component<Props, State> {
 type RowProps = {
   environment: Environment;
   name: string;
+  project: Project;
   actionText?: string;
   isHidden?: boolean;
   isSystemRow?: boolean;
@@ -230,6 +229,7 @@ type RowProps = {
 };
 
 function EnvironmentRow({
+  project,
   environment,
   name,
   onHide,
@@ -241,7 +241,7 @@ function EnvironmentRow({
   return (
     <EnvironmentItem>
       <Name>{isSystemRow ? t('All Environments') : name}</Name>
-      <Access access={['project:write']}>
+      <Access access={['project:write']} project={project}>
         {({hasAccess}) => (
           <Fragment>
             {shouldShowAction && onHide && (

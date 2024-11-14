@@ -3,13 +3,14 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, Relay} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Relay} from 'sentry/types/relay';
 
+import createTrustedRelaysResponseError from './createTrustedRelaysResponseError';
 import Form from './form';
-import handleXhrErrorResponse from './handleXhrErrorResponse';
 import Modal from './modal';
 
 type FormProps = React.ComponentProps<typeof Form>;
@@ -98,7 +99,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
     }));
   }
 
-  convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+  handleErrorResponse(error: ReturnType<typeof createTrustedRelaysResponseError>) {
     switch (error.type) {
       case 'invalid-key':
       case 'missing-key':
@@ -142,7 +143,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
       onSubmitSuccess(response);
       closeModal();
     } catch (error) {
-      this.convertErrorXhrResponse(handleXhrErrorResponse(error));
+      this.handleErrorResponse(createTrustedRelaysResponseError(error));
     }
   };
 

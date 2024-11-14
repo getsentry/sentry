@@ -1,24 +1,24 @@
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-  getDuration,
-} from 'sentry/utils/formatters';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
-import {Rectangle} from '../transactionSummary/transactionVitals/types';
-import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
+import type {AxisOption} from '../data';
+import {getTermHelp, PerformanceTerm} from '../data';
+import type {Rectangle} from '../transactionSummary/transactionVitals/types';
+import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
 export const RIGHT_AXIS_QUERY_KEY = 'right';
@@ -36,14 +36,12 @@ export enum LandingDisplayField {
   MOBILE = 'mobile',
 }
 
+// TODO Abdullah Khan: Remove code for Web Vitals tab in performance landing
+// page when new starfish web vitals module is mature.
 export const LANDING_DISPLAYS = [
   {
     label: t('All Transactions'),
     field: LandingDisplayField.ALL,
-  },
-  {
-    label: t('Web Vitals'),
-    field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
     label: t('Frontend'),
@@ -119,7 +117,7 @@ export function handleLandingDisplayChange(
   const searchConditions = new MutableSearch(query);
   searchConditions.removeFilter('transaction.op');
 
-  const queryWithConditions = {
+  const queryWithConditions: Record<string, string> & {query: string} = {
     ...omit(location.query, ['landingDisplay', 'sort']),
     query: searchConditions.formatString(),
   };
@@ -135,7 +133,7 @@ export function handleLandingDisplayChange(
       ? {...queryWithConditions}
       : {...queryWithConditions, landingDisplay: field};
 
-  trackAdvancedAnalyticsEvent('performance_views.landingv3.display_change', {
+  trackAnalytics('performance_views.landingv3.display_change', {
     organization,
     change_to_display: field,
     default_display: defaultDisplay,
@@ -168,14 +166,15 @@ export function getDefaultDisplayFieldForPlatform(
   const projectIds = eventView.project;
 
   const performanceTypeToDisplay = {
-    [PROJECT_PERFORMANCE_TYPE.ANY]: LandingDisplayField.ALL,
-    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: LandingDisplayField.FRONTEND_PAGELOAD,
-    [PROJECT_PERFORMANCE_TYPE.BACKEND]: LandingDisplayField.BACKEND,
-    [PROJECT_PERFORMANCE_TYPE.MOBILE]: LandingDisplayField.MOBILE,
+    [ProjectPerformanceType.ANY]: LandingDisplayField.ALL,
+    [ProjectPerformanceType.FRONTEND]: LandingDisplayField.FRONTEND_OTHER,
+    [ProjectPerformanceType.BACKEND]: LandingDisplayField.BACKEND,
+    [ProjectPerformanceType.MOBILE]: LandingDisplayField.MOBILE,
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =
-    performanceTypeToDisplay[performanceType] ?? LandingDisplayField.ALL;
+    performanceTypeToDisplay[performanceType as keyof typeof performanceTypeToDisplay] ??
+    LandingDisplayField.ALL;
   return landingField;
 }
 
@@ -191,47 +190,47 @@ export const vitalCardDetails = (
   return {
     'p75(transaction.duration)': {
       title: t('Duration (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      tooltip: getTermHelp(organization, PerformanceTerm.P75),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
     'tpm()': {
       title: t('Throughput'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
-      formatter: formatAbbreviatedNumber,
+      tooltip: getTermHelp(organization, PerformanceTerm.THROUGHPUT),
+      formatter: (value: number | string) => formatAbbreviatedNumber(value),
     },
     'failure_rate()': {
       title: t('Failure Rate'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      tooltip: getTermHelp(organization, PerformanceTerm.FAILURE_RATE),
       formatter: value => formatPercentage(value, 2),
     },
     'apdex()': {
       title: t('Apdex'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PerformanceTerm.APDEX),
       formatter: value => formatFloat(value, 4),
     },
     'p75(measurements.frames_slow_rate)': {
       title: t('Slow Frames (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.SLOW_FRAMES),
+      tooltip: getTermHelp(organization, PerformanceTerm.SLOW_FRAMES),
       formatter: value => formatPercentage(value, 2),
     },
     'p75(measurements.frames_frozen_rate)': {
       title: t('Frozen Frames (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FROZEN_FRAMES),
+      tooltip: getTermHelp(organization, PerformanceTerm.FROZEN_FRAMES),
       formatter: value => formatPercentage(value, 2),
     },
     'p75(measurements.app_start_cold)': {
       title: t('Cold Start (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_COLD),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_COLD),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
     'p75(measurements.app_start_warm)': {
       title: t('Warm Start (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APP_START_WARM),
+      tooltip: getTermHelp(organization, PerformanceTerm.APP_START_WARM),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
     'p75(measurements.stall_percentage)': {
       title: t('Stall Percentage (p75)'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.STALL_PERCENTAGE),
+      tooltip: getTermHelp(organization, PerformanceTerm.STALL_PERCENTAGE),
       formatter: value => formatPercentage(value, 2),
     },
   };
@@ -252,7 +251,7 @@ export function getDisplayAxes(options: AxisOption[], location: Location) {
   };
 }
 
-export function checkIsReactNative(eventView) {
+export function checkIsReactNative(eventView: EventView) {
   // only react native should contain the stall percentage column
   return Boolean(
     eventView.getFields().find(field => field.includes('measurements.stall_percentage'))

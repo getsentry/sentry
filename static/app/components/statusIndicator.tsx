@@ -1,19 +1,20 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
 
-type Props = {
-  status: string;
+export interface StatusIndicatorProps {
+  status: 'muted' | 'info' | 'warning' | 'success' | 'resolved' | 'error';
   tooltipTitle: React.ReactNode;
-};
+}
 
 /**
  * A badge/indicator at the beginning of the row that displays
  * the color of the status level (Warning, Error, Success, etc)
  *
  */
-function StatusIndicator({status, tooltipTitle}: Props) {
-  let color: string = 'error';
+export function StatusIndicator({status, tooltipTitle}: StatusIndicatorProps) {
+  let color: keyof Theme['alert'] = 'error';
 
   if (status === 'muted') {
     color = 'muted';
@@ -32,9 +33,7 @@ function StatusIndicator({status, tooltipTitle}: Props) {
   );
 }
 
-export default StatusIndicator;
-
-const StatusLevel = styled('div')<{color: string}>`
+const StatusLevel = styled('div')<{color: keyof Theme['alert']}>`
   position: absolute;
   left: -1px;
   width: 9px;

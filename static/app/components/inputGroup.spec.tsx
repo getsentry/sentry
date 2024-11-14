@@ -5,7 +5,7 @@ import {InputGroup} from 'sentry/components/inputGroup';
 
 describe('InputGroup', function () {
   it('renders input', function () {
-    const {container} = render(
+    render(
       <InputGroup>
         <InputGroup.Input value="Search" onChange={() => {}} />
       </InputGroup>
@@ -13,23 +13,20 @@ describe('InputGroup', function () {
 
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveDisplayValue('Search');
-
-    expect(container).toSnapshot();
   });
 
   it('renders disabled input', function () {
-    const {container} = render(
+    render(
       <InputGroup>
         <InputGroup.Input disabled />
       </InputGroup>
     );
 
     expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(container).toSnapshot();
   });
 
-  it('renders leading elements', function () {
-    const {container} = render(
+  it('renders leading elements', async function () {
+    render(
       <InputGroup>
         <InputGroup.LeadingItems>
           <Button>Leading Button</Button>
@@ -43,16 +40,14 @@ describe('InputGroup', function () {
     expect(screen.getByRole('button', {name: 'Leading Button'})).toBeInTheDocument();
 
     // Focus moves first to leading button and then to input
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Leading Button'})).toHaveFocus();
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
-
-    expect(container).toSnapshot();
   });
 
-  it('renders trailing elements', function () {
-    const {container} = render(
+  it('renders trailing elements', async function () {
+    render(
       <InputGroup>
         <InputGroup.Input />
         <InputGroup.TrailingItems>
@@ -66,11 +61,9 @@ describe('InputGroup', function () {
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toBeInTheDocument();
 
     // Focus moves first to input and then to trailing button
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
-
-    expect(container).toSnapshot();
   });
 });

@@ -2,14 +2,22 @@ from django.core.cache import cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.models import Deploy, Group, ReleaseCommit, ReleaseProject, Repository
+from sentry.models.deploy import Deploy
+from sentry.models.group import Group
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
 from sentry.utils.hashlib import hash_values
 
 
 @region_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.UNKNOWN,
+    }
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

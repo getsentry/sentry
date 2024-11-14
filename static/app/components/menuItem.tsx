@@ -1,8 +1,9 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 
 type MenuItemProps = {
@@ -72,7 +73,7 @@ interface Props
   extends MenuItemProps,
     Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}
 
-const MenuItem = ({
+function MenuItem({
   header,
   icon,
   divider,
@@ -81,7 +82,7 @@ const MenuItem = ({
   className,
   children,
   ...props
-}: Props) => {
+}: Props) {
   const {
     to,
     href,
@@ -166,7 +167,7 @@ const MenuItem = ({
       {renderChildren}
     </MenuListItem>
   );
-};
+}
 
 interface MenuListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   disabled?: boolean;

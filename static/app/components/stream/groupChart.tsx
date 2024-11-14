@@ -1,101 +1,107 @@
-import LazyLoad from 'react-lazyload';
+import {useMemo} from 'react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
-import {Group, TimeseriesValue} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
 
+function asChartPoint(point: [number, number]): {name: number | string; value: number} {
+  return {
+    name: point[0] * 1000,
+    value: point[1],
+  };
+}
+
+const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
+
 type Props = {
-  data: Group;
-  statsPeriod: string;
+  stats: ReadonlyArray<TimeseriesValue>;
   height?: number;
+  secondaryStats?: ReadonlyArray<TimeseriesValue>;
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
 
 function GroupChart({
-  data,
-  statsPeriod,
-  showSecondaryPoints = false,
+  stats,
   height = 24,
+  secondaryStats = EMPTY_STATS,
+  showSecondaryPoints = false,
   showMarkLine = false,
 }: Props) {
-  const stats: TimeseriesValue[] = statsPeriod
-    ? data.filtered
-      ? data.filtered.stats[statsPeriod]
-      : data.stats[statsPeriod]
-    : [];
+  const graphOptions = useMemo<{
+    colors: [string] | undefined;
+    emphasisColors: [string] | undefined;
+    series: Series[];
+  }>(() => {
+    if (!stats || !stats.length) {
+      return {colors: undefined, emphasisColors: undefined, series: []};
+    }
 
-  const secondaryStats: TimeseriesValue[] | null =
-    statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
+    const max = Math.max(...stats.map(p => p[1]));
 
-  if (!stats || !stats.length) {
-    return null;
-  }
+    const formattedMarkLine = formatAbbreviatedNumber(max);
 
-  const markLinePoint = stats.map(point => point[1]);
-  const formattedMarkLine = formatAbbreviatedNumber(Math.max(...markLinePoint));
+    if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
+      const series: Series[] = [
+        {
+          seriesName: t('Total Events'),
+          data: secondaryStats.map(asChartPoint),
+        },
+        {
+          seriesName: t('Matching Events'),
+          data: stats.map(asChartPoint),
+        },
+      ];
 
-  let colors: string[] | undefined = undefined;
-  let emphasisColors: string[] | undefined = undefined;
-
-  const series: Series[] = [];
-  if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
-    series.push({
-      seriesName: t('Total Events'),
-      data: secondaryStats.map(point => ({name: point[0] * 1000, value: point[1]})),
-    });
-    series.push({
-      seriesName: t('Matching Events'),
-      data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-    });
-  } else {
-    // Colors are custom to preserve historical appearance where the single series is
-    // considerably darker than the two series results.
-    colors = [theme.gray300];
-    emphasisColors = [theme.purple300];
-    series.push({
-      seriesName: t('Events'),
-      data: stats.map(point => ({name: point[0] * 1000, value: point[1]})),
-      markLine:
-        showMarkLine && Math.max(...markLinePoint) > 0
-          ? MarkLine({
-              silent: true,
-              lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
-              data: [
-                {
-                  type: 'max',
+      return {colors: undefined, emphasisColors: undefined, series};
+    }
+    const series: Series[] = [
+      {
+        seriesName: t('Events'),
+        data: stats.map(asChartPoint),
+        markLine:
+          showMarkLine && max > 0
+            ? MarkLine({
+                silent: true,
+                lineStyle: {color: theme.gray200, type: 'dotted', width: 1},
+                data: [
+                  {
+                    type: 'max',
+                  },
+                ],
+                label: {
+                  show: true,
+                  position: 'start',
+                  color: `${theme.gray200}`,
+                  fontFamily: 'Rubik',
+                  fontSize: 10,
+                  formatter: `${formattedMarkLine}`,
                 },
-              ],
-              label: {
-                show: true,
-                position: 'start',
-                color: `${theme.gray200}`,
-                fontFamily: 'Rubik',
-                fontSize: 10,
-                formatter: `${formattedMarkLine}`,
-              },
-            })
-          : undefined,
-    });
-  }
+              })
+            : undefined,
+      },
+    ];
+    return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
+  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
 
   return (
-    <LazyLoad debounce={50} height={showMarkLine ? 30 : height}>
+    <LazyRender containerHeight={showMarkLine ? 30 : height}>
       <MiniBarChart
         height={showMarkLine ? 36 : height}
         isGroupedByDate
         showTimeInTooltip
-        series={series}
-        colors={colors}
-        emphasisColors={emphasisColors}
+        series={graphOptions.series}
+        colors={graphOptions.colors}
+        emphasisColors={graphOptions.emphasisColors}
         hideDelay={50}
         showMarkLineLabel={showMarkLine}
       />
-    </LazyLoad>
+    </LazyRender>
   );
 }
 

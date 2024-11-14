@@ -1,31 +1,28 @@
-import {Fragment} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {motion, Variants} from 'framer-motion';
+import type {Variants} from 'framer-motion';
+import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EventWaiter from 'sentry/utils/eventWaiter';
+import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
-
-import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
 interface FirstEventFooterProps {
-  handleFirstIssueReceived: () => void;
-  hasFirstEvent: boolean;
   isLast: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
-  project: Project;
+  project: OnboardingRecentCreatedProject;
 }
 
 export default function FirstEventFooter({
@@ -33,92 +30,78 @@ export default function FirstEventFooter({
   project,
   onClickSetupLater,
   isLast,
-  hasFirstEvent,
-  handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
-  const getSecondaryCta = () => {
+  const getSecondaryCta = useCallback(() => {
     // if hasn't sent first event, allow skiping.
     // if last, no secondary cta
-    if (!hasFirstEvent && !isLast) {
+    if (!project?.firstError && !isLast) {
       return <Button onClick={onClickSetupLater}>{t('Next Platform')}</Button>;
     }
     return null;
-  };
+  }, [project?.firstError, isLast, onClickSetupLater]);
 
-  const getPrimaryCta = ({firstIssue}: {firstIssue: null | boolean | Group}) => {
+  const getPrimaryCta = useCallback(() => {
     // if hasn't sent first event, allow creation of sample error
-    if (!hasFirstEvent) {
+    if (!project?.firstError) {
       return (
         <CreateSampleEventButton
           project={project}
-          source="targted-onboarding"
+          source="targeted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
         </CreateSampleEventButton>
       );
     }
-
     return (
-      <Button
+      <LinkButton
+        onClick={() =>
+          trackAnalytics('growth.onboarding_take_to_error', {
+            organization: project.organization,
+            platform: project.platform,
+          })
+        }
         to={`/organizations/${organization.slug}/issues/${
-          firstIssue && firstIssue !== true && 'id' in firstIssue
-            ? `${firstIssue.id}/`
+          project?.firstIssue && 'id' in project.firstIssue
+            ? `${project.firstIssue.id}/`
             : ''
         }?referrer=onboarding-first-event-footer`}
         priority="primary"
       >
         {t('Take me to my error')}
-      </Button>
+      </LinkButton>
     );
-  };
+  }, [project, organization.slug]);
 
   return (
     <GridFooter>
       <SkipOnboardingLink
         onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+          trackAnalytics('growth.onboarding_clicked_skip', {
             organization,
             source,
           });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
         }}
         to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
       >
         {t('Skip Onboarding')}
       </SkipOnboardingLink>
-      <EventWaiter
-        eventType="error"
-        onIssueReceived={handleFirstIssueReceived}
-        {...{project, organization}}
-      >
-        {({firstIssue}) => (
-          <Fragment>
-            <StatusWrapper>
-              {hasFirstEvent ? (
-                <IconCheckmark isCircled color="green400" />
-              ) : (
-                <WaitingIndicator />
-              )}
-              <AnimatedText errorReceived={hasFirstEvent}>
-                {hasFirstEvent ? t('Error Received') : t('Waiting for error')}
-              </AnimatedText>
-            </StatusWrapper>
-            <OnboardingButtonBar gap={2}>
-              {getSecondaryCta()}
-              {getPrimaryCta({firstIssue})}
-            </OnboardingButtonBar>
-          </Fragment>
+      <StatusWrapper>
+        {project?.firstError ? (
+          <IconCheckmark isCircled color="green400" />
+        ) : (
+          <WaitingIndicator />
         )}
-      </EventWaiter>
+        <AnimatedText errorReceived={project?.firstError}>
+          {project?.firstError ? t('Error Received') : t('Waiting for error')}
+        </AnimatedText>
+      </StatusWrapper>
+      <OnboardingButtonBar gap={2}>
+        {getSecondaryCta()}
+        {getPrimaryCta()}
+      </OnboardingButtonBar>
     </GridFooter>
   );
 }

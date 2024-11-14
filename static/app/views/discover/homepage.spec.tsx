@@ -1,8 +1,9 @@
-import {browserHistory} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -12,30 +13,28 @@ import {
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = [
-    'global-views',
-    'discover-query',
-    'discover-query-builder-as-landing-page',
-  ];
-  let initialData, organization, mockHomepage;
+  const features = ['global-views', 'discover-query'];
+  let initialData, organization, mockHomepage, measurementsMetaMock;
 
   beforeEach(() => {
-    organization = TestStubs.Organization({
+    organization = OrganizationFixture({
       features,
     });
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
       },
     });
+
+    ProjectsStore.loadInitialData(initialData.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],
@@ -57,6 +56,10 @@ describe('Discover > Homepage', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: '',
     });
     mockHomepage = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
@@ -80,7 +83,13 @@ describe('Discover > Homepage', () => {
         orderby: '-environment',
         display: 'previous',
         query: 'event.type:error',
+        queryDataset: 'discover',
       },
+    });
+    measurementsMetaMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      method: 'GET',
+      body: {},
     });
   });
 
@@ -93,7 +102,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await screen.findByText('Discover Trends');
@@ -102,7 +111,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
   });
 
-  it('fetches from the homepage URL and renders fields, page filters, and chart information', async () => {
+  it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {
     render(
       <Homepage
         organization={organization}
@@ -111,7 +120,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -121,15 +130,15 @@ describe('Discover > Homepage', () => {
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('Previous Period');
     screen.getByText('event.type:error');
+    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
   it('renders event view from URL params over homepage query', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['project'],
@@ -146,7 +155,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -165,28 +174,27 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
-    await act(tick);
     renderGlobalModal();
 
-    userEvent.click(screen.getByText('Columns'));
+    await userEvent.click(await screen.findByText('Columns'));
 
-    userEvent.click(screen.getByTestId('label'));
-    userEvent.click(screen.getByText('event.type'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(screen.getByTestId('label'));
+    await userEvent.click(screen.getByText('event.type'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/homepage/',
         query: expect.objectContaining({
-          field: ['event.type'],
+          field: 'event.type',
         }),
       })
     );
   });
 
-  it('does not show an editable header or author information', () => {
+  it('does not show an editable header or author information', async () => {
     render(
       <Homepage
         organization={organization}
@@ -195,8 +203,11 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     // 'Discover' is the header for the homepage
     expect(screen.getByText('Discover')).toBeInTheDocument();
@@ -239,20 +250,19 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Set as Default button when no saved homepage', () => {
+  it('Disables the Set as Default button when no saved homepage', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -273,20 +283,22 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
     expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
   });
 
   it('follows absolute date selection', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -307,23 +319,22 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
-    userEvent.click(await screen.findByText('24H'));
-    userEvent.click(await screen.findByText('Absolute date'));
-    userEvent.click(screen.getByText('Apply'));
+    await userEvent.click(await screen.findByText('24H'));
+    await userEvent.click(await screen.findByText('Absolute date'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', () => {
+  it('renders changes to the discover query when no homepage', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -346,17 +357,16 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -374,17 +384,19 @@ describe('Discover > Homepage', () => {
         loading={false}
       />
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when loaded with valid event view in url params', () => {
+  it('renders changes to the discover query when loaded with valid event view in url params', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['title'],
@@ -401,17 +413,16 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
     // Simulate an update to the columns by changing the URL params
     const rerenderData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
             field: ['event.type'],
@@ -429,12 +440,15 @@ describe('Discover > Homepage', () => {
         loading={false}
       />
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('overrides homepage filters with pinned filters if they exist', () => {
-    ProjectsStore.loadInitialData([TestStubs.Project({id: 2})]);
+  it('overrides homepage filters with pinned filters if they exist', async () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '1'}), ProjectFixture({id: '2'})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),
       state: {
@@ -455,19 +469,21 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
+    await waitFor(() => {
+      expect(measurementsMetaMock).toHaveBeenCalled();
+    });
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
   });
 
   it('allows users to set the All Events query as default', async () => {
     initialData = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             ...EventView.fromSavedQuery(DEFAULT_EVENT_VIEW).generateQueryStringObject(),
           },
@@ -488,9 +504,172 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());
+  });
+
+  it('uses split decision for homepage query', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    initialData = initializeOrg({
+      organization: organization,
+      router: {
+        location: LocationFixture(),
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'error-events',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:error',
+        topEvents: '5',
+        queryDataset: 'discover',
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {router: initialData.router, organization: initialData.organization}
+    );
+
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
+
+    await screen.findByText('environment');
+
+    expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
+    screen.getByText('event.type:error');
+    expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(
+      screen.getByText(
+        "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('saves homepage with dataset selection', async () => {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    initialData = initializeOrg({
+      organization: organization,
+      router: {
+        location: LocationFixture(),
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          discoverSplitDecision: 'error-events',
+        },
+        data: [],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '14d',
+        orderby: '-environment',
+        display: 'previous',
+        query: 'event.type:error',
+        topEvents: '5',
+        queryDataset: 'discover',
+      },
+    });
+
+    render(
+      <Homepage
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        setSavedQuery={jest.fn()}
+        loading={false}
+      />,
+      {router: initialData.router, organization: initialData.organization}
+    );
+
+    expect(await screen.findByText('Remove Default')).toBeInTheDocument();
+    expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transactions'}));
+
+    expect(initialData.router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'transactions',
+          name: 'homepage query',
+          project: undefined,
+          query: '',
+          field: 'environment',
+          queryDataset: 'transaction-like',
+        }),
+      })
+    );
   });
 });

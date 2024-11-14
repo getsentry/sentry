@@ -2,11 +2,11 @@ from unittest.mock import Mock, patch
 
 from django.utils import timezone
 
-from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
-@region_silo_test
+@no_silo_test
 class OrganizationRateLimitsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -24,7 +24,6 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("rate-limit-editor")
-        self.browser.snapshot("organization rate limits with quota")
         assert self.browser.element_exists_by_test_id("rate-limit-editor")
 
     @patch("sentry.quotas.get_maximum_quota", Mock(return_value=(0, 60)))
@@ -33,5 +32,4 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("rate-limit-editor")
-        self.browser.snapshot("organization rate limits without quota")
         assert self.browser.element_exists_by_test_id("rate-limit-editor")

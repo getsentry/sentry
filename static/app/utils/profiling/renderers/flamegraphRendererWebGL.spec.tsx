@@ -7,16 +7,16 @@ import {
 } from 'sentry-test/profiling/utils';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {
   LightFlamegraphTheme,
   LightFlamegraphTheme as theme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
-import {Flamegraph} from '../flamegraph';
+import type {Flamegraph} from '../flamegraph';
 import {getFlamegraphFrameSearchId} from '../flamegraphFrame';
 
 const originalDpr = window.devicePixelRatio;
@@ -44,7 +44,7 @@ describe('flamegraphRendererWebGL', () => {
           ...theme,
           COLORS: {
             ...theme.COLORS,
-            // @ts-ignore overridee the colors implementation
+            // @ts-expect-error overridee the colors implementation
             STACK_TO_COLOR: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
               return {
@@ -124,7 +124,7 @@ describe('flamegraphRendererWebGL', () => {
 
     const flamegraph = makeFlamegraph();
 
-    // @ts-ignore shaders are init from the constructor
+    // @ts-expect-error shaders are init from the constructor
     const _renderer = new FlamegraphRendererWebGL(
       canvas as HTMLCanvasElement,
       flamegraph,
@@ -134,9 +134,9 @@ describe('flamegraphRendererWebGL', () => {
     expect(context.createShader).toHaveBeenCalledTimes(2);
     expect(context.getShaderParameter).toHaveBeenCalledTimes(2);
 
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     expect(context.getShaderParameter.mock.calls[0][0]).toEqual(VERTEX);
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     expect(context.getShaderParameter.mock.calls[1][0]).toEqual(FRAGMENT);
   });
 
@@ -167,7 +167,7 @@ describe('flamegraphRendererWebGL', () => {
         start: 0,
         end: 0,
       })
-    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_GRAYSCALE_COLOR);
+    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
   });
 
   it('getHoveredNode', () => {
@@ -255,7 +255,7 @@ describe('flamegraphRendererWebGL', () => {
       });
       const renderer = new FlamegraphRendererWebGL(canvas, flamegraph, theme);
 
-      // @ts-ignore we only need a partial frame mock
+      // @ts-expect-error we only need a partial frame mock
       results.set(getFlamegraphFrameSearchId(flamegraph.frames[0]), {});
       renderer.setSearchResults('query', results);
 

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry.models import Environment
+from sentry.models.environment import Environment
 
 ValidationError = serializers.ValidationError
 
@@ -19,3 +19,9 @@ class EnvironmentField(serializers.Field):
         except Environment.DoesNotExist:
             raise ValidationError("Environment is not part of this organization")
         return environment
+
+
+class EnvironmentSerializer(serializers.Serializer):
+    isHidden = serializers.BooleanField(
+        help_text="Specify `true` to make the environment visible or `false` to make the environment hidden."
+    )

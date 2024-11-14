@@ -1,8 +1,7 @@
 /* eslint-env node */
 
-// eslint-disable-next-line import/no-nodejs-modules
-const crypto = require('crypto');
-const peg = require('pegjs');
+const crypto = require('node:crypto');
+const peggy = require('peggy');
 
 function getCacheKey(fileData, _filePath, config, _options) {
   return crypto
@@ -14,7 +13,7 @@ function getCacheKey(fileData, _filePath, config, _options) {
 
 function process(sourceText) {
   return {
-    code: `module.exports = ${peg.generate(sourceText, {output: 'source'})}`,
+    code: `module.exports = ${peggy.generate(sourceText, {output: 'source'})}`,
   };
 }
 

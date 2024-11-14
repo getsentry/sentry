@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
 
 type State = {
   orgSlug?: string;
@@ -11,6 +12,7 @@ type State = {
 
 interface RepositoryStoreDefinition extends StoreDefinition {
   get(): State;
+  init(): void;
   loadRepositories(orgSlug: string): void;
   loadRepositoriesError(error: Error): void;
   loadRepositoriesSuccess(data: Repository[]): void;

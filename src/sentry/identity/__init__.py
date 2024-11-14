@@ -1,14 +1,15 @@
 from .base import *  # NOQA
 from .bitbucket import *  # NOQA
-from .github import *  # NOQA
-from .github_enterprise import *  # NOQA
+from .discord import *  # NOQA
+from .github import GitHubIdentityProvider
+from .github_enterprise import GitHubEnterpriseIdentityProvider
 from .gitlab import *  # NOQA
 from .google import *  # NOQA
 from .manager import IdentityManager
 from .oauth2 import *  # NOQA
 from .slack import *  # NOQA
 from .vercel import *  # NOQA
-from .vsts import *  # NOQA
+from .vsts import VSTSIdentityProvider, VSTSNewIdentityProvider
 from .vsts_extension import *  # NOQA
 
 default_manager = IdentityManager()
@@ -24,9 +25,11 @@ is_login_provider = default_manager.is_login_provider
 register(SlackIdentityProvider)  # NOQA
 register(GitHubIdentityProvider)  # NOQA
 register(GitHubEnterpriseIdentityProvider)  # NOQA
+register(VSTSNewIdentityProvider)  # NOQA
 register(VSTSIdentityProvider)  # NOQA
 register(VstsExtensionIdentityProvider)  # NOQA
 register(VercelIdentityProvider)  # NOQA
 register(BitbucketIdentityProvider)  # NOQA
 register(GitlabIdentityProvider)  # NOQA
 register(GoogleIdentityProvider)  # NOQA
+register(DiscordIdentityProvider)  # NOQA

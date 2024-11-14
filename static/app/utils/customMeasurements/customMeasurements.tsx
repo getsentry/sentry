@@ -1,4 +1,4 @@
-import {Measurement} from 'sentry/utils/measurements/measurements';
+import type {Measurement} from 'sentry/utils/measurements/measurements';
 
 export type CustomMeasurement = Measurement & {
   fieldType: string;

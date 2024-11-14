@@ -1,4 +1,6 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
+from unittest import mock
 
 from sentry.event_manager import EventManager, get_event_type
 from sentry.mail import send_notification_as_email
@@ -20,6 +22,7 @@ def make_event_data(filename: str, url: str = "http://example.com") -> Mapping[s
     return data
 
 
-def send_notification(*args: Any) -> None:
-    args_list = list(args)[1:]
-    send_notification_as_email(*args_list, {})
+mock_notify = mock.patch(
+    "sentry.notifications.notify.notify",
+    side_effect=lambda _, *args: send_notification_as_email(*(*args, {})),
+)

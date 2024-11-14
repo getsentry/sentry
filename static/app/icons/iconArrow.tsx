@@ -1,13 +1,14 @@
 import {forwardRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 
-import {SvgIcon, SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
-interface Props extends SVGIconProps {
+export interface ArrowProps extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-const IconArrow = forwardRef<SVGSVGElement, Props>(
+const IconArrow = forwardRef<SVGSVGElement, ArrowProps>(
   ({direction = 'up', ...props}, ref) => {
     const theme = useTheme();
 

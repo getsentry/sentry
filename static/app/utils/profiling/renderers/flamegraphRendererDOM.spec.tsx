@@ -7,7 +7,7 @@ import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/f
 import {FlamegraphRendererDOM} from 'sentry/utils/profiling/renderers/flamegraphRendererDOM';
 
 import {CanvasView} from '../canvasView';
-import {Flamegraph} from '../flamegraph';
+import type {Flamegraph} from '../flamegraph';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 
 const originalDpr = window.devicePixelRatio;
@@ -30,10 +30,14 @@ describe('FlamegraphDomRenderer', () => {
           {type: 'C', at: 2, frame: 0},
         ],
       },
-      [{name: 'f0'}]
+      [{name: 'function 0'}]
     );
 
     const canvas = makeCanvasMock() as HTMLCanvasElement;
+
+    // @ts-expect-error parentElement is a mock so readonly does not apply
+    canvas.parentElement = document.createElement('div');
+    document.body.appendChild(canvas.parentElement);
 
     const renderer = new FlamegraphRendererDOM(canvas, flamegraph, theme);
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
@@ -51,6 +55,6 @@ describe('FlamegraphDomRenderer', () => {
 
     renderer.draw(flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace));
 
-    expect(await screen.findByText(/f0/)).toBeInTheDocument();
+    expect(await screen.findByText(/function 0/)).toBeInTheDocument();
   });
 });

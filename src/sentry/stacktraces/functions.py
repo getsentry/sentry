@@ -1,5 +1,14 @@
-import re
+from __future__ import annotations
 
+import re
+from collections.abc import Callable
+from typing import Any
+from urllib.parse import urlparse
+
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+
+from sentry.interfaces.stacktrace import Frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import setdefault_path
 
@@ -36,7 +45,9 @@ _anon_namespace_re = re.compile(
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
 
 
-def replace_enclosed_string(s, start, end, replacement=None):
+def replace_enclosed_string(
+    s: str, start: str, end: str, replacement: str | Callable[[str, int], str] | None = None
+) -> str:
     if start not in s:
         return s
 
@@ -52,11 +63,11 @@ def replace_enclosed_string(s, start, end, replacement=None):
         elif char == end:
             depth -= 1
             if depth == 0:
-                if replacement is not None:
-                    if callable(replacement):
-                        rv.append(replacement(s[pair_start + 1 : idx], pair_start))
-                    else:
-                        rv.append(replacement)
+                if isinstance(replacement, str):
+                    rv.append(replacement)
+                elif replacement is not None:
+                    assert pair_start is not None
+                    rv.append(replacement(s[pair_start + 1 : idx], pair_start))
         elif depth == 0:
             rv.append(char)
 
@@ -128,6 +139,14 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     if function.startswith(("[", "+[", "-[")):
         return function
 
+    # Remove special `[clone .foo]` annotations for cloned/split functions
+    def process_brackets(value, start):
+        if value.startswith("clone ."):
+            return ""
+        return "[%s]" % value
+
+    function = replace_enclosed_string(function, "[", "]", process_brackets).rstrip()
+
     # Chop off C++ trailers
     while True:
         match = _cpp_trailer_re.search(function)
@@ -191,14 +210,6 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
 
     function = replace_enclosed_string(function, "<", ">", process_generics)
 
-    # Remove special `[clone .foo]` annotations for cloned/split functions
-    def process_brackets(value, start):
-        if value.startswith("clone ."):
-            return ""
-        return "[%s]" % value
-
-    function = replace_enclosed_string(function, "[", "]", process_brackets)
-
     is_thunk = "thunk for " in function  # swift
 
     tokens = split_func_tokens(function)
@@ -217,19 +228,40 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     #
     # ["unsigned", "int", "whatever"] -> whatever
     # ["@objc", "whatever", "->", "int"] -> whatever
-    try:
-        func_token = tokens[tokens.index("⟿") - 1]
-    except ValueError:
-        if tokens:
+    if function.find("initialization expression of") != -1:
+        # Swift initializer expression.
+        last_of_index = len(tokens) - 1 - tokens[::-1].index("of")
+        func_token = tokens[last_of_index + 1]
+        if func_token == "static":
+            # Static initializer expression, the object is the next token.
+            func_token = tokens[last_of_index + 2]
+        if func_token.startswith(":"):
+            # Trim the colon from the function name.
+            func_token = func_token[1:]
+        func_token = "initializer expression of " + func_token
+    elif tokens:
+        try:
+            last_arrow_index = len(tokens) - 1 - tokens[::-1].index("⟿")
+            func_token = tokens[last_arrow_index - 1]
+            if func_token == "throws":
+                # Throwing Swift function, the function name is the previous token.
+                func_token = tokens[last_arrow_index - 2]
+        except (ValueError, IndexError):
+            # No arrow, use the last token.
+            last_arrow_index = -1
             func_token = tokens[-1]
-        else:
-            func_token = None
+    else:
+        func_token = None
 
     if func_token:
         if func_token.startswith("@") and platform in ("cocoa", "swift"):
             # Found a Swift attribute instead of a function name, must be an
             # anonymous function
             func_token = ("thunk for " if is_thunk else "") + "closure"
+        elif "closure" in tokens and func_token != "closure":
+            # Found a closure.
+            func_token = "closure in " + func_token
+
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")
@@ -268,7 +300,39 @@ def get_function_name_for_frame(frame, platform=None):
         return trim_function_name(rv, frame.get("platform") or platform)
 
 
-def set_in_app(frame, value):
+def get_source_link_for_frame(frame: Frame) -> str | None:
+    """If source_link points to a GitHub raw content link, process it so that
+    we can return the GitHub equivalent with the line number, and use it as a
+    stacktrace link. Otherwise, return the link as is.
+    """
+    source_link = getattr(frame, "source_link", None)
+    if source_link is None:
+        return None
+
+    try:
+        URLValidator()(source_link)
+    except ValidationError:
+        return None
+
+    parse_result = urlparse(source_link)
+    if parse_result.netloc == "raw.githubusercontent.com":
+        path_parts = parse_result.path.split("/")
+        if path_parts[0] == "":
+            # the path starts with a "/" so the first element is empty string
+            del path_parts[0]
+
+        # at minimum, the path must have an author/org, a repo, and a file
+        if len(path_parts) >= 3:
+            source_link = "https://www.github.com/" + path_parts[0] + "/" + path_parts[1] + "/blob"
+            for remaining_part in path_parts[2:]:
+                source_link += "/" + remaining_part
+            if getattr(frame, "lineno", None):
+                source_link += "#L" + str(frame.lineno)
+    return source_link
+
+
+def set_in_app(frame: dict[str, Any], value: bool) -> None:
+    """Set the value of in_app in the frame to the given value."""
     orig_in_app = frame.get("in_app")
     if orig_in_app == value:
         return

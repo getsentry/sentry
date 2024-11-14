@@ -1,10 +1,11 @@
-import {browserHistory} from 'react-router';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 describe('EventCustomPerformanceMetrics', function () {
   beforeEach(function () {
@@ -24,7 +25,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should not render non custom performance metrics', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = EventFixture({
       measurements: {lcp: {value: 10, unit: 'millisecond'}},
     });
     render(
@@ -40,7 +41,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should render custom performance metrics', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = EventFixture({
       measurements: {
         'custom.count': {unit: 'none', value: 10},
         'custom.duration': {unit: 'millisecond', value: 123},
@@ -69,9 +70,9 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.queryByText('Largest Contentful Paint')).not.toBeInTheDocument();
   });
 
-  it('should render custom performance metrics context menu', function () {
+  it('should render custom performance metrics context menu', async function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = EventFixture({
       measurements: {
         'custom.size': {unit: 'kibibyte', value: 456},
       },
@@ -85,7 +86,7 @@ describe('EventCustomPerformanceMetrics', function () {
     );
 
     expect(screen.getByLabelText('Widget actions')).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    await userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Show events with this value')).toBeInTheDocument();
     expect(screen.getByText('Hide events with this value')).toBeInTheDocument();
     expect(screen.getByText('Show events with values greater than')).toBeInTheDocument();
@@ -94,7 +95,7 @@ describe('EventCustomPerformanceMetrics', function () {
 
   it('should render custom performance metrics custom unit', function () {
     const {router, organization} = initializeOrg();
-    const event = TestStubs.Event({
+    const event = EventFixture({
       measurements: {
         'custom.unit': {unit: 'customunit', value: 456},
       },

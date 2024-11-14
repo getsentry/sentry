@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Mapping, Sequence
+from collections.abc import Generator, Mapping, Sequence
+from typing import Any
 
 from rest_framework import serializers
 
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Project
-from sentry.rules import EventState
+from sentry.models.project import Project
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
     app_service,
 )
-from sentry.tasks.sentry_apps import notify_sentry_app
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 
 ValidationError = serializers.ValidationError
 
@@ -114,7 +114,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
 
         # Ensure required fields are provided and valid
         valid_fields = set()
-        schema = alert_rule_component.schema.get("settings", {})
+        schema = alert_rule_component.app_schema.get("settings", {})
         for required_field in schema.get("required_fields", []):
             field_name = required_field.get("name")
             field_value = self._get_setting_value(field_name)
@@ -140,7 +140,9 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,
@@ -158,4 +160,4 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
         sentry_app = installations[0].sentry_app
         alert_rule_component = self._get_alert_rule_component(sentry_app.id, sentry_app.name)
 
-        return str(alert_rule_component.schema.get("title"))
+        return str(alert_rule_component.app_schema.get("title"))

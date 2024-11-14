@@ -205,16 +205,13 @@
         "type": "string"
       },
       "team": {
-          "type": "object",
-          "nullable": true,
-          "oneOf": [
-            {
-              "$ref": "team.json#/TeamMinimal"
-            },
-            {
-              "$ref": "null.json#/NullValue"
-            }
-          ]
+        "type": "object",
+        "nullable": true,
+        "allOf": [
+          {
+            "$ref": "team.json#/TeamMinimal"
+          }
+        ]
       },
       "teams": {
         "type": "array",
@@ -465,9 +462,6 @@
             "type": "string"
           },
           "sentry:csp_ignored_sources_defaults": {
-            "type": "boolean"
-          },
-          "sentry:reprocessing_active": {
             "type": "boolean"
           }
         }

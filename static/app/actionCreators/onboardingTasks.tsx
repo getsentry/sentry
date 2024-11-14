@@ -1,7 +1,17 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
+import type {OnboardingTask, OnboardingTaskStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+
+interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
+  task: OnboardingTask['task'];
+  /**
+   * Marks completion seen. This differs from the OnboardingTask
+   * completionSeen type as that returns the date completion was seen.
+   */
+  completionSeen?: boolean;
+}
 
 /**
  * Update an onboarding task.
@@ -12,14 +22,7 @@ import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
 export function updateOnboardingTask(
   api: Client | null,
   organization: Organization,
-  updatedTask: Partial<Pick<OnboardingTask, 'status' | 'data'>> & {
-    task: OnboardingTask['task'];
-    /**
-     * Marks completion seen. This differs from the OnboardingTask
-     * completionSeen type as that returns the date completion was seen.
-     */
-    completionSeen?: boolean;
-  }
+  updatedTask: UpdatedTask
 ) {
   if (api !== null) {
     api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {

@@ -1,17 +1,14 @@
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import Checkbox from 'sentry/components/checkbox';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
-import {
-  DESCRIPTIONS,
-  EVENT_CHOICES,
-  PERMISSIONS_MAP,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
@@ -52,6 +49,15 @@ function SubscriptionBox({
   if (webhookDisabled) {
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
+
+  const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
+    // Swap ignored for archived if the feature is enabled
+    issue: organization.features.includes('webhooks-unresolved')
+      ? `created, resolved, assigned, archived, unresolved`
+      : `created, resolved, assigned, archived`,
+    error: 'created',
+    comment: 'created, edited, deleted',
+  };
 
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>

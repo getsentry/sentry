@@ -1,13 +1,13 @@
+import {DetailedEventsFixture} from 'sentry-fixture/events';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupingStore from 'sentry/stores/groupingStore';
-import {GroupMergedView} from 'sentry/views/issueDetails/groupMerged';
-
-jest.mock('sentry/api');
+import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 
 describe('Issues -> Merged View', function () {
-  const events = TestStubs.DetailedEvents();
+  const events = DetailedEventsFixture();
   const mockData = {
     merged: [
       {
@@ -23,29 +23,19 @@ describe('Issues -> Merged View', function () {
     ],
   };
 
-  beforeAll(function () {
+  beforeEach(function () {
+    GroupingStore.init();
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/issues/groupId/hashes/?limit=50&query=',
+      url: '/organizations/org-slug/issues/groupId/hashes/?limit=50&query=',
       body: mockData.merged,
     });
   });
 
-  beforeEach(() => {
-    GroupingStore.init();
-  });
-
-  it('renders initially with loading component', function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      project: {
-        ...initializeOrg().project,
-        slug: 'projectId',
-      },
+  it('renders initially with loading component', async function () {
+    const {organization, project, router} = initializeOrg({
       router: {
-        ...initializeOrg().router,
-        location: {
-          query: {},
-        },
+        params: {groupId: 'groupId'},
       },
     });
 
@@ -53,50 +43,38 @@ describe('Issues -> Merged View', function () {
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{orgId: 'orgId', groupId: 'groupId'}}
+        params={{groupId: 'groupId'}}
         location={router.location}
-        routeParams={{}}
-        route={{}}
-        routes={router.routes}
-        router={router}
       />,
-      {context: routerContext}
+      {router, organization}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await act(tick);
   });
 
   it('renders with mocked data', async function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
-      project: {
-        ...initializeOrg().project,
-        slug: 'projectId',
-      },
+    const {organization, project, router} = initializeOrg({
       router: {
-        ...initializeOrg().router,
-        location: {
-          query: {},
-        },
+        params: {groupId: 'groupId'},
       },
     });
 
-    const {container} = render(
+    render(
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{orgId: 'orgId', groupId: 'groupId'}}
+        params={{groupId: 'groupId'}}
         location={router.location}
-        routeParams={{}}
-        route={{}}
-        routes={router.routes}
-        router={router}
       />,
-      {context: routerContext}
+      {router, organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    expect(await screen.findByText(mockData.merged[0].id)).toBeInTheDocument();
 
-    expect(container).toSnapshot();
+    const title = await screen.findByText('Fingerprints included in this issue');
+    expect(title.parentElement).toHaveTextContent(
+      'Fingerprints included in this issue (2)'
+    );
   });
 });

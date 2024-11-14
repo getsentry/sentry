@@ -1,30 +1,26 @@
 from collections import Counter
-from unittest import TestCase
+
+import pytest
 
 from sentry.similarity.signatures import MinHashSignatureBuilder
 
 
-class MinHashSignatureBuilderTestCase(TestCase):
-    def test_signatures(self):
-        n = 32
-        r = 0xFFFF
-        get_signature = MinHashSignatureBuilder(n, r)
-        assert get_signature({"foo", "bar", "baz"}) == get_signature({"foo", "bar", "baz"})
+def test_signatures() -> None:
+    n = 32
+    r = 0xFFFF
+    get_signature = MinHashSignatureBuilder(n, r)
+    assert get_signature({"foo", "bar", "baz"}) == get_signature({"foo", "bar", "baz"})
 
-        assert len(get_signature("hello world")) == n
-        for value in get_signature("hello world"):
-            assert 0 <= value < r
+    assert len(get_signature("hello world")) == n
+    for value in get_signature("hello world"):
+        assert 0 <= value < r
 
-        a = set("the quick grown box jumps over the hazy fog".split())
-        b = set("the quick brown fox jumps over the lazy dog".split())
+    a = set("the quick grown box jumps over the hazy fog".split())
+    b = set("the quick brown fox jumps over the lazy dog".split())
 
-        results = Counter(
-            map(lambda l__r: l__r[0] == l__r[1], zip(get_signature(a), get_signature(b)))
-        )
+    results = Counter(map(lambda l__r: l__r[0] == l__r[1], zip(get_signature(a), get_signature(b))))
 
-        similarity = len(a & b) / float(len(a | b))
-        estimation = results[True] / float(sum(results.values()))
+    similarity = len(a & b) / float(len(a | b))
+    estimation = results[True] / float(sum(results.values()))
 
-        self.assertAlmostEqual(
-            similarity, estimation, delta=0.1  # totally made up constant, seems reasonable
-        )
+    assert similarity == pytest.approx(estimation, 0.1)

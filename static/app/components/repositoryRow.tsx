@@ -1,31 +1,24 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  cancelDeleteRepository,
-  deleteRepository,
-} from 'sentry/actionCreators/integrations';
-import {openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {PanelItem} from 'sentry/components/panels';
-import RepositoryEditForm from 'sentry/components/repositoryEditForm';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconDelete, IconEdit} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Repository, RepositoryStatus} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
 
 type Props = {
   api: Client;
-  orgId: string;
-  organization: Organization;
+  orgSlug: string;
   repository: Repository;
-  onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
+  onRepositoryChange?: (data: Repository) => void;
   showProvider?: boolean;
 };
 
@@ -48,18 +41,13 @@ function RepositoryRow({
   api,
   repository,
   onRepositoryChange,
-  organization,
-  orgId,
+  orgSlug,
   showProvider = false,
 }: Props) {
-  const isCustomRepo =
-    organization.features.includes('integrations-custom-scm') &&
-    repository.provider.id === 'integrations:custom_scm';
-
   const isActive = repository.status === RepositoryStatus.ACTIVE;
 
   const cancelDelete = () =>
-    cancelDeleteRepository(api, orgId, repository.id).then(
+    cancelDeleteRepository(api, orgSlug, repository.id).then(
       data => {
         if (onRepositoryChange) {
           onRepositoryChange(data);
@@ -69,7 +57,7 @@ function RepositoryRow({
     );
 
   const deleteRepo = () =>
-    deleteRepository(api, orgId, repository.id).then(
+    hideRepository(api, orgSlug, repository.id).then(
       data => {
         if (onRepositoryChange) {
           onRepositoryChange(data);
@@ -77,10 +65,6 @@ function RepositoryRow({
       },
       () => {}
     );
-
-  const handleEditRepo = (data: Repository) => {
-    onRepositoryChange?.(data);
-  };
 
   const renderDeleteButton = (hasAccess: boolean) => (
     <Tooltip
@@ -100,29 +84,13 @@ function RepositoryRow({
       >
         <StyledButton
           size="xs"
-          icon={<IconDelete size="xs" />}
+          icon={<IconDelete />}
           aria-label={t('delete')}
           disabled={!hasAccess}
         />
       </Confirm>
     </Tooltip>
   );
-
-  const triggerModal = () =>
-    openModal(({Body, Header, closeModal}) => (
-      <Fragment>
-        <Header closeButton>{t('Edit Repository')}</Header>
-        <Body>
-          <RepositoryEditForm
-            orgSlug={orgId}
-            repository={repository}
-            onSubmitSuccess={handleEditRepo}
-            closeModal={closeModal}
-            onCancel={closeModal}
-          />
-        </Body>
-      </Fragment>
-    ));
 
   return (
     <Access access={['org:integrations']}>
@@ -155,23 +123,7 @@ function RepositoryRow({
               )}
             </div>
           </RepositoryTitleAndUrl>
-          {isCustomRepo ? (
-            <EditAndDelete>
-              <StyledButton
-                size="xs"
-                icon={<IconEdit size="xs" />}
-                aria-label={t('edit')}
-                disabled={
-                  !hasAccess ||
-                  (!isActive && repository.status !== RepositoryStatus.DISABLED)
-                }
-                onClick={triggerModal}
-              />
-              {renderDeleteButton(hasAccess)}
-            </EditAndDelete>
-          ) : (
-            renderDeleteButton(hasAccess)
-          )}
+          {renderDeleteButton(hasAccess)}
         </StyledPanelItem>
       )}
     </Access>
@@ -206,14 +158,9 @@ const RepositoryTitleAndUrl = styled('div')`
   flex-direction: column;
 `;
 
-const EditAndDelete = styled('div')`
-  display: flex;
-  margin-left: ${space(1)};
-`;
-
 const RepositoryTitle = styled('div')`
   /* accommodate cancel button height */
   line-height: 26px;
 `;
 
-export default withOrganization(RepositoryRow);
+export default RepositoryRow;

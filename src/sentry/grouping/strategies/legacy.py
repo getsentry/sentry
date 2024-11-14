@@ -1,6 +1,6 @@
 import posixpath
 import re
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -10,7 +10,6 @@ from sentry.grouping.strategies.base import (
     produces_variants,
     strategy,
 )
-from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import SingleException
@@ -95,7 +94,7 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str | None]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
         if module[:35] == "sun.reflect.GeneratedMethodAccessor":
@@ -112,7 +111,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Opti
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_filename_outliers_legacy(filename: str, platform: str) -> tuple[str, str | None]:
     """
     Attempt to normalize filenames by removing common platform outliers.
 
@@ -144,7 +143,7 @@ def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, 
     return filename, None
 
 
-def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
+def remove_function_outliers_legacy(function: str) -> tuple[str, str | None]:
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -168,19 +167,17 @@ def single_exception_legacy(
     type_component = GroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
-        similarity_encoder=ident_encoder,
         contributes=False,
     )
     value_component = GroupingComponent(
         id="value",
         values=[interface.value] if interface.value else [],
-        similarity_encoder=text_shingle_encoder(5),
         contributes=False,
     )
     stacktrace_component = GroupingComponent(id="stacktrace")
 
     if interface.stacktrace is not None:
-        stacktrace_component = context.get_grouping_component(
+        stacktrace_component = context.get_single_grouping_component(
             interface.stacktrace, event=event, **meta
         )
         if stacktrace_component.contributes:
@@ -213,9 +210,7 @@ def chained_exception_legacy(
     # component directly
     exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        single_variant: GroupingComponent = context.get_grouping_component(
-            exceptions[0], event=event, **meta
-        )
+        single_variant = context.get_single_grouping_component(exceptions[0], event=event, **meta)
         return {context["variant"]: single_variant}
 
     # Case 2: try to build a new component out of the individual
@@ -224,9 +219,7 @@ def chained_exception_legacy(
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component: GroupingComponent = context.get_grouping_component(
-            exception, event=event, **meta
-        )
+        exception_component = context.get_single_grouping_component(exception, event=event, **meta)
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -269,7 +262,7 @@ def frame_legacy(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = GroupingComponent(id="filename", similarity_encoder=ident_encoder)
+    filename_component = GroupingComponent(id="filename")
     if interface.filename == "<anonymous>":
         filename_component.update(
             contributes=False, values=[interface.filename], hint="anonymous filename discarded"
@@ -300,7 +293,7 @@ def frame_legacy(
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename, even if the module is
     # considered unhashable.
-    module_component = GroupingComponent(id="module", similarity_encoder=ident_encoder)
+    module_component = GroupingComponent(id="module")
     if interface.module:
         if is_unhashable_module_legacy(interface, platform):
             module_component.update(
@@ -311,10 +304,6 @@ def frame_legacy(
                 ],
                 hint="ignored module",
             )
-
-            # <module> still contributes, though it should not contribute to
-            # similarity
-            module_component.similarity_encoder = None
         else:
             module_name, module_hint = remove_module_outliers_legacy(interface.module, platform)
             module_component.update(values=[module_name], hint=module_hint)
@@ -324,7 +313,7 @@ def frame_legacy(
             )
 
     # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id="context-line", similarity_encoder=ident_encoder)
+    context_line_component = GroupingComponent(id="context-line")
     if interface.context_line is not None:
         if len(interface.context_line) > 120:
             context_line_component.update(hint="discarded because line too long")
@@ -333,9 +322,9 @@ def frame_legacy(
         else:
             context_line_component.update(values=[interface.context_line])
 
-    symbol_component = GroupingComponent(id="symbol", similarity_encoder=ident_encoder)
-    function_component = GroupingComponent(id="function", similarity_encoder=ident_encoder)
-    lineno_component = GroupingComponent(id="lineno", similarity_encoder=ident_encoder)
+    symbol_component = GroupingComponent(id="symbol")
+    function_component = GroupingComponent(id="function")
+    lineno_component = GroupingComponent(id="lineno")
 
     # The context line grouping information is the most reliable one.
     # If we did not manage to find some information there, we want to
@@ -363,9 +352,6 @@ def frame_legacy(
                         )
                     ]
                 )
-                # <module> still contributes, though it should not contribute to
-                # similarity
-                function_component.similarity_encoder = None
             else:
                 function, function_hint = remove_function_outliers_legacy(func)
                 function_component.update(values=[function], hint=function_hint)
@@ -444,10 +430,10 @@ def stacktrace_legacy(
             hint = "less than 10% of frames are in-app"
 
     values = []
-    prev_frame: Optional[Frame] = None
+    prev_frame: Frame | None = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component: GroupingComponent = context.get_grouping_component(
+        frame_component = context.get_single_grouping_component(
             frame, event=event, variant=variant, **meta
         )
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
@@ -492,6 +478,7 @@ def threads_legacy(
 
     return {
         context["variant"]: GroupingComponent(
-            id="threads", values=[context.get_grouping_component(stacktrace, event=event, **meta)]
+            id="threads",
+            values=[context.get_single_grouping_component(stacktrace, event=event, **meta)],
         )
     }

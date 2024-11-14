@@ -1,19 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any, Sequence
-
-from django.conf import settings
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from sentry.analytics.attribute import Attribute
-
-
-def get_backend_path(backend_: str) -> str:
-    try:
-        backend_ = settings.SENTRY_ANALYTICS_ALIASES[backend_]
-    except KeyError:
-        pass
-    return backend_
 
 
 def get_data(attributes: Sequence[Attribute], items: dict[str, Any]) -> Mapping[str, Any | None]:

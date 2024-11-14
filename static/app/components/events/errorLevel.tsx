@@ -1,15 +1,30 @@
 import styled from '@emotion/styled';
 
-import {Level} from 'sentry/types';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import type {Level} from 'sentry/types/event';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 const DEFAULT_SIZE = '13px';
 
 type Props = {
+  className?: string;
   level?: Level;
   size?: string;
 };
 
-const ErrorLevel = styled('span')<Props>`
+function ErrorLevel({className, level = 'unknown', size = '11px'}: Props) {
+  const levelLabel = t('Level: %s', capitalize(level));
+  return (
+    <Tooltip skipWrapper disabled={level === 'unknown'} title={levelLabel}>
+      <ColoredCircle className={className} level={level} size={size}>
+        {levelLabel}
+      </ColoredCircle>
+    </Tooltip>
+  );
+}
+
+const ColoredCircle = styled('span')<Props>`
   padding: 0;
   position: relative;
   width: ${p => p.size || DEFAULT_SIZE};

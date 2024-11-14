@@ -1,10 +1,33 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
-const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
-const event = TestStubs.Event({entries: [eventEntryStacktrace]});
+const organization = OrganizationFixture();
+const project = ProjectFixture();
+
+const integration = GitHubIntegrationFixture();
+const repo = RepositoryFixture({integrationId: integration.id});
+
+const config = RepositoryProjectPathConfigFixture({project, repo, integration});
+
+const eventEntryStacktrace = EventEntryStacktraceFixture();
+const event = EventFixture({
+  projectID: project.id,
+  entries: [eventEntryStacktrace],
+  type: EventOrGroupType.ERROR,
+});
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 
@@ -25,15 +48,29 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
   it('renders', function () {
-    const {container} = renderedComponent({});
+    renderedComponent({});
 
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
     expect(stackTraceContent).toBeInTheDocument();
-
-    // stack trace content has to have a platform icon and a frame list
-    expect(stackTraceContent.children).toHaveLength(2);
 
     // platform icon
     expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
@@ -41,8 +78,6 @@ describe('StackTrace', function () {
     // frame list
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
-
-    expect(container).toSnapshot();
   });
 
   it('renders the frame in the correct order', function () {
@@ -67,7 +102,7 @@ describe('StackTrace', function () {
     expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
-  it('collapse/expand frames by clicking anywhere in the frame element', function () {
+  it('collapse/expand frames by clicking anywhere in the frame element', async function () {
     renderedComponent({});
     // frame list
     const frames = screen.getByTestId('frames');
@@ -81,22 +116,22 @@ describe('StackTrace', function () {
     const frameTitles = screen.getAllByTestId('title');
 
     // collapse the expanded frame (by default)
-    userEvent.click(frameTitles[0]);
+    await userEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
-    userEvent.click(frameTitles[frameTitles.length - 2]);
-    userEvent.click(frameTitles[frameTitles.length - 1]);
+    await userEvent.click(frameTitles[frameTitles.length - 2]);
+    await userEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('collapse/expand frames by clicking on the toggle button', function () {
+  it('collapse/expand frames by clicking on the toggle button', async function () {
     renderedComponent({});
 
     // frame list
@@ -110,7 +145,7 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
-    userEvent.click(expandedToggleButtons);
+    await userEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
@@ -119,8 +154,8 @@ describe('StackTrace', function () {
     const collapsedToggleButtons = screen.getAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
-    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
-    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
@@ -133,6 +168,97 @@ describe('StackTrace', function () {
     // frame list
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
+  });
+
+  it('if frames are omitted, renders omitted frames', function () {
+    const newData = {
+      ...data,
+      framesOmitted: [0, 3],
+    };
+
+    renderedComponent({
+      data: newData,
+    });
+
+    const omittedFrames = screen.getByText(
+      'Frames 0 until 3 were omitted and not available.'
+    );
+    expect(omittedFrames).toBeInTheDocument();
+  });
+
+  it('does not render non in app tags', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: false};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
+    });
+
+    expect(screen.queryByText('System')).not.toBeInTheDocument();
+  });
+
+  it('displays a toggle button when there is more than one non-inapp frame', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
+    });
+
+    expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
+  });
+
+  it('shows/hides frames when toggle button clicked', async function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+    dataFrames[1] = {...dataFrames[1], function: 'non-in-app-frame'};
+    dataFrames[2] = {...dataFrames[2], function: 'non-in-app-frame'};
+    dataFrames[3] = {...dataFrames[3], function: 'non-in-app-frame'};
+    dataFrames[4] = {...dataFrames[4], function: 'non-in-app-frame'};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
+    });
+    await userEvent.click(screen.getByText('Show 3 more frames'));
+    expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
+    await userEvent.click(screen.getByText('Hide 3 more frames'));
+    expect(screen.getByText('non-in-app-frame')).toBeInTheDocument();
+  });
+
+  it('does not display a toggle button when there is only one non-inapp frame', function () {
+    const dataFrames = [...data.frames];
+    dataFrames[0] = {...dataFrames[0], inApp: true};
+    dataFrames[2] = {...dataFrames[2], inApp: true};
+    dataFrames[4] = {...dataFrames[4], inApp: true};
+
+    const newData = {
+      ...data,
+      frames: dataFrames,
+    };
+
+    renderedComponent({
+      data: newData,
+      includeSystemFrames: false,
+    });
+
+    expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });
 
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
@@ -150,7 +276,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -181,7 +310,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -214,7 +346,10 @@ describe('StackTrace', function () {
 
       renderedComponent({
         data: newData,
-        event: {...event, entries: [{...event.entries[0], stacktrace: newData.frames}]},
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+        }),
         includeSystemFrames: false,
       });
 
@@ -231,6 +366,153 @@ describe('StackTrace', function () {
       expect(frameTitles[2]).toHaveTextContent(
         'Called from: raven/base.py in build_msg at line 303'
       );
+    });
+
+    it('displays "occurred in" when event is not an error', function () {
+      const dataFrames = [...data.frames];
+
+      const newData = {
+        ...data,
+        hasSystemFrames: true,
+        frames: [
+          {...dataFrames[0], inApp: true},
+          ...dataFrames.splice(1, dataFrames.length),
+        ],
+      };
+
+      renderedComponent({
+        data: newData,
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+          type: EventOrGroupType.TRANSACTION,
+        }),
+        includeSystemFrames: false,
+      });
+
+      // clickable list item element
+      const frameTitles = screen.getAllByTestId('title');
+
+      // frame list - in app only
+      expect(frameTitles).toHaveLength(2);
+
+      expect(frameTitles[0]).toHaveTextContent(
+        'Occurred in non-app: raven/scripts/runner.py in main at line 112'
+      );
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
+    });
+
+    it('displays "occurred in" when event is an ANR error', function () {
+      const dataFrames = [...data.frames];
+
+      const newData = {
+        ...data,
+        hasSystemFrames: true,
+        frames: [
+          {...dataFrames[0], inApp: true},
+          ...dataFrames.splice(1, dataFrames.length),
+        ],
+      };
+
+      renderedComponent({
+        data: newData,
+        event: EventFixture({
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+          type: EventOrGroupType.ERROR,
+          tags: [{key: 'mechanism', value: 'ANR'}],
+        }),
+        includeSystemFrames: false,
+      });
+
+      // clickable list item element
+      const frameTitles = screen.getAllByTestId('title');
+
+      // frame list - in app only
+      expect(frameTitles).toHaveLength(2);
+
+      expect(frameTitles[0]).toHaveTextContent(
+        'Occurred in non-app: raven/scripts/runner.py in main at line 112'
+      );
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
+    });
+  });
+
+  describe('platform icons', function () {
+    it('uses the top in-app frame file extension for mixed stack trace platforms', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo.py',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      // foo.py is the most recent in-app frame with a valid file extension
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
+    });
+
+    it('uses frame.platform if file extension does not work', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo.cs',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo',
+              platform: 'node',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo',
+            }),
+            EventStacktraceFrameFixture({
+              inApp: false,
+              filename: 'foo.rb',
+            }),
+          ],
+        },
+      });
+
+      expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
+    });
+
+    it('falls back to the event platform if there is no other information', function () {
+      renderedComponent({
+        data: {
+          ...data,
+          frames: [
+            EventStacktraceFrameFixture({
+              inApp: true,
+              filename: 'foo',
+              platform: null,
+            }),
+          ],
+        },
+        platform: 'python',
+      });
+
+      expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
   });
 });

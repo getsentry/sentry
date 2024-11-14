@@ -27,7 +27,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
@@ -57,7 +57,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}]),
+      createFrameIndex('javascript', [{name: 'f0'}]),
       {type: 'flamechart'}
     );
     expect(profile.stats.discardedSamplesCount).toBe(1);
@@ -86,7 +86,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}]),
+      createFrameIndex('javascript', [{name: 'f0'}]),
       {type: 'flamechart'}
     );
     expect(profile.stats.negativeSamplesCount).toBe(1);
@@ -119,7 +119,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', [{name: 'f0'}]),
+      createFrameIndex('javascript', [{name: 'f0'}]),
       {type: 'flamechart'}
     );
     // For JsSelfProfile, first sample is appended with 0 weight because it
@@ -156,7 +156,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
@@ -213,7 +213,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
@@ -256,11 +256,11 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -289,11 +289,11 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
       true
     );
   });
@@ -330,7 +330,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
@@ -363,7 +363,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 
@@ -384,7 +384,7 @@ describe('jsSelfProfile', () => {
     ]);
   });
 
-  it('flamegraph tracks node occurences', () => {
+  it('flamegraph tracks node occurrences', () => {
     const trace: JSSelfProfiling.Trace = {
       resources: ['app.js'],
       frames: [
@@ -412,7 +412,7 @@ describe('jsSelfProfile', () => {
     };
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex('web', trace.frames, trace),
+      createFrameIndex('javascript', trace.frames, trace),
       {type: 'flamechart'}
     );
 

@@ -1,51 +1,30 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
-from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.shared_integrations.exceptions import IntegrationError
-
-from ..client import JiraServerClient
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.utils.sync import sync_group_assignee_inbound
 
 if TYPE_CHECKING:
-    from sentry.models import Identity, Integration, OrganizationIntegration
+    from sentry.integrations.models.integration import Integration
 
 logger = logging.getLogger(__name__)
 
 
-def _get_client(integration: Integration) -> JiraServerClient:
-    oi = OrganizationIntegration.objects.get(integration_id=integration.id)
-    try:
-        default_identity = Identity.objects.get(id=oi.default_auth_id)
-    except Identity.DoesNotExist:
-        raise IntegrationError("Identity not found.")
-
-    return JiraServerClient(
-        integration.metadata["base_url"],
-        default_identity.data,
-        verify_ssl=True,
-    )
-
-
 def get_assignee_email(
-    integration: Integration,
+    integration: RpcIntegration | Integration,
     assignee: Mapping[str, str],
-    use_email_scope: bool = False,
 ) -> str | None:
-    """Get email from `assignee` or pull it from API (if we have the scope for it.)"""
-    email = assignee.get("emailAddress")
-    if not email and use_email_scope:
-        account_id = assignee.get("accountId")
-        client = _get_client(integration)
-        email = client.get_email(account_id)
-    return email
+    """Get email from `assignee`."""
+    return assignee.get("emailAddress")
 
 
 def handle_assignee_change(
-    integration: Integration,
+    integration: RpcIntegration | Integration,
     data: Mapping[str, Any],
-    use_email_scope: bool = False,
 ) -> None:
     assignee_changed = any(
         item for item in data["changelog"]["items"] if item["field"] == "assignee"
@@ -63,8 +42,7 @@ def handle_assignee_change(
         sync_group_assignee_inbound(integration, None, issue_key, assign=False)
         return
 
-    email = get_assignee_email(integration, assignee, use_email_scope)
-    # TODO(steve) check display name
+    email = get_assignee_email(integration, assignee)
     if not email:
         logger.info(
             "missing-assignee-email",
@@ -75,7 +53,9 @@ def handle_assignee_change(
     sync_group_assignee_inbound(integration, email, issue_key, assign=True)
 
 
-def handle_status_change(integration, data):
+def handle_status_change(
+    integration: RpcIntegration | Integration, data: Mapping[str, Any]
+) -> None:
     status_changed = any(item for item in data["changelog"]["items"] if item["field"] == "status")
     if not status_changed:
         return
@@ -91,9 +71,14 @@ def handle_status_change(integration, data):
         )
         return
 
-    for org_id in integration.organizations.values_list("id", flat=True):
-        installation = integration.get_installation(org_id)
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id,
+        providers=[integration.provider],
+    )
+    for oi in org_integrations:
+        installation = integration.get_installation(oi.organization_id)
 
-        installation.sync_status_inbound(
-            issue_key, {"changelog": changelog, "issue": data["issue"]}
-        )
+        if hasattr(installation, "sync_status_inbound"):
+            installation.sync_status_inbound(
+                issue_key, {"changelog": changelog, "issue": data["issue"]}
+            )

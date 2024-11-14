@@ -2,6 +2,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -9,7 +10,7 @@ def make_frames_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": {"frames": [data]}})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
         frame = evt.interfaces["stacktrace"].frames[0]
 
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": frame.to_json()})
@@ -17,6 +18,7 @@ def make_frames_snapshot(insta_snapshot):
     return inner
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "input",
     [
@@ -31,6 +33,7 @@ def test_bad_input(make_frames_snapshot, input):
     make_frames_snapshot(input)
 
 
+@django_db_all
 @pytest.mark.parametrize(
     "x", [float("inf"), float("-inf"), float("nan")], ids=["inf", "neginf", "nan"]
 )

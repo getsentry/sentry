@@ -1,10 +1,14 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {
+  isContinuousProfileReference,
+  isTransactionProfileReference,
+} from 'sentry/utils/profiling/guards/profile';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 type ColorEncoding =
@@ -56,7 +60,7 @@ export function requestAnimationFrameTimeout(cb: () => void, timeout: number) {
 }
 
 export function renderTableHeader<K>(rightAlignedColumns: Set<K>) {
-  return (column: GridColumnOrder<K>, _columnIndex: number) => {
+  return function (column: GridColumnOrder<K>, _columnIndex: number) {
     return (
       <SortLink
         align={rightAlignedColumns.has(column.key) ? 'right' : 'left'}
@@ -67,4 +71,21 @@ export function renderTableHeader<K>(rightAlignedColumns: Set<K>) {
       />
     );
   };
+}
+
+export const DEFAULT_PROFILING_DATETIME_SELECTION = {
+  start: null,
+  end: null,
+  utc: false,
+  period: '24h',
+};
+
+export function getProfileTargetId(reference: Profiling.BaseProfileReference): string {
+  if (isTransactionProfileReference(reference)) {
+    return reference.profile_id;
+  }
+  if (isContinuousProfileReference(reference)) {
+    return reference.profiler_id;
+  }
+  return reference;
 }

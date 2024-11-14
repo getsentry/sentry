@@ -1,30 +1,30 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.models import Activity, NotificationSetting, Organization, Team, User
-from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.integrations.types import ExternalProviders
+from sentry.models.activity import Activity
+from sentry.models.organization import Organization
+from sentry.models.team import Team
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 from .base import GroupActivityNotification
 
 
-def _get_user_option(assignee_id: int) -> User | None:
-    try:
-        return User.objects.get_from_cache(id=assignee_id)
-    except User.DoesNotExist:
+def _get_user_option(assignee_id: int | None) -> RpcUser | None:
+    if assignee_id is None:
         return None
+    return user_service.get_user(user_id=assignee_id)
 
 
-def _get_team_option(assignee_id: int, organization: Organization) -> Team | None:
+def _get_team_option(assignee_id: int | None, organization: Organization) -> Team | None:
     return Team.objects.filter(id=assignee_id, organization=organization).first()
 
 
 def is_team_assignee(activity: Activity) -> bool:
-    assignee_type: str | None = activity.data.get("assigneeType")
-    return assignee_type == "team"
+    return activity.data.get("assigneeType") == "team"
 
 
 def get_assignee_str(activity: Activity, organization: Organization) -> str:
@@ -59,46 +59,19 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_assignee(self) -> str:
         return get_assignee_str(self.activity, self.organization)
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
+        return "{author} assigned {an issue} to {assignee}", None, {"assignee": self.get_assignee()}
 
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
         assignee = self.get_assignee()
 
-        if not self.activity.user:
+        if not self.user:
             return f"Issue automatically assigned to {assignee}"
 
-        author = self.activity.user.get_display_name()
+        author = self.user.get_display_name()
         if assignee == "themselves":
             author, assignee = assignee, author
 
         return f"Issue assigned to {assignee} by {author}"
-
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
-        """Hack to tack on the assigned team to the list of users subscribed to the group."""
-        users_by_provider = super().get_participants_with_group_subscription_reason()
-        if is_team_assignee(self.activity):
-            assignee_id = self.activity.data.get("assignee")
-            assignee_team = _get_team_option(assignee_id, self.organization)
-
-            if assignee_team:
-                teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-                    parent=self.project,
-                    recipients=[assignee_team],
-                    type=self.notification_setting_type,
-                )
-                actors_by_provider: MutableMapping[
-                    ExternalProviders,
-                    MutableMapping[Team | RpcUser, int],
-                ] = defaultdict(dict)
-                actors_by_provider.update({**users_by_provider})
-                for provider, teams in teams_by_provider.items():
-                    for team in teams:
-                        actors_by_provider[provider][team] = GroupSubscriptionReason.assigned
-                return actors_by_provider
-
-        return users_by_provider

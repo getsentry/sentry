@@ -30,7 +30,7 @@ _VERSION_PREFIX = reverse_bits(_VERSION, _VERSION_BITS)
 
 def get_id() -> int:
     """
-    Generates IDs for use by indexer storages that do not have autoincrement sequences (e.g. CloudSpanner).
+    Generates IDs for use by indexer storages that do not have autoincrement sequences.
 
     This function does not provide any guarantee of uniqueness, just a low probability of collisions.
     It relies on the database to be strongly consistent and reject writes with duplicate IDs. These should

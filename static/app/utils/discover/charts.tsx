@@ -1,19 +1,22 @@
-import {LegendComponentOption} from 'echarts';
+import * as Sentry from '@sentry/react';
+import type {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
-import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {
   DAY,
   formatAbbreviatedNumber,
-  formatPercentage,
-  getDuration,
+  formatRate,
   HOUR,
   MINUTE,
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
@@ -62,13 +65,17 @@ export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: RateUnit,
+  decimalPlaces?: number
 ): string {
   return axisLabelFormatterUsingAggregateOutputType(
     value,
     outputType,
     abbreviation,
-    durationUnit
+    durationUnit,
+    rateUnit,
+    decimalPlaces
   );
 }
 
@@ -79,18 +86,22 @@ export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
   abbreviation: boolean = false,
-  durationUnit?: number
+  durationUnit?: number,
+  rateUnit?: RateUnit,
+  decimalPlaces: number = 0
 ): string {
   switch (type) {
     case 'integer':
     case 'number':
       return abbreviation ? formatAbbreviatedNumber(value) : value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 0);
+      return formatPercentage(value, decimalPlaces);
     case 'duration':
       return axisDuration(value, durationUnit);
     case 'size':
       return formatBytesBase2(value, 0);
+    case 'rate':
+      return formatRate(value, rateUnit);
     default:
       return value.toString();
   }
@@ -137,32 +148,45 @@ export function axisDuration(value: number, durationUnit?: number): string {
 
 /**
  * Given an array of series and an eCharts legend object,
- * finds the range of y values (min and max) based on which series is selected in the legend
- * Assumes series[0] > series[1] > ...
+ * finds the range of y values (min and max) based on which series is selected in the legend.
+ * Does not assume any ordering of series, will check min/max for all series in multiseries.
  * @param series Array of eCharts series
  * @param legend eCharts legend object
  * @returns
  */
 export function findRangeOfMultiSeries(series: Series[], legend?: LegendComponentOption) {
-  let range: {max: number; min: number} | undefined;
-  if (series[0]?.data) {
-    let minSeries = series[0];
-    let maxSeries;
-    series.forEach(({seriesName, data}, idx) => {
-      if (legend?.selected?.[seriesName] !== false && data.length) {
-        minSeries = series[idx];
-        maxSeries ??= series[idx];
+  const range: {max: number; min: number} = {
+    max: 0,
+    min: Infinity,
+  };
+
+  if (!series[0]?.data) {
+    return undefined;
+  }
+
+  for (const {seriesName, data} of series) {
+    if (legend?.selected?.[seriesName] !== false) {
+      const max = Math.max(...data.map(({value}) => value).filter(Number.isFinite));
+      const min = Math.min(...data.map(({value}) => value).filter(Number.isFinite));
+
+      if (max > range.max) {
+        range.max = max;
       }
-    });
-    if (maxSeries?.data) {
-      const max = Math.max(
-        ...maxSeries.data.map(({value}) => value).filter(value => !!value)
-      );
-      const min = Math.min(
-        ...minSeries.data.map(({value}) => value).filter(value => !!value)
-      );
-      range = {max, min};
+      if (min < range.min) {
+        range.min = min;
+      }
+      if (min < 0) {
+        Sentry.withScope(scope => {
+          scope.setTag('seriesName', seriesName);
+          scope.setExtra('min', min);
+          scope.setExtra('max', min);
+          Sentry.captureMessage('Found negative min value in multiseries');
+        });
+      }
     }
+  }
+  if (range.max === 0 && range.min === Infinity) {
+    return undefined;
   }
   return range;
 }

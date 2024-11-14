@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 
 const TransactionProfileContext = createContext<string | null | undefined>(undefined);
@@ -37,16 +37,18 @@ export function TransactionProfileIdProvider({
     };
   }, [timestamp]);
 
+  const transactionIdColumn = 'id';
+
   const {status, data, error} = useProfileEvents({
     projects: projectId ? [projectId] : undefined,
-    fields: ['id'],
+    fields: ['profile.id'],
     referrer: 'transactionToProfileProvider',
     limit: 1,
     sort: {
       key: 'id',
       order: 'asc',
     },
-    query: `trace.transaction:${transactionId}`,
+    query: `${transactionIdColumn}:${transactionId}`,
     enabled: Boolean(transactionId),
     datetime,
   });
@@ -61,7 +63,7 @@ export function TransactionProfileIdProvider({
     }
   }, [status, error]);
 
-  const profileId = (data?.[0].data[0]?.id as string | undefined) ?? null;
+  const profileId = (data?.data[0]?.['profile.id'] as string | undefined) ?? null;
 
   return (
     <TransactionProfileContext.Provider value={profileId}>

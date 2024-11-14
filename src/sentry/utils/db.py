@@ -1,14 +1,33 @@
+import logging
+from collections.abc import Sequence
 from contextlib import ExitStack
-from typing import Sequence, Union
+from functools import wraps
 
 import sentry_sdk
-from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
+from django.db.utils import OperationalError, ProgrammingError
 from sentry_sdk.integrations import Integration
 
 
+def handle_db_failure(func, model, wrap_in_transaction: bool = True):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            if wrap_in_transaction:
+                with transaction.atomic(router.db_for_write(model)):
+                    return func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
+        except (ProgrammingError, OperationalError):
+            logging.exception("Failed processing signal %s", func.__name__)
+            return
+
+    return wrapped
+
+
 def atomic_transaction(
-    using: Union[str, Sequence[str]], savepoint: bool = True
-) -> Union[transaction.Atomic, ExitStack]:
+    using: str | Sequence[str], savepoint: bool = True
+) -> transaction.Atomic | ExitStack:
     """
     Open transaction to one or multiple databases.
 
@@ -51,8 +70,8 @@ class DjangoAtomicIntegration(Integration):
                 del self._sentry_sdk_span
             return rv
 
-        Atomic.__enter__ = _enter
-        Atomic.__exit__ = _exit
+        Atomic.__enter__ = _enter  # type: ignore[method-assign]
+        Atomic.__exit__ = _exit  # type: ignore[method-assign]
 
 
 def table_exists(name, using=DEFAULT_DB_ALIAS):

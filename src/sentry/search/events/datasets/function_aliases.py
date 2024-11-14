@@ -1,26 +1,30 @@
-from typing import Callable, Optional, Sequence, Union
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from snuba_sdk import Column, Function
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
 from sentry.search.events import constants
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.utils.hashlib import fnv1a_32
 
 
 def resolve_project_threshold_config(
-    tag_value_resolver: Callable[
-        [Optional[UseCaseKey], int, Sequence[int]], Optional[Union[int, str]]
-    ],
-    column_name_resolver: Callable[[Optional[UseCaseKey], int, Sequence[int]], str],
+    # See resolve_tag_value signature
+    tag_value_resolver: Callable[[UseCaseID | UseCaseKey, int, str], int | str | None],
+    # See resolve_tag_key signature
+    column_name_resolver: Callable[[UseCaseID | UseCaseKey, int, str], str],
     project_ids: Sequence[int],
     org_id: int,
-    use_case_id: Optional[UseCaseKey] = None,
+    use_case_id: UseCaseID | None = None,
 ) -> SelectType:
     """
     Shared function that resolves the project threshold configuration used by both snuba/metrics
@@ -118,7 +122,7 @@ def resolve_project_threshold_config(
         constants.PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
     )
 
-    def _project_threshold_config(alias=None):
+    def _project_threshold_config(alias: str | None = None) -> SelectType:
         if project_threshold_config_keys and project_threshold_config_values:
             return Function(
                 "if",
@@ -171,3 +175,218 @@ def resolve_project_threshold_config(
         )
 
     return _project_threshold_config(constants.PROJECT_THRESHOLD_CONFIG_ALIAS)
+
+
+def resolve_metrics_percentile(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str | None,
+    fixed_percentile: float | None = None,
+    extra_conditions: list[Function] | None = None,
+) -> SelectType:
+    if fixed_percentile is None:
+        fixed_percentile = args["percentile"]
+    if fixed_percentile not in constants.METRIC_PERCENTILES:
+        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+
+    conditions = [Function("equals", [Column("metric_id"), args["metric_id"]])]
+    if extra_conditions is not None:
+        conditions.extend(extra_conditions)
+
+    if len(conditions) == 2:
+        condition = Function("and", conditions)
+    elif len(conditions) != 1:
+        # Need to chain multiple and functions here to allow more than 2 conditions (ie. and(and(a, b), c))
+        raise InvalidSearchQuery("Only 1 additional condition is currently available")
+    else:
+        condition = conditions[0]
+
+    return (
+        Function(
+            "maxIf",
+            [
+                Column("value"),
+                condition,
+            ],
+            alias,
+        )
+        if fixed_percentile == 1
+        else Function(
+            "arrayElement",
+            [
+                Function(
+                    f"quantilesIf({fixed_percentile})",
+                    [Column("value"), condition],
+                ),
+                1,
+            ],
+            alias,
+        )
+    )
+
+
+def resolve_percent_change(
+    first_value: SelectType, second_value: SelectType, alias: str | None = None
+) -> SelectType:
+    """(v2-v1)/abs(v1)"""
+    return resolve_division(
+        Function("minus", [second_value, first_value]),
+        Function("abs", [first_value]),
+        alias,
+    )
+
+
+def resolve_avg_compare_if(
+    column_resolver: Callable[[str], Column],
+    args: Mapping[str, str | Column | SelectType | int | float],
+    value_key: str,
+    alias: str | None,
+) -> SelectType:
+    """Helper function for avg compare"""
+    return Function(
+        "avgIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    Function("equals", [Column("metric_id"), args["metric_id"]]),
+                    Function(
+                        "equals",
+                        [column_resolver(args["comparison_column"]), args[value_key]],
+                    ),
+                ],
+            ),
+        ],
+        f"{alias}__{value_key}",
+    )
+
+
+def resolve_avg_compare(
+    column_resolver: Callable[[str], Column],
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str | None = None,
+) -> SelectType:
+    return resolve_percent_change(
+        resolve_avg_compare_if(column_resolver, args, "first_value", alias),
+        resolve_avg_compare_if(column_resolver, args, "second_value", alias),
+        alias,
+    )
+
+
+def resolve_metrics_layer_percentile(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    resolve_mri: Callable[[str], Column],
+    fixed_percentile: float | None = None,
+) -> SelectType:
+    # TODO: rename to just resolve_metrics_percentile once the non layer code can be retired
+    if fixed_percentile is None:
+        fixed_percentile = args["percentile"]
+    if fixed_percentile not in constants.METRIC_PERCENTILES:
+        raise IncompatibleMetricsQuery("Custom quantile incompatible with metrics")
+    column = resolve_mri(args["column"])
+    return (
+        Function(
+            "max",
+            [
+                column,
+            ],
+            alias,
+        )
+        if fixed_percentile == 1
+        else Function(
+            f"p{int(fixed_percentile * 100)}",
+            [
+                column,
+            ],
+            alias,
+        )
+    )
+
+
+def resolve_division(
+    dividend: SelectType, divisor: SelectType, alias: str, fallback: Any | None = None
+) -> SelectType:
+    return Function(
+        "if",
+        [
+            Function(
+                "greater",
+                [divisor, 0],
+            ),
+            Function(
+                "divide",
+                [
+                    dividend,
+                    divisor,
+                ],
+            ),
+            fallback,
+        ],
+        alias,
+    )
+
+
+def resolve_rounded_timestamp(
+    interval: int, alias: str, timestamp_column: str = "timestamp"
+) -> SelectType:
+    return Function(
+        "toUInt32",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [Function("toUInt32", [Column(timestamp_column)]), interval],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        alias,
+    )
+
+
+def resolve_random_samples(
+    columns: list[SelectType],
+    alias: str,
+    offset: int,
+    limit: int,
+    size: int = 1,
+) -> SelectType:
+    seed_str = f"{offset}-{limit}"
+    seed = fnv1a_32(seed_str.encode("utf-8"))
+    return Function(
+        f"groupArraySample({size}, {seed})",
+        [Function("tuple", columns)],
+        alias,
+    )
+
+
+def resolve_eps(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function("divide", [Function("count", []), interval], alias)
+
+
+def resolve_epm(
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str,
+    builder: BaseQueryBuilder,
+) -> SelectType:
+    if hasattr(builder, "interval"):
+        interval = builder.interval
+    else:
+        interval = args["interval"]
+    return Function(
+        "divide",
+        [Function("count", []), Function("divide", [interval, 60])],
+        alias,
+    )

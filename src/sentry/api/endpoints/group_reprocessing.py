@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.tasks.reprocessing2 import reprocess_group
@@ -9,6 +9,10 @@ from sentry.tasks.reprocessing2 import reprocess_group
 
 @region_silo_endpoint
 class GroupReprocessingEndpoint(GroupEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+
     def post(self, request: Request, group) -> Response:
         """
         Reprocess a group
@@ -21,14 +25,6 @@ class GroupReprocessingEndpoint(GroupEndpoint):
             in sentry.reprocessing2.
         :auth: required
         """
-
-        if not features.has(
-            "organizations:reprocessing-v2", group.project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the reprocessing v2 feature"},
-                status=404,
-            )
 
         max_events = request.data.get("maxEvents")
         if max_events:

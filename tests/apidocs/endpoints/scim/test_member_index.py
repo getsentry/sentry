@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
@@ -12,7 +12,7 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-scim-member-index",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def test_get(self):
@@ -39,9 +39,8 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
 
     def test_post_member_exists_but_not_accepted(self):
         self.create_member(
-            user=self.create_user(),
+            user=self.create_user(email="test.user@okta.local"),
             organization=self.organization,
-            email="test.user@okta.local",
             role="member",
             invite_status=1,
         )

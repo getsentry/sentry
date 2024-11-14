@@ -1,8 +1,8 @@
-import {ReactNode} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Badge from 'sentry/components/badge/badge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
@@ -15,13 +15,21 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
-import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import type {QueryCounts} from './utils';
+import {
+  CUSTOM_TAB_VALUE,
+  FOR_REVIEW_QUERIES,
+  getTabs,
+  IssueSortOptions,
+  Query,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
@@ -38,20 +46,16 @@ type IssueListHeaderProps = {
 
 type IssueListHeaderTabProps = {
   name: string;
-  query: string;
   count?: number;
   hasMore?: boolean;
   tooltipHoverable?: boolean;
   tooltipTitle?: ReactNode;
 };
 
-const EXTRA_TAB_KEY = 'extra-tab-key';
-
 function IssueListHeaderTabContent({
   count = 0,
   hasMore = false,
   name,
-  query,
   tooltipHoverable,
   tooltipTitle,
 }: IssueListHeaderTabProps) {
@@ -64,7 +68,7 @@ function IssueListHeaderTabContent({
     >
       {name}{' '}
       {count > 0 && (
-        <Badge type={query === Query.FOR_REVIEW && count > 0 ? 'review' : 'default'}>
+        <Badge>
           <QueryCount hideParens count={count} max={hasMore ? TAB_MAX_COUNT : 1000} />
         </Badge>
       )}
@@ -84,30 +88,19 @@ function IssueListHeader({
   selectedProjectIds,
 }: IssueListHeaderProps) {
   const {projects} = useProjects();
-  const tabs = getTabs(organization);
+  const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
+  const tabValues = new Set(visibleTabs.map(([val]) => val));
   // Remove cursor and page when switching tabs
-  const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+  const {cursor: _cursor, page: _page, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
-
-  function trackTabClick(tabQuery: string) {
-    // Clicking on inbox tab and currently another tab is active
-    if (tabQuery === Query.FOR_REVIEW && query !== Query.FOR_REVIEW) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.clicked',
-        eventName: 'Clicked Inbox Tab',
-        organization_id: organization.id,
-      });
-    }
-  }
 
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -133,47 +126,51 @@ function IssueListHeader({
             data-test-id="real-time"
             title={realtimeTitle}
             aria-label={realtimeTitle}
-            icon={realtimeActive ? <IconPause size="xs" /> : <IconPlay size="xs" />}
+            icon={realtimeActive ? <IconPause /> : <IconPlay />}
             onClick={() => onRealtimeChange(!realtimeActive)}
           />
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      <StyledTabs
-        onSelectionChange={key =>
-          trackTabClick(key === EXTRA_TAB_KEY ? query : key.toString())
-        }
-        selectedKey={query}
-      >
+      <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>
         <TabList hideBorder>
-          {[
-            ...visibleTabs.map(
-              ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
-                const to = normalizeUrl({
-                  query: {
-                    ...queryParms,
-                    query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
-                  },
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                });
+          {visibleTabs.map(
+            ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable, hidden}]) => {
+              const to = normalizeUrl({
+                query: {
+                  ...queryParms,
+                  query: tabQuery,
+                  sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
+                    ? IssueSortOptions.INBOX
+                    : sortParam,
+                },
+                pathname: `/organizations/${organization.slug}/issues/`,
+              });
 
-                return (
-                  <TabList.Item key={tabQuery} to={to} textValue={queryName}>
+              return (
+                <TabList.Item
+                  key={tabQuery}
+                  to={to}
+                  textValue={queryName}
+                  hidden={hidden}
+                >
+                  <GuideAnchor
+                    disabled={tabQuery !== Query.ARCHIVED}
+                    target="issue_stream_archive_tab"
+                    position="bottom"
+                  >
                     <IssueListHeaderTabContent
                       tooltipTitle={tooltipTitle}
                       tooltipHoverable={tooltipHoverable}
                       name={queryName}
                       count={queryCounts[tabQuery]?.count}
                       hasMore={queryCounts[tabQuery]?.hasMore}
-                      query={tabQuery}
                     />
-                  </TabList.Item>
-                );
-              }
-            ),
-          ]}
+                  </GuideAnchor>
+                </TabList.Item>
+              );
+            }
+          )}
         </TabList>
       </StyledTabs>
     </Layout.Header>

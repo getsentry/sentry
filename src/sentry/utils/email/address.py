@@ -4,7 +4,6 @@ import re
 from email.utils import parseaddr
 
 from django.conf import settings
-from django.utils.encoding import force_bytes
 
 from sentry import options
 
@@ -28,18 +27,32 @@ def get_from_email_domain() -> str:
     return _from_email_domain_cache[1]
 
 
-def email_to_group_id(address: str) -> int:
+def email_to_group_id(address: str) -> tuple[int | None, int | None]:
     """
     Email address should be in the form of:
         {group_id}+{signature}@example.com
+    Or
+        {group_id}.{org_id}+{signature}@example.com
+
+    The form with org_id and group_id is newer
+    and required for multi-region sentry.
+
+    :return: Tuple of group_id, org_id
     """
     address = address.split("@", 1)[0]
     signed_data = address.replace("+", ":")
-    return int(force_bytes(signer.unsign(signed_data)))
+    unsigned = signer.unsign(signed_data)
+    if "." in unsigned:
+        parts = unsigned.split(".")
+        return (int(parts[0]), int(parts[1]))
+    return (int(unsigned), None)
 
 
-def group_id_to_email(group_id: int) -> str:
-    signed_data = signer.sign(str(group_id))
+def group_id_to_email(group_id: int, org_id: int | None = None) -> str:
+    sign_value = str(group_id)
+    if org_id:
+        sign_value = f"{group_id}.{org_id}"
+    signed_data = signer.sign(sign_value)
     return "@".join(
         (
             signed_data.replace(":", "+"),

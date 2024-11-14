@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ContextData from 'sentry/components/contextData';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import StructuredEventData from 'sentry/components/structuredEventData';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -39,7 +39,7 @@ function Summary({kvData, children, meta}: Props) {
     <Wrapper>
       {children && <StyledCode>{children}</StyledCode>}
       <ContextDataWrapper>
-        <ContextData data={kvData} withAnnotatedText />
+        <StructuredEventData data={kvData} withAnnotatedText />
       </ContextDataWrapper>
     </Wrapper>
   );
@@ -51,9 +51,14 @@ const Wrapper = styled('div')`
   word-break: break-all;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
-  display: grid;
-  gap: ${space(0.5)};
   overflow: hidden;
+
+  pre,
+  code {
+    margin: 0;
+    padding: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
 `;
 
 const ContextDataWrapper = styled('div')`
@@ -73,10 +78,13 @@ const ContextDataWrapper = styled('div')`
 `;
 
 const StyledCode = styled('code')`
+  display: block;
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
   padding: 0;
+  margin-bottom: ${space(0.5)};
+
   > * {
     vertical-align: middle;
   }

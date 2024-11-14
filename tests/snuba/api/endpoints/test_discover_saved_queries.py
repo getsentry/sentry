@@ -1,8 +1,8 @@
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -19,7 +19,11 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
 
         model = DiscoverSavedQuery.objects.create(
-            organization=self.org, created_by=self.user, name="Test query", query=query, version=1
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Test query",
+            query=query,
+            version=1,
         )
 
         model.set_projects(self.project_ids)
@@ -89,7 +93,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             query = {"fields": ["test"], "conditions": [], "limit": 10}
             model = DiscoverSavedQuery.objects.create(
                 organization=self.org,
-                created_by=self.user,
+                created_by_id=self.user.id,
                 name=f"My query {i}",
                 query=query,
                 version=1,
@@ -111,7 +115,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="My query",
             query=query,
             version=2,
@@ -142,7 +146,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="My query",
             query=query,
             version=2,
@@ -171,7 +175,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="My query",
             query=query,
             version=2,
@@ -206,7 +210,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["message"], "query": "", "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=uhoh_user,
+            created_by_id=uhoh_user.id,
             name="a query for uhoh",
             query=query,
             version=2,
@@ -217,7 +221,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=whoops_user,
+            created_by_id=whoops_user.id,
             name="a query for whoops",
             query=query,
             version=2,
@@ -234,12 +238,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
     def test_get_expired_query(self):
         query = {
-            "start": iso_format(before_now(days=90)),
-            "end": iso_format(before_now(days=61)),
+            "start": before_now(days=90),
+            "end": before_now(days=61),
         }
         DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="My expired query",
             query=query,
             version=2,
@@ -256,7 +260,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Homepage Test Query",
             query=query,
             version=2,
@@ -291,8 +295,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["name"] == "New query"
         assert response.data["projects"] == self.project_ids
         assert response.data["range"] == "24h"
-        assert not hasattr(response.data, "start")
-        assert not hasattr(response.data, "end")
+        assert "start" not in response.data
+        assert "end" not in response.data
 
     def test_post_invalid_projects(self):
         with self.feature(self.feature_name):

@@ -1,7 +1,6 @@
-import {PlainRoute} from 'react-router';
-import {Location} from 'history';
-import findLastIndex from 'lodash/findLastIndex';
+import type {Location} from 'history';
 
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 
 type Options = {
@@ -42,9 +41,9 @@ export default function recreateRoute(to: string | PlainRoute, options: Options)
   // TODO(ts): typescript things
   if (typeof to !== 'string') {
     routeIndex = routes.indexOf(to) + 1;
-    lastRootIndex = findLastIndex(paths.slice(0, routeIndex), path => path[0] === '/');
+    lastRootIndex = paths.slice(0, routeIndex).findLastIndex(path => path[0] === '/');
   } else {
-    lastRootIndex = findLastIndex(paths, path => path[0] === '/');
+    lastRootIndex = paths.findLastIndex(path => path[0] === '/');
   }
 
   let baseRoute = paths.slice(lastRootIndex, routeIndex);

@@ -1,6 +1,7 @@
 import Access from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import {Organization, SentryApp} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 
 import ActionButtons from './actionButtons';
 
@@ -12,16 +13,16 @@ type Props = {
   onClickPublish?: () => void;
 };
 
-const SentryApplicationRowButtons = ({
+function SentryApplicationRowButtons({
   organization,
   app,
   onClickRemove,
   onClickPublish,
-}: Props) => {
+}: Props) {
   const isInternal = app.status === 'internal';
 
   return (
-    <Access access={['org:admin']} organization={organization}>
+    <Access access={['org:admin']}>
       {({hasAccess}) => {
         let disablePublishReason = '';
         let disableDeleteReason = '';
@@ -54,6 +55,6 @@ const SentryApplicationRowButtons = ({
       }}
     </Access>
   );
-};
+}
 
 export default SentryApplicationRowButtons;

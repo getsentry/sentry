@@ -1,13 +1,13 @@
 import pytest
 from django import forms
 from django.db import models
-from django.utils.encoding import force_text
 
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 
 
 class JSONFieldTestModel(models.Model):
+    id = models.AutoField(primary_key=True)
     json = JSONField("test", null=True, blank=True)
 
     class Meta:
@@ -15,6 +15,7 @@ class JSONFieldTestModel(models.Model):
 
 
 class JSONFieldWithDefaultTestModel(models.Model):
+    id = models.AutoField(primary_key=True)
     json = JSONField(default={"sukasuka": "YAAAAAZ"})
 
     class Meta:
@@ -68,18 +69,19 @@ class JSONFieldTest(TestCase):
         obj2 = JSONFieldTestModel.objects.get(id=10)
         self.assertEqual(obj2.json, None)
 
-    def test_db_prep_save(self):
+    def test_db_prep_value(self):
         field = JSONField("test")
         field.set_attributes_from_name("json")
-        self.assertEqual(None, field.get_db_prep_save(None, connection=None))
+        self.assertEqual(None, field.get_db_prep_value(None, connection=None))
         self.assertEqual(
-            '{"spam":"eggs"}', field.get_db_prep_save({"spam": "eggs"}, connection=None)
+            '{"spam":"eggs"}', field.get_db_prep_value({"spam": "eggs"}, connection=None)
         )
 
     def test_formfield(self):
         field = JSONField("test")
         field.set_attributes_from_name("json")
         formfield = field.formfield()
+        assert formfield is not None
 
         self.assertEqual(type(formfield), forms.CharField)
         self.assertEqual(type(formfield.widget), forms.Textarea)
@@ -87,9 +89,10 @@ class JSONFieldTest(TestCase):
     def test_formfield_clean_blank(self):
         field = JSONField("test")
         formfield = field.formfield()
+        assert formfield is not None
         self.assertRaisesMessage(
             forms.ValidationError,
-            force_text(formfield.error_messages["required"]),
+            str(formfield.error_messages["required"]),
             formfield.clean,
             value="",
         )
@@ -97,9 +100,10 @@ class JSONFieldTest(TestCase):
     def test_formfield_clean_none(self):
         field = JSONField("test")
         formfield = field.formfield()
+        assert formfield is not None
         self.assertRaisesMessage(
             forms.ValidationError,
-            force_text(formfield.error_messages["required"]),
+            str(formfield.error_messages["required"]),
             formfield.clean,
             value=None,
         )
@@ -107,11 +111,13 @@ class JSONFieldTest(TestCase):
     def test_formfield_null_and_blank_clean_blank(self):
         field = JSONField("test", null=True, blank=True)
         formfield = field.formfield()
+        assert formfield is not None
         self.assertEqual(formfield.clean(value=""), "")
 
     def test_formfield_blank_clean_blank(self):
         field = JSONField("test", null=False, blank=True)
         formfield = field.formfield()
+        assert formfield is not None
         self.assertEqual(formfield.clean(value=""), "")
 
     def test_default_value(self):

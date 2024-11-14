@@ -1,19 +1,20 @@
-import {useState} from 'react';
-import {MultiValueProps} from 'react-select';
-import {Theme, useTheme} from '@emotion/react';
+import {useCallback, useState} from 'react';
+import type {MultiValueProps} from 'react-select';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from 'sentry/components/button';
-import SelectControl, {
-  StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
+import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {OrgRole, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {OrgRole} from 'sentry/types/organization';
 
-import renderEmailValue from './renderEmailValue';
-import {InviteStatus} from './types';
+import EmailValue from './emailValue';
+import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 
@@ -32,13 +33,6 @@ type Props = {
   teams: string[];
   className?: string;
 };
-
-function ValueComponent(
-  props: MultiValueProps<SelectOption>,
-  inviteStatus: Props['inviteStatus']
-) {
-  return renderEmailValue(inviteStatus[props.data.value], props);
-}
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
@@ -62,6 +56,18 @@ function InviteRowControl({
   const [inputValue, setInputValue] = useState('');
 
   const theme = useTheme();
+
+  const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
+    roleId => {
+      const roleOptionsMap = roleOptions.reduce(
+        (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
+        {}
+      );
+      return roleOptionsMap[roleId]?.isTeamRolesAllowed ?? true;
+    },
+    [roleOptions]
+  );
+  const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
@@ -87,7 +93,9 @@ function InviteRowControl({
         inputValue={inputValue}
         value={emails}
         components={{
-          MultiValue: props => ValueComponent(props, inviteStatus),
+          MultiValue: (props: MultiValueProps<SelectOption>) => (
+            <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+          ),
           DropdownIndicator: () => null,
         }}
         options={mapToOptions(emails)}
@@ -114,15 +122,21 @@ function InviteRowControl({
         value={role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
-        onChange={onChangeRole}
+        onChange={roleOption => {
+          onChangeRole(roleOption);
+          if (!isTeamRolesAllowedForRole(roleOption.value)) {
+            onChangeTeams([]);
+          }
+        }}
       />
       <TeamSelector
         aria-label={t('Add to Team')}
         data-test-id="select-teams"
-        disabled={disabled}
-        placeholder={t('Add to teams\u2026')}
-        value={teams}
+        disabled={isTeamRolesAllowed ? disabled : true}
+        placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
+        value={isTeamRolesAllowed ? teams : []}
         onChange={onChangeTeams}
+        useTeamDefaultIfOnlyOne
         multiple
         clearable
       />

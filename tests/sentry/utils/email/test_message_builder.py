@@ -2,10 +2,17 @@ import functools
 from unittest.mock import patch
 
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 
 from sentry import options
-from sentry.models import GroupEmailThread, User, UserEmail, UserOption
-from sentry.testutils import TestCase
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email
 
@@ -23,6 +30,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["X-Test"] == "foo"
@@ -45,6 +53,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["X-Test"] == "foo"
@@ -67,6 +76,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["Reply-To"] == "bar@example.com"
@@ -80,15 +90,18 @@ class MessageBuilderTest(TestCase):
     def test_with_users(self):
         project = self.project
 
-        user_a = User.objects.create(email="foo@example.com")
-        user_b = User.objects.create(email="bar@example.com")
-        user_c = User.objects.create(email="baz@example.com")
+        assert len(mail.outbox) == 0
 
-        alternate_email = "bazzer@example.com"
-        UserEmail.objects.create(user=user_c, email=alternate_email)
-        UserOption.objects.create(
-            user=user_c, project=project, key="mail:email", value=alternate_email
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_a = User.objects.create(email="foo@example.com")
+            user_b = User.objects.create(email="bar@example.com")
+            user_c = User.objects.create(email="baz@example.com")
+
+            alternate_email = "bazzer@example.com"
+            UserEmail.objects.create(user=user_c, email=alternate_email)
+            UserOption.objects.create(
+                user=user_c, project_id=project.id, key="mail:email", value=alternate_email
+            )
 
         msg = MessageBuilder(
             subject="Test", body="hello world", html_body="<!DOCTYPE html>\n<b>hello world</b>"
@@ -107,16 +120,17 @@ class MessageBuilderTest(TestCase):
     def test_fake_dont_send(self):
         project = self.project
 
-        user_a = User.objects.create(email=create_fake_email("foo", "fake"))
-        user_b = User.objects.create(email=create_fake_email("bar", "fake"))
-        user_c = User.objects.create(email=create_fake_email("baz", "fake"))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_a = User.objects.create(email=create_fake_email("foo", "fake"))
+            user_b = User.objects.create(email=create_fake_email("bar", "fake"))
+            user_c = User.objects.create(email=create_fake_email("baz", "fake"))
 
-        UserOption.objects.create(
-            user=user_c,
-            project=project,
-            key="mail:email",
-            value=create_fake_email("bazzer", "fake"),
-        )
+            UserOption.objects.create(
+                user=user_c,
+                project_id=project.id,
+                key="mail:email",
+                value=create_fake_email("bazzer", "fake"),
+            )
 
         msg = MessageBuilder(
             subject="Test", body="hello world", html_body="<!DOCTYPE html>\n<b>hello world</b>"
@@ -140,6 +154,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -162,6 +177,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Test", "First message should not have Re: prefix"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -196,6 +212,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 1
 
         out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Re: Test"
         assert out.extra_headers["Message-Id"] == "abc123"
@@ -222,6 +239,7 @@ class MessageBuilderTest(TestCase):
         assert len(mail.outbox) == 2
 
         out = mail.outbox[1]
+        assert isinstance(out, EmailMultiAlternatives)
         assert out.to == ["foo@example.com"]
         assert out.subject == "Re: Test"
         assert out.extra_headers["Message-Id"] == "321cba"
@@ -279,7 +297,7 @@ class MessageBuilderTest(TestCase):
                 subject="Test",
                 body="hello world",
                 html_body="<b>hello world</b>",
-                reference=object(),
+                reference=self.user,
             )
             .get_built_messages(["foo@example.com"])[0]
             .message()
@@ -295,3 +313,23 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].subject == "Foo"
+
+    def test_adds_type_to_headers(self):
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            headers={"X-Test": "foo"},
+            type="test_email.type",
+        )
+        msg.send(["foo@example.com"])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ["foo@example.com"]
+        assert out.subject == "Test"
+        assert out.extra_headers["X-Test"] == "foo"
+
+        json_xsmtpapi_data = json.loads(out.extra_headers["X-SMTPAPI"])
+        assert json_xsmtpapi_data["category"] == "test_email.type"

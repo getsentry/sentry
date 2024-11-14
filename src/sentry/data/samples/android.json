@@ -31,13 +31,11 @@
       "boot_time": "2019-12-11T11:38:15Z",
       "arch": "x86",
       "manufacturer": "Google",
-      "name": "Android SDK built for x86",
+      "name": "Emulator",
       "free_storage": 508784640,
       "model": "Android SDK built for x86",
       "uuid": "abadcade-feed-dead-beef-baddadfeeded",
-      "archs": [
-        "x86"
-      ]
+      "archs": ["x86"]
     },
     "app": {
       "app_version": "1.0",

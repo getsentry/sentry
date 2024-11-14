@@ -1,12 +1,20 @@
-from sentry.models import Project, User
-from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.models.project import Project
+from sentry.testutils.cases import TestCase
 
 
-@region_silo_test
 class ProjectManagerTest(TestCase):
+    def test_get_for_user_ids(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org)
+        self.create_team_membership(team, user=user)
+        project = self.create_project(teams=[team], name="name")
+
+        projects = Project.objects.get_for_user_ids({user.id})
+        assert list(projects) == [project]
+
     def test_get_for_user(self):
-        user = User.objects.create(username="foo")
+        user = self.create_user("foo@example.com")
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         project = self.create_project(teams=[team], name="foo")

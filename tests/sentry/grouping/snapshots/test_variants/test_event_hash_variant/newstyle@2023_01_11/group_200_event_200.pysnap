@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:05.603596Z'
+created: '2024-10-24T14:19:34.856344+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             function*
               "RtlUserThreadStart"
@@ -45,7 +45,7 @@ app:
           frame (non app frame)
             function*
               "destructor'"
-          frame (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame (non app frame)
             function*
               "RtlFreeHeap"
           frame (non app frame)
@@ -57,7 +57,7 @@ app:
           frame (non app frame)
             function*
               "RtlpFreeUserBlockToHeap"
-          frame (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame (non app frame)
             function*
               "RtlFreeHeap"
           frame (non app frame)
@@ -128,7 +128,7 @@ system:
           frame*
             function*
               "destructor'"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame*
             function*
               "RtlFreeHeap"
           frame (ignored by stack trace rule (category:internals -group))
@@ -140,7 +140,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "RtlpFreeUserBlockToHeap"
-          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
+          frame*
             function*
               "RtlFreeHeap"
           frame (ignored by stack trace rule (category:internals -group))

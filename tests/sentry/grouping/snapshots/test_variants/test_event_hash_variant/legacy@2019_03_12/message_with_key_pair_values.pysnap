@@ -1,0 +1,11 @@
+---
+created: '2023-07-24T22:42:31.602082Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+default:
+  hash: "61490ee252f3d4dd5a19680dca2410d3"
+  component:
+    default*
+      message*
+        "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) key5=\"double-quoted\" other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d..."

@@ -1,44 +1,73 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('NoProjectMessage', function () {
   beforeEach(function () {
     ProjectsStore.reset();
   });
 
-  const org = TestStubs.Organization();
+  const org = OrganizationFixture();
 
   it('renders', function () {
-    const organization = TestStubs.Organization({slug: 'org-slug'});
-    const childrenMock = jest.fn().mockReturnValue(null);
-    delete organization.projects;
+    const organization = OrganizationFixture({slug: 'org-slug'});
     ProjectsStore.loadInitialData([]);
 
     render(
-      <NoProjectMessage organization={organization}>{childrenMock}</NoProjectMessage>
+      <NoProjectMessage organization={organization}>
+        <div data-test-id="child">Test</div>
+      </NoProjectMessage>
     );
 
-    expect(childrenMock).not.toHaveBeenCalled();
     expect(screen.getByText('Remain Calm')).toBeInTheDocument();
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument();
   });
 
   it('shows "Create Project" button when there are no projects', function () {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['team-roles'],
+    });
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={org} />);
+    render(<NoProjectMessage organization={organization} />);
 
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
-  it('"Create Project" is disabled when no access to `project:write`', function () {
+  it('disable "Create Project" when user has no org-level access', function () {
     ProjectsStore.loadInitialData([]);
 
-    render(<NoProjectMessage organization={TestStubs.Organization({access: []})} />);
+    render(<NoProjectMessage organization={OrganizationFixture({access: []})} />);
 
     expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+  });
+
+  it('shows "Create Project" button when user has team-level access', function () {
+    ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([
+      {...TeamFixture(), access: ['team:admin', 'team:write', 'team:read']},
+    ]);
+
+    // No org-level access
+    render(
+      <NoProjectMessage
+        organization={OrganizationFixture({
+          access: [],
+          features: ['team-roles'],
+          allowMemberProjectCreation: true,
+        })}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
   it('has no "Join a Team" button when projects are missing', function () {
@@ -47,11 +76,11 @@ describe('NoProjectMessage', function () {
     render(<NoProjectMessage organization={org} />);
 
     expect(screen.queryByRole('button', {name: 'Join a Team'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
   it('has a "Join a Team" button when no projects but org has projects', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false})]);
 
     render(<NoProjectMessage organization={org} />);
 
@@ -59,7 +88,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('has a disabled "Join a Team" button if no access to `team:read`', function () {
-    ProjectsStore.loadInitialData([TestStubs.Project({hasAccess: false})]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false})]);
 
     render(<NoProjectMessage organization={{...org, access: []}} />);
 
@@ -67,9 +96,7 @@ describe('NoProjectMessage', function () {
   });
 
   it('shows empty message to superusers that are not members', function () {
-    ProjectsStore.loadInitialData([
-      TestStubs.Project({hasAccess: true, isMember: false}),
-    ]);
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
 
     ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 

@@ -1,15 +1,15 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphRendererOptions} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
-  FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -19,6 +19,7 @@ function colorComponentsToRgba(color: number[]): string {
 }
 
 export class FlamegraphRendererDOM extends FlamegraphRenderer {
+  ctx: CanvasRenderingContext2D | null = null;
   container: HTMLElement;
 
   constructor(
@@ -29,8 +30,12 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   ) {
     super(canvas, flamegraph, theme, options);
 
+    // @ts-expect-error we are mocking the ctx so that
+    // safe renderer initialization does not skip the renderer
+    this.ctx = {};
+
     const newContainer = document.createElement('div');
-    document.body.appendChild(newContainer);
+    canvas.parentElement?.appendChild(newContainer);
     this.container = newContainer;
   }
 
@@ -39,17 +44,11 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       throw new Error('No container to render into');
     }
 
-    const parent = document.body;
-
-    if (this.container) {
-      this.container.remove();
-    }
-
     const newContainer = document.createElement('div');
+    this.canvas.parentElement?.appendChild(newContainer);
     this.container = newContainer;
-    parent.appendChild(newContainer);
 
-    const queue: FlamegraphFrame[] = [...this.flamegraph.root.children];
+    const queue: FlamegraphFrame[] = [...this.flamegraph.frames];
     while (queue.length > 0) {
       const frame = queue.pop()!;
 
@@ -61,7 +60,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       ).transformRect(configViewToPhysicalSpace);
 
       const colors =
-        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR;
+        this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
       const color = colorComponentsToRgba(colors);
 
       const div = document.createElement('div');
@@ -72,23 +71,15 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       div.style.height = `${rect.height}px`;
       div.style.backgroundColor = color;
       div.innerHTML = frame.frame.name;
-
+      div.setAttribute('data-test-id', 'flamegraph-frame');
       this.container.appendChild(div);
-
-      for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
-      }
     }
-  }
-
-  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
   }
 
   setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
   ) {
-    throw new Error('Method `setSearchResults` not implemented.');
+    // @TODO for now just dont do anything as it will throw in tests
   }
 }

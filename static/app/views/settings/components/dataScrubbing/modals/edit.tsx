@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 
-import {Rule} from '../types';
+import type {Rule} from '../types';
 
 import ModalManager from './modalManager';
 
@@ -9,7 +9,7 @@ type Props = Omit<ModalManagerProps, 'title' | 'initialValues' | 'onGetNewRules'
   rule: Rule;
 };
 
-const Edit = ({savedRules, rule, ...props}: Props) => {
+function Edit({savedRules, rule, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<ModalManagerProps['onGetNewRules']>[0]
   ) => {
@@ -34,6 +34,6 @@ const Edit = ({savedRules, rule, ...props}: Props) => {
       onGetNewRules={handleGetNewRules}
     />
   );
-};
+}
 
 export default Edit;

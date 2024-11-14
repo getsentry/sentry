@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -10,13 +9,16 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState, Widget} from './types';
+import type {Widget} from './types';
+import {DashboardState} from './types';
 import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = [
@@ -54,9 +56,9 @@ function ViewEditDashboard(props: Props) {
 
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
-    setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
+      setNewWidget(constructedWidget);
       setDashboardInitialState(DashboardState.EDIT);
       browserHistory.replace({
         pathname: location.pathname,
@@ -104,7 +106,7 @@ type FeatureProps = {
   organization: Organization;
 };
 
-export const DashboardBasicFeature = ({organization, children}: FeatureProps) => {
+export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (
     <Layout.Page withPadding>
       <Alert type="warning">{t("You don't have access to this feature")}</Alert>
@@ -114,11 +116,11 @@ export const DashboardBasicFeature = ({organization, children}: FeatureProps) =>
   return (
     <Feature
       hookName="feature-disabled:dashboards-page"
-      features={['organizations:dashboards-basic']}
+      features="organizations:dashboards-basic"
       organization={organization}
       renderDisabled={renderDisabled}
     >
       {children}
     </Feature>
   );
-};
+}

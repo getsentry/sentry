@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
@@ -13,7 +13,10 @@ import Version from 'sentry/components/version';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor, Commit, Organization, Release} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Commit} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
@@ -256,7 +259,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
 `;
 
@@ -286,7 +289,7 @@ const EmailAlert = styled(Alert)`
   border-radius: 0;
   border-color: #ece0b0;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   box-shadow: none;
 `;
 

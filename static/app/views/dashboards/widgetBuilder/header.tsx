@@ -1,29 +1,20 @@
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import EditableText from 'sentry/components/editableText';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 
-import {DashboardDetails} from '../types';
+import type {DashboardDetails} from '../types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];
   goBackLocation: LinkProps['to'];
-  onChangeTitle: (title: string) => void;
   orgSlug: string;
-  title: string;
 }
 
-export function Header({
-  title,
-  orgSlug,
-  goBackLocation,
-  dashboardTitle,
-  onChangeTitle,
-}: Props) {
+export function Header({orgSlug, goBackLocation, dashboardTitle}: Props) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
@@ -40,27 +31,18 @@ export function Header({
             {label: t('Widget Builder')},
           ]}
         />
-        <Layout.Title>
-          <EditableText
-            aria-label={t('Widget title')}
-            value={title}
-            onChange={onChangeTitle}
-            errorMessage={t('Widget title is required')}
-            maxLength={255}
-          />
-        </Layout.Title>
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
-          <FeatureFeedback buttonProps={{size: 'sm'}} featureName="widget-builder" />
-          <Button
+          <FeedbackWidgetButton />
+          <LinkButton
             external
             size="sm"
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
             {t('Read the docs')}
-          </Button>
+          </LinkButton>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

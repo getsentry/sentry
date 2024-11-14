@@ -1,26 +1,36 @@
-import {browserHistory, InjectedRouter} from 'react-router';
 import {urlEncode} from '@sentry/utils';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {SelectValue} from 'sentry/types/core';
+import type {Event} from 'sentry/types/event';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {
+  NewQuery,
+  Organization,
+  OrganizationSummary,
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  aggregateFunctionOutputType,
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
   Aggregation,
-  AGGREGATIONS,
   Column,
   ColumnType,
   ColumnValueType,
-  explodeFieldString,
   Field,
+} from 'sentry/utils/discover/fields';
+import {
+  aggregateFunctionOutputType,
+  AGGREGATIONS,
+  explodeFieldString,
   getAggregateAlias,
   getAggregateArg,
   getColumnsAndAggregates,
@@ -33,17 +43,25 @@ import {
   PROFILING_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {type DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
-import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  type WidgetQuery,
+  WidgetType,
+} from '../dashboards/types';
+import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
-import {displayModeToDisplayType} from './savedQuery/utils';
-import {FieldValue, FieldValueKind, TableColumn} from './table/types';
-import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
+import {displayModeToDisplayType, getSavedQueryDataset} from './savedQuery/utils';
+import type {FieldValue, TableColumn} from './table/types';
+import {FieldValueKind} from './table/types';
+import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
 
 export type QueryWithColumnState =
   | Query
@@ -74,6 +92,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     if (isEquation(f.field)) {
       column.key = f.field;
       column.name = getEquation(columnName);
+      column.type = 'number';
     } else {
       column.key = columnName;
       column.name = columnName;
@@ -88,7 +107,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
         column.type = outputType;
       }
       const aggregate = AGGREGATIONS[col.function[0]];
-      column.isSortable = aggregate && aggregate.isSortable;
+      column.isSortable = aggregate?.isSortable;
     } else if (col.kind === 'field') {
       if (getFieldDefinition(col.field) !== null) {
         column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
@@ -125,20 +144,24 @@ export function pushEventViewToLocation(props: {
 export function generateTitle({
   eventView,
   event,
-  organization,
+  isHomepage,
 }: {
   eventView: EventView;
   event?: Event;
-  organization?: Organization;
+  isHomepage?: boolean;
 }) {
   const titles = [t('Discover')];
+
+  if (isHomepage) {
+    return t('Discover');
+  }
 
   const eventViewName = eventView.name;
   if (typeof eventViewName === 'string' && String(eventViewName).trim().length > 0) {
     titles.push(String(eventViewName).trim());
   }
 
-  const eventTitle = event ? getTitle(event, organization?.features).title : undefined;
+  const eventTitle = event ? getTitle(event).title : undefined;
 
   if (eventTitle) {
     titles.push(eventTitle);
@@ -146,15 +169,15 @@ export function generateTitle({
 
   titles.reverse();
 
-  return titles.join(' - ');
+  return titles.join(' — ');
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...ALL_VIEWS];
+  const views = [...getAllViews(organization)];
   if (organization.features.includes('performance-view')) {
     // insert transactions queries at index 2
-    views.splice(2, 0, ...TRANSACTION_VIEWS);
-    views.push(...WEB_VITALS_VIEWS);
+    views.splice(2, 0, ...getTransactionViews(organization));
+    views.push(...getWebVitalsViews(organization));
   }
 
   return views;
@@ -279,7 +302,7 @@ export function getExpandedResults(
     expandedColumns[0] = {kind: 'field', field: 'id'};
   }
 
-  // update the columns according the the expansion above
+  // update the columns according the expansion above
   const nextView = expandedColumns.reduceRight(
     (newView, column, index) =>
       column === null
@@ -342,8 +365,8 @@ function generateAdditionalConditions(
         value === null || value === undefined
           ? ''
           : shouldQuote
-          ? String(value)
-          : String(value).trim();
+            ? String(value)
+            : String(value).trim();
 
       if (isMeasurement(column.field) && !nextValue) {
         // Do not add measurement conditions if nextValue is falsey.
@@ -498,7 +521,7 @@ export function generateFieldOptions({
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
     const parameters = aggregations[func].parameters.map(param => {
-      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      const overrides = aggregations[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
       }
@@ -583,7 +606,7 @@ export function generateFieldOptions({
     tagKeys.sort();
     tagKeys.forEach(tag => {
       const tagValue =
-        fieldKeys.includes(tag) || AGGREGATIONS.hasOwnProperty(tag)
+        fieldKeys.includes(tag) || aggregations.hasOwnProperty(tag)
           ? `tags[${tag}]`
           : tag;
       fieldOptions[`tag:${tag}`] = {
@@ -626,7 +649,7 @@ export function eventViewToWidgetQuery({
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (sort && displayType !== DisplayType.WORLD_MAP) {
+  if (sort) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
@@ -680,6 +703,8 @@ export function handleAddQueryToDashboard({
     yAxis,
   });
 
+  const dataset = getSavedQueryDataset(organization, location, query);
+
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
     query,
@@ -713,12 +738,52 @@ export function handleAddQueryToDashboard({
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
           : undefined,
+      widgetType: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
+        : undefined,
     },
     router,
     widgetAsQueryParams,
     location,
   });
   return;
+}
+
+export function getTargetForTransactionSummaryLink(
+  dataRow: EventData,
+  organization: Organization,
+  projects?: Project[],
+  nextView?: EventView,
+  location?: Location
+) {
+  let projectID: string | string[] | undefined;
+  const filterProjects = location?.query.project;
+
+  if (typeof filterProjects === 'string' && filterProjects !== '-1') {
+    // Project selector in discover has just one selected project
+    projectID = filterProjects;
+  } else {
+    const projectMatch = projects?.find(
+      project =>
+        project.slug && [dataRow['project.name'], dataRow.project].includes(project.slug)
+    );
+    projectID = projectMatch ? [projectMatch.id] : undefined;
+  }
+
+  const target = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: String(dataRow.transaction),
+    projectID,
+    query: nextView?.getPageFiltersQuery() || {},
+  });
+
+  // Pass on discover filter params when there are multiple
+  // projects associated with the transaction
+  if (!projectID && filterProjects) {
+    target.query.project = filterProjects;
+  }
+
+  return target;
 }
 
 export function constructAddQueryToDashboardLink({
@@ -741,6 +806,8 @@ export function constructAddQueryToDashboardLink({
     displayType,
     yAxis,
   });
+  const dataset = getSavedQueryDataset(organization, location, query);
+
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
 
@@ -756,6 +823,9 @@ export function constructAddQueryToDashboardLink({
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+      dataset: hasDatasetSelector(organization)
+        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
+        : undefined,
       limit:
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
@@ -763,3 +833,8 @@ export function constructAddQueryToDashboardLink({
     },
   };
 }
+
+export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
+  [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
+  [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
+};

@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
-type FieldLabelProps = Pick<FieldGroupProps, 'disabled'>;
+interface FieldLabelProps extends Pick<FieldGroupProps, 'disabled'> {}
 
-const shouldForwardProp = p => p !== 'disabled' && isPropValid(p);
-
-const FieldLabel = styled('div', {shouldForwardProp})<FieldLabelProps>`
+const FieldLabel = styled('div', {
+  shouldForwardProp: p => p !== 'disabled' && isPropValid(p),
+})<FieldLabelProps>`
   color: ${p => (!p.disabled ? p.theme.textColor : p.theme.disabled)};
   display: flex;
   gap: ${space(0.5)};

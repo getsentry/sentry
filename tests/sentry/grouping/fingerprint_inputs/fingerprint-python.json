@@ -115,13 +115,7 @@
               ],
               "module": "sentry.http",
               "filename": "sentry/http.py",
-              "post_context": [
-                "    )",
-                "",
-                "    return response",
-                "",
-                ""
-              ],
+              "post_context": ["    )", "", "    return response", "", ""],
               "in_app": true,
               "context_line": "        **kwargs",
               "lineno": 124

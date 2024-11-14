@@ -8,11 +8,13 @@ import {
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {t} from 'sentry/locale';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 interface FlamegraphTreeContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
+  onBottomUpClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
   onHighlightAllFramesClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
+  onTopDownClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
   onZoomIntoFrameClick: (evt: React.MouseEvent<HTMLDivElement>) => void;
 }
 
@@ -35,13 +37,28 @@ export function FlamegraphTreeContextMenu(props: FlamegraphTreeContextMenuProps)
             {...props.contextMenu.getMenuItemProps()}
             onClick={props.onZoomIntoFrameClick}
           >
-            {t('Show on flamechart')}
+            {t('Show on flamegraph')}
           </ProfilingContextMenuItem>
           <ProfilingContextMenuItem
             {...props.contextMenu.getMenuItemProps()}
             onClick={props.onHighlightAllFramesClick}
           >
             {t('Highlight all occurrences')}
+          </ProfilingContextMenuItem>
+        </ProfilingContextMenuGroup>
+        <ProfilingContextMenuGroup>
+          <ProfilingContextMenuHeading>{t('View')}</ProfilingContextMenuHeading>
+          <ProfilingContextMenuItem
+            {...props.contextMenu.getMenuItemProps()}
+            onClick={props.onBottomUpClick}
+          >
+            {t('Bottom Up')}
+          </ProfilingContextMenuItem>
+          <ProfilingContextMenuItem
+            {...props.contextMenu.getMenuItemProps()}
+            onClick={props.onTopDownClick}
+          >
+            {t('Top Down')}
           </ProfilingContextMenuItem>
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>

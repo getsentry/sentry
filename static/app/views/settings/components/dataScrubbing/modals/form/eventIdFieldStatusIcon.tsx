@@ -12,7 +12,7 @@ type Props = {
   status?: EventIdStatus;
 };
 
-const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
+function EventIdFieldStatusIcon({status, onClickIconClose}: Props) {
   switch (status) {
     case EventIdStatus.ERROR:
     case EventIdStatus.INVALID:
@@ -31,7 +31,7 @@ const EventIdFieldStatusIcon = ({status, onClickIconClose}: Props) => {
     default:
       return null;
   }
-};
+}
 
 export default EventIdFieldStatusIcon;
 

@@ -1,21 +1,28 @@
-import {browserHistory} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import Table from 'sentry/views/performance/table';
 
 const FEATURES = ['performance-view'];
 
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
+
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
-    TestStubs.Project({id: '1', slug: '1'}),
-    TestStubs.Project({id: '2', slug: '2'}),
+    ProjectFixture({id: '1', slug: '1'}),
+    ProjectFixture({id: '2', slug: '2'}),
   ];
   return _initializeData({
     features: [...FEATURES, ...features],
@@ -25,7 +32,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   });
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+function WrappedComponent({data, ...rest}) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -40,7 +47,7 @@ const WrappedComponent = ({data, ...rest}) => {
       </MEPSettingProvider>
     </OrganizationContext.Provider>
   );
-};
+}
 
 function mockEventView(data) {
   const eventView = new EventView({
@@ -103,6 +110,9 @@ describe('Performance > Table', function () {
   let eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -151,6 +161,21 @@ describe('Performance > Table', function () {
         user_misery: 0.114,
         project_threshold_config: ['duration', 300],
       },
+      {
+        team_key_transaction: 0,
+        transaction: '<< unparameterized >>',
+        project: '3',
+        user: 'uhoh@example.com',
+        tpm: 1,
+        p50: 100,
+        p95: 500,
+        failure_rate: 0.1,
+        apdex: 0.6,
+        count_unique_user: 500,
+        count_miserable_user: 31,
+        user_misery: 0.514,
+        project_threshold_config: ['duration', 300],
+      },
     ];
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -176,7 +201,7 @@ describe('Performance > Table', function () {
         query: 'event.type:transaction transaction:/api*',
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -186,7 +211,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {context: data.routerContext}
+        {router: data.router}
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
@@ -195,26 +220,30 @@ describe('Performance > Table', function () {
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29'
+        '/organizations/org-slug/performance/summary/?end=2019-10-02T00%3A00%3A00&project=2&query=&referrer=performance-transaction-summary&start=2019-10-01T00%3A00%3A00&statsPeriod=14d&transaction=%2Fapple%2Fcart&unselectedSeries=p100%28%29&unselectedSeries=avg%28%29'
       );
 
       const cellActionContainers = screen.getAllByTestId('cell-action-container');
-      expect(cellActionContainers).toHaveLength(18); // 9 cols x 2 rows
-      userEvent.hover(cellActionContainers[8]);
-      const cellActions = await screen.findByTestId('cell-action');
-      expect(cellActions).toBeInTheDocument();
-      userEvent.click(cellActions);
+      expect(cellActionContainers).toHaveLength(27); // 9 cols x 3 rows
+      const cellActionTriggers = screen.getAllByRole('button', {name: 'Actions'});
+      expect(cellActionTriggers[8]).toBeInTheDocument();
+      await userEvent.click(cellActionTriggers[8]);
 
-      expect(await screen.findByTestId('add-to-filter')).toBeInTheDocument();
-      expect(screen.getByTestId('exclude-from-filter')).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Show values less than'})
+      ).toBeInTheDocument();
 
-      userEvent.hover(cellActionContainers[0]); // Transaction name
-      const transactionCellActions = await screen.findAllByTestId('cell-action');
-      expect(transactionCellActions[0]).toBeInTheDocument();
-      userEvent.click(transactionCellActions[0]);
+      await userEvent.keyboard('{Escape}'); // Close actions menu
+
+      const transactionCellTrigger = cellActionTriggers[0]; // Transaction name
+      expect(transactionCellTrigger).toBeInTheDocument();
+      await userEvent.click(transactionCellTrigger);
 
       expect(browserHistory.push).toHaveBeenCalledTimes(0);
-      userEvent.click(screen.getByTestId('add-to-filter'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
@@ -225,7 +254,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', function () {
+    it('hides cell actions when withStaticFilters is true', async function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -241,11 +270,71 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       const cellActionContainers = screen.queryByTestId('cell-action-container');
       expect(cellActionContainers).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', function () {
+    it('shows unparameterized tooltip when project only recently sent events', async function () {
+      const projects = [
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({id: '3', slug: '3', firstEvent: new Date().toISOString()}),
+      ];
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+        projects,
+      });
+
+      ProjectsStore.loadInitialData(data.projects);
+
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      const indicatorContainer = await screen.findByTestId('unparameterized-indicator');
+      expect(indicatorContainer).toBeInTheDocument();
+    });
+
+    it('does not show unparameterized tooltip when project only recently sent events', async function () {
+      const projects = [
+        ProjectFixture({id: '1', slug: '1'}),
+        ProjectFixture({id: '2', slug: '2'}),
+        ProjectFixture({
+          id: '3',
+          slug: '3',
+          firstEvent: new Date(+new Date() - 25920e5).toISOString(),
+        }),
+      ];
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+        projects,
+      });
+
+      ProjectsStore.loadInitialData(data.projects);
+
+      render(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
+      const indicatorContainer = screen.queryByTestId('unparameterized-indicator');
+      expect(indicatorContainer).not.toBeInTheDocument();
+    });
+
+    it('sends MEP param when setting enabled', async function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -264,6 +353,7 @@ describe('Performance > Table', function () {
         />
       );
 
+      expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
       expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenNthCalledWith(
         1,

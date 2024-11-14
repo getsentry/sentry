@@ -6,13 +6,14 @@ import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -23,7 +24,7 @@ function getNodeLabel({identifier, type}: ViewHierarchyWindow) {
 
 function onScrollToNode(
   node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
-  scrollContainer: HTMLElement | null,
+  scrollContainer: HTMLElement | HTMLElement[] | null,
   coordinates: {depth: number; top: number} | undefined
 ) {
   if (node) {
@@ -39,9 +40,17 @@ function onScrollToNode(
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
     // we need to scroll to where the node would be rendered
     const left = coordinates.depth * 16;
-    scrollContainer?.scrollBy({
-      left,
-    });
+    if (Array.isArray(scrollContainer)) {
+      scrollContainer.forEach(container => {
+        container.scrollBy({
+          left,
+        });
+      });
+    } else if (scrollContainer) {
+      scrollContainer.scrollBy({
+        left,
+      });
+    }
   }
 }
 
@@ -69,6 +78,8 @@ type ViewHierarchyProps = {
 };
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+  const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -112,13 +123,20 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onClick={e => {
           handleRowClick(e);
+          trackAnalytics('issue_details.view_hierarchy.select_from_tree', {
+            organization,
+            platform: project.platform,
+            user_org_role: organization.orgRole,
+          });
         }}
       >
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
         <Node
           id={key}
           label={getNodeLabel(r.item.node)}
-          onExpandClick={() => handleExpandTreeNode(r.item, {expandChildren: false})}
+          onExpandClick={() =>
+            handleExpandTreeNode(r.item, !r.item.expanded, {expandChildren: false})
+          }
           collapsible={!!r.item.node.children?.length}
           isExpanded={r.item.expanded}
           isFocused={selectedNodeIndex === r.key}
@@ -151,8 +169,13 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
+      trackAnalytics('issue_details.view_hierarchy.select_from_wireframe', {
+        organization,
+        platform: project.platform,
+        user_org_role: organization.orgRole,
+      });
     },
-    [handleScrollTo]
+    [handleScrollTo, organization, project.platform]
   );
 
   const showWireframe = project?.platform !== 'unity';
@@ -167,7 +190,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     );
   }
 
-  return (
+  const viewHierarchyContent = (
     <Fragment>
       <RenderingSystem
         platform={project?.platform}
@@ -176,8 +199,8 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       <Content>
         <Left hasRight={showWireframe}>
           <TreeContainer>
-            <GhostRow ref={hoveredGhostRowRef} />
-            <GhostRow ref={clickedGhostRowRef} />
+            <div ref={hoveredGhostRowRef} />
+            <div ref={clickedGhostRowRef} />
             <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
               <RenderedItemsContainer style={containerStyles}>
                 {renderedItems}
@@ -203,9 +226,20 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       </Content>
     </Fragment>
   );
+
+  return hasStreamlinedUI ? (
+    <Container>{viewHierarchyContent}</Container>
+  ) : (
+    viewHierarchyContent
+  );
 }
 
 export {ViewHierarchy};
+
+const Container = styled('div')`
+  position: relative;
+  margin-left: ${space(2)};
+`;
 
 const Content = styled('div')`
   display: flex;
@@ -274,10 +308,6 @@ const DepthMarker = styled('div')<{depth: number}>`
     transparent 6px,
     transparent 21px
   );
-`;
-
-const GhostRow = styled('div')`
-  top: 0;
 `;
 
 const EmptyStateContainer = styled('div')`

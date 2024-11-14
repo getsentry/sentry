@@ -1,53 +1,57 @@
 from __future__ import annotations
 
-import logging
-from datetime import timedelta
+from collections.abc import Callable, Collection, Mapping, Sequence
 from enum import IntEnum
-from typing import Collection, FrozenSet, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models import QuerySet
-from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from bitfield import BitField
-from sentry import features, roles
+from bitfield import TypedClassBitField
+from sentry import roles
 from sentry.app import env
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
-    RESERVED_PROJECT_SLUGS,
 )
-from sentry.db.models import (
-    BaseManager,
-    BoundedPositiveIntegerField,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
+from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
-from sentry.models.team import Team
+from sentry.notifications.services import notifications_service
+from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import RpcUser, user_service
+from sentry.users.services.user import RpcUser, RpcUserProfile
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
+from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
+
+if TYPE_CHECKING:
+    from sentry.models.options.organization_option import OrganizationOptionManager
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
 
 
 class OrganizationStatus(IntEnum):
     ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+    RELOCATION_PENDING_APPROVAL = 3
 
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
@@ -57,7 +61,7 @@ class OrganizationStatus(IntEnum):
 
     @property
     def label(self):
-        return OrganizationStatus._labels[self]
+        return OrganizationStatus_labels[self]
 
     @classmethod
     def as_choices(cls):
@@ -73,27 +77,28 @@ class OrganizationStatus(IntEnum):
         return tuple(result)
 
 
-OrganizationStatus._labels = {
+OrganizationStatus_labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
+    OrganizationStatus.RELOCATION_PENDING_APPROVAL: "relocation pending approval",
 }
 
 
-class OrganizationManager(BaseManager):
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+class OrganizationManager(BaseManager["Organization"]):
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Teams have access to."""
-        from sentry.models import Team
+        from sentry.models.team import Team
 
         return self.filter(
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
@@ -101,7 +106,7 @@ class OrganizationManager(BaseManager):
         """
         Returns a set of all organizations a user has access to.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models.organizationmember import OrganizationMember
 
         if not user.is_authenticated:
             return []
@@ -112,7 +117,7 @@ class OrganizationManager(BaseManager):
             else:
                 return list(self.filter())
 
-        qs = OrganizationMember.objects.filter(user=user).select_related("organization")
+        qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 
@@ -128,92 +133,83 @@ class OrganizationManager(BaseManager):
         The default top priority role in Sentry is owner.
         """
 
-        orgs = Organization.objects.filter(
-            member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
-        )
-
         # get owners from orgs
         owner_role_orgs = Organization.objects.filter(
             member_set__user_id=user_id,
-            status=OrganizationStatus.VISIBLE,
+            status=OrganizationStatus.ACTIVE,
             member_set__role=roles.get_top_dog().id,
         )
 
-        # get owner teams
-        owner_teams = Team.objects.filter(
-            organization__in=orgs, org_role=roles.get_top_dog().id
-        ).values_list("id", flat=True)
-
-        # get the orgs in which the user is a member of an owner team
-        owner_team_member_orgs = OrganizationMemberTeam.objects.filter(
-            team_id__in=owner_teams
-        ).values_list("organizationmember__organization_id", flat=True)
-
-        # use .union() (UNION) as opposed to | (OR) because it's faster
-        return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
+        return owner_role_orgs
 
 
-@region_silo_only_model
-class Organization(Model, SnowflakeIdMixin):
+@snowflake_id_model
+@region_silo_model
+class Organization(ReplicatedRegionModel):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
-    __include_in_export__ = True
+    category = OutboxCategory.ORGANIZATION_UPDATE
+    replication_version = 4
+
+    __relocation_scope__ = RelocationScope.Organization
     name = models.CharField(max_length=64)
-    slug = models.SlugField(unique=True)
+    slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
-    members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL,
-        through="sentry.OrganizationMember",
-        related_name="org_memberships",
-        through_fields=("organization", "user"),
-    )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    is_test = models.BooleanField(default=False)
 
-    flags = BitField(
-        flags=(
-            (
-                "allow_joinleave",
-                "Allow members to join and leave teams without requiring approval.",
-            ),
-            (
-                "enhanced_privacy",
-                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
-            ),
-            (
-                "disable_shared_issues",
-                "Disable sharing of limited details on issues to anonymous users.",
-            ),
-            (
-                "early_adopter",
-                "Enable early adopter status, gaining access to features prior to public release.",
-            ),
-            ("require_2fa", "Require and enforce two-factor authentication for all members."),
-            (
-                "disable_new_visibility_features",
-                "Temporarily opt out of new visibility features and ui",
-            ),
-            (
-                "require_email_verification",
-                "Require and enforce email verification for all members.",
-            ),
-            (
-                "codecov_access",
-                "Enable codecov integration.",
-            ),
-        ),
-        default=1,
-    )
+    class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
 
-    objects = OrganizationManager(cache_fields=("pk", "slug"))
+        # Allow members to join and leave teams without requiring approval
+        allow_joinleave: bool
+
+        # Enable enhanced privacy controls to limit personally identifiable
+        # information (PII) as well as source code in things like
+        # notifications.
+        enhanced_privacy: bool
+
+        # Disable sharing of limited details on issues to anonymous users.
+        disable_shared_issues: bool
+
+        # Enable early adopter status, gaining access to features prior to public release.
+        early_adopter: bool
+
+        # Require and enforce two-factor authentication for all members.
+        require_2fa: bool
+
+        # Temporarily opt out of new visibility features and ui
+        disable_new_visibility_features: bool
+
+        # Require and enforce email verification for all members. (deprecated, not in use)
+        require_email_verification: bool
+
+        # Enable codecov integration.
+        codecov_access: bool
+
+        # Disable org-members from creating new projects
+        disable_member_project_creation: bool
+
+        # Prevent superuser access to an organization
+        prevent_superuser_access: bool
+
+        # Disable org-members from inviting members
+        disable_member_invite: bool
+
+        bitfield_default = 1
+
+    objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
-    customer_id: Optional[str] = None
+    customer_id: str | None = None
 
     class Meta:
         app_label = "sentry"
@@ -252,8 +248,10 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
-            self.save_with_snowflake_id(
-                self.snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=self.snowflake_redis_key,
+                save_callback=lambda: super(Organization, self).save(*args, **kwargs),
             )
         else:
             super().save(*args, **kwargs)
@@ -262,33 +260,30 @@ class Organization(Model, SnowflakeIdMixin):
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
 
-    def delete(self, **kwargs):
-        from sentry.models import NotificationSetting
-
+    def delete(self, *args, **kwargs):
         if self.is_default:
-            raise Exception("You cannot delete the the default organization.")
+            raise Exception("You cannot delete the default organization.")
+        return super().delete(*args, **kwargs)
 
-        # There is no foreign key relationship so we have to manually cascade.
-        NotificationSetting.objects.remove_for_organization(self)
-
-        return super().delete(**kwargs)
-
-    @staticmethod
-    def outbox_for_update(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.ORGANIZATION_UPDATE,
-            object_identifier=org_id,
+    def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.organization_mapping.serial import (
+            update_organization_mapping_from_instance,
         )
+        from sentry.hybridcloud.services.organization_mapping.service import (
+            organization_mapping_service,
+        )
+        from sentry.types.region import get_local_region
 
-    @staticmethod
-    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
-        return RegionOutbox(
-            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-            shard_identifier=org_id,
-            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
-            object_identifier=org_id,
+        update = update_organization_mapping_from_instance(self, get_local_region())
+        organization_mapping_service.upsert(organization_id=self.id, update=update)
+
+    @classmethod
+    def handle_async_deletion(
+        cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
+    ) -> None:
+        organization_mapping_service.delete(organization_id=identifier)
+        notifications_service.remove_notification_settings_for_organization(
+            organization_id=identifier
         )
 
     @cached_property
@@ -320,7 +315,8 @@ class Organization(Model, SnowflakeIdMixin):
             "user_id", flat=True
         )
 
-        return user_service.get_many(filter={"user_ids": owners})
+        with in_test_hide_transaction_boundary():
+            return user_service.get_many_by_id(ids=list(owners))
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -334,270 +330,117 @@ class Organization(Model, SnowflakeIdMixin):
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            owners = self.get_owners()
-            if len(owners) == 0:
+            owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+                "user_id", flat=True
+            )
+            if len(owner_ids) == 0:
                 return None
-            self._default_owner_id = owners[0].id
+            self._default_owner_id = owner_ids[0]
         return self._default_owner_id
+
+    @classmethod
+    def _get_bulk_owner_ids(cls, organizations: Collection[Organization]) -> dict[int, int]:
+        """Find user IDs of the default owners of multiple organization.
+
+        The returned table maps organization ID to user ID.
+        """
+        from sentry.models.organizationmember import OrganizationMember
+
+        owner_id_table: dict[int, int] = {}
+        org_ids_to_query: list[int] = []
+        for org in organizations:
+            default_owner = getattr(org, "_default_owner", None)
+            if default_owner and default_owner.id is not None:
+                owner_id_table[org.id] = default_owner.id
+            else:
+                org_ids_to_query.append(org.id)
+
+        if org_ids_to_query:
+            queried_owner_ids = OrganizationMember.objects.filter(
+                organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
+            ).values_list("organization_id", "user_id")
+
+            for org_id, user_id in queried_owner_ids:
+                # An org may have multiple owners. Here we mimic the behavior of
+                # `get_default_owner`, which is to use the first one in the query
+                # result's iteration order.
+                if (user_id is not None) and (org_id not in owner_id_table):
+                    owner_id_table[org_id] = user_id
+
+        return owner_id_table
+
+    @classmethod
+    def get_bulk_owner_profiles(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, RpcUserProfile]:
+        """Query for profile data of owners of multiple organizations.
+
+        The returned table is keyed by organization ID and shows the default owner.
+        An organization may have multiple owners, in which case only the default
+        owner is shown. Organization IDs may be absent from the returned table if no
+        owner was found.
+        """
+
+        owner_id_table = cls._get_bulk_owner_ids(organizations)
+        owner_ids = list(owner_id_table.values())
+
+        profiles = user_service.get_many_profiles(filter=dict(user_ids=owner_ids))
+        profile_table = {c.id: c for c in profiles}
+
+        return {
+            org_id: profile_table[user_id]
+            for (org_id, user_id) in owner_id_table.items()
+            if user_id in profile_table
+        }
 
     def has_single_owner(self):
         owners = list(
-            self.get_members_with_org_roles([roles.get_top_dog().id]).values_list("id", flat=True)
-        )
-        return len(owners[:2]) == 1
-
-    def get_members_with_org_roles(self, roles: Collection[str]):
-        members_with_role = set(
-            self.member_set.filter(
-                role__in=roles,
-                user__isnull=False,
-                user__is_active=True,
-            ).values_list("id", flat=True)
-        )
-
-        teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
-
-        # may be empty
-        members_on_teams_with_role = set(
-            OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
-                "organizationmember__id", flat=True
+            self.get_members_with_org_roles([roles.get_top_dog().id])[:2].values_list(
+                "id", flat=True
             )
         )
+        return len(owners) == 1
+
+    def get_members_with_org_roles(
+        self,
+        roles: Collection[str],
+        include_null_users: bool = False,
+    ):
+        members_with_role = self.member_set.filter(role__in=roles)
+        if not include_null_users:
+            members_with_role = members_with_role.filter(user_id__isnull=False, user_is_active=True)
 
         # use union of sets because a subset may be empty
-        return OrganizationMember.objects.filter(
-            id__in=members_with_role.union(members_on_teams_with_role)
-        )
+        return members_with_role
 
-    def merge_to(from_org, to_org):
-        from sentry.models import (
-            ApiKey,
-            AuditLogEntry,
-            AuthProvider,
-            Commit,
-            Environment,
-            OrganizationAvatar,
-            OrganizationIntegration,
-            OrganizationMember,
-            OrganizationMemberTeam,
-            Project,
-            Release,
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            ReleaseHeadCommit,
-            Repository,
-            Team,
-        )
+    @property
+    def option_manager(self) -> OrganizationOptionManager:
+        from sentry.models.options.organization_option import OrganizationOption
 
-        logger = logging.getLogger("sentry.merge")
-        for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user__isnull=False
-        ):
-            try:
-                to_member = OrganizationMember.objects.get(
-                    organization=to_org, user=from_member.user
-                )
-            except OrganizationMember.DoesNotExist:
-                from_member.update(organization=to_org)
-                to_member = from_member
-            else:
-                qs = OrganizationMemberTeam.objects.filter(
-                    organizationmember=from_member, is_active=True
-                ).select_related()
-                for omt in qs:
-                    OrganizationMemberTeam.objects.create_or_update(
-                        organizationmember=to_member, team=omt.team, defaults={"is_active": True}
-                    )
-            logger.info(
-                "user.migrate",
-                extra={
-                    "instance_id": from_member.id,
-                    "new_member_id": to_member.id,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        for from_team in Team.objects.filter(organization=from_org):
-            try:
-                with transaction.atomic():
-                    from_team.update(organization=to_org)
-            except IntegrityError:
-                slugify_instance(from_team, from_team.name, organization=to_org)
-                from_team.update(organization=to_org, slug=from_team.slug)
-            logger.info(
-                "team.migrate",
-                extra={
-                    "instance_id": from_team.id,
-                    "new_slug": from_team.slug,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        for from_project in Project.objects.filter(organization=from_org):
-            try:
-                with transaction.atomic():
-                    from_project.update(organization=to_org)
-            except IntegrityError:
-                slugify_instance(
-                    from_project,
-                    from_project.name,
-                    organization=to_org,
-                    reserved=RESERVED_PROJECT_SLUGS,
-                )
-                from_project.update(organization=to_org, slug=from_project.slug)
-            logger.info(
-                "project.migrate",
-                extra={
-                    "instance_id": from_project.id,
-                    "new_slug": from_project.slug,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        # TODO(jess): update this when adding unique constraint
-        # on version, organization for releases
-        for from_release in Release.objects.filter(organization=from_org):
-            try:
-                to_release = Release.objects.get(version=from_release.version, organization=to_org)
-            except Release.DoesNotExist:
-                Release.objects.filter(id=from_release.id).update(organization=to_org)
-            else:
-                Release.merge(to_release, [from_release])
-            logger.info(
-                "release.migrate",
-                extra={
-                    "instance_id": from_release.id,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        def do_update(queryset, params):
-            model_name = queryset.model.__name__.lower()
-            try:
-                with transaction.atomic(using=router.db_for_write(queryset.model)):
-                    queryset.update(**params)
-            except IntegrityError:
-                for instance in queryset:
-                    try:
-                        with transaction.atomic(using=router.db_for_write(queryset.model)):
-                            instance.update(**params)
-                    except IntegrityError:
-                        logger.info(
-                            f"{model_name}.migrate-skipped",
-                            extra={
-                                "from_organization_id": from_org.id,
-                                "to_organization_id": to_org.id,
-                            },
-                        )
-                    else:
-                        logger.info(
-                            f"{model_name}.migrate",
-                            extra={
-                                "instance_id": instance.id,
-                                "from_organization_id": from_org.id,
-                                "to_organization_id": to_org.id,
-                            },
-                        )
-            else:
-                logger.info(
-                    f"{model_name}.migrate",
-                    extra={"from_organization_id": from_org.id, "to_organization_id": to_org.id},
-                )
-
-        INST_MODEL_LIST = (
-            AuthProvider,
-            ApiKey,
-            AuditLogEntry,
-            OrganizationAvatar,
-            OrganizationIntegration,
-            ReleaseEnvironment,
-        )
-
-        ATTR_MODEL_LIST = (
-            Commit,
-            Environment,
-            ReleaseCommit,
-            ReleaseFile,
-            ReleaseHeadCommit,
-            Repository,
-        )
-
-        for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization=from_org)
-            do_update(queryset, {"organization": to_org})
-
-        for model in ATTR_MODEL_LIST:
-            queryset = model.objects.filter(organization_id=from_org.id)
-            do_update(queryset, {"organization_id": to_org.id})
-
-    # TODO: Make these a mixin
-    def update_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.set_value(self, *args, **kwargs)
-
-    def get_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.get_value(self, *args, **kwargs)
-
-    def delete_option(self, *args, **kwargs):
-        from sentry.models import OrganizationOption
-
-        return OrganizationOption.objects.unset_value(self, *args, **kwargs)
-
-    def send_delete_confirmation(self, audit_log_entry, countdown):
-        from sentry import options
-        from sentry.utils.email import MessageBuilder
-
-        owners = self.get_owners()
-        url = self.absolute_url(reverse("sentry-restore-organization", args=[self.slug]))
-
-        context = {
-            "organization": self,
-            "audit_log_entry": audit_log_entry,
-            "eta": timezone.now() + timedelta(seconds=countdown),
-            "url": url,
-        }
-
-        MessageBuilder(
-            subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
-            template="sentry/emails/org_delete_confirm.txt",
-            html_template="sentry/emails/org_delete_confirm.html",
-            type="org.confirm_delete",
-            context=context,
-        ).send_async([o.email for o in owners])
+        return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models import ApiKey
+        from sentry.models.apikey import is_api_key_auth
 
         actor_id = request.user.id if request.user and request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id
-            if hasattr(request, "auth") and isinstance(request.auth, ApiKey)
-            else None
+            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 
-        task.delay(self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address)
+        # Since we cannot guarantee that a task runs after the transaction completes,
+        #  trigger the task queueing on transaction commit
+        transaction.on_commit(
+            lambda: task.delay(
+                self.id, actor_id=actor_id, actor_key_id=api_key_id, ip_address=ip_address
+            ),
+            using=router.db_for_write(Organization),
+        )
 
     def handle_2fa_required(self, request):
         from sentry.tasks.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
-
-    def handle_email_verification_required(self, request):
-        from sentry.tasks.auth import remove_email_verification_non_compliant_members
-
-        if features.has("organizations:required-email-verification", self):
-            self._handle_requirement_change(
-                request, remove_email_verification_non_compliant_members
-            )
 
     @staticmethod
     def get_url_viewname() -> str:
@@ -619,55 +462,33 @@ class Organization(Model, SnowflakeIdMixin):
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    __has_customer_domain: Optional[bool] = None
-
-    def _has_customer_domain(self) -> bool:
+    @cached_property
+    def __has_customer_domain(self) -> bool:
         """
         Check if the current organization is using or has access to customer domains.
         """
-        if self.__has_customer_domain is not None:
-            return self.__has_customer_domain
+        return has_customer_domain()
 
-        request = env.request
-        if request and is_using_customer_domain(request):
-            self.__has_customer_domain = True
-            return True
-
-        self.__has_customer_domain = features.has("organizations:customer-domains", self)
-
-        return self.__has_customer_domain
-
-    def absolute_url(
-        self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
-    ) -> str:
+    def absolute_url(self, path: str, query: str | None = None, fragment: str | None = None) -> str:
         """
         Get an absolute URL to `path` for this organization.
 
         This method takes customer-domains into account and will update the path when
         customer-domains are active.
         """
-        # Avoid cycles.
-        from sentry.api.utils import customer_domain_path, generate_organization_url
-        from sentry.utils.http import absolute_uri
+        return organization_absolute_url(
+            has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
 
-        url_base = None
-        if self._has_customer_domain():
-            path = customer_domain_path(path)
-            url_base = generate_organization_url(self.slug)
-        uri = absolute_uri(path, url_prefix=url_base)
-        parts = [uri]
-        if query and not query.startswith("?"):
-            query = f"?{query}"
-        if query:
-            parts.append(query)
-        if fragment and not fragment.startswith("#"):
-            fragment = f"#{fragment}"
-        if fragment:
-            parts.append(fragment)
-        return "".join(parts)
-
-    def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.priority > 0:
+    def get_scopes(self, role: Role) -> frozenset[str]:
+        """
+        Note that scopes for team-roles are filtered through this method too.
+        """
+        if bool(NON_MEMBER_SCOPES & role.scopes):
             return role.scopes
 
         scopes = set(role.scopes)
@@ -677,25 +498,23 @@ class Organization(Model, SnowflakeIdMixin):
             scopes.discard("alerts:write")
         return frozenset(scopes)
 
-    def get_teams_with_org_roles(self, roles: Optional[Collection[str]]) -> QuerySet:
-        from sentry.models.team import Team
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        return self.option_manager.get_value(self, key, default, validate)
 
-        if roles is not None:
-            return Team.objects.filter(org_role__in=roles, organization=self)
+    def update_option(self, key: str, value: Any) -> bool:
+        return self.option_manager.set_value(self, key, value)
 
-        return Team.objects.filter(organization=self).exclude(org_role=None)
+    def delete_option(self, key: str) -> None:
+        self.option_manager.unset_value(self, key)
 
-    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
-    @classmethod
-    def remove_organization_mapping(cls, instance, **kwargs):
-        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-
-        organization_mapping_service.delete(instance.id)
-
-
-post_delete.connect(
-    Organization.remove_organization_mapping,
-    dispatch_uid="sentry.remove_organization_mapping",
-    sender=Organization,
-    weak=False,
-)
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+        if flags.hide_organizations:
+            self.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
+        return old_pk

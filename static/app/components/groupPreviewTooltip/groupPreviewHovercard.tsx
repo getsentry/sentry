@@ -1,4 +1,5 @@
-import {ComponentProps, Fragment, useCallback} from 'react';
+import type {ComponentProps} from 'react';
+import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,53 +11,51 @@ interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   hide?: boolean;
 }
 
-export const GroupPreviewHovercard = ({
+export function GroupPreviewHovercard({
   className,
   children,
   hide,
   body,
   ...props
-}: GroupPreviewHovercardProps) => {
+}: GroupPreviewHovercardProps) {
   const handleStackTracePreviewClick = useCallback(
     (e: React.MouseEvent) => void e.stopPropagation(),
     []
   );
 
   // No need to preview on hover for small devices
-  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  if (shouldNotPreview) {
-    return <Fragment>{children}</Fragment>;
-  }
+  const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.large})`);
+  const shouldShowPositionTop = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
   return (
     <StyledHovercardWithBodyClass
       className={className}
       displayTimeout={200}
       delay={100}
-      position="right"
+      position={shouldShowPositionTop ? 'top' : 'right'}
       tipBorderColor="border"
       tipColor="background"
-      hide={hide}
+      hide={shouldNotPreview || hide}
       body={<div onClick={handleStackTracePreviewClick}>{body}</div>}
+      containerDisplayMode="inline"
       {...props}
     >
       {children}
     </StyledHovercardWithBodyClass>
   );
-};
+}
 
 // This intermediary is necessary to generate bodyClassName with styled components
-const HovercardWithBodyClass = ({className, ...rest}: GroupPreviewHovercardProps) => {
+function HovercardWithBodyClass({className, ...rest}: GroupPreviewHovercardProps) {
   return <StyledHovercard bodyClassName={className} {...rest} />;
-};
+}
 
 const StyledHovercardWithBodyClass = styled(HovercardWithBodyClass)`
   padding: 0;
   max-height: 300px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-bottom-left-radius: ${p => p.theme.borderRadius};
-  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.modalBorderRadius};
 `;
 
 const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
@@ -67,7 +66,7 @@ const StyledHovercard = styled(Hovercard)<{hide?: boolean}>`
   ${p =>
     p.hide &&
     css`
-      visibility: hidden;
+      display: none;
     `};
 
   .loading {

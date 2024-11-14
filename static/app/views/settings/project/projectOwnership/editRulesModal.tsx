@@ -1,48 +1,63 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useUser} from 'sentry/utils/useUser';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
-type Props = EditOwnershipRulesModalOptions;
-type State = {};
-
-class EditOwnershipRulesModal extends Component<Props, State> {
-  render() {
-    const {ownership} = this.props;
-    return (
-      <Fragment>
-        <Block>
-          {t('Globbing Syntax')}
-          <CodeBlock>{'* matches everything\n? matches any single character'}</CodeBlock>
-        </Block>
-        <Block>
-          {t('Examples')}
-          <CodeBlock>
-            path:src/example/pipeline/* person@sentry.io #infra
-            {'\n'}
-            module:com.module.name.example #sdks
-            {'\n'}
-            url:http://example.com/settings/* #product #infra
-            {'\n'}
-            tags.sku_class:enterprise #enterprise
-          </CodeBlock>
-        </Block>
-        {ownership && <OwnerInput {...this.props} initialText={ownership.raw || ''} />}
-      </Fragment>
-    );
-  }
+interface EditOwnershipRulesModalProps extends EditOwnershipRulesModalOptions {
+  onCancel: () => void;
 }
 
-const Block = styled(TextBlock)`
-  margin-bottom: 16px;
+export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModalProps) {
+  const user = useUser();
+  const email = user?.email ?? '#team-slug';
+
+  return (
+    <Fragment>
+      <Fragment>
+        <Description>
+          {tct(
+            'Assign issues based on custom rules. To learn more, [docs:read the docs].',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/issue-owners/" />
+              ),
+            }
+          )}
+        </Description>
+        <StyledPre>
+          # {t("Here's an example")}
+          <br />
+          path:src/views/checkout {email}
+          <br />
+          url:https://example.com/checkout {email}
+          <br />
+          tags.transaction:/checkout/:page {email}
+        </StyledPre>
+      </Fragment>
+      {ownership && (
+        <OwnerInput
+          {...props}
+          dateUpdated={ownership.lastUpdated}
+          initialText={ownership.raw || ''}
+          page="project_settings"
+        />
+      )}
+    </Fragment>
+  );
+}
+
+const StyledPre = styled('pre')`
+  word-break: break-word;
+  padding: ${space(2)};
+  line-height: 1.6;
+  color: ${p => p.theme.subText};
 `;
 
-const CodeBlock = styled('pre')`
-  word-break: break-all;
-  white-space: pre-wrap;
+const Description = styled('p')`
+  margin-bottom: ${space(1)};
 `;
-
-export default EditOwnershipRulesModal;

@@ -5,18 +5,18 @@
     "operationId": "Retrieve an Event for a Project",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the event belongs to.",
+        "description": "The ID or slug of the organization the event belongs to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the event belongs to.",
+        "description": "The ID or slug of the project the event belongs to.",
         "required": true,
         "schema": {
           "type": "string"

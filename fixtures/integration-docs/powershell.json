@@ -1,0 +1,6 @@
+{
+  "html": "<div class=\"section\" id=\"installation\">\n<h2>Installation</h2>\n<p>A <a class=\"reference external\" href=\"https://www.powershellgallery.com/packages/Sentry/\">PowerShell module</a> is available for Sentry.</p>\n</div>\n",
+  "link": "https://docs.getsentry.com/platforms/powrshell/",
+  "id": "powershell",
+  "name": "PowerShell"
+}

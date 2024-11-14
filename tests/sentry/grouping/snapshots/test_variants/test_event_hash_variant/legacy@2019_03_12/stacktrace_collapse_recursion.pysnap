@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:28.809960Z'
+created: '2023-11-28T16:31:35.546537Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,7 +10,7 @@ app:
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -19,7 +19,7 @@ app:
             13
         frame* (frame considered in-app because no frame is in-app)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -28,7 +28,7 @@ app:
             20
         frame* (frame considered in-app because no frame is in-app)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -37,7 +37,7 @@ app:
             27
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -46,7 +46,7 @@ app:
             27
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -55,7 +55,7 @@ app:
             27
         frame* (frame considered in-app because no frame is in-app)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -64,7 +64,7 @@ app:
             25
         frame* (frame considered in-app because no frame is in-app)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -73,13 +73,13 @@ app:
             32
 --------------------------------------------------------------------------
 system:
-  hash: "894c3489e2ade384dc107bca6829d134"
+  hash: "9bdadae4fa003cef6cf460ff1325e54b"
   component:
     system*
       stacktrace*
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -88,7 +88,7 @@ system:
             13
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -97,7 +97,7 @@ system:
             20
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -106,7 +106,7 @@ system:
             27
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -115,7 +115,7 @@ system:
             27
         frame (ignored due to recursion)
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -124,7 +124,7 @@ system:
             27
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*
@@ -133,7 +133,7 @@ system:
             25
         frame*
           module*
-            "io.sentry.example.Application"
+            "com.example.Application"
           filename (module takes precedence)
             "Application.java"
           function*

@@ -1,29 +1,36 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {EntryDebugMetaFixture} from 'sentry-fixture/eventEntry';
+import {ImageFixture} from 'sentry-fixture/image';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('Debug Meta - Image Details', function () {
-  const eventEntryDebugMeta = TestStubs.EventEntryDebugMeta();
-  const event = TestStubs.Event({entries: [eventEntryDebugMeta]});
+  const image = ImageFixture();
+  const eventEntryDebugMeta = EntryDebugMetaFixture({data: {images: [image]}});
+  const event = EventFixture({entries: [eventEntryDebugMeta]});
   const {organization, project} = initializeOrg();
 
-  beforeAll(function () {
+  beforeEach(function () {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${eventEntryDebugMeta.data.images[0].debug_id}`,
+      url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?debug_id=${image.debug_id}`,
       method: 'GET',
       body: [],
     });
 
     MockApiClient.addMockResponse({
-      url: `/builtin-symbol-sources/`,
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
       body: [],
     });
   });
 
-  it('Candidates correctly sorted', function () {
+  it('Candidates correctly sorted', async function () {
     renderGlobalModal();
 
     act(() =>
@@ -31,12 +38,16 @@ describe('Debug Meta - Image Details', function () {
         <DebugImageDetails
           {...modalProps}
           organization={organization}
-          image={eventEntryDebugMeta.data.images[0]}
+          image={{...image, status: ImageStatus.FOUND}}
           projSlug={project.slug}
           event={event}
           onReprocessEvent={jest.fn()}
         />
       ))
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
     );
 
     // Check status order.

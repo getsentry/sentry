@@ -8,12 +8,12 @@ import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReleaseComparisonChartType} from 'sentry/types';
+import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 
 import {releaseComparisonChartLabels} from '../../utils';
 
-import {ReleaseComparisonRow} from '.';
+import type {ReleaseComparisonRow} from '.';
 
 type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   activeChart: ReleaseComparisonChartType;
@@ -158,7 +158,7 @@ const ChartTableRow = styled('label')<{
   role: ReleaseComparisonRow['role'];
 }>`
   display: contents;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: 0;
 
   > * {

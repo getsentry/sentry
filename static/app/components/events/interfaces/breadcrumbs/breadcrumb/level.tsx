@@ -1,8 +1,7 @@
-import {memo} from 'react';
 import styled from '@emotion/styled';
 
+import Tag, {Background} from 'sentry/components/badge/tag';
 import Highlight from 'sentry/components/highlight';
-import Tag, {Background} from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 
@@ -11,7 +10,7 @@ type Props = {
   searchTerm?: string;
 };
 
-const Level = memo(function Level({level, searchTerm = ''}: Props) {
+export function Level({level, searchTerm = ''}: Props) {
   switch (level) {
     case BreadcrumbLevelType.FATAL:
       return (
@@ -44,7 +43,7 @@ const Level = memo(function Level({level, searchTerm = ''}: Props) {
         </LevelTag>
       );
   }
-});
+}
 
 export default Level;
 

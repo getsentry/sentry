@@ -1,12 +1,13 @@
-import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {DataCategoryInfo} from 'sentry/types';
-import {formatBytesBase10} from 'sentry/utils';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
-export const MILLION = 10 ** 6;
-export const BILLION = 10 ** 9;
-export const GIGABYTE = 10 ** 9;
+const MILLION = 10 ** 6;
+const BILLION = 10 ** 9;
+const GIGABYTE = 10 ** 9;
 
 type FormatOptions = {
   /**
@@ -30,21 +31,31 @@ export function formatUsageWithUnits(
   usageQuantity: number = 0,
   dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
-) {
-  if (dataCategory !== DATA_CATEGORY_INFO.attachment.plural) {
+): string {
+  if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
+    if (options.useUnitScaling) {
+      return formatBytesBase10(usageQuantity);
+    }
+
+    const usageGb = usageQuantity / GIGABYTE;
     return options.isAbbreviated
-      ? abbreviateUsageNumber(usageQuantity)
-      : usageQuantity.toLocaleString();
+      ? `${abbreviateUsageNumber(usageGb)} GB`
+      : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
 
-  if (options.useUnitScaling) {
-    return formatBytesBase10(usageQuantity);
+  if (
+    dataCategory === DATA_CATEGORY_INFO.profileDuration.plural &&
+    Number.isFinite(usageQuantity)
+  ) {
+    // Profile duration is in milliseconds, convert to hours
+    return (usageQuantity / 1000 / 60 / 60).toLocaleString(undefined, {
+      maximumFractionDigits: 2,
+    });
   }
 
-  const usageGb = usageQuantity / GIGABYTE;
   return options.isAbbreviated
-    ? `${abbreviateUsageNumber(usageGb)} GB`
-    : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
+    ? abbreviateUsageNumber(usageQuantity)
+    : usageQuantity.toLocaleString();
 }
 
 /**
@@ -104,4 +115,35 @@ export function isDisplayUtc(datetime: DateTimeObject): boolean {
   const interval = getSeriesApiInterval(datetime);
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
+}
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getOffsetFromCursor(cursor?: string) {
+  const offset = Number(cursor?.split(':')[1]);
+  return isNaN(offset) ? 0 : offset;
+}
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getPaginationPageLink({
+  numRows,
+  pageSize,
+  offset,
+}: {
+  numRows: number;
+  offset: number;
+  pageSize: number;
+}) {
+  const prevOffset = offset - pageSize;
+  const nextOffset = offset + pageSize;
+
+  return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
+    0,
+    prevOffset
+  )}:1", <link>; rel="next"; results="${
+    nextOffset < numRows
+  }"; cursor="0:${nextOffset}:0"`;
 }

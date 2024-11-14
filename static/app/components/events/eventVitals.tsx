@@ -2,20 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {formattedValue} from 'sentry/utils/measurements/index';
 import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
-import {Vital} from 'sentry/utils/performance/vitals/types';
-import {IconSize} from 'sentry/utils/theme';
+import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {IconSize} from 'sentry/utils/theme';
 
 function isOutdatedSdk(event: Event): boolean {
   if (!event.sdk?.version) {
@@ -113,10 +113,10 @@ function MobileVitals({event}: Props) {
   );
 }
 
-type EventVitalProps = Props & {
+interface EventVitalProps extends Props {
   name: string;
   vital?: Vital;
-};
+}
 
 function EventVital({event, name, vital}: EventVitalProps) {
   const value = event.measurements?.[name].value ?? null;

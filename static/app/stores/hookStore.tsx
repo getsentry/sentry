@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Internals {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:
@@ -15,6 +16,7 @@ interface HookStoreDefinition extends StoreDefinition, Internals {
   add<H extends HookName>(hookName: H, callback: Hooks[H]): void;
   get<H extends HookName>(hookName: H): Array<Hooks[H]>;
   getCallback<H extends HookName>(hookName: H, key: string): HookCallback | undefined;
+  init(): void;
   persistCallback<H extends HookName>(
     hookName: H,
     key: string,

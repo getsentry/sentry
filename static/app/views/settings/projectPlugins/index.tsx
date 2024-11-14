@@ -1,10 +1,12 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -54,7 +56,7 @@ class ProjectPluginsContainer extends Component<Props> {
 
   render() {
     const {loading, error, plugins} = this.props.plugins || {};
-    const {organization} = this.props;
+    const {organization, project} = this.props;
 
     const title = t('Legacy Integrations');
 
@@ -62,7 +64,7 @@ class ProjectPluginsContainer extends Component<Props> {
       <Fragment>
         <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
-        <PermissionAlert />
+        <PermissionAlert project={project} />
 
         <ProjectPlugins
           {...this.props}

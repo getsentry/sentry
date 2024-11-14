@@ -1,22 +1,24 @@
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
-
 type Props = {
+  highSpectrumLabel: string;
+  lowSpectrumLabel: string;
   className?: string;
 };
 
-const BaseSimilarSpectrum = ({className}: Props) => (
-  <div className={className}>
-    <span>{t('Similar')}</span>
-    <SpectrumItem colorIndex={4} />
-    <SpectrumItem colorIndex={3} />
-    <SpectrumItem colorIndex={2} />
-    <SpectrumItem colorIndex={1} />
-    <SpectrumItem colorIndex={0} />
-    <span>{t('Not Similar')}</span>
-  </div>
-);
+function BaseSimilarSpectrum({className, highSpectrumLabel, lowSpectrumLabel}: Props) {
+  return (
+    <div className={className}>
+      <span>{highSpectrumLabel}</span>
+      <SpectrumItem colorIndex={4} />
+      <SpectrumItem colorIndex={3} />
+      <SpectrumItem colorIndex={2} />
+      <SpectrumItem colorIndex={1} />
+      <SpectrumItem colorIndex={0} />
+      <span>{lowSpectrumLabel}</span>
+    </div>
+  );
+}
 
 const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   display: flex;

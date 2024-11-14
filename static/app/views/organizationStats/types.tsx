@@ -1,4 +1,4 @@
-import {SeriesApi} from 'sentry/types';
+import type {SeriesApi} from 'sentry/types/organization';
 
 /**
  * Raw response from API endpoint
@@ -12,11 +12,10 @@ export interface UsageSeries extends SeriesApi {
 
 export type UsageStat = {
   accepted: number;
+  clientDiscard: number;
   date: string;
-  dropped: {
-    total: number;
-    other?: number;
-  };
   filtered: number;
+  invalid: number;
+  rateLimited: number;
   total: number;
 };

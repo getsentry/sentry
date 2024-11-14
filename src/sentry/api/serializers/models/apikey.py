@@ -1,10 +1,10 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models import ApiKey
+from sentry.models.apikey import ApiKey
 
 
 @register(ApiKey)
 class ApiKeySerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, **kwargs):
         return {
             "id": str(obj.id),
             "label": obj.label,

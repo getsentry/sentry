@@ -1,12 +1,10 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-import crypto from 'crypto';
-import https from 'https';
-import os from 'os';
-
-import type Sentry from '@sentry/node';
-import webpack from 'webpack';
+import type * as Sentry from '@sentry/node';
+import type {Span} from '@sentry/types';
+import crypto from 'node:crypto';
+import https from 'node:https';
+import os from 'node:os';
+import type webpack from 'webpack';
 
 const {
   NODE_ENV,
@@ -14,6 +12,7 @@ const {
   SENTRY_WEBPACK_WEBHOOK_SECRET,
   GITHUB_SHA,
   GITHUB_REF,
+  SENTRY_DEV_UI_PROFILING,
 } = process.env;
 
 const IS_CI = !!GITHUB_SHA;
@@ -26,25 +25,41 @@ const createSignature = function (secret: string, payload: string) {
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
+const INCREMENTAL_BUILD_TXN = 'incremental-build';
+const INITIAL_BUILD_TXN = 'initial-build';
+
 class SentryInstrumentation {
-  initialBuild: boolean = false;
+  hasInitializedBuild: boolean = false;
 
   Sentry?: typeof Sentry;
+
+  span?: Span;
 
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
     // only in the javascript suite that runs webpack
-    if (!SENTRY_INSTRUMENTATION) {
+    if (!SENTRY_INSTRUMENTATION && !SENTRY_DEV_UI_PROFILING) {
       return;
     }
 
-    const sentry = require('@sentry/node');
-    require('@sentry/tracing'); // This is required to patch Sentry
+    const sentry = require('@sentry/node') as typeof Sentry;
+    const {nodeProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
+      integrations: [nodeProfilingIntegration()],
+      profilesSampler: ({transactionContext}) => {
+        if (transactionContext.name === INCREMENTAL_BUILD_TXN) {
+          return 0;
+        }
+        return 1;
+      },
+      _experiments: {
+        // 5 minutes should be plenty
+        maxProfileDurationMs: 5 * 60 * 1000,
+      },
     });
 
     if (IS_CI) {
@@ -56,10 +71,15 @@ class SentryInstrumentation {
     sentry.setTag('arch', os.arch());
     sentry.setTag(
       'cpu',
-      cpus && cpus.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
+      cpus?.length ? `${cpus[0].model} (cores: ${cpus.length})}` : 'N/A'
     );
 
     this.Sentry = sentry;
+
+    this.span = sentry.startInactiveSpan({
+      op: 'webpack-build',
+      name: INITIAL_BUILD_TXN,
+    });
   }
 
   /**
@@ -111,30 +131,36 @@ class SentryInstrumentation {
       return;
     }
 
-    const transaction = this.Sentry.startTransaction({
-      op: 'webpack-build',
-      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
-      description: 'webpack build times',
-      startTimestamp: startTime,
-      trimEnd: true,
+    const span = !this.hasInitializedBuild
+      ? this.span
+      : this.Sentry.startInactiveSpan({
+          op: 'webpack-build',
+          name: INCREMENTAL_BUILD_TXN,
+          startTime,
+        });
+
+    if (!span) {
+      return;
+    }
+
+    this.Sentry.withActiveSpan(span, () => {
+      this.Sentry?.startInactiveSpan({
+        op: 'build',
+        name: 'webpack build',
+        attributes: {
+          os: `${os.platform()} ${os.arch()} v${os.release()}`,
+          memory: os.freemem()
+            ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
+                (os.freemem() / os.totalmem()) * 100
+              }% free)`
+            : 'N/A',
+          loadavg: os.loadavg(),
+        },
+        startTime,
+      }).end(endTime);
     });
 
-    const span = transaction.startChild({
-      op: 'build',
-      description: 'webpack build',
-      data: {
-        os: `${os.platform()} ${os.arch()} v${os.release()}`,
-        memory: os.freemem()
-          ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
-              (os.freemem() / os.totalmem()) * 100
-            }% free)`
-          : 'N/A',
-        loadavg: os.loadavg(),
-      },
-      startTimestamp: startTime,
-    });
-    span.finish(endTime);
-    transaction.finish();
+    span.end();
   }
 
   apply(compiler: webpack.Compiler) {
@@ -143,7 +169,7 @@ class SentryInstrumentation {
       async ({compilation, startTime, endTime}, done) => {
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
-        if (IS_CI && !this.initialBuild) {
+        if (IS_CI && !this.hasInitializedBuild) {
           this.measureAssetSizes(compilation);
         }
 
@@ -152,7 +178,7 @@ class SentryInstrumentation {
           await this.Sentry.flush();
         }
 
-        this.initialBuild = true;
+        this.hasInitializedBuild = true;
 
         done();
       }

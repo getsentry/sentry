@@ -1,8 +1,10 @@
-import {SelectValue} from 'sentry/types';
-import {FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {FieldValue} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {ColumnType, ISSUE_FIELDS} from './fields';
+import type {ColumnType} from './fields';
+import {ISSUE_FIELDS} from './fields';
 
 export function generateIssueWidgetFieldOptions(
   issueFields: Record<string, ColumnType> = ISSUE_FIELDS
@@ -30,17 +32,12 @@ export const ISSUE_WIDGET_SORT_OPTIONS = [
   IssueSortOptions.DATE,
   IssueSortOptions.NEW,
   IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
+  IssueSortOptions.TRENDS,
   IssueSortOptions.USER,
 ];
 
-export function generateIssueWidgetOrderOptions(
-  includeRelativeChange: boolean
-): SelectValue<string>[] {
+export function generateIssueWidgetOrderOptions(): SelectValue<string>[] {
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];
-  if (includeRelativeChange) {
-    sortOptions.push(IssueSortOptions.TREND);
-  }
   return sortOptions.map(sortOption => ({
     label: getSortLabel(sortOption),
     value: sortOption,

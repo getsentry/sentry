@@ -1,13 +1,15 @@
 import {useCallback, useMemo} from 'react';
-import {DateRange, DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
+import type {DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
+import {DateRange} from 'react-date-range';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 
-export type DateRangePickerProps = Omit<DateRangeProps, 'ranges' | 'onChange'> & {
+export interface DateRangePickerProps
+  extends Omit<DateRangeProps, 'ranges' | 'onChange'> {
   onChange: (range: Range) => void;
   endDate?: Date;
   startDate?: Date;
-};
+}
 
 type RangeSelection = {primary: Range};
 
@@ -17,12 +19,12 @@ function isRangeSelection(rangesByKey: RangeKeyDict): rangesByKey is RangeSelect
   return rangesByKey?.[PRIMARY_RANGE_KEY] !== undefined;
 }
 
-const DateRangePicker = ({
+function DateRangePicker({
   onChange: incomingOnChange,
   startDate,
   endDate,
   ...props
-}: DateRangePickerProps) => {
+}: DateRangePickerProps) {
   const onChange = useCallback(
     (rangesByKey: RangeKeyDict) => {
       if (!isRangeSelection(rangesByKey)) {
@@ -43,6 +45,6 @@ const DateRangePicker = ({
       <DateRange {...props} onChange={onChange} ranges={ranges} />
     </CalendarStylesWrapper>
   );
-};
+}
 
 export default DateRangePicker;

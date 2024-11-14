@@ -28,7 +28,7 @@
 {% endblock %}
 
 {% block preheader %}
-  New alert from {{ project_label }}.
+  {{ group_header }} from {{ project_label }}.
 {% endblock %}
 
 {% block header %}
@@ -50,7 +50,7 @@
 {% if not group.project.flags.has_transactions %}
 <div class="banner">
   <div class="container banner-content">
-    <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-lightning.svg' %}" class="banner-icon"/>
+    <img src="{% absolute_asset_url 'sentry' 'images/email/icon-lightning.png' %}" class="banner-icon"/>
     <span>
       <span class="text-desktop-only">Errors are half the story.</span> Start tracking latency across your application.
     </span>
@@ -64,8 +64,12 @@
 <div class="container">
   <div class="inner">
     <h2 {% if notification_reason %}style="margin-bottom: 4px"{% else %}style="margin-bottom: 15px"{% endif %}>
+        {% if group_header %}
+        {{ group_header }}
+        {% else %}
         New alert from <a href="{{group.project.get_absolute_url}}">{{ project_label }}</a>
         {% if environment %} in {{ environment }}{% endif %}
+        {% endif %}
     </h2>
     {% if notification_reason %}
       <div class="event-notification-reason">
@@ -91,9 +95,6 @@
             <th colspan="2">Issue</th>
         </tr>
         <tr>
-          <td class="error-level">
-              <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
-          </td>
           <td class="event-detail">
             <div class="issue">
               {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
@@ -141,12 +142,14 @@
                       {% else %}
                       <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a>
                       {% endif %}
-                      {% if transaction %}
+                      {% if culprit %}
+                        <span class="event-subtitle">{{ culprit }}</span>
+                      {% elif transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
                       <br />
-                      {% if subtitle %}
-                      <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
+                      {% if subtitle and not is_new_design %}
+                        <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
                       {% endif %}
                     </h3>
                   </div>
@@ -157,14 +160,69 @@
         </tr>
       </table>
 
-      <div class="event">
-        <div class="event-id">ID: {{ event.event_id }}</div>
-        {% if timezone %}
-            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
-        {% else %}
-            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
-        {% endif %}
+      {% if not is_new_design %}
+        <div class="event">
+          <div class="event-id">ID: {{ event.event_id }}</div>
+            {% if timezone %}
+                <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+            {% else %}
+                <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+            {% endif %}
+        </div>
+      {% endif %}
+
+      {% if chart_image %}
+        <img src="{{chart_image}}" alt="{{issue_title}} Chart" />
+      {% endif %}
+      <div class="interface">
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>Project</th>
+              <td><a href="{{group.project.get_absolute_url}}">{{ project_label }}</a></td>
+            </tr>
+            {% if environment %}
+              <tr>
+                <th>environment</th>
+                <td>{{ environment }}</td>
+              </tr>
+            {% endif %}
+            {% if is_new_design %}
+              <tr>
+                {% if issue_type == "Endpoint Regression" %}
+                  <th>Endpoint</th>
+                {% elif issue_type == "Function Regression" %}
+                  <th>Function</th>
+                {% endif %}
+                <td>{{ event.transaction }}</td>
+              </tr>
+              <tr>
+                <th>Change</th>
+                <td>{{ subtitle }}</td>
+              </tr>
+              <tr>
+                <th>Start Time</th>
+                <td>
+                  {% if timezone %}
+                    {{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}
+                  {% else %}
+                    {{ event.datetime|date:"N j, Y, g:i:s a e"}}
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <th>Level</th>
+                <td>{{ group.get_level_display }}</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
       </div>
+
 
       {% if commits %}
       <div class="committers">
@@ -191,6 +249,30 @@
 
       {% block table %}{% endblock %}
 
+      {% if issue_replays_url %}
+      <div class="interface">
+        <h3 class="title">Session Replay</h3>
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>Session Replay:</th>
+              <td>
+                <a href="{{ issue_replays_url }}">
+                  <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="12px" height="12px"
+                    alt="Session Replay">
+                  See a replay of this issue
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+
       {% block stacktrace %}{% endblock %}
 
       {% if tags %}
@@ -213,11 +295,14 @@
     {% endif %}
 
     <p class="info-box">
-        You are receiving this email due to matching rules:
-        {% for rule in rules %}
-            <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
-        {% endfor %}
-    </p>
+      {% if snooze_alert %}
+         <a class='mute' href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
+      {% endif %}
+      This email was triggered by
+      {% for rule in rules %}
+          <a href="{% absolute_uri rule.status_url %}">{{ rule.label }}</a>{% if not forloop.last %}, {% endif %}
+      {% endfor %}
+  </p>
 
     {% if not has_integrations %}
         <div class="logo-container">

@@ -1,10 +1,7 @@
 import styled from '@emotion/styled';
 
-import {
-  CompactSelect,
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
@@ -28,8 +25,12 @@ function SearchBarAction({
   onFilterChange,
   className,
 }: Props) {
-  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = props => (
+  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = (
+    props,
+    isOpen
+  ) => (
     <StyledTrigger
+      isOpen={isOpen}
       size="sm"
       priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
       {...props}

@@ -1,0 +1,108 @@
+[
+    {
+        "model": "sentry.user",
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$150000$iEvdIknqYjTr$+QsGn0tfIJ1FZLxQI37mVU1gL2KbL/wqjMtG/dFhsMA=",
+            "last_login": null,
+            "username": "max_user",
+            "name": "",
+            "email": "maximum@example.com",
+            "is_staff": true,
+            "is_active": true,
+            "is_superuser": true,
+            "is_managed": false,
+            "is_sentry_app": null,
+            "is_password_expired": false,
+            "is_unclaimed": false,
+            "last_password_change": "2023-06-22T22:59:57.023Z",
+            "flags": "0",
+            "session_nonce": null,
+            "date_joined": "2023-06-22T22:59:55.488Z",
+            "last_active": "2023-06-22T22:59:55.489Z",
+            "avatar_type": 0,
+            "avatar_url": null
+        }
+    },
+    {
+        "model": "sentry.email",
+        "pk": 1,
+        "fields": {
+            "email": "maximum@example.com",
+            "date_added": "2023-06-22T22:59:54.521Z"
+        }
+    },
+    {
+        "model": "sentry.authenticator",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "created_at": "2023-07-27T16:30:53.325Z",
+            "last_used_at": null,
+            "type": 1,
+            "config": "\"\""
+        }
+    },
+    {
+        "model": "sentry.useremail",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "email": "maximum@example.com",
+            "validation_hash": "mCnWesSVvYQcq7qXQ36AZHwosAd6cghE",
+            "date_hash_added": "2023-06-22T22:59:55.521Z",
+            "is_verified": true
+        }
+    },
+    {
+        "model": "sentry.userip",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "ip_address": "127.0.0.2",
+            "country_code": null,
+            "region_code": null,
+            "first_seen": "2012-04-05T03:29:45.000Z",
+            "last_seen": "2012-04-05T03:29:45.000Z"
+        }
+    },
+    {
+        "model": "sentry.useroption",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "project_id": null,
+            "organization_id": null,
+            "key": "timezone",
+            "value": "\"Europe/Vienna\""
+        }
+    },
+    {
+        "model": "sentry.userpermission",
+        "pk": 1,
+        "fields": {
+            "user": 1,
+            "permission": "users.admin"
+        }
+    },
+    {
+        "model": "sentry.userrole",
+        "pk": 1,
+        "fields": {
+            "date_updated": "2023-06-22T23:00:00.123Z",
+            "date_added": "2023-06-22T22:54:27.960Z",
+            "name": "Super Admin",
+            "permissions": "['broadcasts.admin', 'users.admin', 'options.admin']"
+        }
+    },
+    {
+        "model": "sentry.userroleuser",
+        "pk": 1,
+        "fields": {
+            "date_updated": "2023-06-22T23:00:00.123Z",
+            "date_added": "2023-06-22T22:59:57.000Z",
+            "user": 1,
+            "role": 1
+        }
+    }
+]

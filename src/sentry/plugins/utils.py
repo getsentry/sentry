@@ -1,5 +1,5 @@
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 
 
 class TestIssuePlugin2(IssueTrackingPlugin2):

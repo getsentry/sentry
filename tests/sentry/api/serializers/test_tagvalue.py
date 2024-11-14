@@ -1,8 +1,10 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from sentry.api.serializers import UserTagValueSerializer, serialize
 from sentry.tagstore.types import TagValue
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
+from sentry.utils.eventuser import EventUser
 
 
 class TagValueSerializerTest(TestCase):
@@ -50,6 +52,38 @@ class UseTagValueSerializerTest(TestCase):
             last_seen=datetime(2018, 1, 1),
         )
 
-        result = serialize(tagvalue, user, serializer=UserTagValueSerializer(project_id=1))
+        result = serialize(
+            tagvalue, user, serializer=UserTagValueSerializer(project_id=self.project.id)
+        )
         assert result["value"] == "username:ted"
         assert result["query"] == 'user.username:"ted"'
+
+    @patch("sentry.utils.eventuser.EventUser.for_tags")
+    def test_with_event_user(self, mock_for_tags):
+        user = self.create_user()
+        mock_for_tags.return_value = {
+            f"id:{user.id}": EventUser(
+                project_id=self.project.id,
+                email=self.user.email,
+                username="username",
+                name="name",
+                ip_address=None,
+                user_ident=user.id,
+                id=None,
+            )
+        }
+
+        tagvalue = TagValue(
+            key="sentry:user",
+            value=f"id:{user.id}",
+            times_seen=1,
+            first_seen=datetime(2018, 1, 1),
+            last_seen=datetime(2018, 1, 1),
+        )
+
+        result = serialize(
+            tagvalue, user, serializer=UserTagValueSerializer(project_id=self.project.id)
+        )
+
+        assert result["value"] == f"id:{user.id}"
+        assert result["id"] == str(user.id)

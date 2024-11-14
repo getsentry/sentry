@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
+import secrets
 from typing import Any
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
+from django.utils.functional import cached_property
 
 from sentry import options
-from sentry.utils.cache import memoize
 
 INTERNAL_NETWORKS = [
     ipaddress.ip_network(str(net), strict=False) for net in settings.INTERNAL_SYSTEM_IPS
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def is_internal_ip(request: HttpRequest) -> bool:
@@ -25,9 +28,9 @@ def is_internal_ip(request: HttpRequest) -> bool:
 def get_system_token() -> str:
     token = options.get("sentry:system-token")
     if not token:
-        token = uuid4().hex
-        options.set("sentry:system-token", token)
-    return token  # type: ignore[no-any-return]
+        token = secrets.token_hex()
+        options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
+    return token
 
 
 class SystemToken:
@@ -48,8 +51,17 @@ class SystemToken:
     def from_request(cls, request: HttpRequest, token: str) -> SystemToken | None:
         """Returns a system token if this is a valid system request."""
         system_token = get_system_token()
-        if constant_time_compare(system_token, token) and is_internal_ip(request):
-            return cls()
+        if constant_time_compare(system_token, token):
+            if is_internal_ip(request):
+                return cls()
+            # else:
+            # We have a valid system token, but the remote is not an internal IP
+            # This can happen because:
+            # - the system token was leaked (unlikely)
+            # - an internal service (eg symbolicator) is trying to use the system token,
+            #   but is not covered by the internal IP ranges (more likely)
+            logger.error("Trying to use `SystemToken` from non-internal IP")
+
         return None
 
     def __eq__(self, other: object) -> bool:
@@ -64,7 +76,7 @@ class SystemToken:
     def is_expired(self) -> bool:
         return False
 
-    @memoize  # type: ignore[misc]
+    @cached_property
     def user(self) -> AnonymousUser:
         user = AnonymousUser()
         user.is_active = True
@@ -88,7 +100,7 @@ class SystemToken:
 
 def is_system_auth(auth: object) -> bool:
     """:returns True when Sentry itself is hitting the API."""
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "system"

@@ -1,42 +1,13 @@
 import {Button} from 'sentry/components/button';
-import TeamKeyTransaction, {
-  TitleProps,
-} from 'sentry/components/performance/teamKeyTransaction';
+import TeamKeyTransaction from 'sentry/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import withProjects from 'sentry/utils/withProjects';
-
-function TitleStar({isOpen, keyedTeams, initialValue, ...props}: TitleProps) {
-  const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
-  const star = (
-    <IconStar
-      color={keyedTeamsCount ? 'yellow400' : 'gray200'}
-      isSolid={keyedTeamsCount > 0}
-      data-test-id="team-key-transaction-column"
-    />
-  );
-
-  const button = (
-    <Button
-      {...props}
-      icon={star}
-      borderless
-      size="zero"
-      aria-label={t('Toggle star for team')}
-    />
-  );
-
-  if (!isOpen && keyedTeams?.length) {
-    const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
-    return <Tooltip title={teamSlugs}>{button}</Tooltip>;
-  }
-
-  return button;
-}
+import useProjects from 'sentry/utils/useProjects';
 
 type BaseProps = {
   isKeyTransaction: boolean;
@@ -55,18 +26,50 @@ function TeamKeyTransactionField({
   getKeyedTeams,
   project,
   transactionName,
+  error,
+  isLoading,
   ...props
 }: Props) {
   const keyedTeams = getKeyedTeams(project.id, transactionName);
+  const keyedTeamsCount = keyedTeams?.size ?? Number(isKeyTransaction);
+  const disabled = isLoading || !!error;
 
   return (
     <TeamKeyTransaction
+      size="sm"
+      offset={[-12, 8]}
       counts={counts}
       keyedTeams={keyedTeams}
-      title={TitleStar}
       project={project}
       transactionName={transactionName}
-      initialValue={Number(isKeyTransaction)}
+      trigger={(triggerProps, isOpen) => (
+        <Tooltip
+          disabled={disabled || isOpen}
+          title={
+            !isOpen && keyedTeams?.size
+              ? project.teams
+                  .filter(team => keyedTeams.has(team.id))
+                  .map(({slug}) => slug)
+                  .join(', ')
+              : null
+          }
+        >
+          <Button
+            {...triggerProps}
+            disabled={disabled}
+            borderless
+            size="zero"
+            icon={
+              <IconStar
+                color={keyedTeamsCount ? 'yellow300' : 'gray200'}
+                isSolid={keyedTeamsCount > 0}
+                data-test-id="team-key-transaction-column"
+              />
+            }
+            aria-label={t('Toggle star for team')}
+          />
+        </Tooltip>
+      )}
       {...props}
     />
   );
@@ -74,17 +77,17 @@ function TeamKeyTransactionField({
 
 type WrapperProps = BaseProps & {
   projectSlug: string | undefined;
-  projects: Project[];
+
   transactionName: string | undefined;
 };
 
-function TeamKeyTransactionFieldWrapper({
+export default function TeamKeyTransactionFieldWrapper({
   isKeyTransaction,
-  projects,
   projectSlug,
   transactionName,
   ...props
 }: WrapperProps) {
+  const {projects} = useProjects();
   const project = projects.find(proj => proj.slug === projectSlug);
 
   // All these fields need to be defined in order to toggle a team key
@@ -92,11 +95,12 @@ function TeamKeyTransactionFieldWrapper({
   // with no interactions.
   if (!defined(project) || !defined(transactionName)) {
     return (
-      <TitleStar
-        isOpen={false}
+      <Button
         disabled
-        keyedTeams={null}
-        initialValue={Number(isKeyTransaction)}
+        borderless
+        size="zero"
+        icon={<IconStar color="gray100" />}
+        aria-label={t('Toggle star for team')}
       />
     );
   }
@@ -115,5 +119,3 @@ function TeamKeyTransactionFieldWrapper({
     </TeamKeyTransactionManager.Consumer>
   );
 }
-
-export default withProjects(TeamKeyTransactionFieldWrapper);

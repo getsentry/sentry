@@ -1,35 +1,44 @@
 import {useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
 
-import {Control, ControlProps} from './control';
-import {ListBox, MultipleListBoxProps, SingleListBoxProps} from './listBox';
+import type {ControlProps} from './control';
+import {Control} from './control';
+import type {MultipleListProps, SingleListProps} from './list';
+import {List} from './list';
+import {EmptyMessage} from './styles';
 import type {
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
   SelectSection,
 } from './types';
+import {getItemsWithKeys} from './utils';
 
-export type {SelectOption, SelectOptionOrSection, SelectSection};
+export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
 
-interface BaseSelectProps<Value extends React.Key> extends ControlProps {
+interface BaseSelectProps<Value extends SelectKey> extends ControlProps {
   options: SelectOptionOrSection<Value>[];
 }
 
-export interface SingleSelectProps<Value extends React.Key>
-  extends BaseSelectProps<Value>,
-    Omit<SingleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'label'> {}
-
-export interface MultipleSelectProps<Value extends React.Key>
+export interface SingleSelectProps<Value extends SelectKey>
   extends BaseSelectProps<Value>,
     Omit<
-      MultipleListBoxProps<Value>,
-      'children' | 'items' | 'compositeIndex' | 'label'
+      SingleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
     > {}
 
-export type SelectProps<Value extends React.Key> =
+export interface MultipleSelectProps<Value extends SelectKey>
+  extends BaseSelectProps<Value>,
+    Omit<
+      MultipleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+    > {}
+
+export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
   | MultipleSelectProps<Value>;
 
@@ -37,47 +46,70 @@ export type SelectProps<Value extends React.Key> =
 // option value types (number vs string), and selection mode (singular vs multiple)
 function CompactSelect<Value extends number>(props: SelectProps<Value>): JSX.Element;
 function CompactSelect<Value extends string>(props: SelectProps<Value>): JSX.Element;
-function CompactSelect<Value extends React.Key>(props: SelectProps<Value>): JSX.Element;
+function CompactSelect<Value extends SelectKey>(props: SelectProps<Value>): JSX.Element;
 
 /**
  * Flexible select component with a customizable trigger button
  */
-function CompactSelect<Value extends React.Key>({
-  // List box props
+function CompactSelect<Value extends SelectKey>({
+  // List props
   options,
   value,
   defaultValue,
   onChange,
+  onSectionToggle,
   multiple,
   disallowEmptySelection,
   isOptionDisabled,
+  sizeLimit,
+  sizeLimitMessage,
 
   // Control props
+  grid,
   disabled,
+  emptyMessage,
   size = 'md',
+  shouldUseVirtualFocus = false,
   closeOnSelect,
   triggerProps,
   ...controlProps
 }: SelectProps<Value>) {
   const triggerId = useMemo(() => domId('select-trigger-'), []);
 
-  // Combine list box props into an object with two clearly separated types, one where
+  // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
-  const listBoxProps = useMemo(() => {
+  const listProps = useMemo(() => {
     if (multiple) {
-      return {multiple, value, defaultValue, onChange, closeOnSelect};
+      return {
+        multiple,
+        value,
+        defaultValue,
+        onChange,
+        closeOnSelect,
+        grid,
+        shouldUseVirtualFocus,
+      };
     }
-    return {multiple, value, defaultValue, onChange, closeOnSelect};
-  }, [multiple, value, defaultValue, onChange, closeOnSelect]);
+    return {
+      multiple,
+      value,
+      defaultValue,
+      onChange,
+      closeOnSelect,
+      grid,
+      shouldUseVirtualFocus,
+    };
+  }, [
+    multiple,
+    value,
+    defaultValue,
+    onChange,
+    closeOnSelect,
+    grid,
+    shouldUseVirtualFocus,
+  ]);
 
-  const optionsWithKey = useMemo<SelectOptionOrSectionWithKey<Value>[]>(
-    () =>
-      options.map((item, i) => ({
-        ...item,
-        key: 'options' in item ? item.key ?? i : item.value,
-      })),
-    [options]
-  );
+  const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 
   const controlDisabled = useMemo(
     () => disabled ?? options?.length === 0,
@@ -89,22 +121,26 @@ function CompactSelect<Value extends React.Key>({
       {...controlProps}
       triggerProps={{...triggerProps, id: triggerId}}
       disabled={controlDisabled}
+      grid={grid}
       size={size}
     >
-      <ListBox
-        {...listBoxProps}
-        items={optionsWithKey}
+      <List
+        {...listProps}
+        items={itemsWithKey}
+        onSectionToggle={onSectionToggle}
         disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
         size={size}
+        sizeLimit={sizeLimit}
+        sizeLimitMessage={sizeLimitMessage}
         aria-labelledby={triggerId}
       >
-        {(item: SelectOptionOrSection<Value>) => {
+        {(item: SelectOptionOrSectionWithKey<Value>) => {
           if ('options' in item) {
             return (
               <Section key={item.key} title={item.label}>
                 {item.options.map(opt => (
-                  <Item key={opt.value} {...opt}>
+                  <Item {...opt} key={opt.key}>
                     {opt.label}
                   </Item>
                 ))}
@@ -112,13 +148,12 @@ function CompactSelect<Value extends React.Key>({
             );
           }
 
-          return (
-            <Item key={item.value} {...item}>
-              {item.label}
-            </Item>
-          );
+          return <Item {...item}>{item.label}</Item>;
         }}
-      </ListBox>
+      </List>
+
+      {/* Only displayed when List is empty */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
 }

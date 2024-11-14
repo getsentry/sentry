@@ -1,5 +1,7 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {IssueType} from 'sentry/types/group';
 
 export enum ProblemSpan {
   PARENT = 'parent',
@@ -34,8 +36,14 @@ export class TransactionEventBuilder {
     id?: string,
     title?: string,
     problemType?: IssueType,
-    transactionSettings?: TransactionSettings
+    transactionSettings?: TransactionSettings,
+    occurenceBasedEvent?: boolean
   ) {
+    const perfEvidenceData = {
+      causeSpanIds: [],
+      offenderSpanIds: [],
+      parentSpanIds: [],
+    };
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -58,12 +66,7 @@ export class TransactionEventBuilder {
           type: EntryType.SPANS,
         },
       ],
-      perfProblem: {
-        causeSpanIds: [],
-        offenderSpanIds: [],
-        parentSpanIds: [],
-        issueType: problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-      },
+
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
       // for testing purposes, we can add methods on the builder to set them.
@@ -81,13 +84,10 @@ export class TransactionEventBuilder {
           unit: 'millisecond',
         },
       },
+      perfProblem: undefined,
       metadata: {
         current_level: undefined,
-        current_tree_label: undefined,
-        directive: undefined,
-        display_title_with_tree_label: undefined,
         filename: undefined,
-        finest_tree_label: undefined,
         function: undefined,
         message: undefined,
         origin: undefined,
@@ -103,6 +103,24 @@ export class TransactionEventBuilder {
       tags: [],
       user: null,
     };
+    if (occurenceBasedEvent) {
+      this.#event.occurrence = {
+        evidenceData: perfEvidenceData,
+        eventId: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        detectionTime: '100',
+        evidenceDisplay: [],
+        fingerprint: ['fingerprint123'],
+        id: 'id123',
+        issueTitle: 'N + 1 Query',
+        resourceId: '',
+        subtitle: 'SELECT * FROM TABLE',
+        type: 1006,
+      };
+    } else {
+      this.#event.perfProblem = perfEvidenceData;
+      this.#event.perfProblem.issueType =
+        problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
+    }
   }
 
   generateSpanId() {
@@ -130,16 +148,19 @@ export class TransactionEventBuilder {
         ? mockSpan.problemSpan
         : [mockSpan.problemSpan];
 
+      const perfEvidenceData =
+        this.#event.perfProblem ?? this.#event.occurrence?.evidenceData;
+
       problemSpans.forEach(problemSpan => {
         switch (problemSpan) {
           case ProblemSpan.PARENT:
-            this.#event.perfProblem?.parentSpanIds.push(spanId);
+            perfEvidenceData?.parentSpanIds.push(spanId);
             break;
           case ProblemSpan.OFFENDER:
-            this.#event.perfProblem?.offenderSpanIds.push(spanId);
+            perfEvidenceData?.offenderSpanIds.push(spanId);
             break;
           case ProblemSpan.CAUSE:
-            this.#event.perfProblem?.causeSpanIds.push(spanId);
+            perfEvidenceData?.causeSpanIds.push(spanId);
             break;
           default:
             break;
@@ -156,7 +177,7 @@ export class TransactionEventBuilder {
     return this;
   }
 
-  getEvent() {
+  getEventFixture() {
     return this.#event;
   }
 }

@@ -2,7 +2,9 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models import Commit, CommitFileChange, ReleaseCommit
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.releasecommit import ReleaseCommit
 
 
 class CommitFileChangeDocsTest(APIDocsTestCase):
@@ -34,7 +36,10 @@ class CommitFileChangeDocsTest(APIDocsTestCase):
         )
         self.url = reverse(
             "sentry-api-0-release-commitfilechange",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)

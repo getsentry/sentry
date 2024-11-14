@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from .base import SlackNotificationsMessageBuilder
+from .daily_summary import SlackDailySummaryMessageBuilder
 from .digest import DigestNotificationMessageBuilder
 from .issues import IssueNotificationMessageBuilder
 
 
-def get_message_builder(klass: str) -> type[SlackNotificationsMessageBuilder]:
+def get_message_builder(class_name: str) -> type[SlackNotificationsMessageBuilder]:
     """TODO(mgaeta): HACK to get around circular imports."""
     return {
         "DigestNotificationMessageBuilder": DigestNotificationMessageBuilder,
         "IssueNotificationMessageBuilder": IssueNotificationMessageBuilder,
         "SlackNotificationsMessageBuilder": SlackNotificationsMessageBuilder,
-    }[klass]
+        "SlackDailySummaryMessageBuilder": SlackDailySummaryMessageBuilder,
+    }[class_name]
 
 
 __all__ = (
@@ -19,4 +21,5 @@ __all__ = (
     "DigestNotificationMessageBuilder",
     "IssueNotificationMessageBuilder",
     "SlackNotificationsMessageBuilder",
+    "SlackDailySummaryMessageBuilder",
 )

@@ -1,5 +1,7 @@
 # This file is used to declaratively define the sentry repository labels.
 #
+# Please keep labels within each section in alphabetical order.
+#
 # XXX: A note on renaming labels
 #
 # You MUST use a `alias: [ ... ]` list for the label to specify the old name of
@@ -8,22 +10,21 @@
 # Read more here: https://github.com/Financial-Times/github-label-sync#label-config-file
 
 # Getsentry workflow control
-- name: trigger-getsentry-external
-  color: '3E5E06'
-  description: 'once code is reviewed: apply label to PR to trigger getsentry tests'
+- name: 'Trigger: getsentry tests'
+  aliases: ['trigger-getsentry-external']
+  color: 'A0CABD'
+  description: 'Once code is reviewed: apply label to PR to trigger getsentry tests'
 - name: 'Trigger: Revert'
-  color: '3E5E06'
-  description: 'add to a merged PR to revert it (skips CI)'
+  color: 'A0CABD'
+  description: 'Add to a merged PR to revert it (skips CI)'
+- name: 'Trigger: Silo db'
+  color: 'A0CABD'
+  description: 'Trigger tests with split databases that simulate hybrid cloud data separation in postgres'
 
-# Unito - notion.so/52d10dbfad474328850319e48b057a5b
+# Unito - www.notion.so/52d10dbfad474328850319e48b057a5b
 - name: 'Sync: Jira'
   color: 'A0CABD'
-  description: 'apply to auto-create a Jira shadow ticket'
-
-# Dependabot
-- name: dependencies
-  color: 'ffffff'
-  description: Pull requests that update a dependency file
+  description: 'Apply to auto-create a Jira shadow ticket'
 
 # Scopes
 - name: 'Scope: Backend'
@@ -32,32 +33,6 @@
 - name: 'Scope: Frontend'
   color: '3C74DD'
   description: Automatically applied to PRs that change frontend components
-
-# Status for use with stalebot
-- name: 'Status: Backlog'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: In Progress'
-  color: '8D5494'
-  description: stalebot will ignore
-- name: 'Status: Invalid'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Investigating'
-  color: '8D5494'
-  description: ''
-- name: 'Status: Needs More Information'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Stale'
-  color: '8D5494'
-  description: stalebot will close after another week of inactivity
-- name: 'Status: Unrouted'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
-- name: 'Status: Untriaged'
-  color: '8D5494'
-  description: stalebot will close after four weeks of inactivity
 
 # Issue type
 - name: 'Type: Bug'
@@ -158,12 +133,6 @@
 - name: 'Component: Releases'
   color: '584774'
   description: ''
-- name: 'Component: Replay Details'
-  color: '584774'
-  description: Session Replays → Details
-- name: 'Component: Replay Index'
-  color: '584774'
-  description: Session Replays → Index page
 - name: 'Component: Rules'
   color: '584774'
   description: ''
@@ -186,98 +155,101 @@
   color: '584774'
   description: ''
 
-# Teams
-- name: 'Team: Backend'
+# Waiting-for labels
+- name: 'Waiting for: Support'
   color: '8D5494'
-  description: app-backend
-- name: 'Team: Core UI'
+- name: 'Waiting for: Product Owner'
   color: '8D5494'
-  description: ''
-- name: 'Team: Design'
+- name: 'Waiting for: Community'
   color: '8D5494'
-  description: ''
-- name: 'Team: Dev Infrastructure'
+- name: 'Stale'
   color: '8D5494'
-  description: dev-infra
-- name: 'Team: Discover & Dashboards'
+
+# Product areas - www.notion.so/sentry/473791bae5bf43399d46093050b77bf0
+- name: 'Product Area: Alerts'
   color: '8D5494'
-  description: discover-n-dashboards
-- name: 'Team: Ecosystem'
+- name: 'Product Area: APIs'
   color: '8D5494'
-  description: ''
-- name: 'Team: Emerging Technology'
+- name: 'Product Area: Crons'
   color: '8D5494'
-  description: team-emerging-technology
-- name: 'Team: Enterprise'
+- name: 'Product Area: Dashboards'
   color: '8D5494'
-  description: ''
-- name: 'Team: Front End'
+- name: 'Product Area: DDM'
   color: '8D5494'
-  description: app-frontend
-- name: 'Team: Growth'
+- name: 'Product Area: Discover'
   color: '8D5494'
-  description: ''
-- name: 'Team: Infrastructure'
+- name: 'Product Area: Explore'
   color: '8D5494'
-  description: ''
-- name: 'Team: Ingest'
+- name: 'Product Area: Footer'
   color: '8D5494'
-  description: owners-ingest
-- name: 'Team: Issue Experience'
+- name: 'Product Area: Help'
   color: '8D5494'
-- name: 'Team: Issue Platform'
+- name: 'Product Area: Ingestion and Filtering'
   color: '8D5494'
-- name: 'Team: Mobile Developer Experience'
+- name: 'Product Area: Insights'
   color: '8D5494'
-  description: team-mdx
-- name: 'Team: Mobile Platform'
+- name: 'Product Area: Issues'
   color: '8D5494'
-  description: team-mobile
-- name: 'Team: Native Platform'
+- name: 'Product Area: Issues - Source Maps'
   color: '8D5494'
-  description: owners-native
-- name: 'Team: Open Source'
+- name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
-  description: ''
-- name: 'Team: Ops'
+- name: 'Product Area: Org Relocation'
   color: '8D5494'
-  description: ''
-- name: 'Team: Performance'
+- name: 'Product Area: Performance'
   color: '8D5494'
-  description: 'team-performance'
-- name: 'Team: Replay'
+- name: 'Product Area: Processing'
   color: '8D5494'
-  description: team-replay
-- name: 'Team: Revenue'
+- name: 'Product Area: Profiling'
   color: '8D5494'
-  description: ''
-- name: 'Team: Search & Storage'
+- name: 'Product Area: Projects - Project Creation'
   color: '8D5494'
-  description: sns
-- name: 'Team: Security'
+- name: 'Product Area: Projects - Project Details'
   color: '8D5494'
-  description: ''
-- name: 'Team: Stacktrace'
+- name: 'Product Area: Releases'
   color: '8D5494'
-  description: owners-stacktrace
-- name: 'Team: Support'
+- name: 'Product Area: Replays'
   color: '8D5494'
-  description: ''
-- name: 'Team: Telemetry Experience'
+- name: 'Product Area: Stats'
   color: '8D5494'
-  description: telemetry-experience
-- name: 'Team: Web SDKs - Backend'
+- name: 'Product Area: Settings'
   color: '8D5494'
-  description: team-web-sdk-backend
-- name: 'Team: Web SDKs - Frontend'
+- name: 'Product Area: Settings - Auth'
   color: '8D5494'
-  description: team-web-sdk-frontend
-- name: 'Team: Workflow'
+- name: 'Product Area: Settings - Developer Settings'
   color: '8D5494'
-  description: ''
-- name: 'Team: Crons'
+- name: 'Product Area: Settings - General'
   color: '8D5494'
-  description: ''
+- name: 'Product Area: Settings - Integrations'
+  color: '8D5494'
+- name: 'Product Area: Settings - Members'
+  color: '8D5494'
+- name: 'Product Area: Settings - Projects'
+  color: '8D5494'
+- name: 'Product Area: Settings - Relay'
+  color: '8D5494'
+- name: 'Product Area: Settings - Repositories'
+  color: '8D5494'
+- name: 'Product Area: Settings - Security & Privacy'
+  color: '8D5494'
+- name: 'Product Area: Settings - Spend Allocation'
+  color: '8D5494'
+- name: 'Product Area: Settings - Spike Protection'
+  color: '8D5494'
+- name: 'Product Area: Settings - Subscription'
+  color: '8D5494'
+- name: 'Product Area: Settings - Teams'
+  color: '8D5494'
+- name: 'Product Area: Sign In'
+  color: '8D5494'
+- name: 'Product Area: User Feedback'
+  color: '8D5494'
+- name: "Product Area: What's New"
+  color: '8D5494'
+- name: 'Product Area: Other'
+  color: '8D5494'
+- name: 'Product Area: Unknown'
+  color: '8D5494'
 
 # Deploy types
 - name: 'Deploy: Monitored'
@@ -295,16 +267,17 @@
   color: 'ffa0df'
   description: ''
 
-# Hacktoberfest
+# Bug bash-y things
 - name: 'Hacktoberfest :jack_o_lantern:'
   color: 'ffa500'
   description: ''
 - name: Hacktoberfest-accepted
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
-
-# Hackweek
 - name: 'Hackweek :zap:'
+  color: 'F91A8A'
+  description: ''
+- name: 'Papercut'
   color: 'F91A8A'
   description: ''
 
@@ -344,6 +317,9 @@
 - name: 'Platform: Python'
   color: '584774'
   description: ''
+- name: 'Platform: React Native'
+  color: '584774'
+  description: ''
 - name: 'Platform: Ruby'
   color: '584774'
   description: ''
@@ -351,18 +327,7 @@
   color: '584774'
   description: ''
 
-# Hosting type
-- name: 'Hosting: Self-hosted'
-  color: '584774'
-  description: ''
-- name: 'Hosting: sentry.io'
-  color: '584774'
-  description: ''
-
-# Generic useful label
-- name: WIP
-  color: 'F6F6F8'
-  description: ''
+# Generic useful labels
 - name: Do Not Merge
   color: 'C83852'
   description: Don't merge
@@ -371,6 +336,9 @@
   description: ''
 - name: Security
   color: 'C83852'
+  description: ''
+- name: WIP
+  color: 'F6F6F8'
   description: ''
 
 # Legacy labels

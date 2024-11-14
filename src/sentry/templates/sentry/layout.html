@@ -4,10 +4,8 @@
 {% load sentry_features %}
 {% load sentry_helpers %}
 {% load sentry_react %}
-
 {% load sentry_status %}
 {% get_sentry_version %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,10 +24,17 @@
   <meta property="{{ tag.property }}" content="{{ tag.content }}" />
   {% endfor %}
 
+  {% for domain in dns_prefetch %}
+  <link rel="dns-prefetch" href="{{ domain }}" />
+  {% endfor %}
+
+  {% for origin in preconnect %}
+  <link rel="preconnect" href="{{ origin }}" />
+  {% endfor %}
+
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
   <link href="{% frontend_app_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
-
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
@@ -50,26 +55,23 @@
   </script>
   {% endscript %}
 
-  {% script %}
-    {% include "sentry/partial/preload-data.html" %}
-  {% endscript %}
+  {% include "sentry/partial/preload-data.html" %}
 
   {% block scripts %}
   {% block scripts_main_entrypoint %}
     {% frontend_app_asset_url "sentry" "entrypoints/app.js" as asset_url %}
-    {% script src=asset_url data-entry="true" %}{% endscript %}
+    {% script src=asset_url crossorigin="anonymous" data-entry="true" %}{% endscript %}
   {% endblock %}
 
   {% injected_script_assets as injected_assets %}
   {% for asset_url in injected_assets %}
-    {% script src=asset_url %}{% endscript %}
+    {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endfor %}
 
   {% asset_url 'sentry' 'js/ads.js' as asset_url %}
-  {% script src=asset_url %}{% endscript %}
+  {% script src=asset_url crossorigin="anonymous" %}{% endscript %}
   {% endblock %}
 </head>
-
 
 
 <body class="{% block wrapperclass %}{% endblock %}">
@@ -82,8 +84,6 @@
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
-
-
 
     <div class="container">
       <div class="content">

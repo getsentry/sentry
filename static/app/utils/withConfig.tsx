@@ -1,6 +1,6 @@
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedConfigProps = {
@@ -16,12 +16,12 @@ function withConfig<P extends InjectedConfigProps>(
 ) {
   type Props = Omit<P, keyof InjectedConfigProps> & Partial<InjectedConfigProps>;
 
-  const Wrapper: React.FC<Props> = props => {
+  function Wrapper(props: Props) {
     const config = useLegacyStore(ConfigStore);
     const allProps = {config, ...props} as P;
 
     return <WrappedComponent {...allProps} />;
-  };
+  }
 
   Wrapper.displayName = `withConfig(${getDisplayName(WrappedComponent)})`;
 

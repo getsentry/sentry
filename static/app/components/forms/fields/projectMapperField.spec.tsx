@@ -1,7 +1,7 @@
-import {ComponentProps} from 'react';
-import selectEvent from 'react-select-event';
+import type {ComponentProps} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import FormModel from 'sentry/components/forms/model';
 
@@ -45,7 +45,7 @@ describe('ProjectMapperField', () => {
     await selectEvent.select(screen.getByText(/Sentry project/), 'beans');
     await selectEvent.select(screen.getByText('mapped-dropdown-placeholder'), 'label 1');
 
-    userEvent.click(screen.getByLabelText('Add project'));
+    await userEvent.click(screen.getByLabelText('Add project'));
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith(
       [
@@ -63,7 +63,7 @@ describe('ProjectMapperField', () => {
     );
   });
 
-  it('can delete item', () => {
+  it('can delete item', async () => {
     render(
       <RenderField
         {...defaultProps}
@@ -73,21 +73,21 @@ describe('ProjectMapperField', () => {
         ]}
       />
     );
-    userEvent.click(screen.getAllByLabelText('Delete')[0]);
+    await userEvent.click(screen.getAllByLabelText('Delete')[0]);
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith([[24, 1]], []);
     expect(defaultProps.onChange).toHaveBeenCalledWith([[24, 1]], []);
   });
 
-  it('allows a single Sentry project to map to multiple items but not the value', () => {
+  it('allows a single Sentry project to map to multiple items but not the value', async () => {
     render(<RenderField {...defaultProps} value={[[24, 1]]} />);
 
     // can find the same project again
-    selectEvent.openMenu(screen.getByText(/Sentry project/));
+    await selectEvent.openMenu(screen.getByText(/Sentry project/));
     expect(screen.getAllByText('beans')).toHaveLength(2);
 
     // but not the value
-    selectEvent.openMenu(screen.getByText('mapped-dropdown-placeholder'));
+    await selectEvent.openMenu(screen.getByText('mapped-dropdown-placeholder'));
     expect(screen.getByText('label 1')).toBeInTheDocument();
 
     // validate we can still find 2

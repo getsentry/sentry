@@ -1,28 +1,33 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
+import type {
   GroupedOptionsType,
-  mergeStyles,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  createFilter,
+  mergeStyles,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {CSSObject, useTheme} from '@emotion/react';
+import type {CSSObject} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Chevron} from 'sentry/components/chevron';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconChevron, IconClose} from 'sentry/icons';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types/core';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
@@ -39,37 +44,47 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
 }
 
-const ClearIndicator = (
+function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
-) => (
-  <selectComponents.ClearIndicator {...props}>
-    <IconClose legacySize="10px" />
-  </selectComponents.ClearIndicator>
-);
+) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
+  return (
+    <selectComponents.ClearIndicator {...props}>
+      <IconClose aria-label={t('Clear choices')} legacySize="10px" />
+    </selectComponents.ClearIndicator>
+  );
+}
 
-const DropdownIndicator = (
+function DropdownIndicator(
   props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
-) => (
-  <selectComponents.DropdownIndicator {...props}>
-    <IconChevron direction="down" legacySize="14px" />
-  </selectComponents.DropdownIndicator>
-);
+) {
+  return (
+    <selectComponents.DropdownIndicator {...props}>
+      <Chevron light color="subText" direction="down" size="medium" />
+    </selectComponents.DropdownIndicator>
+  );
+}
 
-const MultiValueRemove = (
+function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
-) => (
-  <selectComponents.MultiValueRemove {...props}>
-    <IconClose legacySize="8px" />
-  </selectComponents.MultiValueRemove>
-);
+) {
+  // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
+  // now we manually add aria labels to these interactive elements to help with
+  // testing
+  return (
+    <selectComponents.MultiValueRemove {...props}>
+      <IconClose aria-label={t('Remove item')} legacySize="8px" />
+    </selectComponents.MultiValueRemove>
+  );
+}
 
-const SelectLoadingIndicator = () => (
-  <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />
-);
+function SelectLoadingIndicator() {
+  return <LoadingIndicator mini size={20} style={{height: 20, width: 20}} />;
+}
 
-const SingleValue = (
-  props: React.ComponentProps<typeof selectComponents.SingleValue>
-) => {
+function SingleValue(props: React.ComponentProps<typeof selectComponents.SingleValue>) {
   const {leadingItems, label} = props.data;
   return (
     <selectComponents.SingleValue {...props}>
@@ -79,7 +94,7 @@ const SingleValue = (
       </SingleValueWrap>
     </selectComponents.SingleValue>
   );
-};
+}
 
 const SingleValueWrap = styled('div')`
   display: grid;
@@ -92,19 +107,17 @@ const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Menu = (props: React.ComponentProps<typeof selectComponents.Menu>) => {
+function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   const {children, ...otherProps} = props;
   return (
     <selectComponents.Menu {...otherProps}>
       <PanelProvider>{children}</PanelProvider>
     </selectComponents.Menu>
   );
-};
+}
 
-export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
-  ReactSelectProps<OptionType>,
-  'onChange' | 'value'
-> & {
+export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
+  extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value'> {
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
@@ -113,6 +126,10 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
    * Set to true to prefix selected values with content
    */
   inFieldLabel?: string;
+  /**
+   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+   */
+  isInsideModal?: boolean;
   /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
@@ -138,18 +155,19 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
    * can't have a good type here.
    */
   value?: any;
-};
+}
 
 /**
  * Additional props provided by forwardRef
  */
-type WrappedControlProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
+interface WrappedControlProps<OptionType extends OptionTypeBase>
+  extends ControlProps<OptionType> {
   /**
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
    */
   forwardedRef: React.Ref<ReactSelect>;
-};
+}
 
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
@@ -164,7 +182,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, maxMenuWidth} = props;
+  const {size, maxMenuWidth, isInsideModal} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -172,7 +190,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
   const indicatorStyles = useCallback(
-    ({padding: _padding, ...provided}: CSSObject) => ({
+    (provided: CSSObject): CSSObject => ({
       ...provided,
       padding: '4px',
       alignItems: 'center',
@@ -186,14 +204,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        // @ts-ignore Ignore merge errors as only defining the property once
-        // makes code harder to understand.
-        ...{
-          color: theme.formText,
-          background: theme.background,
-          border: `1px solid ${theme.border}`,
-          boxShadow: theme.dropShadowMedium,
-        },
+        color: theme.formText,
+        background: theme.background,
+        border: `1px solid ${theme.border}`,
+        boxShadow: theme.dropShadowMedium,
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
         alignItems: 'center',
@@ -211,33 +225,27 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           cursor: 'pointer',
         }),
         ...omit(theme.form[size ?? 'md'], 'height'),
+        ...(state.isMulti && {
+          maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+          overflow: 'hidden',
+        }),
       }),
 
       menu: provided => ({
         ...provided,
         zIndex: theme.zIndex.dropdown,
         background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
         borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
+        boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
       }),
 
-      menuPortal: () => ({
+      menuPortal: provided => ({
+        ...provided,
         maxWidth: maxMenuWidth ?? '24rem',
-        zIndex: theme.zIndex.dropdown,
-        width: '90%',
-        position: 'fixed',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: theme.backgroundElevated,
-        border: `1px solid ${theme.border}`,
-        borderRadius: theme.borderRadius,
-        boxShadow: theme.dropShadowHeavy,
-        overflow: 'hidden',
+        zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
       }),
 
       option: provided => ({
@@ -250,11 +258,19 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           background: 'transparent',
         },
       }),
-      valueContainer: provided => ({
+      valueContainer: (provided, state) => ({
         ...provided,
         alignItems: 'center',
         paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
         paddingRight: space(0.5),
+        // offset horizontal margin/padding from multiValue (space(0.25)) &
+        // multiValueLabel (space(0.75))
+        ...(state.isMulti && {
+          marginLeft: `-${space(1)}`,
+          maxHeight: 'inherit',
+          overflowY: 'auto',
+          scrollbarColor: `${theme.purple200} ${theme.background}`,
+        }),
       }),
       input: provided => ({
         ...provided,
@@ -278,31 +294,32 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       }),
       multiValue: provided => ({
         ...provided,
-        color: '#007eff',
-        backgroundColor: '#ebf5ff',
+        color: theme.textColor,
+        backgroundColor: theme.background,
         borderRadius: '2px',
-        border: '1px solid #c2e0ff',
+        border: `1px solid ${theme.border}`,
         display: 'flex',
+        marginLeft: space(0.25),
       }),
       multiValueLabel: provided => ({
         ...provided,
-        color: '#007eff',
+        color: theme.textColor,
         padding: '0',
-        paddingLeft: '6px',
+        paddingLeft: space(0.75),
         lineHeight: '1.8',
       }),
       multiValueRemove: () => ({
         cursor: 'pointer',
         alignItems: 'center',
-        borderLeft: '1px solid #c2e0ff',
+        borderLeft: `1px solid ${theme.innerBorder}`,
         borderRadius: '0 2px 2px 0',
         display: 'flex',
         padding: '0 4px',
         marginLeft: '4px',
 
         '&:hover': {
-          color: '#6284b9',
-          background: '#cce5ff',
+          color: theme.headingColor,
+          background: theme.backgroundTertiary,
         },
       }),
       indicatorsContainer: () => ({
@@ -346,10 +363,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme, size, maxMenuWidth, indicatorStyles]
   );
 
-  const getFieldLabelStyle = (label?: string) => ({
+  const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
       content: `"${label}"`,
       color: theme.gray300,
@@ -394,9 +412,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (isGroupedOptions<OptionType>(choicesOrOptions)) {
       flatOptions = choicesOrOptions.flatMap(option => option.options);
     } else {
-      // @ts-ignore The types used in react-select generics (OptionType) don't
-      // line up well with our option type (SelectValue). We need to do more work
-      // to get these types to align.
       flatOptions = choicesOrOptions.flatMap(option => option);
     }
     mappedValue =
@@ -406,7 +421,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   }
 
   // Override the default style with in-field labels if they are provided
-  const inFieldLabelStyles = {
+  const inFieldLabelStyles: StylesConfig = {
     singleValue: (base: CSSObject) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
@@ -416,14 +431,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
-  const labelOrDefaultStyles = inFieldLabel
+  const labelOrDefaultStyles: StylesConfig = inFieldLabel
     ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = styles
+  const mappedStyles: StylesConfig = styles
     ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 
@@ -436,6 +451,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     IndicatorSeparator: null,
     Menu,
     Option,
+    ...components,
   };
 
   const filterOptions = createFilter({
@@ -447,7 +463,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     <SelectPicker<OptionType>
       filterOption={filterOptions}
       styles={mappedStyles}
-      components={{...replacedComponents, ...components}}
+      components={replacedComponents}
       async={async}
       creatable={creatable}
       isClearable={clearable}
@@ -468,7 +484,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
+export interface PickerProps<OptionType extends OptionTypeBase>
+  extends ControlProps<OptionType> {
   /**
    * Enable async option loading.
    */
@@ -481,7 +498,7 @@ type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> &
    * Enable 'create' mode which allows values to be created inline.
    */
   creatable?: boolean;
-};
+}
 
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,

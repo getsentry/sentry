@@ -1,6 +1,6 @@
-import {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -152,6 +152,45 @@ describe('findRangeOfMultiSeries()', () => {
 
   it('should find min and max when no items selected in legend', () => {
     expect(findRangeOfMultiSeries(series)).toStrictEqual({max: 2300, min: 50});
+  });
+
+  it('should find min and max when series is unordered', () => {
+    const mixedSeries = [series[1], series[0], series[2]];
+    expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 50});
+  });
+
+  it('should find min and max when one of the series has all 0 values', () => {
+    const mixedSeries = [
+      {
+        seriesName: 'p75(spans.db)',
+        data: [
+          {name: 1, value: 0},
+          {name: 2, value: 0},
+          {name: 3, value: 0},
+        ],
+      },
+      series[1],
+      series[0],
+      series[2],
+    ];
+    expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 0});
+  });
+
+  it('should find min and max when one of the series has negative values', () => {
+    const mixedSeries = [
+      {
+        seriesName: 'p75(custom.measurement)',
+        data: [
+          {name: 1, value: 10},
+          {name: 2, value: -10},
+          {name: 3, value: 10},
+        ],
+      },
+      series[1],
+      series[0],
+      series[2],
+    ];
+    expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: -10});
   });
 
   it('should find min and max when series has no data', () => {

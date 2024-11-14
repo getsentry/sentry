@@ -1,15 +1,19 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import Item from './item';
 import Toolbar from './toolbar';
@@ -21,11 +25,11 @@ type DefaultProps = {
 type Props = {
   groupId: string;
   items: Array<SimilarItem>;
+  location: Location;
   onMerge: () => void;
   orgId: Organization['id'];
   pageLinks: string | null;
   project: Project;
-  v2: boolean;
 } & DefaultProps;
 
 function Empty() {
@@ -48,13 +52,23 @@ function List({
   filteredItems = [],
   pageLinks,
   onMerge,
-  v2,
+  location,
 }: Props) {
   const [showAllItems, setShowAllItems] = useState(false);
 
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
+  const hasSimilarityEmbeddingsFeature =
+    project.features.includes('similarity-embeddings') ||
+    location.query.similarityEmbeddings === '1';
+  const organization = useOrganization();
+  const itemsWouldGroup = hasSimilarityEmbeddingsFeature
+    ? itemsWithFiltered.map(item => ({
+        id: item.issue.id,
+        shouldBeGrouped: item.aggregate?.shouldBeGrouped,
+      }))
+    : undefined;
 
   if (!hasResults) {
     return <Empty />;
@@ -63,25 +77,42 @@ function List({
   return (
     <Fragment>
       <Header>
-        <SimilarSpectrum />
+        {!hasSimilarityEmbeddingsFeature && (
+          <SimilarSpectrum
+            highSpectrumLabel={t('Similar')}
+            lowSpectrumLabel={t('Not Similar')}
+          />
+        )}
+        {hasSimilarityEmbeddingsFeature && (
+          <SimilarSpectrum
+            highSpectrumLabel={t('Most Similar')}
+            lowSpectrumLabel={t('Less Similar')}
+          />
+        )}
       </Header>
-
       <Panel>
-        <Toolbar v2={v2} onMerge={onMerge} />
+        <Toolbar
+          onMerge={onMerge}
+          groupId={groupId}
+          project={project}
+          organization={organization}
+          itemsWouldGroup={itemsWouldGroup}
+          location={location}
+        />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
             <Item
               key={item.issue.id}
               orgId={orgId}
-              v2={v2}
               groupId={groupId}
               project={project}
+              location={location}
               {...item}
             />
           ))}
 
-          {hasHiddenItems && !showAllItems && (
+          {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
             <Footer>
               <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}

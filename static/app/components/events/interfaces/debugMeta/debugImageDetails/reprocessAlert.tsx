@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 enum ReprocessableEventReason {
   // It can have many reasons. The event is too old to be reprocessed (very unlikely!)

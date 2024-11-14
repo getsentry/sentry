@@ -1,6 +1,5 @@
 """ Helper functions for sentry.options """
 
-
 import logging
 
 from sentry import options
@@ -23,6 +22,6 @@ def sample_modulo(option_name: str, value: int, granularity: int = 100) -> bool:
         if (value % granularity) < granularity * sample_rate:
             return True
     except TypeError:
-        logger.error("Invalid value for option %r: %r", option_name, sample_rate)
+        logger.exception("Invalid value for option %r: %r", option_name, sample_rate)
 
     return False

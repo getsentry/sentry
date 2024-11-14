@@ -6,6 +6,7 @@ const FluidHeight = styled('div')`
   flex-wrap: nowrap;
   flex-grow: 1;
   overflow: hidden;
+  height: 100%;
 `;
 
 export default FluidHeight;

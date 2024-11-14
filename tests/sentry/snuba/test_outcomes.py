@@ -1,20 +1,25 @@
+import urllib.parse
+from datetime import timedelta
+
 import pytest
 from django.http import QueryDict
+from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import DataCategory
 from sentry.search.utils import InvalidQuery
-from sentry.snuba.outcomes import InvalidField, QueryDefinition
-from sentry.testutils import TestCase
+from sentry.snuba.outcomes import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidField
+from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
 
 
 def _make_query(qs, params=None, allow_minute_resolution=True):
     if params is None:
         params = {}
-    return QueryDefinition(QueryDict(qs), params, allow_minute_resolution)
+    return QueryDefinition.from_query_dict(QueryDict(qs), params, allow_minute_resolution)
 
 
 class OutcomesQueryDefinitionTests(TestCase):
@@ -93,7 +98,7 @@ class OutcomesQueryDefinitionTests(TestCase):
             {"organization_id": 1},
             True,
         )
-        assert Function("count()", [Column("times_seen")], "times_seen") in query.select_params
+        assert Function("count", [], "times_seen") in query.select_params
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",
@@ -132,3 +137,21 @@ class OutcomesQueryDefinitionTests(TestCase):
                 "statsPeriod=4d&interval=1d&groupBy=category&key_id=INVALID&field=sum(quantity)",
                 {"organization_id": 1},
             )
+
+    def test_start_and_end_no_interval(self):
+        start = timezone.now()
+        end = start + timedelta(days=1)
+        query = _make_query(
+            urllib.parse.urlencode(
+                {
+                    "groupBy": "category",
+                    "field": "sum(quantity)",
+                    "start": start.isoformat(),
+                    "end": end.isoformat(),
+                }
+            ),
+            {"organization_id": 1},
+        )
+        assert query.start
+        assert query.end
+        assert query.rollup == 3600

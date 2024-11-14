@@ -1,22 +1,24 @@
-__all__ = ("Response", "JSONResponse")
+from __future__ import annotations
 
-from django.http import HttpResponse
+from typing import Any
+
+from django.http import HttpRequest, HttpResponse
 from django.template.context_processors import csrf
 
-from sentry.utils import json
+from sentry.web.helpers import render_to_string
+
+__all__ = ("DeferredResponse",)
 
 
-class Response:
-    def __init__(self, template, context=None):
+class DeferredResponse:
+    def __init__(self, template: str, context: dict[str, Any] | None = None) -> None:
         self.template = template
         self.context = context
 
-    def respond(self, request, context=None):
+    def respond(self, request: HttpRequest, context: dict[str, Any] | None = None) -> HttpResponse:
         return HttpResponse(self.render(request, context))
 
-    def render(self, request, context=None):
-        from sentry.web.helpers import render_to_string
-
+    def render(self, request: HttpRequest, context: dict[str, Any] | None = None) -> str:
         if not context:
             context = {}
 
@@ -26,14 +28,3 @@ class Response:
         context.update(csrf(request))
 
         return render_to_string(self.template, context, request)
-
-
-class JSONResponse(Response):
-    def __init__(self, context, status=200):
-        self.context = context
-        self.status = status
-
-    def respond(self, request, context=None):
-        return HttpResponse(
-            json.dumps(self.context), content_type="application/json", status=self.status
-        )

@@ -1,19 +1,13 @@
 import time
 from unittest.mock import patch
 
+import orjson
 import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
-from sentry.models import (
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    OrganizationIntegration,
-)
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @control_silo_test
@@ -23,11 +17,13 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
+        self.create_member(user=self.user1, organization=self.org)
+        self.create_member(user=self.user2, organization=self.org)
         self.team = self.create_team(organization=self.org, members=[self.user1, self.user2])
 
         self.login_as(self.user1)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Hogwarts",
             external_id="1_50l3mnly_5w34r",
@@ -37,14 +33,14 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
-
-        self.idp = IdentityProvider.objects.create(
-            type="msteams", external_id="1_50l3mnly_5w34r", config={}
+        self.create_organization_integration(
+            organization_id=self.org.id, integration=self.integration
         )
 
+        self.idp = self.create_identity_provider(type="msteams", external_id="1_50l3mnly_5w34r")
+
     @responses.activate
-    @patch("sentry.integrations.msteams.link_identity.unsign")
+    @patch("sentry.integrations.messaging.linkage.unsign")
     def test_basic_flow(self, unsign):
         unsign.return_value = {
             "integration_id": self.integration.id,
@@ -68,11 +64,11 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.assertTemplateUsed(resp, "sentry/auth-link-identity.html")
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "a_p_w_b_d"}] and payload["channelData"] == {
                 "tenant": {"id": "h0g5m34d3"}
             }:
-                return (200, {}, json.dumps({"id": "dumbl3d0r3"}))
+                return 200, {}, orjson.dumps({"id": "dumbl3d0r3"}).decode()
 
         responses.add_callback(
             method=responses.POST,
@@ -97,7 +93,7 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
-    @patch("sentry.integrations.msteams.link_identity.unsign")
+    @patch("sentry.integrations.messaging.linkage.unsign")
     def test_overwrites_existing_identities(self, unsign):
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="h_p", status=IdentityStatus.VALID
@@ -123,12 +119,12 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         )
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "g_w"}] and payload["channelData"] == {
                 "tenant": {"id": "th3_burr0w"}
             }:
-                return (200, {}, json.dumps({"id": "g1nny_w345l3y"}))
-            return (404, {}, json.dumps({}))
+                return 200, {}, orjson.dumps({"id": "g1nny_w345l3y"}).decode()
+            return 404, {}, orjson.dumps({}).decode()
 
         responses.add_callback(
             method=responses.POST,

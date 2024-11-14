@@ -5,7 +5,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Organization, Plugin, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 type Field = {
   depends?: string[];
@@ -306,8 +311,15 @@ class IssueActions extends PluginComponentBase<Props, State> {
     // a refetch in GroupDetails
     type StaleGroup = Group & {stale?: boolean};
 
+    trackAnalytics('issue_details.external_issue_created', {
+      organization: this.props.organization,
+      ...getAnalyticsDataForGroup(this.props.group),
+      external_issue_provider: this.props.plugin.slug,
+      external_issue_type: 'plugin',
+    });
+
     GroupStore.onUpdateSuccess('', [this.getGroup().id], {stale: true} as StaleGroup);
-    this.props.onSuccess && this.props.onSuccess(data);
+    this.props.onSuccess?.(data);
   }
 
   createIssue() {

@@ -1,26 +1,25 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import {
-  CompactSelect,
-  SelectOption,
-  SelectSection,
-} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import EventReplay from 'sentry/components/events/eventReplay';
+import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
+import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -37,29 +36,68 @@ type Props = {
   };
   event: Event;
   organization: Organization;
-  projectSlug: string;
-  isShare?: boolean;
+  hideTitle?: boolean;
 };
 
-enum BreadcrumbSort {
-  Newest = 'newest',
-  Oldest = 'oldest',
+export enum BreadcrumbSort {
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
 }
 
-const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
+export const BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
-const sortOptions = [
-  {label: t('Newest'), value: BreadcrumbSort.Newest},
-  {label: t('Oldest'), value: BreadcrumbSort.Oldest},
+export const BREADCRUMB_SORT_OPTIONS = [
+  {label: t('Newest'), value: BreadcrumbSort.NEWEST},
+  {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
-function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
+type BreadcrumbListType = BreadcrumbWithMeta | EnhancedCrumb;
+
+export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
+  breadcrumbs: T[],
+  newSearchTerm: string
+): T[] {
+  if (!newSearchTerm.trim()) {
+    return breadcrumbs;
+  }
+
+  // Slightly hacky, but it works
+  // the string is being `stringify`d here in order to match exactly the same `stringify`d string of the loop
+  const searchFor = JSON.stringify(newSearchTerm)
+    // it replaces double backslash generate by JSON.stringify with single backslash
+    .replace(/((^")|("$))/g, '')
+    .toLocaleLowerCase();
+
+  return breadcrumbs.filter(({breadcrumb}) =>
+    Object.keys(
+      pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
+    ).some(key => {
+      const info = breadcrumb[key];
+
+      if (!defined(info) || !String(info).trim()) {
+        return false;
+      }
+
+      return JSON.stringify(info)
+        .replace(/((^")|("$))/g, '')
+        .toLocaleLowerCase()
+        .trim()
+        .includes(searchFor);
+    })
+  );
+}
+
+function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
-    EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.Newest
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
+
+  const entryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
   );
 
   const initialBreadcrumbs = useMemo(() => {
@@ -160,39 +198,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     return filterLevels;
   }
 
-  function applySearchTerm(breadcrumbs: Crumb[], newSearchTerm: string) {
-    if (!newSearchTerm.trim()) {
-      return breadcrumbs;
-    }
-
-    // Slightly hacky, but it works
-    // the string is being `stringify`d here in order to match exactly the same `stringify`d string of the loop
-    const searchFor = JSON.stringify(newSearchTerm)
-      // it replaces double backslash generate by JSON.stringify with single backslash
-      .replace(/((^")|("$))/g, '')
-      .toLocaleLowerCase();
-
-    return breadcrumbs.filter(obj =>
-      Object.keys(
-        pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
-      ).some(key => {
-        const info = obj[key];
-
-        if (!defined(info) || !String(info).trim()) {
-          return false;
-        }
-
-        return JSON.stringify(info)
-          .replace(/((^")|("$))/g, '')
-          .toLocaleLowerCase()
-          .trim()
-          .includes(searchFor);
-      })
-    );
-  }
-
   function applySelectedFilters(
-    breadcrumbs: Crumb[],
+    breadcrumbs: BreadcrumbWithMeta[],
     selectedFilterOptions: SelectOption<string>[]
   ) {
     const checkedTypeOptions = new Set(
@@ -209,21 +216,21 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
     if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
       return breadcrumbs.filter(
-        filteredCrumb =>
-          checkedTypeOptions.has(filteredCrumb.type) &&
-          checkedLevelOptions.has(filteredCrumb.level)
+        ({breadcrumb}) =>
+          checkedTypeOptions.has(breadcrumb.type) &&
+          checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
     if ([...checkedTypeOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedTypeOptions.has(filteredCrumb.type)
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedTypeOptions.has(breadcrumb.type)
       );
     }
 
     if ([...checkedLevelOptions].length) {
-      return breadcrumbs.filter(filteredCrumb =>
-        checkedLevelOptions.has(filteredCrumb.level)
+      return breadcrumbs.filter(({breadcrumb}) =>
+        checkedLevelOptions.has(breadcrumb.level)
       );
     }
 
@@ -231,18 +238,29 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   const displayedBreadcrumbs = useMemo(() => {
-    const filteredBreadcrumbs = applySearchTerm(
-      applySelectedFilters(initialBreadcrumbs, filterSelections),
+    const breadcrumbsWithMeta = initialBreadcrumbs.map((breadcrumb, index) => ({
+      breadcrumb,
+      meta: event._meta?.entries?.[entryIndex]?.data?.values?.[index],
+    }));
+    const filteredBreadcrumbs = applyBreadcrumbSearch(
+      applySelectedFilters(breadcrumbsWithMeta, filterSelections),
       searchTerm
     );
 
     // Breadcrumbs come back from API sorted oldest -> newest.
     // Need to `reverse()` instead of sort by timestamp because crumbs with
     // exact same timestamp will appear out of order.
-    return sort === BreadcrumbSort.Newest
+    return sort === BreadcrumbSort.NEWEST
       ? [...filteredBreadcrumbs].reverse()
       : filteredBreadcrumbs;
-  }, [filterSelections, initialBreadcrumbs, searchTerm, sort]);
+  }, [
+    entryIndex,
+    event._meta?.entries,
+    filterSelections,
+    initialBreadcrumbs,
+    searchTerm,
+    sort,
+  ]);
 
   function getEmptyMessage() {
     if (displayedBreadcrumbs.length) {
@@ -271,11 +289,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     };
   }
 
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
-  const showReplay = !isShare && organization.features.includes('session-replay-ui');
-
   const actions = (
-    <SearchAndSortWrapper isFullWidth={showReplay}>
+    <SearchAndSortWrapper>
       <SearchBarAction
         placeholder={t('Search breadcrumbs')}
         onChange={setSearchTerm}
@@ -293,49 +308,37 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
           setSort(selectedOption.value);
         }}
         value={sort}
-        options={sortOptions}
+        options={BREADCRUMB_SORT_OPTIONS}
       />
     </SearchAndSortWrapper>
   );
 
   return (
-    <EventDataSection
-      type={EntryType.BREADCRUMBS}
-      title={t('Breadcrumbs')}
-      actions={!showReplay ? actions : null}
+    <InterimSection
+      showPermalink={!hideTitle}
+      type={SectionKey.BREADCRUMBS}
+      title={hideTitle ? '' : t('Breadcrumbs')}
+      actions={actions}
     >
-      {showReplay ? (
-        <Fragment>
-          <EventReplay
-            replayId={replayId}
-            projectSlug={projectSlug}
-            orgSlug={organization.slug}
-            event={event}
-          />
-          {actions}
-        </Fragment>
-      ) : null}
       <ErrorBoundary>
-        <GuideAnchor target="breadcrumbs" position="bottom">
-          <Breadcrumbs
-            emptyMessage={getEmptyMessage()}
-            breadcrumbs={displayedBreadcrumbs}
-            event={event}
-            organization={organization}
-            onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
-            displayRelativeTime={displayRelativeTime}
-            searchTerm={searchTerm}
-            relativeTime={relativeTime}
-          />
-        </GuideAnchor>
+        <Breadcrumbs
+          emptyMessage={getEmptyMessage()}
+          breadcrumbs={displayedBreadcrumbs}
+          event={event}
+          organization={organization}
+          onSwitchTimeFormat={() => setDisplayRelativeTime(old => !old)}
+          displayRelativeTime={displayRelativeTime}
+          searchTerm={searchTerm}
+          relativeTime={relativeTime}
+        />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 
 export {BreadcrumbsContainer as Breadcrumbs};
 
-const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
+export const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
@@ -344,7 +347,9 @@ const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
     grid-template-columns: 1fr;
   }
 
-  margin-bottom: ${p => (p.isFullWidth ? space(1) : 0)};
+  @container breadcrumbs (width < 640px) {
+    display: none;
+  }
 `;
 
 const LevelWrap = styled('span')`

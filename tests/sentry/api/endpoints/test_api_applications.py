@@ -1,11 +1,11 @@
 from django.urls import reverse
 
-from sentry.models import ApiApplication
-from sentry.testutils import APITestCase
+from sentry.models.apiapplication import ApiApplication
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationsListTest(APITestCase):
     def test_simple(self):
         app1 = ApiApplication.objects.create(owner=self.user, name="a")
@@ -21,7 +21,7 @@ class ApiApplicationsListTest(APITestCase):
         assert response.data[1]["id"] == app2.client_id
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class ApiApplicationsCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(self.user)

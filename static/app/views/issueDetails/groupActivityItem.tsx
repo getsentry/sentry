@@ -1,48 +1,128 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
-import {
+import type {
+  Group,
   GroupActivity,
   GroupActivityAssigned,
+  GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  GroupActivityType,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
+} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
-type Props = {
+interface AssignedMessageProps {
+  activity: GroupActivityAssigned;
+  author: React.ReactNode;
+  issueType: string;
+}
+
+function AssignedMessage({activity, author, issueType}: AssignedMessageProps) {
+  const {data} = activity;
+  let assignee: string | User | undefined = undefined;
+  const {teams} = useTeamsById(
+    data.assigneeType === 'team' ? {ids: [data.assignee]} : undefined
+  );
+
+  if (data.assigneeType === 'team') {
+    const team = teams.find(({id}) => id === data.assignee);
+    // TODO: could show a loading indicator if the team is loading
+    assignee = team ? `#${team.slug}` : '<unknown-team>';
+  } else if (activity.user && data.assignee === activity.user.id) {
+    assignee = t('themselves');
+  } else if (data.assigneeType === 'user' && data.assigneeEmail) {
+    assignee = data.assigneeEmail;
+  } else {
+    assignee = t('an unknown user');
+  }
+
+  const isAutoAssigned = ['projectOwnership', 'codeowners', 'suspectCommitter'].includes(
+    data.integration as string
+  );
+
+  const integrationName: Record<
+    NonNullable<GroupActivityAssigned['data']['integration']>,
+    string
+  > = {
+    msteams: t('Microsoft Teams'),
+    slack: t('Slack'),
+    projectOwnership: t('Ownership Rule'),
+    codeowners: t('Codeowners Rule'),
+    suspectCommitter: t('Suspect Commit'),
+  };
+
+  return (
+    <Fragment>
+      <div>
+        {tct('[author] [action] this [issueType] to [assignee]', {
+          action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
+          author,
+          assignee,
+          issueType,
+        })}
+      </div>
+      {data.integration && integrationName[data.integration] && (
+        <CodeWrapper>
+          {t('Assigned via %s', integrationName[data.integration])}
+          {data.rule && (
+            <Fragment>
+              : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
+            </Fragment>
+          )}
+        </CodeWrapper>
+      )}
+    </Fragment>
+  );
+}
+
+interface GroupActivityItemProps {
   activity: GroupActivity;
   author: React.ReactNode;
-  orgSlug: Organization['slug'];
+  group: Group;
+  organization: Organization;
   projectId: Project['id'];
-};
+}
 
-function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
-  const issuesLink = `/organizations/${orgSlug}/issues/`;
+function GroupActivityItem({
+  activity,
+  organization,
+  projectId,
+  author,
+  group,
+}: GroupActivityItemProps) {
+  const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const isFeedback = (group.issueCategory as string) === 'feedback';
+  const issueType = isFeedback ? t('feedback') : t('issue');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
+    const archived = t('archived');
     if (data.ignoreDuration) {
-      return tct('[author] ignored this issue for [duration]', {
+      return tct('[author] [action] this issue for [duration]', {
         author,
+        action: archived,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
     }
 
     if (data.ignoreCount && data.ignoreWindow) {
       return tct(
-        '[author] ignored this issue until it happens [count] time(s) in [duration]',
+        '[author] [action] this issue until it happens [count] time(s) in [duration]',
         {
           author,
+          action: archived,
           count: data.ignoreCount,
           duration: <Duration seconds={data.ignoreWindow * 60} />,
         }
@@ -50,17 +130,19 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreCount) {
-      return tct('[author] ignored this issue until it happens [count] time(s)', {
+      return tct('[author] [action] this issue until it happens [count] time(s)', {
         author,
+        action: archived,
         count: data.ignoreCount,
       });
     }
 
     if (data.ignoreUserCount && data.ignoreUserWindow) {
       return tct(
-        '[author] ignored this issue until it affects [count] user(s) in [duration]',
+        '[author] [action] this issue until it affects [count] user(s) in [duration]',
         {
           author,
+          action: archived,
           count: data.ignoreUserCount,
           duration: <Duration seconds={data.ignoreUserWindow * 60} />,
         }
@@ -68,63 +150,104 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
 
     if (data.ignoreUserCount) {
-      return tct('[author] ignored this issue until it affects [count] user(s)', {
+      return tct('[author] [action] this issue until it affects [count] user(s)', {
         author,
+        action: archived,
         count: data.ignoreUserCount,
       });
     }
 
-    return tct('[author] ignored this issue', {author});
-  }
-
-  function getAssignedMessage(data: GroupActivityAssigned['data']) {
-    let assignee: string | User | undefined = undefined;
-    if (data.assigneeType === 'team') {
-      const team = TeamStore.getById(data.assignee);
-      assignee = team ? `#${team.slug}` : '<unknown-team>';
-    } else if (activity.user && data.assignee === activity.user.id) {
-      assignee = t('themselves');
-    } else if (data.assigneeType === 'user' && data.assigneeEmail) {
-      assignee = data.assigneeEmail;
-    } else {
-      assignee = t('an unknown user');
+    if (data.ignoreUntil) {
+      return tct('[author] [action] this issue until [date]', {
+        author,
+        action: archived,
+        date: <DateTime date={data.ignoreUntil} />,
+      });
+    }
+    if (data.ignoreUntilEscalating) {
+      return tct('[author] archived this issue until it escalates', {
+        author,
+      });
     }
 
-    const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
-      data.integration as string
-    );
+    return isFeedback
+      ? tct('[author] marked this feedback as spam', {
+          author,
+        })
+      : tct('[author] [action] this issue forever', {
+          author,
+          action: archived,
+        });
+  }
 
-    const integrationName: Record<
-      NonNullable<GroupActivityAssigned['data']['integration']>,
-      string
-    > = {
-      msteams: t('Microsoft Teams'),
-      slack: t('Slack'),
-      projectOwnership: t('Ownership Rule'),
-      codeowners: t('Codeowners Rule'),
-    };
+  function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
+    if (data.forecast) {
+      return tct(
+        '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+        {
+          author,
+          forecast: data.forecast,
+          event: data.forecast === 1 ? 'event' : 'events',
+        }
+      );
+    }
 
-    return (
-      <Fragment>
-        <div>
-          {tct('[author] [action] this issue to [assignee]', {
-            action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
+    if (data.expired_snooze) {
+      if (data.expired_snooze.count && data.expired_snooze.window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened in [duration]',
+          {
             author,
-            assignee,
-          })}
-        </div>
-        {data.integration && (
-          <CodeWrapper>
-            {t('Assigned via %s', integrationName[data.integration])}
-            {data.rule && (
-              <Fragment>
-                : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
-              </Fragment>
-            )}
-          </CodeWrapper>
-        )}
-      </Fragment>
-    );
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+            duration: <Duration seconds={data.expired_snooze.window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count && data.expired_snooze.user_window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected in [duration]',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+            duration: <Duration seconds={data.expired_snooze.user_window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+          }
+        );
+      }
+
+      if (data.expired_snooze.until) {
+        return tct('[author] flagged this issue as escalating because [date] passed', {
+          author,
+          date: <DateTime date={data.expired_snooze.until} />,
+        });
+      }
+    }
+
+    return tct('[author] flagged this issue as escalating', {author}); // should not reach this
   }
 
   function renderContent() {
@@ -132,34 +255,52 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       case GroupActivityType.NOTE:
         return tct('[author] left a comment', {author});
       case GroupActivityType.SET_RESOLVED:
-        return tct('[author] marked this issue as resolved', {author});
+        if ('integration_id' in activity.data && activity.data.integration_id) {
+          return tct('[author] marked this [issueType] as resolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
+              >
+                {activity.data.provider}
+              </Link>
+            ),
+            author,
+            issueType,
+          });
+        }
+        return tct('[author] marked this [issueType] as resolved', {author, issueType});
       case GroupActivityType.SET_RESOLVED_BY_AGE:
         return tct('[author] marked this issue as resolved due to inactivity', {
           author,
         });
       case GroupActivityType.SET_RESOLVED_IN_RELEASE:
-        const {current_release_version, version} = activity.data;
-        if (current_release_version) {
+        // Resolved in the next release
+        if ('current_release_version' in activity.data) {
+          const currentVersion = activity.data.current_release_version;
           return tct(
-            '[author] marked this issue as resolved in releases greater than [version]',
+            '[author] marked this issue as resolved in releases greater than [version] [semver]',
             {
               author,
               version: (
                 <Version
-                  version={current_release_version}
+                  version={currentVersion}
                   projectId={projectId}
                   tooltipRawVersion
                 />
               ),
+              semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }
           );
         }
+
+        const version = activity.data.version;
         return version
-          ? tct('[author] marked this issue as resolved in [version]', {
+          ? tct('[author] marked this issue as resolved in [version] [semver]', {
               author,
               version: (
                 <Version version={version} projectId={projectId} tooltipRawVersion />
               ),
+              semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
             })
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
@@ -170,7 +311,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           .sort(
             (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
           );
-        if (deployedReleases.length === 1) {
+        if (deployedReleases.length === 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release]',
             {
@@ -193,7 +334,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
             }
           );
         }
-        if (deployedReleases.length > 1) {
+        if (deployedReleases.length > 1 && activity.data.commit) {
           return tct(
             '[author] marked this issue as resolved in [version] [break]This commit was released in [release] and [otherCount] others',
             {
@@ -217,32 +358,63 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
             }
           );
         }
-        return tct('[author] marked this issue as resolved in [version]', {
-          author,
-          version: (
-            <CommitLink
-              inline
-              commitId={activity.data.commit.id}
-              repository={activity.data.commit.repository}
-            />
-          ),
-        });
+        if (activity.data.commit) {
+          return tct('[author] marked this issue as resolved in [commit]', {
+            author,
+            commit: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+          });
+        }
+        return tct('[author] marked this issue as resolved in a commit', {author});
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
-        return tct('[author] has created a PR for this issue: [version]', {
+        return tct('[author] has created a PR for this issue: [pullRequest]', {
           author,
-          version: (
+          pullRequest: pullRequest ? (
             <PullRequestLink
               inline
               pullRequest={pullRequest}
               repository={pullRequest.repository}
             />
+          ) : (
+            t('PR not available')
           ),
         });
       }
-      case GroupActivityType.SET_UNRESOLVED:
-        return tct('[author] marked this issue as unresolved', {author});
+      case GroupActivityType.SET_UNRESOLVED: {
+        // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
+        const {data} = activity;
+        if ('forecast' in data && data.forecast) {
+          return tct(
+            '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+            {
+              author,
+              forecast: data.forecast,
+              event: data.forecast === 1 ? 'event' : 'events',
+            }
+          );
+        }
+        if ('integration_id' in data && data.integration_id) {
+          return tct('[author] marked this [issueType] as unresolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${data.provider_key}/${data.integration_id}/`}
+              >
+                {data.provider}
+              </Link>
+            ),
+            author,
+            issueType,
+          });
+        }
+        return tct('[author] marked this [issueType] as unresolved', {author, issueType});
+      }
       case GroupActivityType.SET_IGNORED: {
         const {data} = activity;
         return getIgnoredMessage(data);
@@ -253,14 +425,52 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         return tct('[author] made this issue private', {author});
       case GroupActivityType.SET_REGRESSION: {
         const {data} = activity;
-        return data.version
-          ? tct('[author] marked this issue as a regression in [version]', {
+        let subtext: React.ReactNode = null;
+        if (data.version && data.resolved_in_version && 'follows_semver' in data) {
+          subtext = (
+            <Subtext>
+              {tct(
+                '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
+                {
+                  regressionVersion: (
+                    <Version
+                      version={data.version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  resolvedVersion: (
+                    <Version
+                      version={data.resolved_in_version}
+                      projectId={projectId}
+                      tooltipRawVersion
+                    />
+                  ),
+                  comparison: data.follows_semver ? t('semver') : t('release date'),
+                }
+              )}
+            </Subtext>
+          );
+        }
+
+        return data.version ? (
+          <Fragment>
+            {tct('[author] marked this issue as a regression in [version]', {
               author,
               version: (
                 <Version version={data.version} projectId={projectId} tooltipRawVersion />
               ),
-            })
-          : tct('[author] marked this issue as a regression', {author});
+            })}
+            {subtext}
+          </Fragment>
+        ) : (
+          <Fragment>
+            {tct('[author] marked this issue as a regression', {
+              author,
+            })}
+            {subtext}
+          </Fragment>
+        );
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
@@ -309,13 +519,21 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         );
       }
       case GroupActivityType.FIRST_SEEN:
+        if (activity.data.priority) {
+          return tct(
+            '[author] first saw this issue and marked it as [priority] priority',
+            {author, priority: activity.data.priority}
+          );
+        }
+
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
-        const {data} = activity;
-        return getAssignedMessage(data);
+        return (
+          <AssignedMessage activity={activity} author={author} issueType={issueType} />
+        );
       }
       case GroupActivityType.UNASSIGNED:
-        return tct('[author] unassigned this issue', {author});
+        return tct('[author] unassigned this [issueType]', {author, issueType});
       case GroupActivityType.MERGE:
         return tn(
           '%2$s merged %1$s issue into this issue',
@@ -331,7 +549,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
           ['new-events']: (
             <Link
-              to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
+              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}&referrer=group-activity-reprocesses`}
             >
               {tn('See %s new event', 'See %s new events', eventCount)}
             </Link>
@@ -343,6 +561,41 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           author,
         });
       }
+      case GroupActivityType.AUTO_SET_ONGOING: {
+        return activity.data?.afterDays
+          ? tct(
+              '[author] automatically marked this issue as ongoing after [afterDays] days',
+              {author, afterDays: activity.data.afterDays}
+            )
+          : tct('[author] automatically marked this issue as ongoing', {
+              author,
+            });
+      }
+      case GroupActivityType.SET_ESCALATING: {
+        return getEscalatingMessage(activity.data);
+      }
+      case GroupActivityType.SET_PRIORITY: {
+        const {data} = activity;
+        switch (data.reason) {
+          case 'escalating':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it escalated',
+              {author, priority: data.priority}
+            );
+          case 'ongoing':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it was marked as ongoing',
+              {author, priority: data.priority}
+            );
+          default:
+            return tct(
+              '[author] updated the priority value of this issue to be [priority]',
+              {author, priority: data.priority}
+            );
+        }
+      }
+      case GroupActivityType.DELETED_ATTACHMENT:
+        return tct('[author] deleted an attachment', {author});
       default:
         return ''; // should never hit (?)
     }
@@ -352,6 +605,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
 }
 
 export default GroupActivityItem;
+
+const Subtext = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;

@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 import base64
 import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
-from rest_framework.request import Request
-from rest_framework.response import Response
+from django.http import HttpRequest, HttpResponse
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
-from sentry.models import ApiKey, ProjectOption, Repository, User
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
+from sentry.models.apikey import ApiKey
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.repository import Repository
 from sentry.plugins.base.configuration import react_plugin_config
-from sentry.plugins.bases import ReleaseTrackingPlugin
+from sentry.plugins.bases.releasetracking import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -24,7 +27,9 @@ logger = logging.getLogger("sentry.plugins.heroku")
 class HerokuReleaseHook(ReleaseHook):
     def get_auth(self):
         try:
-            return ApiKey(organization=self.project.organization, scope_list=["project:write"])
+            return ApiKey(
+                organization_id=self.project.organization_id, scope_list=["project:write"]
+            )
         except ApiKey.DoesNotExist:
             return None
 
@@ -33,6 +38,8 @@ class HerokuReleaseHook(ReleaseHook):
 
     def is_valid_signature(self, body, heroku_hmac):
         secret = ProjectOption.objects.get_value(project=self.project, key="heroku:webhook_secret")
+        if secret is None:
+            return False
         computed_hmac = base64.b64encode(
             hmac.new(
                 key=secret.encode("utf-8"),
@@ -43,7 +50,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: HttpRequest) -> HttpResponse | None:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
@@ -54,12 +61,13 @@ class HerokuReleaseHook(ReleaseHook):
         data = body.get("data")
         email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
 
-        try:
-            user = User.objects.get(
-                email__iexact=email, sentry_orgmember_set__organization__project=self.project
-            )
-        except (User.DoesNotExist, User.MultipleObjectsReturned):
-            user = None
+        users = user_service.get_many_by_email(
+            emails=[email],
+            organization_id=self.project.organization_id,
+            is_verified=False,
+        )
+        user = users[0] if users else None
+        if user is None:
             logger.info(
                 "owner.missing",
                 extra={
@@ -75,14 +83,17 @@ class HerokuReleaseHook(ReleaseHook):
 
         commit = slug.get("commit")
         app_name = data.get("app", {}).get("name")
-        if app_name:
-            self.finish_release(
-                version=commit,
-                url=f"http://{app_name}.herokuapp.com",
-                owner_id=user.id if user else None,
-            )
-        else:
-            self.finish_release(version=commit, owner_id=user.id if user else None)
+        if body.get("action") == "update":
+            if app_name:
+                self.finish_release(
+                    version=commit,
+                    url=f"http://{app_name}.herokuapp.com",
+                    owner_id=user.id if user else None,
+                )
+            else:
+                self.finish_release(version=commit, owner_id=user.id if user else None)
+
+        return None
 
     def set_refs(self, release, **values):
         if not values.get("owner_id", None):
@@ -156,7 +167,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
     def get_conf_key(self):
         return "heroku"
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         repo_list = list(Repository.objects.filter(organization_id=project.organization_id))
         if not ProjectOption.objects.get_value(project=project, key="heroku:repository"):
             choices = [("", "select a repo")]
@@ -203,5 +214,5 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
         """
 
-    def get_release_hook(self):
+    def get_release_hook(self) -> type[HerokuReleaseHook]:
         return HerokuReleaseHook

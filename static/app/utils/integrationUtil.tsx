@@ -1,7 +1,6 @@
-import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
-import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
@@ -10,12 +9,15 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
+  IconSentry,
   IconVsts,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {
+import type {Hooks} from 'sentry/types/hooks';
+import type {
   AppOrProviderOrPlugin,
+  CodeOwner,
   DocIntegration,
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
@@ -23,36 +25,20 @@ import {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
-  Organization,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
-} from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
-import {
-  integrationEventMap,
-  IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrations';
-import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
+} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
-import {IconSize} from './theme';
+import type {IconSize} from './theme';
 
-const mapIntegrationParams = analyticsParams => {
-  // Reload expects integration_status even though it's not relevant for non-sentry apps
-  // Passing in a dummy value of published in those cases
-  const fullParams = {...analyticsParams};
-  if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
-    fullParams.integration_status = 'published';
-  }
-  return fullParams;
-};
-
-export const trackIntegrationAnalytics = makeAnalyticsFunction<
-  IntegrationEventParameters,
-  {organization: Organization} // org is required
->(integrationEventMap, {
-  mapValuesFn: mapIntegrationParams,
-});
+/**
+ * TODO: remove alias once all usages are updated
+ * @deprecated Use trackAnalytics instead
+ */
+export const trackIntegrationAnalytics = trackAnalytics;
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
@@ -225,6 +211,73 @@ export const getIntegrationIcon = (
   }
 };
 
+export const getIntegrationDisplayName = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'asana':
+      return 'Asana';
+    case 'bitbucket':
+      return 'Bitbucket';
+    case 'gitlab':
+      return 'GitLab';
+    case 'github':
+    case 'github_enterprise':
+      return 'GitHub';
+    case 'jira':
+    case 'jira_server':
+      return 'Jira';
+    case 'vsts':
+      return 'VSTS';
+    case 'codecov':
+      return 'Codeov';
+    default:
+      return '';
+  }
+};
+
+export const getIntegrationSourceUrl = (
+  integrationType: string,
+  sourceUrl: string,
+  lineNo: number | null
+) => {
+  switch (integrationType) {
+    case 'bitbucket':
+    case 'bitbucket_server':
+      return `${sourceUrl}#lines-${lineNo}`;
+    case 'vsts':
+      const url = new URL(sourceUrl);
+      if (lineNo) {
+        url.searchParams.set('line', lineNo.toString());
+        url.searchParams.set('lineEnd', (lineNo + 1).toString());
+        url.searchParams.set('lineStartColumn', '1');
+        url.searchParams.set('lineEndColumn', '1');
+        url.searchParams.set('lineStyle', 'plain');
+        url.searchParams.set('_a', 'contents');
+      }
+      return url.toString();
+    case 'github':
+    case 'github_enterprise':
+    default:
+      if (lineNo === null) {
+        return sourceUrl;
+      }
+      return `${sourceUrl}#L${lineNo}`;
+  }
+};
+
+export function getCodeOwnerIcon(
+  provider: CodeOwner['provider'],
+  iconSize: IconSize = 'md'
+) {
+  switch (provider ?? '') {
+    case 'github':
+      return <IconGithub size={iconSize} />;
+    case 'gitlab':
+      return <IconGitlab size={iconSize} />;
+    default:
+      return <IconSentry size={iconSize} />;
+  }
+}
+
 // used for project creation and onboarding
 // determines what integration maps to what project platform
 export const platformToIntegrationMap = {
@@ -268,3 +321,11 @@ export const sentryNameToOption = ({id, name}): Result => ({
   value: id,
   label: name,
 });
+
+export function getIntegrationStatus(integration: Integration) {
+  // there are multiple status fields for an integration we consider
+  const statusList = [integration.organizationIntegrationStatus, integration.status];
+  const firstNotActive = statusList.find(s => s !== 'active');
+  // Active if everything is active, otherwise the first inactive status
+  return firstNotActive ?? 'active';
+}

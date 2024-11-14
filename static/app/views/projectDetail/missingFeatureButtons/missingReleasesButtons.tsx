@@ -1,9 +1,12 @@
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
+import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
 
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
@@ -12,12 +15,13 @@ const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';
 type Props = {
   organization: Organization;
   health?: boolean;
+  platform?: PlatformKey;
   projectId?: string;
 };
 
-function MissingReleasesButtons({organization, health, projectId}: Props) {
+function MissingReleasesButtons({organization, health, projectId, platform}: Props) {
   function handleTourAdvance(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.releases_tour.advance', {
+    trackAnalytics('project_detail.releases_tour.advance', {
       organization,
       project_id: projectId ?? '',
       step,
@@ -26,7 +30,7 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
   }
 
   function handleClose(step: number, duration: number) {
-    trackAdvancedAnalyticsEvent('project_detail.releases_tour.close', {
+    trackAnalytics('project_detail.releases_tour.close', {
       organization,
       project_id: projectId ?? '',
       step,
@@ -34,16 +38,25 @@ function MissingReleasesButtons({organization, health, projectId}: Props) {
     });
   }
 
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const setupDisabled =
+    (health && platform && !releaseHealth.includes(platform)) || isSelfHostedErrorsOnly;
+  const setupDisabledTooltip = isSelfHostedErrorsOnly
+    ? t('Release health is not available for errors only self-hosted.')
+    : t('Release Health is not yet supported on this platform.');
+
   return (
     <ButtonBar gap={1}>
-      <Button
+      <LinkButton
         size="sm"
         priority="primary"
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
+        disabled={setupDisabled}
+        title={setupDisabled ? setupDisabledTooltip : undefined}
       >
         {t('Start Setup')}
-      </Button>
+      </LinkButton>
       {!health && (
         <FeatureTourModal
           steps={RELEASES_TOUR_STEPS}

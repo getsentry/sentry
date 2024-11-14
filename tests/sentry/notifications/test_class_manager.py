@@ -6,7 +6,7 @@ from sentry.notifications.class_manager import (
     manager,
     register,
 )
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import AnotherDummyNotification
 
 

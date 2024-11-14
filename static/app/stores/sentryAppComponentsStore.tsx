@@ -1,11 +1,13 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {SentryAppComponent} from 'sentry/types';
+import type {SentryAppComponent} from 'sentry/types/integrations';
 
 export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
   get: (uuid: string) => SentryAppComponent | undefined;
   getAll: () => SentryAppComponent[];
   getInitialState: () => SentryAppComponent[];
+  init: () => void;
   loadComponents: (items: SentryAppComponent[]) => void;
 }
 

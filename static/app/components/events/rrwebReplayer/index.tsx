@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import type RRWebPlayer from 'rrweb-player';
+import type RRWebPlayer from '@sentry-internal/rrweb-player';
 
 import BaseRRWebReplayer from './baseRRWebReplayer';
 
@@ -46,6 +46,7 @@ function RRWebReplayer({urls}: Props) {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => void loadEvents(), [urls]);
 
   return <BaseRRWebReplayer events={events} />;

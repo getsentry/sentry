@@ -1,19 +1,20 @@
-from uuid import uuid4
+import secrets
+from typing import Any, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
-from sentry.db.models import (
-    ArrayField,
-    BaseManager,
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    Model,
-    control_silo_only_model,
-    sane_repr,
-)
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.outbox.base import ReplicatedControlModel
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.services.replica import region_replica_service
+from sentry.models.apiscopes import HasApiScopes
 
 
 # TODO(dcramer): pull in enum library
@@ -22,34 +23,15 @@ class ApiKeyStatus:
     INACTIVE = 1
 
 
-@control_silo_only_model
-class ApiKey(Model):
-    __include_in_export__ = True
+@control_silo_model
+class ApiKey(ReplicatedControlModel, HasApiScopes):
+    __relocation_scope__ = RelocationScope.Global
+    category = OutboxCategory.API_KEY_UPDATE
+    replication_version = 3
 
-    organization = FlexibleForeignKey("sentry.Organization", related_name="key_set")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
-    scopes = BitField(
-        flags=(
-            ("project:read", "project:read"),
-            ("project:write", "project:write"),
-            ("project:admin", "project:admin"),
-            ("project:releases", "project:releases"),
-            ("team:read", "team:read"),
-            ("team:write", "team:write"),
-            ("team:admin", "team:admin"),
-            ("event:read", "event:read"),
-            ("event:write", "event:write"),
-            ("event:admin", "event:admin"),
-            ("org:read", "org:read"),
-            ("org:write", "org:write"),
-            ("org:admin", "org:admin"),
-            ("member:read", "member:read"),
-            ("member:write", "member:write"),
-            ("member:admin", "member:admin"),
-        )
-    )
-    scope_list = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
         default=0,
         choices=((ApiKeyStatus.ACTIVE, _("Active")), (ApiKeyStatus.INACTIVE, _("Inactive"))),
@@ -58,7 +40,7 @@ class ApiKey(Model):
     date_added = models.DateTimeField(default=timezone.now)
     allowed_origins = models.TextField(blank=True, null=True)
 
-    objects = BaseManager(cache_fields=("key",))
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("key",))
 
     class Meta:
         app_label = "sentry"
@@ -66,12 +48,19 @@ class ApiKey(Model):
 
     __repr__ = sane_repr("organization_id", "key")
 
+    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.auth.services.auth.serial import serialize_api_key
+
+        region_replica_service.upsert_replicated_api_key(
+            api_key=serialize_api_key(self), region_name=region_name
+        )
+
     def __str__(self):
         return str(self.key)
 
     @classmethod
     def generate_api_key(cls):
-        return uuid4().hex
+        return secrets.token_hex(nbytes=16)
 
     @property
     def is_active(self):
@@ -95,10 +84,23 @@ class ApiKey(Model):
             "status": self.status,
         }
 
-    def get_scopes(self):
-        if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
 
-    def has_scope(self, scope):
-        return scope in self.get_scopes()
+        sanitizer.set_string(json, SanitizableField(model_name, "allowed_origins"), lambda _: "")
+        sanitizer.set_string(json, SanitizableField(model_name, "key"))
+        sanitizer.set_name(json, SanitizableField(model_name, "label"))
+
+
+def is_api_key_auth(auth: object) -> bool:
+    """:returns True when an API Key is hitting the API."""
+    from sentry.auth.services.auth import AuthenticatedToken
+    from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "api_key"
+    return isinstance(auth, ApiKey) or isinstance(auth, ApiKeyReplica)

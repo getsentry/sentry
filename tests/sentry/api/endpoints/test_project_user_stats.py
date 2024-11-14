@@ -1,12 +1,12 @@
 from django.urls import reverse
-from freezegun import freeze_time
 
-from sentry.testutils import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
+
+pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class ProjectUserDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -30,21 +30,21 @@ class ProjectUserDetailsTest(APITestCase):
         with freeze_time(now):
             self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=10)),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_1"},
                 },
                 project_id=self.project.id,
             )
             self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=10)),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_1"},
                 },
                 project_id=self.project.id,
             )
             self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=10)),
+                    "timestamp": before_now(minutes=10).isoformat(),
                     "tags": {"sentry:user": "user_2"},
                 },
                 project_id=self.project.id,

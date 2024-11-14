@@ -1,6 +1,8 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.rules import rules
@@ -8,6 +10,11 @@ from sentry.rules import rules
 
 @region_silo_endpoint
 class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve the list of rule conditions
@@ -15,7 +22,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
         def info_extractor(rule_cls):
             context = {"id": rule_cls.id, "label": rule_cls.label}
-            node = rule_cls(None)
+            node = rule_cls(project=None)
             if hasattr(node, "form_fields"):
                 context["formFields"] = node.form_fields
 

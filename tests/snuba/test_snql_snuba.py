@@ -1,7 +1,6 @@
 import time
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 from unittest import mock
 
 from django.utils import timezone
@@ -13,13 +12,13 @@ from snuba_sdk.expressions import Limit
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
 class SnQLTest(TestCase, SnubaTestCase):
     def _insert_event_for_time(
-        self, ts: datetime, group_hash: str = "a" * 32, group_id: Optional[int] = None
+        self, ts: datetime, group_hash: str = "a" * 32, group_id: int | None = None
     ) -> str:
         event_id = uuid.uuid4().hex
         self.snuba_insert(
@@ -57,7 +56,12 @@ class SnQLTest(TestCase, SnubaTestCase):
                 ]
             )
         )
-        request = Request(dataset="events", app_id="tests", query=query)
+        request = Request(
+            dataset="events",
+            app_id="tests",
+            query=query,
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
+        )
         result = snuba.raw_snql_query(request, referrer="referrer_not_in_enum")
         assert len(result["data"]) == 1
         assert result["data"][0] == {"count": 1, "project_id": self.project.id}
@@ -71,6 +75,7 @@ class SnQLTest(TestCase, SnubaTestCase):
             Request(
                 dataset="events",
                 app_id="tests",
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
                 query=Query(
                     Entity("events"),
                     select=[Column("event_id")],

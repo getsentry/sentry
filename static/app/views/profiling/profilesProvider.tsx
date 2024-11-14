@@ -1,17 +1,18 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
-import {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/core';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-
-import {isSchema} from '../../utils/profiling/guards/profile';
 
 function fetchFlamegraphs(
   api: Client,
@@ -33,6 +34,9 @@ function fetchFlamegraphs(
 function getTransactionId(input: Profiling.ProfileInput): string | null {
   if (isSchema(input)) {
     return input.metadata.transactionID;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.id;
   }
   return null;
 }
@@ -64,7 +68,7 @@ export function useSetProfiles() {
   return context;
 }
 
-const ProfileTransactionContext =
+export const ProfileTransactionContext =
   createContext<RequestState<EventTransaction | null> | null>(null);
 
 export function useProfileTransaction() {
@@ -77,7 +81,7 @@ export function useProfileTransaction() {
   return context;
 }
 
-function ProfileProviderWrapper(props: FlamegraphViewProps): React.ReactElement {
+function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.ReactElement {
   const organization = useOrganization();
   const params = useParams();
 
@@ -86,7 +90,7 @@ function ProfileProviderWrapper(props: FlamegraphViewProps): React.ReactElement 
   });
 
   const profileTransaction = useSentryEvent<EventTransaction>(
-    params.orgId,
+    organization.slug,
     params.projectId,
     profiles.type === 'resolved' ? getTransactionId(profiles.data) : null
   );
@@ -135,7 +139,7 @@ export function ProfilesProvider({
     type: 'initial',
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!profileId || !projectSlug || !orgSlug) {
       return undefined;
     }
@@ -148,7 +152,13 @@ export function ProfilesProvider({
         onUpdateProfiles?.({type: 'resolved', data: p});
       })
       .catch(err => {
-        const message = err.toString() || t('Error: Unable to load profiles');
+        // XXX: our API client mock implementation does not mimick the real
+        // implementation, so we need to check for an empty object here. #sad
+        const isEmptyObject = err.toString() === '[object Object]';
+        const message = isEmptyObject
+          ? t('Error: Unable to load profiles')
+          : err.toString();
+
         setProfiles({type: 'errored', error: message});
         onUpdateProfiles?.({type: 'errored', error: message});
         Sentry.captureException(err);
@@ -162,4 +172,4 @@ export function ProfilesProvider({
   return <ProfileContext.Provider value={profiles}>{children}</ProfileContext.Provider>;
 }
 
-export default ProfileProviderWrapper;
+export default ProfilesAndTransactionProvider;

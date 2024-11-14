@@ -1,0 +1,29 @@
+---
+created: '2024-11-08T22:03:14.537139+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - sdk-nextjs
+    matchers:
+    - - sdk
+      - sentry.javascript.nextjs
+    text: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
+  version: 1
+fingerprint:
+- sdk-nextjs
+title: Es Dee Kay
+variants:
+  custom_fingerprint:
+    matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
+    type: custom_fingerprint
+    values:
+    - sdk-nextjs
+  default:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

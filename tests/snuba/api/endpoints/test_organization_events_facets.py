@@ -2,17 +2,15 @@ from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
+import requests
 from django.urls import reverse
 from django.utils import timezone
-from pytz import utc
 from rest_framework.exceptions import ParseError
 
-from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
-@region_silo_test
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -23,9 +21,9 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.project2 = self.create_project()
         self.url = reverse(
             "sentry-api-0-organization-events-facets",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
-        self.min_ago_iso = iso_format(self.min_ago)
+        self.min_ago_iso = self.min_ago.isoformat()
         self.features = {"organizations:discover-basic": True, "organizations:global-views": True}
 
     def assert_facet(self, response, key, expected):
@@ -247,7 +245,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(two_days_ago),
+                "timestamp": two_days_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -255,7 +253,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(hour_ago),
+                "timestamp": hour_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -263,7 +261,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(two_hours_ago),
+                "timestamp": two_hours_ago.isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -271,7 +269,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(timezone.now()),
+                "timestamp": timezone.now().isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project2.id,
@@ -280,7 +278,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"start": iso_format(self.day_ago), "end": iso_format(self.min_ago)},
+                {"start": self.day_ago.isoformat(), "end": self.min_ago.isoformat()},
                 format="json",
             )
 
@@ -294,7 +292,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user.email},
             },
@@ -303,7 +301,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -312,7 +310,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         self.store_event(
             data={
                 "event_id": uuid4().hex,
-                "timestamp": iso_format(self.day_ago),
+                "timestamp": self.day_ago.isoformat(),
                 "message": "very bad",
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -332,7 +330,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     def test_no_projects(self):
         org = self.create_organization(owner=self.user)
         url = reverse(
-            "sentry-api-0-organization-events-facets", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-events-facets", kwargs={"organization_id_or_slug": org.slug}
         )
         with self.feature("organizations:discover-basic"):
             response = self.client.get(url, format="json")
@@ -505,7 +503,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             "(column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = ParseError("test")
         with self.feature(self.features):
@@ -594,15 +592,15 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                     self.url,
                     format="json",
                     data={
-                        "start": iso_format(before_now(days=20)),
-                        "end": iso_format(before_now(days=15)),
+                        "start": before_now(days=20).isoformat(),
+                        "end": before_now(days=15).isoformat(),
                     },
                 )
         assert response.status_code == 400
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=utc)
+        mock_quantize.return_value = before_now(days=1)
         with self.feature("organizations:discover-basic"):
             # Don't quantize short time periods
             self.client.get(
@@ -615,8 +613,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
                 self.url,
                 format="json",
                 data={
-                    "start": iso_format(before_now(days=20)),
-                    "end": iso_format(before_now(days=15)),
+                    "start": before_now(days=20).isoformat(),
+                    "end": before_now(days=15).isoformat(),
                     "query": "",
                     "field": ["id", "timestamp"],
                 },
@@ -632,3 +630,329 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             )
 
             assert len(mock_quantize.mock_calls) == 2
+
+    def test_device_class(self):
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "1"},
+            },
+            project_id=self.project2.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "2"},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid4().hex,
+                "timestamp": self.min_ago_iso,
+                "tags": {"device.class": "3"},
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        expected = [
+            {"count": 1, "name": "high", "value": "high"},
+            {"count": 1, "name": "medium", "value": "medium"},
+            {"count": 1, "name": "low", "value": "low"},
+        ]
+        self.assert_facet(response, "device.class", expected)
+
+    def test_with_cursor_parameter(self):
+        test_project = self.create_project()
+        test_tags = {
+            "a": "one",
+            "b": "two",
+            "c": "three",
+            "d": "four",
+            "e": "five",
+            "f": "six",
+            "g": "seven",
+            "h": "eight",
+            "i": "nine",
+            "j": "ten",
+            "k": "eleven",
+        }
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"project": test_project.id})
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Loop over the first 10 tags to ensure they're in the results
+        for tag_key in list(test_tags.keys())[:10]:
+            expected = [
+                {"count": 1, "name": test_tags[tag_key], "value": test_tags[tag_key]},
+            ]
+            self.assert_facet(response, tag_key, expected)
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": str(test_project.id), "cursor": "0:10:0"}
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 2
+        expected = [
+            {"count": 1, "name": "eleven", "value": "eleven"},
+        ]
+        self.assert_facet(response, "k", expected)
+        expected = [
+            {"count": 1, "name": "error", "value": "error"},
+        ]
+        self.assert_facet(response, "level", expected)
+
+    def test_projects_data_are_injected_on_first_page_with_multiple_projects_selected(self):
+        test_project = self.create_project()
+        test_project2 = self.create_project()
+        test_tags = {
+            "a": "one",
+            "b": "two",
+            "c": "three",
+            "d": "four",
+            "e": "five",
+            "f": "six",
+            "g": "seven",
+            "h": "eight",
+            "i": "nine",
+            "j": "ten",
+            "k": "eleven",
+        }
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": [test_project.id, test_project2.id]}
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Project is injected into the first page
+        expected = [
+            {"count": 1, "name": test_project.slug, "value": test_project.id},
+        ]
+        self.assert_facet(response, "project", expected)
+
+        # Loop over the first 9 tags to ensure they're in the results
+        # in this case, the 10th key is "projects" since it was injected
+        for tag_key in list(test_tags.keys())[:9]:
+            expected = [
+                {"count": 1, "name": test_tags[tag_key], "value": test_tags[tag_key]},
+            ]
+            self.assert_facet(response, tag_key, expected)
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": [str(test_project.id), str(test_project2.id)], "cursor": "0:10:0"},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 3
+        expected = [
+            {"count": 1, "name": "ten", "value": "ten"},
+        ]
+        self.assert_facet(response, "j", expected)
+        expected = [
+            {"count": 1, "name": "eleven", "value": "eleven"},
+        ]
+        self.assert_facet(response, "k", expected)
+        expected = [
+            {"count": 1, "name": "error", "value": "error"},
+        ]
+        self.assert_facet(response, "level", expected)
+
+    def test_multiple_pages_with_single_project(self):
+        test_project = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"project": test_project.id})
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": str(test_project.id), "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more tags to fetch
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": str(test_project.id), "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 3
+
+    def test_multiple_pages_with_multiple_projects(self):
+        test_project = self.create_project()
+        test_project2 = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}  # At least 3 pages worth of information
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": [test_project.id, test_project2.id]}
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "project": [str(test_project.id), str(test_project2.id)],
+                    "cursor": links[1]["cursor"],
+                },
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more tags to fetch
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "project": [str(test_project.id), str(test_project2.id)],
+                    "cursor": links[1]["cursor"],
+                },
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 4  # 4 because projects and levels were added to the base 22
+
+    def test_get_all_tags(self):
+        test_project = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": test_project.id, "includeAll": True}
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 23
+
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
+    def test_dont_turbo_trace_queries(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, {"query": f"trace:{'a' * 32}"}, format="json")
+
+        mock_run.assert_called_once
+        assert not mock_run.mock_calls[0].args[0].flags.turbo
+
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
+    def test_use_turbo_without_trace(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, format="json")
+
+        mock_run.assert_called_once
+        assert mock_run.mock_calls[0].args[0].flags.turbo

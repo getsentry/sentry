@@ -1,31 +1,34 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
-import {pickBarColor, toPercent} from 'sentry/components/performance/waterfall/utils';
+import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {ColumnType, fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
-import {
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import toPercent from 'sentry/utils/number/toPercent';
+import type {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
-
-import {generateTransactionLink} from '../../utils';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type TableColumnKeys =
   | 'id'
@@ -34,7 +37,8 @@ type TableColumnKeys =
   | 'spanDuration'
   | 'occurrences'
   | 'cumulativeDuration'
-  | 'spans';
+  | 'spans'
+  | 'project';
 
 type TableColumn = GridColumnOrder<TableColumnKeys>;
 
@@ -58,9 +62,9 @@ export default function SpanTable(props: Props) {
     project,
     examples,
     suspectSpan,
-    transactionName,
     isLoading,
     pageLinks,
+    transactionName,
   } = props;
 
   if (!defined(examples)) {
@@ -89,22 +93,27 @@ export default function SpanTable(props: Props) {
 
   return (
     <Fragment>
-      <GridEditable
+      <VisuallyCompleteWithData
+        id="SpanDetails-SpanDetailsTable"
+        hasData={!!data.length}
         isLoading={isLoading}
-        data={data}
-        columnOrder={SPANS_TABLE_COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell,
-          renderBodyCell: renderBodyCellWithMeta(
-            location,
-            organization,
-            transactionName,
-            suspectSpan
-          ),
-        }}
-        location={location}
-      />
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={data}
+          columnOrder={SPANS_TABLE_COLUMN_ORDER}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell,
+            renderBodyCell: renderBodyCellWithMeta(
+              location,
+              organization,
+              transactionName,
+              suspectSpan
+            ),
+          }}
+        />
+      </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks ?? null} />
     </Fragment>
   );
@@ -129,7 +138,7 @@ function renderBodyCellWithMeta(
   transactionName: string,
   suspectSpan?: SuspectSpan
 ) {
-  return (column: TableColumn, dataRow: TableDataRow): React.ReactNode => {
+  return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
     if (column.key === 'spanDuration' && dataRow.transactionDuration) {
       return (
@@ -145,17 +154,24 @@ function renderBodyCellWithMeta(
     let rendered = fieldRenderer(dataRow, {location, organization});
 
     if (column.key === 'id') {
+      const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
       const worstSpan = dataRow.spans.length
         ? dataRow.spans.reduce((worst, span) =>
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
-      const target = generateTransactionLink(transactionName)(
+
+      const target = generateLinkToEventInTraceView({
+        eventId: dataRow.id,
+        traceSlug,
+        timestamp: dataRow.timestamp / 1000,
+        projectSlug: dataRow.project,
+        location,
         organization,
-        dataRow,
-        location.query,
-        worstSpan.id
-      );
+        spanId: worstSpan.id,
+        transactionName: transactionName,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+      });
 
       rendered = <Link to={target}>{rendered}</Link>;
     }
@@ -173,6 +189,7 @@ const COLUMN_TYPE: Omit<
   spanDuration: 'duration',
   occurrences: 'integer',
   cumulativeDuration: 'duration',
+  project: 'string',
 };
 
 const SPANS_TABLE_COLUMN_ORDER: TableColumn[] = [
@@ -222,7 +239,7 @@ type SpanDurationBarProps = {
   transactionDuration: number;
 };
 
-function SpanDurationBar(props: SpanDurationBarProps) {
+export function SpanDurationBar(props: SpanDurationBarProps) {
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
@@ -231,8 +248,9 @@ function SpanDurationBar(props: SpanDurationBarProps) {
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
         <Tooltip
-          title={tct('[percentage] of the transaction', {
+          title={tct('[percentage] of the transaction ([duration])', {
             percentage: formatPercentage(widthPercentage),
+            duration: formatTraceDuration(transactionDuration),
           })}
           containerDisplayMode="block"
         >

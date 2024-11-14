@@ -3,64 +3,45 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from datetime import timedelta
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from sentry import integrations
-from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.incidents.models import AlertRuleTriggerAction
-from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
+from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import (
-    GroupCategory,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.models import (
-    Activity,
-    Commit,
-    Deploy,
-    Environment,
-    EventError,
-    Group,
-    GroupHash,
-    GroupLink,
-    Integration,
-    Organization,
-    Project,
-    Release,
-    ReleaseCommit,
-    Repository,
-    Rule,
-    User,
-)
-from sentry.notifications.notify import notify
-from sentry.notifications.utils.participants import split_participants_and_context
+from sentry.models.activity import Activity
+from sentry.models.commit import Commit
+from sentry.models.deploy import Deploy
+from sentry.models.environment import Environment
+from sentry.models.eventerror import EventError
+from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
+from sentry.models.repository import Repository
+from sentry.models.rule import Rule
+from sentry.silo.base import region_silo_function
+from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
-    PerformanceProblem,
-)
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -106,12 +87,17 @@ def get_group_counts_by_project(
     )
 
 
+class _RepoCommitsDict(TypedDict):
+    name: str
+    commits: list[tuple[Commit, RpcUser | None]]
+
+
 def get_repos(
     commits: Iterable[Commit],
-    users_by_email: Mapping[str, User],
+    users_by_email: Mapping[str, RpcUser],
     organization: Organization,
-) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, User | None]]]]:
-    repositories_by_id = {
+) -> list[_RepoCommitsDict]:
+    repositories_by_id: dict[int, _RepoCommitsDict] = {
         repository_id: {"name": repository_name, "commits": []}
         for repository_id, repository_name in Repository.objects.filter(
             organization_id=organization.id,
@@ -121,7 +107,7 @@ def get_repos(
     # These commits are in order so they should end up in the list of commits still in order.
     for commit in commits:
         # Get the user object if it exists
-        user_option = users_by_email.get(commit.author.email) if commit.author_id else None
+        user_option = users_by_email.get(commit.author.email) if commit.author is not None else None
         repositories_by_id[commit.repository_id]["commits"].append((commit, user_option))
 
     return list(repositories_by_id.values())
@@ -158,6 +144,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
@@ -172,6 +159,11 @@ def get_email_link_extra_params(
                     "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
+                    **dict(
+                        []
+                        if notification_uuid is None
+                        else [("notification_uuid", str(notification_uuid))]
+                    ),
                     **dict([] if environment is None else [("environment", environment)]),
                     **kwargs,
                 }
@@ -187,28 +179,40 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    notification_uuid: str | None = None,
     **kwargs: Any,
 ) -> str:
-    alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
-    return str(
-        group.get_absolute_url()
-        + (
-            ""
-            if not alert_rule_id
-            else get_email_link_extra_params(
-                referrer, environment, rule_details, alert_timestamp, **kwargs
-            )[alert_rule_id]
-        )
+    alert_rule_id = rule_details[0].id if rule_details and rule_details[0].id else None
+    extra_params = ""
+    if alert_rule_id:
+        extra_params = get_email_link_extra_params(
+            referrer,
+            environment,
+            rule_details,
+            alert_timestamp,
+            notification_uuid=notification_uuid,
+            **kwargs,
+        )[alert_rule_id]
+    elif not alert_rule_id and notification_uuid:
+        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
+    return str(group.get_absolute_url() + extra_params)
+
+
+def get_integration_link(
+    organization: Organization, integration_slug: str, notification_uuid: str | None = None
+) -> str:
+    query_params = {"referrer": "alert_email"}
+    if notification_uuid:
+        query_params.update({"notification_uuid": notification_uuid})
+
+    return organization.absolute_url(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/",
+        query=urlencode(query_params),
     )
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    return str(
-        organization.absolute_url(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
-    )
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
+    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
 
 
 @dataclass
@@ -252,33 +256,41 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data["subject"] = (
                         commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
                     )
+                    if commit.get("pullRequest"):
+                        commit_data["pull_request"] = commit["pullRequest"]
                     commits[commit["id"]] = commit_data
-
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
     # commits from Commit Context dont have a "score" key
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
+@region_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(organizations=organization).first()
+    organization_integrations = integration_service.get_integrations(
+        organization_id=organization.id, limit=1
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
+    return any(
+        feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
+        for feature in provider.features
+    )
 
 
 def has_alert_integration(project: Project) -> bool:
     org = project.organization
 
     # check integrations
-    providers = filter(is_alert_rule_integration, list(integrations.all()))
-    provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(organizations=org, provider__in=provider_keys).exists():
+    provider_keys = [
+        provider.key for provider in integrations.all() if is_alert_rule_integration(provider)
+    ]
+    if integration_service.get_integrations(organization_id=org.id, providers=provider_keys):
         return True
 
     # check plugins
@@ -299,22 +311,8 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
-def get_span_evidence_value_problem(problem: PerformanceProblem) -> str:
-    """Get the 'span evidence' data for a performance problem. This is displayed in issue alert emails."""
-    value = "no value"
-    if not problem:
-        return value
-    if not problem.op and problem.desc:
-        value = problem.desc
-    if problem.op and not problem.desc:
-        value = problem.op
-    if problem.op and problem.desc:
-        value = f"{problem.op} - {problem.desc}"
-    return value
-
-
 def get_span_evidence_value(
-    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+    span: dict[str, str | float] | None = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
@@ -334,8 +332,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem
-) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
+    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
+) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
@@ -356,126 +354,102 @@ def get_parent_and_repeating_spans(
     return (parent_span, repeating_spans)
 
 
-def perf_to_email_html(
-    spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem = None,
-    event: Event = None,
-) -> Any:
-    """Generate the email HTML for a performance issue alert"""
-    if not problem:
-        return ""
-
-    context = PerformanceProblemContext.from_problem_and_spans(problem, spans, event)
-
-    return render_to_string("sentry/emails/transactions.html", context.to_dict())
-
-
-def get_matched_problem(event: Event) -> Optional[EventPerformanceProblem]:
-    """Get the matching performance problem for a given event"""
-    problems = get_problems([event])
-    if not problems:
-        return None
-
-    for problem in problems:
-        if problem.problem.fingerprint == GroupHash.objects.get(group=event.group).hash:
-            return problem.problem
-    return None
+def occurrence_perf_to_email_html(context: Any) -> str:
+    """Generate the email HTML for an occurrence-backed performance issue alert"""
+    return render_to_string("sentry/emails/transactions.html", context)
 
 
 def get_spans(
-    entries: List[Dict[str, Union[List[Dict[str, Union[str, float]]], str]]]
-) -> Optional[List[Dict[str, Union[str, float]]]]:
+    entries: list[dict[str, list[dict[str, str | float]] | str]]
+) -> list[dict[str, str | float]] | None:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    spans: Optional[List[Dict[str, Union[str, float]]]] = None
+    spans: list[dict[str, str | float]] | None = None
     for entry in entries:
         if entry.get("type") == "spans":
-            spans = cast(Optional[List[Dict[str, Union[str, float]]]], entry.get("data"))
+            spans = cast(Optional[list[dict[str, Union[str, float]]]], entry.get("data"))
             break
 
     return spans
 
 
-def get_span_and_problem(
-    event: Event,
-) -> tuple[Optional[List[Dict[str, Union[str, float]]]], Optional[EventPerformanceProblem]]:
-    """Get a given event's spans and performance problem"""
-    entries = get_entries(event, None)
-    spans = get_spans(entries[0]) if len(entries) else None
-    matched_problem = get_matched_problem(event)
-    return (spans, matched_problem)
-
-
-def get_transaction_data(event: Event) -> Any:
+def get_transaction_data(event: GroupEvent) -> str:
     """Get data about a transaction to populate alert emails."""
-    spans, matched_problem = get_span_and_problem(event)
-    return perf_to_email_html(spans, matched_problem, event)
+    if event.occurrence is None or not event.occurrence.evidence_data:
+        return ""
+    return occurrence_perf_to_email_html(event.occurrence.evidence_data)
 
 
 def get_generic_data(event: GroupEvent) -> Any:
     """Get data about a generic issue type to populate alert emails."""
-    generic_evidence = event.occurrence.evidence_display
-
-    if not generic_evidence:
+    if event.occurrence is None or not event.occurrence.evidence_display:
         return ""
 
-    context = {}
-    for row in generic_evidence:
-        context[row.name] = row.value
-
+    context = {row.name: row.value for row in event.occurrence.evidence_display}
     return generic_email_html(context)
 
 
-def generic_email_html(context: Any) -> Any:
+def generic_email_html(context: Any) -> str:
     """Format issue evidence into a (stringified) HTML table for emails"""
     return render_to_string("sentry/emails/generic_table.html", {"data": context})
 
 
-def get_performance_issue_alert_subtitle(event: Event) -> str:
+def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
     """Generate the issue alert subtitle for performance issues"""
-    spans, matched_problem = get_span_and_problem(event)
-    repeating_span_value = ""
-    if spans and matched_problem:
-        _, repeating_spans = get_parent_and_repeating_spans(spans, matched_problem)
-        repeating_span_value = get_span_evidence_value(repeating_spans, include_op=False)
-    return repeating_span_value.replace("`", '"')
+    if event.occurrence is None:
+        return ""
+    return event.occurrence.evidence_data.get("repeating_spans_compact", "").replace("`", '"')
 
 
 def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
-    if group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = group.issue_type.description
-        transaction = get_performance_issue_alert_subtitle(event)
-        title = f"{issue_type}: {transaction}"
-        return (title[: max_length - 2] + "..") if len(title) > max_length else title
-    elif isinstance(event, GroupEvent) and event.occurrence is not None:
-        issue_title: str = event.occurrence.issue_title
+    if isinstance(event, GroupEvent) and event.occurrence is not None:
+        issue_title = event.occurrence.issue_title
         return issue_title
     else:
-        event_title: str = event.title
+        event_title = event.title
         return event_title
 
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
+    from sentry.notifications.notify import notify
+
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
-    if not participants_by_provider:
+    if participants_by_provider.is_empty():
         return
 
     # Only calculate shared context once.
     shared_context = notification.get_context()
 
-    for provider, participants_with_reasons in participants_by_provider.items():
-        participants_, extra_context = split_participants_and_context(participants_with_reasons)
-        notify(provider, notification, participants_, shared_context, extra_context)
+    split = participants_by_provider.split_participants_and_context()
+    for provider, participants, extra_context in split:
+        notify(provider, notification, participants, shared_context, extra_context)
+
+
+def get_replay_id(event: Event | GroupEvent) -> str | None:
+    replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
+    if (
+        isinstance(event, GroupEvent)
+        and event.occurrence is not None
+        and event.occurrence.evidence_data
+    ):
+        evidence_replay_id = (
+            event.occurrence.evidence_data.get("contexts", {}).get("replay", {}).get("replay_id")
+        )
+
+        if evidence_replay_id:
+            return evidence_replay_id
+
+    return replay_id
 
 
 @dataclass
 class PerformanceProblemContext:
     problem: PerformanceProblem
-    spans: Union[List[Dict[str, Union[str, float]]], None]
+    spans: list[dict[str, str | float]] | None
     event: Event | None
 
     def __post_init__(self) -> None:
@@ -484,14 +458,14 @@ class PerformanceProblemContext:
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
-            if self.problem.offender_span_ids
-            else "",
+            "num_repeating_spans": (
+                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
+            ),
         }
 
     @property
@@ -516,7 +490,7 @@ class PerformanceProblemContext:
 
         return (end - start) * 1000
 
-    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+    def _find_span_by_id(self, id: str) -> dict[str, Any] | None:
         if not self.spans:
             return None
 
@@ -526,11 +500,24 @@ class PerformanceProblemContext:
                 return span
         return None
 
+    def get_span_duration(self, span: dict[str, Any] | None) -> timedelta:
+        if span:
+            return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
+        return timedelta(0)
+
+    def _sum_span_duration(self, spans: list[dict[str, Any] | None]) -> float:
+        "Given non-overlapping spans, find the sum of the span durations in milliseconds"
+        sum = 0.0
+        for span in spans:
+            if span:
+                sum += self.get_span_duration(span).total_seconds() * 1000
+        return sum
+
     @classmethod
     def from_problem_and_spans(
         cls,
         problem: PerformanceProblem,
-        spans: Union[List[Dict[str, Union[str, float]]], None],
+        spans: list[dict[str, str | float]] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
@@ -544,14 +531,14 @@ class PerformanceProblemContext:
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
-            "num_repeating_spans": str(len(self.problem.offender_span_ids))
-            if self.problem.offender_span_ids
-            else "",
+            "num_repeating_spans": (
+                str(len(self.problem.offender_span_ids)) if self.problem.offender_span_ids else ""
+            ),
         }
 
     @property
@@ -564,7 +551,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         return parsed_url.path or ""
 
     @property
-    def parameters(self) -> List[str]:
+    def parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
 
@@ -574,7 +561,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             if span.get("span_id") in self.problem.offender_span_ids
         ]
 
-        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+        all_parameters: Mapping[str, list[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)
@@ -589,7 +576,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "span_evidence_key_value": [
                 {"key": _("Transaction"), "value": self.transaction},
@@ -600,6 +587,8 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                     "is_multi_value": True,
                 },
             ],
+            "transaction_duration": self.transaction_duration,
+            "slow_span_duration": self.time_saved,
         }
 
     @property
@@ -612,7 +601,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         return self._find_span_desc_by_id(starting_span_id)
 
     @property
-    def parallelizable_spans(self) -> List[str]:
+    def parallelizable_spans(self) -> list[str]:
         if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
             return [""]
 
@@ -623,9 +612,34 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
     def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
 
+    @property
+    def time_saved(self) -> float:
+        """
+        Calculates the cost saved by running spans in parallel,
+        this is the maximum time saved of running all independent queries in parallel
+        note, maximum means it does not account for db connection times and overhead associated with parallelization,
+        this is where thresholds come in
+        """
+        independent_spans = [self._find_span_by_id(id) for id in self.problem.offender_span_ids]
+        consecutive_spans = [self._find_span_by_id(id) for id in self.problem.cause_span_ids or ()]
+        total_duration = self._sum_span_duration(consecutive_spans)
+
+        max_independent_span_duration = max(
+            [self.get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
+        )
+
+        sum_of_dependent_span_durations = 0.0
+        for span in consecutive_spans:
+            if span not in independent_spans:
+                sum_of_dependent_span_durations += (
+                    self.get_span_duration(span).total_seconds() * 1000
+                )
+
+        return total_duration - max(max_independent_span_duration, sum_of_dependent_span_durations)
+
 
 class RenderBlockingAssetProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "slow_span_description": self.slow_span_description,
@@ -635,7 +649,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def slow_span(self) -> Dict[str, Union[str, float]] | None:
+    def slow_span(self) -> dict[str, str | float] | None:
         if not self.spans:
             return None
 

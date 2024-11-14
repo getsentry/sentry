@@ -1,27 +1,30 @@
-import React, {Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import SourceMapsWizard from 'sentry/components/events/interfaces/crashContent/exception/sourcemapsWizard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {
+import type {
   SourceMapDebugError,
   SourceMapDebugResponse,
-  SourceMapProcessingIssueType,
   StacktraceFilenameQuery,
+} from './useSourceMapDebug';
+import {
+  SourceMapProcessingIssueType,
   useSourceMapDebugQueries,
 } from './useSourceMapDebug';
 import {sourceMapSdkDocsMap} from './utils';
@@ -52,10 +55,12 @@ function getErrorMessage(
     if (docPlatform === 'react-native') {
       return 'https://docs.sentry.io/platforms/react-native/troubleshooting/#source-maps';
     }
-    return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
+    return (
+      `${baseSourceMapDocsLink}troubleshooting_js/legacy-uploading-methods/` +
+      (section ? `#${section}` : '')
+    );
   }
-
-  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
+  const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps`;
 
   switch (error.type) {
     case SourceMapProcessingIssueType.MISSING_RELEASE:
@@ -63,7 +68,7 @@ function getErrorMessage(
         {
           title: t('Event missing Release tag'),
           desc: t(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI.'
+            'Integrate Sentry into your release pipeline using a tool like Webpack or the CLI.'
           ),
           docsLink: defaultDocsLink,
         },
@@ -85,26 +90,12 @@ function getErrorMessage(
           ),
         },
       ];
-    case SourceMapProcessingIssueType.MISSING_USER_AGENT:
-      return [
-        {
-          title: t('Sentry not part of release pipeline'),
-          desc: tct(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI. Please note the release must be the same as being set in your [init]. The value for this event is [version].',
-            {
-              init: sentryInit,
-              version: <code>{error.data.version}</code>,
-            }
-          ),
-          docsLink: defaultDocsLink,
-        },
-      ];
     case SourceMapProcessingIssueType.MISSING_SOURCEMAPS:
       return [
         {
           title: t('Source Maps not uploaded'),
           desc: t(
-            'It looks like you are creating but not uploading your source maps. Please refer to the instructions in our docs guide for help with troubleshooting the issue.'
+            "It looks like you're creating, but not uploading your source maps. Read our docs for troubleshooting help."
           ),
           docsLink: defaultDocsLink,
         },
@@ -114,7 +105,7 @@ function getErrorMessage(
         {
           title: t('Invalid Absolute Path URL'),
           desc: tct(
-            'The given [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            'The [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Read our docs for troubleshooting help.',
             {
               absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
@@ -130,7 +121,7 @@ function getErrorMessage(
         {
           title: t('Absolute Path Mismatch'),
           desc: tct(
-            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Read our docs for troubleshooting help.",
             {
               absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
@@ -146,7 +137,7 @@ function getErrorMessage(
         {
           title: t('Dist Mismatch'),
           desc: tct(
-            "The distribution identifier you are providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            "The distribution identifier you're providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Read our docs for troubleshooting help.",
             {
               init: sentryInit,
               dist: <code>dist</code>,
@@ -158,6 +149,19 @@ function getErrorMessage(
           ),
         },
       ];
+    case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
+      return [
+        {
+          title: t("Source Map File doesn't exist"),
+          desc: t(
+            "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
+          ),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
+    // Need to return something but this does not need to follow the pattern since it uses a different alert
+    case SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS:
+      return [{title: 'Debug Id but no Sourcemaps'}];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];
@@ -213,17 +217,12 @@ function combineErrors(
   sdkName?: string
 ) {
   const combinedErrors = uniqBy(
-    response
-      .map(res => res?.errors)
-      .flat()
-      .filter(defined),
+    response.flatMap(res => res?.errors).filter(defined),
     error => error?.type
   );
-  const errors = combinedErrors
-    .map(error =>
-      getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
-    )
-    .flat();
+  const errors = combinedErrors.flatMap(error =>
+    getErrorMessage(error, sdkName).map(message => ({...message, type: error.type}))
+  );
 
   return errors;
 }
@@ -241,7 +240,7 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
-  const isLoading = results.every(result => result.isLoading);
+  const isLoading = results.every(result => result.isPending);
   const errorMessages = combineErrors(
     results.map(result => result.data).filter(defined),
     sdkName
@@ -264,18 +263,26 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
   };
 
   const handleDocsClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.docs_link_clicked', {
+    trackAnalytics('source_map_debug.docs_link_clicked', {
       ...analyticsParams,
       type,
     });
   };
 
   const handleExpandClick = (type: SourceMapProcessingIssueType) => {
-    trackAdvancedAnalyticsEvent('source_map_debug.expand_clicked', {
+    trackAnalytics('source_map_debug.expand_clicked', {
       ...analyticsParams,
       type,
     });
   };
+
+  if (
+    errorMessages.filter(
+      error => error.type === SourceMapProcessingIssueType.DEBUG_ID_NO_SOURCEMAPS
+    ).length > 0
+  ) {
+    return <SourceMapsWizard analyticsParams={analyticsParams} />;
+  }
 
   return (
     <Alert
@@ -291,12 +298,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
                 key={idx}
                 title={message.title}
                 docsLink={
-                  <DocsExternalLink
-                    href={message.docsLink}
-                    onClick={() => handleDocsClick(message.type)}
-                  >
-                    {t('Read Guide')}
-                  </DocsExternalLink>
+                  message.docsLink ? (
+                    <DocsExternalLink
+                      href={message.docsLink}
+                      onClick={() => handleDocsClick(message.type)}
+                    >
+                      {t('Read Guide')}
+                    </DocsExternalLink>
+                  ) : null
                 }
                 onExpandClick={() => handleExpandClick(message.type)}
               >
@@ -308,8 +317,8 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
       }
     >
       {tn(
-        "We've encountered %s problem de-minifying your applications source code!",
-        "We've encountered %s problems de-minifying your applications source code!",
+        "We've encountered %s problem un-minifying your applications source code!",
+        "We've encountered %s problems un-minifying your applications source code!",
         errorMessages.length
       )}
     </Alert>

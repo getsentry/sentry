@@ -2,18 +2,18 @@ import {useTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {DateString} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {DateString} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -33,7 +33,7 @@ type Props = {
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+export function computeAxisMax(data: Series[]) {
   // assumes min is 0
   const valuesDict = data.map(value => value.data.map(point => point.value));
   const maxValue = max(valuesDict.map(max)) as number;
@@ -76,7 +76,6 @@ function Chart({
   chartColors,
   isLineChart,
 }: Props) {
-  const router = useRouter();
   const theme = useTheme();
 
   if (!data || data.length <= 0) {
@@ -199,7 +198,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+          aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -230,7 +229,6 @@ function Chart({
 
   return (
     <ChartZoom
-      router={router}
       period={statsPeriod}
       start={start}
       end={end}

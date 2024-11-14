@@ -1,16 +1,23 @@
-from typing import Any, Mapping
+import logging
+import pathlib
+from collections.abc import Mapping
+from typing import Any
 
-EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
+from sentry.utils import json
+
+logger = logging.getLogger(__name__)
+
+LEGACY_EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "type": "object",
     "properties": {
         # required properties
         "event_id": {"type": "string", "minLength": 1},
+        "level": {"type": "string", "minLength": 1},
         "platform": {"type": "string", "minLength": 1},
         "project_id": {"type": "integer"},
+        "received": {"type": "string", "format": "date-time"},
         "tags": {"type": "object"},
         "timestamp": {"type": "string", "format": "date-time"},
-        "received": {"type": "string", "format": "date-time"},
-        "title": {"type": "string", "minLength": 1},
         # non-required properties
         "breadcrumbs": {
             "type": ["array", "null"],
@@ -20,7 +27,21 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "type": ["object", "null"],
             "additionalProperties": {
                 "type": "object",
-                "additionalProperties": {"type": ["string", "null"], "minLength": 1},
+            },
+        },
+        "debug_meta": {
+            "type": ["object", "null"],
+            "properties": {
+                "sdk_info": {"type": "object"},
+                "images": {
+                    "type": ["array", "null"],
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "minLength": 1},
+                        },
+                    },
+                },
             },
         },
         "dist": {
@@ -88,7 +109,7 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 },
                 "version": {
                     "type": "string",
-                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$"
+                    "pattern": "^(?P<major>0|[1-9]\\d*)\\.(?P<minor>0|[1-9]\\d*)\\.(?P<patch>0|[1-9]\\d*)$",
                     # MAJOR.MINOR.PATCH
                 },
             },
@@ -127,16 +148,29 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "segment": {"type": ["string", "null"], "minLength": 1},
                 "username": {"type": ["string", "null"], "minLength": 1},
             },
-            "additionalProperties": False,
+            "additionalProperties": True,
         },
     },
     "required": [
         "event_id",
+        "level",
         "platform",
         "project_id",
         "tags",
         "timestamp",
-        "title",
     ],
     "additionalProperties": False,
 }
+
+
+_EVENT_PAYLOAD_SCHEMA_JSON_FILE = pathlib.PurePath(__file__).with_name("event.schema.json")
+
+try:
+    with open(_EVENT_PAYLOAD_SCHEMA_JSON_FILE) as f:
+        EVENT_PAYLOAD_SCHEMA = json.load(f)
+
+except Exception:
+    logger.exception(
+        "Failed to load Events schema from 'event.schema.json', falling back to hardcoded schema"
+    )
+    EVENT_PAYLOAD_SCHEMA = LEGACY_EVENT_PAYLOAD_SCHEMA

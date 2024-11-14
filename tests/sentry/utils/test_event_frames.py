@@ -1,8 +1,8 @@
 import unittest
-from typing import Any, Mapping
 
-from sentry.testutils import TestCase
+from sentry.testutils.cases import TestCase
 from sentry.utils.event_frames import (
+    EventFrame,
     cocoa_frame_munger,
     find_stack_frames,
     flutter_frame_munger,
@@ -102,7 +102,9 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "filename": "Application.java",
             },
         ]
-        key, munged_frames = munged_filename_and_frames("java", frames, "munged_filename")
+        ret = munged_filename_and_frames("java", frames, "munged_filename")
+        assert ret is not None
+        key, munged_frames = ret
         assert len(munged_frames) == 3
         assert munged_frames[0][key] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
         assert munged_frames[1][key] == "io/sentry/example/Application.java"
@@ -250,14 +252,16 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "in_app": True,
             },
         ]
-        key, munged_frames = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        ret = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        assert ret is not None
+        key, munged_frames = ret
         assert len(munged_frames) == 16
         for z in zip(exception_frames, munged_frames):
             assert z[0].items() <= z[1].items()
 
         has_munged = list(filter(lambda f: f.get("filename") and f.get("module"), munged_frames))
         assert len(has_munged) == 14
-        assert all(str(x.get("munged_filename")).endswith(x.get("filename")) for x in has_munged)
+        assert all(x["munged_filename"].endswith(x["filename"]) for x in has_munged)
 
 
 class CocoaFilenameMungingTestCase(unittest.TestCase):
@@ -276,34 +280,27 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             "symbol_addr": "0x102ce2b70",
         }
 
-        did_munge = cocoa_frame_munger("munged_filename", exception_frame)
-        assert did_munge
-        assert (
-            exception_frame["munged_filename"]
-            == "SampleProject/Classes/App Delegate/AppDelegate.swift"
-        )
+        munged_filename = cocoa_frame_munger(EventFrame.from_dict(exception_frame))
+        assert munged_filename == "SampleProject/Classes/App Delegate/AppDelegate.swift"
 
     def test_missing_required_no_munging(self):
         assert cocoa_frame_munger(
-            "munged_filename",
-            {
-                "package": "SampleProject",
-                "abs_path": "SampleProject/AppDelegate.swift",
-            },
+            EventFrame(
+                package="SampleProject",
+                abs_path="SampleProject/AppDelegate.swift",
+            )
         )
 
-        assert not cocoa_frame_munger("munged_filename", {})
+        assert not cocoa_frame_munger(EventFrame())
         assert not cocoa_frame_munger(
-            "munged_filename",
-            {
-                "package": "SampleProject",
-            },
+            EventFrame(
+                package="SampleProject",
+            )
         )
         assert not cocoa_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "SampleProject/AppDelegate.swift",
-            },
+            EventFrame(
+                abs_path="SampleProject/AppDelegate.swift",
+            )
         )
 
     def test_package_relative_repeats(self):
@@ -313,10 +310,9 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             "abs_path": "/Users/gszeto/code/SampleProject/more/dirs/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
         }
 
-        did_munge = cocoa_frame_munger("munged_filename", exception_frame)
-        assert did_munge
+        munged_filename = cocoa_frame_munger(EventFrame.from_dict(exception_frame))
         assert (
-            exception_frame["munged_filename"]
+            munged_filename
             == "SampleProject/more/dirs/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
         )
 
@@ -406,43 +402,38 @@ class FlutterFilenameMungingTestCase(TestCase):
         munged_frames = munged_filename_and_frames(
             "other", frames, "munged_filename", "sentry.dart.flutter"
         )
-        munged_first_frame: Mapping[str, Any] = munged_frames[1][0]
+        assert munged_frames is not None
+        munged_first_frame = munged_frames[1][0]
         assert munged_first_frame.items() > frames[0].items()
         assert munged_first_frame["munged_filename"] == "a/b/test.dart"
 
     def test_dart_prefix_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "dart:ui/a/b/test.dart",
-            },
+            EventFrame(abs_path="dart:ui/a/b/test.dart"),
         )
 
     def test_abs_path_not_present_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "function": "tryCatchModule",
-                "package": "sentry_flutter_example",
-                "filename": "test.dart",
-            },
+            EventFrame(
+                function="tryCatchModule",
+                package="sentry_flutter_example",
+                filename="test.dart",
+            )
         )
 
     def test_different_package_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "package": "sentry_flutter_example",
-                "abs_path": "package:different_package/a/b/test.dart",
-            },
+            EventFrame(
+                package="sentry_flutter_example",
+                abs_path="package:different_package/a/b/test.dart",
+            )
         )
 
     def test_no_package_not_munged(self):
         assert not flutter_frame_munger(
-            "munged_filename",
-            {
-                "abs_path": "package:different_package/a/b/test.dart",
-            },
+            EventFrame(
+                abs_path="package:different_package/a/b/test.dart",
+            )
         )
 
 

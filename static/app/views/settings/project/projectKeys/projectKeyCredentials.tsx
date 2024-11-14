@@ -7,8 +7,8 @@ import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ProjectKey} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
   data: ProjectKey;
@@ -52,7 +52,7 @@ function ProjectKeyCredentials({
             ) : null,
           })}
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('DSN URL')}>
             {getDynamicText({
               value: data.dsn.public,
               fixed: '__DSN__',
@@ -100,13 +100,17 @@ function ProjectKeyCredentials({
       {showSecurityEndpoint && (
         <FieldGroup
           label={t('Security Header Endpoint')}
-          help={t(
-            'Use your security header endpoint for features like CSP and Expect-CT reports.'
-          )}
+          help={tct('Use your security header endpoint for features like [link].', {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
+                {t('CSP and Expect-CT reports')}
+              </ExternalLink>
+            ),
+          })}
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.security,
               fixed: '__SECURITY_HEADER_ENDPOINT__',
@@ -131,7 +135,7 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.minidump,
               fixed: '__MINIDUMP_ENDPOINT__',
@@ -142,12 +146,12 @@ function ProjectKeyCredentials({
 
       {showUnreal && (
         <FieldGroup
-          label={t('Unreal Engine 4 Endpoint')}
-          help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
+          label={t('Unreal Engine Endpoint')}
+          help={t('Use this endpoint to configure your UE Crash Reporter.')}
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>
+          <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
             {getDynamicText({
               value: data.dsn.unreal || '',
               fixed: '__UNREAL_ENDPOINT__',
@@ -186,6 +190,19 @@ function ProjectKeyCredentials({
               fixed: '__PROJECTID__',
             })}
           </TextCopyInput>
+        </FieldGroup>
+      )}
+
+      {data.useCase && (
+        <FieldGroup
+          label={t('Use Case')}
+          help={t('Whether the DSN is for the user or for internal data submissions.')}
+          inline
+          flexibleControlStateSize
+        >
+          <StyledField label={null} inline={false} flexibleControlStateSize>
+            {data.useCase}
+          </StyledField>
         </FieldGroup>
       )}
     </Fragment>

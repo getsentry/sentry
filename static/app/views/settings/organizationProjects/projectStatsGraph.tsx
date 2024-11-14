@@ -3,15 +3,15 @@ import LazyLoad from 'react-lazyload';
 
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   project: Project;
   stats?: Project['stats'];
 };
 
-const ProjectStatsGraph = ({project, stats}: Props) => {
+function ProjectStatsGraph({project, stats}: Props) {
   stats = stats || project.stats || [];
   const series: Series[] = [
     {
@@ -29,6 +29,6 @@ const ProjectStatsGraph = ({project, stats}: Props) => {
       )}
     </Fragment>
   );
-};
+}
 
 export default ProjectStatsGraph;

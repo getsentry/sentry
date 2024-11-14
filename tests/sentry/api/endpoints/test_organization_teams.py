@@ -2,13 +2,15 @@ from functools import cached_property
 
 from django.urls import reverse
 
-from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam, Team
-from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.types.integrations import get_provider_string
+from sentry.integrations.utils.providers import get_provider_string
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.projectteam import ProjectTeam
+from sentry.models.team import Team
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.testutils.cases import APITestCase
 
 
-@region_silo_test(stable=True)
 class OrganizationTeamsListTest(APITestCase):
     def test_simple(self):
         user = self.create_user()
@@ -86,7 +88,7 @@ class OrganizationTeamsListTest(APITestCase):
         assert len(response.data[0]["externalTeams"]) == 1
         assert response.data[0]["externalTeams"][0] == {
             "id": str(self.external_team.id),
-            "integrationId": str(self.external_team.integration.id),
+            "integrationId": str(self.external_team.integration_id),
             "provider": get_provider_string(self.external_team.provider),
             "externalName": self.external_team.external_name,
             "teamId": str(self.team.id),
@@ -133,6 +135,10 @@ class OrganizationTeamsListTest(APITestCase):
         team2 = self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
 
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:undefined"
+        response = self.client.get(path)
+        assert response.status_code == 400, response.content
+
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
         response = self.client.get(path)
         assert response.status_code == 200, response.content
@@ -160,7 +166,6 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
 
 
-@region_silo_test  # TODO(hybrid-cloud): stable blocked on org members
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -194,7 +199,9 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert not team.idp_provisioned
         assert team.organization == self.organization
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True
@@ -229,11 +236,27 @@ class OrganizationTeamsCreateTest(APITestCase):
         self.get_success_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=201
         )
-        self.get_error_response(
+        resp = self.get_error_response(
             self.organization.slug, name="hello world", slug="foobar", status_code=409
         )
+        assert resp.data == {
+            "non_field_errors": ["A team with this slug already exists."],
+            "detail": "A team with this slug already exists.",
+        }
 
     def test_name_too_long(self):
         self.get_error_response(
             self.organization.slug, name="x" * 65, slug="xxxxxxx", status_code=400
         )
+
+    def test_invalid_numeric_slug(self):
+        response = self.get_error_response(
+            self.organization.slug, name="hello word", slug="1234", status_code=400
+        )
+        assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    def test_generated_slug_not_entirely_numeric(self):
+        response = self.get_success_response(self.organization.slug, name="1234", status_code=201)
+        team = Team.objects.get(id=response.data["id"])
+        assert team.slug.startswith("1234-")
+        assert not team.slug.isdecimal()

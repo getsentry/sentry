@@ -1,15 +1,16 @@
 import {useState} from 'react';
 
-import SelectAsyncControl, {
+import type {
   Result,
   SelectAsyncControlProps,
 } from 'sentry/components/forms/controls/selectAsyncControl';
+import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
 // projects can be passed as a direct prop as well
-import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 export interface SelectAsyncFieldProps
   extends Omit<InputFieldProps, 'highlighted' | 'visible' | 'required' | 'value'>,
@@ -41,10 +42,8 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
         const {defaultOptions} = props;
         // We don't use defaultOptions if it is undefined or a boolean
         const options = typeof defaultOptions === 'object' ? defaultOptions : [];
-        /**
-         * The propsValue is the `id` of the object (user, team, etc), and
-         * react-select expects a full value object: {value: "id", label: "name"}
-         **/
+        // The propsValue is the `id` of the object (user, team, etc), and
+        // react-select expects a full value object: {value: "id", label: "name"}
         const resolvedValue =
           // When rendering the selected value, first look at the API results...
           results.find(({value: v}) => v === value) ??
@@ -60,11 +59,11 @@ function SelectAsyncField({onChangeOption, ...props}: SelectAsyncFieldProps) {
               const resultValue = !option
                 ? option
                 : props.multiple && Array.isArray(option)
-                ? // List of optionObjs
-                  option.map(({value: val}) => val)
-                : !Array.isArray(option)
-                ? option.value
-                : option;
+                  ? // List of optionObjs
+                    option.map(({value: val}) => val)
+                  : !Array.isArray(option)
+                    ? option.value
+                    : option;
 
               setLatestSelection(option);
               onChange?.(resultValue, e);

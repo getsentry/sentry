@@ -1,3 +1,7 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
@@ -6,12 +10,12 @@ import TeamStore from 'sentry/stores/teamStore';
 import TeamKeyTransactionField from 'sentry/utils/discover/teamKeyTransactionField';
 
 describe('TeamKeyTransactionField', function () {
-  const organization = TestStubs.Organization();
+  const organization = OrganizationFixture();
   const teams = [
-    TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
-    TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
+    TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
-  const project = TestStubs.Project({teams});
+  const project = ProjectFixture({teams});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -51,14 +55,11 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
-
-    expect(allTeamsCheckbox).toBeChecked();
-    expect(teamOneCheckbox).toBeChecked();
-    expect(teamTwoCheckbox).toBeChecked();
+    const [teamOneOption, teamTwoOption] = screen.getAllByRole('option');
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
+    expect(teamTwoOption).toHaveAttribute('aria-selected', 'true');
   });
 
   it('renders with some teams checked', async function () {
@@ -96,14 +97,11 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
-
-    expect(allTeamsCheckbox).not.toBeChecked();
-    expect(teamOneCheckbox).toBeChecked();
-    expect(teamTwoCheckbox).not.toBeChecked();
+    const [teamOneOption, teamTwoOption] = screen.getAllByRole('option');
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
+    expect(teamTwoOption).toHaveAttribute('aria-selected', 'false');
   });
 
   it('renders with no teams checked', async function () {
@@ -138,14 +136,11 @@ describe('TeamKeyTransactionField', function () {
 
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
-
-    expect(allTeamsCheckbox).not.toBeChecked();
-    expect(teamOneCheckbox).not.toBeChecked();
-    expect(teamTwoCheckbox).not.toBeChecked();
+    const [teamOneOption, teamTwoOption] = screen.getAllByRole('option');
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
+    expect(teamTwoOption).toHaveAttribute('aria-selected', 'false');
   });
 
   it('should be able to check one team', async function () {
@@ -188,20 +183,18 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
+    const teamOneOption = screen.getAllByRole('option')[0];
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
 
-    expect(teamOneCheckbox).not.toBeChecked();
-
-    userEvent.click(teamOneCheckbox);
+    await userEvent.click(teamOneOption);
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    expect(teamOneCheckbox).toBeChecked();
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
   });
 
   it('should be able to uncheck one team', async function () {
@@ -244,20 +237,18 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [_allTeamsCheckbox, teamOneCheckbox, _teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
+    const teamOneOption = screen.getAllByRole('option')[0];
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
 
-    expect(teamOneCheckbox).toBeChecked();
-
-    userEvent.click(teamOneCheckbox);
+    await userEvent.click(teamOneOption);
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    expect(teamOneCheckbox).not.toBeChecked();
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
   });
 
   it('should be able to check all with my teams', async function () {
@@ -303,22 +294,18 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
-
-    expect(allTeamsCheckbox).not.toBeChecked();
-    userEvent.click(allTeamsCheckbox);
+    await userEvent.click(screen.getByRole('button', {name: 'Select All in My Teams'}));
 
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    expect(allTeamsCheckbox).toBeChecked();
-    expect(teamOneCheckbox).toBeChecked();
-    expect(teamTwoCheckbox).toBeChecked();
+    const [teamOneOption, teamTwoOption] = screen.getAllByRole('option');
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
+    expect(teamTwoOption).toHaveAttribute('aria-selected', 'true');
   });
 
   it('should be able to uncheck all with my teams', async function () {
@@ -364,66 +351,17 @@ describe('TeamKeyTransactionField', function () {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const [allTeamsCheckbox, teamOneCheckbox, teamTwoCheckbox] =
-      screen.getAllByRole('checkbox');
-
-    expect(allTeamsCheckbox).toBeChecked();
-    userEvent.click(allTeamsCheckbox);
+    await userEvent.click(screen.getByRole('button', {name: 'Unselect All in My Teams'}));
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
     });
 
-    expect(allTeamsCheckbox).not.toBeChecked();
-    expect(teamOneCheckbox).not.toBeChecked();
-    expect(teamTwoCheckbox).not.toBeChecked();
-  });
-
-  it('should render teams without access separately', async function () {
-    const myTeams = [...teams, TestStubs.Team({id: '3', slug: 'team3', name: 'Team 3'})];
-    act(() => {
-      TeamStore.loadInitialData(myTeams);
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/key-transactions-list/`,
-      body: myTeams.map(({id}) => ({
-        team: id,
-        count: 0,
-        keyed: [],
-      })),
-    });
-
-    render(
-      <TeamKeyTransactionManager.Provider
-        organization={organization}
-        teams={myTeams}
-        selectedTeams={['myteams']}
-      >
-        <TeamKeyTransactionField
-          isKeyTransaction
-          organization={organization}
-          projectSlug={project.slug}
-          transactionName="transaction"
-        />
-      </TeamKeyTransactionManager.Provider>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Toggle star for team'})).toBeEnabled();
-    });
-
-    userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
-
-    expect(screen.getByText('My Teams with Access')).toBeInTheDocument();
-    expect(screen.getByText('My Teams without Access')).toBeInTheDocument();
-
-    // Only renders checkboxes for teams with access
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
-    expect(screen.getByText('team3')).toBeInTheDocument();
+    const [teamOneOption, teamTwoOption] = screen.getAllByRole('option');
+    expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
+    expect(teamTwoOption).toHaveAttribute('aria-selected', 'false');
   });
 });

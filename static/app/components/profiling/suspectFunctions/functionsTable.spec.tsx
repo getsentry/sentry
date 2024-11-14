@@ -1,11 +1,13 @@
-import {ReactElement, useEffect} from 'react';
+import type {ReactElement} from 'react';
+import {useEffect} from 'react';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const project = TestStubs.Project();
+const project = ProjectFixture();
 
 function TestContext({children}: {children: ReactElement}) {
   useEffect(() => {
@@ -26,7 +28,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[]}
           project={project}
-          sort="p99"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -42,7 +44,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -52,16 +54,15 @@ describe('FunctionsTable', function () {
 
   it('renders one function', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: 'foo',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
+      'count()': 10,
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
+      ],
+      function: 'foo',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: 'bar',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -72,7 +73,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p95()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -83,28 +84,27 @@ describe('FunctionsTable', function () {
     expect(screen.getByText('Package')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
 
-    expect(screen.getByText('Total Occurrences')).toBeInTheDocument();
+    expect(screen.getByText('Occurrences')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
 
-    expect(screen.getByText('P75 Total Duration')).toBeInTheDocument();
+    expect(screen.getByText('P75 Self Time')).toBeInTheDocument();
     expect(screen.getByText('10.00ms')).toBeInTheDocument();
 
-    expect(screen.getByText('P99 Total Duration')).toBeInTheDocument();
-    expect(screen.getByText('12.50ms')).toBeInTheDocument();
+    expect(screen.getByText('Total Self Time')).toBeInTheDocument();
+    expect(screen.getByText('25.00ms')).toBeInTheDocument();
   });
 
   it('renders empty name', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: '',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
+      'count()': 10,
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
+      ],
+      function: '',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: 'bar',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -115,7 +115,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p75()', order: 'desc'}}
         />
       </TestContext>
     );
@@ -129,16 +129,15 @@ describe('FunctionsTable', function () {
 
   it('renders empty package', function () {
     const func = {
-      count: 10,
-      examples: ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-      fingerprint: 1234,
-      name: 'foo',
-      p75: 10000000,
-      p95: 12000000,
-      p99: 12500000,
+      'count()': 10,
+      'all_examples()': [
+        {profile_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'},
+        {profile_id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'},
+      ],
+      function: 'foo',
+      'p75()': 10000000,
+      'sum()': 25000000,
       package: '',
-      path: 'baz',
-      worst: 'cccccccccccccccccccccccccccccccc',
     };
 
     render(
@@ -149,7 +148,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort={{key: 'p75()', order: 'desc'}}
         />
       </TestContext>
     );

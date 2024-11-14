@@ -1,4 +1,4 @@
-from sentry.testutils import SCIMTestCase
+from sentry.testutils.cases import SCIMTestCase
 
 
 class SCIMSchemaEndpointTest(SCIMTestCase):

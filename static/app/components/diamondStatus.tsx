@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {IconDiamond} from 'sentry/icons';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 interface DiamondStatusProps extends React.HTMLAttributes<HTMLDivElement> {
   /**

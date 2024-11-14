@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 from threading import local
+from typing import Any
 
 import sentry_sdk
-from django.core.cache import InvalidCacheBackendError, caches
+from django.core.cache import BaseCache, InvalidCacheBackendError, caches
+from django.utils.functional import cached_property
 
-from sentry.utils import json
-from sentry.utils.cache import memoize
+from sentry import options
+from sentry.utils import json, metrics
 from sentry.utils.services import Service
 
 # Cache an instance of the encoder we want to use
@@ -20,7 +26,7 @@ json_dumps = json.JSONEncoder(
     default=None,
 ).encode
 
-json_loads = json._default_decoder.decode
+json_loads = json.loads
 
 
 class NodeStorage(local, Service):
@@ -62,21 +68,23 @@ class NodeStorage(local, Service):
         "delete",
         "delete_multi",
         "get",
+        "get_bytes",
         "get_multi",
         "set",
+        "set_bytes",
         "set_subkeys",
         "cleanup",
         "validate",
         "bootstrap",
     )
 
-    def delete(self, id):
+    def delete(self, id: str) -> None:
         """
         >>> nodestore.delete('key1')
         """
         raise NotImplementedError
 
-    def delete_multi(self, id_list):
+    def delete_multi(self, id_list: list[str]) -> None:
         """
         Delete multiple nodes.
 
@@ -88,7 +96,7 @@ class NodeStorage(local, Service):
         for id in id_list:
             self.delete(id)
 
-    def _decode(self, value, subkey):
+    def _decode(self, value: None | bytes, subkey: str | None) -> Any | None:
         if value is None:
             return None
 
@@ -98,12 +106,12 @@ class NodeStorage(local, Service):
                 # Those keys should be statically known identifiers in the app, such as
                 # "unprocessed_event". There is really no reason to allow anything but
                 # ASCII here.
-                subkey = subkey.encode("ascii")
+                _subkey = subkey.encode("ascii")
 
                 next(lines_iter)
 
                 for line in lines_iter:
-                    if line.strip() == subkey:
+                    if line.strip() == _subkey:
                         break
 
                     next(lines_iter)
@@ -112,14 +120,18 @@ class NodeStorage(local, Service):
         except StopIteration:
             return None
 
-    def _get_bytes(self, id):
+    def get_bytes(self, id: str) -> bytes | None:
         """
         >>> nodestore._get_bytes('key1')
         b'{"message": "hello world"}'
         """
+        return self._get_bytes(id)
+
+    def _get_bytes(self, id: str) -> bytes | None:
         raise NotImplementedError
 
-    def get(self, id, subkey=None):
+    @metrics.wraps("nodestore.get.duration")
+    def get(self, id: str, subkey: str | None = None) -> Any:
         """
         >>> nodestore.get('key1')
         {"message": "hello world"}
@@ -129,6 +141,7 @@ class NodeStorage(local, Service):
             if subkey is None:
                 item_from_cache = self._get_cache_item(id)
                 if item_from_cache:
+                    metrics.incr("nodestore.get", tags={"cache": "hit"})
                     span.set_tag("origin", "from_cache")
                     span.set_tag("found", bool(item_from_cache))
                     return item_from_cache
@@ -144,10 +157,11 @@ class NodeStorage(local, Service):
             if bytes_data:
                 span.set_tag("bytes.size", len(bytes_data))
             span.set_tag("found", bool(rv))
+            metrics.incr("nodestore.get", tags={"cache": "miss", "found": bool(rv)})
 
             return rv
 
-    def _get_bytes_multi(self, id_list):
+    def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         """
         >>> nodestore._get_bytes_multi(['key1', 'key2')
         {
@@ -157,7 +171,7 @@ class NodeStorage(local, Service):
         """
         return {id: self._get_bytes(id) for id in id_list}
 
-    def get_multi(self, id_list, subkey=None):
+    def get_multi(self, id_list: list[str], subkey: str | None = None) -> dict[str, Any | None]:
         """
         >>> nodestore.get_multi(['key1', 'key2')
         {
@@ -179,10 +193,11 @@ class NodeStorage(local, Service):
             else:
                 uncached_ids = id_list
 
-            items = {
-                id: self._decode(value, subkey=subkey)
-                for id, value in self._get_bytes_multi(uncached_ids).items()
-            }
+            with sentry_sdk.start_span(op="nodestore._get_bytes_multi_and_decode") as span:
+                items = {
+                    id: self._decode(value, subkey=subkey)
+                    for id, value in self._get_bytes_multi(uncached_ids).items()
+                }
             if subkey is None:
                 self._set_cache_items(items)
                 items.update(cache_items)
@@ -192,7 +207,7 @@ class NodeStorage(local, Service):
 
             return items
 
-    def _encode(self, data):
+    def _encode(self, data: dict[str | None, Mapping[str, Any]]) -> bytes:
         """
         Encode data dict in a way where its keys can be deserialized
         independently. A `None` key must always be present which is served as
@@ -203,29 +218,37 @@ class NodeStorage(local, Service):
         """
         lines = [json_dumps(data.pop(None)).encode("utf8")]
         for key, value in data.items():
-            lines.append(key.encode("ascii"))
-            lines.append(json_dumps(value).encode("utf8"))
+            if key is not None:
+                lines.append(key.encode("ascii"))
+                lines.append(json_dumps(value).encode("utf8"))
 
         return b"\n".join(lines)
 
-    def _set_bytes(self, id, data, ttl=None):
+    def set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         """
-        >>> nodestore.set('key1', b"{'foo': 'bar'}")
+        >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")
         """
+        metrics.distribution("nodestore.set_bytes", len(data))
+        return self._set_bytes(item_id, data, ttl)
+
+    def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError
 
-    def set(self, id, data, ttl=None):
+    def set(self, item_id: str, data: Mapping[str, Any], ttl: timedelta | None = None) -> None:
         """
-        Set value for `id`. Note that this deletes existing subkeys for `id` as
+        Set value for `item_id`. Note that this deletes existing subkeys for `item_id` as
         well, use `set_subkeys` to write a value + subkeys.
 
         >>> nodestore.set('key1', {'foo': 'bar'})
         """
-        return self.set_subkeys(id, {None: data}, ttl=ttl)
+        return self.set_subkeys(item_id, {None: data}, ttl=ttl)
 
-    def set_subkeys(self, id, data, ttl=None):
+    @sentry_sdk.tracing.trace
+    def set_subkeys(
+        self, item_id: str, data: dict[str | None, Mapping[str, Any]], ttl: timedelta | None = None
+    ) -> None:
         """
-        Set value for `id` and its subkeys.
+        Set value for `item_id` and its subkeys.
 
         >>> nodestore.set_subkeys('key1', {
         ...    None: {'foo': 'bar'},
@@ -237,48 +260,49 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        with sentry_sdk.start_span(op="nodestore.set_subkeys") as span:
-            span.set_tag("node_id", id)
-            span.set_data("subkeys_count", len(data))
-            cache_item = data.get(None)
-            bytes_data = self._encode(data)
-            self._set_bytes(id, bytes_data, ttl=ttl)
-            # set cache only after encoding and write to nodestore has succeeded
-            self._set_cache_item(id, cache_item)
+        cache_item = data.get(None)
+        bytes_data = self._encode(data)
+        self.set_bytes(item_id, bytes_data, ttl=ttl)
+        # set cache only after encoding and write to nodestore has succeeded
+        if options.get("nodestore.set-subkeys.enable-set-cache-item"):
+            self._set_cache_item(item_id, cache_item)
 
-    def cleanup(self, cutoff_timestamp):
+    def cleanup(self, cutoff_timestamp: datetime) -> None:
         raise NotImplementedError
 
-    def bootstrap(self):
+    def bootstrap(self) -> None:
         raise NotImplementedError
 
-    def _get_cache_item(self, id):
+    def _get_cache_item(self, item_id: str) -> Any | None:
         if self.cache:
-            return self.cache.get(id)
+            return self.cache.get(item_id)
+        return None
 
-    def _get_cache_items(self, id_list):
+    @sentry_sdk.tracing.trace
+    def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
         if self.cache:
             return self.cache.get_many(id_list)
         return {}
 
-    def _set_cache_item(self, id, data):
+    def _set_cache_item(self, item_id: str, data: Any) -> None:
         if self.cache and data:
-            self.cache.set(id, data)
+            self.cache.set(item_id, data)
 
-    def _set_cache_items(self, items):
+    @sentry_sdk.tracing.trace
+    def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
             self.cache.set_many(items)
 
-    def _delete_cache_item(self, id):
+    def _delete_cache_item(self, item_id: str) -> None:
         if self.cache:
-            self.cache.delete(id)
+            self.cache.delete(item_id)
 
-    def _delete_cache_items(self, id_list):
+    def _delete_cache_items(self, id_list: list[str]) -> None:
         if self.cache:
-            self.cache.delete_many([id for id in id_list])
+            self.cache.delete_many([item_id for item_id in id_list])
 
-    @memoize
-    def cache(self):
+    @cached_property
+    def cache(self) -> BaseCache | None:
         try:
             return caches["nodedata"]
         except InvalidCacheBackendError:

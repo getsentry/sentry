@@ -1,8 +1,7 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
-import isNil from 'lodash/isNil';
-import isObject from 'lodash/isObject';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -12,8 +11,8 @@ import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {StackTraceMechanism} from 'sentry/types/stacktrace';
-import {isUrl} from 'sentry/utils';
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 type Props = {
   data: StackTraceMechanism;
@@ -21,7 +20,7 @@ type Props = {
 };
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
-  const {type, description, help_link, handled, meta = {}, data = {}} = mechanism;
+  const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;
 
   const {errno, signal, mach_exception} = meta;
 
@@ -31,37 +30,35 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     </StyledExternalLink>
   );
 
+  const typeName = type || 'unknown';
+
   const pills = [
-    <Pill
-      key="mechanism"
-      name={
-        description ? (
-          <Hovercard
-            showUnderline
-            header={
-              <Details>
-                {t('Details')}
-                {linkElement}
-              </Details>
-            }
-            body={description}
-          >
-            {'mechanism'}
-          </Hovercard>
-        ) : linkElement ? (
-          <Name>
-            {'mechanism '}
-            {linkElement}
-          </Name>
-        ) : (
-          'mechanism'
-        )
-      }
-      value={type || 'unknown'}
-    />,
+    <Pill key="mechanism" name="mechanism">
+      {description ? (
+        <Hovercard
+          showUnderline
+          header={
+            <Details>
+              {t('Details')}
+              {linkElement}
+            </Details>
+          }
+          body={description}
+        >
+          {typeName}
+        </Hovercard>
+      ) : linkElement ? (
+        <Name>
+          {typeName}
+          {linkElement}
+        </Name>
+      ) : (
+        typeName
+      )}
+    </Pill>,
   ];
 
-  if (!isNil(handled)) {
+  if (handled !== null && handled !== undefined) {
     pills.push(<Pill key="handled" name="handled" value={handled} />);
   }
 
@@ -75,15 +72,20 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
     pills.push(<Pill key="mach" name="mach exception" value={value} />);
   }
 
+  if (source) {
+    pills.push(<Pill key="source" name="source" value={source} />);
+  }
+
   if (signal) {
     const code = signal.code_name || `${t('code')} ${signal.code}`;
     const name = signal.name || signal.number;
-    const value = isNil(signal.code) ? name : `${name} (${code})`;
+    const value =
+      signal.code === null || signal.code === undefined ? name : `${name} (${code})`;
     pills.push(<Pill key="signal" name="signal" value={value} />);
   }
 
   forOwn(data, (value, key) => {
-    if (!isObject(value)) {
+    if (!value || typeof value !== 'object') {
       pills.push(
         <Pill key={`data:${key}`} name={key}>
           {mechanismMeta?.data?.[key]?.[''] && !value ? (
@@ -104,7 +106,7 @@ export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
 }
 
 const Wrapper = styled('div')`
-  margin: ${space(2)} 0;
+  margin: ${space(2)} 0 ${space(0.5)} 0;
 `;
 
 const iconStyle = (p: {theme: Theme}) => css`

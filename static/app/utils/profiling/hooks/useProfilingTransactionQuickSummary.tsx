@@ -1,12 +1,14 @@
-import {Project} from 'sentry/types';
+import {useMemo} from 'react';
+
+import type {Project} from 'sentry/types/project';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
+import type {UseProfileEventsOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {
+  getProfilesTableFields,
   useProfileEvents,
-  UseProfileEventsOptions,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
+import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 interface UseProfilingTransactionQuickSummaryOptions {
   project: Project;
@@ -28,22 +30,27 @@ export function useProfilingTransactionQuickSummary(
     skipLatestProfile = false,
     skipSlowestProfile = false,
   } = options;
-  const {selection} = usePageFilters();
 
-  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort'> = {
-    query: `transaction:"${transaction}"`,
+  const profilesQueryString = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    return conditions.formatString();
+  }, [transaction]);
+
+  const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort' | 'referrer'> = {
+    query: profilesQueryString,
     fields: getProfilesTableFields(project.platform),
     enabled: Boolean(transaction),
     limit: 1,
-    referrer,
     refetchOnMount: false,
     projects: [project.id],
   };
 
   const slowestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.slowest`,
     sort: {
-      key: 'profile.duration',
+      key: 'transaction.duration',
       order: 'desc',
     },
     enabled: !skipSlowestProfile,
@@ -51,6 +58,7 @@ export function useProfilingTransactionQuickSummary(
 
   const latestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
+    referrer: `${referrer}.latest`,
     sort: {
       key: 'timestamp',
       order: 'desc',
@@ -58,24 +66,33 @@ export function useProfilingTransactionQuickSummary(
     enabled: !skipLatestProfile,
   });
 
-  const functionsQuery = useFunctions({
-    project,
-    query: '',
-    selection,
-    transaction,
-    sort: '-p95',
-    functionType: 'application',
+  const functionsQueryString = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    conditions.setFilterValues('is_application', ['1']);
+    return conditions.formatString();
+  }, [transaction]);
+
+  const functionsQuery = useProfileFunctions<FunctionsField>({
+    fields: functionsFields,
+    referrer: `${referrer}.functions`,
+    sort: {
+      key: 'sum()',
+      order: 'desc',
+    },
+    query: functionsQueryString,
+    limit: 5,
     enabled: !skipFunctions,
   });
 
-  const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
-  const durationUnits = slowestProfileQuery.data?.[0].meta.units['profile.duration'];
+  const slowestProfile = slowestProfileQuery?.data?.data[0] ?? null;
+  const durationUnits = slowestProfileQuery.data?.meta.units['transaction.duration'];
   const slowestProfileDurationMultiplier = durationUnits
     ? DURATION_UNITS[durationUnits] ?? 1
     : 1;
 
-  const latestProfile = latestProfileQuery?.data?.[0].data[0] ?? null;
-  const functions = functionsQuery?.data?.[0]?.functions;
+  const latestProfile = latestProfileQuery?.data?.data[0] ?? null;
+  const functions = functionsQuery?.data?.data;
 
   return {
     // slowest
@@ -90,8 +107,18 @@ export function useProfilingTransactionQuickSummary(
     functions,
     // general
     isLoading:
-      slowestProfileQuery.isLoading ||
-      latestProfileQuery.isLoading ||
-      functionsQuery.isLoading,
+      slowestProfileQuery.isPending ||
+      latestProfileQuery.isPending ||
+      functionsQuery.isPending,
   };
 }
+
+const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'sum()',
+  'all_examples()',
+] as const;
+
+export type FunctionsField = (typeof functionsFields)[number];

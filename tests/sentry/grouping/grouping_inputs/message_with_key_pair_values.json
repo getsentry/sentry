@@ -1,0 +1,22 @@
+{
+  "message": "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) key5=\"double-quoted\" other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d...",
+  "metadata": {
+    "title": "Error key1='Some_str123' key2=123456789 key3=False k..."
+  },
+  "title": "Error key1='Some_str123' key2=123456789 key3=False k...",
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1683071963.247855,
+        "type": "log",
+        "category": "network_evaluation_scheduler.processors.flight_snapshot_processor",
+        "level": "error",
+        "message": "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) key5=\"double-quoted\" other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d..."
+      }
+    ]
+  },
+  "logentry": {
+    "formatted": "Error key1='Some_str123' key2=123456789 key3=False key4=datetime.datetime(2023, 5, 2, 23, 46, tzinfo=datetime.timezone.utc) key5=\"double-quoted\" other_date=datetime.datetime(2023, 5, 3, 1, 10, tzinfo=d...",
+    "params": []
+  }
+}

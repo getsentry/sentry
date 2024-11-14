@@ -1,11 +1,14 @@
-from typing import List, Optional
+from __future__ import annotations
 
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
 from sentry.app import env
-from sentry.utils.auth import make_login_link_with_redirect
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.utils.auth import construct_link_with_query
 from sentry.utils.http import is_using_customer_domain
 
 
@@ -33,11 +36,17 @@ class SentryAPIException(APIException):
         self.detail = {"detail": detail}
 
 
+class BadRequest(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid-request"
+    message = "Invalid request"
+
+
 class ParameterValidationError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "parameter-validation-error"
 
-    def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
+    def __init__(self, message: str, context: list[str] | None = None) -> None:
         super().__init__(message=message, context=".".join(context or []))
 
 
@@ -56,14 +65,19 @@ class SsoRequired(SentryAPIException):
     code = "sso-required"
     message = "Must login via SSO"
 
-    def __init__(self, organization, after_login_redirect=None):
+    def __init__(
+        self,
+        organization: Organization | RpcOrganization,
+        after_login_redirect=None,
+    ):
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
         request = env.request
         if request and is_using_customer_domain(request):
-            login_url = organization.absolute_url(login_url)
+            login_url = organization.absolute_url(path=login_url)
 
         if after_login_redirect:
-            login_url = make_login_link_with_redirect(login_url, after_login_redirect)
+            query_params = {REDIRECT_FIELD_NAME: after_login_redirect}
+            login_url = construct_link_with_query(path=login_url, query_params=query_params)
 
         super().__init__(loginUrl=login_url)
 
@@ -83,6 +97,17 @@ class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"
     message = "You need to re-authenticate for superuser."
+
+
+class StaffRequired(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "staff-required"
+    message = "You need to re-authenticate for staff."
+
+
+class DataSecrecyError(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "data-secrecy"
 
 
 class SudoRequired(SentryAPIException):
@@ -107,24 +132,6 @@ class TwoFactorRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "2fa-required"
     message = "Organization requires two-factor authentication to be enabled"
-
-
-class AppConnectForbiddenError(SentryAPIException):
-    status_code = status.HTTP_403_FORBIDDEN
-    code = "app-connect-forbidden-error"
-    message = "App connect Forbidden error"
-
-
-class AppConnectAuthenticationError(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "app-connect-authentication-error"
-    message = "App connect authentication error"
-
-
-class AppConnectMultipleSourcesError(SentryAPIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
-    code = "app-connect-multiple-sources-error"
-    message = "Only one Apple App Store Connect application is allowed in this project"
 
 
 class ConflictError(APIException):

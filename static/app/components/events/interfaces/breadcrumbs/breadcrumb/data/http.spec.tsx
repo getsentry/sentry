@@ -1,3 +1,6 @@
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -7,21 +10,26 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('Breadcrumb Data Http', function () {
-  const project = TestStubs.Project({
-    id: '0',
-    relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
-  });
+  const project = ProjectFixture({id: '0'});
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
-      location: {query: {project: '0'}},
+      location: {query: {project: project.id}},
     },
-    project: '0',
     projects: [project],
   });
 
-  ProjectsStore.loadInitialData([project]);
+  beforeEach(() => {
+    const projectDetails = ProjectFixture({
+      ...project,
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${project.slug}/`,
+      body: projectDetails,
+    });
+    ProjectsStore.loadInitialData([project]);
+  });
 
   it('display redacted url', async function () {
     render(
@@ -60,7 +68,7 @@ describe('Breadcrumb Data Http', function () {
 
     expect(screen.getByText('POST')).toBeInTheDocument();
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -91,7 +99,7 @@ describe('Breadcrumb Data Http', function () {
     );
 
     expect(screen.queryByText('http://example.com/foo')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
