@@ -80,7 +80,7 @@ export const DEFAULT_PROFILING_DATETIME_SELECTION = {
   period: '24h',
 };
 
-export function getTargetId(reference): string {
+export function getProfileTargetId(reference: Profiling.BaseProfileReference): string {
   if (isTransactionProfileReference(reference)) {
     return reference.profile_id;
   }
