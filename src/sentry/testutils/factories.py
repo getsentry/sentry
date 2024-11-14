@@ -861,7 +861,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
+    def create_user(
+        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+    ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
 
