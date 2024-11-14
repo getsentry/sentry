@@ -147,7 +147,7 @@ from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -183,6 +183,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
 
@@ -2106,7 +2107,7 @@ class Factories:
     def create_data_source(
         organization: Organization | None = None,
         query_id: int | None = None,
-        type: DataSource.Type | None = None,
+        type: str | None = None,
         **kwargs,
     ) -> DataSource:
         if organization is None:
@@ -2114,7 +2115,7 @@ class Factories:
         if query_id is None:
             query_id = random.randint(1, 10000)
         if type is None:
-            type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+            type = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
         return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
 
     @staticmethod

@@ -10,7 +10,7 @@ logger = logging.getLogger("sentry.workflow_engine.process_data_source")
 
 
 def process_data_sources(
-    data_packets: list[DataPacket], query_type: DataSource.Type = DataSource.Type.SNUBA_QUERY
+    data_packets: list[DataPacket], query_type: str
 ) -> list[tuple[DataPacket, list[Detector]]]:
     metrics.incr("sentry.workflow_engine.process_data_sources", tags={"query_type": query_type})
 

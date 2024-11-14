@@ -6,14 +6,18 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework import EnvironmentField
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    QuerySubscription,
+    QuerySubscriptionDataSourceHandler,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.workflow_engine.endpoints.validators import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     NumericComparisonConditionValidator,
 )
-from sentry.workflow_engine.models import DataSource
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -29,7 +33,7 @@ class SnubaQueryDataSourceValidator(BaseDataSourceValidator[QuerySubscription]):
         child=serializers.IntegerField(),
     )
 
-    data_source_type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+    data_source_type_handler = QuerySubscriptionDataSourceHandler
 
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
