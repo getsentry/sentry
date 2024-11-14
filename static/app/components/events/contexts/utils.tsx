@@ -21,6 +21,9 @@ import {getMissingInstrumentationContextData} from 'sentry/components/events/con
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
+import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
+import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -42,13 +45,6 @@ import {
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {getReduxContextData} from './redux';
-import {getKnownRuntimeContextData, getUnknownRuntimeContextData} from './runtime';
-import {getKnownStateContextData, getUnknownStateContextData} from './state';
-import {
-  getKnownThreadPoolInfoContextData,
-  getUnknownThreadPoolInfoContextData,
-} from './threadPoolInfo';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
@@ -422,10 +418,7 @@ export function getFormattedContextData({
         ...getUnknownUnityContextData({data: contextValue, meta}),
       ];
     case 'runtime':
-      return [
-        ...getKnownRuntimeContextData({data: contextValue, meta}),
-        ...getUnknownRuntimeContextData({data: contextValue, meta}),
-      ];
+      return getRuntimeContextData({data: contextValue, meta});
     case 'user':
       return [
         ...getKnownUserContextData({data: contextValue, meta}),
@@ -443,17 +436,9 @@ export function getFormattedContextData({
       });
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return [
-        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
-        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
-      ];
-    case 'redux.state':
-      return getReduxContextData({data: contextValue});
+      return getThreadPoolInfoContext({data: contextValue, meta});
     case 'state':
-      return [
-        ...getKnownStateContextData({data: contextValue, meta}),
-        ...getUnknownStateContextData({data: contextValue, meta}),
-      ];
+      return getStateContextData({data: contextValue, meta});
     case 'profile':
       return getProfileContextData({data: contextValue, meta, organization, project});
     case 'replay':

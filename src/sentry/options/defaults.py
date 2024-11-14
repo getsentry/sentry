@@ -2010,12 +2010,41 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Enables anomaly detection based on the volume of check-ins being processed
+# Enables system incident anomaly detection based on the volume of check-ins
+# being processed
 register(
     "crons.tick_volume_anomaly_detection",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The threshold that the tick metric must surpass for a tick to be determined
+# as anomalous. This value should be negative, since we will only determine an
+# incident based on a decrease in volume.
+#
+# See the `monitors.system_incidents` module for more details
+register(
+    "crons.system_incidents.pct_deviation_anomaly_threshold",
+    default=-10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The threshold that the tick metric must surpass to transition to an incident
+# state. This should be a fairly high value to avoid false positive incidents.
+register(
+    "crons.system_incidents.pct_deviation_incident_threshold",
+    default=-30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# This is the number of previous ticks we will consider the tick metrics and
+# tick decisions for to determine a decision about the tick being evaluated.
+register(
+    "crons.system_incidents.tick_decision_window",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(

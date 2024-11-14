@@ -1,13 +1,11 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
 import {ReplayTextDiff} from 'sentry/components/replays/diff/replayTextDiff';
 import {TabList, TabPanels, TabStateProvider} from 'sentry/components/tabs';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -57,18 +55,6 @@ export default function ReplayDiffChooser({
             />
           </TabPanels.Item>
           <TabPanels.Item key={DiffType.HTML}>
-            <StyledAlert type="info" showIcon>
-              {tct(
-                `The HTML Diff is currently in beta and has known issues (e.g. the ‘before’ is sometimes empty). We are exploring different options to replace this view, please see [link: this ticket] for more details and share your feedback.`,
-                {
-                  link: (
-                    <ExternalLink
-                      href={'https://github.com/getsentry/sentry/issues/80092'}
-                    />
-                  ),
-                }
-              )}
-            </StyledAlert>
             <ReplayTextDiff
               leftOffsetMs={leftOffsetMs}
               replay={replay}
@@ -88,14 +74,11 @@ export default function ReplayDiffChooser({
   );
 }
 
-const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0 0;
-`;
-
 const Grid = styled('div')`
   display: grid;
   grid-template-rows: max-content 1fr;
   height: 100%;
+  gap: ${space(1)};
 `;
 
 const StyledTabPanels = styled(TabPanels)`

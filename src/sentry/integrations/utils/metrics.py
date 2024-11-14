@@ -7,19 +7,10 @@ from types import TracebackType
 from typing import Any, Self
 
 from sentry.integrations.base import IntegrationDomain
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-class EventLifecycleOutcome(Enum):
-    STARTED = "STARTED"
-    HALTED = "HALTED"
-    SUCCESS = "SUCCESS"
-    FAILURE = "FAILURE"
-
-    def __str__(self) -> str:
-        return self.value.lower()
 
 
 class EventLifecycleMetric(ABC):
@@ -141,6 +132,10 @@ class EventLifecycle:
             extra = dict(self._extra)
             extra.update(tags)
             logger.error(key, extra=self._extra, exc_info=exc)
+        elif outcome == EventLifecycleOutcome.HALTED:
+            extra = dict(self._extra)
+            extra.update(tags)
+            logger.warning(key, extra=self._extra, exc_info=exc)
 
     @staticmethod
     def _report_flow_error(message) -> None:
@@ -186,7 +181,9 @@ class EventLifecycle:
             self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.FAILURE, exc)
 
-    def record_halt(self, exc: BaseException | None = None) -> None:
+    def record_halt(
+        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+    ) -> None:
         """Record that the event halted in an ambiguous state.
 
         This method can be called in response to a sufficiently ambiguous exception
@@ -201,6 +198,8 @@ class EventLifecycle:
               (but probably later, as a backlog item).
         """
 
+        if extra:
+            self._extra.update(extra)
         self._terminate(EventLifecycleOutcome.HALTED, exc)
 
     def __enter__(self) -> Self:
