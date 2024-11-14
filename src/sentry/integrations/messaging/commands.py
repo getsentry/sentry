@@ -10,7 +10,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 
 
 @dataclass(frozen=True, eq=True)
@@ -133,8 +133,8 @@ class MessageCommandFailureReason(Enum):
 R = TypeVar("R")  # response
 
 # Command handler type that receives lifecycle object
-CommandHandler = Callable[[CommandInput], MessagingResponse[R]]
-MessagingDispatchResponse = Callable[[CommandInput], MessagingResponse[R]]
+CommandHandler = Callable[[CommandInput], IntegrationResponse[R]]
+MessagingDispatchResponse = Callable[[CommandInput], IntegrationResponse[R]]
 
 
 class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
@@ -152,7 +152,7 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[R]]]:
         """Return list of (command, handler) tuples.
 
-        Each handler receives (command_input) and returns MessagingResponse[R].
+        Each handler receives (command_input) and returns IntegrationResponse[R].
         """
         raise NotImplementedError
 

@@ -26,7 +26,7 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.spec import SlackMessagingSpec
-from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 from sentry.utils import metrics
 
 LINK_USER_MESSAGE = (
@@ -159,19 +159,19 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
-        def help_handler(input: CommandInput) -> MessagingResponse[Response]:
+        def help_handler(input: CommandInput) -> IntegrationResponse[Response]:
             response = self.endpoint.help(input.cmd_value)
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
             )
 
-        def link_user_handler(input: CommandInput) -> MessagingResponse[Response]:
+        def link_user_handler(input: CommandInput) -> IntegrationResponse[Response]:
             response = self.endpoint.link_user(self.request)
             if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(
                 response.data
             ):
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
                     context_data={
@@ -179,15 +179,15 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                         "email": self.request.identity_str,
                     },
                 )
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
             )
 
-        def unlink_user_handler(input: CommandInput) -> MessagingResponse[Response]:
+        def unlink_user_handler(input: CommandInput) -> IntegrationResponse[Response]:
             response = self.endpoint.unlink_user(self.request)
             if NOT_LINKED_MESSAGE in str(response.data):
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
                     context_data={
@@ -195,38 +195,38 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                         "email": self.request.identity_str,
                     },
                 )
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
             )
 
-        def link_team_handler(input: CommandInput) -> MessagingResponse[Response]:
+        def link_team_handler(input: CommandInput) -> IntegrationResponse[Response]:
             response = self.endpoint.link_team(self.request)
 
             for message, reason in self.TEAM_HALT_MAPPINGS.items():
                 if message in str(response.data):
-                    return MessagingResponse(
+                    return IntegrationResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
                         context_data={"halt_reason": reason},
                     )
 
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
             )
 
-        def unlink_team_handler(input: CommandInput) -> MessagingResponse[Response]:
+        def unlink_team_handler(input: CommandInput) -> IntegrationResponse[Response]:
             response = self.endpoint.unlink_team(self.request)
             for message, reason in self.TEAM_HALT_MAPPINGS.items():
                 if message in str(response.data):
-                    return MessagingResponse(
+                    return IntegrationResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
                         context_data={"halt_reason": reason},
                     )
 
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
             )

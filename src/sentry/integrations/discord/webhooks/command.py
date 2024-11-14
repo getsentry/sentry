@@ -20,7 +20,7 @@ from sentry.integrations.messaging.commands import (
     MessagingIntegrationCommandDispatcher,
 )
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
-from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 
 LINK_USER_MESSAGE = "[Click here]({url}) to link your Discord account to your Sentry account."
 ALREADY_LINKED_MESSAGE = "You are already linked to the Sentry account with email: `{email}`."
@@ -73,15 +73,15 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[str]]]:
-        def help_handler(input: CommandInput) -> MessagingResponse[str]:
-            return MessagingResponse(
+        def help_handler(input: CommandInput) -> IntegrationResponse[str]:
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=HELP_MESSAGE,
             )
 
-        def link_user_handler(input: CommandInput) -> MessagingResponse[str]:
+        def link_user_handler(input: CommandInput) -> IntegrationResponse[str]:
             if self.request.has_identity():
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
                     context_data={
@@ -99,7 +99,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                         "hasUserId": self.request.user_id,
                     },
                 )
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.FAILURE,
                     response=MISSING_DATA_MESSAGE,
                     context_data={
@@ -114,14 +114,14 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 discord_id=self.request.user_id,
             )
 
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=LINK_USER_MESSAGE.format(url=link_url),
             )
 
-        def unlink_user_handler(input: CommandInput) -> MessagingResponse[str]:
+        def unlink_user_handler(input: CommandInput) -> IntegrationResponse[str]:
             if not self.request.has_identity():
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=NOT_LINKED_MESSAGE,
                     context_data={"halt_reason": MessageCommandHaltReason.NOT_LINKED},
@@ -136,7 +136,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 discord_id=self.request.user_id,
             )
 
-            return MessagingResponse(
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=UNLINK_USER_MESSAGE.format(url=unlink_url),
             )

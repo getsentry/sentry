@@ -39,7 +39,7 @@ from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome, MessagingResponse
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -659,20 +659,20 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
-        def help_handler(input: CommandInput) -> MessagingResponse[AdaptiveCard]:
-            return MessagingResponse(
+        def help_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+            return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=build_help_command_card(),
             )
 
-        def link_identity_handler(input: CommandInput) -> MessagingResponse[AdaptiveCard]:
+        def link_identity_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
             linked_identity = identity_service.get_identity(
                 filter={"identity_ext_id": self.teams_user_id}
             )
             has_linked_identity = linked_identity is not None
 
             if has_linked_identity:
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=build_already_linked_identity_command_card(),
                     context_data={
@@ -682,17 +682,17 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
                     },
                 )
             else:
-                return MessagingResponse(
+                return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.SUCCESS,
                     response=build_link_identity_command_card(),
                 )
 
-        def unlink_identity_handler(input: CommandInput) -> MessagingResponse[AdaptiveCard]:
+        def unlink_identity_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
             unlink_url = build_unlinking_url(
                 self.conversation_id, self.data["serviceUrl"], self.teams_user_id
             )
             # TODO: check if the user is already unlinked
-            return MessagingResponse(
+            return IntegrationResponse(
                 response=build_unlink_identity_card(unlink_url),
                 interaction_result=EventLifecycleOutcome.SUCCESS,
             )
