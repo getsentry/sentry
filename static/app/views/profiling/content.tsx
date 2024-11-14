@@ -737,7 +737,7 @@ const StyledPagination = styled(Pagination)`
 function ProfilingContentWrapper(props: ProfilingContentProps) {
   const organization = useOrganization();
 
-  if (false && organization.features.includes('continuous-profiling-compat')) {
+  if (organization.features.includes('continuous-profiling-compat')) {
     return <ProfilingContent {...props} />;
   }
 
