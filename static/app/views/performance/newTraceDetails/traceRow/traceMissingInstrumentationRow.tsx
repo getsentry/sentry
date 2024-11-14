@@ -26,7 +26,7 @@ export function TraceMissingInstrumentationRow(
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >

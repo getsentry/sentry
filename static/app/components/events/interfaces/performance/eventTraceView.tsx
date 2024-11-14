@@ -88,7 +88,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
       initialPreferences={preferences}
       preferencesStorageKey="issue-details-view-preferences"
     >
-      <TraceViewWaterfallWrapper>
+      <TraceViewWaterfallWrapper rowCount={tree.list.length}>
         <IssuesTraceWaterfall
           tree={tree}
           trace={trace}
@@ -149,8 +149,17 @@ const TraceContentWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceViewWaterfallWrapper = styled('div')`
+const ROW_HEIGHT = 24;
+const MIN_ROW_COUNT = 1;
+const MAX_HEIGHT = 500;
+const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
+const HEADER_HEIGHT = 32;
+
+const TraceViewWaterfallWrapper = styled('div')<{rowCount: number}>`
   display: flex;
   flex-direction: column;
-  height: 500px;
+  max-height: ${MAX_HEIGHT}px;
+  height: ${p =>
+    Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
+    HEADER_HEIGHT}px;
 `;
