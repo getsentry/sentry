@@ -27,6 +27,7 @@ interface ProjectItem {
 
 interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'headers'> {
   items: ProjectItem[];
+  rateHeader: React.ReactNode;
   canEdit?: boolean;
   inactiveItems?: ProjectItem[];
   inputTooltip?: string;
@@ -40,6 +41,7 @@ export function ProjectsTable({
   inactiveItems = [],
   inputTooltip,
   canEdit,
+  rateHeader,
   onChange,
   ...props
 }: Props) {
@@ -65,7 +67,7 @@ export function ProjectsTable({
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
         t('Stored Spans'),
-        canEdit ? t('Target Rate') : t('Estimated Rate'),
+        rateHeader,
       ]}
     >
       {mainItems

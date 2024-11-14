@@ -239,6 +239,7 @@ export function ProjectsEditTable({
       </BreakdownPanel>
 
       <ProjectsTable
+        rateHeader={t('Target Rate')}
         canEdit={!isBulkEditEnabled}
         onChange={handleProjectChange}
         emptyMessage={t('No active projects found in the selected period.')}
