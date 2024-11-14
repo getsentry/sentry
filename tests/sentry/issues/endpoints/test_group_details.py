@@ -12,7 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
-from sentry.models.group import Group, GroupStatus, GroupSubStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
@@ -33,6 +33,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 pytestmark = [requires_snuba]
 
@@ -393,34 +394,53 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.release.version == wrong_release.version
         assert response.data["statusDetails"]["inRelease"] == wrong_release.version
 
-    @with_feature("organizations:releases-resolve-next-release-semver-fix")
-    def test_resolved_in_next_release_semver_with_flag_no_first_release(self):
+        # Let's test that it does not regress to the first release
+        event = self.store_event(data={"release": first_release.version}, project_id=project.id)
+        group = Group.objects.get(id=group.id, project=project.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        # Let's test that it does regress - this is fixed with the feature flag
+        event = self.store_event(data={"release": wrong_release.version}, project_id=project.id)
+        group = Group.objects.get(id=group.id, project=project.id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
+
+    def resolved_in_next_release_helper(self, with_first_release: bool = True) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
         project.flags.has_releases = True
         project.save()
-        Release.get_or_create(version="com.foo.bar@1.0+0", project=project)
-        greatest_version = Release.get_or_create(version="com.foo.bar@2.0+0", project=project)
-        # It should not be picked up based on creation date
-        Release.get_or_create(version="com.foo.bar@1.0+1", project=project)
+        releases = [
+            Release.get_or_create(version="com.foo.bar@1.0+0", project=project),
+            Release.get_or_create(version="com.foo.bar@2.0+0", project=project),
+            # We create this release last but it is not the greatest version, thus, it should not be picked up
+            Release.get_or_create(version="com.foo.bar@1.0+1", project=project),
+        ]
+        first_release = releases[0]
+        greatest_version = releases[1]
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
-        event = self.store_event(data={}, project_id=project.id)
+        if with_first_release:
+            event = self.store_event(data={"release": first_release.version}, project_id=project.id)
+        else:
+            event = self.store_event(data={}, project_id=project.id)
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
-        assert group.first_release is None
+        if with_first_release:
+            assert group.first_release == first_release
+        else:
+            assert group.first_release is None
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
         data = {"status": "resolvedInNextRelease"}
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content == {}
-
         # Refetch from DB to ensure the latest state is fetched
-        group = Group.objects.get(id=group.id, project=project.id)
+        group = Group.objects.get(id=group.id, project=group.project.id)
         assert group.status == GroupStatus.RESOLVED
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
@@ -432,46 +452,29 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.status == GroupResolution.Status.resolved
         assert group_resolution.release.version == greatest_version.version
         assert response.data["statusDetails"]["inRelease"] == greatest_version.version
+
+        new_release = Release.get_or_create(version="com.foo.bar@3.0+0", project=project)
+        # A lesser release than 2.x but created more recently than 3.x
+        old_version = Release.get_or_create(version="com.foo.bar@1.1+0", project=project)
+        for release in releases + [old_version]:
+            # Let's test that it does not regress to the first release
+            event = self.store_event(data={"release": release.version}, project_id=project.id)
+            group = Group.objects.get(id=group.id, project=project.id)
+            assert group.status == GroupStatus.RESOLVED
+
+        # Let's test that it regress with a newer release but not a lesser one
+        event = self.store_event(data={"release": new_release.version}, project_id=project.id)
+        group = Group.objects.get(id=group.id, project=project.id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
+
+    @with_feature("organizations:releases-resolve-next-release-semver-fix")
+    def test_resolved_in_next_release_semver_with_flag_no_first_release(self):
+        self.resolved_in_next_release_helper(with_first_release=False)
 
     @with_feature("organizations:releases-resolve-next-release-semver-fix")
     def test_resolved_in_next_release_semver_with_flag_and_first_release(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        project.flags.has_releases = True
-        project.save()
-        first_release = Release.get_or_create(version="com.foo.bar@1.0+0", project=project)
-        greatest_version = Release.get_or_create(version="com.foo.bar@2.0+0", project=project)
-        # It should not be picked up based on creation date
-        Release.get_or_create(version="com.foo.bar@1.0+1", project=project)
-        # Using store_event() instead of create_group() produces GroupRelease objects
-        # which is considered during the update_groups() call
-        event = self.store_event(data={"release": first_release.version}, project_id=project.id)
-        group = event.group
-        assert group is not None
-        assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.NEW
-        assert group.first_release == first_release
-        assert GroupResolution.objects.all().count() == 0
-
-        url = f"/api/0/issues/{group.id}/"
-        data = {"status": "resolvedInNextRelease"}
-        response = self.client.put(url, data=data)
-        assert response.status_code == 200, response.content == {}
-
-        # Refetch from DB to ensure the latest state is fetched
-        group = Group.objects.get(id=group.id, project=project.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        group_resolution = GroupResolution.objects.filter(group=group).first()
-        assert group_resolution is not None
-        assert group_resolution.group == group
-        # For semver projects, we consider resolution based on an expression rather than a specific release,
-        # thus, it is considered resolved in the release that has the highest semver
-        assert group_resolution.type == GroupResolution.Type.in_release
-        assert group_resolution.status == GroupResolution.Status.resolved
-        assert group_resolution.release.version == greatest_version.version
-        assert response.data["statusDetails"]["inRelease"] == greatest_version.version
+        self.resolved_in_next_release_helper(with_first_release=True)
 
     def test_resolved_in_next_release_no_release(self):
         self.login_as(user=self.user)
