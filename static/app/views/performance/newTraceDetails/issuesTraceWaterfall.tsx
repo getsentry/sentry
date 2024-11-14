@@ -54,27 +54,17 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
+import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
-import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 
-interface IssuesTraceWaterfallProps {
-  meta: TraceMetaQueryResults;
-  organization: Organization;
-  replay: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+interface IssuesTraceWaterfallProps extends TraceWaterfallProps {
   /**
    * Ignore eventId or path query parameters and use the provided node.
    * Must be set at component mount, no reactivity
    */
   scrollToNode: {eventId?: string; path?: TraceTree.NodePath[]};
-  source: string;
-  trace: UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError>;
-  traceEventView: EventView;
-  traceSlug: string | undefined;
-  tree: TraceTree;
-  replayTraces?: ReplayTrace[];
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
@@ -385,12 +375,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     pathToNodeOrEventId: scrollQueueRef.current,
     tree: props.tree,
   });
-
-  // Sync part of the state with the URL
-  const traceQueryStateSync = useMemo(() => {
-    return {search: traceState.search.query};
-  }, [traceState.search.query]);
-  useTraceQueryParamStateSync(traceQueryStateSync);
 
   return (
     <Fragment>

@@ -96,7 +96,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Vitals'),
 };
 
-interface TraceWaterfallProps {
+export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
