@@ -1,14 +1,34 @@
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.issues import grouptype
+from sentry.workflow_engine.endpoints.serializers import DetectorSerializer
 from sentry.workflow_engine.models import Detector
 
 
+@region_silo_endpoint
+@extend_schema(tags=["Workflows"])
 class ProjectDetectorIndexEndpoint(ProjectEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.ISSUES
+
     # TODO: We probably need a specific permission for detectors. Possibly specific detectors have different perms
     # too?
     permission_classes = (ProjectAlertRulePermission,)
@@ -31,6 +51,20 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
             data=request.data,
         )
 
+    @extend_schema(
+        operation_id="Fetch a Detector",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        responses={
+            201: DetectorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request, project):
         """
         List a Project's Detectors
@@ -48,6 +82,27 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @extend_schema(
+        operation_id="Create a Detector",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+        ],
+        request=PolymorphicProxySerializer(
+            "GenericDetectorSerializer",
+            serializers=[
+                gt.detector_validator for gt in grouptype.registry.all() if gt.detector_validator
+            ],
+            resource_type_field_name=None,
+        ),
+        responses={
+            201: DetectorSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request, project):
         """
         Create a Detector
