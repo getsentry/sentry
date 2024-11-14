@@ -420,14 +420,14 @@ def update_groups(
                             "organizations:releases-resolve-next-release-semver-fix",
                             project.organization,
                         ):
-                            resolving_release_version = get_latest_release(projects[0]).version
+                            current_release_version = get_latest_release(projects[0]).version
                         else:
-                            resolving_release_version = get_current_release_version_of_group(
+                            current_release_version = get_current_release_version_of_group(
                                 group=group, follows_semver=follows_semver
                             )
-                        if resolving_release_version:
+                        if current_release_version:
                             resolution_params.update(
-                                {"current_release_version": resolving_release_version}
+                                {"current_release_version": current_release_version}
                             )
 
                             # Sets `current_release_version` for activity, since there is no point
@@ -437,7 +437,7 @@ def update_groups(
                             # >current_release_version" in the UI
                             if follows_semver:
                                 activity_data.update(
-                                    {"current_release_version": resolving_release_version}
+                                    {"current_release_version": current_release_version}
                                 )
 
                                 # In semver projects, and thereby semver releases, we determine
@@ -458,9 +458,9 @@ def update_groups(
                                 # be of type in_next_release but rather in_release would suffice
 
                                 try:
-                                    # Get current release object from resolving_release_version
+                                    # Get current release object from current_release_version
                                     current_release_obj = Release.objects.get(
-                                        version=resolving_release_version,
+                                        version=current_release_version,
                                         organization_id=projects[0].organization_id,
                                     )
 
