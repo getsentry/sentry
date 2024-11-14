@@ -44,6 +44,8 @@ import {
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
+const WEB_VITALS_COUNT = 5;
+
 export function WebVitalsLandingPage() {
   const location = useLocation();
   const {isInDomainView} = useDomainViewFilters();
@@ -135,6 +137,7 @@ export function WebVitalsLandingPage() {
                   />
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
+                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
                   <WebVitalMeters
                     projectData={projectData}
                     projectScore={projectScore}
@@ -188,6 +191,16 @@ export function WebVitalsLandingPage() {
   );
 }
 
+function WebVitalMetersPlaceholder() {
+  return (
+    <LoadingBoxContainer>
+      {[...Array(WEB_VITALS_COUNT)].map((_, index) => (
+        <LoadingBox key={index} />
+      ))}
+    </LoadingBoxContainer>
+  );
+}
+
 function PageWithProviders() {
   return (
     <ModulePageProviders
@@ -217,6 +230,26 @@ const MainContentContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const LoadingBoxContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  gap: ${space(1)};
+  align-items: center;
+  flex-wrap: wrap;
+
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingBox = styled('div')`
+  flex: 1;
+  min-width: 140px;
+  height: 90px;
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export const AlertContent = styled('div')`
