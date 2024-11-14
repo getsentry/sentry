@@ -257,12 +257,13 @@ function ManageDashboards() {
             onChange={setDashboardsLayout}
             size="md"
             value={dashboardsLayout}
+            aria-label="Layout Control"
           >
-            <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid Layout">
+            <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid">
               {/* TODO (nikkikapadia): replace this icon with correct one once made */}
               <IconDashboard />
             </SegmentedControl.Item>
-            <SegmentedControl.Item key="list" textValue="list" aria-label="List Layout">
+            <SegmentedControl.Item key="list" textValue="list" aria-label="List">
               <IconList />
             </SegmentedControl.Item>
           </SegmentedControl>
