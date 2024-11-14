@@ -14,6 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {PrimaryCount} from 'sentry/components/stream/group';
+import {IconOpen} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -24,12 +25,16 @@ import type {
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderDivider} from 'sentry/views/issueList/actions';
 import {NarrowAssigneeLabel} from 'sentry/views/issueList/actions/headers';
 
+import {isTracePerformanceIssue} from '../../../traceGuards';
+import {TraceIcons} from '../../../traceIcons';
 import type {TraceTree} from '../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
+import {useHasTraceNewUi} from '../../../useHasTraceNewUi';
 import {TraceDrawerComponents} from '../styles';
 
 import {IssueSummary} from './issueSummary';
@@ -68,6 +73,7 @@ function sortIssuesByLevel(a: TraceError, b: TraceError): number {
 
 function Issue(props: IssueProps) {
   const {organization} = props;
+  const hasTraceNewUi = useHasTraceNewUi();
   const {
     isPending,
     data: fetchedIssue,
@@ -91,89 +97,48 @@ function Issue(props: IssueProps) {
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
+  if (!hasTraceNewUi) {
+    return (
+      <LegacyIssue
+        {...props}
+        isError={isError}
+        fetchedIssue={fetchedIssue}
+        error={error}
+        isPending={isPending}
+      />
+    );
+  }
+
+  const isPerformanceIssue: boolean = isTracePerformanceIssue(props.issue);
+  const iconClassName: string = isPerformanceIssue
+    ? 'performance_issue'
+    : props.issue.level;
+
   return isPending ? (
     <StyledLoadingIndicatorWrapper>
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
   ) : fetchedIssue ? (
     <StyledPanelItem hasNewLayout={hasNewLayout}>
+      <IconWrapper className={iconClassName}>
+        <IconBackground className={iconClassName}>
+          <TraceIcons.Icon event={props.issue} />
+        </IconBackground>
+      </IconWrapper>
       {hasNewLayout ? (
-        <NarrowIssueSummaryWrapper>
+        <NarrowSummaryWrapper>
           <EventOrGroupHeader data={fetchedIssue} organization={organization} />
           <EventOrGroupExtraDetails data={fetchedIssue} />
-        </NarrowIssueSummaryWrapper>
+        </NarrowSummaryWrapper>
       ) : (
-        <IssueSummaryWrapper>
+        <SummaryWrapper>
           <IssueSummary
             data={fetchedIssue}
             organization={props.organization}
             event_id={props.issue.event_id}
           />
           <EventOrGroupExtraDetails data={fetchedIssue} />
-        </IssueSummaryWrapper>
-      )}
-      <ChartWrapper>
-        <GroupStatusChart
-          stats={
-            fetchedIssue.filtered
-              ? fetchedIssue.filtered.stats?.['24h']
-              : fetchedIssue.stats?.['24h']
-          }
-          secondaryStats={fetchedIssue.filtered ? fetchedIssue.stats?.['24h'] : []}
-          groupStatus={
-            getBadgeProperties(fetchedIssue.status, fetchedIssue.substatus)?.status
-          }
-          hideZeros
-          showSecondaryPoints
-          showMarkLine
-        />
-      </ChartWrapper>
-      <EventsWrapper>
-        {hasNewLayout ? (
-          <NarrowEventsOrUsersWrapper>
-            <PrimaryCount
-              value={
-                fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count
-              }
-            />
-          </NarrowEventsOrUsersWrapper>
-        ) : (
-          <PrimaryCount
-            value={
-              fetchedIssue.filtered ? fetchedIssue.filtered.count : fetchedIssue.count
-            }
-          />
-        )}
-      </EventsWrapper>
-      {hasNewLayout ? (
-        <NarrowEventsOrUsersWrapper>
-          <PrimaryCount
-            value={
-              fetchedIssue.filtered
-                ? fetchedIssue.filtered.userCount
-                : fetchedIssue.userCount
-            }
-          />
-        </NarrowEventsOrUsersWrapper>
-      ) : (
-        <UserCountWrapper>
-          <PrimaryCount
-            value={
-              fetchedIssue.filtered
-                ? fetchedIssue.filtered.userCount
-                : fetchedIssue.userCount
-            }
-          />
-        </UserCountWrapper>
-      )}
-      {hasNewLayout ? (
-        <NarrowAssigneeWrapper>
-          <AssigneeBadge assignedTo={fetchedIssue.assignedTo ?? undefined} />
-        </NarrowAssigneeWrapper>
-      ) : (
-        <AssigneeWrapper>
-          <AssigneeBadge assignedTo={fetchedIssue.assignedTo ?? undefined} />
-        </AssigneeWrapper>
+        </SummaryWrapper>
       )}
     </StyledPanelItem>
   ) : isError ? (
@@ -185,6 +150,207 @@ function Issue(props: IssueProps) {
   ) : null;
 }
 
+const IconBackground = styled('div')`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: ${p => p.theme.white};
+  }
+`;
+
+const IconWrapper = styled('div')`
+  border-radius: 50%;
+  padding: ${space(0.25)};
+
+  &.info {
+    border: 1px solid var(--info);
+    ${IconBackground} {
+      background-color: var(--info);
+    }
+  }
+  &.warning {
+    border: 1px solid var(--warning);
+    ${IconBackground} {
+      background-color: var(--warning);
+    }
+  }
+  &.debug {
+    border: 1px solid var(--debug);
+    ${IconBackground} {
+      background-color: var(--debug);
+    }
+  }
+  &.error,
+  &.fatal {
+    border: 1px solid var(--error);
+    ${IconBackground} {
+      background-color: var(--error);
+    }
+  }
+  &.performance_issue {
+    border: 1px solid var(--performance-issue);
+    ${IconBackground} {
+      background-color: var(--performance-issue);
+    }
+  }
+  &.default {
+    border: 1px solid var(--default);
+    ${IconBackground} {
+      background-color: var(--default);
+    }
+  }
+  &.unknown {
+    border: 1px solid var(--unknown);
+    ${IconBackground} {
+      background-color: var(--unknown);
+    }
+  }
+
+  &.info,
+  &.warning,
+  &.performance_issue,
+  &.default,
+  &.unknown {
+    svg {
+      transform: translateY(-1px);
+    }
+  }
+`;
+
+const NarrowSummaryWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  justify-content: left;
+`;
+
+const SummaryWrapper = styled('div')`
+  overflow: hidden;
+  flex: 1;
+`;
+
+function LegacyIssue(
+  props: IssueProps & {
+    error: RequestError | null;
+    fetchedIssue: Group | undefined;
+    isError: boolean;
+    isPending: boolean;
+  }
+) {
+  const {organization} = props;
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
+
+  return props.isPending ? (
+    <StyledLoadingIndicatorWrapper>
+      <LoadingIndicator size={24} mini />
+    </StyledLoadingIndicatorWrapper>
+  ) : props.fetchedIssue ? (
+    <StyledLegacyPanelItem hasNewLayout={hasNewLayout}>
+      {hasNewLayout ? (
+        <NarrowIssueSummaryWrapper>
+          <EventOrGroupHeader data={props.fetchedIssue} organization={organization} />
+          <EventOrGroupExtraDetails data={props.fetchedIssue} />
+        </NarrowIssueSummaryWrapper>
+      ) : (
+        <IssueSummaryWrapper>
+          <IssueSummary
+            data={props.fetchedIssue}
+            organization={props.organization}
+            event_id={props.issue.event_id}
+          />
+          <EventOrGroupExtraDetails data={props.fetchedIssue} />
+        </IssueSummaryWrapper>
+      )}
+      <ChartWrapper>
+        <GroupStatusChart
+          stats={
+            props.fetchedIssue.filtered
+              ? props.fetchedIssue.filtered.stats?.['24h']
+              : props.fetchedIssue.stats?.['24h']
+          }
+          secondaryStats={
+            props.fetchedIssue.filtered ? props.fetchedIssue.stats?.['24h'] : []
+          }
+          groupStatus={
+            getBadgeProperties(props.fetchedIssue.status, props.fetchedIssue.substatus)
+              ?.status
+          }
+          hideZeros
+          showSecondaryPoints
+          showMarkLine
+        />
+      </ChartWrapper>
+      <EventsWrapper>
+        {hasNewLayout ? (
+          <NarrowEventsOrUsersWrapper>
+            <PrimaryCount
+              value={
+                props.fetchedIssue.filtered
+                  ? props.fetchedIssue.filtered.count
+                  : props.fetchedIssue.count
+              }
+            />
+          </NarrowEventsOrUsersWrapper>
+        ) : (
+          <PrimaryCount
+            value={
+              props.fetchedIssue.filtered
+                ? props.fetchedIssue.filtered.count
+                : props.fetchedIssue.count
+            }
+          />
+        )}
+      </EventsWrapper>
+      {hasNewLayout ? (
+        <NarrowEventsOrUsersWrapper>
+          <PrimaryCount
+            value={
+              props.fetchedIssue.filtered
+                ? props.fetchedIssue.filtered.userCount
+                : props.fetchedIssue.userCount
+            }
+          />
+        </NarrowEventsOrUsersWrapper>
+      ) : (
+        <UserCountWrapper>
+          <PrimaryCount
+            value={
+              props.fetchedIssue.filtered
+                ? props.fetchedIssue.filtered.userCount
+                : props.fetchedIssue.userCount
+            }
+          />
+        </UserCountWrapper>
+      )}
+      {hasNewLayout ? (
+        <NarrowAssigneeWrapper>
+          <AssigneeBadge assignedTo={props.fetchedIssue.assignedTo ?? undefined} />
+        </NarrowAssigneeWrapper>
+      ) : (
+        <AssigneeWrapper>
+          <AssigneeBadge assignedTo={props.fetchedIssue.assignedTo ?? undefined} />
+        </AssigneeWrapper>
+      )}
+    </StyledLegacyPanelItem>
+  ) : props.isError ? (
+    <LoadingError
+      message={
+        props.error?.status === 404
+          ? t('This issue was deleted')
+          : t('Failed to fetch issue')
+      }
+    />
+  ) : null;
+}
 type IssueListProps = {
   issues: TraceErrorOrIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -192,6 +358,7 @@ type IssueListProps = {
 };
 
 export function IssueList({issues, node, organization}: IssueListProps) {
+  const hasTraceNewUi = useHasTraceNewUi();
   const uniqueErrorIssues = useMemo(() => {
     const unique: TraceError[] = [];
 
@@ -235,19 +402,49 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     return null;
   }
 
+  if (!hasTraceNewUi) {
+    return (
+      <StyledPanel>
+        <IssueListHeader
+          node={node}
+          errorIssues={uniqueErrorIssues}
+          performanceIssues={uniquePerformanceIssues}
+        />
+        {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+          <Issue key={index} issue={issue} organization={organization} />
+        ))}
+      </StyledPanel>
+    );
+  }
+
   return (
-    <StyledPanel>
-      <IssueListHeader
-        node={node}
-        errorIssues={uniqueErrorIssues}
-        performanceIssues={uniquePerformanceIssues}
-      />
-      {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
-        <Issue key={index} issue={issue} organization={organization} />
-      ))}
-    </StyledPanel>
+    <IssuesWrapper>
+      <StyledPanel>
+        {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
+          <Issue key={index} issue={issue} organization={organization} />
+        ))}
+      </StyledPanel>
+      {uniqueIssues.length > MAX_DISPLAYED_ISSUES_COUNT ? (
+        <TraceDrawerComponents.IssuesLink node={node}>
+          <IssueLinkWrapper>
+            <IconOpen />
+            {t(
+              `Open %s more in Issues`,
+              uniqueIssues.length - MAX_DISPLAYED_ISSUES_COUNT
+            )}
+          </IssueLinkWrapper>
+        </TraceDrawerComponents.IssuesLink>
+      ) : null}
+    </IssuesWrapper>
   );
 }
+
+const IssueLinkWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-left: ${space(0.25)};
+`;
 
 function IssueListHeader({
   node,
@@ -424,6 +621,18 @@ const StyledPanel = styled(Panel)`
   container-type: inline-size;
 `;
 
+const IssuesWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.75)};
+  justify-content: left;
+  margin-bottom: ${space(2)};
+
+  ${StyledPanel} {
+    margin-bottom: 0;
+  }
+`;
+
 const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
@@ -488,11 +697,12 @@ const AssigneeWrapper = styled(ColumnWrapper)`
   }
 `;
 
-const NarrowAssigneeWrapper = styled(AssigneeWrapper)`
-  margin-left: 0;
+const NarrowAssigneeWrapper = styled(ColumnWrapper)`
+  margin-right: ${space(2)};
 `;
 
 const ChartWrapper = styled('div')`
+  margin-left: ${space(4)};
   width: 200px;
   align-self: center;
 
@@ -501,7 +711,9 @@ const ChartWrapper = styled('div')`
   }
 `;
 
-const StyledPanelItem = styled(PanelItem)<{hasNewLayout: boolean}>`
+const StyledLegacyPanelItem = styled(PanelItem)<{hasNewLayout: boolean}>`
+  justify-content: space-between;
+  align-items: center;
   padding-top: ${p => (p.hasNewLayout ? '0px' : space(1))};
   padding-bottom: ${p => (p.hasNewLayout ? '0px' : space(1))};
   ${p =>
@@ -514,6 +726,13 @@ const StyledPanelItem = styled(PanelItem)<{hasNewLayout: boolean}>`
       : css`
           height: 84px;
         `}
+`;
+
+const StyledPanelItem = styled(StyledLegacyPanelItem)`
+  justify-content: left;
+  align-items: center;
+  gap: ${space(1.5)};
+  padding: 0 ${space(2)};
 `;
 
 const StyledIssueStreamHeaderLabel = styled(IssueStreamHeaderLabel)`

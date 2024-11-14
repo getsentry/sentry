@@ -44,7 +44,7 @@ function SpanNodeDetailHeader({
   const span = node.value;
 
   return (
-    <TraceDrawerComponents.HeaderContainer>
+    <TraceDrawerComponents.LegacyHeaderContainer>
       <TraceDrawerComponents.Title>
         <Tooltip title={node.event?.projectSlug}>
           <ProjectBadge
@@ -53,19 +53,19 @@ function SpanNodeDetailHeader({
             hideName
           />
         </Tooltip>
-        <TraceDrawerComponents.TitleText>
+        <TraceDrawerComponents.LegacyTitleText>
           <div>{t('span')}</div>
           <TraceDrawerComponents.TitleOp
             text={getSpanOperation(span) + ' - ' + (span.description ?? span.span_id)}
           />
-        </TraceDrawerComponents.TitleText>
+        </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
       <TraceDrawerComponents.NodeActions
         node={node}
         organization={organization}
         onTabScrollToNode={onTabScrollToNode}
       />
-    </TraceDrawerComponents.HeaderContainer>
+    </TraceDrawerComponents.LegacyHeaderContainer>
   );
 }
 

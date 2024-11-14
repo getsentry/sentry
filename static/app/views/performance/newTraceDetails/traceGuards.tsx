@@ -136,3 +136,9 @@ export function getPageloadTransactionChildCount(
   }
   return count;
 }
+
+export function isTracePerformanceIssue(
+  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
+): issue is TraceTree.TracePerformanceIssue {
+  return 'suspect_spans' in issue;
+}

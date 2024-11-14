@@ -1121,6 +1121,17 @@ const TraceToolbar = styled('div')`
 const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --debug: ${p => p.theme.blue300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
+
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;

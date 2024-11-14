@@ -346,6 +346,10 @@ export const SearchAndSortWrapper = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
   }
+
+  @container breadcrumbs (width < 640px) {
+    display: none;
+  }
 `;
 
 const LevelWrap = styled('span')`
