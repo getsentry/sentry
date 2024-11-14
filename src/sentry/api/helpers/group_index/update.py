@@ -416,15 +416,19 @@ def update_groups(
                             release_version=release.version,
                         )
 
-                        if features.has(
-                            "organizations:releases-resolve-next-release-semver-fix",
-                            project.organization,
+                        if (
+                            features.has(
+                                "organizations:releases-resolve-next-release-semver-fix",
+                                project.organization,
+                            )
+                            and follows_semver
                         ):
                             current_release_version = get_latest_release(projects[0]).version
                         else:
                             current_release_version = get_current_release_version_of_group(
                                 group=group, follows_semver=follows_semver
                             )
+
                         if current_release_version:
                             resolution_params.update(
                                 {"current_release_version": current_release_version}

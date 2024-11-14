@@ -6,7 +6,6 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 from sentry_relay.processing import parse_release
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -91,7 +90,7 @@ class GroupResolution(Model):
                     "release__id",
                     "release__version",
                     "release__date_added",
-                    "current_release_version",  # XXX: Where does this come from?
+                    "current_release_version",
                 )[0]
             )
         except IndexError:
@@ -107,12 +106,6 @@ class GroupResolution(Model):
             org_id=group.organization.id,
             release_version=release.version,
         )
-        current_release_version = current_release_version
-        if follows_semver and features.has(
-            "organizations:releases-resolve-next-release-semver-fix",
-            group.project.organization,
-        ):
-            current_release_version = res_release_version
 
         # if current_release_version was set, then it means that initially Group was resolved in
         # next release, which means a release will have a resolution if it is the same as
