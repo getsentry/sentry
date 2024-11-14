@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from enum import Enum
+from typing import Generic, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -71,3 +73,23 @@ PERSONAL_NOTIFICATION_PROVIDERS = [
     ExternalProviderEnum.SLACK.value,
     ExternalProviderEnum.MSTEAMS.value,
 ]
+
+
+class EventLifecycleOutcome(Enum):
+    STARTED = "STARTED"
+    HALTED = "HALTED"
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
+
+    def __str__(self) -> str:
+        return self.value.lower()
+
+
+T = TypeVar("T")
+
+
+@dataclass
+class IntegrationResponse(Generic[T]):
+    interaction_result: EventLifecycleOutcome
+    response: T
+    context_data: dict | None = None

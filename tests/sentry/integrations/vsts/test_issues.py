@@ -21,7 +21,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode

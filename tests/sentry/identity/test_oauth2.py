@@ -11,7 +11,7 @@ import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

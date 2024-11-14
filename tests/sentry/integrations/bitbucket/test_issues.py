@@ -7,7 +7,7 @@ import responses
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType

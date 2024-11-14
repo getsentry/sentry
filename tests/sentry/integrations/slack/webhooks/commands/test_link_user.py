@@ -7,7 +7,7 @@ from sentry.integrations.slack.views.unlink_identity import (
     build_unlinking_url,
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
