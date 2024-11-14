@@ -171,6 +171,28 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
     validate_id = validate_id
 
+    def get_metrics_features(self, organization, user):
+        feature_names = [
+            "organizations:mep-rollout-flag",
+            "organizations:dynamic-sampling",
+            "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=user,
+        )
+
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(feature_name, organization=organization, actor=user)
+                for feature_name in feature_names
+            }
+        )
+
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
@@ -185,7 +207,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
         orderby = self._get_attr(data, "orderby", "")
-        is_table = is_table_display_type(self.context.get("displayType"))
+        is_table = is_table_display_type(self.context.get("display_type"))
         columns = self._get_attr(data, "columns", []).copy()
         aggregates = self._get_attr(data, "aggregates", []).copy()
         fields = columns + aggregates
@@ -226,6 +248,17 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             data["issue_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
 
         try:
+            batch_features = self.get_metrics_features(
+                self.context["organization"], self.context["user"]
+            )
+            use_metrics = (
+                (
+                    batch_features.get("organizations:mep-rollout-flag", False)
+                    and batch_features.get("organizations:dynamic-sampling", False)
+                )
+                or batch_features.get("organizations:performance-use-metrics", False)
+                or batch_features.get("organizations:dashboards-mep", False)
+            )
             # When using the eps/epm functions, they require an interval argument
             # or to provide the start/end so that the interval can be computed.
             # This uses a hard coded start/end to ensure the validation succeeds
@@ -239,6 +272,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                         "aggregates_only": not is_table,
                     },
                     use_aggregate_conditions=True,
+                    has_metrics=use_metrics,
                 ),
             )
 
@@ -320,6 +354,18 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if parse_stats_period(interval) is None:
             raise serializers.ValidationError("Invalid interval")
         return interval
+
+    def to_internal_value(self, data):
+        # Update the context for the queries serializer because the display type is
+        # required for validation of the queries
+        queries_serializer = self.fields["queries"]
+        queries_serializer.context.update(
+            {
+                "display_type": data["display_type"],
+                "user": self.context["request"].user,
+            }
+        )
+        return super().to_internal_value(data)
 
     def validate(self, data):
         query_errors = []
