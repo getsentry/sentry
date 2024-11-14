@@ -33,6 +33,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 
 import type {Widget} from '../types';
 import {WidgetType} from '../types';
@@ -325,6 +326,14 @@ export function getMenuOptions(
         },
       });
     }
+  }
+
+  if (widget.widgetType === WidgetType.SPANS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetExploreUrl(widget, selection, organization),
+    });
   }
 
   if (widget.widgetType === WidgetType.ISSUE) {
