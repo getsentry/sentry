@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from rest_framework import status
 
-from sentry.models.notificationaction import (
+from sentry.notifications.models.notificationaction import (
     ActionRegistration,
     ActionService,
     ActionTarget,
