@@ -274,7 +274,7 @@ class Fixtures:
     def create_commit_file_change(self, *args, **kwargs):
         return Factories.create_commit_file_change(*args, **kwargs)
 
-    def create_user(self, *args, **kwargs):
+    def create_user(self, *args, **kwargs) -> User:
         return Factories.create_user(*args, **kwargs)
 
     def create_useremail(self, *args, **kwargs):
@@ -536,7 +536,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: RpcUser | None = None,
+        user: RpcUser | User | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

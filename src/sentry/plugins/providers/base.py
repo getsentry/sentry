@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 from sentry.users.services.usersocialauth.service import usersocialauth_service
@@ -98,7 +99,7 @@ class ProviderMixin:
         )
         return len(auths) == 0
 
-    def get_auth(self, user: RpcUser, **kwargs) -> RpcUserSocialAuth | None:
+    def get_auth(self, user: RpcUser | User, **kwargs) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None
 
