@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.utils import timezone
@@ -12,9 +13,23 @@ from sentry.monitors.logic.incident_occurrence import (
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
-from sentry.monitors.types import SimpleCheckIn
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SimpleCheckIn:
+    """
+    A stripped down check in object
+    """
+
+    id: int
+    date_added: datetime
+    status: int
+
+    @classmethod
+    def from_checkin(cls, checkin: MonitorCheckIn) -> SimpleCheckIn:
+        return cls(checkin.id, checkin.date_added, checkin.status)
 
 
 def try_incident_threshold(
@@ -45,7 +60,7 @@ def try_incident_threshold(
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
         if failure_issue_threshold == 1:
-            previous_checkins: list[SimpleCheckIn] = [failed_checkin.as_simple_checkin()]
+            previous_checkins: list[SimpleCheckIn] = [SimpleCheckIn.from_checkin(failed_checkin)]
         else:
             previous_checkins = [
                 SimpleCheckIn(**row)
@@ -86,7 +101,7 @@ def try_incident_threshold(
     elif monitor_env.status == MonitorStatus.ERROR:
         # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
-        previous_checkins = [failed_checkin.as_simple_checkin()]
+        previous_checkins = [SimpleCheckIn.from_checkin(failed_checkin)]
 
         # get the active incident from the monitor environment
         incident = monitor_env.active_incident
