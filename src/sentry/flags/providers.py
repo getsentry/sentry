@@ -91,7 +91,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=True)
     name = serializers.CharField(max_length=100, required=True)
-    description = serializers.CharField(required=True)
+    description = serializers.CharField(allow_blank=True, required=True)
 
 
 SUPPORTED_LAUNCHDARKLY_ACTIONS = {
@@ -133,6 +133,10 @@ def handle_launchdarkly_event(
 
     result = serializer.validated_data
 
+    access = result["accesses"][0]
+    if access["action"] not in SUPPORTED_LAUNCHDARKLY_ACTIONS:
+        return []
+
     return [
         {
             "action": handle_launchdarkly_actions(access["action"]),
@@ -143,8 +147,6 @@ def handle_launchdarkly_event(
             "organization_id": organization_id,
             "tags": {"description": result["description"]},
         }
-        for access in result["accesses"]
-        if access["action"] in SUPPORTED_LAUNCHDARKLY_ACTIONS
     ]
 
 
