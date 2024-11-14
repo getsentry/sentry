@@ -179,8 +179,10 @@ function AutofixGithubIntegrationStep({
               size="sm"
               disabled={!canStartAutofix}
               onClick={handleClose}
+              analyticsEventName="Autofix Setup Enable Autofix"
+              analyticsEventKey="autofix.setup_enable_autofix"
             >
-              {t("Let's Go!")}
+              {t('Enable Autofix')}
             </Button>
           )}
         </GuidedSteps.StepButtons>
@@ -255,6 +257,8 @@ function AutofixGithubIntegrationStep({
             size="sm"
             disabled={!canStartAutofix}
             onClick={handleClose}
+            analyticsEventName="Autofix Setup Skip & Enable Autofix"
+            analyticsEventKey="autofix.setup_skip_enable_autofix"
           >
             {t('Skip & Enable Autofix')}
           </Button>
