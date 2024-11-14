@@ -11,7 +11,7 @@ interface Props {
 export function ProjectionPeriodControl({period, onChange}: Props) {
   return (
     <Tooltip
-      title={t('The time period for which the projected sample rates are calculated.')}
+      title={t('The time period for which the estimated sample rates are calculated.')}
     >
       <SegmentedControl
         label={t('Stats period')}
