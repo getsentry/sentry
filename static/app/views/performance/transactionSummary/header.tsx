@@ -281,6 +281,42 @@ function TransactionHeader({
         },
         view,
       }),
+      headerActions: (
+        <Fragment>
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) =>
+              hasFeature && !metricsCardinality?.isLoading ? (
+                <CreateAlertFromViewButton
+                  size="sm"
+                  eventView={eventView}
+                  organization={organization}
+                  projects={projects}
+                  onClick={handleCreateAlertSuccess}
+                  referrer="performance"
+                  alertType="trans_duration"
+                  aria-label={t('Create Alert')}
+                  disableMetricDataset={
+                    metricsCardinality?.outcome?.forceTransactionsOnly
+                  }
+                />
+              ) : null
+            }
+          </Feature>
+          <TeamKeyTransactionButton
+            eventView={eventView}
+            organization={organization}
+            transactionName={transactionName}
+          />
+          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
+            <TransactionThresholdButton
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              onChangeThreshold={onChangeThreshold}
+            />
+          </GuideAnchor>
+        </Fragment>
+      ),
     };
     if (view === FRONTEND_LANDING_SUB_PATH) {
       return <FrontendHeader {...headerProps} />;
