@@ -110,6 +110,9 @@ export type IssueEventParameters = {
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.jump_to_section_clicked': {
+    section: string;
+  };
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.related_trace_issue.trace_issue_clicked': {
@@ -460,6 +463,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
   'issue_details.section_fold': 'Issue Details: Section Fold',
+  'issue_details.jump_to_section_clicked': 'Issue Details: Jump to Section Clicked',
   'issue_details.comment_created': 'Issue Details: Comment Created',
   'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
   'whats_new.link_clicked': "What's New: Link Clicked",

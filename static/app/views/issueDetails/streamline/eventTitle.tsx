@@ -216,6 +216,7 @@ function EventNavigationLink({
   config: SectionConfig;
   propCss: SerializedStyles;
 }) {
+  const organization = useOrganization();
   const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(config.key),
     config?.initialCollapse ?? false
@@ -229,6 +230,10 @@ function EventNavigationLink({
       onClick={event => {
         event.preventDefault();
         setIsCollapsed(false);
+        trackAnalytics('issue_details.jump_to_section_clicked', {
+          organization,
+          section: config.key,
+        });
         document
           .getElementById(config.key)
           ?.scrollIntoView({block: 'start', behavior: 'smooth'});
