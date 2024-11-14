@@ -9,6 +9,7 @@ import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
@@ -102,6 +103,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} projectCount={projects.length} />
+                  <RollbackBanner />
                   {!hideOrgLinks && (
                     <Fragment>
                       {hasOrgRead && (
