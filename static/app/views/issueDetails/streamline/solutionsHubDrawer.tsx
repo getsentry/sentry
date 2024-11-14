@@ -17,6 +17,7 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDocs, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -89,6 +90,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                   : 'Autofix: Start Fix Clicked'
               }
               analyticsParams={{group_id: groupId}}
+              aria-label="Start Autofix"
             >
               {t('Start Autofix')}
             </Button>
@@ -136,7 +138,7 @@ interface SolutionsHubDrawerProps {
 
 const AiSetupDataConsent = HookOrDefault({
   hookName: 'component:ai-setup-data-consent',
-  defaultComponent: null,
+  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
 
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
@@ -243,7 +245,11 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {!hasConsent ? (
+        {isSetupLoading ? (
+          <div data-test-id="ai-setup-loading-indicator">
+            <LoadingIndicator />
+          </div>
+        ) : !hasConsent ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
@@ -258,7 +264,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {displayAiAutofix && (
               <Fragment>
-                {!isSetupLoading && !isAutofixSetupComplete ? (
+                {!isAutofixSetupComplete ? (
                   <AutofixSetupContent
                     groupId={group.id}
                     projectId={project.id}
