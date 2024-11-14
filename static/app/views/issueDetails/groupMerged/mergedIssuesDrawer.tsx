@@ -39,11 +39,7 @@ export function MergedIssuesDrawer({group, project}: {group: Group; project: Pro
         <Header>{t('Merged Issues')}</Header>
       </EventNavigator>
       <EventDrawerBody>
-        <GroupMergedView
-          project={project}
-          params={{groupId: group.id}}
-          location={location}
-        />
+        <GroupMergedView project={project} groupId={group.id} location={location} />
       </EventDrawerBody>
     </EventDrawerContainer>
   );

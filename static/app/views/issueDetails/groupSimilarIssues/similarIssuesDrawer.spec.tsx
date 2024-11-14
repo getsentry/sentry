@@ -1,6 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,6 +13,9 @@ describe('SimilarIssuesDrawer', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture({features: ['similarity-view']});
   const group = GroupFixture();
+  const router = RouterFixture({
+    params: {groupId: group.id},
+  });
   let mockSimilarIssues: jest.Mock;
 
   beforeEach(function () {
@@ -20,14 +24,21 @@ describe('SimilarIssuesDrawer', function () {
     GroupStore.init();
 
     mockSimilarIssues = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.id}/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/${organization.slug}/issues/${group.id}/similar/?limit=50`,
       body: [[group, {'exception:stacktrace:pairs': 0.375}]],
       method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: group,
     });
   });
 
   it('renders the content as expected', async function () {
-    render(<SimilarIssuesDrawer group={group} project={project} />, {organization});
+    render(<SimilarIssuesDrawer group={group} project={project} />, {
+      organization,
+      router,
+    });
 
     expect(
       await screen.findByRole('heading', {name: 'Similar Issues'})
