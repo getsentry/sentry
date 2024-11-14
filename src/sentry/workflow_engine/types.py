@@ -22,6 +22,7 @@ DetectorGroupKey = str | None
 
 DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 
+
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
