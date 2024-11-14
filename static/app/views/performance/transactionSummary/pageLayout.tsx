@@ -30,6 +30,7 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {
@@ -118,6 +119,8 @@ function PageLayout(props: Props) {
   const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
     TransactionThresholdMetric | undefined
   >();
+
+  const {isInDomainView} = useDomainViewFilters();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -257,7 +260,7 @@ function PageLayout(props: Props) {
 
   let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-  if (organization.features.includes('insights-domain-view')) {
+  if (isInDomainView) {
     hasWebVitals = 'no';
   }
 
