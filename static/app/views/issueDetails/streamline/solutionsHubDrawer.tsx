@@ -89,7 +89,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {message ? 'Start' : 'Start Autofix'}
+              {t('Start Autofix')}
             </Button>
           </ButtonWithStars>
         </Row>
