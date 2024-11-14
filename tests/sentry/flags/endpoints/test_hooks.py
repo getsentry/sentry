@@ -40,7 +40,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
 
         assert response.status_code == 200
-        assert FlagAuditLogModel.objects.count() == 2
+        assert FlagAuditLogModel.objects.count() == 1
         flag = FlagAuditLogModel.objects.first()
         assert flag is not None
         assert flag.action == ACTION_MAP["created"]
