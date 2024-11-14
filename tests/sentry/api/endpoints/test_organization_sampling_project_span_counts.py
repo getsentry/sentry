@@ -23,7 +23,7 @@ class OrganizationSamplingProjectSpanCountsTest(MetricsEnhancedPerformanceTestCa
         self.project_3 = self.create_project(organization=self.org, name="project_3")
         self.project_4 = self.create_project(organization=self.org, name="project_4")
         self.url = reverse(
-            "sentry-api-0-organization-sampling-span-counts",
+            "sentry-api-0-organization-sampling-root-counts",
             kwargs={"organization_id_or_slug": self.org.slug},
         )
 
