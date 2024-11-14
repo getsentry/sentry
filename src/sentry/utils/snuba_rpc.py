@@ -7,7 +7,10 @@ import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from google.protobuf.message import Message as ProtobufMessage
-from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -59,7 +62,7 @@ def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
 
 
 def rpc(
-    req: SnubaRPCRequest | CreateSubscriptionRequest,
+    req: SnubaRPCRequest,
     resp_type: type[RPCResponseType],
 ) -> RPCResponseType:
     """
@@ -134,3 +137,13 @@ def _make_rpc_request(
                 log_snuba_info(f"{referrer}.error:\n{error}")
             raise SnubaRPCError(error)
         return http_resp
+
+
+def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionResponse:
+    cls = req.__class__
+    endpoint_name = cls.__name__
+    class_version = cls.__module__.split(".", 3)[2]
+    http_resp = _make_rpc_request(endpoint_name, class_version, req)
+    resp = CreateSubscriptionResponse()
+    resp.ParseFromString(http_resp.data)
+    return resp

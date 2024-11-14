@@ -6,10 +6,7 @@ from datetime import timedelta
 import orjson
 import sentry_sdk
 from django.utils import timezone
-from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
-    CreateSubscriptionRequest,
-    CreateSubscriptionResponse,
-)
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry import features
@@ -294,7 +291,7 @@ def _create_rpc_in_snuba(
     )
 
     try:
-        response = snuba_rpc.rpc(subscription_request, CreateSubscriptionResponse)
+        response = snuba_rpc.create_subscription(subscription_request)
     except snuba_rpc.SnubaRPCError:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise
