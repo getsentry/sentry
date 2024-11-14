@@ -450,7 +450,7 @@ class OAuthLoginView(PipelineView):
 
             # At this point, we are past the GitHub "authorize" step
             if request.GET.get("state") != pipeline.signature:
-                lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
+                lifecycle.record_failure({"failure_reason": GitHubInstallationError.INVALID_STATE})
                 return error(
                     request,
                     self.active_organization,
@@ -474,7 +474,7 @@ class OAuthLoginView(PipelineView):
                 payload = {}
 
             if "access_token" not in payload:
-                lifecycle.record_failure(GitHubInstallationError.MISSING_TOKEN)
+                lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_TOKEN})
                 return error(
                     request,
                     self.active_organization,
@@ -483,7 +483,7 @@ class OAuthLoginView(PipelineView):
 
             authenticated_user_info = get_user_info(payload["access_token"])
             if "login" not in authenticated_user_info:
-                lifecycle.record_failure(GitHubInstallationError.MISSING_LOGIN)
+                lifecycle.record_failure({"failure_reason": GitHubInstallationError.MISSING_LOGIN})
                 return error(
                     request,
                     self.active_organization,
@@ -525,7 +525,9 @@ class GitHubInstallation(PipelineView):
                 ).exists()
 
             if integration_pending_deletion_exists:
-                lifecycle.record_failure(GitHubInstallationError.PENDING_DELETION)
+                lifecycle.record_failure(
+                    {"failure_reason": GitHubInstallationError.PENDING_DELETION}
+                )
                 return error(
                     request,
                     self.active_organization,
@@ -543,7 +545,9 @@ class GitHubInstallation(PipelineView):
                 return pipeline.next_step()
 
             if installations_exist:
-                lifecycle.record_failure(GitHubInstallationError.INSTALLATION_EXISTS)
+                lifecycle.record_failure(
+                    {"failure_reason": GitHubInstallationError.INSTALLATION_EXISTS}
+                )
                 return error(
                     request,
                     self.active_organization,
@@ -557,7 +561,9 @@ class GitHubInstallation(PipelineView):
                     external_id=installation_id, status=ObjectStatus.ACTIVE
                 )
             except Integration.DoesNotExist:
-                lifecycle.record_failure(GitHubInstallationError.MISSING_INTEGRATION)
+                lifecycle.record_failure(
+                    {"failure_reason": GitHubInstallationError.MISSING_INTEGRATION}
+                )
                 return error(request, self.active_organization)
 
             # Check that the authenticated GitHub user is the same as who installed the app.
@@ -565,7 +571,7 @@ class GitHubInstallation(PipelineView):
                 pipeline.fetch_state("github_authenticated_user")
                 != integration.metadata["sender"]["login"]
             ):
-                lifecycle.record_failure(GitHubInstallationError.USER_MISMATCH)
+                lifecycle.record_failure({"failure_reason": GitHubInstallationError.USER_MISMATCH})
                 return error(
                     request,
                     self.active_organization,
