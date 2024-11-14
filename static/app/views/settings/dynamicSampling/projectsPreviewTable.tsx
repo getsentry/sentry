@@ -97,6 +97,8 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
 
       <ProjectsTable
         stickyHeaders
+        rateHeader={t('Estimated Rate')}
+        inputTooltip={t('To edit project sample rates, switch to manual sampling mode.')}
         emptyMessage={t('No active projects found in the selected period.')}
         isEmpty={!sampleCounts.length}
         isLoading={isLoading}

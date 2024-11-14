@@ -188,10 +188,8 @@ export function ProjectsEditTable({
               />
             </BreakdownWrapper>
             <FieldGroup
-              label={t('Projected Organization Rate')}
-              help={t(
-                "An estimate of the combined sample rate for all projects. Adjusting this will proportionally update each project's rate below."
-              )}
+              label={t('Estimated Organization Rate')}
+              help={t('An estimate of the combined sample rate for all projects.')}
               flexibleControlStateSize
               alignRight
             >
@@ -203,6 +201,13 @@ export function ProjectsEditTable({
                   size="sm"
                   onChange={handleOrgChange}
                   value={projectedOrgRate}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      inputRef.current?.blur();
+                    }
+                  }}
+                  onBlur={() => setIsBulkEditEnabled(false)}
                 />
                 <FlexRow>
                   <PreviousValue>
@@ -214,9 +219,10 @@ export function ProjectsEditTable({
                   {hasAccess && !isBulkEditEnabled && (
                     <BulkEditButton
                       size="zero"
-                      title={t(
-                        'Adjusting your organization rate will automatically scale individual project rates to match.'
-                      )}
+                      tooltipProps={{
+                        position: 'bottom',
+                      }}
+                      title={t('Proportionally scale project rates')}
                       priority="link"
                       onClick={() => {
                         setIsBulkEditEnabled(true);
@@ -233,7 +239,8 @@ export function ProjectsEditTable({
       </BreakdownPanel>
 
       <ProjectsTable
-        canEdit
+        rateHeader={t('Target Rate')}
+        canEdit={!isBulkEditEnabled}
         onChange={handleProjectChange}
         emptyMessage={t('No active projects found in the selected period.')}
         isLoading={isLoading}
