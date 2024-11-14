@@ -99,9 +99,16 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
+  const search = new MutableSearch(query);
+
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  search.addFilterValues('!transaction.span_id', ['00']);
+
   const timeSeriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(query ?? ''),
+      search,
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       fields,
@@ -136,6 +143,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     !timeSeriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
+
+  const shouldRenderLabel = visualizes.length > 1;
 
   return (
     <Fragment>
@@ -184,7 +193,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartLabel>{label}</ChartLabel>
+                {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
                 <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}

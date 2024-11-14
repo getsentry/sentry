@@ -2,7 +2,6 @@ import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -16,7 +15,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 
 export type ChildrenProps<T> = {
@@ -66,7 +64,6 @@ export function SetupIntegrationModal<T extends Data>({
   const {createToken} = useGenerateAuthToken({state, orgSlug: organization?.slug});
 
   const handleDone = useCallback(() => {
-    addSuccessMessage(t('Integration set up successfully'));
     closeModal();
   }, [closeModal]);
 
@@ -123,8 +120,6 @@ export function SetupIntegrationModal<T extends Data>({
         url: `https://sentry.io/api/0/organizations/${organization?.slug}/flags/hooks/provider/${provider}/token/${encodedToken}/`,
       };
     });
-
-    trackAnalytics('flags.webhook_url_generated', {organization});
   }, [createToken, organization, state.provider]);
 
   const providers = ['LaunchDarkly'];

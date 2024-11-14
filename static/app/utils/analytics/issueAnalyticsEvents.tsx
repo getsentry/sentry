@@ -105,10 +105,16 @@ export type IssueEventParameters = {
   };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.event_dropdown_option_selected': EventDropdownParams;
+  'issue_details.event_navigation_selected': {
+    content: string;
+  };
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
+  'issue_details.issue_content_selected': {
+    content: string;
+  };
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
@@ -287,6 +293,11 @@ export type IssueEventParameters = {
     total_issues_count: number | null;
     tab?: string;
   };
+  'one_other_related_trace_issue.clicked': {
+    area: string;
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
+    group_id: number;
+  };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -357,6 +368,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
+  'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
@@ -431,6 +444,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
+  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
