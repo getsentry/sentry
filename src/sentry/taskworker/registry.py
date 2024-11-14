@@ -16,6 +16,7 @@ from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
+from sentry.utils import metrics
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -92,6 +93,7 @@ class TaskNamespace:
         return wrapped
 
     def send_task(self, activation: TaskActivation) -> None:
+        metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
         # TODO(taskworker) producer callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic.value),
