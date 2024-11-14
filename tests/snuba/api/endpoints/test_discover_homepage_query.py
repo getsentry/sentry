@@ -5,10 +5,8 @@ from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
-from tests.sentry.snuba.metrics.test_metrics_layer.test_metrics_enhanced_performance import (
-    MetricsEnhancedPerformanceTestCase,
-)
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
 FEATURES = ("organizations:discover-query", "organizations:performance-use-metrics")
