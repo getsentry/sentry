@@ -8,7 +8,7 @@ import {
   getAppContextData,
 } from 'sentry/components/events/contexts/knownContext/app';
 
-export const MOCK_APP_CONTEXT: AppContext = {
+const MOCK_APP_CONTEXT: AppContext = {
   device_app_hash: '2421fae1ac9237a8131e74883e52b0f7034a143f',
   build_type: 'test',
   app_identifier: 'io.sentry.sample.iOS-Swift',
