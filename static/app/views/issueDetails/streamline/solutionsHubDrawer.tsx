@@ -204,7 +204,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           </ResourcesContainer>
         )}
         <HeaderText>
-          <div style={{display: 'flex', alignItems: 'center', gap: space(0.5)}}>
+          <HeaderContainer>
             <IconSeer size="lg" />
             {t('Sentry AI')}
             <StyledFeatureBadge
@@ -216,7 +216,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                 }
               )}
             />
-          </div>
+          </HeaderContainer>
           {autofixData && (
             <ButtonBar gap={1}>
               <AutofixFeedback />
@@ -451,4 +451,10 @@ const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
   transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
   opacity: ${p => Math.min(1, 0.2 + p.index * 0.1)};
   filter: sepia(1) saturate(3) hue-rotate(290deg);
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

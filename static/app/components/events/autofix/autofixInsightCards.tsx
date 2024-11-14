@@ -401,9 +401,9 @@ function ChainLink({
   stepIndex: number;
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
-  const [referenceElement, setReferenceElement] = useState<HTMLButtonElement | null>(
-    null
-  );
+  const [referenceElement, setReferenceElement] = useState<
+    HTMLAnchorElement | HTMLButtonElement | null
+  >(null);
   const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const [comment, setComment] = useState('');
   const {mutate: send} = useUpdateInsightCard({groupId, runId});
@@ -448,7 +448,7 @@ function ChainLink({
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
       <RethinkButton
-        ref={(instance: HTMLButtonElement | null) => setReferenceElement(instance)}
+        ref={setReferenceElement}
         icon={<IconEdit size="xs" />}
         size="zero"
         className="rethink-button"
