@@ -486,18 +486,18 @@ function useGetAnalyticsDataStreamlinedUI(): StreamlinedUIAnalyticsData {
     return {};
   }
 
-  const sidebarOpenSections: SectionKey[] = [];
+  const sidebarOpenSections: Record<string, boolean> = {};
   for (const sectionKey of Object.values(SectionKey)) {
     const foldSectionKey = getFoldSectionKey(sectionKey);
     const isOpen = localStorage.getItem(foldSectionKey) === 'true';
     if (isOpen) {
-      sidebarOpenSections.push(sectionKey);
+      sidebarOpenSections[`sidebar_${sectionKey}_open`] = true;
     }
   }
 
   return {
     sidebar_open: localStorage.getItem('issue-details-sidebar-open') === 'true',
-    fold_sections_open: sidebarOpenSections.join(','),
+    ...sidebarOpenSections,
   };
 }
 
