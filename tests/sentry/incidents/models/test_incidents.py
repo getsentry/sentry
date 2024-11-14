@@ -63,7 +63,8 @@ class ActiveIncidentClearCacheTest(TestCase):
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
     def test_negative_cache(self):
-        subscription = self.alert_rule.snuba_query.subscriptions.first()
+        assert self.alert_rule.snuba_query is not None
+        subscription = self.alert_rule.snuba_query.subscriptions.get()
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
@@ -98,7 +99,8 @@ class ActiveIncidentClearCacheTest(TestCase):
         ) is False
 
     def test_cache(self):
-        subscription = self.alert_rule.snuba_query.subscriptions.first()
+        assert self.alert_rule.snuba_query is not None
+        subscription = self.alert_rule.snuba_query.subscriptions.get()
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(

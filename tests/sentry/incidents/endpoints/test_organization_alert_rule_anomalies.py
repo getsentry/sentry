@@ -209,10 +209,12 @@ class AlertRuleAnomalyEndpointTest(AlertRuleBase, SnubaTestCase):
                 status_code=400,
             )
         assert mock_seer_request.call_count == 1
+        assert alert_rule.snuba_query is not None
+        assert alert_rule.organization is not None
         mock_logger.exception.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint",
             extra={
-                "subscription_id": alert_rule.snuba_query.subscriptions.first().id,
+                "subscription_id": alert_rule.snuba_query.subscriptions.get().id,
                 "dataset": alert_rule.snuba_query.dataset,
                 "organization_id": alert_rule.organization.id,
                 "project_id": self.project.id,

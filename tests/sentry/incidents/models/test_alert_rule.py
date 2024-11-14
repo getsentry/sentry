@@ -31,6 +31,7 @@ from sentry.users.services.user.service import user_service
 class IncidentGetForSubscriptionTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
+        assert alert_rule.snuba_query is not None
         subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
@@ -44,6 +45,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 class IncidentClearSubscriptionCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
+        assert self.alert_rule.snuba_query is not None
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
     def test_updated_subscription(self):
@@ -416,6 +418,7 @@ class UpdateAlertActivationsTest(TestCase):
                 activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
                 activator="testing",
             )
+            assert alert_rule.snuba_query is not None
             subscription = alert_rule.snuba_query.subscriptions.get()
             activation = alert_rule.activations.get()
             assert activation.finished_at is None
@@ -442,6 +445,7 @@ class UpdateAlertActivationsTest(TestCase):
                 activator="testing",
             )
 
+            assert alert_rule.snuba_query is not None
             subscription = alert_rule.snuba_query.subscriptions.get()
             subscription.date_added = timezone.now() - timedelta(days=21)
 
@@ -472,6 +476,7 @@ class UpdateAlertActivationsTest(TestCase):
 
     def test_update_alerts_execute_processor(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        assert alert_rule.snuba_query is not None
         subscription = alert_rule.snuba_query.subscriptions.get()
 
         callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]

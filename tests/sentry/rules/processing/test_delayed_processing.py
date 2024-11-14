@@ -452,8 +452,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         assert len(result) == 0
 
     def test_empty_group_ids(self):
-        parsed_data: dict[tuple[str, str], dict[str, str]] = {}
-        result = get_group_to_groupevent(parsed_data, self.project.id, set())
+        result = get_group_to_groupevent({}, self.project.id, set())
         assert len(result) == 0
 
     def test_invalid_group_ids(self):
@@ -642,19 +641,18 @@ class ParseRuleGroupToEventDataTest(TestCase):
 
         result = parse_rulegroup_to_event_data(input_data)
         assert result == {
-            (str(self.rule.id), str(self.group.id)): self.event_data,
-            (str(self.rule_two.id), str(self.group_two.id)): self.event_data,
+            (self.rule.id, self.group.id): self.event_data,
+            (self.rule_two.id, self.group_two.id): self.event_data,
         }
 
     def test_parse_rulegroup_empty(self):
-        input_data: dict[str, str] = {}
-        result = parse_rulegroup_to_event_data(input_data)
+        result = parse_rulegroup_to_event_data({})
         assert result == {}
 
     def test_parse_rulegroup_basic(self):
         input_data = {f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data)}
         result = parse_rulegroup_to_event_data(input_data)
-        assert result == {(str(self.rule.id), str(self.group.id)): self.event_data}
+        assert result == {(self.rule.id, self.group.id): self.event_data}
 
     def test_parse_rulegroup_invalid_json(self):
         input_data = {f"{self.rule.id}:{self.group.id}": "}"}

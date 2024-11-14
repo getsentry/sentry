@@ -195,6 +195,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         with self.feature("organizations:incidents"):
             resp = self.get_success_response(self.organization.slug, alert_rule.id)
             assert resp.data["aggregate"] == "count_unique(user)"
+            assert alert_rule.snuba_query is not None
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_expand_latest_incident(self):
