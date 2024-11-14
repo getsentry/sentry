@@ -6,8 +6,8 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.flags.endpoints import OrganizationFlagsEndpoint
 from sentry.flags.providers import (
     DeserializationError,
     InvalidProvider,
@@ -19,7 +19,7 @@ from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
-class OrganizationFlagsHooksEndpoint(OrganizationEndpoint):
+class OrganizationFlagsHooksEndpoint(OrganizationFlagsEndpoint):
     authentication_classes = ()
     owner = ApiOwner.REPLAY
     permission_classes = ()
