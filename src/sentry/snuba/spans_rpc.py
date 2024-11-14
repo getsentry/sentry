@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
@@ -97,6 +98,38 @@ def run_table_query(
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     return {"data": final_data, "meta": final_meta}
+
+
+def get_timeseries_query(
+    params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    groupby: list[str],
+    referrer: str,
+    config: SearchResolverConfig,
+    granularity_secs: int,
+) -> TimeSeriesRequest:
+    resolver = SearchResolver(params=params, config=config)
+    meta = resolver.resolve_meta(referrer=referrer)
+    query = resolver.resolve_query(query_string)
+    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (groupbys, _) = resolver.resolve_columns(groupby)
+
+    return TimeSeriesRequest(
+        meta=meta,
+        filter=query,
+        aggregations=[
+            agg.proto_definition
+            for agg in aggregations
+            if isinstance(agg.proto_definition, AttributeAggregation)
+        ],
+        group_by=[
+            groupby.proto_definition
+            for groupby in groupbys
+            if isinstance(groupby.proto_definition, AttributeKey)
+        ],
+        granularity_secs=granularity_secs,
+    )
 
 
 def run_timeseries_query(
