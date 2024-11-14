@@ -48,9 +48,91 @@ const MOCK_REDACTION = {
 
 describe('DeviceContext', function () {
   it('returns values and according to the parameters', function () {
+    // We need to use expect.anything() for some fields as they return React components.
     expect(
       getDeviceContextData({data: MOCK_DEVICE_CONTEXT, event: EventFixture()})
-    ).toEqual(null);
+    ).toEqual([
+      {key: 'name', subject: 'Name', value: ''},
+      {
+        key: 'screen_resolution',
+        subject: 'Screen Resolution',
+        value: '1136x768',
+      },
+      {key: 'orientation', subject: 'Orientation', value: 'portrait'},
+      {key: 'family', subject: 'Family', value: 'Android'},
+      {key: 'battery_level', subject: 'Battery Level', value: '100%'},
+      {
+        key: 'battery_temperature',
+        subject: 'Battery Temperature (°C)',
+        value: 45,
+      },
+      {key: 'screen_dpi', subject: 'Screen DPI', value: 480},
+      {
+        key: 'memory_size',
+        subject: 'Memory Size',
+        value: expect.anything(),
+      },
+      {
+        key: 'timezone',
+        subject: 'timezone',
+        value: 'America/Los_Angeles',
+        meta: undefined,
+      },
+      {
+        key: 'external_storage_size',
+        subject: 'External Storage Size',
+        value: expect.anything(),
+      },
+      {
+        key: 'external_free_storage',
+        subject: 'External Free Storage',
+        value: expect.anything(),
+      },
+      {
+        key: 'screen_width_pixels',
+        subject: 'Screen Width Pixels',
+        value: 768,
+      },
+      {key: 'low_memory', subject: 'Low Memory', value: false},
+      {key: 'simulator', subject: 'Simulator', value: true},
+      {
+        key: 'screen_height_pixels',
+        subject: 'Screen Height Pixels',
+        value: 1136,
+      },
+      {
+        key: 'free_memory',
+        subject: 'Free Memory',
+        value: expect.anything(),
+      },
+      {key: 'online', subject: 'Online', value: true},
+      {key: 'screen_density', subject: 'Screen Density', value: 3},
+      {key: 'charging', subject: 'Charging', value: true},
+      {key: 'model_id', subject: 'Model Id', value: 'NYC'},
+      {key: 'brand', subject: 'Brand', value: 'google'},
+      {
+        key: 'storage_size',
+        subject: 'Storage Size',
+        value: expect.anything(),
+      },
+      {
+        key: 'boot_time',
+        subject: 'Boot Time',
+        value: expect.anything(),
+      },
+      {key: 'arch', subject: 'Architecture', value: 'x86'},
+      {key: 'manufacturer', subject: 'Manufacturer', value: 'Google'},
+      {
+        key: 'free_storage',
+        subject: 'Free Storage',
+        value: expect.anything(),
+      },
+      {
+        key: 'model',
+        subject: 'Model',
+        value: expect.anything(),
+      },
+    ]);
   });
 
   it('renders with meta annotations correctly', function () {

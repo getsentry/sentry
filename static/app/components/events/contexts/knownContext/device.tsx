@@ -135,7 +135,7 @@ export function getDeviceContextData({
   event: Event;
   meta?: Record<keyof DeviceContext, any>;
 }): KeyValueListData {
-  return getContextKeys(getInferredData(data)).map(ctxKey => {
+  return getContextKeys({data: getInferredData(data)}).map(ctxKey => {
     switch (ctxKey) {
       case DeviceContextKey.NAME:
         return {
