@@ -7,7 +7,7 @@ import {
   useReducer,
 } from 'react';
 
-export const enum SectionKey {
+export enum SectionKey {
   /**
    * Trace timeline or linked error
    */

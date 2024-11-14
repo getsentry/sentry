@@ -59,6 +59,8 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/group
 import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
@@ -474,6 +476,31 @@ function useLoadedEventType() {
   }
 }
 
+interface StreamlinedUIAnalyticsData {
+  fold_sections_open?: string;
+  sidebar_open?: boolean;
+}
+function useGetAnalyticsDataStreamlinedUI(): StreamlinedUIAnalyticsData {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  if (!hasStreamlinedUI) {
+    return {};
+  }
+
+  const sidebarOpenSections: SectionKey[] = [];
+  for (const sectionKey of Object.values(SectionKey)) {
+    const foldSectionKey = getFoldSectionKey(sectionKey);
+    const isOpen = localStorage.getItem(foldSectionKey) === 'true';
+    if (isOpen) {
+      sidebarOpenSections.push(sectionKey);
+    }
+  }
+
+  return {
+    sidebar_open: localStorage.getItem('issue-details-sidebar-open') === 'true',
+    fold_sections_open: sidebarOpenSections.join(','),
+  };
+}
+
 function useTrackView({
   group,
   event,
@@ -496,6 +523,7 @@ function useTrackView({
     ...getAnalyticsDataForGroup(group),
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
+    ...useGetAnalyticsDataStreamlinedUI(),
     tab,
     stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
     query: typeof query === 'string' ? query : undefined,
