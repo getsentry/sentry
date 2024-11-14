@@ -196,10 +196,10 @@
     "jest-environment-jsdom": "29.7.0",
     "jest-fail-on-console": "3.3.0",
     "jest-junit": "16.0.0",
-    "postcss-styled-syntax": "0.6.4",
+    "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.14.0",
-    "stylelint": "16.2.1",
-    "stylelint-config-recommended": "^14.0.0",
+    "stylelint": "16.10.0",
+    "stylelint-config-recommended": "^14.0.1",
     "terser": "5.31.6",
     "tsconfig-paths": "^4.2.0",
     "webpack-dev-server": "5.1.0"
