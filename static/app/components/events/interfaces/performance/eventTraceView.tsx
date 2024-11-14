@@ -2,18 +2,14 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
-import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
-import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -23,6 +19,9 @@ import {
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -53,8 +52,6 @@ interface EventTraceViewInnerProps {
 function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   // Assuming profile exists, should be checked in the parent component
   const traceId = event.contexts.trace!.trace_id!;
-  const location = useLocation();
-
   const trace = useTrace({
     traceSlug: traceId ? traceId : undefined,
     limit: 10000,
@@ -74,21 +71,8 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     []
   );
 
-  const traceEventView = useMemo(() => {
-    const statsPeriod = location.query.statsPeriod as string | undefined;
-    // Not currently expecting start/end timestamps to be applied to this view
-
-    return EventView.fromSavedQuery({
-      id: undefined,
-      name: `Events with Trace ID ${traceId}`,
-      fields: ['title', 'event.type', 'project', 'timestamp'],
-      orderby: '-timestamp',
-      query: `trace:${traceId}`,
-      projects: [ALL_ACCESS_PROJECTS],
-      version: 2,
-      range: statsPeriod,
-    });
-  }, [location.query.statsPeriod, traceId]);
+  const params = useTraceQueryParams();
+  const traceEventView = useTraceEventView(traceId, params);
 
   const scrollToNode = useMemo(() => {
     const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
@@ -106,18 +90,18 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
         preferencesStorageKey="issue-details-view-preferences"
       >
         <TraceViewWaterfallWrapper>
-          <TraceViewWaterfall
+          <TraceWaterfall
             tree={tree}
             trace={trace}
-            replay={null}
+            traceSlug={traceId}
             rootEvent={rootEvent}
-            traceSlug={undefined}
             organization={organization}
             traceEventView={traceEventView}
             meta={meta}
             source="issues"
             scrollToNode={scrollToNode}
             isEmbedded
+            replay={null}
           />
         </TraceViewWaterfallWrapper>
       </TraceStateProvider>
