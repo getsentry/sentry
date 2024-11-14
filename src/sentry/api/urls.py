@@ -21,6 +21,9 @@ from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsE
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_project_span_counts import (
+    OrganizationSamplingProjectSpanCountsEndpoint,
+)
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
@@ -1416,6 +1419,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-rates/$",
         OrganizationSamplingProjectRatesEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-project-rates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-root-counts/$",
+        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-root-counts",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
