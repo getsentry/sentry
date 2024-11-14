@@ -1,13 +1,18 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons/iconArrow';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -26,6 +31,9 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {useAnalytics} from '../hooks/useAnalytics';
+import {useVisualizes} from '../hooks/useVisualizes';
+
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {}
@@ -35,8 +43,10 @@ export function SpansTable({}: SpansTableProps) {
 
   const [dataset] = useDataset();
   const [fields] = useSampleFields();
-  const [sorts] = useSorts({fields});
+  const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
+  const [visualizes] = useVisualizes();
+  const organization = useOrganization();
 
   const eventView = useMemo(() => {
     const queryFields = [
@@ -48,12 +58,19 @@ export function SpansTable({}: SpansTableProps) {
       'timestamp',
     ];
 
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query,
+      query: search.formatString(),
       version: 2,
       dataset,
     };
@@ -68,6 +85,15 @@ export function SpansTable({}: SpansTableProps) {
     initialData: [],
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
+  });
+
+  useAnalytics({
+    result,
+    visualizes,
+    organization,
+    columns: fields,
+    userQuery: query,
+    resultsMode: 'sample',
   });
 
   const {tableStyles} = useTableStyles({
@@ -98,10 +124,35 @@ export function SpansTable({}: SpansTableProps) {
               const fieldType = meta.fields?.[field];
               const align = fieldAlignment(field, fieldType);
               const tag = stringTags[field] ?? numberTags[field] ?? null;
+
+              const direction = sorts.find(s => s.field === field)?.kind;
+
+              function updateSort() {
+                const kind = direction === 'desc' ? 'asc' : 'desc';
+                setSorts([{field, kind}]);
+              }
+
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                <StyledTableHeadCell
+                  align={align}
+                  key={i}
+                  isFirst={i === 0}
+                  onClick={updateSort}
+                >
                   <span>{tag?.name ?? field}</span>
-                </TableHeadCell>
+                  {defined(direction) && (
+                    <IconArrow
+                      size="xs"
+                      direction={
+                        direction === 'desc'
+                          ? 'down'
+                          : direction === 'asc'
+                            ? 'up'
+                            : undefined
+                      }
+                    />
+                  )}
+                </StyledTableHeadCell>
               );
             })}
           </TableRow>
@@ -145,3 +196,7 @@ export function SpansTable({}: SpansTableProps) {
     </Fragment>
   );
 }
+
+const StyledTableHeadCell = styled(TableHeadCell)`
+  cursor: pointer;
+`;

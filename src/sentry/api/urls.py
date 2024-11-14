@@ -21,6 +21,9 @@ from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsE
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_project_span_counts import (
+    OrganizationSamplingProjectSpanCountsEndpoint,
+)
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
@@ -523,6 +526,7 @@ from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
+    OrganizationProfilingHasChunksEndpoint,
 )
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -1417,6 +1421,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sampling-project-rates",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-root-counts/$",
+        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-root-counts",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
@@ -2180,6 +2189,11 @@ ORGANIZATION_URLS = [
                     r"^chunks/$",
                     OrganizationProfilingChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-chunks",
+                ),
+                re_path(
+                    r"^has-chunks/$",
+                    OrganizationProfilingHasChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-has-chunks",
                 ),
             ],
         ),

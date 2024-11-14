@@ -405,6 +405,7 @@ class Referrer(Enum):
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
     API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
+    API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
@@ -689,6 +690,7 @@ class Referrer(Enum):
     DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
         "dynamic_sampling.tasks.custom_rule_notifications"
     )
+    DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"

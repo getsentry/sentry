@@ -1034,19 +1034,6 @@ register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
-    "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Rate at which to send eligible projects to LPQ symbolicators. This is
-# intended to test gradually phasing out the LPQ.
-register(
-    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
@@ -2023,12 +2010,41 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Enables anomaly detection based on the volume of check-ins being processed
+# Enables system incident anomaly detection based on the volume of check-ins
+# being processed
 register(
     "crons.tick_volume_anomaly_detection",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# The threshold that the tick metric must surpass for a tick to be determined
+# as anomalous. This value should be negative, since we will only determine an
+# incident based on a decrease in volume.
+#
+# See the `monitors.system_incidents` module for more details
+register(
+    "crons.system_incidents.pct_deviation_anomaly_threshold",
+    default=-10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The threshold that the tick metric must surpass to transition to an incident
+# state. This should be a fairly high value to avoid false positive incidents.
+register(
+    "crons.system_incidents.pct_deviation_incident_threshold",
+    default=-30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# This is the number of previous ticks we will consider the tick metrics and
+# tick decisions for to determine a decision about the tick being evaluated.
+register(
+    "crons.system_incidents.tick_decision_window",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(
@@ -2854,4 +2870,30 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for sample size when fetching project tag keys
+register(
+    "visibility.tag-key-sample-size",
+    default=1_000_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable applying
+# stack trace rules in profiles
+register(
+    "profiling.stack_trace_rules.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of project IDs for which we'll apply
+# stack trace rules to the profiles in case
+# there are any rules defined
+register(
+    "profiling.stack_trace_rules.allowed_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )

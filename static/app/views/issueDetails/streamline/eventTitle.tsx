@@ -165,6 +165,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               tooltipProps={{overlayStyle: {maxWidth: 300}}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
+              aria-label={t('Event timestamp')}
             />
             {hasEventError && (
               <Fragment>
@@ -190,8 +191,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           {eventSectionConfigs.length > 0 && (
             <JumpTo>
-              <div>{t('Jump to:')}</div>
-              <ScrollCarousel gap={0.25}>
+              <div aria-hidden>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
                 {eventSectionConfigs.map(config => (
                   <EventNavigationLink
                     key={config.key}

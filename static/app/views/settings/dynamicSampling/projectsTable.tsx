@@ -14,6 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 
 interface ProjectItem {
   count: number;
@@ -27,15 +28,21 @@ interface ProjectItem {
 
 interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'headers'> {
   items: ProjectItem[];
+  rateHeader: React.ReactNode;
   canEdit?: boolean;
   inactiveItems?: ProjectItem[];
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }
+
+const COLUMN_COUNT = 4;
 
 export function ProjectsTable({
   items,
   inactiveItems = [],
+  inputTooltip,
   canEdit,
+  rateHeader,
   onChange,
   ...props
 }: Props) {
@@ -57,10 +64,11 @@ export function ProjectsTable({
       headers={[
         t('Project'),
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
-          {t('Spans')}
+          {t('Sent Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        canEdit ? t('Target Rate') : t('Projected Rate'),
+        t('Stored Spans'),
+        rateHeader,
       ]}
     >
       {mainItems
@@ -78,6 +86,7 @@ export function ProjectsTable({
             key={item.project.id}
             canEdit={canEdit}
             onChange={onChange}
+            inputTooltip={inputTooltip}
             {...item}
           />
         ))}
@@ -140,10 +149,11 @@ function SectionHeader({
         <StyledIconChevron direction={isExpanded ? 'down' : 'right'} />
         {title}
       </SectionHeaderCell>
-      {/* As the main element spans 3 grid colums we need to ensure that nth child css selectors of other elements
+      {/* As the main element spans COLUMN_COUNT grid colums we need to ensure that nth child css selectors of other elements
         remain functional by adding hidden elements */}
-      <div style={{display: 'none'}} />
-      <div style={{display: 'none'}} />
+      {Array.from({length: COLUMN_COUNT - 1}).map((_, i) => (
+        <div key={i} style={{display: 'none'}} />
+      ))}
     </Fragment>
   );
 }
@@ -215,6 +225,7 @@ const TableRow = memo(function TableRow({
   initialSampleRate,
   subProjects,
   error,
+  inputTooltip,
   onChange,
 }: {
   count: number;
@@ -225,6 +236,7 @@ const TableRow = memo(function TableRow({
   subProjects: SubProject[];
   canEdit?: boolean;
   error?: string;
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }) {
   const organization = useOrganization();
@@ -243,11 +255,15 @@ const TableRow = memo(function TableRow({
     [onChange, project.id]
   );
 
+  const storedSpans = Math.floor(count * parsePercent(sampleRate));
+  const initialStoredSpans = Math.floor(count * parsePercent(initialSampleRate));
+
   return (
     <Fragment key={project.slug}>
       <Cell>
         <FirstCellLine data-has-chevron={isExpandable}>
           <HiddenButton
+            type="button"
             disabled={!isExpandable}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
             onClick={() => setIsExpanded(value => !value)}
@@ -275,17 +291,24 @@ const TableRow = memo(function TableRow({
         <SubSpans>{subSpansContent}</SubSpans>
       </Cell>
       <Cell>
+        <FirstCellLine data-align="right">
+          {formatAbbreviatedNumber(storedSpans)}
+        </FirstCellLine>
+        <SubSpans>
+          {storedSpans !== initialStoredSpans ? (
+            <SmallPrint>
+              {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
+            </SmallPrint>
+          ) : null}
+        </SubSpans>
+      </Cell>
+      <Cell>
         <FirstCellLine>
-          <Tooltip
-            disabled={canEdit}
-            title={t('To edit project sample rates, switch to manual sampling mode.')}
-          >
+          <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
               disabled={!canEdit}
               onChange={handleChange}
-              min={0}
-              max={100}
               size="sm"
               value={sampleRate}
             />
@@ -302,7 +325,7 @@ const TableRow = memo(function TableRow({
 });
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr repeat(${COLUMN_COUNT - 1}, max-content);
 `;
 
 const SmallPrint = styled('span')`
@@ -337,7 +360,7 @@ const Cell = styled('div')`
 
 const SectionHeaderCell = styled('div')`
   display: flex;
-  grid-column: span 3;
+  grid-column: span ${COLUMN_COUNT};
   padding: ${space(1.5)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};

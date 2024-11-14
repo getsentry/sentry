@@ -257,8 +257,8 @@ describe('CacheLandingPage', function () {
     );
 
     expect(screen.getByRole('columnheader', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'backend'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'backend'})).toHaveAttribute(
+    expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/backend/?project=1'
     );

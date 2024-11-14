@@ -5,9 +5,11 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons/iconArrow';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
@@ -16,6 +18,8 @@ import {
   getAggregateAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -35,6 +39,7 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {useAnalytics} from '../hooks/useAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
 import {FieldRenderer} from './fieldRenderer';
@@ -49,6 +54,7 @@ interface AggregatesTableProps {}
 export function AggregatesTable({}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
+  const organization = useOrganization();
   const [dataset] = useDataset();
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
@@ -57,16 +63,23 @@ export function AggregatesTable({}: AggregatesTableProps) {
       Boolean
     );
   }, [groupBys, visualizes]);
-  const [sorts] = useSorts({fields});
+  const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Aggregates',
       fields,
       orderby: sorts.map(formatSort),
-      query,
+      query: search.formatString(),
       version: 2,
       dataset,
     };
@@ -80,6 +93,15 @@ export function AggregatesTable({}: AggregatesTableProps) {
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table',
+  });
+
+  useAnalytics({
+    result,
+    visualizes,
+    organization,
+    columns: groupBys,
+    userQuery: query,
+    resultsMode: 'aggregate',
   });
 
   const {tableStyles} = useTableStyles({
@@ -121,10 +143,34 @@ export function AggregatesTable({}: AggregatesTableProps) {
                 label = formatParsedFunction(func);
               }
 
+              const direction = sorts.find(s => s.field === field)?.kind;
+
+              function updateSort() {
+                const kind = direction === 'desc' ? 'asc' : 'desc';
+                setSorts([{field, kind}]);
+              }
+
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                <StyledTableHeadCell
+                  align={align}
+                  key={i}
+                  isFirst={i === 0}
+                  onClick={updateSort}
+                >
                   <span>{label}</span>
-                </TableHeadCell>
+                  {defined(direction) && (
+                    <IconArrow
+                      size="xs"
+                      direction={
+                        direction === 'desc'
+                          ? 'down'
+                          : direction === 'asc'
+                            ? 'up'
+                            : undefined
+                      }
+                    />
+                  )}
+                </StyledTableHeadCell>
               );
             })}
           </TableRow>
@@ -183,4 +229,8 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   background-color: ${p => {
     return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
   }};
+`;
+
+const StyledTableHeadCell = styled(TableHeadCell)`
+  cursor: pointer;
 `;

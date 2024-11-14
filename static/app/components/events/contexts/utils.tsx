@@ -11,10 +11,25 @@ import {
   type ContextIconProps,
   getLogoImage,
 } from 'sentry/components/events/contexts/contextIcon';
+import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
+import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
+import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
+import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
+import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
+import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
+import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
+import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
+import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+import {getRuntimeContextData} from 'sentry/components/events/contexts/knownContext/runtime';
+import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
+import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
+import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
+import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import plugins from 'sentry/plugins';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
@@ -24,102 +39,13 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
-import {AppEventContext, getKnownAppContextData, getUnknownAppContextData} from './app';
-import {
-  BrowserEventContext,
-  getKnownBrowserContextData,
-  getUnknownBrowserContextData,
-} from './browser';
-import {DefaultContext, getDefaultContextData} from './default';
-import {
-  DeviceEventContext,
-  getKnownDeviceContextData,
-  getUnknownDeviceContextData,
-} from './device';
-import {getKnownGpuContextData, getUnknownGpuContextData, GPUEventContext} from './gpu';
-import {
-  getKnownMemoryInfoContextData,
-  getUnknownMemoryInfoContextData,
-  MemoryInfoEventContext,
-} from './memoryInfo';
-import {
-  getKnownOperatingSystemContextData,
-  getUnknownOperatingSystemContextData,
-  OperatingSystemEventContext,
-} from './operatingSystem';
 import {
   getKnownPlatformContextData,
   getPlatformContextIcon,
   getUnknownPlatformContextData,
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
-import {
-  getKnownProfileContextData,
-  getUnknownProfileContextData,
-  ProfileEventContext,
-} from './profile';
-import {getReduxContextData, ReduxContext} from './redux';
-import {
-  getKnownReplayContextData,
-  getUnknownReplayContextData,
-  ReplayEventContext,
-} from './replay';
-import {
-  getKnownRuntimeContextData,
-  getUnknownRuntimeContextData,
-  RuntimeEventContext,
-} from './runtime';
-import {
-  getKnownStateContextData,
-  getUnknownStateContextData,
-  StateEventContext,
-} from './state';
-import {
-  getKnownThreadPoolInfoContextData,
-  getUnknownThreadPoolInfoContextData,
-  ThreadPoolInfoEventContext,
-} from './threadPoolInfo';
-import {
-  getKnownTraceContextData,
-  getUnknownTraceContextData,
-  TraceEventContext,
-} from './trace';
-import {
-  getKnownUnityContextData,
-  getUnknownUnityContextData,
-  UnityEventContext,
-} from './unity';
-import {
-  getKnownUserContextData,
-  getUnknownUserContextData,
-  UserEventContext,
-} from './user';
-
-const CONTEXT_TYPES = {
-  default: DefaultContext,
-  app: AppEventContext,
-  device: DeviceEventContext,
-  memory_info: MemoryInfoEventContext,
-  browser: BrowserEventContext,
-  os: OperatingSystemEventContext,
-  unity: UnityEventContext,
-  runtime: RuntimeEventContext,
-  user: UserEventContext,
-  gpu: GPUEventContext,
-  trace: TraceEventContext,
-  threadpool_info: ThreadPoolInfoEventContext,
-  state: StateEventContext,
-  profile: ProfileEventContext,
-  replay: ReplayEventContext,
-  // 'redux.state' will be replaced with more generic context called 'state'
-  'redux.state': ReduxContext,
-  // 'ThreadPool Info' will be replaced with 'threadpool_info' but
-  // we want to keep it here for now so it works for existing versions
-  'ThreadPool Info': ThreadPoolInfoEventContext,
-  // 'Memory Info' will be replaced with 'memory_info' but
-  // we want to keep it here for now so it works for existing versions
-  'Memory Info': MemoryInfoEventContext,
-};
+import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 
 /**
  * Generates the class name used for contexts
@@ -170,22 +96,6 @@ export function generateIconName(
   }
 
   return formattedName;
-}
-
-export function getContextComponent(type: string) {
-  return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
-}
-
-export function getSourcePlugin(pluginContexts: Array<any>, contextType: string) {
-  if (CONTEXT_TYPES[contextType]) {
-    return null;
-  }
-  for (const plugin of pluginContexts) {
-    if (plugin.contexts.indexOf(contextType) >= 0) {
-      return plugin;
-    }
-  }
-  return null;
 }
 
 export function getRelativeTimeFromEventDateCreated(
@@ -300,6 +210,35 @@ export function getUnknownData({
     }));
 }
 
+/**
+ * Returns the type of a given context, after coercing from its type and alias.
+ * - 'type' refers the the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
+ * - 'alias' refers to the key on event.contexts. This can be set by the user, but we have to depend on it for some contexts.
+ */
+export function getContextType({alias, type}: {alias: string; type?: string}): string {
+  if (!defined(type)) {
+    return alias;
+  }
+  return type === 'default' ? alias : type;
+}
+
+/**
+ * Omit certain keys from ever being displayed on context items.
+ * All custom context (and some known context) has the type:default so we remove it.
+ */
+export function getContextKeys({
+  data,
+  hiddenKeys = [],
+}: {
+  data: Record<string, any>;
+  hiddenKeys?: string[];
+}): string[] {
+  const hiddenKeySet = new Set(hiddenKeys);
+  return Object.keys(data).filter(
+    ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
+  );
+}
+
 export function getContextTitle({
   alias,
   type,
@@ -313,21 +252,15 @@ export function getContextTitle({
     return value.title;
   }
 
-  if (!defined(type)) {
-    return alias;
-  }
+  const contextType = getContextType({alias, type});
 
-  switch (type) {
+  switch (contextType) {
     case 'app':
       return t('App');
     case 'device':
       return t('Device');
     case 'browser':
       return t('Browser');
-    case 'profile':
-      return t('Profile');
-    case 'replay':
-      return t('Replay');
     case 'response':
       return t('Response');
     case 'feedback':
@@ -344,6 +277,13 @@ export function getContextTitle({
       return t('Trace Details');
     case 'otel':
       return 'OpenTelemetry';
+    case 'cloud_resource':
+      return t('Cloud Resource');
+    case 'culture':
+    case 'Current Culture':
+      return t('Culture');
+    case 'missing_instrumentation':
+      return t('Missing OTEL Instrumentation');
     case 'unity':
       return 'Unity';
     case 'memory_info': // Current value for memory info
@@ -352,21 +292,16 @@ export function getContextTitle({
     case 'threadpool_info': // Current value for thread pool info
     case 'ThreadPool Info': // Legacy value for thread pool info
       return t('Thread Pool Info');
-    case 'default':
-      switch (alias) {
-        case 'state':
-          return t('Application State');
-        case 'laravel':
-          return t('Laravel Context');
-        case 'profile':
-          return t('Profile');
-        case 'replay':
-          return t('Replay');
-        default:
-          return alias;
-      }
+    case 'state':
+      return t('Application State');
+    case 'laravel':
+      return t('Laravel Context');
+    case 'profile':
+      return t('Profile');
+    case 'replay':
+      return t('Replay');
     default:
-      return type;
+      return contextType;
   }
 }
 
@@ -463,87 +398,58 @@ export function getFormattedContextData({
 
   switch (contextType) {
     case 'app':
-      return [
-        ...getKnownAppContextData({data: contextValue, event, meta}),
-        ...getUnknownAppContextData({data: contextValue, meta}),
-      ];
+      return getAppContextData({data: contextValue, event, meta});
     case 'device':
-      return [
-        ...getKnownDeviceContextData({data: contextValue, event, meta}),
-        ...getUnknownDeviceContextData({data: contextValue, meta}),
-      ];
+      return getDeviceContextData({data: contextValue, event, meta});
     case 'memory_info': // Current
     case 'Memory Info': // Legacy
-      return [
-        ...getKnownMemoryInfoContextData({data: contextValue, event, meta}),
-        ...getUnknownMemoryInfoContextData({data: contextValue, meta}),
-      ];
+      return getMemoryInfoContext({data: contextValue, meta});
     case 'browser':
-      return [
-        ...getKnownBrowserContextData({data: contextValue, meta}),
-        ...getUnknownBrowserContextData({data: contextValue, meta}),
-      ];
+      return getBrowserContextData({data: contextValue, meta});
     case 'os':
-      return [
-        ...getKnownOperatingSystemContextData({data: contextValue, meta}),
-        ...getUnknownOperatingSystemContextData({data: contextValue, meta}),
-      ];
+      return getOperatingSystemContextData({data: contextValue, meta});
     case 'unity':
       return [
         ...getKnownUnityContextData({data: contextValue, meta}),
         ...getUnknownUnityContextData({data: contextValue, meta}),
       ];
     case 'runtime':
-      return [
-        ...getKnownRuntimeContextData({data: contextValue, meta}),
-        ...getUnknownRuntimeContextData({data: contextValue, meta}),
-      ];
+      return getRuntimeContextData({data: contextValue, meta});
     case 'user':
-      return [
-        ...getKnownUserContextData({data: contextValue, meta}),
-        ...getUnknownUserContextData({data: contextValue, meta}),
-      ];
+      return getUserContextData({data: contextValue, meta});
     case 'gpu':
-      return [
-        ...getKnownGpuContextData({data: contextValue, meta}),
-        ...getUnknownGpuContextData({data: contextValue, meta}),
-      ];
+      return getGPUContextData({data: contextValue, meta});
     case 'trace':
-      return [
-        ...getKnownTraceContextData({
-          data: contextValue,
-          event,
-          meta,
-          organization,
-          location,
-        }),
-        ...getUnknownTraceContextData({data: contextValue, meta}),
-      ];
+      return getTraceContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        location,
+      });
     case 'threadpool_info': // Current
     case 'ThreadPool Info': // Legacy
-      return [
-        ...getKnownThreadPoolInfoContextData({data: contextValue, event, meta}),
-        ...getUnknownThreadPoolInfoContextData({data: contextValue, meta}),
-      ];
-    case 'redux.state':
-      return getReduxContextData({data: contextValue});
+      return getThreadPoolInfoContext({data: contextValue, meta});
     case 'state':
-      return [
-        ...getKnownStateContextData({data: contextValue, meta}),
-        ...getUnknownStateContextData({data: contextValue, meta}),
-      ];
+      return getStateContextData({data: contextValue, meta});
     case 'profile':
-      return [
-        ...getKnownProfileContextData({data: contextValue, meta, organization, project}),
-        ...getUnknownProfileContextData({data: contextValue, meta}),
-      ];
+      return getProfileContextData({data: contextValue, meta, organization, project});
     case 'replay':
-      return [
-        ...getKnownReplayContextData({data: contextValue, meta, organization}),
-        ...getUnknownReplayContextData({data: contextValue, meta}),
-      ];
+      return getReplayContextData({data: contextValue, meta});
+    case 'cloud_resource':
+      return getCloudResourceContextData({data: contextValue, meta});
+    case 'culture':
+    case 'Current Culture':
+      return getCultureContextData({data: contextValue, meta});
+    case 'missing_instrumentation':
+      return getMissingInstrumentationContextData({data: contextValue, meta});
     default:
-      return getDefaultContextData(contextValue);
+      return getContextKeys({data: contextValue}).map(ctxKey => ({
+        key: ctxKey,
+        subject: ctxKey,
+        value: contextValue[ctxKey],
+        meta: meta?.[ctxKey]?.[''],
+      }));
   }
 }
 /**

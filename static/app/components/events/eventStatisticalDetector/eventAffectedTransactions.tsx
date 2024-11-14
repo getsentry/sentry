@@ -132,13 +132,13 @@ function EventAffectedTransactionsInner({
   const functionStats = useProfileTopEventsStats({
     dataset: 'profileFunctions',
     datetime,
-    fields: ['transaction', 'count()'],
+    fields: ['transaction', 'count()', 'examples()'],
     query: query ?? '',
     enabled: defined(query),
     others: false,
     referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
-    yAxes: ['examples()'],
+    yAxes: ['count()', 'examples()'],
   });
 
   const examplesByTransaction = useMemo(() => {
@@ -155,14 +155,15 @@ function EventAffectedTransactionsInner({
 
     transactionsDeltaQuery.data?.data?.forEach(row => {
       const transaction = row.transaction as string;
-      const data = functionStats.data.data.find(
+      const data = functionStats.data?.data?.find(
         ({axis, label}) => axis === 'examples()' && label === transaction
       );
       if (!defined(data)) {
         return;
       }
+      const examples = data.values.map(values => (Array.isArray(values) ? values : []));
 
-      allExamples[transaction] = findExamplePair(data.values, breakpointIndex);
+      allExamples[transaction] = findExamplePair(examples, breakpointIndex);
     });
 
     return allExamples;

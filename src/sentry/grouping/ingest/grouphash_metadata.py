@@ -78,10 +78,10 @@ def _get_hash_basis(event: Event, project: Project, variants: dict[str, BaseVari
         # variants
         if "app" in variants and variants["app"].contributes
         else (
-            variants["hashed-checksum"]
+            variants["hashed_checksum"]
             # TODO: We won't need this 'if' once we stop returning both hashed and non-hashed
             # checksum contributing variants
-            if "hashed-checksum" in variants
+            if "hashed_checksum" in variants
             # Other than in the broken app/system and hashed/raw checksum cases, there should only
             # ever be a single contributing variant
             else [variant for variant in variants.values() if variant.contributes][0]

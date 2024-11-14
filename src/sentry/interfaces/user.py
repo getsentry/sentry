@@ -15,6 +15,7 @@ class EventUserApiContext(TypedDict, total=False):
     username: str | None
     ip_address: str | None
     name: str | None
+    geo: dict[str, str] | None
     data: dict[str, Any] | None
 
 
@@ -69,6 +70,7 @@ class User(Interface):
             "username": self.username,
             "ip_address": self.ip_address,
             "name": self.name,
+            "geo": self.geo.to_json() if self.geo is not None else None,
             "data": self.data,
         }
 
@@ -80,6 +82,7 @@ class User(Interface):
             "username": meta.get("username"),
             "ip_address": meta.get("ip_address"),
             "name": meta.get("name"),
+            "geo": meta.get("geo"),
             "data": meta.get("data"),
         }
 
