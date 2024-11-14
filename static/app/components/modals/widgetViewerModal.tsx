@@ -71,6 +71,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -1122,6 +1123,10 @@ function OpenButton({
     case WidgetType.METRICS:
       openLabel = t('Open in Metrics');
       path = getWidgetMetricsUrl(widget, selection, organization);
+      break;
+    case WidgetType.SPANS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
