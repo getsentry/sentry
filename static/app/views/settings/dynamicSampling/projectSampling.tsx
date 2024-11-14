@@ -18,6 +18,7 @@ import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/pro
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {
   type ProjectionSamplePeriod,
@@ -70,7 +71,7 @@ export function ProjectSampling() {
     const ratesArray = Object.entries(formState.fields.projectRates.value).map(
       ([id, rate]) => ({
         id: Number(id),
-        sampleRate: Number(rate) / 100,
+        sampleRate: parsePercent(rate),
       })
     );
     addLoadingMessage(t('Saving changes...'));
@@ -161,7 +162,7 @@ export function ProjectSampling() {
           </Button>
           <Button
             priority="primary"
-            disabled={isFormActionDisabled}
+            disabled={isFormActionDisabled || !formState.isValid}
             onClick={handleSubmit}
           >
             {t('Apply Changes')}

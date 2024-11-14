@@ -13,9 +13,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 interface Props {
@@ -42,7 +43,7 @@ function SamplingModeSwitchModal({
 }: Props & ModalRenderProps) {
   const formState = useFormState({
     initialValues: {
-      targetSampleRate: formatNumberWithDynamicDecimalPoints(initialTargetRate * 100, 2),
+      targetSampleRate: formatPercent(initialTargetRate),
     },
   });
 
@@ -67,7 +68,7 @@ function SamplingModeSwitchModal({
       samplingMode,
     };
     if (samplingMode === 'organization') {
-      changes.targetSampleRate = Number(formState.fields.targetSampleRate.value) / 100;
+      changes.targetSampleRate = parsePercent(formState.fields.targetSampleRate.value);
     }
     updateOrganization(changes);
   };

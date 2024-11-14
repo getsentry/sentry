@@ -54,7 +54,7 @@ export type FormValidators<
   FormFields extends Record<string, PlainValue>,
   FieldErrors extends Record<keyof FormFields, any>,
 > = {
-  [K in keyof FormFields]?: (value: FormFields[K]) => FieldErrors[K];
+  [K in keyof FormFields]?: (value: FormFields[K]) => FieldErrors[K] | undefined;
 };
 
 type InitialValues<FormFields extends Record<string, any>> = {
