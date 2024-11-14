@@ -245,25 +245,28 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions>
+      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
-        <SegmentedControl<DashboardsLayout>
-          onChange={setDashboardsLayout}
-          size="md"
-          value={dashboardsLayout}
-        >
-          <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid Layout">
-            <IconDashboard />
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="list" textValue="list" aria-label="List Layout">
-            <IconList />
-          </SegmentedControl.Item>
-        </SegmentedControl>
+        <Feature features={'organizations:dashboards-table-view'}>
+          <SegmentedControl<DashboardsLayout>
+            onChange={setDashboardsLayout}
+            size="md"
+            value={dashboardsLayout}
+          >
+            <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid Layout">
+              {/* TODO (nikkikapadia): replace this icon with correct one once made */}
+              <IconDashboard />
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="list" textValue="list" aria-label="List Layout">
+              <IconList />
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        </Feature>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort.value}
@@ -471,9 +474,10 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')`
+const StyledActions = styled('div')<{listView: boolean}>`
   display: grid;
-  grid-template-columns: auto max-content max-content;
+  grid-template-columns: ${p =>
+    p.listView ? 'auto max-content max-content' : 'auto max-content'};
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
