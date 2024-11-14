@@ -49,17 +49,12 @@ class GroupingComponent:
         variant_provider: bool = False,
     ):
         self.id = id
-
-        # Default values
-        self.hint = DEFAULT_HINTS.get(id)
-        self.contributes = contributes
         self.variant_provider = variant_provider
-        self.values: Sequence[str | GroupingComponent] = []
 
         self.update(
-            hint=hint,
+            hint=hint or DEFAULT_HINTS.get(self.id),
             contributes=contributes,
-            values=values,
+            values=values or [],
         )
 
     @property
