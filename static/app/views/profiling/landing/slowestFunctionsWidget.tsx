@@ -111,6 +111,15 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
 
   const hasFunctions = (functionsData.length || 0) > 0;
 
+  // make sure to query for the projects from the top functions
+  const projects = functionsQuery.isFetched
+    ? [
+        ...new Set(
+          (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
+        ),
+      ]
+    : [];
+
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
     referrer: 'api.profiling.suspect-functions.totals',
@@ -120,14 +129,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     },
     query: userQuery,
     limit: MAX_FUNCTIONS,
-    // make sure to query for the projects from the top functions
-    projects: functionsQuery.isFetched
-      ? [
-          ...new Set(
-            (functionsQuery.data?.data ?? []).map(func => func['project.id'] as number)
-          ),
-        ]
-      : [],
+    projects,
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
@@ -140,7 +142,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     query: functionsData.map(f => `fingerprint:${f.fingerprint}`).join(' OR '),
     referrer: 'api.profiling.suspect-functions.stats',
     yAxes: ['all_examples()', breakdownFunction],
-
+    projects,
     others: false,
     topEvents: functionsData.length,
     enabled: totalsQuery.isFetched && hasFunctions,
@@ -277,6 +279,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
                 {timestamp}
               </DropdownItem>
             ),
+            textValue: targetId,
             to: generateProfileRouteFromProfileReference({
               orgSlug: organization.slug,
               projectSlug: project?.slug || '',
@@ -329,6 +332,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
             size: 'xs',
           }}
           items={examples}
+          menuTitle={t('Example Profiles')}
         />
       </StyledAccordionItem>
       {isExpanded && (
@@ -424,7 +428,12 @@ function FunctionChart<F extends BreakdownFunction>({
   return (
     <ChartZoom {...selection.datetime}>
       {zoomRenderProps => (
-        <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
+        <LineChart
+          data-test-id="function-chart"
+          {...zoomRenderProps}
+          {...chartOptions}
+          series={series}
+        />
       )}
     </ChartZoom>
   );

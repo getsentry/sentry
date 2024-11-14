@@ -273,6 +273,14 @@ function FunctionTrendsEntry({
   return (
     <Fragment>
       <StyledAccordionItem>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={() => setExpanded()}
+        />
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -292,14 +300,6 @@ function FunctionTrendsEntry({
             {after}
           </DurationChange>
         </Tooltip>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpanded()}
-        />
       </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
@@ -488,7 +488,7 @@ const StyledPagination = styled(Pagination)`
 
 const StyledAccordionItem = styled(AccordionItem)`
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto auto 1fr auto;
 `;
 
 const FunctionName = styled(TextOverflow)`
