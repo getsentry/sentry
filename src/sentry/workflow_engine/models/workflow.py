@@ -1,9 +1,12 @@
+from typing import Any
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
-
-from .data_condition_group import DataConditionGroup
+from sentry.workflow_engine.models import DataConditionGroup
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.types import DataConditionResult
 
 
 @region_silo_model
@@ -31,3 +34,16 @@ class Workflow(DefaultFieldsModel):
                 fields=["name", "organization"], name="unique_workflow_name_per_org"
             )
         ]
+
+    # TODO should the value here _only_ be trigger conditions?
+    # How can we limit it to that? Trigger conditions should be: new issue created, issue state change, etc
+    def evaluate_trigger_conditions(self, value: Any) -> tuple[bool, list[DataConditionResult]]:
+        """
+        Evaluate the conditions for the workflow trigger and return the results.
+        If there isn't a when_condition_group, the workflow should always trigger.
+        """
+        if self.when_condition_group is None:
+            return (True, [])
+
+        # TODO - should this iterate over the results and make decisions?
+        return evaluate_condition_group(self.when_condition_group, value)
