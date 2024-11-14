@@ -147,7 +147,7 @@ const AiSetupDataConsent = HookOrDefault({
 });
 
 const useEnableAutofix = (groupId: string) => {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
   const organization = useOrganization();
