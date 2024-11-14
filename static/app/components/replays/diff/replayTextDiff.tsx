@@ -33,10 +33,10 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
     <Container>
       <StyledAlert type="info" showIcon>
         {tct(
-          `The HTML Diff is currently in beta and has known issues (e.g. the ‘before’ is sometimes empty). We are exploring different options to replace this view, please see [link: this ticket] for more details and share your feedback.`,
+          `The HTML Diff is currently in beta and has known issues (e.g. the 'Before' is sometimes empty). We are exploring different options to replace this view. Please see [link: this ticket] for more details and share your feedback.`,
           {
             link: (
-              <ExternalLink href={'https://github.com/getsentry/sentry/issues/80092'} />
+              <ExternalLink href="https://github.com/getsentry/sentry/issues/80092" />
             ),
           }
         )}

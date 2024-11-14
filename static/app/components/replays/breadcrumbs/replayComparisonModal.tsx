@@ -44,7 +44,7 @@ export default function ReplayComparisonModal({
             <Tooltip
               isHoverable
               title={tct(
-                'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before] refers to the html rendered on the server. [boldAfter:After] refers to the html rendered on the client. Read more about [link:resolving hydration errors]',
+                'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors]',
                 {
                   boldBefore: <Before />,
                   boldAfter: <After />,
