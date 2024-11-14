@@ -94,6 +94,7 @@ from sentry.snuba.subscriptions import (
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
@@ -252,7 +253,7 @@ def update_incident_status(
 def create_incident_activity(
     incident: Incident,
     activity_type: IncidentActivityType,
-    user: RpcUser | None = None,
+    user: RpcUser | User | None = None,
     value: str | int | None = None,
     previous_value: str | int | None = None,
     comment: str | None = None,
@@ -671,7 +672,7 @@ def create_alert_rule(
     return alert_rule
 
 
-def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> None:
+def snapshot_alert_rule(alert_rule: AlertRule, user: RpcUser | User | None = None) -> None:
     def nullify_id(model: Model) -> None:
         """Set the id field to null.
 

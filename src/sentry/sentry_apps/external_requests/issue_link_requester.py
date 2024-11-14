@@ -12,6 +12,7 @@ from sentry.http import safe_urlread
 from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
@@ -54,7 +55,7 @@ class IssueLinkRequester:
     uri: str
     group: Group
     fields: dict[str, Any]
-    user: RpcUser
+    user: RpcUser | User
     action: str
 
     def run(self) -> dict[str, Any]:

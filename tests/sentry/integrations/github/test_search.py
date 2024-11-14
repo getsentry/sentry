@@ -36,7 +36,7 @@ class GithubSearchTest(APITestCase):
         identity = Identity.objects.create(
             idp=self.create_identity_provider(type=self.provider),
             user=self.user,
-            external_id=self.user.id,
+            external_id=str(self.user.id),
             data={"access_token": "123456789"},
         )
         self.integration.add_organization(self.organization, self.user, identity.id)

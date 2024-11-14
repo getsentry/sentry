@@ -44,7 +44,7 @@ class TestNotificationUtilities(TestCase):
     def test_simple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user],
+            [Actor.from_object(self.user)],
             ExternalProviders.SLACK,
         )
 
