@@ -38,7 +38,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const teamIds: string[] = Object.values(teams).map(team => team.id);
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -48,13 +47,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     const areAllTeamsSelected = teamIds.every(teamId =>
       newSelectedValues.includes(teamId)
     );
-
-    // Enables/Disables the 'Save Changes' button
-    if (isEqual(newSelectedValues, getSelectedOptions())) {
-      setHasUnsavedChanges(false);
-    } else {
-      setHasUnsavedChanges(true);
-    }
 
     if (
       !selectedOptions.includes('_allUsers') &&
@@ -204,7 +196,10 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           setMenuOpen(!isMenuOpen);
         }}
         priority="primary"
-        disabled={!isCurrentUserDashboardOwner || !hasUnsavedChanges}
+        disabled={
+          !isCurrentUserDashboardOwner ||
+          isEqual(getDashboardPermissions(), dashboard.permissions)
+        }
       >
         {t('Save Changes')}
       </Button>
@@ -227,7 +222,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
         if (isMenuOpen) {
-          setHasUnsavedChanges(false);
           setSelectedOptions(getSelectedOptions());
         }
       }}
