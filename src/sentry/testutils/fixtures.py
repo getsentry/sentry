@@ -303,8 +303,12 @@ class Fixtures:
         return Factories.store_event(*args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
+        from sentry.models.group import GroupSubStatus
+
         if project is None:
             project = self.project
+        if "substatus" not in kwargs:
+            kwargs["substatus"] = GroupSubStatus.NEW
         return Factories.create_group(project=project, *args, **kwargs)
 
     def create_file(self, **kwargs):
