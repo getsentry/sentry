@@ -303,7 +303,7 @@ class Fixtures:
         return Factories.store_event(*args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
-        from sentry.models.group import GroupSubStatus
+        from sentry.types.group import GroupSubStatus
 
         if project is None:
             project = self.project
