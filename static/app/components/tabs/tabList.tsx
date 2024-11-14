@@ -251,7 +251,7 @@ function BaseTabList({
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 /**
- * To be used as a direct child of the <Tabs /> component. See example usage
+ * To be used as a direct child of the `<Tabs />` component. See example usage
  * in tabs.stories.js
  */
 export function TabList({items, variant, ...props}: TabListProps) {
