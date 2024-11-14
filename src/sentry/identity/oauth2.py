@@ -354,7 +354,9 @@ class OAuth2CallbackView(PipelineView):
 
             if error:
                 pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
-                lifecycle.record_failure("token_exchange_error", extra={"msg": ERR_INVALID_STATE})
+                lifecycle.record_failure(
+                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                )
                 return pipeline.error(ERR_INVALID_STATE)
 
             if state != pipeline.fetch_state("state"):
@@ -367,7 +369,9 @@ class OAuth2CallbackView(PipelineView):
                         "code": code,
                     },
                 )
-                lifecycle.record_failure("token_exchange_error", extra={"msg": ERR_INVALID_STATE})
+                lifecycle.record_failure(
+                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                )
                 return pipeline.error(ERR_INVALID_STATE)
 
         # separate lifecycle event inside exchange_token
