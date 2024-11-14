@@ -16,7 +16,7 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getTargetId} from 'sentry/views/profiling/utils';
+import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
 interface FunctionsTableProps {
   analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
@@ -44,7 +44,7 @@ export function FunctionsTable(props: FunctionsTableProps) {
         ...func,
         'all_examples()': examples.map(example => {
           return {
-            value: getShortEventId(getTargetId(example)),
+            value: getShortEventId(getProfileTargetId(example)),
             onClick: () =>
               trackAnalytics('profiling_views.go_to_flamegraph', {
                 organization,

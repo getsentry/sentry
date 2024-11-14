@@ -42,7 +42,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {getTargetId} from 'sentry/views/profiling/utils';
+import {getProfileTargetId} from 'sentry/views/profiling/utils';
 
 import {
   Accordion,
@@ -270,7 +270,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
           />
         );
         return example.slice(0, 1).map(profileRef => {
-          const targetId = getTargetId(profileRef);
+          const targetId = getProfileTargetId(profileRef);
           return {
             key: targetId,
             label: (
