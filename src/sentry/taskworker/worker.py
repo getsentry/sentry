@@ -20,6 +20,7 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
 
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.service.client import TaskClient
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
@@ -89,6 +90,7 @@ class TaskWorker:
                     task = self.fetch_task()
 
                 if not task:
+                    metrics.incr("taskworker.worker.no_task.pause")
                     time.sleep(1)
                     continue
 
@@ -97,6 +99,10 @@ class TaskWorker:
                     self._max_task_count is not None
                     and self._max_task_count <= self._execution_count
                 ):
+                    metrics.incr(
+                        "taskworker.worker.max_task_count_reached",
+                        tags={"count": self._execution_count},
+                    )
                     logger.info("Max task execution count reached. Terminating")
                     return 0
 
@@ -110,13 +116,16 @@ class TaskWorker:
         try:
             activation = self.client.get_task()
         except grpc.RpcError:
+            metrics.incr("taskworker.worker.get_task.failed")
             logger.info("get_task failed. Retrying in 1 second")
             return None
 
         if not activation:
+            metrics.incr("taskworker.worker.get_task.not_found")
             logger.info("No task fetched")
             return None
 
+        metrics.incr("taskworker.worker.get_task.success")
         return activation
 
     def _known_task(self, activation: TaskActivation) -> bool:
@@ -139,6 +148,10 @@ class TaskWorker:
     def process_task(self, activation: TaskActivation) -> TaskActivation | None:
         assert self._pool
         if not self._known_task(activation):
+            metrics.incr(
+                "taskworker.worker.unknown_task",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
             self._execution_count += 1
             return self.client.update_task(
                 task_id=activation.id,
@@ -193,15 +206,35 @@ class TaskWorker:
         self._execution_count += 1
 
         task_added_time = activation.received_at.ToDatetime().timestamp()
+        execution_duration = execution_complete_time - execution_start_time
+        execution_latency = execution_complete_time - task_added_time
         logger.info(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
-                "execution_duration": execution_complete_time - execution_start_time,
-                "execution_latency": execution_complete_time - task_added_time,
+                "execution_duration": execution_duration,
+                "execution_latency": execution_latency,
                 "status": next_state,
             },
         )
+        metrics.incr(
+            "taskworker.worker.execute_task",
+            tags={
+                "namespace": activation.namespace,
+                "status": next_state,
+            },
+        )
+        metrics.distribution(
+            "taskworker.worker.execution_duration",
+            execution_duration,
+            tags={"namespace": activation.namespace},
+        )
+        metrics.distribution(
+            "taskworker.worker.execution_latency",
+            execution_latency,
+            tags={"namespace": activation.namespace},
+        )
+
         return self.client.update_task(
             task_id=activation.id,
             status=next_state,
