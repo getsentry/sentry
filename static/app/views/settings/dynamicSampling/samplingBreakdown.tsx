@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
@@ -43,7 +44,8 @@ function OthersBadge() {
 export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) {
   const spansWithSampleRates = sampleCounts
     ?.map(item => {
-      const sampledSpans = Math.floor(item.count * (sampleRates[item.project.id] ?? 1));
+      const sampleRate = clampPercentRate(sampleRates[item.project.id] ?? 1);
+      const sampledSpans = Math.floor(item.count * sampleRate);
       return {
         project: item.project,
         sampledSpans,

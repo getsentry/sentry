@@ -161,7 +161,7 @@ export function ProjectSampling() {
           </Button>
           <Button
             priority="primary"
-            disabled={isFormActionDisabled}
+            disabled={isFormActionDisabled || !formState.isValid}
             onClick={handleSubmit}
           >
             {t('Apply Changes')}

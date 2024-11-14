@@ -15,6 +15,7 @@ import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {clampPercent} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -80,7 +81,7 @@ export function ProjectsEditTable({
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
-      const cappedOrgRate = Math.min(100, Math.max(0, Number(newRate))) ?? 100;
+      const cappedOrgRate = clampPercent(Number(newRate) ?? 100);
 
       const scalingItems = Object.entries(projectRateSnapshotRef.current)
         .map(([projectId, rate]) => ({
@@ -142,7 +143,8 @@ export function ProjectsEditTable({
       return orgRate;
     }
     const totalSampledSpans = items.reduce(
-      (acc, item) => acc + item.count * Number(value[item.project.id] ?? 100),
+      (acc, item) =>
+        acc + item.count * clampPercent(Number(value[item.project.id] ?? 100)),
       0
     );
     return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpanCount, 2);
