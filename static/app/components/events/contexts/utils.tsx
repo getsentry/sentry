@@ -25,6 +25,7 @@ import {getRuntimeContextData} from 'sentry/components/events/contexts/knownCont
 import {getStateContextData} from 'sentry/components/events/contexts/knownContext/state';
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
+import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -37,7 +38,6 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
 
-import {getDefaultContextData} from './default';
 import {getKnownDeviceContextData, getUnknownDeviceContextData} from './device';
 import {
   getKnownPlatformContextData,
@@ -46,7 +46,6 @@ import {
   KNOWN_PLATFORM_CONTEXTS,
 } from './platform';
 import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
-import {getKnownUserContextData, getUnknownUserContextData} from './user';
 
 /**
  * Generates the class name used for contexts
@@ -420,10 +419,7 @@ export function getFormattedContextData({
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
     case 'user':
-      return [
-        ...getKnownUserContextData({data: contextValue, meta}),
-        ...getUnknownUserContextData({data: contextValue, meta}),
-      ];
+      return getUserContextData({data: contextValue, meta});
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
     case 'trace':
@@ -451,7 +447,12 @@ export function getFormattedContextData({
     case 'missing_instrumentation':
       return getMissingInstrumentationContextData({data: contextValue, meta});
     default:
-      return getDefaultContextData(contextValue);
+      return getContextKeys({data: contextValue}).map(ctxKey => ({
+        key: ctxKey,
+        subject: ctxKey,
+        value: contextValue[ctxKey],
+        meta: meta?.[ctxKey]?.[''],
+      }));
   }
 }
 /**
