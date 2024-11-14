@@ -49,7 +49,7 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "java-android",
         # "java-appengine",
         # "java-log4j",
-        # "java-log4j2",
+        "java-log4j2",
         # "java-logging",
         "java-logback",
         # "java-spring",
