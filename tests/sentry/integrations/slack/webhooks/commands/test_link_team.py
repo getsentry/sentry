@@ -70,7 +70,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.CHANNEL_ALREADY_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.CHANNEL_ALREADY_LINKED.value)
 
     @with_feature("organizations:slack-multiple-team-single-channel-linking")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -120,7 +120,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_FROM_CHANNEL)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_FROM_CHANNEL.value)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -137,7 +137,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_USER_FIRST)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_USER_FIRST.value)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -159,7 +159,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.INSUFFICIENT_ROLE)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.INSUFFICIENT_ROLE.value)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -234,7 +234,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.TEAM_NOT_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.TEAM_NOT_LINKED.value)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

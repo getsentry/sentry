@@ -174,7 +174,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
-                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED.value,
+                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
                     context_data={
                         "email": self.request.identity_str,
                     },
@@ -190,7 +190,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
-                    outcome_reason=MessageCommandHaltReason.NOT_LINKED.value,
+                    outcome_reason=MessageCommandHaltReason.NOT_LINKED,
                     context_data={
                         "email": self.request.identity_str,
                     },
@@ -208,7 +208,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                     return IntegrationResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
-                        outcome_reason=reason.value,
+                        outcome_reason=reason,
                     )
 
             return IntegrationResponse(
@@ -223,7 +223,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                     return IntegrationResponse(
                         interaction_result=EventLifecycleOutcome.HALTED,
                         response=response,
-                        outcome_reason=reason.value,
+                        outcome_reason=reason,
                     )
 
             return IntegrationResponse(

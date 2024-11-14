@@ -214,7 +214,7 @@ class DiscordCommandInteractionTest(APITestCase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink_no_identity(self, mock_record):
@@ -242,7 +242,7 @@ class DiscordCommandInteractionTest(APITestCase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unlink(self, mock_record):

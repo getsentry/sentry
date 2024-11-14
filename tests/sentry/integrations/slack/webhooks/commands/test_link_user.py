@@ -53,7 +53,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.ALREADY_LINKED.value)
 
 
 @control_silo_test
@@ -136,4 +136,4 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED)
+        assert_halt_metric(mock_record, MessageCommandHaltReason.NOT_LINKED.value)

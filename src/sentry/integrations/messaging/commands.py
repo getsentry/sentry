@@ -189,9 +189,11 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
                     response = handler.callback(arg_input)
                     # Record the appropriate lifecycle event based on the response
                     if response.interaction_result == EventLifecycleOutcome.HALTED:
-                        lifecycle.record_halt(response.outcome_reason, response.context_data)
+                        lifecycle.record_halt(str(response.outcome_reason), response.context_data)
                     elif response.interaction_result == EventLifecycleOutcome.FAILURE:
-                        lifecycle.record_failure(response.outcome_reason, response.context_data)
+                        lifecycle.record_failure(
+                            str(response.outcome_reason), response.context_data
+                        )
                     else:
                         lifecycle.record_success()
                     return response.response

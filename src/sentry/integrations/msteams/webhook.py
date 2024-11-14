@@ -675,7 +675,7 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=build_already_linked_identity_command_card(),
-                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED.value,
+                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
                     context_data={
                         "user_id": self.teams_user_id,
                         "identity_id": linked_identity.id if linked_identity else None,
