@@ -363,7 +363,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         except UnsupportedQuerySubscription as e:
             raise serializers.ValidationError(f"{e}")
 
-        self._validate_snql_query(data, entity_subscription, projects)
+        # TODO(edward): Bypass snql query validation for EAP queries. Do we need validation for rpc requests?
+        if dataset != Dataset.EventsAnalyticsPlatform:
+            self._validate_snql_query(data, entity_subscription, projects)
 
     def _validate_snql_query(self, data, entity_subscription, projects):
         end = timezone.now()

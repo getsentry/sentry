@@ -21,6 +21,7 @@ from sentry.snuba.entity_subscription import (
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
     PerformanceMetricsEntitySubscription,
+    PerformanceSpansEAPRpcEntitySubscription,
     PerformanceTransactionsEntitySubscription,
     get_entity_key_from_snuba_query,
     get_entity_subscription,
@@ -655,6 +656,29 @@ class EntitySubscriptionTestCase(TestCase):
                 )
                 assert isinstance(builder, AlertMetricsQueryBuilder)
                 assert builder.use_metrics_layer is use_metrics_layer
+
+    def test_get_entity_subscription_for_eap_rpc_query(self) -> None:
+        aggregate = "count(span.duration)"
+        query = "span.op:http.client"
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        assert isinstance(entity_subscription, PerformanceSpansEAPRpcEntitySubscription)
+        assert entity_subscription.aggregate == aggregate
+        assert entity_subscription.get_entity_extra_params() == {}
+        assert entity_subscription.dataset == Dataset.EventsAnalyticsPlatform
+
+        rpc_timeseries_request = entity_subscription.build_rpc_request(
+            query, [self.project.id], None
+        )
+
+        assert rpc_timeseries_request.granularity_secs == 3600
+        assert rpc_timeseries_request.filter.comparison_filter.value.val_str == "http.client"
+        assert rpc_timeseries_request.aggregations[0].label == "count(span.duration)"
 
 
 class GetEntitySubscriptionFromSnubaQueryTest(TestCase):

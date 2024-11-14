@@ -4,8 +4,10 @@ import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict, Union
 
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
 from sentry import features
@@ -13,11 +15,13 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansEAPQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
@@ -29,6 +33,8 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.spans_rpc import get_timeseries_query
 from sentry.utils import metrics
 
 # TODO: If we want to support security events here we'll need a way to
@@ -148,6 +154,16 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     ) -> BaseQueryBuilder:
         raise NotImplementedError
 
+    def build_rpc_request(
+        self,
+        query: str,
+        project_ids: list[int],
+        environment: Environment | None,
+        params: ParamsType | None = None,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
+    ) -> TimeSeriesRequest:
+        raise NotImplementedError
+
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
@@ -219,7 +235,7 @@ class PerformanceTransactionsEntitySubscription(BaseEventsAndTransactionEntitySu
     dataset = Dataset.Transactions
 
 
-class PerformanceSpansEAPEntitySubscription(BaseEventsAndTransactionEntitySubscription):
+class PerformanceSpansEAPSnqlEntitySubscription(BaseEventsAndTransactionEntitySubscription):
     query_type = SnubaQuery.Type.PERFORMANCE
     dataset = Dataset.EventsAnalyticsPlatform
 
@@ -252,6 +268,68 @@ class PerformanceSpansEAPEntitySubscription(BaseEventsAndTransactionEntitySubscr
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
         )
+
+
+class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
+    query_type = SnubaQuery.Type.PERFORMANCE
+    dataset = Dataset.EventsAnalyticsPlatform
+
+    def __init__(
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
+    ):
+        super().__init__(aggregate, time_window, extra_fields)
+        self.aggregate = aggregate
+        self.event_types = None
+        self.time_window = time_window
+        if extra_fields:
+            self.org_id = extra_fields.get("org_id")
+            self.event_types = extra_fields.get("event_types")
+
+    def build_rpc_request(
+        self,
+        query: str,
+        project_ids: list[int],
+        environment: Environment | None,
+        params: ParamsType | None = None,
+        skip_field_validation_for_entity_subscription_deletion: bool = False,
+    ) -> TimeSeriesRequest:
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        query = apply_dataset_query_conditions(self.query_type, query, self.event_types)
+        if environment:
+            params["environment"] = environment.name
+
+        now = datetime.now(tz=timezone.utc)
+        snuba_params = SnubaParams(
+            environments=[environment],
+            projects=[Project.objects.get_from_cache(id=project_id) for project_id in project_ids],
+            organization=Organization.objects.get_from_cache(id=self.org_id),
+            start=now - timedelta(days=1),
+            end=now,
+        )
+
+        rpc_request = get_timeseries_query(
+            params=snuba_params,
+            query_string=query,
+            y_axes=[self.aggregate],
+            groupby=[],
+            referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+            config=SearchResolverConfig(),
+            granularity_secs=self.time_window,
+        )
+
+        return rpc_request
+
+    def get_entity_extra_params(self) -> Mapping[str, Any]:
+        return {}
+
+    def aggregate_query_results(
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
+        return data
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -498,7 +576,7 @@ EntitySubscription = Union[
     MetricsSetsEntitySubscription,
     PerformanceTransactionsEntitySubscription,
     PerformanceMetricsEntitySubscription,
-    PerformanceSpansEAPEntitySubscription,
+    PerformanceSpansEAPRpcEntitySubscription,
 ]
 
 
@@ -523,7 +601,7 @@ def get_entity_subscription(
         elif dataset in (Dataset.Metrics, Dataset.PerformanceMetrics):
             entity_subscription_cls = PerformanceMetricsEntitySubscription
         elif dataset == Dataset.EventsAnalyticsPlatform:
-            entity_subscription_cls = PerformanceSpansEAPEntitySubscription
+            entity_subscription_cls = PerformanceSpansEAPRpcEntitySubscription
     if query_type == SnubaQuery.Type.CRASH_RATE:
         entity_key = determine_crash_rate_alert_entity(aggregate)
         if entity_key == EntityKey.MetricsCounters:
