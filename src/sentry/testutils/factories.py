@@ -2130,14 +2130,17 @@ class Factories:
         name: str | None = None,
         owner_user_id: int | None = None,
         owner_team: Team | None = None,
+        project: Project | None = None,
         **kwargs,
     ) -> Detector:
-        if organization is None:
-            organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
+        if project is None:
+            project = Factories.create_project()
+        if organization is None:
+            organization = project.organization
         return Detector.objects.create(
-            organization=organization,
+            project=project,
             name=name,
             owner_user_id=owner_user_id,
             owner_team=owner_team,

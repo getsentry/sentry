@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    project = FlexibleForeignKey("sentry.Project")
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
