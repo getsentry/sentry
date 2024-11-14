@@ -7,6 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 from .json_config import JSONConfigBase
 
@@ -47,3 +49,16 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 fields=["name", "organization"], name="unique_workflow_name_per_org"
             )
         ]
+
+    # TODO should the value here _only_ be trigger conditions?
+    # How can we limit it to that? Trigger conditions should be: new issue created, issue state change, etc
+    def evaluate_trigger_conditions(self, detector_status: DetectorPriorityLevel) -> bool:
+        """
+        Evaluate the conditions for the workflow trigger and return the results.
+        If there isn't a when_condition_group, the workflow should always trigger.
+        """
+        if self.when_condition_group is None:
+            return True
+
+        evaluation, _ = evaluate_condition_group(self.when_condition_group, detector_status)
+        return evaluation
