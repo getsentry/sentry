@@ -227,6 +227,34 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
 
     def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self) -> None:
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "play_fetch",
+                                        "filename": "dogpark.py",
+                                        "context_line": context_line,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
         seer_result_data = SeerSimilarIssueData(
             parent_hash=NonNone(self.existing_event.get_primary_hash()),
             parent_group_id=NonNone(self.existing_event.group_id),
@@ -242,7 +270,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
-            assert get_seer_similar_issues(self.new_event, self.variants) == (
+            assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
                 expected_metadata,
                 self.existing_event_grouphash,
             )
@@ -261,3 +289,24 @@ class GetSeerSimilarIssuesTest(TestCase):
                 expected_metadata,
                 None,
             )
+
+    def test_empty_stacktrace_not_sent_to_seer(self) -> None:
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        expected_metadata = {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "results": [],
+        }
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": None,
+                "platform": "python",
+            },
+        )
+        assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
+            expected_metadata,
+            None,
+        )

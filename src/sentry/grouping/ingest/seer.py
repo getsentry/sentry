@@ -190,6 +190,13 @@ def get_seer_similar_issues(
     stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
+    if stacktrace_string == "":
+        similar_issues_metadata = {
+            "results": [],
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+        }
+        return (similar_issues_metadata, None)
+
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event_hash,
