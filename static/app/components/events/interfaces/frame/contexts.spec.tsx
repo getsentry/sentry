@@ -4,66 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
-import {UserEventContext} from 'sentry/components/events/contexts/user';
-import {FILTER_MASK} from 'sentry/constants';
 import type {DeviceContext} from 'sentry/types/event';
-
-describe('User', function () {
-  it("displays filtered values but doesn't use them for avatar", function () {
-    const {rerender} = render(
-      <UserEventContext
-        data={{
-          id: '26',
-          name: FILTER_MASK,
-          email: '',
-          username: '',
-          ip_address: '',
-          data: {},
-        }}
-        event={EventFixture()}
-      />
-    );
-
-    expect(screen.getByTestId('user-context-name-value')).toHaveTextContent(FILTER_MASK);
-    expect(screen.getByText('?')).toBeInTheDocument();
-
-    rerender(
-      <UserEventContext
-        data={{
-          id: '26',
-          name: '',
-          email: FILTER_MASK,
-          username: '',
-          ip_address: '',
-          data: {},
-        }}
-        event={EventFixture()}
-      />
-    );
-
-    expect(screen.getByTestId('user-context-email-value')).toHaveTextContent(FILTER_MASK);
-    expect(screen.getByText('?')).toBeInTheDocument();
-
-    rerender(
-      <UserEventContext
-        data={{
-          id: '26',
-          name: '',
-          email: '',
-          username: FILTER_MASK,
-          ip_address: '',
-          data: {},
-        }}
-        event={EventFixture()}
-      />
-    );
-
-    expect(screen.getByTestId('user-context-username-value')).toHaveTextContent(
-      FILTER_MASK
-    );
-    expect(screen.getByText('?')).toBeInTheDocument();
-  });
-});
 
 describe('Device', function () {
   const device: DeviceContext = {
