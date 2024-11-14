@@ -105,7 +105,7 @@ Requests from web hook providers can be signed. We use the signing secret to ver
 
 The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, Statsig, and LaunchDarkly.
 
-Webhooks are optionally signed by their provider. If the request is signed, the provider handler must use the secret stored in Sentry to verify the signature. Failure to do so could lead to unauthorized access to a quasi-public endpoint.
+Webhooks are signed by their provider. The provider handler must use the secret stored in Sentry to verify the signature of the payload. Failure to do so could lead to unauthorized access.
 
 **Flag Pole Example:**
 
