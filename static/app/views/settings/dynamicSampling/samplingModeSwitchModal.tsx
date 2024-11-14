@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {useUpdateOrganization} from 'sentry/views/settings/dynamicSampling/utils/useUpdateOrganization';
 
 interface Props {
@@ -67,7 +68,7 @@ function SamplingModeSwitchModal({
       samplingMode,
     };
     if (samplingMode === 'organization') {
-      changes.targetSampleRate = Number(formState.fields.targetSampleRate.value) / 100;
+      changes.targetSampleRate = parsePercent(formState.fields.targetSampleRate.value);
     }
     updateOrganization(changes);
   };

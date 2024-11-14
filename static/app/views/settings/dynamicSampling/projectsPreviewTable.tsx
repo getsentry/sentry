@@ -10,8 +10,8 @@ import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNu
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
-import {clampPercent} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
@@ -44,17 +44,17 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
   );
 
   const {balancedItems} = useMemo(() => {
-    const targetRate = clampPercent(Number(debouncedTargetSampleRate) || 0);
+    const targetRate = parsePercent(debouncedTargetSampleRate);
     return balanceSampleRate({
-      targetSampleRate: targetRate / 100,
+      targetSampleRate: targetRate,
       items: balancingItems,
     });
   }, [debouncedTargetSampleRate, balancingItems]);
 
   const initialSampleRateById = useMemo(() => {
-    const targetRate = clampPercent(Number(initialTargetSampleRate) || 0);
+    const targetRate = parsePercent(initialTargetSampleRate);
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
-      targetSampleRate: targetRate / 100,
+      targetSampleRate: targetRate,
       items: balancingItems,
     });
     return initialBalancedItems.reduce((acc, item) => {
