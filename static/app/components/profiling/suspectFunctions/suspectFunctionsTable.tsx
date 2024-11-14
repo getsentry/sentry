@@ -78,7 +78,7 @@ const COLUMNS: Column[] = [
 interface SuspectFunctionsTableProps {
   analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
   eventView: EventView;
-  project: Project;
+  project?: Project;
 }
 
 export function SuspectFunctionsTable({
@@ -197,7 +197,7 @@ interface TableEntryProps {
   baggage: RenderFunctionBaggage;
   metric: Profiling.FunctionMetric;
   organization: Organization;
-  project: Project;
+  project?: Project;
 }
 
 function TableEntry({
