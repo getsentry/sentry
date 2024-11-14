@@ -17,7 +17,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
 )
-from sentry.monitors.types import SimpleCheckIn
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -26,8 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def create_incident_occurrence(
-    failed_checkins: Sequence[SimpleCheckIn],
     failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
     incident: MonitorIncident,
     received: datetime | None,
 ) -> None:
@@ -59,7 +58,7 @@ def create_incident_occurrence(
         evidence_display=[
             IssueEvidence(
                 name="Failure reason",
-                value=str(get_failure_reason(failed_checkins)),
+                value=str(get_failure_reason(previous_checkins)),
                 important=True,
             ),
             IssueEvidence(
@@ -127,7 +126,7 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 }
 
 
-def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
+def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
     """
     Builds a human readable string from a list of failed check-ins.
 
