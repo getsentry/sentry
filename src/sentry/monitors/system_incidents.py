@@ -364,12 +364,13 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
 
     # Fetch histories for metrics and the last decision together. Window
     # timestamps are reversed so the oldest metric is last.
-    redis_keys = chain(
+    pipeline = redis_client.pipeline()
+    for key in chain(
         (MONITOR_TICK_METRIC.format(ts=ts) for ts in reversed(past_window_ts_keys)),
         (MONITOR_TICK_DECISION.format(ts=ts) for ts in [past_window_ts_keys[0]]),
-    )
-
-    values = redis_client.mget(redis_keys)
+    ):
+        pipeline.get(key)
+    values = pipeline.execute()
 
     # Tick metrics are the first tick_decision_window values
     tick_metrics = [Metric.from_value(value) for value in values[:-1]]
