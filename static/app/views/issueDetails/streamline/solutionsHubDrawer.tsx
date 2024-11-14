@@ -160,17 +160,20 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
 
   const config = getConfigForIssueType(group, project);
 
-  const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
-  const hasSummary = summaryData && !isError && setupData?.genAIConsent.ok;
+  const hasConsent = Boolean(setupData?.genAIConsent.ok);
+  const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
+
+  const hasSummary = summaryData && !isError && hasConsent;
 
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
+
   const displayAiAutofix =
     shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
-    hasStacktraceWithFrames(event);
-  // !isSampleError;
+    hasStacktraceWithFrames(event) &&
+    !isSampleError;
 
   return (
     <SolutionsDrawerContainer>
@@ -240,35 +243,39 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {hasSummary && (
-          <StyledCard>
-            <GroupSummaryBody
-              data={summaryData}
-              isError={isError}
-              isPending={isSummaryLoading}
-            />
-          </StyledCard>
-        )}
-        {displayAiAutofix && (
+        {!hasConsent ? (
+          <AiSetupDataConsent groupId={group.id} />
+        ) : (
           <Fragment>
-            {!isSetupLoading && !isSetupComplete ? (
-              <SetupContainer>
-                <AutofixSetupContent
-                  projectId={project.id}
-                  groupId={group.id}
-                  onComplete={refetchSetup}
+            {hasSummary && (
+              <StyledCard>
+                <GroupSummaryBody
+                  data={summaryData}
+                  isError={isError}
+                  isPending={isSummaryLoading}
                 />
-              </SetupContainer>
-            ) : !autofixData && isPolling ? (
-              <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-            ) : autofixData ? (
-              <AutofixSteps
-                data={autofixData}
-                groupId={group.id}
-                runId={autofixData.run_id}
-                onRetry={reset}
-              />
-            ) : null}
+              </StyledCard>
+            )}
+            {displayAiAutofix && (
+              <Fragment>
+                {!isSetupLoading && !isAutofixSetupComplete ? (
+                  <AutofixSetupContent
+                    groupId={group.id}
+                    projectId={project.id}
+                    onComplete={refetchSetup}
+                  />
+                ) : !autofixData ? (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+                ) : (
+                  <AutofixSteps
+                    data={autofixData}
+                    groupId={group.id}
+                    runId={autofixData.run_id}
+                    onRetry={reset}
+                  />
+                )}
+              </Fragment>
+            )}
           </Fragment>
         )}
       </SolutionsDrawerBody>
