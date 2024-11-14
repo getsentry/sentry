@@ -89,7 +89,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               }
               analyticsParams={{group_id: groupId}}
             >
-              {message ? 'Start' : 'Start Autofix'}
+              {t('Start Autofix')}
             </Button>
           </ButtonWithStars>
         </Row>
@@ -134,8 +134,12 @@ interface SolutionsHubDrawerProps {
 }
 
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
-  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
-  const {data: summaryData, isError} = useGroupSummary(group.id, group.issueCategory);
+  const {autofixData, triggerAutofix, reset, isPolling} = useAiAutofix(group, event);
+  const {
+    data: summaryData,
+    isError,
+    isPending: isSummaryLoading,
+  } = useGroupSummary(group.id, group.issueCategory);
   const {
     data: setupData,
     isPending: isSetupLoading,
@@ -182,22 +186,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
       </SolutionsDrawerHeader>
       <SolutionsDrawerNavigator>
         <Header>{t('Solutions Hub')}</Header>
-        {autofixData && (
-          <ButtonBar gap={1}>
-            <AutofixFeedback />
-            <Button
-              size="xs"
-              onClick={reset}
-              title={
-                autofixData.created_at
-                  ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                  : null
-              }
-            >
-              {t('Start Over')}
-            </Button>
-          </ButtonBar>
-        )}
       </SolutionsDrawerNavigator>
       <SolutionsDrawerBody>
         {config.resources && (
@@ -216,21 +204,43 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           </ResourcesContainer>
         )}
         <HeaderText>
-          <IconSeer size="lg" />
-          {t('Sentry AI')}
-          <StyledFeatureBadge
-            type="beta"
-            title={tct(
-              'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {
-                email: <a href="mailto:autofix@sentry.io" />,
-              }
-            )}
-          />
+          <HeaderContainer>
+            <IconSeer size="lg" />
+            {t('Sentry AI')}
+            <StyledFeatureBadge
+              type="beta"
+              title={tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {
+                  email: <a href="mailto:autofix@sentry.io" />,
+                }
+              )}
+            />
+          </HeaderContainer>
+          {autofixData && (
+            <ButtonBar gap={1}>
+              <AutofixFeedback />
+              <Button
+                size="xs"
+                onClick={reset}
+                title={
+                  autofixData.created_at
+                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                    : null
+                }
+              >
+                {t('Start Over')}
+              </Button>
+            </ButtonBar>
+          )}
         </HeaderText>
         {hasSummary && (
           <StyledCard>
-            <GroupSummaryBody data={summaryData} isError={isError} />
+            <GroupSummaryBody
+              data={summaryData}
+              isError={isError}
+              isPending={isSummaryLoading}
+            />
           </StyledCard>
         )}
         {displayAiAutofix && (
@@ -243,16 +253,16 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                   onComplete={refetchSetup}
                 />
               </SetupContainer>
-            ) : !autofixData ? (
+            ) : !autofixData && isPolling ? (
               <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-            ) : (
+            ) : autofixData ? (
               <AutofixSteps
                 data={autofixData}
                 groupId={group.id}
                 runId={autofixData.run_id}
                 onRetry={reset}
               />
-            )}
+            ) : null}
           </Fragment>
         )}
       </SolutionsDrawerBody>
@@ -301,9 +311,8 @@ const SolutionsDrawerHeader = styled(DrawerHeader)`
 
 const SolutionsDrawerNavigator = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   align-items: center;
-  column-gap: ${space(1)};
   padding: ${space(0.75)} 24px;
   background: ${p => p.theme.background};
   z-index: 1;
@@ -409,6 +418,7 @@ const HeaderText = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   padding-bottom: ${space(2)};
+  justify-content: space-between;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
@@ -441,4 +451,10 @@ const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
   transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
   opacity: ${p => Math.min(1, 0.2 + p.index * 0.1)};
   filter: sepia(1) saturate(3) hue-rotate(290deg);
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

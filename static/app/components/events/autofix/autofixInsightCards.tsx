@@ -1,4 +1,6 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -343,12 +345,14 @@ function AutofixInsightCards({
           </p>
         </NoInsightsYet>
       ) : hasStepBelow ? (
-        <ChainLink
-          insightCardAboveIndex={null}
-          stepIndex={stepIndex}
-          groupId={groupId}
-          runId={runId}
-        />
+        <EmptyResultsContainer>
+          <ChainLink
+            insightCardAboveIndex={null}
+            stepIndex={stepIndex}
+            groupId={groupId}
+            runId={runId}
+          />
+        </EmptyResultsContainer>
       ) : null}
     </InsightsContainer>
   );
@@ -397,15 +401,37 @@ function ChainLink({
   stepIndex: number;
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [referenceElement, setReferenceElement] = useState<
+    HTMLAnchorElement | HTMLButtonElement | null
+  >(null);
+  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const [comment, setComment] = useState('');
   const {mutate: send} = useUpdateInsightCard({groupId, runId});
 
-  const handleClickOutside = event => {
-    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+  const {styles, attributes} = usePopper(referenceElement, popperElement, {
+    placement: insightCardAboveIndex === null ? 'right-start' : 'right-start',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [-16, 4],
+        },
+      },
+    ],
+  });
+
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (
+        referenceElement?.contains(event.target as Node) ||
+        popperElement?.contains(event.target as Node)
+      ) {
+        return;
+      }
       setShowOverlay(false);
-    }
-  };
+    },
+    [popperElement, referenceElement]
+  );
 
   useEffect(() => {
     if (showOverlay) {
@@ -416,15 +442,13 @@ function ChainLink({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showOverlay]);
-
-  // Determine if this is the first chain link (before first insight)
-  const isFirstLink = insightCardAboveIndex === null || insightCardAboveIndex < 0;
+  }, [showOverlay, handleClickOutside]);
 
   return (
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
       <RethinkButton
+        ref={setReferenceElement}
         icon={<IconEdit size="xs" />}
         size="zero"
         className="rethink-button"
@@ -433,40 +457,52 @@ function ChainLink({
         onClick={() => setShowOverlay(true)}
       />
 
-      {showOverlay && (
-        <RethinkInput $isFirstLink={isFirstLink} ref={overlayRef}>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              setShowOverlay(false);
-              setComment('');
-              send({
-                message: comment,
-                step_index: stepIndex,
-                retain_insight_card_index: insightCardAboveIndex,
-              });
-            }}
-            className="row-form"
+      {showOverlay &&
+        createPortal(
+          <RethinkInput
+            ref={setPopperElement}
+            style={styles.popper}
+            {...attributes.popper}
+            id="autofix-rethink-input"
           >
-            <Input
-              type="text"
-              placeholder="Say something..."
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              size="md"
-              autoFocus
-            />
-            <Button
-              type="submit"
-              icon={<IconRefresh />}
-              title="Restart analysis from this point in the chain"
-              aria-label="Restart analysis from this point in the chain"
-              priority="primary"
-              size="md"
-            />
-          </form>
-        </RethinkInput>
-      )}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOverlay(false);
+                setComment('');
+                send({
+                  message: comment,
+                  step_index: stepIndex,
+                  retain_insight_card_index: insightCardAboveIndex,
+                });
+              }}
+              className="row-form"
+              onClick={e => e.stopPropagation()}
+              id="autofix-rethink-input"
+            >
+              <Input
+                type="text"
+                placeholder="Say something..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                size="md"
+                autoFocus
+                id="autofix-rethink-input"
+              />
+              <Button
+                type="submit"
+                icon={<IconRefresh />}
+                title="Restart analysis from this point in the chain"
+                aria-label="Restart analysis from this point in the chain"
+                priority="primary"
+                size="md"
+                id="autofix-rethink-input"
+              />
+            </form>
+          </RethinkInput>,
+          document.body
+        )}
     </ArrowContainer>
   );
 }
@@ -518,6 +554,11 @@ const NoInsightsYet = styled('div')`
   padding-top: ${space(4)};
 `;
 
+const EmptyResultsContainer = styled('div')`
+  position: relative;
+  bottom: -${space(1)};
+`;
+
 const InsightsContainer = styled('div')``;
 
 const InsightContainer = styled(motion.div)`
@@ -566,17 +607,14 @@ const RethinkButton = styled(Button)`
   transition: color 0.2s ease-in-out;
 `;
 
-const RethinkInput = styled('div')<{$isFirstLink: boolean}>`
-  position: absolute;
+const RethinkInput = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  width: 95%;
+  width: 45%;
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  margin: 0 ${space(1.5)} 0 ${space(1.5)};
-  z-index: 10000;
-  transform: translateY(${p => (p.$isFirstLink ? '25%' : '-25%')});
+  z-index: ${p => p.theme.zIndex.tooltip};
 
   .row-form {
     display: flex;
