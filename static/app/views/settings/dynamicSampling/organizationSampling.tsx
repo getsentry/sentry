@@ -108,7 +108,7 @@ export function OrganizationSampling() {
         </HeadingRow>
         <p>
           {tct(
-            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:projected rates are estimates] based on recent span volume and change continuously.',
+            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:estimated rates] are based on recent span volume and change continuously.',
             {
               strong: <strong />,
             }

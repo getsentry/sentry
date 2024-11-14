@@ -27,8 +27,10 @@ interface ProjectItem {
 
 interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'headers'> {
   items: ProjectItem[];
+  rateHeader: React.ReactNode;
   canEdit?: boolean;
   inactiveItems?: ProjectItem[];
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }
 
@@ -37,7 +39,9 @@ const COLUMN_COUNT = 4;
 export function ProjectsTable({
   items,
   inactiveItems = [],
+  inputTooltip,
   canEdit,
+  rateHeader,
   onChange,
   ...props
 }: Props) {
@@ -63,7 +67,7 @@ export function ProjectsTable({
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
         t('Stored Spans'),
-        canEdit ? t('Target Rate') : t('Projected Rate'),
+        rateHeader,
       ]}
     >
       {mainItems
@@ -81,6 +85,7 @@ export function ProjectsTable({
             key={item.project.id}
             canEdit={canEdit}
             onChange={onChange}
+            inputTooltip={inputTooltip}
             {...item}
           />
         ))}
@@ -219,6 +224,7 @@ const TableRow = memo(function TableRow({
   initialSampleRate,
   subProjects,
   error,
+  inputTooltip,
   onChange,
 }: {
   count: number;
@@ -229,6 +235,7 @@ const TableRow = memo(function TableRow({
   subProjects: SubProject[];
   canEdit?: boolean;
   error?: string;
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }) {
   const organization = useOrganization();
@@ -299,10 +306,7 @@ const TableRow = memo(function TableRow({
       </Cell>
       <Cell>
         <FirstCellLine>
-          <Tooltip
-            disabled={canEdit}
-            title={t('To edit project sample rates, switch to manual sampling mode.')}
-          >
+          <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
               disabled={!canEdit}
