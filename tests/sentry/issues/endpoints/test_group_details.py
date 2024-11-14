@@ -371,6 +371,7 @@ class GroupUpdateTest(APITestCase):
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
+        assert group.first_release == first_release
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
@@ -409,6 +410,8 @@ class GroupUpdateTest(APITestCase):
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
+        assert group.first_release is None
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
@@ -447,6 +450,8 @@ class GroupUpdateTest(APITestCase):
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.NEW
+        assert group.first_release == first_release
         assert GroupResolution.objects.all().count() == 0
 
         url = f"/api/0/issues/{group.id}/"
