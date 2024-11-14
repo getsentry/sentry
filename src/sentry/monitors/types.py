@@ -101,7 +101,8 @@ class CheckinItem:
         )
 
 
-class SimpleCheckIn(TypedDict):
+@dataclass
+class SimpleCheckIn:
     """
     A stripped down check in object
     """
