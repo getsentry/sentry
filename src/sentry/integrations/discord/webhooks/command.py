@@ -84,8 +84,8 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
+                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED.value,
                     context_data={
-                        "halt_reason": MessageCommandHaltReason.ALREADY_LINKED,
                         "email": self.request.get_identity_str(),
                     },
                 )
@@ -102,10 +102,10 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.FAILURE,
                     response=MISSING_DATA_MESSAGE,
+                    outcome_reason=MessageCommandFailureReason.MISSING_DATA.value,
                     context_data={
                         "has_integration": bool(self.request.integration),
                         "has_user_id": bool(self.request.user_id),
-                        "failure_reason": MessageCommandFailureReason.MISSING_DATA,
                     },
                 )
 
@@ -124,7 +124,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=NOT_LINKED_MESSAGE,
-                    context_data={"halt_reason": MessageCommandHaltReason.NOT_LINKED},
+                    outcome_reason=MessageCommandHaltReason.NOT_LINKED.value,
                 )
 
             # if self.request.has_identity() then these must not be None
