@@ -1072,6 +1072,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_alert_rule(alert_rule, projects=[self.project])
         # NOTE: subscribing alert rule to projects creates a new subscription per project
+        assert alert_rule.snuba_query is not None
         subscriptions = alert_rule.snuba_query.subscriptions.all()
         assert subscriptions.count() == 1
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
@@ -1087,11 +1088,13 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         project_updates = [self.project, new_project]
         with self.tasks():
             update_alert_rule(alert_rule, projects=project_updates, query=query_update)
+        assert alert_rule.snuba_query is not None
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
         updated_projects = alert_rule.projects.all()
         assert {sub.project for sub in updated_subscriptions} == set(project_updates)
         assert set(updated_projects) == set(project_updates)
         for sub in updated_subscriptions:
+            assert sub.snuba_query is not None
             assert sub.snuba_query.query == query_update
 
     def test_with_attached_incident(self):
@@ -1616,6 +1619,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             time_window=60,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
+        assert dynamic_rule.snuba_query is not None
         snuba_query = SnubaQuery.objects.get(id=dynamic_rule.snuba_query_id)
         assert dynamic_rule.snuba_query.resolution == 60 * 60
         assert mock_seer_request.call_count == 1

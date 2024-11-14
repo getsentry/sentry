@@ -2191,6 +2191,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
         # Send Critical Update
+        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2257,6 +2258,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
+            assert rule.snuba_query is not None
             self.send_update(
                 rule,
                 trigger.alert_threshold + 5,
@@ -2322,6 +2324,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls([])
 
         # Send update above critical
+        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,

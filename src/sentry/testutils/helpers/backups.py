@@ -487,8 +487,9 @@ class ExhaustiveFixtures(Fixtures):
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
+        assert alert.snuba_query is not None
         AlertRuleTriggerExclusion.objects.create(
-            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
+            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.get()
         )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
