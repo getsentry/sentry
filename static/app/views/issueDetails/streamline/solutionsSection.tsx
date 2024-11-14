@@ -54,7 +54,8 @@ export default function SolutionsSection({
           const viewAllButton = openButtonRef.current;
           if (
             viewAllButton?.contains(element) ||
-            document.getElementById('sentry-feedback')?.contains(element)
+            document.getElementById('sentry-feedback')?.contains(element) ||
+            document.getElementById('autofix-rethink-input')?.contains(element)
           ) {
             return false;
           }
