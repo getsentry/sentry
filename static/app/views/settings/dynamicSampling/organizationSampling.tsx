@@ -18,6 +18,7 @@ import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projec
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {
   type ProjectionSamplePeriod,
   useProjectSampleCounts,
@@ -47,7 +48,7 @@ export function OrganizationSampling() {
   const handleSubmit = () => {
     updateOrganization(
       {
-        targetSampleRate: Number(formState.fields.targetSampleRate.value) / 100,
+        targetSampleRate: parsePercent(formState.fields.targetSampleRate.value),
       },
       {
         onSuccess: () => {
@@ -67,7 +68,14 @@ export function OrganizationSampling() {
 
   return (
     <FormProvider formState={formState}>
-      <form onSubmit={event => event.preventDefault()}>
+      <OnRouteLeave
+        message={UNSAVED_CHANGES_MESSAGE}
+        when={locationChange =>
+          locationChange.currentLocation.pathname !==
+            locationChange.nextLocation.pathname && formState.hasChanged
+        }
+      />
+      <form onSubmit={event => event.preventDefault()} noValidate>
         <Panel>
           <PanelHeader>{t('General Settings')}</PanelHeader>
           <PanelBody>
@@ -75,13 +83,6 @@ export function OrganizationSampling() {
             <OrganizationSampleRateField />
           </PanelBody>
         </Panel>
-        <OnRouteLeave
-          message={UNSAVED_CHANGES_MESSAGE}
-          when={locationChange =>
-            locationChange.currentLocation.pathname !==
-              locationChange.nextLocation.pathname && formState.hasChanged
-          }
-        />
         <FormActions>
           <Button disabled={!formState.hasChanged || isPending} onClick={handleReset}>
             {t('Reset')}
@@ -108,7 +109,7 @@ export function OrganizationSampling() {
         </HeadingRow>
         <p>
           {tct(
-            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:projected rates are estimates] based on recent span volume and change continuously.',
+            'This table gives you a preview of how your projects will be affected by the target sample rate. The [strong:estimated rates] are based on recent span volume and change continuously.',
             {
               strong: <strong />,
             }

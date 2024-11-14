@@ -2309,6 +2309,22 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         updated_perms = DashboardPermissions.objects.get(dashboard=self.dashboard)
         assert set(updated_perms.teams_with_edit_access.all()) == set()
 
+    def test_update_dashboard_without_projects_does_not_clear_projects(self):
+        project1 = self.create_project(name="foo", organization=self.organization)
+        project2 = self.create_project(name="bar", organization=self.organization)
+
+        dashboard = self.create_dashboard(title="First dashboard", organization=self.organization)
+        dashboard.projects.add(project1)
+        dashboard.projects.add(project2)
+
+        data = {
+            "title": "Modified Title",
+        }
+
+        response = self.do_request("put", self.url(dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert sorted(response.data["projects"]) == [project1.id, project2.id]
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.DISCOVER

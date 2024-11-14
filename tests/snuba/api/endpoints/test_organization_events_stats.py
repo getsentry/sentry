@@ -753,6 +753,36 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             [{"count": 0.02}],
         ]
 
+    def test_eps_equation(self):
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "yAxis": ["equation|eps() * 2"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert pytest.approx(0.000556, abs=0.0001) == response.data["data"][0][1][0]["count"]
+        assert pytest.approx(0.001112, abs=0.0001) == response.data["data"][1][1][0]["count"]
+
+    def test_epm_equation(self):
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "interval": "1h",
+                "yAxis": ["equation|epm() * 2"],
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert pytest.approx(0.03334, abs=0.01) == response.data["data"][0][1][0]["count"]
+        assert pytest.approx(0.06667, abs=0.01) == response.data["data"][1][1][0]["count"]
+
     def test_equation_mixed_multi_yaxis(self):
         response = self.do_request(
             data={

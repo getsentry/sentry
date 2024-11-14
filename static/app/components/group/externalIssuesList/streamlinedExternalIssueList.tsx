@@ -2,8 +2,10 @@ import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
 import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -17,6 +19,41 @@ import {Divider} from 'sentry/views/issueDetails/divider';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 
 import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
+
+function getActionLabelAndTextValue({
+  action,
+  integrationDisplayName,
+}: {
+  action: ExternalIssueAction;
+  integrationDisplayName: string;
+}): {label: string | JSX.Element; textValue: string} {
+  // If there's no subtext or subtext matches name, just show name
+  if (!action.nameSubText || action.nameSubText === action.name) {
+    return {
+      label: action.name,
+      textValue: action.name,
+    };
+  }
+
+  // If action name matches integration name, just show subtext
+  if (action.name === integrationDisplayName) {
+    return {
+      label: action.nameSubText,
+      textValue: `${action.name} ${action.nameSubText}`,
+    };
+  }
+
+  // Otherwise show both name and subtext
+  return {
+    label: (
+      <div>
+        <strong>{action.name}</strong>
+        <div>{action.nameSubText}</div>
+      </div>
+    ),
+    textValue: `${action.name} ${action.nameSubText}`,
+  };
+}
 
 interface StreamlinedExternalIssueListProps {
   event: Event;
@@ -109,11 +146,18 @@ export function StreamlinedExternalIssueList({
                 <ErrorBoundary key={integration.key} mini>
                   <DropdownMenu
                     trigger={triggerProps => (
-                      <IssueActionButton {...sharedButtonProps} {...triggerProps} />
+                      <IssueActionDropdownMenu
+                        {...sharedButtonProps}
+                        {...triggerProps}
+                        showChevron={false}
+                      />
                     )}
                     items={integration.actions.map(action => ({
-                      key: action.name,
-                      label: action.name,
+                      key: action.id,
+                      ...getActionLabelAndTextValue({
+                        action,
+                        integrationDisplayName: integration.displayName,
+                      }),
                       onAction: action.onClick,
                       disabled: integration.disabled,
                     }))}
@@ -160,6 +204,19 @@ const IssueActionButton = styled(Button)`
   border: 1px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
+`;
+
+const IssueActionDropdownMenu = styled(DropdownButton)`
+  display: flex;
+  align-items: center;
+  padding: ${space(0.5)} ${space(0.75)};
+  border: 1px dashed ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  font-weight: normal;
+
+  &[aria-expanded='true'] {
+    border: 1px solid ${p => p.theme.border};
+  }
 `;
 
 const IssueActionName = styled('div')`

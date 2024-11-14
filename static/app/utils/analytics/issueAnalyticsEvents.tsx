@@ -91,6 +91,8 @@ export type IssueEventParameters = {
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.comment_created': {};
+  'issue_details.comment_deleted': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
@@ -285,6 +287,11 @@ export type IssueEventParameters = {
     total_issues_count: number | null;
     tab?: string;
   };
+  'one_other_related_trace_issue.clicked': {
+    area: string;
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
+    group_id: number;
+  };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -429,6 +436,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
+  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
@@ -458,5 +466,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
   'issue_details.section_fold': 'Issue Details: Section Fold',
+  'issue_details.comment_created': 'Issue Details: Comment Created',
+  'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };
