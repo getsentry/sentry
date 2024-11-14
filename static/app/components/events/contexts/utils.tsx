@@ -15,9 +15,9 @@ import {getAppContextData} from 'sentry/components/events/contexts/knownContext/
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';
 import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
+import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
-import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
 import {getProfileContextData} from 'sentry/components/events/contexts/knownContext/profile';
