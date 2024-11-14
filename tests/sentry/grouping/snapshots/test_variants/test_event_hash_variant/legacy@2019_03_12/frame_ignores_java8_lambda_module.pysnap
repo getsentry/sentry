@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:26.836720Z'
+created: '2024-11-13T17:23:54.995527+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -9,9 +9,8 @@ app:
     app (stacktrace of system takes precedence)
       stacktrace (ignored because hash matches system variant)
         frame* (frame considered in-app because no frame is in-app)
-          module* (ignored module)
-            salt* (normalized generated module name)
-              "<module>"
+          module* (normalized generated module name)
+            "<module>"
           function*
             "call"
 --------------------------------------------------------------------------
@@ -21,8 +20,7 @@ system:
     system*
       stacktrace*
         frame*
-          module* (ignored module)
-            salt* (normalized generated module name)
-              "<module>"
+          module* (normalized generated module name)
+            "<module>"
           function*
             "call"

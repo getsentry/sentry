@@ -1,5 +1,5 @@
 ---
-created: '2024-10-28T14:02:51.939165+00:00'
+created: '2024-11-13T17:36:33.190334+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -12,8 +12,7 @@ contributing variants:
       system*
         stacktrace*
           frame*
-            module* (ignored module)
-              salt* (normalized generated module name)
-                "<module>"
+            module* (normalized generated module name)
+              "<module>"
             function*
               "call"
