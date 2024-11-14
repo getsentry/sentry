@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sentry.monitors.logic.incident_occurrence import create_incident_occurrence
+from django.utils import timezone
+
+from sentry import analytics
+from sentry.monitors.logic.incident_occurrence import (
+    create_incident_occurrence,
+    resolve_incident_group,
+)
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
+from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
 from sentry.monitors.types import SimpleCheckIn
 
 logger = logging.getLogger(__name__)
@@ -14,6 +21,16 @@ def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
     received: datetime | None,
 ) -> bool:
+    """
+    Determine if a monitor environment has reached it's incident threshold
+    given the most recent failed check-in. When the threshold is reached a
+    MonitorIncident will be created and an incident occurrence will be
+    dispatched, which will later produce an issue occurrence.
+
+    If an incident already exists additional occurrences will be dispatched.
+
+    Returns True if we produce an incident occurrence.
+    """
     from sentry.signals import monitor_environment_failed
 
     monitor_env = failed_checkin.monitor_environment
@@ -91,5 +108,78 @@ def try_incident_threshold(
             )
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
+
+    return True
+
+
+def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
+    """
+    Attempt to resolve any open incidents for a monitor given he most recent
+    successful check-in.
+
+    Returns True if the incident was resolved.
+    """
+    monitor_env = ok_checkin.monitor_environment
+
+    if monitor_env is None:
+        return False
+
+    if monitor_env.status == MonitorStatus.OK or ok_checkin.status != CheckInStatus.OK:
+        return False
+
+    recovery_threshold = monitor_env.monitor.config.get("recovery_threshold", 1)
+    if not recovery_threshold:
+        recovery_threshold = 1
+
+    # Run incident logic if recovery threshold is set
+    if recovery_threshold > 1:
+        # Check if our incident is recovering
+        previous_checkins = (
+            MonitorCheckIn.objects.filter(monitor_environment=monitor_env)
+            .values("id", "date_added", "status")
+            .order_by("-date_added")[:recovery_threshold]
+        )
+
+        # Incident recovers when we have successive threshold check-ins
+        incident_recovering = all(
+            previous_checkin["status"] == CheckInStatus.OK for previous_checkin in previous_checkins
+        )
+    else:
+        # Mark any open incidents as recovering by default
+        incident_recovering = True
+
+    if not incident_recovering:
+        return False
+
+    incident = monitor_env.active_incident
+    if incident:
+        resolve_incident_group(incident, ok_checkin.monitor.project_id)
+        incident.update(
+            resolving_checkin=ok_checkin,
+            resolving_timestamp=ok_checkin.date_added,
+        )
+        logger.info(
+            "monitors.logic.mark_ok.resolving_incident",
+            extra={
+                "monitor_env_id": monitor_env.id,
+                "incident_id": incident.id,
+                "grouphash": incident.grouphash,
+            },
+        )
+        # if incident was longer than the broken env time, check if there was a
+        # broken detection that is also now resolved
+        if (
+            incident.starting_timestamp is not None
+            and incident.starting_timestamp
+            <= timezone.now() - timedelta(days=NUM_DAYS_BROKEN_PERIOD)
+        ):
+            if incident.monitorenvbrokendetection_set.exists():
+                analytics.record(
+                    "cron_monitor_broken_status.recovery",
+                    organization_id=monitor_env.monitor.organization_id,
+                    project_id=monitor_env.monitor.project_id,
+                    monitor_id=monitor_env.monitor.id,
+                    monitor_env_id=monitor_env.id,
+                )
 
     return True
