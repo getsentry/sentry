@@ -1799,7 +1799,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity(
-        user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: User | RpcUser, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,
