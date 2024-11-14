@@ -243,13 +243,23 @@ function Chart({
   if (type === ChartType.LINE || type === ChartType.AREA) {
     const metricChartType =
       type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
-    const seriesToShow = series.map(serie =>
-      createIngestionSeries(serie as MetricSeries, ingestionBuckets, metricChartType)
-    );
+    const seriesToShow = series.map(serie => {
+      const ingestionSeries = createIngestionSeries(
+        serie as MetricSeries,
+        ingestionBuckets,
+        metricChartType
+      );
+      // this helper causes all the incomplete series to stack, here we remove the stacking
+      for (const s of ingestionSeries) {
+        delete s.stack;
+      }
+      return ingestionSeries;
+    });
     [series, incompleteSeries] = seriesToShow.reduce(
       (acc, serie, index) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+
         return [
           [...trimmed, {...serie[0], color: colors[index]}],
           [
