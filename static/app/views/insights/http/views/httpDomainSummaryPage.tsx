@@ -7,9 +7,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
@@ -25,6 +22,7 @@ import {useSynchronizeCharts} from 'sentry/views/insights/common/components/char
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -273,10 +271,10 @@ export function HTTPDomainSummaryPage() {
               <ModuleLayout.Full>
                 <HeaderContainer>
                   <ToolRibbon>
-                    <PageFilterBar condensed>
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
+                    <ModulePageFilterBar
+                      moduleName={ModuleName.HTTP}
+                      disableProjectFilter
+                    />
                     <SubregionSelector />
                   </ToolRibbon>
 

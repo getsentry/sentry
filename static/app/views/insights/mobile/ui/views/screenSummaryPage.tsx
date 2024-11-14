@@ -4,9 +4,6 @@ import omit from 'lodash/omit';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -14,6 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -104,10 +102,10 @@ export function ScreenSummaryContent() {
     <Fragment>
       <HeaderContainer>
         <ToolRibbon>
-          <PageFilterBar condensed>
-            <EnvironmentPageFilter />
-            <DatePageFilter />
-          </PageFilterBar>
+          <ModulePageFilterBar
+            moduleName={ModuleName.SCREEN_RENDERING}
+            disableProjectFilter
+          />
           <ReleaseComparisonSelector />
         </ToolRibbon>
       </HeaderContainer>

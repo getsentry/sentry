@@ -9,10 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,6 +31,7 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insi
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -240,11 +237,7 @@ export function PageOverview() {
             <Layout.Body>
               <Layout.Main>
                 <TopMenuContainer>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
+                  <ModulePageFilterBar moduleName={ModuleName.VITAL} />
                   <BrowserTypeSelector />
                 </TopMenuContainer>
                 <Flex>

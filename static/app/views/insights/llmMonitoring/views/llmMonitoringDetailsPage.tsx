@@ -4,10 +4,6 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -17,6 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
@@ -170,11 +167,7 @@ export function LLMMonitoringPage({params}: Props) {
                 <ModuleLayout.Full>
                   <HeaderContainer>
                     <ToolRibbon>
-                      <PageFilterBar condensed>
-                        <ProjectPageFilter />
-                        <EnvironmentPageFilter />
-                        <DatePageFilter />
-                      </PageFilterBar>
+                      <ModulePageFilterBar moduleName={ModuleName.AI} />
                     </ToolRibbon>
 
                     <ReadoutRibbon>
