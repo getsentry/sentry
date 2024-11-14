@@ -96,7 +96,6 @@ export function ModulePageFilterBar({
 
   return (
     <Fragment>
-      TEST
       <PageFilterBar condensed>
         <Tooltip
           title={CHANGE_PROJECT_TEXT}
