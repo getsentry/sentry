@@ -7,9 +7,6 @@ VALID_PROVIDERS = {"launchdarkly"}
 class OrganizationFlagsEndpoint(OrganizationEndpoint):
 
     def convert_args(self, *args, **kwargs):
-        provider = kwargs.pop("provider", "")
-        if provider not in VALID_PROVIDERS:
+        if kwargs.get("provider", "") not in VALID_PROVIDERS:
             raise ResourceDoesNotExist
-        else:
-            kwargs["provider"] = provider
-            return super().convert_args(*args, **kwargs)
+        return super().convert_args(*args, **kwargs)
