@@ -14,6 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 
 interface ProjectItem {
   count: number;
@@ -254,11 +255,8 @@ const TableRow = memo(function TableRow({
     [onChange, project.id]
   );
 
-  const getStoredSpans = (rate: number) => {
-    return Math.floor((count * rate) / 100);
-  };
-  const storedSpans = getStoredSpans(Number(sampleRate));
-  const initialStoredSpans = getStoredSpans(Number(initialSampleRate));
+  const storedSpans = Math.floor(count * parsePercent(sampleRate));
+  const initialStoredSpans = Math.floor(count * parsePercent(initialSampleRate));
 
   return (
     <Fragment key={project.slug}>
@@ -297,7 +295,7 @@ const TableRow = memo(function TableRow({
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
         <SubSpans>
-          {sampleRate !== initialSampleRate ? (
+          {storedSpans !== initialStoredSpans ? (
             <SmallPrint>
               {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
             </SmallPrint>

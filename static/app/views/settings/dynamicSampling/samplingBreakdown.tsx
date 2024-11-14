@@ -8,7 +8,8 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
@@ -43,7 +44,8 @@ function OthersBadge() {
 export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) {
   const spansWithSampleRates = sampleCounts
     ?.map(item => {
-      const sampledSpans = Math.floor(item.count * (sampleRates[item.project.id] ?? 1));
+      const sampleRate = clampPercentRate(sampleRates[item.project.id] ?? 1);
+      const sampledSpans = Math.floor(item.count * sampleRate);
       return {
         project: item.project,
         sampledSpans,
@@ -61,8 +63,8 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
     .reduce((acc, item) => acc + item.sampledSpans, 0);
   const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
-  const getSpanPercent = spanCount => (total === 0 ? 100 : (spanCount / total) * 100);
-  const otherPercent = getSpanPercent(otherSpanCount);
+  const getSpanRate = spanCount => (total === 0 ? 1 : spanCount / total);
+  const otherRate = getSpanRate(otherSpanCount);
 
   return (
     <div {...props}>
@@ -72,6 +74,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
       </Heading>
       <Breakdown>
         {topItems.map((item, index) => {
+          const itemPercent = getSpanRate(item.sampledSpans);
           return (
             <Tooltip
               key={item.project.id}
@@ -79,7 +82,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
               title={
                 <LegendItem key={item.project.id}>
                   <ProjectBadge disableLink avatarSize={16} project={item.project} />
-                  {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
+                  {formatPercent(itemPercent, {addSymbol: true})}
                   <SubText>{formatAbbreviatedNumber(item.sampledSpans)}</SubText>
                 </LegendItem>
               }
@@ -87,7 +90,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
             >
               <div
                 style={{
-                  width: `${getSpanPercent(item.sampledSpans)}%`,
+                  width: `${itemPercent * 100}%`,
                   backgroundColor: palette[index],
                 }}
               />
@@ -100,7 +103,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
             title={
               <LegendItem>
                 <OthersBadge />
-                {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
+                {formatPercent(otherRate, {addSymbol: true})}
                 <SubText>{formatAbbreviatedNumber(total)}</SubText>
               </LegendItem>
             }
@@ -108,7 +111,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
           >
             <div
               style={{
-                width: `${otherPercent}%`,
+                width: `${otherRate * 100}%`,
                 backgroundColor: palette[palette.length - 1],
               }}
             />
@@ -117,17 +120,18 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
       </Breakdown>
       <Legend>
         {topItems.map(item => {
+          const itemPercent = getSpanRate(item.sampledSpans);
           return (
             <LegendItem key={item.project.id}>
               <ProjectBadge avatarSize={16} project={item.project} />
-              {`${formatNumberWithDynamicDecimalPoints(getSpanPercent(item.sampledSpans))}%`}
+              {formatPercent(itemPercent, {addSymbol: true})}
             </LegendItem>
           );
         })}
         {hasOthers && (
           <LegendItem>
             <OthersBadge />
-            {`${formatNumberWithDynamicDecimalPoints(otherPercent)}%`}
+            {formatPercent(otherRate, {addSymbol: true})}
           </LegendItem>
         )}
       </Legend>
