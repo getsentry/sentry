@@ -19,10 +19,8 @@ import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
-import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
@@ -338,9 +336,6 @@ export function EventDetailsContent({
               <EventFunctionBreakpointChart event={event} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <EventAffectedTransactions event={event} group={group} project={project} />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
               <InterimSection
                 type={SectionKey.REGRESSION_FLAMEGRAPH}
                 title={t('Regression Flamegraph')}
@@ -353,13 +348,6 @@ export function EventDetailsContent({
                 </p>
                 <EventDifferentialFlamegraph event={event} />
               </InterimSection>
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <EventFunctionComparisonList
-                event={event}
-                group={group}
-                project={project}
-              />
             </ErrorBoundary>
           </TransactionsDeltaProvider>
         </Fragment>

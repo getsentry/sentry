@@ -101,17 +101,6 @@ class CheckinItem:
         )
 
 
-@dataclass
-class SimpleCheckIn:
-    """
-    A stripped down check in object
-    """
-
-    id: int
-    date_added: datetime
-    status: int
-
-
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]
 
 

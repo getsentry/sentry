@@ -139,7 +139,7 @@ class RegionSiloUserEndpoint(Endpoint):
     permission_classes = (UserPermission,)
 
     def convert_args(
-        self, request: Request, user_id: str | None = None, *args: Any, **kwargs: Any
+        self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         user: RpcUser | User | None = None
 
