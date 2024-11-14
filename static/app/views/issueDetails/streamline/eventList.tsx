@@ -174,7 +174,7 @@ const EventListHeader = styled('div')`
   grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
@@ -234,7 +234,7 @@ const StreamlineEventsTable = styled('div')`
       border: 0;
     }
     &:first-child {
-      padding-left: ${space(2)};
+      padding-left: ${space(1.5)};
     }
   }
 
@@ -249,7 +249,7 @@ const StreamlineEventsTable = styled('div')`
 
   ${GridRow} {
     td:nth-child(2) {
-      padding-left: ${space(2)};
+      padding-left: ${space(1.5)};
     }
 
     td:not(:nth-child(2)) {
