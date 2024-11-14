@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -170,6 +171,13 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     }
   }, [query, params.eventId, defaultIssueEvent]);
 
+  const onTabChange = (tabKey: typeof selectedOption) => {
+    trackAnalytics('issue_details.event_navigation_selected', {
+      organization,
+      content: EventNavLabels[tabKey],
+    });
+  };
+
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
@@ -201,6 +209,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
               },
+              onAction: () => {
+                trackAnalytics('issue_details.issue_content_selected', {
+                  organization,
+                  content: TabName[Tab.DETAILS],
+                });
+              },
             },
             {
               key: Tab.REPLAYS,
@@ -215,6 +229,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
               },
               hidden: !issueTypeConfig.replays.enabled,
+              onAction: () => {
+                trackAnalytics('issue_details.issue_content_selected', {
+                  organization,
+                  content: TabName[Tab.REPLAYS],
+                });
+              },
             },
             {
               key: Tab.ATTACHMENTS,
@@ -232,6 +252,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
               },
               hidden: !issueTypeConfig.attachments.enabled,
+              onAction: () => {
+                trackAnalytics('issue_details.issue_content_selected', {
+                  organization,
+                  content: TabName[Tab.ATTACHMENTS],
+                });
+              },
             },
             {
               key: Tab.USER_FEEDBACK,
@@ -246,6 +272,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
               },
               hidden: !issueTypeConfig.userFeedback.enabled,
+              onAction: () => {
+                trackAnalytics('issue_details.issue_content_selected', {
+                  organization,
+                  content: TabName[Tab.USER_FEEDBACK],
+                });
+              },
             },
           ]}
           offset={[-2, 1]}
@@ -262,6 +294,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}
                 aria-description={TabName[currentTab]}
+                analyticsEventName="Issue Details: Issue Content Dropdown Opened"
+                analyticsEventKey="issue_details.issue_content_dropdown_opened"
               >
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
               </NavigationDropdownButton>
@@ -282,6 +316,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     disabled={!defined(event.previousEventID)}
+                    analyticsEventKey="issue_details.previous_event_clicked"
+                    analyticsEventName="Issue Details: Previous Event Clicked"
                     to={{
                       pathname: `${baseEventsPath}${event.previousEventID}/`,
                       query: {...location.query, referrer: 'previous-event'},
@@ -304,6 +340,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     disabled={!defined(event.nextEventID)}
+                    analyticsEventKey="issue_details.next_event_clicked"
+                    analyticsEventName="Issue Details: Next Event Clicked"
                     to={{
                       pathname: `${baseEventsPath}${event.nextEventID}/`,
                       query: {...location.query, referrer: 'next-event'},
@@ -320,7 +358,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                   />
                 </Tooltip>
               </Navigation>
-              <Tabs value={selectedOption} disableOverflow>
+              <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
                 <TabList hideBorder variant="floating">
                   {EventNavOrder.map(label => {
                     const eventPath =
@@ -352,6 +390,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 query: location.query,
               }}
               size="xs"
+              analyticsEventKey="issue_details.all_events_clicked"
+              analyticsEventName="Issue Details: All Events Clicked"
             >
               {t('All Events')}
             </LinkButton>
@@ -364,6 +404,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 aria-label={t('Open in Discover')}
                 size="xs"
                 icon={<IconTelescope />}
+                analyticsEventKey="issue_details.discover_clicked"
+                analyticsEventName="Issue Details: Discover Clicked"
               >
                 {t('Discover')}
               </LinkButton>
