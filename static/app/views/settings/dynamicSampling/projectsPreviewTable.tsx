@@ -6,10 +6,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
@@ -66,11 +66,8 @@ export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
       ...item,
-      sampleRate: formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2),
-      initialSampleRate: formatNumberWithDynamicDecimalPoints(
-        initialSampleRateById[item.id] * 100,
-        2
-      ),
+      sampleRate: formatPercent(item.sampleRate),
+      initialSampleRate: formatPercent(initialSampleRateById[item.id]),
     }));
   }, [balancedItems, initialSampleRateById]);
 

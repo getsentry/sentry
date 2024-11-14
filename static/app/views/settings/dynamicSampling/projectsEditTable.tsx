@@ -9,12 +9,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import useProjects from 'sentry/utils/useProjects';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
@@ -98,7 +98,7 @@ export function ProjectsEditTable({
       });
 
       const newProjectValues = scaledItems.reduce((acc, item) => {
-        acc[item.id] = formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2);
+        acc[item.id] = formatPercent(item.sampleRate);
         return acc;
       }, {});
       onChange(prev => {
@@ -146,10 +146,7 @@ export function ProjectsEditTable({
       (acc, item) => acc + item.count * parsePercent(value[item.project.id], 1),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(
-      (totalSampledSpans / totalSpanCount) * 100,
-      2
-    );
+    return formatPercent(totalSampledSpans / totalSpanCount);
   }, [editMode, items, orgRate, totalSpanCount, value]);
 
   const initialOrgRate = useMemo(() => {
@@ -157,10 +154,7 @@ export function ProjectsEditTable({
       (acc, item) => acc + item.count * parsePercent(initialValue[item.project.id], 1),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(
-      (totalSampledSpans / totalSpanCount) * 100,
-      2
-    );
+    return formatPercent(totalSampledSpans / totalSpanCount);
   }, [initialValue, items, totalSpanCount]);
 
   const breakdownSampleRates = useMemo(
