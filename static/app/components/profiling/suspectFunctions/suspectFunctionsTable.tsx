@@ -221,7 +221,7 @@ function TableEntry({
                 }),
               target: generateProfileRouteFromProfileReference({
                 orgSlug: organization.slug,
-                projectSlug: project.slug || '',
+                projectSlug: project?.slug || '',
                 reference: example,
                 // specify the frame to focus, the flamegraph will switch
                 // to the appropriate thread when these are specified
