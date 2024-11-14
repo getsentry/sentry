@@ -272,6 +272,8 @@ class DashboardDetail extends Component<Props, State> {
           totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardPermissions: dashboard.permissions,
+          dashboardCreator: dashboard.createdBy,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
 

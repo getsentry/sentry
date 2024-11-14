@@ -3,6 +3,7 @@ import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import type {User} from '@sentry/types';
 import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -54,9 +55,16 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardPermissions,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
@@ -103,7 +111,9 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
+  dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -193,6 +203,8 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
     dashboardFilters,
     widgetLegendState,
+    dashboardPermissions,
+    dashboardCreator,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -842,6 +854,18 @@ function WidgetViewerModal(props: Props) {
     }
   }
 
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    );
+  }
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -1058,6 +1082,7 @@ function WidgetViewerModal(props: Props) {
                                 display_type: widget.displayType,
                               });
                             }}
+                            disabled={!hasEditAccess}
                           >
                             {t('Edit Widget')}
                           </Button>
