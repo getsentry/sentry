@@ -41,6 +41,7 @@ export type FunctionTrend = {
   breakpoint: number;
   change: TrendType;
   'count()': number;
+  examples: FunctionExample[];
   fingerprint: number;
   function: string;
   package: string;
@@ -49,7 +50,6 @@ export type FunctionTrend = {
   trend_difference: number;
   trend_percentage: number;
   unweighted_p_value: number;
-  worst: FunctionExample[];
 };
 
 type EpochTime = number;
@@ -62,4 +62,4 @@ type FunctionTrendStats = {
   start: number;
 };
 
-type FunctionExample = [EpochTime, string];
+type FunctionExample = [EpochTime, Profiling.BaseProfileReference];
