@@ -25,14 +25,14 @@ export default function hydrateBreadcrumbs(
             description: t('Encountered an error while hydrating'),
           };
         }
-        // Logcat and Timber are considered a console frame instead of a custom breadcrumb frame
-        if (frame.category === 'Logcat' || frame.category === 'Timber') {
-          frame.category = 'console';
-        }
         return {
           ...frame,
+          // Logcat and Timber are considered a console frame instead of a custom breadcrumb frame
           // custom frames might not have a defined category, so we need to set one
-          category: frame.category || defaultTitle(frame) || 'custom',
+          category:
+            frame.category === 'Logcat' || frame.category === 'Timber'
+              ? 'console'
+              : frame.category || defaultTitle(frame) || 'custom',
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),
