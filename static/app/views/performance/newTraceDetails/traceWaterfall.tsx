@@ -15,8 +15,6 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -38,10 +36,7 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  TraceShape,
-  TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -86,6 +81,7 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
+import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
@@ -100,27 +96,6 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Vitals'),
 };
 
-function logTraceMetadata(
-  tree: TraceTree,
-  projects: Project[],
-  organization: Organization
-) {
-  switch (tree.shape) {
-    case TraceShape.BROKEN_SUBTRACES:
-    case TraceShape.EMPTY_TRACE:
-    case TraceShape.MULTIPLE_ROOTS:
-    case TraceShape.ONE_ROOT:
-    case TraceShape.NO_ROOT:
-    case TraceShape.ONLY_ERRORS:
-    case TraceShape.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(tree, projects, organization);
-      break;
-    default: {
-      Sentry.captureMessage('Unknown trace type');
-    }
-  }
-}
-
 interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
@@ -132,11 +107,6 @@ interface TraceWaterfallProps {
   traceSlug: string | undefined;
   tree: TraceTree;
   replayTraces?: ReplayTrace[];
-  /**
-   * Ignore eventId or path query parameters and use the provided node.
-   * Must be set at component mount, no reactivity
-   */
-  scrollToNode?: {eventId?: string; path?: TraceTree.NodePath[]};
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
@@ -157,7 +127,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
+  const scrollQueueRef = useTraceScrollToPath(undefined);
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -570,7 +540,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    logTraceMetadata(props.tree, projectsRef.current, props.organization);
+    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -912,11 +882,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceLoading />
+          <TraceWaterfallState.Loading />
         ) : props.tree.type === 'error' ? (
-          <TraceError />
+          <TraceWaterfallState.Error />
         ) : props.tree.type === 'empty' ? (
-          <TraceEmpty />
+          <TraceWaterfallState.Empty />
         ) : null}
 
         <TraceDrawer
@@ -982,123 +952,4 @@ const TraceGrid = styled('div')<{
         ? 'min-content 1fr'
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
-`;
-
-function TraceLoading() {
-  return (
-    // Dont flash the animation on load because it's annoying
-    <LoadingContainer animate={false}>
-      <NoMarginIndicator size={24}>
-        <div>{t('Assembling the trace')}</div>
-      </NoMarginIndicator>
-    </LoadingContainer>
-  );
-}
-
-function TraceError() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackFailedToFetchTraceState();
-  }, []);
-
-  return (
-    <LoadingContainer animate error>
-      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-function TraceEmpty() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackEmptyTraceState();
-  }, []);
-
-  return (
-    <LoadingContainer animate>
-      <div>{t('This trace does not contain any data?!')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  left: 50%;
-  top: 50%;
-  position: absolute;
-  height: auto;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
-  z-index: 30;
-  padding: 24px;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  transform-origin: 50% 50%;
-  transform: translate(-50%, -50%);
-  animation: ${p =>
-    p.animate
-      ? `${p.error ? 'showLoadingContainerShake' : 'showLoadingContainer'} 300ms cubic-bezier(0.61, 1, 0.88, 1) forwards`
-      : 'none'};
-
-  @keyframes showLoadingContainer {
-    from {
-      opacity: 0.6;
-      transform: scale(0.99) translate(-50%, -50%);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translate(-50%, -50%);
-    }
-  }
-
-  @keyframes showLoadingContainerShake {
-    0% {
-      transform: translate(-50%, -50%);
-    }
-    25% {
-      transform: translate(-51%, -50%);
-    }
-    75% {
-      transform: translate(-49%, -50%);
-    }
-    100% {
-      transform: translate(-50%, -50%);
-    }
-  }
-`;
-
-const NoMarginIndicator = styled(LoadingIndicator)`
-  margin: 0;
 `;

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -19,7 +20,6 @@ import {
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -84,27 +84,25 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   }
 
   return (
-    <Fragment>
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey="issue-details-view-preferences"
-      >
-        <TraceViewWaterfallWrapper>
-          <TraceWaterfall
-            tree={tree}
-            trace={trace}
-            traceSlug={traceId}
-            rootEvent={rootEvent}
-            organization={organization}
-            traceEventView={traceEventView}
-            meta={meta}
-            source="issues"
-            scrollToNode={scrollToNode}
-            replay={null}
-          />
-        </TraceViewWaterfallWrapper>
-      </TraceStateProvider>
-    </Fragment>
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="issue-details-view-preferences"
+    >
+      <TraceViewWaterfallWrapper>
+        <IssuesTraceWaterfall
+          tree={tree}
+          trace={trace}
+          traceSlug={traceId}
+          rootEvent={rootEvent}
+          organization={organization}
+          traceEventView={traceEventView}
+          meta={meta}
+          source="issues"
+          scrollToNode={scrollToNode}
+          replay={null}
+        />
+      </TraceViewWaterfallWrapper>
+    </TraceStateProvider>
   );
 }
 
