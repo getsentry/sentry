@@ -15,7 +15,7 @@ from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from itertools import chain
+from itertools import batched, chain
 
 from django.conf import settings
 
@@ -48,9 +48,17 @@ MONITOR_VOLUME_DECISION_STEP = timedelta(days=1)
 # We record 30 days worth of historical data for each minute of check-ins.
 MONITOR_VOLUME_RETENTION = timedelta(days=30)
 
-# This is the number of previous ticks we will consider the tick metrics and
-# tick decisions for to determine a decision about the tick being evaluated.
-MONITOR_TICK_DECISION_WINDOW = 5
+# The _backfill_decisions function which is responsible for updating prior
+# decisions to NORMAL or INCIDENT should never backfill more than this number
+# of tick decisions. If it does, there is a problem somewhere. This cutoff is
+# basically run-away prevention.
+#
+# We should absolutely never have anomalies longer than a full day.
+BACKFILL_CUTOFF = 1440
+
+# When running a decision backfill, how many decisions should we fetch at once
+# from redis in batches.
+BACKFILL_CHUNKS = 10
 
 
 def update_check_in_volume(ts_list: Sequence[datetime]):
@@ -467,6 +475,40 @@ def get_clock_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
         return None
 
 
+def _backfill_keys(start: datetime, until_not: TickAnomalyDecision) -> Generator[str]:
+    """
+    Yields keys from the `start` tick until the value of the key is not a
+    `until_not` tick decision.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    for chunked_offsets in batched(range(0, BACKFILL_CUTOFF), BACKFILL_CHUNKS):
+        pipeline = redis_client.pipeline()
+
+        keys: list[str] = []
+        for offset in chunked_offsets:
+            ts = start - timedelta(minutes=offset)
+            key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(ts))
+            pipeline.get(key)
+            keys.append(key)
+
+        for key, value in zip(keys, pipeline.execute()):
+            # Edge case, we found a hole gap in decisions
+            if value is None:
+                return
+
+            # Exit the backfill once we no longer see the `until_not` decision
+            prev_decision = TickAnomalyDecision.from_str(value)
+            if prev_decision != until_not:
+                return
+
+            yield key
+
+    # If we've iterated through the entire BACKFILL_CUTOFF we have a
+    # "decision runaway" and should report this as an error
+    logger.error("sentry.system_incidents.decision_backfill_runaway")
+
+
 def _backfill_decisions(
     start: datetime,
     decision: TickAnomalyDecision,
@@ -478,28 +520,10 @@ def _backfill_decisions(
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    ts = start
-    updates: dict[str | bytes, str] = {}
-
-    while True:
-        key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(ts))
-
-        # Nothing to backfill if we don't have a decision value
-        value = redis_client.get(key)
-        if value is None:
-            break
-
-        # Exit the backfill once we no longer have the until_not decision
-        prev_decision = TickAnomalyDecision.from_str(value)
-        if prev_decision != until_not:
-            break
-
-        updates[key] = decision.value
-        ts = ts - timedelta(minutes=1)
-
-    # Apply decision updates
-    if updates:
-        redis_client.mset(updates)
+    pipeline = redis_client.pipeline()
+    for key in _backfill_keys(start, until_not):
+        pipeline.set(key, decision.value)
+    pipeline.execute()
 
 
 def _make_reference_ts(ts: datetime):
