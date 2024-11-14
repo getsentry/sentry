@@ -158,7 +158,7 @@ interface GroupingStoreDefinition extends StrictStoreDefinition<State> {
       groupId: Group['id'];
       orgId: Organization['id'];
     };
-    query?: Record<string, string[] | null | string | undefined>;
+    query?: string;
   }): undefined | Promise<any>;
   onToggleCollapseFingerprint(fingerprint: string): void;
   onToggleCollapseFingerprints(): void;
