@@ -6,7 +6,7 @@ import responses
 from fixtures.gitlab import GitLabTestCase
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
