@@ -65,57 +65,63 @@ export function getUserContextData({
   data: UserContext;
   meta?: Record<keyof UserContext, any>;
 }): KeyValueListData {
-  return getContextKeys({data}).map(ctxKey => {
-    switch (ctxKey) {
-      case UserContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
-      case UserContextKeys.USERNAME:
-        return {
-          key: ctxKey,
-          subject: t('Username'),
-          value: data.username,
-        };
-      case UserContextKeys.ID:
-        return {
-          key: ctxKey,
-          subject: t('ID'),
-          value: data.id,
-        };
-      case UserContextKeys.IP_ADDRESS:
-        return {
-          key: ctxKey,
-          subject: t('IP Address'),
-          value: data.ip_address,
-        };
-      case UserContextKeys.EMAIL:
-        return {
-          key: ctxKey,
-          subject: t('Email'),
-          value: data.email,
-          action: {
-            link:
-              defined(data.email) && EMAIL_REGEX.test(data.email)
-                ? `mailto:${data.email}`
-                : undefined,
-          },
-        };
-      case UserContextKeys.GEO:
-        return {
-          key: ctxKey,
-          subject: t('Geography'),
-          value: formatGeo(data.geo),
-        };
-      default:
-        return {
-          key: ctxKey,
-          subject: ctxKey,
-          value: data[ctxKey],
-          meta: meta?.[ctxKey]?.[''],
-        };
-    }
-  });
+  return (
+    getContextKeys({data})
+      .map(ctxKey => {
+        switch (ctxKey) {
+          case UserContextKeys.NAME:
+            return {
+              key: ctxKey,
+              subject: t('Name'),
+              value: data.name,
+            };
+          case UserContextKeys.USERNAME:
+            return {
+              key: ctxKey,
+              subject: t('Username'),
+              value: data.username,
+            };
+          case UserContextKeys.ID:
+            return {
+              key: ctxKey,
+              subject: t('ID'),
+              value: data.id,
+            };
+          case UserContextKeys.IP_ADDRESS:
+            return {
+              key: ctxKey,
+              subject: t('IP Address'),
+              value: data.ip_address,
+            };
+          case UserContextKeys.EMAIL:
+            return {
+              key: ctxKey,
+              subject: t('Email'),
+              value: data.email,
+              action: {
+                link:
+                  defined(data.email) && EMAIL_REGEX.test(data.email)
+                    ? `mailto:${data.email}`
+                    : undefined,
+              },
+            };
+          case UserContextKeys.GEO:
+            return {
+              key: ctxKey,
+              subject: t('Geography'),
+              value: formatGeo(data.geo),
+            };
+          default:
+            return {
+              key: ctxKey,
+              subject: ctxKey,
+              value: data[ctxKey],
+              meta: meta?.[ctxKey]?.[''],
+            };
+        }
+      })
+      // Since user context is generated separately from the rest, it has all known keys with those
+      // unset appearing as `null`. We want to omit those unless they have annotations.
+      .filter(item => defined(item.value) || defined(meta?.[item.key]))
+  );
 }
