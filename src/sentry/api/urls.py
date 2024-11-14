@@ -1421,9 +1421,9 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sampling-project-rates",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-span-counts/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-root-counts/$",
         OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-span-counts",
+        name="sentry-api-0-organization-sampling-root-counts",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",

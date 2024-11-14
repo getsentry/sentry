@@ -1,6 +1,3 @@
-from collections.abc import Sequence
-from typing import cast
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -39,11 +36,11 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         self._check_feature(request, organization)
 
         start, end = get_date_range_from_params(request.GET)
-        projects = cast(
-            Sequence[Project],
-            list(
-                Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).all()
-            ),
+        # We are purposely not filtering on team membership, as all users should be able to see the span counts
+        # in order to show the dynamic sampling settings page with all valid data. Please do not remove this
+        # without consulting the owner of the endpoint
+        projects = list(
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         )
         mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
         query = MQLQuery(mql=mql, order=QueryOrder.DESC)
