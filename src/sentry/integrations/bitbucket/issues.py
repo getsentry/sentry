@@ -6,9 +6,7 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 from sentry.silo.base import all_silo_function
@@ -122,7 +120,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data, **kwargs):
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+        with self.record_event(SCMIntegrationInteractionType.CREATE_ISSUE).capture():
             client = self.get_client()
             if not data.get("repo"):
                 raise IntegrationFormError({"repo": ["Repository is required"]})

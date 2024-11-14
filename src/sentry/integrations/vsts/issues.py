@@ -11,9 +11,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
@@ -171,7 +169,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+        with self.record_event(SCMIntegrationInteractionType.CREATE_ISSUE).capture():
             project_id = data.get("project")
             if project_id is None:
                 raise ValueError("Azure DevOps expects project")
@@ -224,7 +222,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         **kwargs: Any,
     ) -> None:
         with self.record_event(
-            SourceCodeIssueIntegrationInteractionType.SYNC_ASSIGNEE_OUTBOUND
+            SCMIntegrationInteractionType.SYNC_ASSIGNEE_OUTBOUND
         ).capture() as lifecycle:
             client = self.get_client()
             assignee = None
@@ -274,7 +272,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         self, external_issue: "ExternalIssue", is_resolved: bool, project_id: int, **kwargs: Any
     ) -> None:
         with self.record_event(
-            SourceCodeIssueIntegrationInteractionType.SYNC_STATUS_OUTBOUND
+            SCMIntegrationInteractionType.SYNC_STATUS_OUTBOUND
         ).capture() as lifecycle:
             client = self.get_client()
             work_item = client.get_work_item(external_issue.key)

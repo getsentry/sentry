@@ -11,9 +11,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
@@ -173,7 +171,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+        with self.record_event(SCMIntegrationInteractionType.CREATE_ISSUE).capture():
             client = self.get_client()
 
             repo = data.get("repo")
