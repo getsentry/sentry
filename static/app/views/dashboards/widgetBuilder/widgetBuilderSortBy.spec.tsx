@@ -524,7 +524,7 @@ describe('WidgetBuilder', function () {
       await userEvent.keyboard('{Enter}');
 
       // Add a y-axis
-      await userEvent.click(screen.getByText('Add Data'));
+      await userEvent.click(screen.getByText('Add Series'));
 
       // The equation should still be visible
       expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
@@ -662,7 +662,7 @@ describe('WidgetBuilder', function () {
         },
       });
 
-      await userEvent.click(await screen.findByText('Add Data'));
+      await userEvent.click(await screen.findByText('Add Series'));
       await selectEvent.select(screen.getByText('Select group'), 'project');
 
       // Change the sort by to count_unique

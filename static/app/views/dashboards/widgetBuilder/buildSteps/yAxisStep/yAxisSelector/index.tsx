@@ -169,7 +169,7 @@ export function YAxisSelector({
         <Actions gap={1}>
           <AddButton
             title={
-              displayType === DisplayType.BIG_NUMBER ? t('Add Field') : t('Add Data')
+              displayType === DisplayType.BIG_NUMBER ? t('Add Field') : t('Add Series')
             }
             onAdd={handleAddFields}
           />
