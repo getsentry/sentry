@@ -58,7 +58,7 @@ class Fixtures:
         return self.create_project_key(project=self.project)
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property

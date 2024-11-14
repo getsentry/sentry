@@ -19,6 +19,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
@@ -46,7 +47,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[Actor],
+    recipients: Iterable[Actor | User],
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
 ) -> None:
