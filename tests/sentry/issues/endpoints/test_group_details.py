@@ -390,6 +390,7 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.type == GroupResolution.Type.in_release
         assert group_resolution.status == GroupResolution.Status.resolved
         assert group_resolution.release.version == wrong_release.version
+        assert response.data["statusDetails"]["inRelease"] == wrong_release.version
 
     @with_feature("organizations:releases-resolve-next-release-semver-fix")
     def test_resolved_in_next_release_semver_with_flag_no_first_release(self):
@@ -422,9 +423,12 @@ class GroupUpdateTest(APITestCase):
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
         assert group_resolution.group == group
-        assert group_resolution.type == GroupResolution.Type.in_next_release
-        assert group_resolution.status == GroupResolution.Status.pending
+        # For semver projects, we consider resolution based on an expression rather than a specific release,
+        # thus, it is considered resolved in the release that has the highest semver
+        assert group_resolution.type == GroupResolution.Type.in_release
+        assert group_resolution.status == GroupResolution.Status.resolved
         assert group_resolution.release.version == greatest_version.version
+        assert response.data["statusDetails"]["inRelease"] == greatest_version.version
 
     @with_feature("organizations:releases-resolve-next-release-semver-fix")
     def test_resolved_in_next_release_semver_with_flag_and_first_release(self):
@@ -462,6 +466,7 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.type == GroupResolution.Type.in_release
         assert group_resolution.status == GroupResolution.Status.resolved
         assert group_resolution.release.version == greatest_version.version
+        assert response.data["statusDetails"]["inRelease"] == greatest_version.version
 
     def test_resolved_in_next_release_no_release(self):
         self.login_as(user=self.user)
@@ -482,6 +487,7 @@ class GroupUpdateTest(APITestCase):
 
         # no GroupResolution because there is no release
         assert not GroupResolution.objects.filter(group=group).exists()
+        assert response.data["statusDetails"] == {}
 
     def test_snooze_duration(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
