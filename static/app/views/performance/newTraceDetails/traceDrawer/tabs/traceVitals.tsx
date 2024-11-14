@@ -34,7 +34,7 @@ export function TraceVitals(props: TraceVitalsProps) {
 
         return (
           <div key="">
-            <TraceDrawerComponents.HeaderContainer>
+            <TraceDrawerComponents.LegacyHeaderContainer>
               <TraceDrawerComponents.Title>
                 <Tooltip title={node.metadata.project_slug}>
                   <ProjectBadge
@@ -56,7 +56,7 @@ export function TraceVitals(props: TraceVitalsProps) {
                   />
                 </div>
               </TraceDrawerComponents.Title>
-            </TraceDrawerComponents.HeaderContainer>
+            </TraceDrawerComponents.LegacyHeaderContainer>
 
             <VitalsContainer>
               {vital.map((v, i) => {

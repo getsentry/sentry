@@ -60,7 +60,7 @@ export function ParentAutogroupNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.LegacyHeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconTitleWrapper>
             <TraceDrawerComponents.IconBorder
@@ -76,7 +76,7 @@ export function ParentAutogroupNodeDetails({
           node={node}
           onTabScrollToNode={onTabScrollToNode}
         />
-      </TraceDrawerComponents.HeaderContainer>
+      </TraceDrawerComponents.LegacyHeaderContainer>
 
       <IssueList issues={issues} node={node} organization={organization} />
 
