@@ -9,6 +9,7 @@ import {
   GridHead,
   GridHeadCell,
   GridResizer,
+  GridRow,
 } from 'sentry/components/gridEditable/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconChevron} from 'sentry/icons';
@@ -116,7 +117,7 @@ export function EventList({group}: EventListProps) {
             <EventListHeader>
               <EventListTitle>{t('All Events')}</EventListTitle>
               <EventListHeaderItem>
-                {isPending
+                {isPending || pageEventsCount === 0
                   ? null
                   : tct('Showing [start]-[end] of [count] matching events', {
                       start: start.toLocaleString(),
@@ -170,10 +171,10 @@ export function EventList({group}: EventListProps) {
 
 const EventListHeader = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
@@ -232,6 +233,9 @@ const StreamlineEventsTable = styled('div')`
     &:last-child {
       border: 0;
     }
+    &:first-child {
+      padding-left: ${space(1.5)};
+    }
   }
 
   ${GridBodyCell} {
@@ -241,13 +245,19 @@ const StreamlineEventsTable = styled('div')`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    a {
-      color: ${p => p.theme.textColor};
-    }
   }
-  a {
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-decoration-color: ${p => p.theme.border};
+
+  ${GridRow} {
+    td:nth-child(2) {
+      padding-left: ${space(1.5)};
+    }
+
+    td:not(:nth-child(2)) {
+      a {
+        color: ${p => p.theme.textColor};
+        text-decoration: underline;
+        text-decoration-color: ${p => p.theme.border};
+      }
+    }
   }
 `;
