@@ -105,8 +105,8 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
     staleTime: 0,
   });
-
-  const provider = config.providers.find(p => p.key === integration?.provider.key);
+  
+  const provider = config.providers.find(p => p.key === integration?.provider?.key);
   const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
@@ -146,7 +146,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     return <LoadingError />;
   }
 
-  if (!provider || !integration) {
+  if (!integration?.provider || !provider) {
     return null;
   }
 
