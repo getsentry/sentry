@@ -137,9 +137,9 @@ def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
     """
 
     status_counts = Counter(
-        checkin["status"]
+        checkin.status
         for checkin in failed_checkins
-        if checkin["status"] in HUMAN_FAILURE_STATUS_MAP.keys()
+        if checkin.status in HUMAN_FAILURE_STATUS_MAP.keys()
     )
 
     if sum(status_counts.values()) == 1:
