@@ -1095,22 +1095,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_aggregate_numeric_attr_weighted(self):
         super().test_aggregate_numeric_attr_weighted()
 
-    @pytest.mark.xfail(reason="RPC failing because of aliasing")
-    def test_numeric_attr_without_space(self):
-        super().test_numeric_attr_without_space()
-
-    @pytest.mark.xfail(reason="RPC failing because of aliasing")
-    def test_numeric_attr_with_spaces(self):
-        super().test_numeric_attr_with_spaces()
-
-    @pytest.mark.xfail(reason="RPC failing because of aliasing")
-    def test_numeric_attr_filtering(self):
-        super().test_numeric_attr_filtering()
-
-    @pytest.mark.xfail(reason="RPC failing because of aliasing")
-    def test_numeric_attr_orderby(self):
-        super().test_numeric_attr_orderby()
-
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
