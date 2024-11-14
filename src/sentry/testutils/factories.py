@@ -2087,7 +2087,7 @@ class Factories:
         if workflow is None:
             workflow = Factories.create_workflow()
 
-        if not condition_group:
+        if condition_group is None:
             condition_group = Factories.create_data_condition_group()
 
         return WorkflowDataConditionGroup.objects.create(
