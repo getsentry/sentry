@@ -89,7 +89,7 @@ T = TypeVar("T")
 
 
 @dataclass
-class MessagingResponse(Generic[T]):
+class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
     context_data: dict | None = None
