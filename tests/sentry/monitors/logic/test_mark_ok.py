@@ -110,7 +110,7 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
         assert monitor_environment.last_checkin == now
 
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_ok_recovery_threshold(self, mock_produce_occurrence_to_kafka):
         now = timezone.now().replace(second=0, microsecond=0)
 

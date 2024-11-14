@@ -11,19 +11,27 @@ from __future__ import annotations
 import logging
 import statistics
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import StrEnum
+from itertools import batched, chain
 
 from django.conf import settings
 
 from sentry import options
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.utils import metrics, redis
 
 logger = logging.getLogger("sentry")
 
 # This key is used to record historical date about the volume of check-ins.
-MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{}"
+MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{ts}"
+
+# This key is used to record the metric volume metric for the tick.
+MONITOR_TICK_METRIC = "sentry.monitors.volume_metric:{ts}"
+
+# This key is used to record the anomaly decision for a tick
+MONITOR_TICK_DECISION = "sentry.monitors.tick_decision:{ts}"
 
 # When fetching historic volume data to make a decision whether we have lost
 # data this value will determine how many historic volume data-points we fetch
@@ -40,6 +48,18 @@ MONITOR_VOLUME_DECISION_STEP = timedelta(days=1)
 # We record 30 days worth of historical data for each minute of check-ins.
 MONITOR_VOLUME_RETENTION = timedelta(days=30)
 
+# The _backfill_decisions function which is responsible for updating prior
+# decisions to NORMAL or INCIDENT should never backfill more than this number
+# of tick decisions. If it does, there is a problem somewhere. This cutoff is
+# basically run-away prevention.
+#
+# We should absolutely never have anomalies longer than a full day.
+BACKFILL_CUTOFF = 1440
+
+# When running a decision backfill, how many decisions should we fetch at once
+# from redis in batches.
+BACKFILL_CHUNKS = 10
+
 
 def update_check_in_volume(ts_list: Sequence[datetime]):
     """
@@ -50,7 +70,7 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
 
     # Group timestamps down to the minute
     for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_list).items():
-        key = MONITOR_VOLUME_HISTORY.format(reference_ts)
+        key = MONITOR_VOLUME_HISTORY.format(ts=reference_ts)
 
         pipeline = redis_client.pipeline()
         pipeline.incr(key, amount=count)
@@ -58,21 +78,21 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
         pipeline.execute()
 
 
-def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
+def record_clock_tick_volume_metric(tick: datetime) -> None:
     """
-    When the clock is ticking, we may decide this tick is invalid and should
-    result in unknown misses and marking all in-progress check-ins as having an
-    unknown result.
+    Look at the historic volume of check-ins for this tick over the last
+    MONITOR_VOLUME_RETENTION period and record a "tick metric". The specific
+    metric we are recording is percentage deviation from the mean historic
+    volume for each minute.
 
-    We do this by looking at the historic volume of check-ins for the
-    particular minute boundary we just crossed.
+    This metric will be used when making a decision to determine if a
+    particular tick is in an incident state or operating normally.
 
-    XXX(epurkhiser): This is currently in development and no decision is made
-    to mark unknowns, instead we are only recording metrics for each clock tick
+    NOTE that this records a metric for the tick timestamp that we just ticked
+    over. So when ticking at 12:01 the metric is recorded for 12:00.
     """
     if not options.get("crons.tick_volume_anomaly_detection"):
-        # Detection not enabled. All ticks are considered normal
-        return TickVolumeAnomolyResult.NORMAL
+        return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
@@ -92,7 +112,7 @@ def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
 
     # Bulk fetch volume counts
     volumes = redis_client.mget(
-        MONITOR_VOLUME_HISTORY.format(_make_reference_ts(ts)) for ts in historic_timestamps
+        MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)) for ts in historic_timestamps
     )
 
     past_minute_volume = _int_or_none(volumes.pop(0))
@@ -100,11 +120,11 @@ def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
 
     # Can't make any decisions if we didn't have data for the past minute
     if past_minute_volume is None:
-        return TickVolumeAnomolyResult.NORMAL
+        return
 
     # We need AT LEAST two data points to calculate standard deviation
     if len(historic_volume) < 2:
-        return TickVolumeAnomolyResult.NORMAL
+        return
 
     # Record some statistics about the past_minute_volume volume in comparison
     # to the historic_volume data
@@ -123,7 +143,7 @@ def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
         z_score = 0.0
 
     # Percentage deviation from the mean for our past minutes volume
-    pct_deviation = (abs(past_minute_volume - historic_mean) / historic_mean) * 100
+    pct_deviation = (past_minute_volume - historic_mean) / historic_mean * 100
 
     metrics.gauge(
         "monitors.task.clock_tick.historic_volume_stdev_pct",
@@ -134,8 +154,6 @@ def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
     metrics.gauge("monitors.task.volume_history.z_score", z_score, sample_rate=1.0)
     metrics.gauge("monitors.task.volume_history.pct_deviation", pct_deviation, sample_rate=1.0)
 
-    # XXX(epurkhiser): We're not actually making any decisions with this data
-    # just yet.
     logger.info(
         "monitors.system_incidents.volume_history",
         extra={
@@ -149,19 +167,363 @@ def evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
         },
     )
 
-    # XXX(epurkhiser): No decision is made yet, all ticks are normal
-    return TickVolumeAnomolyResult.NORMAL
+    key = MONITOR_TICK_METRIC.format(ts=_make_reference_ts(past_ts))
+    redis_client.set(key, pct_deviation)
+    redis_client.expire(key, MONITOR_VOLUME_RETENTION)
 
 
-def safe_evaluate_tick_decision(tick: datetime) -> TickVolumeAnomolyResult:
-    try:
-        return evaluate_tick_decision(tick)
-    except Exception:
-        logging.exception("monitors.system_incidents.evaluate_tick_decision_failed")
+def get_clock_tick_volume_metric(tick: datetime) -> float | None:
+    """
+    Retrieve the volume metric for a specific clock tick.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    # If there are any problems evaluating the tick volume, fallback to
-    # reporting the tick as NORMAL.
-    return TickVolumeAnomolyResult.NORMAL
+    if value := redis_client.get(MONITOR_TICK_METRIC.format(ts=_make_reference_ts(tick))):
+        return float(value)
+    else:
+        return None
+
+
+class TickAnomalyDecision(StrEnum):
+    """
+    This enum represents the system incident anomaly decision made for a
+    clock-tick. Tick transitions are represented by the AnomalyTransition.
+    """
+
+    NORMAL = "normal"
+    """
+    The tick is within expected volume levels and does not show any
+    abnormalities. The system is working as normal.
+    """
+
+    ABNORMAL = "abnormal"
+    """
+    The volume metrics have indicated that we've seen an abnormal number of
+    check-ins for this tick. We may be entering an INCIDENT state.
+
+    All abnormal tick decisions will be contiguous, and will resolve into
+    either NORMAL or INCIDENT.
+    """
+
+    INCIDENT = "incident"
+    """
+    The volume metrics have indicated that we are in a system incident, this
+    means we are not processing as many check-ins as we typically do.
+
+    Once in an incident we will transition into RECOVERING once we've detected
+    enough normal volume metrics.
+    """
+
+    RECOVERING = "recovering"
+    """
+    We are transitioning out of an incident. Volume metrics must remain below
+    abnormal levels in order for RECOVERING to transition into NORMAL.
+
+    All recovering tick decisions will be contiguous, and will resolve into
+    either NORMAL or back into INCIDENT.
+    """
+
+    @classmethod
+    def from_str(cls, st: str) -> TickAnomalyDecision:
+        return cls[st.upper()]
+
+
+class AnomalyTransition(StrEnum):
+    ABNORMALITY_STARTED = "abnormality_started"
+    """
+    An abnormality has been detected during normal operations. We may
+    transition into a complete system incident, or the abnormality may recover
+    to normal.
+    """
+
+    ABNORMALITY_RECOVERED = "abnormality_recovered"
+    """
+    An abnormality has recovered back to a normal status.
+    """
+
+    INCIDENT_STARTED = "incident_started"
+    """
+    A system incident has been detected based on the historic check-in volume.
+    We are no longer able to reliably know that we are receving all check-ins.
+    """
+
+    INCIDENT_RECOVERING = "incident_recovering"
+    """
+    An incident has begun to recover. After this transition we will either
+    re-enter the incident va INCIDENT_STARTED or fully recover via
+    INCIDENT_RECOVERED.
+    """
+
+    INCIDENT_RECOVERY_FAILED = "incident_recovery_failed"
+    """
+    An incident failed to recover and has re-entered the incident state.
+    """
+
+    INCIDENT_RECOVERED = "incident_recovered"
+    """
+    An incident has recovered back to normal.
+    """
+
+
+@dataclass
+class DecisionResult:
+    decision: TickAnomalyDecision
+    """
+    The recorded decision made for the clock tick
+    """
+
+    transition: AnomalyTransition | None = None
+    """
+    Reflects the transition status when making a tick decision results in a
+    state transition. None if the decision has not changed.
+    """
+
+
+class Metric(StrEnum):
+    """
+    A metric is similar to a tick decision, however it represents a decision
+    made on the volume metric. The metric we current consider is percent mean
+    deviation from historic volumes.
+    """
+
+    NORMAL = "normal"
+    """
+    The metric is below the abnormal threshold.
+    """
+
+    ABNORMAL = "abnormal"
+    """
+    The metric has surpassed the normal threshold but is still below the
+    incident threshold.
+    """
+
+    INCIDENT = "incident"
+    """
+    The metric has surpassed the incident threshold
+    """
+
+    @staticmethod
+    def from_value(value: float | str | None) -> Metric:
+        """
+        Determine an individual decision for the percentage deviation metric of a
+        clock tick. This only considers metrics that are negative, indicating
+        there's been a drop in check-in volume.
+        """
+        # examples: -5% anomaly and -25% incident
+        anomaly_threshold = options.get("crons.system_incidents.pct_deviation_anomaly_threshold")
+        incident_threshold = options.get("crons.system_incidents.pct_deviation_incident_threshold")
+
+        # If we do not have a metric for this tick we must assume things are
+        # operating normally
+        if value is None:
+            return Metric.NORMAL
+
+        pct_deviation = float(value)
+
+        if pct_deviation <= incident_threshold:
+            return Metric.INCIDENT
+        if pct_deviation <= anomaly_threshold:
+            return Metric.ABNORMAL
+        return Metric.NORMAL
+
+
+def make_clock_tick_decision(tick: datetime) -> DecisionResult:
+    """
+    Given a clock tick timestamp determine based on the historic tick volume
+    metrics, and historic tick anomaly decisions, a DecisionResult.
+
+    This function will update previous decisions for earlier ticks detected as
+    ABNORMAL or RECOVERING to either NORMAL or INCIDENT.
+
+    The state transitions for tick decisions are as follows
+
+         ┌───D────────────────────────────┐
+    ┌────▼─┐   ┌────────┐   ┌────────┐   ┌┴─────────┐
+    │NORMAL├─A─►ABNORMAL├┬F─►INCIDENT├─C─►RECOVERING│
+    │      ◄─B─│        ││  │        ◄─E─┤          │
+    └────┬─┘   └────────┘│  └────────┘   └──────────┘
+         └───────────────┘
+
+    A: ABNORMALITY_STARTED
+    B: ABNORMALITY_RECOVERED
+    C: INCIDENT_RECOVERING
+    D: INCIDENT_RECOVERED
+    E: INCIDENT_RECOVERY_FAILED
+    F: INCIDENT_STARTED
+    """
+    # Alias TickAnomalyDecision to improve code readability
+    Decision = TickAnomalyDecision
+
+    if not options.get("crons.tick_volume_anomaly_detection"):
+        return DecisionResult(Decision.NORMAL)
+
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    tick_decision_window = options.get("crons.system_incidents.tick_decision_window")
+
+    # The clock has just ticked to the next minute. Look at the previous tick
+    # and decision metrics.
+    past_ts = tick - timedelta(minutes=1)
+
+    past_window_ts_keys = [
+        _make_reference_ts(past_ts - timedelta(minutes=delta))
+        for delta in range(0, tick_decision_window)
+    ]
+
+    # Fetch histories for metrics and the last decision together. Window
+    # timestamps are reversed so the oldest metric is last.
+    pipeline = redis_client.pipeline()
+    for key in chain(
+        (MONITOR_TICK_METRIC.format(ts=ts) for ts in reversed(past_window_ts_keys)),
+        (MONITOR_TICK_DECISION.format(ts=ts) for ts in [past_window_ts_keys[0]]),
+    ):
+        pipeline.get(key)
+    values = pipeline.execute()
+
+    # Tick metrics are the first tick_decision_window values
+    tick_metrics = [Metric.from_value(value) for value in values[:-1]]
+    last_metric = tick_metrics[-1]
+
+    # The last decision is the last value fetched
+    if values[-1] is not None:
+        last_decision = Decision.from_str(values[-1])
+    else:
+        # By default the previous decision is used. If there was no previous
+        # decision we can only assume things are operating normally
+        last_decision = Decision.NORMAL
+
+    def make_decision(
+        decision: TickAnomalyDecision,
+        transition: AnomalyTransition | None = None,
+    ) -> DecisionResult:
+        decision_key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(tick))
+        pipeline = redis_client.pipeline()
+        pipeline.set(decision_key, decision)
+        pipeline.expire(decision_key, MONITOR_VOLUME_RETENTION)
+        pipeline.execute()
+
+        return DecisionResult(decision, transition)
+
+    def metrics_match(metric: Metric) -> Generator[bool]:
+        return (d == metric for d in tick_metrics)
+
+    # A: NORMAL -> ABNORMAL
+    #
+    # If we've detected an anomaly and we're not already in an incident,
+    # anomalous state, or recovering, mark this tick as anomalous.
+    if last_decision == Decision.NORMAL and last_metric == Metric.ABNORMAL:
+        return make_decision(Decision.ABNORMAL, AnomalyTransition.ABNORMALITY_STARTED)
+
+    # B: ABNORMAL -> NORMAL
+    #
+    # If the previous result was anomalous check and if we have recovered and can
+    # backfill these decisions as normal
+    if last_decision == Decision.ABNORMAL and all(metrics_match(Metric.NORMAL)):
+        _backfill_decisions(past_ts, Decision.NORMAL, Decision.ABNORMAL)
+        return make_decision(Decision.NORMAL, AnomalyTransition.ABNORMALITY_RECOVERED)
+
+    # C: INCIDENT -> RECOVERING
+    #
+    # If we are actively in an incident and the most recent metric value has
+    # recovered to normal we can de-escalate the incident to abnormal.
+    if last_decision == Decision.INCIDENT and last_metric == Metric.NORMAL:
+        return make_decision(Decision.RECOVERING, AnomalyTransition.INCIDENT_RECOVERING)
+
+    # D: RECOVERING -> NORMAL
+    #
+    # If the previous result was recovering, check if we have recovered and can
+    # backfill these decisions as normal.
+    if last_decision == Decision.RECOVERING and all(metrics_match(Metric.NORMAL)):
+        _backfill_decisions(past_ts, Decision.NORMAL, Decision.RECOVERING)
+        return make_decision(Decision.NORMAL, AnomalyTransition.INCIDENT_RECOVERED)
+
+    # E: RECOVERING -> INCIDENT
+    #
+    # If an incident had begun recovering but we've detected a non-normal
+    # metric, backfill all recovery decisions to an incident decision.
+    if last_decision == Decision.RECOVERING and last_metric != Metric.NORMAL:
+        _backfill_decisions(past_ts, Decision.INCIDENT, Decision.RECOVERING)
+        return make_decision(Decision.INCIDENT, AnomalyTransition.INCIDENT_RECOVERY_FAILED)
+
+    # F: [NORMAL, ABNORMAL] -> INCIDENT
+    #
+    # If we're not already in an incident and the most recent metric value is
+    # an incident, mark this tick as an incident and backfill all abnormal
+    # decisions to an incident decision.
+    if last_decision != Decision.INCIDENT and last_metric == Metric.INCIDENT:
+        _backfill_decisions(past_ts, Decision.INCIDENT, Decision.ABNORMAL)
+        return make_decision(Decision.INCIDENT, AnomalyTransition.INCIDENT_STARTED)
+
+    # NORMAL     -> NORMAL
+    # ABNORMAL   -> ABNORMAL
+    # INCIDENT   -> INCIDENT
+    # RECOVERING -> RECOVERING
+    #
+    # No decision transition. Use the previous decision
+    return make_decision(last_decision)
+
+
+def get_clock_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
+    """
+    Retrieve the TickAnomalyDecision for a specific clock tick.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    if value := redis_client.get(MONITOR_TICK_DECISION.format(ts=_make_reference_ts(tick))):
+        return TickAnomalyDecision.from_str(value)
+    else:
+        return None
+
+
+def _backfill_keys(start: datetime, until_not: TickAnomalyDecision) -> Generator[str]:
+    """
+    Yields keys from the `start` tick until the value of the key is not a
+    `until_not` tick decision.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    for chunked_offsets in batched(range(0, BACKFILL_CUTOFF), BACKFILL_CHUNKS):
+        pipeline = redis_client.pipeline()
+
+        keys: list[str] = []
+        for offset in chunked_offsets:
+            ts = start - timedelta(minutes=offset)
+            key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(ts))
+            pipeline.get(key)
+            keys.append(key)
+
+        for key, value in zip(keys, pipeline.execute()):
+            # Edge case, we found a hole gap in decisions
+            if value is None:
+                return
+
+            # Exit the backfill once we no longer see the `until_not` decision
+            prev_decision = TickAnomalyDecision.from_str(value)
+            if prev_decision != until_not:
+                return
+
+            yield key
+
+    # If we've iterated through the entire BACKFILL_CUTOFF we have a
+    # "decision runaway" and should report this as an error
+    logger.error("sentry.system_incidents.decision_backfill_runaway")
+
+
+def _backfill_decisions(
+    start: datetime,
+    decision: TickAnomalyDecision,
+    until_not: TickAnomalyDecision,
+) -> None:
+    """
+    Update historic tick decisions from `start` to `decision` until we no
+    longer see the `until_not` decision.
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    pipeline = redis_client.pipeline()
+    for key in _backfill_keys(start, until_not):
+        pipeline.set(key, decision.value)
+    pipeline.execute()
 
 
 def _make_reference_ts(ts: datetime):

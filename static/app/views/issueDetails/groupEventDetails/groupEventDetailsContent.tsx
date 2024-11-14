@@ -2,7 +2,6 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
@@ -20,10 +19,8 @@ import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
 import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventAffectedTransactions} from 'sentry/components/events/eventStatisticalDetector/eventAffectedTransactions';
 import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
-import {EventFunctionComparisonList} from 'sentry/components/events/eventStatisticalDetector/eventFunctionComparisonList';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
@@ -56,7 +53,6 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
@@ -68,16 +64,12 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {
-  getConfigForIssueType,
-  shouldShowCustomErrorResourceConfig,
-} from 'sentry/utils/issueTypeConfig';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -115,7 +107,6 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
   const groupingCurrentLevel = group?.metadata?.current_level;
   const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
@@ -149,11 +140,6 @@ export function EventDetailsContent({
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       <StyledDataSection>
-        {!hasStreamlinedUI && (
-          <Feature features={['organizations:ai-summary']}>
-            <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-          </Feature>
-        )}
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
           <SuspectCommits
@@ -235,13 +221,6 @@ export function EventDetailsContent({
       )}
       {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
-      )}
-      {showPossibleSolutionsHigher && (
-        <ResourcesAndPossibleSolutionsIssueDetailsContent
-          event={event}
-          project={project}
-          group={group}
-        />
       )}
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
@@ -357,9 +336,6 @@ export function EventDetailsContent({
               <EventFunctionBreakpointChart event={event} />
             </ErrorBoundary>
             <ErrorBoundary mini>
-              <EventAffectedTransactions event={event} group={group} project={project} />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
               <InterimSection
                 type={SectionKey.REGRESSION_FLAMEGRAPH}
                 title={t('Regression Flamegraph')}
@@ -372,13 +348,6 @@ export function EventDetailsContent({
                 </p>
                 <EventDifferentialFlamegraph event={event} />
               </InterimSection>
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <EventFunctionComparisonList
-                event={event}
-                group={group}
-                project={project}
-              />
             </ErrorBoundary>
           </TransactionsDeltaProvider>
         </Fragment>
@@ -425,13 +394,6 @@ export function EventDetailsContent({
       <BreadcrumbsDataSection event={event} group={group} project={project} />
       {hasStreamlinedUI && (
         <EventTraceView group={group} event={event} organization={organization} />
-      )}
-      {!showPossibleSolutionsHigher && (
-        <ResourcesAndPossibleSolutionsIssueDetailsContent
-          event={event}
-          project={project}
-          group={group}
-        />
       )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
@@ -492,18 +454,6 @@ export function EventDetailsContent({
         />
       )}
     </Fragment>
-  );
-}
-
-function ResourcesAndPossibleSolutionsIssueDetailsContent({
-  event,
-  project,
-  group,
-}: Required<EventDetailsContentProps>) {
-  return (
-    <ErrorBoundary mini>
-      <ResourcesAndPossibleSolutions event={event} project={project} group={group} />
-    </ErrorBoundary>
   );
 }
 

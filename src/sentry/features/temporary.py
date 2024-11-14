@@ -104,6 +104,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     # Enable releases overlay on dashboard chart widgets
     manager.add("organizations:dashboards-releases-on-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable table view on dashboards landing page
+    manager.add("organizations:dashboards-table-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access protected editing of dashboards
     manager.add("organizations:dashboards-edit-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable share links for dashboards for sharing outside the org
@@ -188,6 +190,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable issue stream table layout changes
     manager.add("organizations:issue-stream-table-layout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
+    manager.add("organizations:metric-issue-poc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable members to invite teammates to organizations
     manager.add("organizations:members-invite-teammates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -351,6 +354,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the release details performance section
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Fixes the next release resolution for semver releases
+    manager.add("organizations:releases-resolve-next-release-semver-fix", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # enable new release set_commits functionality
     manager.add("organizations:set-commits-updated", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new release UI

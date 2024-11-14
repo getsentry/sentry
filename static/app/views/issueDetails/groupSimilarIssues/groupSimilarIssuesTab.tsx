@@ -15,7 +15,7 @@ function GroupSimilarIssuesTab() {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <GroupSimilarIssues {...props} />
+        <GroupSimilarIssues />
       </Layout.Main>
     </Layout.Body>
   );
