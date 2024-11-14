@@ -33,7 +33,10 @@ logger = logging.getLogger(__name__)
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def get_assigned_to_data(
-        self, assigned_to: Team | RpcUser, assignee_type: str, extra: dict[str, str] | None = None
+        self,
+        assigned_to: Team | RpcUser | User,
+        assignee_type: str,
+        extra: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         data = {
             "assignee": str(assigned_to.id),
@@ -45,7 +48,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
 
         return data
 
-    def get_assignee_data(self, assigned_to: Team | RpcUser) -> tuple[str, str, str]:
+    def get_assignee_data(self, assigned_to: Team | RpcUser | User) -> tuple[str, str, str]:
         from sentry.models.team import Team
         from sentry.users.models.user import User
         from sentry.users.services.user import RpcUser
@@ -130,7 +133,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | RpcUser,
+        assigned_to: Team | RpcUser | User,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: dict[str, str] | None = None,
