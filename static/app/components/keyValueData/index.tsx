@@ -239,7 +239,7 @@ const ContentWrapper = styled('div')<{
   expandLeft?: boolean;
 }>`
   display: grid;
-  grid-template-columns: ${p => (p.expandLeft ? '0.9fr 0.45fr' : 'subgrid')};
+  grid-template-columns: ${p => (p.expandLeft ? '0.95fr 0.41fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
