@@ -37,7 +37,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.types import CrontabSchedule, IntervalSchedule
+from sentry.monitors.types import CrontabSchedule, IntervalSchedule, SimpleCheckIn
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -580,6 +580,9 @@ class MonitorCheckIn(Model):
     # what we want to happen, so kill it here
     def _update_timestamps(self):
         pass
+
+    def as_simple_checkin(self) -> SimpleCheckIn:
+        return SimpleCheckIn(self.id, self.date_added, self.status)
 
 
 def delete_file_for_monitorcheckin(instance: MonitorCheckIn, **kwargs):
