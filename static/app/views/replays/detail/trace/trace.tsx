@@ -234,8 +234,6 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
           meta={meta}
           source="replay"
           replay={replay}
-          // Replays might want to enable this in the future
-          isEmbedded={false}
         />
       </TraceViewWaterfallWrapper>
     </TraceStateProvider>
