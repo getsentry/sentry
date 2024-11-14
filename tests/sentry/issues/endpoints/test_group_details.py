@@ -419,12 +419,13 @@ class GroupUpdateTest(APITestCase):
         ]
         first_release = releases[0]
         greatest_version = releases[1]
+
+        data = {}
+        if with_first_release:
+            data["release"] = first_release.version
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
-        if with_first_release:
-            event = self.store_event(data={"release": first_release.version}, project_id=project.id)
-        else:
-            event = self.store_event(data={}, project_id=project.id)
+        event = self.store_event(data=data, project_id=project.id)
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
@@ -439,8 +440,9 @@ class GroupUpdateTest(APITestCase):
         data = {"status": "resolvedInNextRelease"}
         response = self.client.put(url, data=data)
         assert response.status_code == 200, response.content == {}
+
         # Refetch from DB to ensure the latest state is fetched
-        group = Group.objects.get(id=group.id, project=group.project.id)
+        group = Group.objects.get(id=group.id, project=project.id)
         assert group.status == GroupStatus.RESOLVED
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
