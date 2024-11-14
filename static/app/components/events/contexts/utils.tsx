@@ -27,6 +27,12 @@ import {getStateContextData} from 'sentry/components/events/contexts/knownContex
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
+import {
+  getPlatformContextData,
+  getPlatformContextIcon,
+  getPlatformContextTitle,
+  PLATFORM_CONTEXT_KEYS,
+} from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -38,14 +44,6 @@ import type {Project} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
-
-import {
-  getKnownPlatformContextData,
-  getPlatformContextIcon,
-  getUnknownPlatformContextData,
-  KNOWN_PLATFORM_CONTEXTS,
-} from './platform';
-import {getKnownUnityContextData, getUnknownUnityContextData} from './unity';
 
 /**
  * Generates the class name used for contexts
@@ -254,6 +252,10 @@ export function getContextTitle({
 
   const contextType = getContextType({alias, type});
 
+  if (PLATFORM_CONTEXT_KEYS.has(contextType)) {
+    return getPlatformContextTitle({platform: alias});
+  }
+
   switch (contextType) {
     case 'app':
       return t('App');
@@ -332,12 +334,14 @@ export function getContextIcon({
   contextIconProps?: Partial<ContextIconProps>;
   value?: Record<string, any>;
 }): React.ReactNode {
-  if (KNOWN_PLATFORM_CONTEXTS.has(alias)) {
+  const contextType = getContextType({alias, type});
+  if (PLATFORM_CONTEXT_KEYS.has(contextType)) {
     return getPlatformContextIcon({
       platform: alias,
       size: contextIconProps?.size ?? 'xl',
     });
   }
+
   let iconName = '';
   switch (type) {
     case 'device':
@@ -389,11 +393,8 @@ export function getFormattedContextData({
 }): KeyValueListData {
   const meta = getContextMeta(event, contextType);
 
-  if (KNOWN_PLATFORM_CONTEXTS.has(contextType)) {
-    return [
-      ...getKnownPlatformContextData({platform: contextType, data: contextValue, meta}),
-      ...getUnknownPlatformContextData({platform: contextType, data: contextValue, meta}),
-    ];
+  if (PLATFORM_CONTEXT_KEYS.has(contextType)) {
+    return getPlatformContextData({platform: contextType, data: contextValue});
   }
 
   switch (contextType) {
@@ -408,11 +409,6 @@ export function getFormattedContextData({
       return getBrowserContextData({data: contextValue, meta});
     case 'os':
       return getOperatingSystemContextData({data: contextValue, meta});
-    case 'unity':
-      return [
-        ...getKnownUnityContextData({data: contextValue, meta}),
-        ...getUnknownUnityContextData({data: contextValue, meta}),
-      ];
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
     case 'user':
