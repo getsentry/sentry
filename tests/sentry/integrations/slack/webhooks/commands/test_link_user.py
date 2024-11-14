@@ -1,12 +1,13 @@
 from unittest.mock import patch
 
+from sentry.integrations.messaging.commands import MessageCommandHaltReason
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
     build_unlinking_url,
 )
-from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE, MessageCommandHaltReason
+from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
