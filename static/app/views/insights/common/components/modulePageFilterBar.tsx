@@ -21,6 +21,7 @@ import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   moduleName: ModuleName;
+  disableProjectFilter?: boolean; // This is used primarily for module summary pages when a project can't be selected
   extraFilters?: React.ReactNode;
   onProjectChange?: ComponentProps<typeof ProjectPageFilter>['onChange'];
 };
@@ -28,7 +29,12 @@ type Props = {
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
 const DISABLED_OPTIONS = ['14d', '30d', '90d'];
 
-export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
+export function ModulePageFilterBar({
+  moduleName,
+  onProjectChange,
+  extraFilters,
+  disableProjectFilter,
+}: Props) {
   const {projects: allProjects} = useProjects();
   const organization = useOrganization();
 
@@ -101,7 +107,7 @@ export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}:
           otherwise two clicks are required because of some rerendering/event propogation issues into the children */}
           <div style={{width: '100px', position: 'absolute', height: '100%'}} />
         </Tooltip>
-        <ProjectPageFilter onChange={onProjectChange} />
+        {!disableProjectFilter && <ProjectPageFilter onChange={onProjectChange} />}
         <EnvironmentPageFilter />
         <DatePageFilter {...dateFilterProps} />
       </PageFilterBar>
