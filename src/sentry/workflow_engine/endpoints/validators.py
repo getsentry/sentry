@@ -18,7 +18,8 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler, DetectorPriorityLevel
 
 T = TypeVar("T", bound=Model)
 
@@ -105,13 +106,13 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
 
 class BaseDataSourceValidator(CamelSnakeSerializer, Generic[T]):
     @property
-    def data_source_type(self) -> DataSource.Type:
+    def data_source_type_handler(self) -> type[DataSourceTypeHandler]:
         raise NotImplementedError
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
         attrs["_creator"] = DataSourceCreator[T](lambda: self.create_source(attrs))
-        attrs["data_source_type"] = self.data_source_type
+        attrs["data_source_type"] = data_source_type_registry.get_key(self.data_source_type_handler)
         return attrs
 
     def create_source(self, validated_data) -> T:

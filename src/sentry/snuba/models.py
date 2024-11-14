@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from enum import Enum
-from typing import ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -12,6 +14,11 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.team import Team
 from sentry.users.models.user import User
+from sentry.workflow_engine.registry import data_source_type_registry
+from sentry.workflow_engine.types import DataSourceTypeHandler
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models.data_source import DataSource
 
 
 class QueryAggregations(Enum):
@@ -144,3 +151,16 @@ class QuerySubscription(Model):
         subscription.save()
 
         return (subscription.pk, ImportKind.Inserted)
+
+
+@data_source_type_registry.register("snuba_query_subscription")
+class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
+    @staticmethod
+    def bulk_get_query_object(
+        data_sources: list[DataSource],
+    ) -> dict[int, QuerySubscription | None]:
+        qs_lookup = {
+            qs.id: qs
+            for qs in QuerySubscription.objects.filter(id__in=[ds.query_id for ds in data_sources])
+        }
+        return {ds.id: qs_lookup.get(ds.query_id) for ds in data_sources}

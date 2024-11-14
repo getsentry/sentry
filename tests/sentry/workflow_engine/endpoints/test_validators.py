@@ -16,7 +16,12 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.models import (
+    QuerySubscription,
+    QuerySubscriptionDataSourceHandler,
+    SnubaQuery,
+    SnubaQueryEventType,
+)
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators import (
     BaseDataSourceValidator,
@@ -27,6 +32,7 @@ from sentry.workflow_engine.endpoints.validators import (
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -210,7 +216,9 @@ class DetectorValidatorTest(TestCase):
 
         # Verify data source in DB
         data_source = DataSource.objects.get(detector=detector)
-        assert data_source.type == DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+        assert data_source.type == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
         assert data_source.organization_id == self.project.organization_id
 
         # Verify condition group in DB
@@ -305,7 +313,9 @@ class TestMetricAlertsDetectorValidator(TestCase):
 
         # Verify data source and query subscription in DB
         data_source = DataSource.objects.get(detector=detector)
-        assert data_source.type == DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+        assert data_source.type == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
         assert data_source.organization_id == self.project.organization_id
 
         query_sub = QuerySubscription.objects.get(id=data_source.query_id)
@@ -394,7 +404,7 @@ class TestDataSourceCreator(TestCase):
 class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
     field1 = serializers.CharField()
     field2 = serializers.IntegerField()
-    data_source_type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+    data_source_type_handler = QuerySubscriptionDataSourceHandler
 
     @property
     def model_class(self) -> type[MockModel]:
@@ -415,8 +425,8 @@ class TestBaseDataSourceValidator(TestCase):
         assert validator.is_valid()
         assert "_creator" in validator.validated_data
         assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
-        assert (
-            validator.validated_data["data_source_type"] == DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+        assert validator.validated_data["data_source_type"] == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
         )
 
 
