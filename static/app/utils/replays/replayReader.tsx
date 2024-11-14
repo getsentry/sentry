@@ -41,6 +41,7 @@ import {
   getNodeIds,
   IncrementalSource,
   isCLSFrame,
+  isConsoleFrame,
   isDeadClick,
   isDeadRageClick,
   isPaintFrame,
@@ -507,7 +508,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(frame => isConsoleFrame(frame))
   );
 
   getNavigationFrames = memoize(() =>
