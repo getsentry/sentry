@@ -142,7 +142,7 @@ const AiSetupDataConsent = HookOrDefault({
 });
 
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
-  const {autofixData, triggerAutofix, reset, isPolling} = useAiAutofix(group, event);
+  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {
     data: summaryData,
     isError,
