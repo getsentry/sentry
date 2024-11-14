@@ -28,12 +28,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def create_incident_occurrence(
+def send_incident_occurrence(
     failed_checkin: MonitorCheckIn,
     previous_checkins: Sequence[MonitorCheckIn],
     incident: MonitorIncident,
     received: datetime,
 ) -> None:
+    """
+    Construct and send an issue occurrence given an incident and the associated
+    failing check-ins which caused that incident.
+    """
     monitor_env = failed_checkin.monitor_environment
 
     if monitor_env is None:
