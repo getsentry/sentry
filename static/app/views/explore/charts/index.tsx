@@ -144,6 +144,8 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     EXPLORE_CHART_GROUP
   );
 
+  const shouldRenderLabel = visualizes.length > 1;
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
@@ -191,7 +193,7 @@ export function ExploreCharts({query}: ExploreChartsProps) {
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartLabel>{label}</ChartLabel>
+                {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
                 <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
