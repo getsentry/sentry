@@ -3,7 +3,8 @@ from django.core.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import http, options
-from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider, record_event
+from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.utils.http import absolute_uri
 
 
@@ -120,21 +121,27 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         from sentry.http import safe_urlopen, safe_urlread
         from sentry.utils.http import absolute_uri
 
-        req = safe_urlopen(
-            url=self.access_token_url,
-            headers={"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1322"},
-            data={
-                "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                "client_assertion": self.client_secret,
-                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "assertion": code,
-                "redirect_uri": absolute_uri(pipeline.redirect_url()),
-            },
-        )
-        body = safe_urlread(req)
-        if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-            return dict(parse_qsl(body))
-        return orjson.loads(body)
+        with record_event(
+            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
+        ).capture():
+            req = safe_urlopen(
+                url=self.access_token_url,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Content-Length": "1322",
+                },
+                data={
+                    "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                    "client_assertion": self.client_secret,
+                    "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                    "assertion": code,
+                    "redirect_uri": absolute_uri(pipeline.redirect_url()),
+                },
+            )
+            body = safe_urlread(req)
+            if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
+                return dict(parse_qsl(body))
+            return orjson.loads(body)
 
 
 # TODO(iamrajjoshi): Make this the default provider
@@ -232,18 +239,24 @@ class VSTSNewOAuth2CallbackView(OAuth2CallbackView):
         from sentry.http import safe_urlopen, safe_urlread
         from sentry.utils.http import absolute_uri
 
-        req = safe_urlopen(
-            url=self.access_token_url,
-            headers={"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1322"},
-            data={
-                "grant_type": "authorization_code",
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "code": code,
-                "redirect_uri": absolute_uri(pipeline.redirect_url()),
-            },
-        )
-        body = safe_urlread(req)
-        if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
-            return dict(parse_qsl(body))
-        return orjson.loads(body)
+        with record_event(
+            IntegrationPipelineViewType.TOKEN_EXCHANGE, pipeline.provider.key
+        ).capture():
+            req = safe_urlopen(
+                url=self.access_token_url,
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Content-Length": "1322",
+                },
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "code": code,
+                    "redirect_uri": absolute_uri(pipeline.redirect_url()),
+                },
+            )
+            body = safe_urlread(req)
+            if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
+                return dict(parse_qsl(body))
+            return orjson.loads(body)
