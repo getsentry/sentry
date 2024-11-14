@@ -149,6 +149,8 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       .map(parsedVisualizeGroup => parsedVisualizeGroup.length)
       .reduce((a, b) => a + b, 0) <= 1;
 
+  const shouldRenderLabel = visualizes.length > 1;
+
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
@@ -174,7 +176,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
             <Fragment key={group}>
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
-                  <ChartLabel>{parsedVisualize.label}</ChartLabel>
+                  {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
                   <CompactSelect
                     searchable
                     options={fieldOptions}
