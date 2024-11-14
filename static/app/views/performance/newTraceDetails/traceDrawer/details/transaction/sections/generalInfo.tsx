@@ -63,6 +63,7 @@ function GeneralInfo(props: GeneralInfoProps) {
       subject: t('Duration'),
       value: (
         <TraceDrawerComponents.Duration
+          node={node}
           duration={durationInSeconds}
           baseline={undefined}
         />
