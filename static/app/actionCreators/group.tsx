@@ -209,7 +209,7 @@ type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
   project?: number[] | string[] | null;
-  query?: string;
+  query?: Record<string, string[] | null | string | undefined>;
 };
 
 type UpdateParams = ParamsType & {
@@ -219,7 +219,7 @@ type UpdateParams = ParamsType & {
 
 type QueryArgs =
   | {
-      query: string;
+      query: Record<string, string[] | null | string | undefined>;
       environment?: string | Array<string>;
       project?: Array<number | string>;
     }
