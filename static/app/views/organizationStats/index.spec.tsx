@@ -414,6 +414,90 @@ describe('OrganizationStats', function () {
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     }
   });
+
+  /**
+   * Feature Flagging - Continuous Profiling
+   */
+  it('shows only profile duration category with continuous-profiling-stats feature', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights', 'continuous-profiling-stats'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should not show Profiles (transaction) option
+    expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+  });
+
+  it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights', 'continuous-profiling'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should show Profiles (transaction) option
+    expect(screen.queryByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+  });
+
+  it('shows only profile duration category when both profiling features are enabled', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: [
+          'global-views',
+          'team-insights',
+          'continuous-profiling-stats',
+          'continuous-profiling',
+        ],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    // Should not show Profiles (transaction) option
+    expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+  });
+
+  it('shows only Profiles category without profiling features', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: ['global-views', 'team-insights'],
+      },
+    });
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      router: newOrg.router,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+
+    // Should show Profile Hours option
+    expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
+    // Should show Profiles (transaction) option
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+  });
 });
 
 const mockStatsResponse = {
