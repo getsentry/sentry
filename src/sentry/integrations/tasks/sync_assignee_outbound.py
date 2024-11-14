@@ -59,7 +59,13 @@ def sync_assignee_outbound(
         if not (
             hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
         ):
-            lifecycle.record_halt()
+            lifecycle.record_halt(
+                "sync_assignee_outbound.integration_missing_sync_methods",
+                extra={
+                    "organization_id": external_issue.organization_id,
+                    "external_issue_id": external_issue_id,
+                },
+            )
             return
 
         parsed_assignment_source = (
@@ -78,4 +84,10 @@ def sync_assignee_outbound(
                 organization_id=external_issue.organization_id,
             )
         else:
-            lifecycle.record_halt()
+            lifecycle.record_halt(
+                "sync_assignee_outbound.marked_should_not_sync",
+                extra={
+                    "organization_id": external_issue.organization_id,
+                    "external_issue_id": external_issue_id,
+                },
+            )

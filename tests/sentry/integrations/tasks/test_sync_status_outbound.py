@@ -54,7 +54,10 @@ class TestSyncStatusOutbound(TestCase):
         )
 
         sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
-        mock_record_halt.assert_called_with()
+        mock_record_halt.assert_called_with(
+            "sync_outbound_status.marked_should_not_sync",
+            extra={"organization_id": self.organization.id, "group_id": self.group.id},
+        )
 
         mock_sync_status.assert_not_called()
 

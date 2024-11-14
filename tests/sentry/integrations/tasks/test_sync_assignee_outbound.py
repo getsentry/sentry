@@ -92,7 +92,13 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
-        mock_record_halt.assert_called_with()
+        mock_record_halt.assert_called_with(
+            "sync_assignee_outbound.marked_should_not_sync",
+            extra={
+                "organization_id": self.organization.id,
+                "external_issue_id": external_issue.id,
+            },
+        )
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
@@ -109,7 +115,13 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
-        mock_record_halt.assert_called_with()
+        mock_record_halt.assert_called_with(
+            "sync_assignee_outbound.integration_missing_sync_methods",
+            extra={
+                "organization_id": self.organization.id,
+                "external_issue_id": external_issue.id,
+            },
+        )
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_missing_integration_installation(self, mock_sync_assignee):

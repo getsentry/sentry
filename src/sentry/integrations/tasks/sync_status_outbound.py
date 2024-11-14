@@ -63,5 +63,11 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
             )
         else:
             # Find a way to pass further context to this in the future
-            lifecycle.record_halt()
+            lifecycle.record_halt(
+                "sync_outbound_status.marked_should_not_sync",
+                extra={
+                    "organization_id": external_issue.organization_id,
+                    "group_id": group.id,
+                },
+            )
     return None
