@@ -41,7 +41,9 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
         start, end = get_date_range_from_params(request.GET)
         projects = cast(
             Sequence[Project],
-            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).all(),
+            list(
+                Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).all()
+            ),
         )
         mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
         query = MQLQuery(mql=mql, order=QueryOrder.DESC)
