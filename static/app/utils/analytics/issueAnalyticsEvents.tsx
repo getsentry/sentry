@@ -287,6 +287,11 @@ export type IssueEventParameters = {
     total_issues_count: number | null;
     tab?: string;
   };
+  'one_other_related_trace_issue.clicked': {
+    area: string;
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
+    group_id: number;
+  };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     project_id: string;
@@ -431,6 +436,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
+  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
