@@ -1,11 +1,9 @@
-from datetime import timedelta
-
 import pytest
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
-from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
@@ -15,7 +13,7 @@ FEATURES = ("organizations:discover-query", "organizations:performance-use-metri
 pytestmark = pytest.mark.sentry_metrics
 
 
-class DiscoverHomepageQueryTest(DiscoverSavedQueryBase, MetricsEnhancedPerformanceTestCase):
+class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def setUp(self):
         super().setUp()
         self.url = reverse("sentry-api-0-discover-homepage-query", args=[self.org.slug])
@@ -174,24 +172,20 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase, MetricsEnhancedPerforman
         ).exists()
 
     def test_put_allows_custom_measurements_in_equations_with_query(self):
-        # Set the organization for the metrics helpers
-        self.organization = self.org
-
         # Having a custom measurement stored implies that a transaction with this measurement has been stored
-        self.store_transaction_metric(
-            123,
-            metric="measurements.custom_duration",
-            internal_metric="d:transactions/measurements.custom_duration@millisecond",
-            entity="metrics_distributions",
-            tags={"transaction": "foo_transaction"},
-            timestamp=before_now(days=1) + timedelta(minutes=30),
-            project=self.projects[0].id,
+        BaseMetricsTestCase.store_metric(
+            self.org.id,
+            self.project_ids[0],
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
         )
 
         homepage_query_payload = {
             "version": 2,
             "name": "New Homepage Query",
-            "projects": [self.projects[0].id],
+            "projects": [self.project_ids[0]],
             "environment": ["alpha"],
             "fields": [
                 "transaction.duration",
@@ -212,4 +206,4 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase, MetricsEnhancedPerforman
             created_by_id=self.user.id, organization=self.org, is_homepage=True
         )
         assert response.data == serialize(new_query)
-        assert list(new_query.projects.values_list("id", flat=True)) == [self.projects[0].id]
+        assert list(new_query.projects.values_list("id", flat=True)) == [self.project_ids[0]]

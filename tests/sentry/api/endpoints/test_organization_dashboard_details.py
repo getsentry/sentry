@@ -19,10 +19,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
-from sentry.testutils.cases import (
-    MetricsEnhancedPerformanceTestCase,
-    OrganizationDashboardWidgetTestCase,
-)
+from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
@@ -645,9 +642,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.status_code == 403
 
 
-class OrganizationDashboardDetailsPutTest(
-    OrganizationDashboardDetailsTestCase, MetricsEnhancedPerformanceTestCase
-):
+class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
@@ -2332,14 +2327,13 @@ class OrganizationDashboardDetailsPutTest(
         assert sorted(response.data["projects"]) == [project1.id, project2.id]
 
     def test_save_widget_with_custom_measurement_in_equation_tables(self):
-        self.store_transaction_metric(
-            123,
-            metric="measurements.custom_duration",
-            internal_metric="d:transactions/measurements.custom_duration@millisecond",
-            entity="metrics_distributions",
-            tags={"transaction": "foo_transaction"},
-            timestamp=before_now(days=1) + timedelta(minutes=30),
-            project=self.project.id,
+        BaseMetricsTestCase.store_metric(
+            self.organization.id,
+            self.project.id,
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
         )
 
         data: dict[str, Any] = {
@@ -2385,14 +2379,13 @@ class OrganizationDashboardDetailsPutTest(
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
     def test_save_widget_with_custom_measurement_in_equation_line_chart(self):
-        self.store_transaction_metric(
-            123,
-            metric="measurements.custom_duration",
-            internal_metric="d:transactions/measurements.custom_duration@millisecond",
-            entity="metrics_distributions",
-            tags={"transaction": "foo_transaction"},
-            timestamp=before_now(days=1) + timedelta(minutes=30),
-            project=self.project.id,
+        BaseMetricsTestCase.store_metric(
+            self.organization.id,
+            self.project.id,
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
         )
 
         data: dict[str, Any] = {
