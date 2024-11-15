@@ -83,11 +83,29 @@ Retrieve a single flag log instance.
   }
   ```
 
-## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/token/<token>/]
+## Signing Secret [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/signing-secret/]
+
+### Create Signing Secret [POST]
+
+Requests from web hook providers can be signed. We use the signing secret to verify the webhook's origin is authentic.
+
+- Request (application/json)
+
+  ```json
+  {
+    "secret": "d41d7d1adced450d9e2eb7f76dde6a04"
+  }
+  ```
+
+- Response 201
+
+## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/]
 
 ### Create Flag Log [POST]
 
 The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, Statsig, and LaunchDarkly.
+
+Webhooks are signed by their provider. The provider handler must use the secret stored in Sentry to verify the signature of the payload. Failure to do so could lead to unauthorized access.
 
 **Flag Pole Example:**
 
