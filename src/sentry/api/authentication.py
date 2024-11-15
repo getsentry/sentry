@@ -5,6 +5,7 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
@@ -422,7 +423,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        if token.organization_id:
+        if token.scoping_organization_id:
             # We need to make sure the organization to which the token has access is the same as the one in the URL
             organization = None
             organization_context = organization_service.get_organization_by_id(
@@ -439,29 +440,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                         organization.slug != target_org_id_or_slug
                         and organization.id != target_org_id_or_slug
                     ):
-                        # TODO (@athena): We want to raise auth excecption here but to be sure
-                        # I soft launch this by only logging the error for now
-                        # raise AuthenticationFailed("Unauthorized organization access")
-                        logger.info(
-                            "Token has access to organization %s but wants to get access to organization %s: %s",
-                            organization.slug,
-                            target_org_id_or_slug,
-                            request.path_info,
-                        )
+                        raise AuthenticationFailed("Unauthorized organization access.")
                 else:
-                    # TODO (@athena): We want to limit org level token's access to org level endpoints only
-                    # so in the future this will be an auth exception but for now we soft launch by logging an error
-                    logger.info(
-                        "Token has only access to organization %s but is calling an endpoint for multiple organizations: %s",
-                        organization.slug,
-                        request.path_info,
+                    # We want to limit org scoped tokens access to org level endpoints only
+                    raise AuthenticationFailed(
+                        "This token access is limited to organization endpoints."
                     )
             else:
-                # TODO (@athena): If there is an organization token we should be able to fetch organization context
-                # Otherwise we should raise an exception
-                # For now adding logging to investigate if this is a valid case we need to address
-                logger.info(
-                    "Token has access to an unknown organization: %s", token.organization_id
+                sentry_sdk.capture_message(
+                    "Could not resolve organization for organization scoped token", level="warning"
                 )
 
         return self.transform_auth(
