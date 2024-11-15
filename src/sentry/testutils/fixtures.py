@@ -190,24 +190,10 @@ class Fixtures:
             project = self.project
         return Factories.create_project_key(project=project, *args, **kwargs)
 
-    def create_project_rule(
-        self,
-        project=None,
-        action_match=None,
-        condition_match=None,
-        comparison_interval=None,
-        *args,
-        **kwargs,
-    ) -> Rule:
+    def create_project_rule(self, project=None, *args, **kwargs) -> Rule:
         if project is None:
             project = self.project
-        return Factories.create_project_rule(
-            project=project,
-            action_data=action_match,
-            condition_data=condition_match,
-            *args,
-            **kwargs,
-        )
+        return Factories.create_project_rule(project, *args, **kwargs)
 
     def create_slack_project_rule(
         self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
