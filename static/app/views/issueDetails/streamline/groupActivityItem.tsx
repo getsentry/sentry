@@ -9,6 +9,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
@@ -20,12 +21,13 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+import useOrganization from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 export default function getGroupActivityItem(
   activity: GroupActivity,
   organization: Organization,
-  projectId: Project['id'],
+  project: Project,
   author: React.ReactNode,
   teams: Team[]
 ) {
@@ -289,15 +291,7 @@ export default function getGroupActivityItem(
             title: t('Resolved'),
             message: tct('by [author] in releases greater than [version] [semver]', {
               author,
-              version: (
-                <ReleaseWrapper>
-                  <Version
-                    version={currentVersion}
-                    projectId={projectId}
-                    tooltipRawVersion
-                  />
-                </ReleaseWrapper>
-              ),
+              version: <ActivityRelease project={project} version={currentVersion} />,
               semver: isSemverRelease(currentVersion) ? t('(semver)') : t('(non-semver)'),
             }),
           };
@@ -308,11 +302,7 @@ export default function getGroupActivityItem(
           message: version
             ? tct('by [author] in [version] [semver]', {
                 author,
-                version: (
-                  <ReleaseWrapper>
-                    <Version version={version} projectId={projectId} tooltipRawVersion />
-                  </ReleaseWrapper>
-                ),
+                version: <ActivityRelease project={project} version={version} />,
                 semver: isSemverRelease(version) ? t('(semver)') : t('(non-semver)'),
               })
             : tct('by [author] in the upcoming release', {
@@ -340,13 +330,10 @@ export default function getGroupActivityItem(
                   />
                 ),
                 release: (
-                  <ReleaseWrapper>
-                    <Version
-                      version={deployedReleases[0].version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
-                  </ReleaseWrapper>
+                  <ActivityRelease
+                    project={project}
+                    version={deployedReleases[0].version}
+                  />
                 ),
               }
             ),
@@ -368,13 +355,10 @@ export default function getGroupActivityItem(
                   />
                 ),
                 release: (
-                  <ReleaseWrapper>
-                    <Version
-                      version={deployedReleases[0].version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
-                  </ReleaseWrapper>
+                  <ActivityRelease
+                    project={project}
+                    version={deployedReleases[0].version}
+                  />
                 ),
               }
             ),
@@ -478,22 +462,13 @@ export default function getGroupActivityItem(
                 '[regressionVersion] is greater than or equal to [resolvedVersion] compared via [comparison]',
                 {
                   regressionVersion: (
-                    <ReleaseWrapper>
-                      <Version
-                        version={data.version}
-                        projectId={projectId}
-                        tooltipRawVersion
-                      />
-                    </ReleaseWrapper>
+                    <ActivityRelease project={project} version={data.version} />
                   ),
                   resolvedVersion: (
-                    <ReleaseWrapper>
-                      <Version
-                        version={data.resolved_in_version}
-                        projectId={projectId}
-                        tooltipRawVersion
-                      />
-                    </ReleaseWrapper>
+                    <ActivityRelease
+                      project={project}
+                      version={data.resolved_in_version}
+                    />
                   ),
                   comparison: data.follows_semver ? t('semver') : t('release date'),
                 }
@@ -507,15 +482,7 @@ export default function getGroupActivityItem(
           message: data.version
             ? tct('by [author] in [version]. [subtext]', {
                 author,
-                version: (
-                  <ReleaseWrapper>
-                    <Version
-                      version={data.version}
-                      projectId={projectId}
-                      tooltipRawVersion
-                    />
-                  </ReleaseWrapper>
-                ),
+                version: <ActivityRelease project={project} version={data.version} />,
                 subtext,
               })
             : tct('by [author]', {
@@ -694,6 +661,19 @@ export default function getGroupActivityItem(
   return renderContent();
 }
 
+function ActivityRelease({project, version}: {project: Project; version: string}) {
+  const organization = useOrganization();
+  return (
+    <VersionHoverCard
+      organization={organization}
+      projectSlug={project.slug}
+      releaseVersion={version}
+    >
+      <ReleaseVersion version={version} projectId={project.id} />
+    </VersionHoverCard>
+  );
+}
+
 const Subtext = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -707,10 +687,7 @@ const StyledRuleSpan = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const ReleaseWrapper = styled('span')`
-  a {
-    color: ${p => p.theme.gray300};
-    text-decoration: underline;
-    text-decoration-style: dotted;
-  }
+const ReleaseVersion = styled(Version)`
+  color: ${p => p.theme.gray300};
+  text-decoration: underline;
 `;
