@@ -107,8 +107,6 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
-    USE_NEW_DEVSERVICES = os.environ.get("USE_NEW_DEVSERVICES") is not None
-
     from devenv.lib import node
 
     node.install(
@@ -255,66 +253,61 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    if not USE_NEW_DEVSERVICES:
-        # TODO: check healthchecks for redis and postgres to short circuit this
+    # TODO: check healthchecks for redis and postgres to short circuit this
+    proc.run(
+        (
+            f"{venv_dir}/bin/{repo}",
+            "devservices",
+            "up",
+            "redis",
+            "postgres",
+        ),
+        pathprepend=f"{reporoot}/.devenv/bin",
+        exit=True,
+    )
+
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            (
+                "python migrations",
+                ("make", "apply-migrations"),
+                {},
+            ),
+        ),
+        verbose,
+    ):
+        return 1
+
+    # faster prerequisite check than starting up sentry and running createuser idempotently
+    stdout = proc.run(
+        (
+            "docker",
+            "exec",
+            "sentry_postgres",
+            "psql",
+            "sentry",
+            "postgres",
+            "-t",
+            "-c",
+            "select exists (select from auth_user where email = 'admin@sentry.io')",
+        ),
+        stdout=True,
+    )
+    if stdout != "t":
         proc.run(
             (
-                f"{venv_dir}/bin/{repo}",
-                "devservices",
-                "up",
-                "redis",
-                "postgres",
-            ),
-            pathprepend=f"{reporoot}/.devenv/bin",
-            exit=True,
-        )
-
-        if not run_procs(
-            repo,
-            reporoot,
-            venv_dir,
-            (
-                (
-                    "python migrations",
-                    ("make", "apply-migrations"),
-                    {},
-                ),
-            ),
-            verbose,
-        ):
-            return 1
-
-        # faster prerequisite check than starting up sentry and running createuser idempotently
-        stdout = proc.run(
-            (
-                "docker",
-                "exec",
-                "sentry_postgres",
-                "psql",
-                "sentry",
-                "postgres",
-                "-t",
-                "-c",
-                "select exists (select from auth_user where email = 'admin@sentry.io')",
-            ),
-            stdout=True,
-        )
-        if stdout != "t":
-            proc.run(
-                (
-                    f"{venv_dir}/bin/sentry",
-                    "createuser",
-                    "--superuser",
-                    "--email",
-                    "admin@sentry.io",
-                    "--password",
-                    "admin",
-                    "--no-input",
-                )
+                f"{venv_dir}/bin/sentry",
+                "createuser",
+                "--superuser",
+                "--email",
+                "admin@sentry.io",
+                "--password",
+                "admin",
+                "--no-input",
             )
-    else:
-        print(
-            "🚧 Skipping automatic migrations because you are using the new devservices beta. Coming soon!"
         )
 
     return 0
