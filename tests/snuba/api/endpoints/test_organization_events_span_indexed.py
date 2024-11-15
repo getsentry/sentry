@@ -690,21 +690,21 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             {
                 "field": [
                     "description",
-                    "count_unique_weighted(bar)",
-                    "count_unique_weighted(tags[bar])",
-                    "count_unique_weighted(tags[bar,string])",
-                    "count_weighted()",
-                    "count_weighted(span.duration)",
-                    "count_weighted(tags[foo,     number])",
-                    "sum_weighted(tags[foo,number])",
-                    "avg_weighted(tags[foo,number])",
-                    "p50_weighted(tags[foo,number])",
-                    "p75_weighted(tags[foo,number])",
-                    "p95_weighted(tags[foo,number])",
-                    "p99_weighted(tags[foo,number])",
-                    "p100_weighted(tags[foo,number])",
-                    "min_weighted(tags[foo,number])",
-                    "max_weighted(tags[foo,number])",
+                    "count_unique(bar)",
+                    "count_unique(tags[bar])",
+                    "count_unique(tags[bar,string])",
+                    "count()",
+                    "count(span.duration)",
+                    "count(tags[foo,     number])",
+                    "sum(tags[foo,number])",
+                    "avg(tags[foo,number])",
+                    "p50(tags[foo,number])",
+                    "p75(tags[foo,number])",
+                    "p95(tags[foo,number])",
+                    "p99(tags[foo,number])",
+                    "p100(tags[foo,number])",
+                    "min(tags[foo,number])",
+                    "max(tags[foo,number])",
                 ],
                 "query": "",
                 "orderby": "description",
@@ -718,21 +718,21 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         data = response.data["data"]
         assert data[0] == {
             "description": "foo",
-            "count_unique_weighted(bar)": 3,
-            "count_unique_weighted(tags[bar])": 3,
-            "count_unique_weighted(tags[bar,string])": 3,
-            "count_weighted()": 3,
-            "count_weighted(span.duration)": 3,
-            "count_weighted(tags[foo,     number])": 1,
-            "sum_weighted(tags[foo,number])": 5.0,
-            "avg_weighted(tags[foo,number])": 5.0,
-            "p50_weighted(tags[foo,number])": 5.0,
-            "p75_weighted(tags[foo,number])": 5.0,
-            "p95_weighted(tags[foo,number])": 5.0,
-            "p99_weighted(tags[foo,number])": 5.0,
-            "p100_weighted(tags[foo,number])": 5.0,
-            "min_weighted(tags[foo,number])": 5.0,
-            "max_weighted(tags[foo,number])": 5.0,
+            "count_unique(bar)": 3,
+            "count_unique(tags[bar])": 3,
+            "count_unique(tags[bar,string])": 3,
+            "count()": 3,
+            "count(span.duration)": 3,
+            "count(tags[foo,     number])": 1,
+            "sum(tags[foo,number])": 5.0,
+            "avg(tags[foo,number])": 5.0,
+            "p50(tags[foo,number])": 5.0,
+            "p75(tags[foo,number])": 5.0,
+            "p95(tags[foo,number])": 5.0,
+            "p99(tags[foo,number])": 5.0,
+            "p100(tags[foo,number])": 5.0,
+            "min(tags[foo,number])": 5.0,
+            "max(tags[foo,number])": 5.0,
         }
 
     def test_numeric_attr_without_space(self):
@@ -1016,7 +1016,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
                     "margin_of_error()",
                     "lower_count_limit()",
                     "upper_count_limit()",
-                    "count_weighted()",
+                    "count()",
                 ],
                 "query": "description:foo",
                 "project": self.project.id,
@@ -1029,7 +1029,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         margin_of_error = data["margin_of_error()"]
         lower_limit = data["lower_count_limit()"]
         upper_limit = data["upper_count_limit()"]
-        extrapolated = data["count_weighted()"]
+        extrapolated = data["count()"]
         assert margin_of_error == pytest.approx(0.306, rel=1e-1)
         # How to read this; these results mean that the extrapolated count is
         # 500k, with a lower estimated bound of ~200k, and an upper bound of 800k
