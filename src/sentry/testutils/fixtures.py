@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -26,6 +26,7 @@ from sentry.models.team import Team
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -44,7 +45,7 @@ from sentry.uptime.models import (
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.models import DataSource, Detector, Workflow
+from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -183,36 +184,27 @@ class Fixtures:
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_project_bookmark(project=project, *args, **kwargs)
+        return Factories.create_project_bookmark(project, *args, **kwargs)
 
     def create_project_key(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_project_key(project=project, *args, **kwargs)
+        return Factories.create_project_key(project, *args, **kwargs)
 
     def create_project_rule(self, project=None, *args, **kwargs) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_project_rule(project, *args, **kwargs)
 
-    def create_slack_project_rule(
-        self, project=None, integration_id=None, channel_id=None, channel_name=None, *args, **kwargs
-    ):
+    def create_slack_project_rule(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_slack_project_rule(
-            project,
-            integration_id=integration_id,
-            channel_id=channel_id,
-            channel_name=channel_name,
-            *args,
-            **kwargs,
-        )
+        return Factories.create_slack_project_rule(project, *args, **kwargs)
 
-    def create_release(self, project=None, user=None, *args, **kwargs):
+    def create_release(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_release(project=project, user=user, *args, **kwargs)
+        return Factories.create_release(project, *args, **kwargs)
 
     def create_group_release(self, project: Project | None = None, *args, **kwargs) -> GroupRelease:
         if project is None:
@@ -249,7 +241,7 @@ class Fixtures:
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_repo(project=project, *args, **kwargs)
+        return Factories.create_repo(project, *args, **kwargs)
 
     def create_commit(self, *args, **kwargs):
         return Factories.create_commit(*args, **kwargs)
@@ -277,7 +269,7 @@ class Fixtures:
         user: User | None = None,
         provider: str | None = None,
         uid: str | None = None,
-        extra_data: Mapping[str, Any] | None = None,
+        extra_data: dict[str, Any] | None = None,
     ):
         if not user:
             user = self.user
@@ -291,7 +283,7 @@ class Fixtures:
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_group(project=project, *args, **kwargs)
+        return Factories.create_group(project, *args, **kwargs)
 
     def create_file(self, **kwargs):
         return Factories.create_file(**kwargs)
@@ -302,12 +294,12 @@ class Fixtures:
     def create_event_attachment(self, event=None, *args, **kwargs):
         if event is None:
             event = self.event
-        return Factories.create_event_attachment(event=event, *args, **kwargs)
+        return Factories.create_event_attachment(event, *args, **kwargs)
 
-    def create_dif_file(self, project=None, *args, **kwargs):
+    def create_dif_file(self, project: Project | None = None, *args, **kwargs):
         if project is None:
             project = self.project
-        return Factories.create_dif_file(project=project, *args, **kwargs)
+        return Factories.create_dif_file(project, *args, **kwargs)
 
     def create_dif_from_path(self, project=None, *args, **kwargs):
         if project is None:
@@ -371,18 +363,16 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, subscription=None, *args, **kwargs):
+    def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
         if projects is None:
             projects = [self.project]
 
-        return Factories.create_incident(
-            organization=organization, projects=projects, subscription=subscription, *args, **kwargs
-        )
+        return Factories.create_incident(organization, projects, *args, **kwargs)
 
-    def create_incident_activity(self, incident, *args, **kwargs):
-        return Factories.create_incident_activity(incident=incident, *args, **kwargs)
+    def create_incident_activity(self, *args, **kwargs):
+        return Factories.create_incident_activity(*args, **kwargs)
 
     def create_incident_comment(self, incident, *args, **kwargs):
         return self.create_incident_activity(
@@ -401,8 +391,8 @@ class Fixtures:
 
     def create_alert_rule_activation(
         self,
-        alert_rule=None,
-        query_subscriptions=None,
+        alert_rule: AlertRule | None = None,
+        query_subscriptions: Iterable[QuerySubscription] | None = None,
         project=None,
         monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
         activator=None,
@@ -411,9 +401,7 @@ class Fixtures:
         **kwargs,
     ):
         if not alert_rule:
-            alert_rule = self.create_alert_rule(
-                monitor_type=monitor_type,
-            )
+            alert_rule = self.create_alert_rule(monitor_type=monitor_type)
         if not query_subscriptions:
             projects = [project] if project else [self.project]
             # subscribing an activated alert rule will create an activation
@@ -427,9 +415,7 @@ class Fixtures:
         created_activations = []
         for sub in query_subscriptions:
             created_activations.append(
-                Factories.create_alert_rule_activation(
-                    alert_rule=alert_rule, query_subscription=sub, *args, **kwargs
-                )
+                Factories.create_alert_rule_activation(alert_rule, sub, *args, **kwargs)
             )
         return created_activations
 
@@ -622,9 +608,6 @@ class Fixtures:
     def create_dashboard_widget_query(self, *args, **kwargs):
         return Factories.create_dashboard_widget_query(*args, **kwargs)
 
-    def create_workflow_action(self, *args, **kwargs) -> Workflow:
-        return Factories.create_workflow_action(*args, **kwargs)
-
     def create_workflow(self, *args, **kwargs) -> Workflow:
         return Factories.create_workflow(*args, **kwargs)
 
@@ -654,7 +637,7 @@ class Fixtures:
     def create_detector(self, *args, **kwargs) -> Detector:
         return Factories.create_detector(*args, **kwargs)
 
-    def create_detector_state(self, *args, **kwargs) -> Detector:
+    def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
 
     def create_data_source_detector(self, *args, **kwargs):
