@@ -57,6 +57,9 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check
     body = models.TextField(null=True)
+    # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
+    # be associated, this just controls the span sampling.
+    trace_sampling = models.BooleanField(default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -73,9 +76,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 "interval_seconds",
                 "timeout_ms",
                 "method",
+                "trace_sampling",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check",
+                name="uptime_uptimesubscription_unique_subscription_check_2",
             ),
         ]
 

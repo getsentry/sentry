@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class TestTranslateUotimeHeaderObjectsToList(TestMigrations):
     app = "uptime"
     migrate_from = "0015_headers_deafult_empty_list"
