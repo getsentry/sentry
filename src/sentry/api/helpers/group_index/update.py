@@ -136,10 +136,10 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        try:
-            if not features.has(
-                "organizations:releases-resolve-next-release-semver-fix", group.project.organization
-            ):
+        if not features.has(
+            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
+        ):
+            try:
                 # This sets current_release_version to the latest semver version associated with a group
                 associated_release_id = GroupRelease.objects.filter(
                     project_id=group.project.id, group_id=group.id
@@ -150,11 +150,11 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
                     .values_list("version", flat=True)[:1]
                     .get()
                 )
-            else:
-                current_release_version = greatest_semver_release(group.project).version
+            except Release.DoesNotExist:
+                pass
+        else:
+            current_release_version = greatest_semver_release(group.project).version
 
-        except Release.DoesNotExist:
-            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
