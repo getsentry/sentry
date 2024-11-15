@@ -1,3 +1,35 @@
+24.11.0
+-------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add support link to dropdown (#80804) by @roggenkemper
+- fix(issues): Show 50+ Replays whenever the count is maxed out like that (#80809) by @ryan953
+- ref(replay): Refactor extractDomNodes stepper strategy into extractDomNodes.tsx (#80810) by @ryan953
+- ref: make condition_data / action_data param names match for create_project_rule (#80781) by @asottile-sentry
+- ref: explicitly install libexpat1 (#80742) by @asottile-sentry
+- ref(dashboards): Fixes and refactoring for edit access selector button (#80633) by @harshithadurai
+- feat(flamegraphs): Support functions flamegraphs for continuous profi… (#80822) by @Zylphrex
+- feature(dashboards): added grid icon (#80806) by @doralchan
+- fix(charts): Respect stacked prop in area chart (#80824) by @Zylphrex
+- fix(insights): filter out ui.action in backend, and add to mobile (#80823) by @DominikB2014
+- chore(flamegraph): Remove transactions from differential flamegraphs (#80807) by @Zylphrex
+- feat(functions): Use flamegraph as data source for slowest functions (#80791) by @Zylphrex
+- feat(dashboards): Dashboards landing page layout toggle (#80790) by @nikkikapadia
+- ref(grouping): Rename `GroupingComponent` to `BaseGroupingComponent` (#80725) by @lobsterkatie
+- feat(dynamic-sampling): Show project as active if not 100 percent (#80819) by @ArthurKnaus
+- feat(dynamic-sampling): Copy changes and doc links (#80818) by @ArthurKnaus
+- fix(releases): For semver releases, get latest release as the resolving one (#80737) by @armenzg
+- feat(dynamic-sampling): Use new span count endpoint (#80732) by @ArthurKnaus
+- feat(dynamic-sampling): Show stored span per sub-project (#80816) by @ArthurKnaus
+- fix(dynamic-sampling): set dynamic sampling project span count mql query limit (#80812) by @shellmayr
+- chore(codeowners): update telemetry experience ownership (#80813) by @shellmayr
+- fix(crons): Move limit back onto QuerySet for incident detection (#80805) by @evanpurkhiser
+- fix(grouping): Small types fixes (#80724) by @lobsterkatie
+- feat(backup): Add export checkpointer (#80711) by @azaslavsky
+
+_Plus 1276 more_
+
 24.10.0
 -------
 
