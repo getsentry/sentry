@@ -21,11 +21,11 @@ export function useAnalytics({
   columns: string[];
   organization: Organization;
   resultLength: number | undefined;
-  resultMissingRoot: number | undefined;
   resultMode: 'span samples' | 'trace samples' | 'aggregates';
   resultStatus: UseApiQueryResult<any, RequestError>['status'];
   userQuery: string;
   visualizes: Visualize[];
+  resultMissingRoot?: number;
 }) {
   useEffect(() => {
     if (resultStatus === 'pending') {

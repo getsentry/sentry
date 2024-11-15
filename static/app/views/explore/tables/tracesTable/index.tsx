@@ -67,6 +67,7 @@ export function TracesTable() {
     resultLength: result.data?.data?.length,
     resultMode: 'trace samples',
     resultStatus: result.status,
+    resultMissingRoot: result.data?.data?.filter(trace => !defined(trace.name))?.length,
     visualizes,
     organization,
     columns: [
