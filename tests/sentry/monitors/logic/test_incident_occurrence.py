@@ -11,6 +11,7 @@ from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import I
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.monitors.logic.incident_occurrence import (
     MONITORS_INCIDENT_OCCURRENCES,
+    dispatch_incident_occurrence,
     get_failure_reason,
     queue_incident_occurrence,
     send_incident_occurrence,
@@ -255,3 +256,66 @@ class IncidentOccurrenceTestCase(TestCase):
         assert mock_producer.produce.mock_calls[0] == mock.call(
             Topic("monitors-test-topic"), test_payload
         )
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.send_incident_occurrence")
+    @mock.patch("sentry.monitors.logic.incident_occurrence.queue_incident_occurrence")
+    def test_dispatch_incident_occurrence(
+        self,
+        mock_queue_incident_occurrence,
+        mock_send_incident_occurrence,
+    ):
+        monitor = self.create_monitor()
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+        )
+        failed_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.ERROR,
+            date_added=timezone.now(),
+        )
+        incident = MonitorIncident.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=failed_checkin,
+            starting_timestamp=failed_checkin.date_added,
+        )
+
+        # Sending without tick triggers send_incident_occurrence
+        dispatch_incident_occurrence(
+            failed_checkin,
+            [failed_checkin],
+            incident,
+            received=failed_checkin.date_added,
+            clock_tick=None,
+        )
+        assert mock_send_incident_occurrence.call_count == 1
+        mock_send_incident_occurrence.reset_mock()
+
+        # Sending with tick triggers send_incident_occurrence unless we enable
+        # the crons.dispatch_incident_occurrences_to_consumer option
+        dispatch_incident_occurrence(
+            failed_checkin,
+            [failed_checkin],
+            incident,
+            received=failed_checkin.date_added,
+            clock_tick=timezone.now(),
+        )
+        assert mock_send_incident_occurrence.call_count == 1
+        mock_send_incident_occurrence.reset_mock()
+
+        # Sending with tick and option set dispatches via
+        # queue_incident_occurrence
+        with self.options({"crons.dispatch_incident_occurrences_to_consumer": True}):
+            dispatch_incident_occurrence(
+                failed_checkin,
+                [failed_checkin],
+                incident,
+                received=failed_checkin.date_added,
+                clock_tick=timezone.now(),
+            )
+            assert mock_queue_incident_occurrence.call_count == 1
+            assert mock_send_incident_occurrence.call_count == 0
