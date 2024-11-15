@@ -30,6 +30,10 @@ def mark_failed(
     if monitor_env is None:
         return False
 
+    # Use the failure time as recieved if there is no received time
+    if received is None:
+        received = failed_at
+
     # Compute the next check-in time from our reference time
     next_checkin = monitor_env.monitor.get_next_expected_checkin(failed_at)
     next_checkin_latest = monitor_env.monitor.get_next_expected_checkin_latest(failed_at)
