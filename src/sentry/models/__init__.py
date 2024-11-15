@@ -1,3 +1,4 @@
+from ..notifications.models.notificationmessage import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -60,7 +61,6 @@ from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .importchunk import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
-from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
