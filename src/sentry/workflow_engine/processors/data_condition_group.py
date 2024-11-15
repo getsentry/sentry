@@ -31,11 +31,16 @@ def evaluate_condition_group(
     # Evaluate the fast conditions first, if any are met, return early
     # Enqueue the slow conditions to be evaluated later
 
+    if len(conditions) == 0:
+        # if we don't have any conditions, always return True
+        return True, []
+
     for condition in conditions:
         evaluation_result = condition.evaluate_value(value)
         is_condition_triggered = evaluation_result is not None
 
         if is_condition_triggered:
+            # Check for short-circuiting evaluations
             if data_condition_group.logic_type == data_condition_group.Type.ANY_SHORT_CIRCUIT:
                 return is_condition_triggered, [evaluation_result]
 
@@ -61,8 +66,7 @@ def evaluate_condition_group(
             condition_results = [result[1] for result in results if result[0]]
             return is_all_conditions_met, condition_results
 
-    # if we don't have any conditions, we want this to evaluate as Truthy
-    return len(conditions) == 0, []
+    return False, []
 
 
 def process_data_condition_group(
