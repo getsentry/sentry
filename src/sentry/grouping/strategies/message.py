@@ -4,7 +4,7 @@ from typing import Any
 from sentry import analytics
 from sentry.eventstore.models import Event
 from sentry.features.rollout import in_rollout_group
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
     GroupingContext,
@@ -108,17 +108,10 @@ def message_v1(
         raw = interface.message or interface.formatted or ""
         normalized = normalize_message_for_grouping(raw, event)
         hint = "stripped event-specific values" if raw != normalized else None
-        return {
-            context["variant"]: BaseGroupingComponent(
-                id="message",
-                values=[normalized],
-                hint=hint,
-            )
-        }
+        return {context["variant"]: MessageGroupingComponent(values=[normalized], hint=hint)}
     else:
         return {
-            context["variant"]: BaseGroupingComponent(
-                id="message",
+            context["variant"]: MessageGroupingComponent(
                 values=[interface.message or interface.formatted or ""],
             )
         }
