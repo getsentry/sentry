@@ -30,8 +30,8 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url

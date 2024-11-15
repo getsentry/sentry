@@ -24,6 +24,12 @@ class OrganizationConfigIntegrationsTest(APITestCase):
         assert len(response.data["providers"]) == 1
         assert response.data["providers"][0]["name"] == "Example Server"
 
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"providerKey": "example_server"}
+        )
+        assert len(response.data["providers"]) == 1
+        assert response.data["providers"][0]["name"] == "Example Server"
+
     def test_feature_flag_integration(self):
         response = self.get_success_response(self.organization.slug)
         provider = [r for r in response.data["providers"] if r["key"] == "feature_flag_integration"]

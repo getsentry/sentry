@@ -15,8 +15,11 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import dispatch_check_missing
 from sentry.monitors.clock_tasks.check_timeout import dispatch_check_timeout
-from sentry.monitors.clock_tasks.mark_unknown import dispatch_mark_unknown
-from sentry.monitors.types import TickVolumeAnomolyResult
+from sentry.monitors.system_incidents import (
+    make_clock_tick_decision,
+    record_clock_tick_volume_metric,
+)
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -30,27 +33,31 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
     wrapper: ClockTick = MONITORS_CLOCK_TICK_CODEC.decode(message.payload.value)
     ts = datetime.fromtimestamp(wrapper["ts"], tz=timezone.utc)
 
-    volume_anomaly_result = TickVolumeAnomolyResult.from_str(
-        wrapper.get("volume_anomaly_result", "normal")
-    )
+    record_clock_tick_volume_metric(ts)
+    try:
+        result = make_clock_tick_decision(ts)
+
+        metrics.incr(
+            "monitors.tasks.clock_tick.tick_decision",
+            tags={"decision": result.decision},
+            sample_rate=1.0,
+        )
+        if result.transition:
+            metrics.incr(
+                "monitors.tasks.clock_tick.tick_transition",
+                tags={"transition": result.transition},
+                sample_rate=1.0,
+            )
+    except Exception:
+        logger.exception("sentry.tasks.clock_tick.clock_tick_decision_failed")
 
     logger.info(
         "process_clock_tick",
-        extra={"reference_datetime": str(ts), "volume_anomaly_result": volume_anomaly_result.value},
+        extra={"reference_datetime": str(ts)},
     )
 
-    dispatch_check_missing(ts, volume_anomaly_result)
-
-    # When the tick is anomalys we are unable to mark timeouts, since it is
-    # possible that a OK check-in was sent completing an earlier in-progress
-    # check-in during a period of data-loss. In this scenario instead we need
-    # to mark ALL in-progress check-ins as unknown, since they may time-out in
-    # the future if we lost the in-progress check-in.
-    match volume_anomaly_result:
-        case TickVolumeAnomolyResult.NORMAL:
-            dispatch_check_timeout(ts)
-        case TickVolumeAnomolyResult.ABNORMAL:
-            dispatch_mark_unknown(ts)
+    dispatch_check_missing(ts)
+    dispatch_check_timeout(ts)
 
 
 class MonitorClockTickStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

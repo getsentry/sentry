@@ -23,7 +23,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MarkFailedTestCase(TestCase):
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_default_params(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -61,7 +61,7 @@ class MarkFailedTestCase(TestCase):
             trace_id=trace_id,
             date_added=last_checkin,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor_environment.refresh_from_db()
         assert monitor_environment.status == MonitorStatus.ERROR
@@ -144,7 +144,7 @@ class MarkFailedTestCase(TestCase):
             },
         ) == dict(event)
 
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_muted(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -171,7 +171,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -181,7 +181,7 @@ class MarkFailedTestCase(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
 
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_env_muted(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -210,7 +210,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
-        assert mark_failed(checkin, ts=checkin.date_added)
+        assert mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -220,7 +220,7 @@ class MarkFailedTestCase(TestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
         assert monitor_environment.active_incident is not None
 
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
@@ -259,7 +259,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -283,7 +283,7 @@ class MarkFailedTestCase(TestCase):
             )
             if _ == 0:
                 first_checkin = checkin
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -318,7 +318,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=status,
         )
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
 
@@ -357,14 +357,14 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=status,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 2
 
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold_timeout(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
@@ -410,7 +410,7 @@ class MarkFailedTestCase(TestCase):
         for _ in range(0, failure_issue_threshold - 1):
             checkin = checkins.pop(0)
             checkin.update(status=CheckInStatus.TIMEOUT)
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has not hit threshold, monitor should be in an OK status
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -418,7 +418,7 @@ class MarkFailedTestCase(TestCase):
 
         checkin = checkins.pop(0)
         checkin.update(status=CheckInStatus.TIMEOUT)
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
@@ -443,7 +443,7 @@ class MarkFailedTestCase(TestCase):
         assert occurrence["evidence_display"][0]["value"] == "8 timeout check-ins detected"
 
     # we are duplicating this test as the code paths are different, for now
-    @patch("sentry.issues.producer.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_issue_threshold_disabled(self, mock_produce_occurrence_to_kafka):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
@@ -473,7 +473,7 @@ class MarkFailedTestCase(TestCase):
                 project_id=self.project.id,
                 status=CheckInStatus.UNKNOWN,
             )
-            mark_failed(checkin, ts=checkin.date_added)
+            mark_failed(checkin, failed_at=checkin.date_added)
 
         monitor.refresh_from_db()
         monitor_environment.refresh_from_db()
@@ -516,7 +516,7 @@ class MarkFailedTestCase(TestCase):
             project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
         )
-        mark_failed(checkin, ts=checkin.date_added)
+        mark_failed(checkin, failed_at=checkin.date_added)
 
         # failure has hit threshold, monitor should be in a failed state
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)

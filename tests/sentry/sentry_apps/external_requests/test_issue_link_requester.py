@@ -1,5 +1,6 @@
 import pytest
 import responses
+from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
@@ -26,7 +27,7 @@ class TestIssueLinkRequester(TestCase):
         self.orm_install = self.create_sentry_app_installation(
             slug="foo", organization=self.org, user=self.user
         )
-        self.user = serialize_rpc_user(self.user)
+        self.rpc_user = serialize_rpc_user(self.user)
         self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
 
     @responses.activate
@@ -50,7 +51,7 @@ class TestIssueLinkRequester(TestCase):
             group=self.group,
             uri="/link-issue",
             fields=fields,
-            user=self.user,
+            user=self.rpc_user,
             action="create",
         ).run()
         assert result == {
@@ -94,13 +95,13 @@ class TestIssueLinkRequester(TestCase):
             status=200,
             content_type="application/json",
         )
-        with pytest.raises(APIError):
+        with pytest.raises(ValidationError):
             IssueLinkRequester(
                 install=self.install,
                 group=self.group,
                 uri="/link-issue",
                 fields={},
-                user=self.user,
+                user=self.rpc_user,
                 action="create",
             ).run()
 
@@ -119,7 +120,7 @@ class TestIssueLinkRequester(TestCase):
                 group=self.group,
                 uri="/link-issue",
                 fields={},
-                user=self.user,
+                user=self.rpc_user,
                 action="create",
             ).run()
 

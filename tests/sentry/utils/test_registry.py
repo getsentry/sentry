@@ -21,8 +21,15 @@ class RegistryTest(TestCase):
         with pytest.raises(NoRegistrationExistsError):
             test_registry.get("something else")
 
+        assert test_registry.get_key(registered_func) == "something"
+        with pytest.raises(NoRegistrationExistsError):
+            test_registry.get_key(unregistered_func)
+
         with pytest.raises(AlreadyRegisteredError):
             test_registry.register("something")(unregistered_func)
+
+        with pytest.raises(AlreadyRegisteredError):
+            test_registry.register("new_key")(registered_func)
 
         test_registry.register("something else")(unregistered_func)
         assert test_registry.get("something else") == unregistered_func

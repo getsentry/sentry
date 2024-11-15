@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -58,7 +58,7 @@ class Fixtures:
         return self.create_project_key(project=self.project)
 
     @cached_property
-    def user(self):
+    def user(self) -> User:
         return self.create_user("admin@localhost", is_superuser=True, is_staff=True)
 
     @cached_property
@@ -274,7 +274,7 @@ class Fixtures:
     def create_commit_file_change(self, *args, **kwargs):
         return Factories.create_commit_file_change(*args, **kwargs)
 
-    def create_user(self, *args, **kwargs):
+    def create_user(self, *args, **kwargs) -> User:
         return Factories.create_user(*args, **kwargs)
 
     def create_useremail(self, *args, **kwargs):
@@ -406,7 +406,7 @@ class Fixtures:
     def create_incident_trigger(self, incident, alert_rule_trigger, status):
         return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
 
-    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs):
+    def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
         if projects is None:
@@ -536,7 +536,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: RpcUser | None = None,
+        user: RpcUser | User | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

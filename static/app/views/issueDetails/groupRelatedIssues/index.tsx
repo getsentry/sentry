@@ -8,15 +8,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type RouteParams = {
-  groupId: string;
-};
-
-type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params'>;
+import {useParams} from 'sentry/utils/useParams';
 
 type RelatedIssuesResponse = {
   data: number[];
@@ -33,8 +27,8 @@ interface RelatedIssuesSectionProps {
   relationType: string;
 }
 
-function GroupRelatedIssues({params}: Props) {
-  const {groupId} = params;
+function GroupRelatedIssues() {
+  const params = useParams<{groupId: string}>();
 
   const organization = useOrganization();
   const orgSlug = organization.slug;
@@ -42,12 +36,12 @@ function GroupRelatedIssues({params}: Props) {
   return (
     <Fragment>
       <RelatedIssuesSection
-        groupId={groupId}
+        groupId={params.groupId}
         orgSlug={orgSlug}
         relationType="same_root_cause"
       />
       <RelatedIssuesSection
-        groupId={groupId}
+        groupId={params.groupId}
         orgSlug={orgSlug}
         relationType="trace_connected"
       />
