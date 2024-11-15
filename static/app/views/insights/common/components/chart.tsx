@@ -250,8 +250,10 @@ function Chart({
         metricChartType
       );
       // this helper causes all the incomplete series to stack, here we remove the stacking
-      for (const s of ingestionSeries) {
-        delete s.stack;
+      if (!stacked) {
+        for (const s of ingestionSeries) {
+          delete s.stack;
+        }
       }
       return ingestionSeries;
     });
