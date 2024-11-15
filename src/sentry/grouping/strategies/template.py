@@ -16,11 +16,11 @@ from sentry.interfaces.template import Template
 def template_v1(
     interface: Template, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    filename_component = BaseGroupingComponent(id="filename")
+    filename_component: BaseGroupingComponent[str] = BaseGroupingComponent(id="filename")
     if interface.filename is not None:
         filename_component.update(values=[interface.filename])
 
-    context_line_component = BaseGroupingComponent(id="context-line")
+    context_line_component: BaseGroupingComponent[str] = BaseGroupingComponent(id="context-line")
     if interface.context_line is not None:
         context_line_component.update(values=[interface.context_line])
 

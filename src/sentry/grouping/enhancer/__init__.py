@@ -164,11 +164,11 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
-        components: list[BaseGroupingComponent],
+        components: list[BaseGroupingComponent[BaseGroupingComponent[str]]],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[BaseGroupingComponent, bool]:
+    ) -> tuple[BaseGroupingComponent[BaseGroupingComponent[BaseGroupingComponent[str]]], bool]:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -186,11 +186,13 @@ class Enhancements:
         for py_component, rust_component in zip(components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
 
-        component = BaseGroupingComponent(
-            id="stacktrace",
-            values=components,
-            hint=rust_results.hint,
-            contributes=rust_results.contributes,
+        component: BaseGroupingComponent[BaseGroupingComponent[BaseGroupingComponent[str]]] = (
+            BaseGroupingComponent(
+                id="stacktrace",
+                values=components,
+                hint=rust_results.hint,
+                contributes=rust_results.contributes,
+            )
         )
 
         return component, rust_results.invert_stacktrace

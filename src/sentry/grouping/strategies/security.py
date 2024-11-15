@@ -62,8 +62,8 @@ def hpkp_v1(
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
-    violation_component = BaseGroupingComponent(id="violation")
-    uri_component = BaseGroupingComponent(id="uri")
+    violation_component: BaseGroupingComponent[str] = BaseGroupingComponent(id="violation")
+    uri_component: BaseGroupingComponent[str] = BaseGroupingComponent(id="uri")
 
     if interface.local_script_violation_type:
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
