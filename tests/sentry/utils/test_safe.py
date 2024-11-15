@@ -4,12 +4,10 @@ import unittest
 from collections.abc import MutableMapping
 from functools import partial
 from typing import Any
-from unittest.mock import Mock, patch
 
 import pytest
 
 from sentry.testutils.cases import TestCase
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.safe import (
     get_path,
     safe_execute,
@@ -96,18 +94,6 @@ class SafeExecuteTest(TestCase):
 
         assert safe_execute(Foo().simple, 1) is None
 
-    @patch("sentry.utils.safe.logging.getLogger")
-    def test_with_expected_errors(self, mock_get_logger):
-        mock_log = Mock()
-        mock_get_logger.return_value = mock_log
-
-        def simple(a):
-            raise ValueError()
-
-        assert safe_execute(simple, 1, expected_errors=(ValueError,)) is None
-        assert mock_log.info.called
-        assert mock_log.error.called is False
-
 
 class GetPathTest(unittest.TestCase):
     def test_get_none(self):
@@ -123,7 +109,6 @@ class GetPathTest(unittest.TestCase):
         assert get_path({"a": 2}, "b") is None
         assert get_path({"a": {"b": []}}, "a", "b") == []
         assert get_path({"a": []}, "a", "b") is None
-        assert get_path(CanonicalKeyDict({"a": 2}), "a") == 2
 
     def test_get_default(self):
         assert get_path({"a": 2}, "b", default=1) == 1
@@ -184,10 +169,6 @@ class SetPathTest(unittest.TestCase):
         data = {}
         assert set_path(data, "a", "b", value=42)
         assert data == {"a": {"b": 42}}
-
-        data = CanonicalKeyDict({})
-        assert set_path(data, "a", value=42)
-        assert data == {"a": 42}
 
     def test_set_default(self):
         data = {"a": {"b": 2}}

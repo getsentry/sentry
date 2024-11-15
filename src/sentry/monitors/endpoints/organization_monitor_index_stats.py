@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict, defaultdict
 from collections.abc import MutableMapping
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
@@ -16,7 +16,14 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
-from sentry.utils.dates import to_timestamp
+
+TRACKED_STATUSES = [
+    CheckInStatus.IN_PROGRESS,
+    CheckInStatus.OK,
+    CheckInStatus.ERROR,
+    CheckInStatus.MISSED,
+    CheckInStatus.TIMEOUT,
+]
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
@@ -26,7 +33,7 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
     i.e. if the rollup is minutes, the resulting timestamp would have
     the seconds and microseconds rounded down.
     """
-    epoch = int(to_timestamp(timestamp))
+    epoch = int(timestamp.timestamp())
     return epoch - (epoch % seconds)
 
 
@@ -47,28 +54,22 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
 
-        monitor_slugs: list[str] = request.GET.getlist("monitor")
+        monitor_guids: list[str] = request.GET.getlist("monitor")
 
-        tracked_statuses = [
-            CheckInStatus.IN_PROGRESS,
-            CheckInStatus.OK,
-            CheckInStatus.ERROR,
-            CheckInStatus.MISSED,
-            CheckInStatus.TIMEOUT,
-        ]
-
-        # Pre-fetch the monitor-ids and their slugs. This is an optimization to eliminate a join
-        # against the monitor table which significantly inflates the size of the aggregation
-        # states.
+        # Pre-fetch the monitor-ids and their guid. This is an
+        # optimization to eliminate a join against the monitor table which
+        # significantly inflates the size of the aggregation states.
         #
-        # The ids are used to explicitly scope the query and the slugs are returned as display
-        # data. The slugs have to be fetched (even though we already have them in memory) so we
-        # can maintain a correct mapping of id -> slug.
-        monitor_map = dict(
-            Monitor.objects.filter(
-                organization_id=organization.id, slug__in=monitor_slugs
-            ).values_list("id", "slug")
-        )
+        # The ids are used to explicitly scope the query and the slugs are
+        # returned as display data. The slugs have to be fetched (even though
+        # we already have them in memory) so we can maintain a correct mapping
+        # of id -> slug.
+        monitor_map = {
+            id: str(guid)
+            for id, guid in Monitor.objects.filter(
+                organization_id=organization.id, guid__in=monitor_guids
+            ).values_list("id", "guid")
+        }
 
         # We only care about the name but we don't want to join to get it. So we're maintaining
         # this map until the very end where we'll map from monitor_environment to environment to
@@ -107,24 +108,24 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
             # Otherwise we can skip this and default to the "production" environment label.
             eids = list(filter(lambda eid: eid is not None, monitor_environment_map.values()))
             if eids:
-                environments = Environment.objects.filter(id__in=eids)
+                environments = list(Environment.objects.filter(id__in=eids))
                 environment_map = {env.id: env.name for env in environments}
 
         check_ins = MonitorCheckIn.objects.filter(
-            monitor_id__in=monitor_map.keys(),
-            status__in=tracked_statuses,
-            date_added__gt=args["start"],
-            date_added__lte=args["end"],
+            date_added__gte=args["start"],
+            date_added__lt=args["end"],
         )
 
         if monitor_environment_map:
             check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
+        else:
+            check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
             timedelta(seconds=args["rollup"]),
             "date_added",
-            datetime.fromtimestamp(start),
+            datetime.fromtimestamp(start, UTC),
             function="date_bin",
             output_field=DateTimeField(),
         )
@@ -157,7 +158,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         StatusStats = MutableMapping[str, int]
 
         def status_obj_factory() -> StatusStats:
-            return {status_to_name[status]: 0 for status in tracked_statuses}
+            return {status_to_name[status]: 0 for status in TRACKED_STATUSES}
 
         # Mapping chain of monitor_id -> timestamp[] -> monitor_env_names -> StatusStats
         EnvToStatusMapping = MutableMapping[int, StatusStats]
@@ -169,18 +170,18 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         stats: MonitorToTimestampsMapping = defaultdict(OrderedDict)
 
         # initialize mappings
-        for slug in monitor_slugs:
+        for guid in monitor_guids:
             ts = start
             while ts <= end:
-                stats[slug][ts] = defaultdict(status_obj_factory)
+                stats[guid][ts] = defaultdict(status_obj_factory)
                 ts += args["rollup"]
 
-        # We manually sort the response output by slug and bucket. This is fine because the set
-        # of slugs is known (they're provided as a query parameter) and there is no pagination.
+        # We manually sort the response output by guid and bucket. This is fine because the set
+        # of keys is known (they're provided as a query parameter) and there is no pagination.
         for mid, ts, meid, status, count in sorted(
             list(history), key=lambda k: (monitor_map[k[0]], k[1])
         ):
-            slug = monitor_map[mid]
+            guid = monitor_map[mid]
 
             # Monitor environments can be null.  If we find a null monitor environment we
             # default to "production" by convention.
@@ -190,13 +191,13 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 env_name = environment_map[monitor_environment_map[meid]]
 
             named_status = status_to_name[status]
-            stats[slug][ts][env_name][named_status] = count  # type: ignore
+            stats[guid][ts][env_name][named_status] = count  # type: ignore[index]
 
         # Flatten the timestamp to env mapping dict into a tuple list, this
         # maintains the ordering
         stats_list = {
-            slug: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
-            for slug, ts_to_envs in stats.items()
+            guid: [[ts, env_mapping] for ts, env_mapping in ts_to_envs.items()]
+            for guid, ts_to_envs in stats.items()
         }
 
         return Response(stats_list)

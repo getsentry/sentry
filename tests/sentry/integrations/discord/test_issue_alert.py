@@ -1,6 +1,7 @@
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import responses
 from django.core.exceptions import ValidationError
 
@@ -9,16 +10,19 @@ from sentry.integrations.discord.actions.issue_alert.notification import Discord
 from sentry.integrations.discord.client import MESSAGE_URL
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.component import DiscordComponentCustomIds
-from sentry.integrations.message_builder import build_attachment_title, build_footer, get_title_link
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_title,
+    build_footer,
+    get_title_link,
+)
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiTimeoutError
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -44,7 +48,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "Event message",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -67,15 +71,13 @@ class DiscordIssueAlertTest(RuleTestCase):
     @mock.patch("sentry.analytics.record")
     def test_basic(self, mock_record):
         notification_uuid = str(uuid4())
-        results = list(
-            self.rule.after(self.event, self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(self.rule.after(self.event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         embed = data["embeds"][0]
         assert embed == {
@@ -134,13 +136,13 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
         release.add_project(self.project)
 
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
@@ -161,13 +163,13 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.RESOLVED,
     )
     def test_resolved(self, mock_get_status):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
@@ -188,13 +190,13 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.IGNORED,
     )
     def test_ignored(self, mock_get_status):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
 
         body = responses.calls[0].request.body
-        data = json.loads(bytes.decode(body, "utf-8"))
+        data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
@@ -211,7 +213,7 @@ class DiscordIssueAlertTest(RuleTestCase):
 
     @responses.activate
     def test_feature_flag_disabled(self):
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 1
         results[0].callback(self.event, futures=[])
 
@@ -220,7 +222,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     @responses.activate
     def test_integration_removed(self):
         integration_service.delete_integration(integration_id=self.discord_integration.id)
-        results = list(self.rule.after(self.event, self.get_state()))
+        results = list(self.rule.after(self.event))
         assert len(results) == 0
 
     @responses.activate
@@ -274,7 +276,7 @@ class DiscordNotifyServiceFormTest(TestCase):
 
     def test_has_choices(self):
         form = DiscordNotifyServiceForm(integrations=self.integrations)
-        assert form.fields["server"].choices == [  # type: ignore
+        assert form.fields["server"].choices == [  # type: ignore[attr-defined]
             (self.discord_integration.id, self.discord_integration.name),
             (self.other_integration.id, self.other_integration.name),
         ]

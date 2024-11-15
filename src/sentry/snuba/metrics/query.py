@@ -1,4 +1,5 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -7,6 +8,7 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Literal, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -134,14 +136,21 @@ class MetricsQueryValidationRunner:
         The validation is performed by calling a function named:
             `validate_<field_name>(self) -> None`
         """
-        for name, _ in self.__dataclass_fields__.items():  # type: ignore
+        for name, _ in self.__dataclass_fields__.items():  # type: ignore[attr-defined]
             if method := getattr(self, f"validate_{name}", None):
                 method()
 
 
 @dataclass(frozen=True)
-class MetricsQuery(MetricsQueryValidationRunner):
-    """Definition of a metrics query, inspired by snuba_sdk.Query"""
+class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
+    """
+    Snuba provides a new language called MQL which has been designed to replace the old metrics language.
+    We intend to deprecate the old metrics language in the future. For any new features, we recommend using MQL.
+    Documentation of MQL can be found at https://getsentry.github.io/snuba/language/mql.html and
+    https://getsentry.github.io/snuba-sdk/snuba_sdk.html#MetricsQuery
+
+    Definition of a metrics query, inspired by snuba_sdk.Query
+    """
 
     org_id: int
     project_ids: Sequence[int]
@@ -171,7 +180,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     skip_orderby_validation: bool = False
 
     @cached_property
-    def projects(self) -> list[Project]:
+    def projects(self) -> QuerySet[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
@@ -385,7 +394,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
             interval = self.interval
 
         if self.start and self.end and self.include_series:
-            if (self.end - self.start).total_seconds() / interval > MAX_POINTS:
+            # For this calculation, we decided to round down to the integer since if we get 10.000,x we prefer to allow
+            # the query and lose some data points. On the other hand, if we get 11.000,x we will not allow the query.
+            if int((self.end - self.start).total_seconds() / interval) > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "
                     "Use a larger interval, or a smaller date range."

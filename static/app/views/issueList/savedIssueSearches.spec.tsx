@@ -13,7 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModalContainer from 'sentry/components/globalModal';
-import {SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchVisibility} from 'sentry/types/group';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
@@ -43,6 +43,7 @@ describe('SavedIssueSearches', function () {
     name: 'Last 4 Hours',
     query: 'age:-4h',
     visibility: SavedSearchVisibility.ORGANIZATION,
+    sort: 'date',
   });
 
   const pinnedSearch = SearchFixture({
@@ -64,6 +65,14 @@ describe('SavedIssueSearches', function () {
     localStorageWrapper.setItem(SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY, 'true');
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   it('displays saved searches with correct text and in correct sections', async function () {

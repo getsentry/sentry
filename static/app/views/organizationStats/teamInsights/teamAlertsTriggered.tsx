@@ -3,19 +3,20 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
-import {formatPercentage} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -49,7 +50,7 @@ function TeamAlertsTriggered({
 
   const {
     data: alertsTriggered,
-    isLoading: isAlertsTriggeredLoading,
+    isPending: isAlertsTriggeredLoading,
     isError: isAlertsTriggeredError,
     refetch: refetchAlertsTriggered,
   } = useApiQuery<AlertsTriggered>(
@@ -66,7 +67,7 @@ function TeamAlertsTriggered({
 
   const {
     data: alertsTriggeredRules,
-    isLoading: isAlertsTriggeredRulesLoading,
+    isPending: isAlertsTriggeredRulesLoading,
     isError: isAlertsTriggeredRulesError,
     refetch: refetchAlertsTriggeredRule,
   } = useApiQuery<AlertsTriggeredRule[]>(
@@ -150,20 +151,20 @@ function TeamAlertsTriggered({
         emptyMessage={t('No alerts triggered for team’s projects')}
         emptyAction={
           <ButtonsContainer>
-            <Button
+            <LinkButton
               priority="primary"
               size="sm"
               to={`/organizations/${organization.slug}/alerts/rules/`}
             >
               {t('Create Alert')}
-            </Button>
-            <Button
+            </LinkButton>
+            <LinkButton
               size="sm"
               external
-              to="https://docs.sentry.io/product/alerts/create-alerts/"
+              href="https://docs.sentry.io/product/alerts/create-alerts/"
             >
               {t('Learn more')}
-            </Button>
+            </LinkButton>
           </ButtonsContainer>
         }
         headers={[

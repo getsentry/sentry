@@ -7,34 +7,38 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
+from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleTriggerAction,
+    AlertRuleTriggerActionMethod,
+)
+from sentry.incidents.models.incident import (
+    INCIDENT_STATUS,
     Incident,
     IncidentActivity,
     IncidentActivityType,
     IncidentStatus,
     IncidentStatusMethod,
 )
+from sentry.incidents.utils.constants import (
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+    SUBSCRIPTION_METRICS_LOGGER,
+)
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
-
-INCIDENTS_SNUBA_SUBSCRIPTION_TYPE = "incidents"
-INCIDENT_SNAPSHOT_BATCH_SIZE = 50
-SUBSCRIPTION_METRICS_LOGGER = "subscription_metrics_logger"
 
 
 @instrumented_task(
@@ -81,7 +85,7 @@ def send_subscriber_notifications(activity_id: int) -> None:
 
 
 def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | User | None = None
 ) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
@@ -94,7 +98,7 @@ def generate_incident_activity_email(
 
 
 def build_activity_context(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | None = None
 ) -> dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
@@ -141,7 +145,7 @@ def handle_subscription_metrics_logger(
         if subscription.snuba_query.dataset == Dataset.Metrics.value:
             processor = SubscriptionProcessor(subscription)
             # XXX: Temporary hack so that we can extract these values without raising an exception
-            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore
+            processor.reset_trigger_counts = lambda *arg, **kwargs: None  # type: ignore[method-assign]
             aggregation_value = processor.get_aggregation_value(subscription_update)
 
             logger.info(
@@ -183,7 +187,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: str,
+    method: AlertRuleTriggerActionMethod,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,
@@ -240,7 +244,7 @@ def handle_trigger_action(
 )
 def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
     from sentry.incidents.logic import update_incident_status
-    from sentry.incidents.models import AlertRule
+    from sentry.incidents.models.alert_rule import AlertRule
 
     try:
         alert_rule = AlertRule.objects_with_snapshots.get(id=alert_rule_id)

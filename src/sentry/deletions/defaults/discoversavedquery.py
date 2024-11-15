@@ -1,8 +1,9 @@
-from ..base import ModelDeletionTask, ModelRelation
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.discover.models import DiscoverSavedQuery
 
 
-class DiscoverSavedQueryDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class DiscoverSavedQueryDeletionTask(ModelDeletionTask[DiscoverSavedQuery]):
+    def get_child_relations(self, instance: DiscoverSavedQuery) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
 
         return [

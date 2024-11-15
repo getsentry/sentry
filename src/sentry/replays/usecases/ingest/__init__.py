@@ -6,14 +6,20 @@ import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, cast
 
+import sentry_sdk.scope
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import Hub, set_tag
+from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    storage_kv,
+)
 from sentry.replays.usecases.ingest.dom_index import log_canvas_size, parse_and_emit_replay_actions
+from sentry.replays.usecases.pack import pack
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -57,15 +63,18 @@ class RecordingIngestMessage:
     received: int
     payload_with_headers: bytes
     replay_event: bytes | None
+    replay_video: bytes | None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
-def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_hub: Hub) -> None:
+def ingest_recording(
+    message_dict: ReplayRecording, transaction: Span, isolation_scope: Scope
+) -> None:
     """Ingest non-chunked recording messages."""
-    with current_hub:
+    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",
-            description="ingest_recording",
+            name="ingest_recording",
         ):
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
@@ -75,11 +84,8 @@ def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_h
                 received=message_dict["received"],
                 retention_days=message_dict["retention_days"],
                 payload_with_headers=cast(bytes, message_dict["payload"]),
-                replay_event=(
-                    cast(bytes, message_dict["replay_event"])
-                    if "replay_event" in message_dict
-                    else None
-                ),
+                replay_event=cast(bytes | None, message_dict.get("replay_event")),
+                replay_video=cast(bytes | None, message_dict.get("replay_video")),
             )
             _ingest_recording(message, transaction)
 
@@ -90,7 +96,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
     set_tag("project_id", message.project_id)
 
     try:
-        headers, recording_segment = process_headers(message.payload_with_headers)
+        headers, compressed_segment = process_headers(message.payload_with_headers)
     except Exception:
         # TODO: DLQ
         logger.exception("Recording headers could not be extracted %s", message.replay_id)
@@ -104,9 +110,48 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
         retention_days=message.retention_days,
     )
 
-    # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
-    # within this scope.
-    storage.set(segment_data, recording_segment)
+    # Segment is decompressed for further analysis. Packed format expects
+    # concatenated, uncompressed bytes.
+    try:
+        recording_segment = zlib.decompress(compressed_segment)
+        _report_size_metrics(len(compressed_segment), len(recording_segment))
+    except zlib.error:
+        if compressed_segment[0] == ord("["):
+            recording_segment = compressed_segment
+            compressed_segment = zlib.compress(compressed_segment)  # Save storage $$$
+        else:
+            logger.exception("Invalid recording body.")
+            return None
+
+    if message.replay_video:
+        # Logging org info for bigquery
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "mobile_event",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "size": len(message.replay_video),
+            },
+        )
+
+        # Record video size for COGS analysis.
+        metrics.incr("replays.recording_consumer.replay_video_count")
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(message.replay_video),
+            unit="byte",
+        )
+
+        dat = zlib.compress(pack(rrweb=recording_segment, video=message.replay_video))
+        storage_kv.set(make_recording_filename(segment_data), dat)
+
+        # Track combined payload size.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_event_size", len(dat), unit="byte"
+        )
+    else:
+        storage_kv.set(make_recording_filename(segment_data), compressed_segment)
 
     recording_post_processor(message, headers, recording_segment, message.replay_event, transaction)
 
@@ -119,6 +164,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
             message.replay_id,
             message.key_id,
             message.received,
+            is_replay_video=message.replay_video is not None,
         )
 
     transaction.finish()
@@ -130,6 +176,7 @@ def track_initial_segment_event(
     replay_id,
     key_id: int | None,
     received: int,
+    is_replay_video: bool,
 ) -> None:
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -146,17 +193,31 @@ def track_initial_segment_event(
     if not project.flags.has_replays:
         first_replay_received.send_robust(project=project, sender=Project)
 
-    track_outcome(
-        org_id=org_id,
-        project_id=project_id,
-        key_id=key_id,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=datetime.fromtimestamp(received, timezone.utc),
-        event_id=replay_id,
-        category=DataCategory.REPLAY,
-        quantity=1,
-    )
+    # Replay videos are not billed for now.
+    if is_replay_video:
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(received, timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY_VIDEO,
+            quantity=1,
+        )
+    else:
+        track_outcome(
+            org_id=org_id,
+            project_id=project_id,
+            key_id=key_id,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(received, timezone.utc),
+            event_id=replay_id,
+            category=DataCategory.REPLAY,
+            quantity=1,
+        )
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
@@ -169,14 +230,6 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
-
-
-def decompress(data: bytes) -> bytes:
-    """Return decompressed bytes."""
-    if data.startswith(b"["):
-        return data
-    else:
-        return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
 def _report_size_metrics(
@@ -201,22 +254,22 @@ def recording_post_processor(
 ) -> None:
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-            decompressed_segment = decompress(segment_bytes)
-            parsed_segment_data = json.loads(decompressed_segment)
+            parsed_segment_data = json.loads(segment_bytes)
             parsed_replay_event = json.loads(replay_event_bytes) if replay_event_bytes else None
-            _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
         with transaction.start_child(
             op="replays.usecases.ingest.parse_and_emit_replay_actions",
-            description="parse_and_emit_replay_actions",
+            name="parse_and_emit_replay_actions",
         ):
+            project = Project.objects.get_from_cache(id=message.project_id)
             parse_and_emit_replay_actions(
                 retention_days=message.retention_days,
-                project_id=message.project_id,
+                project=project,
                 replay_id=message.replay_id,
                 segment_data=parsed_segment_data,
                 replay_event=parsed_replay_event,
+                org_id=message.org_id,
             )
 
         # Log canvas mutations to bigquery.
@@ -226,6 +279,19 @@ def recording_post_processor(
             message.replay_id,
             parsed_segment_data,
         )
+
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(parsed_segment_data),
+            },
+        )
+
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",

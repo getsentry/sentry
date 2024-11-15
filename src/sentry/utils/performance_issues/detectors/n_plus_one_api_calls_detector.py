@@ -5,11 +5,11 @@ import os
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -17,7 +17,6 @@ from sentry.models.project import Project
 from sentry.utils.performance_issues.detectors.utils import get_total_span_duration
 
 from ..base import (
-    DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
@@ -48,11 +47,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     HOST_DENYLIST: list[str] = []
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.span_hashes = {}
+        self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -77,15 +78,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project=None):
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return False
@@ -147,11 +146,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    def on_complete(self):
+    def on_complete(self) -> None:
         self._maybe_store_problem()
         self.spans = []
 
-    def _maybe_store_problem(self):
+    def _maybe_store_problem(self) -> None:
         if len(self.spans) < 1:
             return
 
@@ -174,7 +173,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             fingerprint=fingerprint,
             op=last_span["op"],
             desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
-            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=offender_span_ids,
@@ -223,7 +222,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
 
-    def _get_path_prefix(self, repeating_span) -> str:
+    def _get_path_prefix(self, repeating_span: Span) -> str:
         if not repeating_span:
             return ""
 

@@ -15,7 +15,7 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, Team} from 'sentry/types';
+import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -98,7 +98,6 @@ function TeamSelect({
     <Panel>
       <TeamPanelHeader hasButtons>
         <div>{t('Team')}</div>
-        <div />
         <div>
           <TeamRoleColumnLabel />
         </div>
@@ -138,11 +137,10 @@ function TeamRow({
   organization: Organization;
   team: Team;
 }) {
-  const hasOrgAdmin = organization.access.includes('org:admin');
   const isIdpProvisioned = team.flags['idp:provisioned'];
-  const isRemoveDisabled = disabled || isIdpProvisioned || !hasOrgAdmin;
+  const isRemoveDisabled = disabled || isIdpProvisioned;
 
-  const buttonHelpText = getButtonHelpText(isIdpProvisioned, !hasOrgAdmin);
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned);
 
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
@@ -152,7 +150,7 @@ function TeamRow({
         </Link>
       </div>
 
-      <div>
+      <div style={{whiteSpace: 'nowrap'}}>
         <TeamRoleSelect
           disabled={disabled}
           size="xs"

@@ -1,57 +1,18 @@
-from datetime import timedelta
 from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
-from django.utils import timezone
 
-from sentry.models.environment import Environment
 from sentry.models.files.file import File
-from sentry.monitors.models import (
-    CheckInStatus,
-    Monitor,
-    MonitorCheckIn,
-    MonitorEnvironment,
-    MonitorType,
-    ScheduleType,
-)
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn
 from sentry.testutils.cases import MonitorIngestTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
     def get_path(self, monitor, checkin):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.slug, checkin.guid])
-
-    def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
-            config={
-                "schedule_type": ScheduleType.CRONTAB,
-                "schedule": "* * * * *",
-                "max_runtime": None,
-                "checkin_margin": None,
-            },
-            date_added=timezone.now() - timedelta(minutes=1),
-        )
-
-    def _create_monitor_environment(self, monitor, name="production", **kwargs):
-        environment = Environment.get_or_create(project=self.project, name=name)
-
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": timezone.now() - timedelta(minutes=1),
-            **kwargs,
-        }
-
-        return MonitorEnvironment.objects.create(
-            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
-        )
 
     def test_upload(self):
         monitor = self._create_monitor()

@@ -1,12 +1,12 @@
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import type {IntervalPeriod, PageFilters} from 'sentry/types';
+import type {IntervalPeriod, PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import toArray from 'sentry/utils/toArray';
 
 import type {PageFiltersState} from './types';
 

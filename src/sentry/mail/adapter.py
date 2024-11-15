@@ -4,9 +4,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry import digests
-from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import event_to_record, unsplit_key
+from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
+from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
@@ -20,9 +20,8 @@ from sentry.notifications.types import (
 )
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.tasks.digests import deliver_digest
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -108,7 +107,7 @@ class MailAdapter:
         notifications for the provided project.
         """
         user_ids = project.member_set.values_list("user_id", flat=True)
-        actors = [RpcActor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
+        actors = [Actor(id=uid, actor_type=ActorType.USER) for uid in user_ids]
         recipients = get_notification_recipients(
             recipients=actors,
             type=NotificationSettingEnum.ISSUE_ALERTS,
@@ -119,11 +118,6 @@ class MailAdapter:
         return recipients.get(ExternalProviders.EMAIL)
 
     def get_sendable_user_ids(self, project):
-        users = self.get_sendable_user_objects(project)
-        return [user.id for user in users]
-
-    def get_sendable_users(self, project):
-        """@deprecated Do not change this function, it is being used in getsentry."""
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
@@ -147,7 +141,7 @@ class MailAdapter:
     @staticmethod
     def notify_digest(
         project: Project,
-        digest: Digest,
+        digest: DigestInfo,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,

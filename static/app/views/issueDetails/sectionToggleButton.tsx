@@ -26,7 +26,7 @@ const ToggleButton = styled(Button)`
   :focus {
     color: ${p => p.theme.textColor};
   }
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export default SectionToggleButton;

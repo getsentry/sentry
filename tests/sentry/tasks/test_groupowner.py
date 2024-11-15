@@ -2,24 +2,23 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.silo.base import SiloMode
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class TestGroupOwners(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -38,7 +37,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -182,7 +181,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BANG!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -204,7 +203,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOP!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -270,7 +269,7 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
         assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-        go = GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).first()
+        go = GroupOwner.objects.get(group=event_2.group, user_id=self.user_2.id)
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 
@@ -329,7 +328,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOOM!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

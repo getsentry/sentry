@@ -1,18 +1,18 @@
 from typing import Any
 from uuid import UUID, uuid4
 
+import orjson
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.models.environment import Environment
 from sentry.rules import rules
-from sentry.utils import json
-
-ValidationError = serializers.ValidationError
+from sentry.rules.actions.sentry_apps.notify_event import NotifyEventSentryAppAction
 
 
 @extend_schema_field(field=OpenApiTypes.OBJECT)
@@ -27,7 +27,7 @@ class RuleNodeField(serializers.Field):
     def to_internal_value(self, data):
         if isinstance(data, str):
             try:
-                data = json.loads(data.replace("'", '"'))
+                data = orjson.loads(data.replace("'", '"'))
             except Exception:
                 raise ValidationError("Failed trying to parse dict from string")
         elif not isinstance(data, dict):
@@ -37,17 +37,25 @@ class RuleNodeField(serializers.Field):
         if "id" not in data:
             raise ValidationError("Missing attribute 'id'")
 
+        for key, value in list(data.items()):
+            if not value:
+                del data[key]
+
         cls = rules.get(data["id"], self.type_name)
         if cls is None:
             msg = "Invalid node. Could not find '%s'"
             raise ValidationError(msg % data["id"])
 
-        node = cls(self.context["project"], data)
+        # instance of a RuleBase class
+        node = cls(project=self.context["project"], data=data)
 
         # Nodes with user-declared fields will manage their own validation
         if node.id in SENTRY_APP_ACTIONS:
             if not data.get("hasSchemaFormConfig"):
                 raise ValidationError("Please configure your integration settings.")
+            assert isinstance(
+                node, NotifyEventSentryAppAction
+            ), "node must be an instance of NotifyEventSentryAppAction to use self_validate"
             node.self_validate()
             return data
 
@@ -60,10 +68,15 @@ class RuleNodeField(serializers.Field):
             # XXX(epurkhiser): Very hacky, but we really just want validation
             # errors that are more specific, not just 'this wasn't filled out',
             # give a more generic error for those.
-            first_error = next(iter(form.errors.values()))[0]
+            # Still hacky, but a bit clearer, for each field there can be a list of errors so
+            # we get the first error's message for each field and then get the first error message from that list
+            first_error_message = [
+                error_list[0]["message"]
+                for field, error_list in form.errors.get_json_data().items()
+            ][0]
 
-            if first_error != "This field is required.":
-                raise ValidationError(first_error)
+            if first_error_message != "This field is required.":
+                raise ValidationError(first_error_message)
 
             raise ValidationError("Ensure all required fields are filled in.")
 
@@ -163,28 +176,6 @@ class RuleSerializer(RuleSetSerializer):
 
     def validate(self, attrs):
         return super().validate(validate_actions(attrs))
-
-    def save(self, rule):
-        rule.project = self.context["project"]
-        if "environment" in self.validated_data:
-            environment = self.validated_data["environment"]
-            rule.environment_id = int(environment) if environment else environment
-        if self.validated_data.get("name"):
-            rule.label = self.validated_data["name"]
-        if self.validated_data.get("actionMatch"):
-            rule.data["action_match"] = self.validated_data["actionMatch"]
-        if self.validated_data.get("filterMatch"):
-            rule.data["filter_match"] = self.validated_data["filterMatch"]
-        if self.validated_data.get("actions") is not None:
-            rule.data["actions"] = self.validated_data["actions"]
-        if self.validated_data.get("conditions") is not None:
-            rule.data["conditions"] = self.validated_data["conditions"]
-        if self.validated_data.get("frequency"):
-            rule.data["frequency"] = self.validated_data["frequency"]
-        if self.validated_data.get("owner"):
-            rule.owner = self.validated_data["owner"].resolve_to_actor()
-        rule.save()
-        return rule
 
 
 ACTION_UUID_KEY = "uuid"

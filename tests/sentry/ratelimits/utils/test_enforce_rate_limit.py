@@ -13,7 +13,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class RateLimitTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(1, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=1, window=100)}}
 
     def get(self, request):
         return Response({"ok": True})

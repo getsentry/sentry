@@ -48,7 +48,7 @@ function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
   }, []);
 }
 
-interface DropdownMenuProps
+export interface DropdownMenuProps
   extends Omit<
       DropdownMenuListProps,
       'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
@@ -62,6 +62,7 @@ interface DropdownMenuProps
       | 'shouldCloseOnBlur'
       | 'shouldCloseOnInteractOutside'
       | 'onInteractOutside'
+      | 'onOpenChange'
       | 'preventOverflowOptions'
       | 'flipOptions'
     > {
@@ -83,6 +84,10 @@ interface DropdownMenuProps
    * Title for the current menu.
    */
   menuTitle?: React.ReactChild;
+  /**
+   * Reference to the container element that the portal should be rendered into.
+   */
+  portalContainerRef?: React.RefObject<HTMLElement>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -112,6 +117,7 @@ interface DropdownMenuProps
    * component.
    */
   triggerProps?: DropdownButtonProps;
+
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -145,8 +151,10 @@ function DropdownMenu({
   shouldCloseOnBlur = true,
   shouldCloseOnInteractOutside,
   onInteractOutside,
+  onOpenChange,
   preventOverflowOptions,
   flipOptions,
+  portalContainerRef,
   ...props
 }: DropdownMenuProps) {
   const isDisabled = disabledProp ?? (!items || items.length === 0);
@@ -164,11 +172,13 @@ function DropdownMenu({
     offset,
     position,
     isDismissable,
+    disableTrigger: isDisabled,
     shouldCloseOnBlur,
     shouldCloseOnInteractOutside,
     onInteractOutside,
     preventOverflowOptions,
     flipOptions,
+    onOpenChange,
   });
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
@@ -176,6 +186,9 @@ function DropdownMenu({
     {...overlayState, focusStrategy: 'first'},
     triggerRef
   );
+  // We manually handle focus in the dropdown menu, so we don't want the default autofocus behavior
+  // Avoids the menu from focusing before popper has placed it in the correct position
+  menuProps.autoFocus = false;
 
   const {buttonProps} = useButton(
     {
@@ -187,15 +200,15 @@ function DropdownMenu({
 
   function renderTrigger() {
     if (trigger) {
-      return trigger({...overlayTriggerProps, ...buttonProps}, isOpen);
+      return trigger({...buttonProps, ...overlayTriggerProps}, isOpen);
     }
     return (
       <DropdownButton
         size={size}
         isOpen={isOpen}
-        {...triggerProps}
-        {...overlayTriggerProps}
         {...buttonProps}
+        {...overlayTriggerProps}
+        {...triggerProps}
       >
         {triggerLabel}
       </DropdownButton>
@@ -241,7 +254,9 @@ function DropdownMenu({
       </DropdownMenuList>
     );
 
-    return usePortal ? createPortal(menu, document.body) : menu;
+    return usePortal
+      ? createPortal(menu, portalContainerRef?.current ?? document.body)
+      : menu;
   }
 
   return (
@@ -255,5 +270,6 @@ function DropdownMenu({
 export {DropdownMenu};
 
 const DropdownMenuWrap = styled('div')`
+  display: contents;
   list-style-type: none;
 `;

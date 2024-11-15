@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -20,7 +19,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {getIntervalLine} from 'sentry/views/performance/utils';
+import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 
@@ -29,7 +28,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -56,7 +54,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   withBreakpoint,
   transaction,
   onLegendSelectChanged,
@@ -136,7 +133,7 @@ function Content({
     : [];
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

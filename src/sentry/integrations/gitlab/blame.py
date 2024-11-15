@@ -7,6 +7,7 @@ from datetime import timezone
 from typing import Any, TypedDict
 from urllib.parse import quote
 
+import orjson
 from isodate import parse_datetime
 
 from sentry.integrations.gitlab.utils import (
@@ -14,11 +15,15 @@ from sentry.integrations.gitlab.utils import (
     GitLabRateLimitInfo,
     get_rate_limit_info_from_response,
 )
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -87,7 +92,7 @@ def _fetch_file_blame(
     request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
     params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
 
-    cache_key = client.get_cache_key(request_path, json.dumps(params))
+    cache_key = client.get_cache_key(request_path, orjson.dumps(params).decode())
     response = client.check_cache(cache_key)
     if response:
         metrics.incr("integrations.gitlab.get_blame_for_files.got_cached")

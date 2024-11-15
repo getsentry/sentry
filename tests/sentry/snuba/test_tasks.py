@@ -10,6 +10,9 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import FUNCTION_COUNT
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
@@ -29,7 +32,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -89,6 +91,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         query=None,
         aggregate=None,
         time_window=None,
+        query_extra=None,
     ):
         if status is None:
             status = self.expected_status
@@ -116,6 +119,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             subscription_id=subscription_id,
             project=self.project,
             type="something",
+            query_extra=query_extra,
         )
 
     def test_no_subscription(self):
@@ -155,11 +159,8 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
 
     def test_status_join(self):
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            sub = self.create_subscription(
-                QuerySubscription.Status.CREATING, query="status:unresolved"
-            )
-            create_subscription_in_snuba(sub.id)
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
+        create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
@@ -186,6 +187,22 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_subscription_with_query_extra(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_subscription_with_query_extra_but_no_query(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        snuba_query = sub.snuba_query
+        snuba_query.update(query="")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     @responses.activate
     def test_adds_type(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
@@ -203,7 +220,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     def test_granularity_on_metrics_crash_rate_alerts(self):
         for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
-        for (time_window, expected_granularity) in [
+        for time_window, expected_granularity in [
             (30, 10),
             (90, 60),
             (5 * 60, 3600),
@@ -227,6 +244,81 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     create_subscription_in_snuba(sub.id)
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
+
+    def test_insights_query_spm(self):
+        time_window = 3600
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+            time_window=time_window,
+        )
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = json.dumps({"subscription_id": "123"})
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            request_body = json.loads(pool.urlopen.call_args[1]["body"])
+            # Validate that the spm function uses the correct time window
+            assert (
+                "divide(countIf(value, equals(metric_id, 9223372036854776213)), divide(3600, 60)) AS `spm`"
+                in request_body["query"]
+            )
+            assert request_body["granularity"] == 60
+            assert request_body["time_window"] == time_window
+
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
+    def test_eap_rpc_query_count(self):
+        time_window = 3600
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            time_window=time_window,
+        )
+        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+
+            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+
+            assert createSubscriptionRequest.time_window_secs == time_window
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.op
+                == ComparisonFilter.Op.OP_EQUALS
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.key.name
+                == "sentry.op"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.value.val_str
+                == "http.client"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                == FUNCTION_COUNT
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                == "sentry.duration_ms"
+            )
+            # Validate that the spm function uses the correct time window
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
 
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
@@ -252,6 +344,54 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_insights_query_spm(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+        sub.status = QuerySubscription.Status.UPDATING.value
+        sub.update(
+            status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+        )
+        update_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_eap_rpc_query_count(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
+            sub.status = QuerySubscription.Status.UPDATING.value
+            sub.update(
+                status=QuerySubscription.Status.UPDATING.value, subscription_id=sub.subscription_id
+            )
+            update_subscription_in_snuba(sub.id)
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
@@ -261,6 +401,30 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_insights_query_spm(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
+        )
+        delete_subscription_from_snuba(sub.id)
+        assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_eap_rpc_query_count(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="spm()",
+            dataset=Dataset.PerformanceMetrics,
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
@@ -577,25 +741,23 @@ class BuildSnqlQueryTest(TestCase):
     ):
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            entity_subscription = get_entity_subscription(
-                query_type=query_type,
-                dataset=dataset,
-                aggregate=aggregate,
-                time_window=time_window,
-                extra_fields=entity_extra_fields,
-            )
-            query_builder = build_query_builder(
-                entity_subscription,
-                query,
-                (self.project.id,),
-                environment=environment,
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                },
-            )
-            snql_query = query_builder.get_snql_query()
+        entity_subscription = get_entity_subscription(
+            query_type=query_type,
+            dataset=dataset,
+            aggregate=aggregate,
+            time_window=time_window,
+            extra_fields=entity_extra_fields,
+        )
+        query_builder = entity_subscription.build_query_builder(
+            query=query,
+            project_ids=[self.project.id],
+            environment=environment,
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+            },
+        )
+        snql_query = query_builder.get_snql_query()
         select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
         if dataset == Dataset.Sessions:
             col_name = "sessions" if "sessions" in aggregate else "users"
@@ -686,7 +848,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
@@ -746,7 +908,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_aliased_query_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
@@ -819,7 +981,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_tag_query_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
@@ -977,73 +1139,8 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_simple_sessions(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_simple_users(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_query_and_environment_sessions(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
-        )
-
-    def test_query_and_environment_users(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
-        )
-
     def test_simple_sessions_for_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
@@ -1089,7 +1186,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_simple_users_for_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
                 rh_indexer_record(org_id, tag)
@@ -1122,7 +1219,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_sessions_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
@@ -1202,7 +1299,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_users_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [

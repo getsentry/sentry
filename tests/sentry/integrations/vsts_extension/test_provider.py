@@ -1,15 +1,15 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 from django.urls import reverse
 
 from fixtures.vsts import VstsIntegrationTestCase
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts_extension import (
     VstsExtensionFinishedView,
     VstsExtensionIntegrationProvider,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 
@@ -17,6 +17,8 @@ from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 @control_silo_test
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
     provider = VstsExtensionIntegrationProvider()
+    provider.pipeline = Mock()
+    provider.pipeline.organization.id = 1
 
     @patch(
         "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",

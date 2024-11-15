@@ -1,28 +1,29 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Any
 
+import orjson
 import requests
 from django.conf import settings
-from rest_framework.exceptions import PermissionDenied
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework.response import Response
 
+from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
-from sentry.models.commit import Commit
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
+from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
-from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import Release
-from sentry.models.releasecommit import ReleaseCommit
-from sentry.models.repository import Repository
-from sentry.models.user import User
-from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
+from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
+from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -32,67 +33,31 @@ TIMEOUT_SECONDS = 60 * 30  # 30 minutes
 
 
 @region_silo_endpoint
-class GroupAiAutofixEndpoint(GroupEndpoint):
+class GroupAutofixEndpoint(GroupEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=10, window=60),
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
         }
     }
 
-    def _get_base_commit(self, group: Group) -> Commit | None:
-        # Using `id__in()` because there is no foreign key relationship.
-        releases_query_set = Release.objects.filter(
-            id__in=GroupRelease.objects.filter(group_id=group.id)
-            .order_by("-last_seen")
-            .values("release_id")
-        )
+    def _get_serialized_event(
+        self, event_id: str, group: Group, user: AbstractBaseUser | AnonymousUser
+    ) -> dict[str, Any] | None:
+        event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 
-        if not releases_query_set:
+        if not event:
             return None
 
-        commits: list[Commit] = list(
-            Commit.objects.filter(
-                id__in=ReleaseCommit.objects.filter(release__in=releases_query_set).values("commit")
-            )
-        )
-
-        # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
-        # supports more than just getsentry/sentry, we will just send the latest commit.
-        try:
-            sentry_repo: Repository = Repository.objects.get(
-                organization_id=group.organization.id, name="getsentry/sentry"
-            )
-
-            for commit in commits:
-                if commit.repository_id == sentry_repo.id:
-                    return commit
-        except Repository.DoesNotExist:
-            logger.exception(
-                "No getsentry/sentry repo found for organization",
-                extra={"group.id": group.id, "group.organization.id": group.organization.id},
-            )
-            pass
-
-        return None
-
-    def _get_event_entries(self, group: Group, user: User) -> list | None:
-        latest_event = group.get_latest_event()
-
-        if not latest_event:
-            return None
-
-        serialized_event = serialize(latest_event, user, EventSerializer())
-        return serialized_event["entries"]
+        serialized_event = serialize(event, user, EventSerializer())
+        return serialized_event
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -104,12 +69,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             "steps": [],
         }
 
-    def _respond_with_error(self, group: Group, metadata: dict, reason: str, status: int):
-        metadata["autofix"] = self._make_error_metadata(metadata["autofix"], reason)
-
-        group.data["metadata"] = metadata
-        group.save()
-
+    def _respond_with_error(self, reason: str, status: int):
         return Response(
             {
                 "detail": reason,
@@ -119,82 +79,120 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
     def _call_autofix(
         self,
+        user: User | AnonymousUser,
         group: Group,
-        base_commit_sha: str,
-        event_entries: list[dict],
-        additional_context: str,
+        repos: list[dict],
+        serialized_event: dict[str, Any],
+        instruction: str,
+        timeout_secs: int,
+        pr_to_comment_on_url: str | None = None,
     ):
-        requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
-            data=json.dumps(
-                {
-                    "base_commit_sha": base_commit_sha,
-                    "issue": {
-                        "id": group.id,
-                        "title": group.title,
-                        "events": [{"entries": event_entries}],
-                    },
-                    "additional_context": additional_context,
-                }
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+        path = "/v1/automation/autofix/start"
+        body = orjson.dumps(
+            {
+                "organization_id": group.organization.id,
+                "project_id": group.project.id,
+                "repos": repos,
+                "issue": {
+                    "id": group.id,
+                    "title": group.title,
+                    "short_id": group.qualified_short_id,
+                    "events": [serialized_event],
+                },
+                "instruction": instruction,
+                "timeout_secs": timeout_secs,
+                "last_updated": datetime.now().isoformat(),
+                "invoking_user": (
+                    {
+                        "id": user.id,
+                        "display_name": user.get_display_name(),
+                    }
+                    if not isinstance(user, AnonymousUser)
+                    else None
+                ),
+                "options": {
+                    "disable_codebase_indexing": features.has(
+                        "organizations:autofix-disable-codebase-indexing",
+                        group.organization,
+                        actor=user,
+                    ),
+                    "comment_on_pr_with_url": pr_to_comment_on_url,
+                },
+            },
+            option=orjson.OPT_NON_STR_KEYS,
         )
 
+        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
+        response = requests.post(
+            url,
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(
+                    salt,
+                    body=body,
+                ),
+            },
+        )
+
+        response.raise_for_status()
+
+        return response.json().get("run_id")
+
     def post(self, request: Request, group: Group) -> Response:
-        data = json.loads(request.body)
+        data = orjson.loads(request.body)
+
+        # This event_id is the event that the user is looking at when they click the "Fix" button
+        event_id = data.get("event_id", None)
+        if event_id is None:
+            event = group.get_recommended_event_for_environments()
+            if not event:
+                event = group.get_latest_event()
+
+            if not event:
+                return Response(
+                    {
+                        "detail": "Could not find an event for the issue, please try providing an event_id"
+                    },
+                    status=400,
+                )
+            event_id = event.event_id
 
         created_at = datetime.now().isoformat()
-        metadata = group.data.get("metadata", {})
-        metadata["autofix"] = {
-            "created_at": created_at,
-            "status": "PROCESSING",
-            "steps": [
-                {
-                    "id": "1",
-                    "index": 1,
-                    "title": "Waiting to be picked up...",
-                    "status": "PROCESSING",
-                }
-            ],
-        }
 
-        if not request.user.is_authenticated:
-            raise PermissionDenied(detail="You must be authenticated to perform this action.")
+        if not (
+            features.has("projects:ai-autofix", group.project)
+            or features.has("organizations:autofix", group.organization)
+            or group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+        ):
+            return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
-        event_entries = self._get_event_entries(group, request.user)
+        # For now we only send the event that the user is looking at, in the near future we want to send multiple events.
+        serialized_event = self._get_serialized_event(event_id, group, request.user)
 
-        if event_entries is None:
+        if serialized_event is None:
+            return self._respond_with_error("Cannot fix issues without an event.", 400)
+
+        if not any([entry.get("type") == "exception" for entry in serialized_event["entries"]]):
+            return self._respond_with_error("Cannot fix issues without a stacktrace.", 400)
+
+        repos = get_autofix_repos_from_project_code_mappings(group.project)
+
+        if not repos:
             return self._respond_with_error(
-                group, metadata, "Cannot fix issues without an event.", 400
-            )
-
-        if not any([exception.get("type") == "exception" for exception in event_entries]):
-            return self._respond_with_error(
-                group, metadata, "Cannot fix issues without a stacktrace.", 400
-            )
-
-        base_commit = self._get_base_commit(group)
-
-        if not base_commit:
-            return self._respond_with_error(
-                group,
-                metadata,
-                "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now.",
+                "Found no Github repositories linked to this project. Please set up the Github Integration and code mappings if you haven't",
                 400,
             )
 
         try:
-            self._call_autofix(
-                group, base_commit.key, event_entries, data.get("additional_context", "")
-            )
-
-            # Mark the task as completed after TIMEOUT_SECONDS
-            ai_autofix_check_for_timeout.apply_async(
-                kwargs={
-                    "group_id": group.id,
-                    "created_at": created_at,
-                },
-                countdown=TIMEOUT_SECONDS,
+            run_id = self._call_autofix(
+                request.user,
+                group,
+                repos,
+                serialized_event,
+                data.get("instruction", data.get("additional_context", "")),
+                TIMEOUT_SECONDS,
+                data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
             )
         except Exception as e:
             logger.exception(
@@ -207,21 +205,49 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
             return self._respond_with_error(
-                group,
-                metadata,
-                "Failed to send autofix to seer.",
+                "Autofix failed to start.",
                 500,
             )
 
-        group.data["metadata"] = metadata
-        group.save()
+        check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
         return Response(
             status=202,
         )
 
     def get(self, request: Request, group: Group) -> Response:
-        metadata = group.data.get("metadata", {})
-        autofix_data = metadata.get("autofix", None)
+        autofix_state = get_autofix_state(group_id=group.id)
 
-        return Response({"autofix": autofix_data})
+        response_state: dict[str, Any] | None = None
+
+        if autofix_state:
+            response_state = autofix_state.dict()
+            user_ids = autofix_state.actor_ids
+            if user_ids:
+                users = user_service.serialize_many(
+                    filter={"user_ids": user_ids, "organization_id": request.organization.id},
+                    as_user=request.user,
+                )
+
+                users_map = {user["id"]: user for user in users}
+
+                response_state["users"] = users_map
+
+            project = group.project
+            repositories = []
+            if project:
+                code_mappings = get_sorted_code_mapping_configs(project=project)
+                for mapping in code_mappings:
+                    repo = mapping.repository
+                    repositories.append(
+                        {
+                            "url": repo.url,
+                            "external_id": repo.external_id,
+                            "name": repo.name,
+                            "provider": repo.provider,
+                            "default_branch": mapping.default_branch,
+                        }
+                    )
+            response_state["repositories"] = repositories
+
+        return Response({"autofix": response_state})

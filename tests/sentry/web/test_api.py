@@ -8,19 +8,19 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_region_url
 from sentry.auth import superuser
+from sentry.conf.types.sentry_config import SentryMode
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
 class CrossDomainXmlTest(TestCase):
     @cached_property
     def path(self):
@@ -78,10 +78,61 @@ class RobotsTxtTest(TestCase):
     def path(self):
         return reverse("sentry-robots-txt")
 
-    def test_robots(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert resp["Content-Type"] == "text/plain"
+    def test_robots_self_hosted(self):
+        with override_settings(SENTRY_MODE=SentryMode.SELF_HOSTED):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
+
+    def test_robots_saas(self):
+        with override_settings(SENTRY_MODE=SentryMode.SAAS):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            # This is sentry.io/robots.txt.
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /api/
+Allow: /api/*/store/
+Allow: /
+
+Sitemap: https://sentry.io/sitemap-index.xml
+"""
+            )
+
+            # SaaS customer domains should disallow all.
+            resp = self.client.get(self.path, HTTP_HOST="foo.testserver")
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
+
+    def test_robots_single_tenant(self):
+        with override_settings(SENTRY_MODE=SentryMode.SINGLE_TENANT):
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            assert resp["Content-Type"] == "text/plain"
+            assert (
+                resp.content
+                == b"""\
+User-agent: *
+Disallow: /
+"""
+            )
 
 
 @region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
@@ -107,14 +158,19 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "auth:register"]
+            assert data["features"] == [
+                "organizations:create",
+                "auth:register",
+            ]
 
         with self.options({"auth.allow-registration": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+            ]
 
     def test_org_create_feature(self):
         with self.feature({"organizations:create": True}):
@@ -122,7 +178,9 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+            ]
 
         with self.feature({"organizations:create": False}):
             resp = self.client.get(self.path)
@@ -141,27 +199,32 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["lastOrganization"] == self.organization.slug
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+            assert data["features"] == [
+                "organizations:create",
+                "system:multi-region",
+            ]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+            ]
 
             # Customer domain feature is injected if a customer domain is used.
             resp = self.client.get(self.path, HTTP_HOST="albertos-apples.testserver")
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+            assert data["features"] == ["organizations:create"]
 
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
@@ -196,7 +259,7 @@ class ClientConfigViewTest(TestCase):
 
         other_org = self.create_organization()
 
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 200
@@ -224,9 +287,10 @@ class ClientConfigViewTest(TestCase):
         assert "activeorg" not in self.client.session
 
         # Induce last active organization
-        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
-            {"organizations:customer-domains": [other_org.slug]}
-        ), assume_test_silo_mode(SiloMode.MONOLITH):
+        with (
+            self.feature({"system:multi-region": [other_org.slug]}),
+            assume_test_silo_mode(SiloMode.MONOLITH),
+        ):
             response = self.client.get(
                 "/",
                 HTTP_HOST=f"{other_org.slug}.testserver",
@@ -245,7 +309,7 @@ class ClientConfigViewTest(TestCase):
                 assert "activeorg" not in self.client.session
 
         # lastOrganization is set
-        with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
+        with mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", self.organization.id):
             resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
@@ -271,11 +335,11 @@ class ClientConfigViewTest(TestCase):
     def test_superuser(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=False)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_staff(self):
         self._run_test_with_privileges(is_superuser=False, is_staff=True)
 
-    @with_feature("auth:enterprise-staff-cookie")
+    @override_options({"staff.ga-rollout": True})
     def test_superuser_and_staff(self):
         self._run_test_with_privileges(is_superuser=True, is_staff=True)
 

@@ -3,16 +3,16 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
-from sentry.sentry_apps.apps import SentryAppCreator
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.user import User
 
 
 @control_silo_test
@@ -106,7 +106,7 @@ class TestCreator(TestCase):
             target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
         ).exists()
 
-    @patch("sentry.models.integrations.integration_feature.IntegrationFeature.objects.create")
+    @patch("sentry.integrations.models.integration_feature.IntegrationFeature.objects.create")
     def test_raises_error_creating_integration_feature(self, mock_create):
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)
@@ -203,7 +203,7 @@ class TestInternalCreator(TestCase):
         sentry_app = self.run_creator(author="custom")
         assert sentry_app.author == "custom"
 
-    @patch("sentry.tasks.sentry_apps.installation_webhook.delay")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.installation_webhook.delay")
     def test_does_not_notify_service(self, delay):
         self.run_creator()
         assert not len(delay.mock_calls)

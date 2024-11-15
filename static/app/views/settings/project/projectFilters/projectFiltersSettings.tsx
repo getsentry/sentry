@@ -21,6 +21,7 @@ import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -36,7 +37,7 @@ import filterGroups, {
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,7 +59,7 @@ const filterDescriptions = {
       'Filter transactions that match most [commonNamingPatterns:common naming patterns] for health checks.',
       {
         commonNamingPatterns: (
-          <ExternalLink href="https://docs.sentry.io/product/data-management-settings/filtering/#transactions-coming-from-health-check" />
+          <ExternalLink href="https://docs.sentry.io/concepts/data-management/filtering/#transactions-coming-from-health-check" />
         ),
       }
     ),
@@ -129,7 +130,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   ie: {
     icon: iconIe,
     title: 'Internet Explorer',
-    helpText: 'Verison 11 and lower',
+    helpText: 'Version 11 and lower',
     legacy: false,
   },
   ie_pre_9: {
@@ -188,7 +189,6 @@ type RowProps = {
   data: {
     active: string[] | boolean;
   };
-  hasLegacyBrowserUpdate: boolean;
   onToggle: (
     data: RowProps['data'],
     filters: RowState['subfilters'],
@@ -204,7 +204,7 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props) {
+  constructor(props: RowProps) {
     super(props);
 
     let initialSubfilters;
@@ -212,11 +212,12 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
           key =>
-            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (props.data.active === false) {
-      initialSubfilters = new Set();
+      initialSubfilters = new Set<string>();
     } else {
       initialSubfilters = new Set(props.data.active);
     }
@@ -228,14 +229,15 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     };
   }
 
-  handleToggleSubfilters = (subfilter, e) => {
+  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
       subfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
           key =>
-            LEGACY_BROWSER_SUBFILTERS[key].legacy === !this.props.hasLegacyBrowserUpdate
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (subfilter === false) {
@@ -293,13 +295,10 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
-              if (this.props.hasLegacyBrowserUpdate) {
-                if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-                  return true;
-                }
-                return this.state.subfilters.has(key);
+              if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
+                return true;
               }
-              return LEGACY_BROWSER_SUBFILTERS[key].legacy;
+              return this.state.subfilters.has(key);
             })
             .map(key => {
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
@@ -376,7 +375,7 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
-                "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
             </PanelAlert>
           )}
@@ -405,20 +404,17 @@ type Filter = {
 export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();
   const {projectId: projectSlug} = params;
-
-  const hasLegacyBrowserUpdate = organization.features.includes('legacy-browser-update');
-
   const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
   const filtersEndpoint = `${projectEndpoint}filters/`;
 
   const {
     data: filterListData,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const filterList = filterListData ?? [];
@@ -441,7 +437,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     []
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -511,7 +507,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                               onToggle={(_data, subfilters, event) =>
                                 handleLegacyChange({onChange, onBlur, event, subfilters})
                               }
-                              hasLegacyBrowserUpdate={hasLegacyBrowserUpdate}
                             />
                           )}
                         </FormField>
@@ -547,8 +542,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       type: 'boolean',
                       name: 'filters:react-hydration-errors',
                       label: t('Filter out hydration errors'),
-                      help: t(
-                        'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                      help: tct(
+                        'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                        {
+                          replaySettings: (
+                            <Link
+                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                            />
+                          ),
+                        }
                       ),
                       disabled: !hasAccess,
                     }}
@@ -647,7 +649,7 @@ const FilterGridIcon = styled('img')`
 
 const FilterTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
 `;
 

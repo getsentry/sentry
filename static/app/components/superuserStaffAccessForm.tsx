@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import styled from '@emotion/styled';
-import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
@@ -15,7 +14,7 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
@@ -59,9 +58,11 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
       return;
     }
 
-    await this.getAuthenticators();
+    const authenticators = await this.getAuthenticators();
+    this.setState({authenticators: authenticators});
+
     // Set the error state if there are no authenticators and U2F is on
-    if (!this.state.authenticators.length && !disableU2FForSUForm) {
+    if (!authenticators.length && !disableU2FForSUForm) {
       this.handleError(ErrorCodes.NO_AUTHENTICATOR);
     }
     this.setState({isLoading: false});
@@ -161,21 +162,17 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     });
   };
 
-  handleLogout = async () => {
-    const {api} = this.props;
-    try {
-      await logout(api);
-    } catch {
-      // ignore errors
-    }
-    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
-    const {superuserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superuserUrl) {
-      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
-      window.location.assign(redirectURL);
-      return;
-    }
-    window.location.assign(authLoginPath);
+  handleLogout = () => {
+    const {superuserUrl} = window.__initialData?.links;
+    const urlOrigin =
+      window.__initialData?.customerDomain && superuserUrl
+        ? superuserUrl
+        : window.location.origin;
+
+    const nextUrl = new URL('/auth/login/', urlOrigin);
+    nextUrl.searchParams.set('next', window.location.href);
+
+    logout(this.props.api, nextUrl.toString());
   };
 
   async getAuthenticators() {
@@ -183,10 +180,11 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
 
     try {
       const authenticators = await api.requestPromise('/authenticators/');
-      this.setState({authenticators: authenticators ?? []});
+      return authenticators ?? [];
     } catch {
       // ignore errors
     }
+    return [];
   }
 
   render() {

@@ -10,10 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models.servicehook import ServiceHook
-from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
+from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
+from sentry.sentry_apps.models.servicehook import ServiceHook
+from sentry.sentry_apps.services.hook import hook_service
 
 
 @region_silo_endpoint
@@ -37,9 +38,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         This endpoint requires the 'servicehooks' feature to
         be enabled for your project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :auth: required
         """
@@ -65,7 +66,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, ServiceHookSerializer()),
         )
 
     def post(self, request: Request, project) -> Response:
@@ -83,9 +84,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         This endpoint requires the 'servicehooks' feature to
         be enabled for your project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :param string url: the url for the webhook
         :param array[string] events: the events to subscribe to
@@ -130,5 +131,6 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         )
 
         return self.respond(
-            serialize(ServiceHook.objects.get(id=hook.id), request.user), status=201
+            serialize(ServiceHook.objects.get(id=hook.id), request.user, ServiceHookSerializer()),
+            status=201,
         )

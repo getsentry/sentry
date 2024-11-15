@@ -251,7 +251,9 @@ class OptionsManager:
 
     def isset(self, key: str) -> bool:
         """
-        Check if a key has been set to a value and not inheriting from its default.
+        Check if a key is set on the local cache, network cache, or db in that order.
+        Keep in mind that if an option is deleted, any new calls to options.get()
+        will repopulate the cache, resulting in this method to return true.
         """
         opt = self.lookup_key(key)
 
@@ -260,6 +262,12 @@ class OptionsManager:
             if result is not None:
                 return True
 
+        return self.is_set_on_disk(key)
+
+    def is_set_on_disk(self, key: str) -> bool:
+        """
+        Check if a key is set on disk.
+        """
         return key in settings.SENTRY_OPTIONS
 
     def get(self, key: str, silent=False):
@@ -290,11 +298,6 @@ class OptionsManager:
         if not (opt.flags & FLAG_NOSTORE):
             result = self.store.get(opt, silent=silent)
             if result is not None:
-                # HACK(mattrobenolt): SENTRY_URL_PREFIX must be kept in sync
-                # when reading values from the database. This should
-                # be replaced by a signal.
-                if key == "system.url-prefix":
-                    settings.SENTRY_URL_PREFIX = result
                 return result
 
         # Some values we don't want to allow them to be configured through
@@ -468,7 +471,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         if opt.has_any_flag({FLAG_NOSTORE, FLAG_IMMUTABLE}):
             return NotWritableReason.READONLY
-        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and settings.SENTRY_OPTIONS.get(key):
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}) and key in settings.SENTRY_OPTIONS:
             # FLAG_PRIORITIZE_DISK does not prevent the option to be updated
             # in any circumstance. If the option is not on disk (which
             # means not in settings.SENTRY_OPTION), it can be updated.

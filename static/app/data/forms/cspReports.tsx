@@ -2,7 +2,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
-export const route = '/settings/:orgId/projects/:projectId/csp/';
+export const route = '/settings/:orgId/projects/:projectId/security-headers/csp';
 
 const formGroups: JsonFormObject[] = [
   {

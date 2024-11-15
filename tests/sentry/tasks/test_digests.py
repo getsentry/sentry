@@ -11,7 +11,7 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -22,16 +22,16 @@ class DeliverDigestTest(TestCase):
         """Simple integration test to make sure that digests are firing as expected."""
         with mock.patch.object(sentry, "digests") as digests:
             backend = RedisBackend()
-            digests.digest = backend.digest
+            digests.backend.digest = backend.digest
 
             rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
             ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
             event = self.store_event(
-                data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-1"]},
+                data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
             event_2 = self.store_event(
-                data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-2"]},
+                data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-2"]},
                 project_id=self.project.id,
             )
             notification_uuid = str(uuid.uuid4())

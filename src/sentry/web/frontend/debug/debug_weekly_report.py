@@ -10,7 +10,7 @@ from sentry.models.project import Project
 from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
 from sentry.tasks.summaries.weekly_reports import render_template_context
 from sentry.utils import loremipsum
-from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.dates import floor_to_utc_day, to_datetime
 
 from .mail import MailPreviewView
 
@@ -27,20 +27,18 @@ class DebugWeeklyReportView(MailPreviewView):
         random = get_random(request)
 
         duration = 60 * 60 * 24 * 7
-        timestamp = to_timestamp(
-            floor_to_utc_day(
-                to_datetime(
-                    random.randint(
-                        to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                        to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
-                    )
+        timestamp = floor_to_utc_day(
+            to_datetime(
+                random.randint(
+                    datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
+                    datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc).timestamp(),
                 )
             )
-        )
+        ).timestamp()
         ctx = OrganizationReportContext(timestamp, duration, organization)
         ctx.projects_context_map.clear()
 
-        start_timestamp = to_timestamp(ctx.start)
+        start_timestamp = ctx.start.timestamp()
 
         daily_maximum = random.randint(1000, 10000)
 
@@ -84,8 +82,8 @@ class DebugWeeklyReportView(MailPreviewView):
             project_context.dropped_replay_count = int(
                 random.weibullvariate(5, 1) * random.paretovariate(0.2)
             )
-            project_context.key_errors = [
-                (g, None, random.randint(0, 1000)) for g in Group.objects.all()[:3]
+            project_context.key_errors_by_group = [
+                (g, random.randint(0, 1000)) for g in Group.objects.all()[:3]
             ]
 
             project_context.new_substatus_count = random.randint(5, 200)

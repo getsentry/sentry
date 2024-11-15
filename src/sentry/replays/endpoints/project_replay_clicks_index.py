@@ -68,8 +68,8 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
         operation_id="List Clicked Nodes",
         parameters=[
             CursorQueryParam,
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
             ReplayParams.REPLAY_ID,
             VisibilityParams.PER_PAGE,
@@ -81,7 +81,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ReplayExamples.GET_REPLAY_CLIKS,
+        examples=ReplayExamples.GET_REPLAY_CLICKS,
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""

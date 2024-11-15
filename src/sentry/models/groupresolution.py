@@ -1,3 +1,4 @@
+import orjson
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -10,14 +11,15 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
-from sentry.models.release import DB_VERSION_LENGTH, Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.
@@ -28,6 +30,7 @@ class GroupResolution(Model):
     class Type:
         in_release = 0
         in_next_release = 1
+        in_upcoming_release = 2
 
     class Status:
         pending = 0
@@ -115,8 +118,12 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    current_release_raw = parse_release(current_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    current_release_raw = parse_release(
+                        current_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(current_release_raw, release_raw) >= 0
                 except RelayError:
                     ...
@@ -137,7 +144,8 @@ class GroupResolution(Model):
         # We still fallback to the older model if either current_release_version was not set (
         # i.e. In all resolved cases except for Resolved in Next Release) or if for whatever
         # reason the semver/date checks fail (which should not happen!)
-        if res_type in (None, cls.Type.in_next_release):
+        # todo(roggenkemper): remove upcoming_release check after we know that no group resolutions have it
+        if res_type in (None, cls.Type.in_next_release, cls.Type.in_upcoming_release):
             # Add metric here to ensure that this code branch ever runs given that
             # clear_expired_resolutions changes the type to `in_release` once a Release instance
             # is created
@@ -156,8 +164,12 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    res_release_raw = parse_release(res_release_version).get("version_raw")
-                    release_raw = parse_release(release.version).get("version_raw")
+                    res_release_raw = parse_release(
+                        res_release_version, json_loads=orjson.loads
+                    ).get("version_raw")
+                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
+                        "version_raw"
+                    )
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...

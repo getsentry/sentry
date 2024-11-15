@@ -8,7 +8,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
-import PerformanceDuration from 'sentry/components/performanceDuration';
 import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
@@ -16,8 +15,11 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -29,17 +31,14 @@ import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {Frame} from 'sentry/utils/profiling/frame';
-import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useDifferentialFlamegraphModel} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphModel';
 import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
-
-import {useTransactionsDelta} from './transactionsDeltaProvider';
 
 interface EventDifferentialFlamegraphProps {
   event: Event;
@@ -73,52 +72,12 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     });
   }, [isValid, fingerprint, breakpoint]);
 
-  const transactions = useTransactionsDelta();
-  const [transaction, setTransaction] = useState<
-    EventsResultsDataRow<string> | undefined
-  >(undefined);
-
-  if (transaction === undefined) {
-    const firstTransaction = transactions?.data?.data?.[0];
-    if (firstTransaction) {
-      setTransaction(firstTransaction);
-    }
-  }
-
   const {before, after} = useDifferentialFlamegraphQuery({
     projectID: parseInt(props.event.projectID, 10),
     breakpoint,
     environments: selection.selection.environments,
     fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
-    transaction: (transaction?.transaction as string) ?? '',
   });
-
-  const onNextTransactionClick = useMemo(() => {
-    if (!transaction) {
-      return undefined;
-    }
-    const idx = transactions?.data?.data?.indexOf?.(transaction) ?? -1;
-    if (idx === -1 || idx === (transactions?.data?.data?.length ?? 0) - 1) {
-      return undefined;
-    }
-
-    return () => {
-      setTransaction(transactions?.data?.data?.[idx + 1] ?? transaction);
-    };
-  }, [transaction, transactions?.data?.data]);
-
-  const onPreviousTransactionClick = useMemo(() => {
-    if (!transaction) {
-      return undefined;
-    }
-    const idx = transactions?.data?.data?.indexOf?.(transaction) ?? -1;
-    if (idx === -1 || idx === 0) {
-      return undefined;
-    }
-    return () => {
-      setTransaction(transactions?.data?.data?.[idx - 1] ?? transaction);
-    };
-  }, [transaction, transactions?.data?.data]);
 
   return (
     <Fragment>
@@ -133,9 +92,6 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
         >
           <EventDifferentialFlamegraphView
             project={project}
-            onNextTransactionClick={onNextTransactionClick}
-            onPreviousTransactionClick={onPreviousTransactionClick}
-            transaction={transaction}
             before={before}
             after={after}
           />
@@ -156,10 +112,7 @@ function systemFrameOnly(frame: Frame): boolean {
 interface EventDifferentialFlamegraphViewProps {
   after: DifferentialFlamegraphQueryResult['before'];
   before: DifferentialFlamegraphQueryResult['after'];
-  onNextTransactionClick: (() => void) | undefined;
-  onPreviousTransactionClick: (() => void) | undefined;
   project: Project | undefined;
-  transaction: EventsResultsDataRow<string> | undefined;
 }
 function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewProps) {
   const organization = useOrganization();
@@ -194,27 +147,28 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
       if (!frame.profileIds?.length) {
         return '';
       }
-      return generateProfileFlamechartRouteWithQuery({
-        orgSlug: organization.slug,
-        projectSlug: props.project.slug,
-        profileId: frame.profileIds?.[0] ?? '',
-        query: {
-          frameName: frame.frame.name,
+      const profile = frame.profileIds?.[0];
+
+      if (!defined(profile)) {
+        return '';
+      }
+
+      return (
+        generateProfileRouteFromProfileReference({
+          orgSlug: organization.slug,
+          projectSlug: props.project.slug,
+          reference: profile,
           framePackage: frame.frame.package,
-        },
-      });
+          frameName: frame.frame.name,
+        }) ?? ''
+      );
     },
     [organization.slug, props.project]
   );
 
   return (
-    <Fragment>
-      <Panel>
-        <DifferentialFlamegraphTransactionToolbar
-          transaction={props.transaction}
-          onNextTransactionClick={props.onNextTransactionClick}
-          onPreviousTransactionClick={props.onPreviousTransactionClick}
-        />
+    <FlamegraphContainer>
+      <StyledPanel>
         <DifferentialFlamegraphToolbar
           frameFilter={frameFilterSetting}
           onFrameFilterChange={setFrameFilterSetting}
@@ -224,7 +178,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           canvasPoolManager={canvasPoolManager}
         />
         <DifferentialFlamegraphContainer>
-          {props.after.isLoading || props.before.isLoading ? (
+          {props.after.isPending || props.before.isPending ? (
             <LoadingIndicatorContainer>
               <LoadingIndicator />
             </LoadingIndicatorContainer>
@@ -249,12 +203,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
           />
         </DifferentialFlamegraphContainer>
         <DifferentialFlamegraphExplanationBar negated={negated} />
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Slower functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.increasedFrames}
@@ -262,7 +216,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Faster functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.decreasedFrames}
@@ -270,12 +224,12 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
+      </StyledPanel>
 
-      <Panel>
+      <StyledPanel>
         <DifferentialFlamegraphFunctionsContainer>
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('New functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.newFrames}
@@ -283,7 +237,7 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
           <DifferentialFlamegraphChangedFunctions
-            loading={props.after.isLoading || props.before.isLoading}
+            loading={props.after.isPending || props.before.isPending}
             title={t('Removed functions')}
             subtitle={t('after regression')}
             functions={differentialFlamegraph.removedFrames}
@@ -291,87 +245,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
             makeFunctionLink={makeFunctionFlamechartLink}
           />
         </DifferentialFlamegraphFunctionsContainer>
-      </Panel>
-    </Fragment>
-  );
-}
-
-const numberFormatter = Intl.NumberFormat(undefined, {
-  maximumFractionDigits: 2,
-});
-
-interface DifferentialFlamegraphTransactionToolbarProps {
-  onNextTransactionClick: (() => void) | undefined;
-  onPreviousTransactionClick: (() => void) | undefined;
-  transaction: EventsResultsDataRow<string> | undefined;
-}
-function DifferentialFlamegraphTransactionToolbar(
-  props: DifferentialFlamegraphTransactionToolbarProps
-) {
-  const [before, after] = useMemo(() => {
-    if (!props.transaction) {
-      return [0, 0];
-    }
-
-    const keys = Object.keys(props.transaction);
-
-    let beforePercentile = 0;
-    let afterPercentile = 0;
-
-    for (const key of keys) {
-      if (key.startsWith('percentile_after')) {
-        afterPercentile = props.transaction[key] as number;
-      }
-      if (key.startsWith('percentile_before')) {
-        beforePercentile = props.transaction[key] as number;
-      }
-    }
-
-    return [beforePercentile, afterPercentile];
-  }, [props.transaction]);
-
-  return (
-    <DifferentialFlamegraphTransactionToolbarContainer>
-      {props.transaction?.transaction ? (
-        <DifferentialFlamegraphTransactionName>
-          {props.transaction.transaction}
-        </DifferentialFlamegraphTransactionName>
-      ) : (
-        <Placeholder height="20px" width="66%" />
-      )}
-
-      {props.transaction ? (
-        <span>
-          <PerformanceDuration nanoseconds={before} abbreviation />
-          <DifferentialFlamegraphRegressionChange>
-            {after === 0 || before === 0
-              ? ''
-              : '+' + numberFormatter.format(relativeChange(after, before) * 100) + '%'}
-          </DifferentialFlamegraphRegressionChange>
-        </span>
-      ) : (
-        <Fragment>
-          <Placeholder height="20px" width="60px" />
-          <Placeholder height="20px" width="60px" />
-        </Fragment>
-      )}
-      <ButtonBar merged>
-        <DifferentialFlamegraphPaginationButton
-          icon={<IconChevron direction="left" />}
-          aria-label={t('Previous Transaction')}
-          size="xs"
-          disabled={!props.onPreviousTransactionClick}
-          onClick={props.onPreviousTransactionClick}
-        />
-        <DifferentialFlamegraphPaginationButton
-          icon={<IconChevron direction="right" />}
-          aria-label={t('Next Transaction')}
-          size="xs"
-          disabled={!props.onNextTransactionClick}
-          onClick={props.onNextTransactionClick}
-        />
-      </ButtonBar>
-    </DifferentialFlamegraphTransactionToolbarContainer>
+      </StyledPanel>
+    </FlamegraphContainer>
   );
 }
 
@@ -607,7 +482,7 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   gap: ${space(1)};
-  padding: ${space(0.5)} ${space(0)};
+  padding: ${space(0.5)} 0;
 
   > *:first-child {
     min-width: 0;
@@ -728,12 +603,12 @@ const DifferentialFlamegraphChangedFunctionsTitleContainer = styled('div')`
 `;
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   flex: 1;
 `;
 
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;
@@ -747,26 +622,6 @@ const DifferentialFlamegraphFunctionsContainer = styled('div')`
 const DifferentialFlamegraphPaginationButton = styled(Button)`
   padding-left: ${space(0.75)};
   padding-right: ${space(0.75)};
-`;
-const DifferentialFlamegraphTransactionName = styled('div')`
-  font-weight: 600;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const DifferentialFlamegraphRegressionChange = styled('span')`
-  margin-left: ${space(1)};
-  color: ${p => p.theme.red300};
-`;
-
-const DifferentialFlamegraphTransactionToolbarContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)};
-  gap: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const ErrorMessageContainer = styled('div')`
@@ -795,4 +650,14 @@ const DifferentialFlamegraphContainer = styled('div')`
   position: relative;
   width: 100%;
   height: 420px;
+`;
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1.5)};
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
 `;

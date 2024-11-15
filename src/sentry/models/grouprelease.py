@@ -8,7 +8,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.tasks.process_buffer import buffer_incr
@@ -16,7 +16,7 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -34,7 +34,7 @@ class GroupRelease(Model):
         unique_together = (("group_id", "release_id", "environment"),)
         indexes = (
             models.Index(fields=("group_id", "first_seen")),
-            models.Index(fields=("group_id", "last_seen")),
+            models.Index(fields=("group_id", "-last_seen")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")

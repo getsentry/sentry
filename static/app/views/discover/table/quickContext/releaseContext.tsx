@@ -8,11 +8,12 @@ import Panel from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {ReleaseWithHealth, User} from 'sentry/types';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useUser} from 'sentry/utils/useUser';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -27,8 +28,9 @@ import type {BaseContextProps} from './utils';
 import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
+  const user = useUser();
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
+  const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
     [
       `/organizations/${organization.slug}/releases/${encodeURIComponent(
         dataRow.release
@@ -47,7 +49,6 @@ function ReleaseContext(props: BaseContextProps) {
   }, [organization]);
 
   const getCommitAuthorTitle = () => {
-    const user = ConfigStore.get('user');
     const commitCount = data?.commitCount || 0;
     let authorsCount = data?.authors?.length || 0;
 
@@ -156,8 +157,8 @@ function ReleaseContext(props: BaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   return (

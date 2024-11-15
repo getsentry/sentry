@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+import logging
 import resource
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any
+from typing import Any, TypeVar
 
 from celery import current_task
+from django.conf import settings
+from django.db.models import Model
 
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
-from sentry.utils.sdk import capture_exception, configure_scope
+from sentry.utils.sdk import Scope, capture_exception
+
+ModelT = TypeVar("ModelT", bound=Model)
+
+logger = logging.getLogger(__name__)
 
 
 class TaskSiloLimit(SiloLimit):
@@ -65,12 +72,14 @@ def track_memory_usage(metric, **kwargs):
         metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
-def load_model_from_db(cls, instance_or_id, allow_cache=True):
+def load_model_from_db(
+    tp: type[ModelT], instance_or_id: ModelT | int, allow_cache: bool = True
+) -> ModelT:
     """Utility function to allow a task to transition to passing ids rather than model instances."""
     if isinstance(instance_or_id, int):
-        if hasattr(cls.objects, "get_from_cache") and allow_cache:
-            return cls.objects.get_from_cache(pk=instance_or_id)
-        return cls.objects.get(pk=instance_or_id)
+        if hasattr(tp.objects, "get_from_cache") and allow_cache:
+            return tp.objects.get_from_cache(pk=instance_or_id)
+        return tp.objects.get(pk=instance_or_id)
     return instance_or_id
 
 
@@ -89,6 +98,11 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            record_queue_wait_time = record_timing
+
+            # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
+            # Unhandled exception could cause all tasks to be effected and not work
+
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
             transaction_id = kwargs.pop("__transaction_id", None)
@@ -100,23 +114,30 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
             else:
                 instance = name
 
-            if start_time and record_timing:
+            if start_time and record_queue_wait_time:
                 curr_time = datetime.now().timestamp()
                 duration = (curr_time - start_time) * 1000
                 metrics.distribution(
                     "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
-            with configure_scope() as scope:
-                scope.set_tag("task_name", name)
-                scope.set_tag("transaction_id", transaction_id)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("task_name", name)
+            scope.set_tag("transaction_id", transaction_id)
 
-            with metrics.timer(key, instance=instance), track_memory_usage(
-                "jobs.memory_change", instance=instance
+            with (
+                metrics.timer(key, instance=instance),
+                track_memory_usage("jobs.memory_change", instance=instance),
             ):
                 result = func(*args, **kwargs)
 
             return result
+
+        # If the split task router is configured for the task, always use queues defined
+        # in the split task configuration
+        if name in settings.CELERY_SPLIT_QUEUE_TASK_ROUTES and "queue" in kwargs:
+            q = kwargs.pop("queue")
+            logger.warning("ignoring queue: %s, using value from CELERY_SPLIT_QUEUE_TASK_ROUTES", q)
 
         # We never use result backends in Celery. Leaving `trail=True` means that if we schedule
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler

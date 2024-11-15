@@ -1,10 +1,13 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {EventsStatsSeries, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {transformSingleSeries} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -18,6 +21,7 @@ interface UseProfileTopEventsStatsOptions<F> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   interval?: string;
+  projects?: PageFilters['projects'];
   query?: string;
 }
 
@@ -28,11 +32,15 @@ export function useProfileTopEventsStats<F extends string>({
   interval,
   others,
   query,
+  projects,
   referrer,
   topEvents,
   yAxes,
   enabled = true,
-}: UseProfileTopEventsStatsOptions<F>) {
+}: UseProfileTopEventsStatsOptions<F>): UseApiQueryResult<
+  EventsStatsSeries<F>,
+  RequestError
+> {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -42,7 +50,7 @@ export function useProfileTopEventsStats<F extends string>({
       dataset,
       field: fields,
       referrer,
-      project: selection.projects,
+      project: projects ?? selection.projects,
       environment: selection.environments,
       ...normalizeDateTimeParams(datetime ?? selection.datetime),
       yAxis: yAxes,
@@ -53,20 +61,20 @@ export function useProfileTopEventsStats<F extends string>({
     },
   };
 
-  const {data, ...rest} = useApiQuery<any>([path, endpointOptions], {
+  const result = useApiQuery<any>([path, endpointOptions], {
     staleTime: Infinity,
     enabled,
   });
 
-  const transformed = useMemo(
-    () => data && transformTopEventsStatsResponse(dataset, yAxes, data),
-    [yAxes, data, dataset]
+  const transformed: EventsStatsSeries<F> = useMemo(
+    () => transformTopEventsStatsResponse(dataset, yAxes, result.data),
+    [yAxes, result.data, dataset]
   );
 
   return {
+    ...result,
     data: transformed,
-    ...rest,
-  };
+  } as UseApiQueryResult<EventsStatsSeries<F>, RequestError>;
 }
 
 function transformTopEventsStatsResponse<F extends string>(
@@ -76,7 +84,7 @@ function transformTopEventsStatsResponse<F extends string>(
 ): EventsStatsSeries<F> {
   // the events stats endpoint has a legacy response format so here we transform it
   // into the proposed update for forward compatibility and ease of use
-  if (yAxes.length === 0) {
+  if (!rawData || yAxes.length === 0) {
     return {
       data: [],
       meta: {

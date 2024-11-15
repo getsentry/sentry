@@ -21,7 +21,7 @@ describe('OrganizationApiKeysList', function () {
       {path: 'api-keys/', name: 'API Key'},
     ];
 
-    const {organization, router, route} = initializeOrg({
+    const {organization, router} = initializeOrg({
       router: {routes},
     });
 
@@ -33,7 +33,7 @@ describe('OrganizationApiKeysList', function () {
         keys={[DeprecatedApiKeyFixture()]}
         router={router}
         routeParams={{}}
-        route={route}
+        route={{}}
         busy={false}
         loading={false}
         location={router.location}

@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {
@@ -117,7 +117,7 @@ function getOverlapWidth(size: number) {
   return Math.round(size / 4);
 }
 
-const commonStyles = ({theme}: {theme: Theme}) => `
+const commonStyles = ({theme}: {theme: Theme}) => css`
   cursor: default;
   border-radius: ${theme.borderRadius};
   box-shadow: 0 0 0 1px ${theme.background};
@@ -149,7 +149,7 @@ const Counter = styled('div')`
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};

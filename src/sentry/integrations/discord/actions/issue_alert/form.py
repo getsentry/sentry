@@ -6,9 +6,10 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.fields import ChoiceField
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 
 
@@ -36,7 +37,9 @@ class DiscordNotifyServiceForm(forms.Form):
         cleaned_data: dict[str, object] = super().clean() or {}
         channel_id = cleaned_data.get("channel_id")
         server = cleaned_data.get("server")
-        integration = integration_service.get_integration(integration_id=server)
+        integration = integration_service.get_integration(
+            integration_id=server, status=ObjectStatus.ACTIVE
+        )
 
         if not server or not integration:
             raise forms.ValidationError(

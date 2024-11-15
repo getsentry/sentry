@@ -1,7 +1,11 @@
 import mapValues from 'lodash/mapValues';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
-import type {Organization, TagCollection} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   FieldKey,
   makeTagCollection,
@@ -11,8 +15,12 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
-import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {
+  DEFAULT_EAP_METRICS_ALERT_FIELD,
+  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+  DEFAULT_METRIC_ALERT_FIELD,
+} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {
@@ -20,6 +28,9 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -35,7 +46,12 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users'
   | 'custom_transactions'
-  | 'custom_metrics';
+  | 'custom_metrics'
+  | 'llm_tokens'
+  | 'llm_cost'
+  | 'insights_metrics'
+  | 'uptime_monitor'
+  | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -49,14 +65,17 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues'>;
+export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
-export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+export const DatasetMEPAlertQueryTypes: Record<
+  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  MEPAlertsQueryType
+> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
-  [Dataset.SESSIONS]: MEPAlertsQueryType.CRASH_RATE,
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: MEPAlertsQueryType.PERFORMANCE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -74,43 +93,75 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
+  llm_cost: t('LLM cost'),
+  llm_tokens: t('LLM token usage'),
+  insights_metrics: t('Insights Metric'),
+  uptime_monitor: t('Uptime Monitor'),
+  eap_metrics: t('EAP Metric'),
+};
+
+/**
+ * Additional elements to render after the name of the alert rule type. Useful
+ * for adding feature badges or other call-outs for newer alert types.
+ */
+export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
+  insights_metrics: <FeatureBadge type="alpha" />,
+  eap_metrics: <FeatureBadge type="experimental" />,
+  uptime_monitor: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
 };
-export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
-  {
-    categoryHeading: t('Errors'),
-    options: ['issues', 'num_errors', 'users_experiencing_errors'],
-  },
-  ...(org.features.includes('crash-rate-alerts')
-    ? [
-        {
-          categoryHeading: t('Sessions'),
-          options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
-        },
-      ]
-    : []),
-  {
-    categoryHeading: t('Performance'),
-    options: [
-      'throughput',
-      'trans_duration',
-      'apdex',
-      'failure_rate',
-      'lcp',
-      'fid',
-      'cls',
-      ...(hasDDMFeature(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-    ],
-  },
-  {
-    categoryHeading: hasDDMFeature(org) ? t('Metrics') : t('Custom'),
-    options: [hasDDMFeature(org) ? 'custom_metrics' : 'custom_transactions'],
-  },
-];
+export const getAlertWizardCategories = (org: Organization) => {
+  const result: AlertWizardCategory[] = [
+    {
+      categoryHeading: t('Errors'),
+      options: ['issues', 'num_errors', 'users_experiencing_errors'],
+    },
+  ];
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  if (!isSelfHostedErrorsOnly) {
+    if (org.features.includes('crash-rate-alerts')) {
+      result.push({
+        categoryHeading: t('Sessions'),
+        options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+      });
+    }
+    result.push({
+      categoryHeading: t('Performance'),
+      options: [
+        'throughput',
+        'trans_duration',
+        'apdex',
+        'failure_rate',
+        'lcp',
+        'fid',
+        'cls',
+        ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
+        ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
+      ],
+    });
+    if (org.features.includes('insights-addon-modules')) {
+      result.push({
+        categoryHeading: LLM_MONITORING_MODULE_TITLE,
+        options: ['llm_tokens', 'llm_cost'],
+      });
+    }
+
+    result.push({
+      categoryHeading: t('Uptime Monitoring'),
+      options: ['uptime_monitor'],
+    });
+    result.push({
+      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
+      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+    });
+  }
+  return result;
+};
 
 export type WizardRuleTemplate = {
   aggregate: string;
@@ -178,17 +229,35 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  llm_tokens: {
+    aggregate: 'sum(ai.total_tokens.used)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  llm_cost: {
+    aggregate: 'sum(ai.total_cost)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  insights_metrics: {
+    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.SESSION,
   },
   crash_free_users: {
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
-    // TODO(scttcper): Use Dataset.Metric on GA of alert-crash-free-metrics
-    dataset: Dataset.SESSIONS,
+    dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
+  },
+  eap_metrics: {
+    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRANSACTION,
   },
 };
 
@@ -246,6 +315,13 @@ const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
   ...Object.values(ReplayClickFieldKey),
 ];
 
+const ERROR_SUPPORTED_TAGS = [
+  FieldKey.IS,
+  ...Object.keys(STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS).map(
+    key => key as FieldKey
+  ),
+];
+
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
 export function datasetSupportedTags(
@@ -254,9 +330,7 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
-        ? [FieldKey.IS]
-        : undefined,
+      [Dataset.ERRORS]: ERROR_SUPPORTED_TAGS,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),

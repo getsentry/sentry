@@ -1,20 +1,22 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
-  let oldRegions: any[] = [];
+  let configstate: Config;
+
   beforeEach(() => {
     ConfigStore.get('termsUrl');
     ConfigStore.get('privacyUrl');
 
-    oldRegions = ConfigStore.get('regions');
+    configstate = ConfigStore.getState();
 
     // Set only a single region in the config store by default
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
@@ -23,7 +25,7 @@ describe('OrganizationCreate', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
-    ConfigStore.set('regions', oldRegions);
+    ConfigStore.loadInitialData(configstate);
   });
 
   it('renders without terms', function () {
@@ -56,12 +58,16 @@ describe('OrganizationCreate', function () {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     ConfigStore.set('isSelfHosted', false);
+    ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
     expect(
       screen.getByText('Relocating from self-hosted?', {exact: false})
     ).toBeInTheDocument();
-    expect(screen.getByText('here')).toHaveAttribute('href', '/relocation/');
+    expect(screen.getByText('Relocating from self-hosted?')).toHaveAttribute(
+      'href',
+      '/relocation/'
+    );
 
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await userEvent.click(
@@ -90,10 +96,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: OrganizationFixture({
-        features: ['customer-domains'],
-      }),
+      body: OrganizationFixture(),
     });
+    ConfigStore.set('features', new Set(['system:multi-region']));
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     render(<OrganizationCreate />);
@@ -127,12 +132,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: OrganizationFixture({
-        features: ['customer-domains'],
-      }),
+      body: OrganizationFixture(),
     });
 
-    ConfigStore.set('features', new Set(['organizations:multi-region-selector']));
     ConfigStore.set('regions', [
       {url: 'https://us.example.com', name: 'us'},
       {
@@ -148,6 +150,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     // Set only a single region in the config store
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
     expect(screen.queryByLabelText('Data Storage Location')).not.toBeInTheDocument();
@@ -171,6 +174,8 @@ describe('OrganizationCreate', function () {
   });
 
   it('renders without a pre-selected region, and does not submit until one is selected', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
@@ -206,31 +211,9 @@ describe('OrganizationCreate', function () {
     );
   });
 
-  it('renders without region data and submits without host when the feature flag is not enabled', async function () {
-    const orgCreateMock = multiRegionSetup();
-    ConfigStore.set('features', new Set());
-    render(<OrganizationCreate />);
-    expect(screen.queryByLabelText('Data Storage Location')).not.toBeInTheDocument();
-    await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
-    await userEvent.click(screen.getByText('Create Organization'));
-
-    await waitFor(() => {
-      expect(orgCreateMock).toHaveBeenCalledWith('/organizations/', {
-        success: expect.any(Function),
-        error: expect.any(Function),
-        method: 'POST',
-        host: undefined,
-        data: {defaultTeam: true, name: 'Good Burger'},
-      });
-    });
-
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    expect(window.location.assign).toHaveBeenCalledWith(
-      'https://org-slug.sentry.io/projects/new/'
-    );
-  });
-
   it('uses the host of the selected region when submitting', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();

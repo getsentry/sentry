@@ -1,21 +1,18 @@
 import {Fragment, useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
@@ -25,9 +22,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarProject, Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -40,7 +40,8 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Chart from './chart';
 import type {
@@ -55,7 +56,6 @@ import {TrendChangeType} from './types';
 import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
@@ -480,57 +480,54 @@ function TrendsListItem(props: TrendsListItemProps) {
             </Fragment>
           </Tooltip>
         </ItemTransactionPercentage>
-        <DropdownLink
-          caret={false}
-          anchorRight
-          title={
-            <StyledButton
-              size="xs"
-              icon={<IconEllipsis data-test-id="trends-item-action" />}
-              aria-label={t('Actions')}
-            />
-          }
-        >
-          {!organization.features.includes('performance-new-trends') && (
-            <Fragment>
-              <MenuItem
-                onClick={() =>
-                  handleFilterDuration(
-                    location,
-                    organization,
-                    longestPeriodValue,
-                    FilterSymbols.LESS_THAN_EQUALS,
-                    trendChangeType,
-                    projects,
-                    trendView.project
-                  )
-                }
-              >
-                <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-              </MenuItem>
-              <MenuItem
-                onClick={() =>
-                  handleFilterDuration(
-                    location,
-                    organization,
-                    longestPeriodValue,
-                    FilterSymbols.GREATER_THAN_EQUALS,
-                    trendChangeType,
-                    projects,
-                    trendView.project
-                  )
-                }
-              >
-                <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-              </MenuItem>
-            </Fragment>
-          )}
-          <MenuItem
-            onClick={() => handleFilterTransaction(location, transaction.transaction)}
-          >
-            <MenuAction>{t('Hide from list')}</MenuAction>
-          </MenuItem>
-        </DropdownLink>
+        <DropdownMenu
+          triggerProps={{
+            size: 'xs',
+            icon: <IconEllipsis />,
+            'aria-label': t('Actions'),
+            showChevron: false,
+          }}
+          items={[
+            ...(organization.features.includes('performance-new-trends')
+              ? []
+              : [
+                  {
+                    key: 'shortestDuration',
+                    label: t('Show \u2264 %s', longestDuration),
+                    onAction: () =>
+                      handleFilterDuration(
+                        location,
+                        organization,
+                        longestPeriodValue,
+                        FilterSymbols.LESS_THAN_EQUALS,
+                        trendChangeType,
+                        projects,
+                        trendView.project
+                      ),
+                  },
+                  {
+                    key: 'longestDuration',
+                    label: t('Show \u2265 %s', longestDuration),
+                    onAction: () =>
+                      handleFilterDuration(
+                        location,
+                        organization,
+                        longestPeriodValue,
+                        FilterSymbols.GREATER_THAN_EQUALS,
+                        trendChangeType,
+                        projects,
+                        trendView.project
+                      ),
+                  },
+                ]),
+            {
+              key: 'hide',
+              label: t('Hide from list'),
+              onAction: () => handleFilterTransaction(location, transaction.transaction),
+            },
+          ]}
+          position="bottom-end"
+        />
         <ItemTransactionDurationChange>
           {project && (
             <Tooltip title={transaction.project}>
@@ -623,18 +620,22 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     },
   });
 
-  const handleClick = useCallback(() => {
-    onTransactionSelection(transaction.transaction);
-    trackAnalytics('performance_views.performance_change_explorer.open', {
-      organization,
-      transaction: transaction.transaction,
-    });
-  }, [onTransactionSelection, transaction.transaction, organization]);
+  const handleClick = useCallback<React.MouseEventHandler>(
+    event => {
+      event.preventDefault();
+      onTransactionSelection(transaction.transaction);
+      trackAnalytics('performance_views.performance_change_explorer.open', {
+        organization,
+        transaction: transaction.transaction,
+      });
+    },
+    [onTransactionSelection, transaction.transaction, organization]
+  );
 
   if (organization.features.includes('performance-change-explorer')) {
     return (
       <ItemTransactionName
-        to=""
+        to={location}
         data-test-id="item-transaction-name"
         onClick={handleClick}
       >
@@ -666,10 +667,6 @@ const ChartContainer = styled('div')`
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   border-radius: ${p => p.theme.borderRadius};
   margin: ${space(2)} ${space(3)};
-`;
-
-const StyledButton = styled(Button)`
-  vertical-align: middle;
 `;
 
 const MenuAction = styled('div')<{['data-test-id']?: string}>`

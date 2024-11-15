@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {OnboardingRecentCreatedProject, Organization} from 'sentry/types';
+import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
@@ -47,7 +48,7 @@ export default function FirstEventFooter({
       return (
         <CreateSampleEventButton
           project={project}
-          source="targted-onboarding"
+          source="targeted-onboarding"
           priority="primary"
         >
           {t('View Sample Error')}
@@ -55,7 +56,13 @@ export default function FirstEventFooter({
       );
     }
     return (
-      <Button
+      <LinkButton
+        onClick={() =>
+          trackAnalytics('growth.onboarding_take_to_error', {
+            organization: project.organization,
+            platform: project.platform,
+          })
+        }
         to={`/organizations/${organization.slug}/issues/${
           project?.firstIssue && 'id' in project.firstIssue
             ? `${project.firstIssue.id}/`
@@ -64,7 +71,7 @@ export default function FirstEventFooter({
         priority="primary"
       >
         {t('Take me to my error')}
-      </Button>
+      </LinkButton>
     );
   }, [project, organization.slug]);
 

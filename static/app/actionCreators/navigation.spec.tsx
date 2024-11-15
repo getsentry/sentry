@@ -1,15 +1,17 @@
-import type {InjectedRouter} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Config} from 'sentry/types/system';
 
 jest.mock('sentry/actionCreators/modal');
 
 describe('navigation ActionCreator', () => {
   let router: InjectedRouter;
+  let configState: Config;
 
   beforeEach(() => {
     ProjectsStore.init();
@@ -20,29 +22,29 @@ describe('navigation ActionCreator', () => {
       },
     });
     router = initialData.router;
-    ProjectsStore.loadInitialData(initialData.organization.projects);
+    ProjectsStore.loadInitialData(initialData.projects);
+    configState = ConfigStore.getState();
   });
 
   afterEach(() => {
     ProjectsStore.reset();
     jest.resetAllMocks();
+    ConfigStore.loadInitialData(configState);
   });
 
   it('should get project from query parameters', () => {
     router.location.query.project = '2';
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/project-slug/alert');
   });
 
   it('should get project id from query parameters', () => {
     router.location.query.project = '2';
-    expect(
-      navigateTo(
-        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/organizations/albertos-apples/performance/?project=2#performance-sidequest'
@@ -51,12 +53,10 @@ describe('navigation ActionCreator', () => {
 
   it('should get project and project id from query parameters', () => {
     router.location.query.project = '2';
-    expect(
-      navigateTo(
-        '/settings/:projectId/alert?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/settings/:projectId/alert?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
       '/settings/project-slug/alert?project=2#performance-sidequest'
@@ -65,51 +65,46 @@ describe('navigation ActionCreator', () => {
 
   it('should open modal if the store is somehow missing selected projectId', () => {
     router.location.query.project = '911';
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal when no project is selected', () => {
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal when no project id is selected', () => {
-    expect(
-      navigateTo(
-        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
-        router
-      )
-    ).toBe(undefined);
+    navigateTo(
+      '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+      router
+    );
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should open modal if more than one project is selected', () => {
     router.location.query.project = ['1', '2', '3'];
-    expect(navigateTo('/settings/:projectId/alert', router)).toBe(undefined);
+    navigateTo('/settings/:projectId/alert', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('should not open modal if url does not require project id', () => {
-    expect(navigateTo('/settings/alert', router)).toBe(undefined);
+    navigateTo('/settings/alert', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/alert');
   });
 
   it('should open modal for orgId', () => {
-    expect(navigateTo('/settings/:orgId', router)).toBe(undefined);
+    navigateTo('/settings/:orgId', router);
     expect(openModal).toHaveBeenCalled();
   });
 
   it('normalizes URLs for customer domains', function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: {
-        subdomain: 'albertos-apples',
-        organizationUrl: 'https://albertos-apples.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-    };
+    ConfigStore.set('customerDomain', {
+      subdomain: 'albertos-apples',
+      organizationUrl: 'https://albertos-apples.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     navigateTo('/settings/org-slug/projects/', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/projects/');
@@ -118,5 +113,21 @@ describe('navigation ActionCreator', () => {
     navigateTo('/settings/org-slug/projects/:projectId/alerts/', router);
     expect(openModal).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith('/settings/projects/project-slug/alerts/');
+  });
+
+  it('preserves query parameters in path object', function () {
+    router.location.query.project = '2';
+    navigateTo(
+      {
+        pathname: '/settings/:projectId/alert?project=:project#performance-sidequest',
+        query: {referrer: 'onboarding_task'},
+      },
+      router
+    );
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/settings/project-slug/alert?project=2#performance-sidequest',
+      query: {referrer: 'onboarding_task'},
+    });
   });
 });

@@ -1,14 +1,13 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-user-feedback"
     method = "get"
@@ -64,7 +63,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             comments="Hello world",
             group_id=self.group_1.id,
             environment_id=self.env_2.id,
-            date_added=datetime.now() - timedelta(days=7),
+            date_added=datetime.now(UTC) - timedelta(days=7),
         )
 
     def run_test(self, expected, **params):
@@ -88,13 +87,13 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     def test_date_filter(self):
         self.run_test(
             [self.report_1],
-            start=(datetime.now() - timedelta(days=1)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=1)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test(
             [self.report_1, self.report_2],
-            start=(datetime.now() - timedelta(days=8)).isoformat() + "Z",
-            end=datetime.now().isoformat() + "Z",
+            start=(datetime.now(UTC) - timedelta(days=8)).isoformat(),
+            end=datetime.now(UTC).isoformat(),
         )
         self.run_test([self.report_1, self.report_2], statsPeriod="14d")
 
@@ -147,3 +146,41 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["comments"] == "It broke"
         assert response.data[0]["user"]["name"] == "Alice"
         assert response.data[0]["user"]["email"] == "alice@example.com"
+
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_retention(self, mock_get_event_retention):
+        retention_days = 21
+        mock_get_event_retention.return_value = retention_days
+        UserReport.objects.create(
+            project_id=self.project_1.id,
+            event_id="f" * 32,
+            group_id=self.group_1.id,
+            environment_id=self.env_1.id,
+            date_added=datetime.now(UTC) - timedelta(days=retention_days + 1),
+        )
+        self.run_test([self.report_1, self.report_2])  # old report is not returned
+
+    @patch("sentry.quotas.backend.get_event_retention")
+    def test_event_retention(self, mock_get_event_retention):
+        retention_days = 21
+        mock_get_event_retention.return_value = retention_days
+
+        old_event = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "timestamp": (datetime.now(UTC) - timedelta(days=retention_days + 1)).isoformat(),
+                "environment": self.environment.name,
+            },
+            project_id=self.project_1.id,
+        )
+        UserReport.objects.create(
+            project_id=self.project_1.id,
+            event_id=old_event.event_id,
+            environment_id=self.environment.id,
+            group_id=old_event.group.id,
+            date_added=datetime.now(UTC) - timedelta(days=1),
+        )
+
+        # We don't care what is returned here, only that no QueryOutsideRetentionError is thrown.
+        response = self.get_response(self.project_1.organization.slug)
+        assert response.status_code == 200

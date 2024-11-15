@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import threading
-import types
 from collections.abc import MutableSequence, Sequence
 from typing import NoReturn
 
@@ -37,7 +36,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "events-subscription-results",
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
-    "sessions-subscription-results",
     "metrics-subscription-results",
 ]
 
@@ -233,6 +231,9 @@ def devserver(
 
     daemons: MutableSequence[tuple[str, Sequence[str]]] = []
     kafka_consumers: set[str] = set()
+    containers: set[str] = set()
+    with get_docker_client() as docker:
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -320,13 +321,24 @@ def devserver(
             kafka_consumers.add("ingest-generic-metrics")
             kafka_consumers.add("billing-metrics-consumer")
 
+        if settings.SENTRY_USE_UPTIME:
+            kafka_consumers.add("uptime-results")
+            kafka_consumers.add("uptime-configs")
+
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
+            # TODO: Remove this once we have a better way to check if relay is running for new devservices
+            if "relay-relay-1" not in containers:
+                daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
+            kafka_consumers.add("ingest-feedback-events")
+
+            kafka_consumers.add("monitors-clock-tick")
+            kafka_consumers.add("monitors-clock-tasks")
+            kafka_consumers.add("monitors-incident-occurrences")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -334,15 +346,14 @@ def devserver(
             if settings.SENTRY_USE_SPANS_BUFFER:
                 kafka_consumers.add("process-spans")
                 kafka_consumers.add("ingest-occurrences")
+                kafka_consumers.add("detect-performance-issues")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        with get_docker_client() as docker:
-            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_kafka" not in containers:
+        if "sentry_kafka" not in containers and "shared-kafka-kafka-1" not in containers:
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
@@ -361,14 +372,16 @@ or:
 and run `sentry devservices up kafka`.
 
 Alternatively, run without --workers.
-"""
+        """
             )
 
+        from sentry.conf.types.kafka_definition import Topic
         from sentry.utils.batching_kafka_consumer import create_topics
+        from sentry.utils.kafka_config import get_topic_definition
 
-        for topic_name, topic_data in settings.KAFKA_TOPICS.items():
-            if topic_data is not None:
-                create_topics(topic_data["cluster"], [topic_name], force=True)
+        for topic in Topic:
+            topic_defn = get_topic_definition(topic)
+            create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
         if dev_consumer:
             daemons.append(
@@ -439,7 +452,6 @@ Alternatively, run without --workers.
     from subprocess import list2cmdline
 
     from honcho.manager import Manager
-    from honcho.printer import Printer
 
     os.environ["PYTHONUNBUFFERED"] = "true"
 
@@ -455,16 +467,13 @@ Alternatively, run without --workers.
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 
-    honcho_printer = Printer(prefix=prefix)
+    from sentry.runner.formatting import get_honcho_printer
 
-    if pretty:
-        from sentry.runner.formatting import monkeypatch_honcho_write
-
-        honcho_printer.write = types.MethodType(monkeypatch_honcho_write, honcho_printer)
+    honcho_printer = get_honcho_printer(prefix=prefix, pretty=pretty)
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        quiet = (
+        quiet = bool(
             name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
             and settings.DEVSERVER_LOGS_ALLOWLIST
         )
@@ -493,7 +502,7 @@ Alternatively, run without --workers.
         for service in control_services:
             name, cmd = _get_daemon(service)
             name = f"control.{name}"
-            quiet = (
+            quiet = bool(
                 name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
                 and settings.DEVSERVER_LOGS_ALLOWLIST
             )

@@ -1,8 +1,8 @@
-from sentry.deletions import default_manager
+from sentry.deletions import get_manager
 from sentry.deletions.base import _delete_children
 from sentry.deletions.defaults.repository import _get_repository_child_relations
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 
@@ -22,15 +22,12 @@ def repository_cascade_delete_on_hide(repo_id: int) -> None:
     except Repository.DoesNotExist:
         return
 
+    deletions_manager = get_manager()
     has_more = True
 
     while has_more:
         # get child relations
         child_relations = _get_repository_child_relations(repo)
-        # extend relations
-        child_relations = child_relations + [
-            rel(repo) for rel in default_manager.dependencies[Repository]
-        ]
         # no need to filter relations; delete them
         if child_relations:
-            has_more = _delete_children(manager=default_manager, relations=child_relations)
+            has_more = _delete_children(manager=deletions_manager, relations=child_relations)

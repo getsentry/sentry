@@ -1,9 +1,7 @@
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationOptionManagerTest(TestCase):
     def test_set_value(self):
         OrganizationOption.objects.set_value(self.organization, "foo", "bar")

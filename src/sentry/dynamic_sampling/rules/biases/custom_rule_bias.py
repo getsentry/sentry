@@ -1,21 +1,21 @@
 import logging
 from typing import cast
 
+import orjson
 from sentry_relay.processing import validate_rule_condition
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
-from sentry.dynamic_sampling.rules.utils import Condition, PolymorphicRule
+from sentry.dynamic_sampling.rules.utils import PolymorphicRule
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.models.project import Project
-from sentry.utils import json
-from sentry.utils.json import JSONDecodeError
+from sentry.relay.types import RuleCondition
 
 logger = logging.getLogger(__name__)
 
 
 class CustomRuleBias(Bias):
     """
-    Boosts at 100% sample rate all the traces that have a replay_id.
+    Boosts to 100% sample rate all the traces matching an active custom rule.
     """
 
     def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
@@ -34,7 +34,7 @@ class CustomRuleBias(Bias):
                 continue
 
             try:
-                condition = cast(Condition, json.loads(rule.condition))
+                condition = cast(RuleCondition, orjson.loads(rule.condition))
                 ret_val.append(
                     {
                         "samplingValue": {"type": "reservoir", "limit": rule.num_samples},
@@ -47,7 +47,7 @@ class CustomRuleBias(Bias):
                         },
                     }
                 )
-            except JSONDecodeError:
+            except orjson.JSONDecodeError:
                 logger.exception(
                     "Custom rule with invalid json found",
                     extra={"rule_id": rule.rule_id, "condition": rule.condition},

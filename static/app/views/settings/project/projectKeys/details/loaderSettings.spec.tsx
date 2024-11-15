@@ -1,11 +1,11 @@
-import selectEvent from 'react-select-event';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
-import {t} from 'sentry/locale';
-import type {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 
 import {KeySettings} from './keySettings';
 import {LoaderSettings} from './loaderSettings';
@@ -70,24 +70,24 @@ describe('Loader Script Settings', function () {
     // Panel title
     expect(screen.getByText('JavaScript Loader Script')).toBeInTheDocument();
 
-    expect(screen.getByText(t('Enable Performance Monitoring'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Session Replay'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Debug Bundles & Logging'))).toBeInTheDocument();
+    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
+    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Session Replay'),
+      name: 'Enable Session Replay',
     });
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Debug Bundles & Logging'),
+      name: 'Enable Debug Bundles & Logging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -124,9 +124,9 @@ describe('Loader Script Settings', function () {
     );
 
     // Toggle performance option
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
       })
     );
 
@@ -145,14 +145,14 @@ describe('Loader Script Settings', function () {
     });
 
     // Update SDK version
-    await selectEvent.select(screen.getByText('latest'), '7.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${params.projectSlug}/keys/${params.keyId}/`,
         expect.objectContaining({
           data: expect.objectContaining({
-            browserSdkVersion: '7.x',
+            browserSdkVersion: '6.x',
           }),
         })
       );
@@ -188,7 +188,7 @@ describe('Loader Script Settings', function () {
     );
 
     // Update SDK version - should reset performance & replay
-    await selectEvent.select(screen.getByText('latest'), '6.x');
+    await selectEvent.select(screen.getByText('7.x'), '6.x');
 
     await waitFor(() => {
       expect(mockRequests.projectKeys).toHaveBeenCalledWith(
@@ -235,17 +235,17 @@ describe('Loader Script Settings', function () {
     );
 
     const performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
     });
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Session Replay'),
+      name: 'Enable Session Replay',
     });
     expect(replayCheckbox).not.toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Debug Bundles & Logging'),
+      name: 'Enable Debug Bundles & Logging',
     });
     expect(debugCheckbox).toBeChecked();
 
@@ -278,7 +278,8 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.getByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
     ).toBeInTheDocument();
 
@@ -296,8 +297,68 @@ describe('Loader Script Settings', function () {
 
     expect(
       screen.queryByText(
-        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.'
+        'When using Replay, the loader will load the ES6 bundle instead of the ES5 bundle.',
+        {exact: false}
       )
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows performance message when it is enabled', function () {
+    const {organization, project} = initializeOrg();
+    const params = {
+      projectSlug: project.slug,
+      keyId: '1',
+    };
+
+    const data = {
+      ...(ProjectKeysFixture()[0] as ProjectKey),
+      dynamicSdkLoaderOptions: fullDynamicSdkLoaderOptions,
+    } as ProjectKey;
+
+    const {rerender} = render(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.getByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
+    ).toBeInTheDocument();
+
+    data.dynamicSdkLoaderOptions.hasPerformance = false;
+
+    rerender(
+      <LoaderSettings
+        updateData={jest.fn()}
+        orgSlug={organization.slug}
+        keyId={params.keyId}
+        project={project}
+        data={data}
+      />
+    );
+
+    expect(
+      screen.queryByText('tracesSampleRate: 1.0', {
+        exact: false,
+      })
+    ).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByText('distributed tracing to same-origin requests', {
+        exact: false,
+      })
     ).not.toBeInTheDocument();
   });
 });

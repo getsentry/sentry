@@ -1,4 +1,3 @@
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -26,7 +25,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -51,7 +49,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   onLegendSelectChanged,
 }: Props) {
   if (errored) {
@@ -107,7 +104,7 @@ function Content({
   };
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

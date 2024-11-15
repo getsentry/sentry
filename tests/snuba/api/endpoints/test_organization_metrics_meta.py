@@ -2,13 +2,11 @@ import pytest
 from django.urls import reverse
 
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
@@ -28,7 +26,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -43,7 +41,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -57,7 +55,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -73,7 +71,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -104,12 +102,12 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
             project=project3.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "transaction": "foo_transaction"},
+            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
             project_id=self.project.id,
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -123,7 +121,6 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         )
 
 
-@region_silo_test
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
@@ -143,7 +140,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -157,7 +154,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         self.store_transaction_metric(1, tags={}, timestamp=self.min_ago)
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -170,7 +167,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         # Make current project incompatible by having nothing
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -185,7 +182,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -218,12 +215,12 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
             project=project3.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(self.min_ago), "transaction": "foo_transaction"},
+            data={"timestamp": self.min_ago.isoformat(), "transaction": "foo_transaction"},
             project_id=self.project.id,
         )
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 
@@ -247,7 +244,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
 
         url = reverse(
             "sentry-api-0-organization-metrics-compatibility-sums",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         response = self.client.get(url, format="json")
 

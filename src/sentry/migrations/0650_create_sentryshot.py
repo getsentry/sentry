@@ -11,7 +11,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 
 
 class Migration(CheckedMigration):
-    is_dangerous = False
+    is_post_deployment = False
 
     dependencies = [
         ("sentry", "0649_add_index_for_group_priority"),

@@ -1,15 +1,17 @@
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import NoGroupsHandler from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
@@ -21,6 +23,7 @@ type GroupListBodyProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject;
+  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
@@ -31,6 +34,7 @@ type GroupListProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   memberList: IndexedMembersByProject;
+  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
 };
 
@@ -44,6 +48,7 @@ function GroupListBody({
   error,
   refetchGroups,
   selectedProjectIds,
+  onActionTaken,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -75,6 +80,7 @@ function GroupListBody({
       query={query}
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
+      onActionTaken={onActionTaken}
     />
   );
 }
@@ -85,7 +91,9 @@ function GroupList({
   query,
   displayReprocessingLayout,
   groupStatsPeriod,
+  onActionTaken,
 }: GroupListProps) {
+  const organization = useOrganization();
   const [isSavedSearchesOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
@@ -93,9 +101,21 @@ function GroupList({
   const topIssue = groupIds[0];
   const canSelect = !useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
+
+  const columns: GroupListColumn[] = [
+    'graph',
+    ...(organization.features.includes('issue-stream-table-layout')
+      ? ['firstSeen' as const, 'lastSeen' as const]
+      : []),
+    'event',
+    'users',
+    'priority',
+    'assignee',
+    'lastTriggered',
+  ];
 
   return (
     <PanelBody>
@@ -116,6 +136,8 @@ function GroupList({
             useFilteredStats
             canSelect={canSelect}
             narrowGroups={isSavedSearchesOpen}
+            onPriorityChange={priority => onActionTaken([id], {priority})}
+            withColumns={columns}
           />
         );
       })}

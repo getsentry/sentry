@@ -3,6 +3,7 @@ from __future__ import annotations
 import mimetypes
 import os
 import posixpath
+from collections.abc import Callable
 from tempfile import SpooledTemporaryFile
 
 from django.conf import settings
@@ -22,9 +23,22 @@ from requests.exceptions import RequestException
 
 from sentry.net.http import TimeoutAdapter
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, sigmoid_delay
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
+REPLAY_GCS_RETRIES = 125
+
+
+# Which errors are eligible for retry.
+GCS_RETRYABLE_ERRORS = (
+    DataCorruption,
+    TransportError,
+    RefreshError,
+    RequestException,
+    ServiceUnavailable,
+    GatewayTimeout,
+)
 
 # how long are we willing to wait?
 GCS_TIMEOUT = 6.0
@@ -59,14 +73,7 @@ def try_repeated(func):
             metrics_tags.update({"success": "1"})
             metrics.distribution(metrics_key, idx, tags=metrics_tags)
             return result
-        except (
-            DataCorruption,
-            TransportError,
-            RefreshError,
-            RequestException,
-            ServiceUnavailable,
-            GatewayTimeout,
-        ) as e:
+        except GCS_RETRYABLE_ERRORS as e:
             if idx >= GCS_RETRIES:
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.distribution(metrics_key, idx, tags=metrics_tags)
@@ -184,7 +191,7 @@ class GoogleCloudFile(File):
                 )
                 if "r" in self._mode:
                     self._is_dirty = False
-                    try_repeated(_try_download)
+                    self._storage.try_get(_try_download)
         return self._file
 
     @file.setter
@@ -213,7 +220,7 @@ class GoogleCloudFile(File):
 
         if self._file is not None:
             if self._is_dirty:
-                try_repeated(_try_upload)
+                self._storage.try_set(_try_upload)
             self._file.close()
             self._file = None
 
@@ -278,7 +285,7 @@ class GoogleCloudStorage(Storage):
             content.name = cleaned_name
             encoded_name = self._encode_name(name)
             file = GoogleCloudFile(encoded_name, "w", self)
-            try_repeated(_try_upload)
+            self.try_set(_try_upload)
         return cleaned_name
 
     def delete(self, name):
@@ -287,7 +294,7 @@ class GoogleCloudStorage(Storage):
             self.bucket.delete_blob(self._encode_name(normalized_name))
 
         try:
-            try_repeated(_try_delete)
+            self.try_del(_try_delete)
         except NotFound:
             pass
 
@@ -361,3 +368,44 @@ class GoogleCloudStorage(Storage):
             name = clean_name(name)
             return name
         return super().get_available_name(name, max_length)
+
+    def try_del(self, callable: Callable[[], None]) -> None:
+        self._try(callable)
+
+    def try_get(self, callable: Callable[[], None]) -> None:
+        self._try(callable)
+
+    def try_set(self, callable: Callable[[], None]) -> None:
+        self._try(callable)
+
+    def _try(self, callable: Callable[[], None]) -> None:
+        # The default policy since 2018 has been to retry five times in a loop with no backoff
+        # for gets, sets, and deletes. This behavior has been preserved here.
+        #
+        # To implement a custom retry policy see `src/sentry/utils/retries.py` and the
+        # `GoogleCloudStorageWithReplayUploadPolicy` class.
+        try_repeated(callable)
+
+
+class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
+    """Google cloud storage class with replay upload policy."""
+
+    # "try_del" and "try_get" inherit the default behavior. We don't want to exponentially
+    # wait in those contexts. We're maintaining the status-quo for now but in the future we
+    # can add policies for these methods or use no policy at all and implement retries at a
+    # higher, more contextual level.
+    #
+    # def try_del(self, callable: Callable[[], None]) -> None:
+    # def try_get(self, callable: Callable[[], None]) -> None:
+
+    def try_set(self, callable: Callable[[], None]) -> None:
+        """Upload a blob with exponential delay for a maximum of five attempts."""
+
+        def should_retry(attempt: int, e: Exception) -> bool:
+            """Retry gateway timeout exceptions up to the limit."""
+            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
+
+        # Retry cadence: After a brief period of fast retries the function will retry once
+        # per second for two minutes.
+        policy = ConditionalRetryPolicy(should_retry, sigmoid_delay())
+        policy(callable)

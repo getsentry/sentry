@@ -1,35 +1,31 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ArchivedBox from 'sentry/components/archivedBox';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import type {
-  Group,
-  GroupActivityReprocess,
-  GroupReprocessing,
-  Organization,
-  Project,
-} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
+import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
 
@@ -39,29 +35,25 @@ import {
   getGroupMostRecentActivity,
   ReprocessingStatus,
   useEnvironmentsFromUrl,
+  useHasStreamlinedUI,
 } from '../utils';
 
-const EscalatingIssuesFeedback = HookOrDefault({
-  hookName: 'component:escalating-issues-banner-feedback',
-});
-
 export interface GroupEventDetailsProps
-  extends RouteComponentProps<{groupId: string; eventId?: string}, {}> {
+  extends RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}> {
   eventError: boolean;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   loadingEvent: boolean;
   onRetry: () => void;
-  organization: Organization;
   project: Project;
   event?: Event;
 }
 
 function GroupEventDetails(props: GroupEventDetailsProps) {
+  const organization = useOrganization();
   const {
     group,
     project,
-    organization,
     location,
     event,
     groupReprocessingStatus,
@@ -70,16 +62,11 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     eventError,
     params,
   } = props;
-  const eventWithMeta = withMeta(event);
-
-  // Reprocessing
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-  const {activity: activities} = group;
-  const mostRecentActivity = getGroupMostRecentActivity(activities);
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
   const prevEvent = usePrevious(event);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
   useSentryAppComponentsData({projectId});
@@ -149,6 +136,9 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
 
   const renderContent = () => {
     if (loadingEvent) {
+      if (hasStreamlinedUI) {
+        return <GroupEventDetailsLoading />;
+      }
       return <LoadingIndicator />;
     }
 
@@ -163,71 +153,67 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
+  const LayoutBody = hasStreamlinedUI ? 'div' : StyledLayoutBody;
+  const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
 
   return (
-    <TransactionProfileIdProvider
-      projectId={event?.projectID}
-      transactionId={event?.type === 'transaction' ? event.id : undefined}
-      timestamp={event?.dateReceived}
-    >
-      <VisuallyCompleteWithData
-        id="IssueDetails-EventBody"
-        hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
-        isLoading={loadingEvent}
+    <AnalyticsArea name="issue_details">
+      <TransactionProfileIdProvider
+        projectId={event?.projectID}
+        transactionId={event?.type === 'transaction' ? event.id : undefined}
+        timestamp={event?.dateReceived}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
-              pendingEvents={
-                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <QuickTraceQuery
-                event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {renderGroupStatusBanner()}
-                      <EscalatingIssuesFeedback
-                        organization={organization}
+        <VisuallyCompleteWithData
+          id="IssueDetails-EventBody"
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+          isLoading={loadingEvent}
+        >
+          <LayoutBody data-test-id="group-event-details">
+            {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+              <ReprocessingProgress
+                totalEvents={
+                  (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                    .data.eventCount
+                }
+                pendingEvents={
+                  (group.statusDetails as GroupReprocessing['statusDetails'])
+                    .pendingEvents
+                }
+              />
+            ) : (
+              <Fragment>
+                <MainLayoutComponent>
+                  {!hasStreamlinedUI && renderGroupStatusBanner()}
+                  {eventWithMeta &&
+                    issueTypeConfig.stats.enabled &&
+                    !hasStreamlinedUI && (
+                      <GroupEventHeader
                         group={group}
+                        event={eventWithMeta}
+                        project={project}
                       />
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && issueTypeConfig.stats.enabled && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
-                        {renderContent()}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
-              <StyledLayoutSide>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
-                  event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
-            </Fragment>
-          )}
-        </StyledLayoutBody>
-      </VisuallyCompleteWithData>
-    </TransactionProfileIdProvider>
+                    )}
+                  {renderContent()}
+                </MainLayoutComponent>
+                {hasStreamlinedUI ? null : (
+                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                    <GroupSidebar
+                      organization={organization}
+                      project={project}
+                      group={group}
+                      event={eventWithMeta}
+                      environments={environments}
+                    />
+                  </StyledLayoutSide>
+                )}
+              </Fragment>
+            )}
+          </LayoutBody>
+        </VisuallyCompleteWithData>
+      </TransactionProfileIdProvider>
+    </AnalyticsArea>
   );
 }
 
@@ -256,12 +242,22 @@ const StyledLayoutMain = styled(Layout.Main)`
   }
 `;
 
-const StyledLayoutSide = styled(Layout.Side)`
-  padding: ${space(3)} ${space(2)} ${space(3)};
+const StyledLayoutSide = styled(Layout.Side)<{hasStreamlinedUi: boolean}>`
+  ${p =>
+    p.hasStreamlinedUi
+      ? css`
+          padding: ${space(1.5)} ${space(2)};
+        `
+      : css`
+          padding: ${space(3)} ${space(2)} ${space(3)};
+
+          @media (min-width: ${p.theme.breakpoints.large}) {
+            padding-right: ${space(4)};
+          }
+        `}
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    padding-right: ${space(4)};
-    padding-left: 0;
+    padding-left: ${p => (p.hasStreamlinedUi ? space(0.5) : 0)};
   }
 `;
 

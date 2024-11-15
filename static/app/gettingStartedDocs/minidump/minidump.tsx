@@ -8,13 +8,14 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
 const getCurlSnippet = (params: Params) => `
 curl -X POST \
-'${params.dsn}' \
+'${params.dsn.public}' \
 -F upload_file_minidump=@mini.dmp`;
 
 const onboarding: OnboardingConfig = {
@@ -48,12 +49,10 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [minidumpEndpointUrlItalic:Minidump Endpoint URL], which can be found at [projectSettingsItalic:Project Settings > Client Keys (DSN)]. This endpoint expects a [postCode:POST] request with the minidump in the [uploadFileMinidumpCode:upload_file_minidump] field:',
+            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [italic:Minidump Endpoint URL], which can be found at [italic:Project Settings > Client Keys (DSN)]. This endpoint expects a [code:POST] request with the minidump in the [code:upload_file_minidump] field:',
             {
-              postCode: <code />,
-              uploadFileMinidumpCode: <code />,
-              minidumpEndpointUrlItalic: <i />,
-              projectSettingsItalic: <i />,
+              code: <code />,
+              italic: <i />,
             }
           ),
           language: 'bash',
@@ -76,6 +75,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  crashReportOnboarding: CrashReportWebApiOnboarding,
 };
 
 export default docs;

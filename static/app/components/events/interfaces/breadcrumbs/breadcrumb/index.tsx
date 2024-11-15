@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 import Category from './category';
 import {Data} from './data';

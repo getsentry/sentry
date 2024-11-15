@@ -9,17 +9,18 @@ from typing import Any
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
     FileBlameInfo,
     SourceLineInfo,
 )
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -207,6 +208,18 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
+            if "\\" in src_path or '"' in src_path:
+                logger.info(
+                    "process_commit_context_all_frames.invalid_src_path",
+                    extra={
+                        **extra,
+                        "code_mapping_id": code_mapping.id,
+                        "stacktrace_path": stacktrace_path,
+                        "src_path": src_path,
+                    },
+                )
+                continue
+
             num_successfully_mapped_frames += 1
             logger.info(
                 "process_commit_context_all_frames.found_stacktrace_and_src_paths",
@@ -250,8 +263,9 @@ def _get_blames_from_all_integrations(
     integration_to_install_mapping: dict[str, tuple[IntegrationInstallation, str]] = {}
 
     for integration_organization_id, files in integration_to_files_mapping.items():
+        # find active integrations, otherwise integration proxy will not send request
         integration = integration_service.get_integration(
-            organization_integration_id=integration_organization_id
+            organization_integration_id=integration_organization_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             continue
@@ -262,7 +276,7 @@ def _get_blames_from_all_integrations(
             "integration_id": integration.id,
         }
         install = integration.get_installation(organization_id=organization_id)
-        if not isinstance(install, CommitContextMixin):
+        if not isinstance(install, CommitContextIntegration):
             logger.info("process_commit_context_all_frames.unsupported_integration", extra=log_info)
             continue
         integration_to_install_mapping[integration_organization_id] = (

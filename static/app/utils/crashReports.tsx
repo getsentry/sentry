@@ -23,8 +23,8 @@ export function formatStoreCrashReports(
 }
 
 export enum SettingScope {
-  ORGANIZATION,
-  PROJECT,
+  ORGANIZATION = 0,
+  PROJECT = 1,
 }
 export function getStoreCrashReportsValues(settingScope: SettingScope) {
   const values: Array<number | null> = [

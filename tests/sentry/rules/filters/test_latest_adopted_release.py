@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.testutils.cases import RuleTestCase
@@ -9,7 +9,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
 
     def test_semver(self):
         event = self.get_event()
-        now = datetime.now()
+        now = datetime.now(UTC)
         prod = self.create_environment(name="prod")
         test = self.create_environment(name="test")
         newest_release = self.create_release(
@@ -79,7 +79,7 @@ class LatestAdoptedReleaseFilterTest(RuleTestCase):
 
     def test_date(self):
         event = self.get_event()
-        now = datetime.now()
+        now = datetime.now(UTC)
         prod = self.create_environment(name="prod")
         test = self.create_environment(name="test")
         oldest_release = self.create_release(

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import type {Organization, Project} from 'sentry/types';
 import type {ImageCandidate} from 'sentry/types/debugImage';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import {INTERNAL_SOURCE} from '../utils';
 

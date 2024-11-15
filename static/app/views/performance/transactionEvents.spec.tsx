@@ -1,14 +1,19 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 type Data = {
   features?: string[];
@@ -21,7 +26,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects: [ProjectFixture()],
   });
   return initializeOrg({
     organization,
@@ -41,6 +45,10 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -148,6 +156,14 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -156,16 +172,16 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Breadcrumb
-    expect(screen.getByRole('link', {name: 'Performance'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Performance'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/performance/?project=1&transactionCursor=1%3A0%3A0'
     );
@@ -174,10 +190,10 @@ describe('Performance > TransactionSummary', function () {
     expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('textbox', {name: 'Search events'})
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
 
     expect(screen.getByRole('table')).toBeInTheDocument();
@@ -190,12 +206,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
@@ -205,12 +221,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');
@@ -234,14 +250,14 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders additional Web Vital column', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, projects, router} = initializeData({
       query: {webVital: WebVital.LCP},
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');

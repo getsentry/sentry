@@ -5,6 +5,7 @@ import pytest
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -54,14 +55,18 @@ class TimeseriesBase(SnubaTestCase, TestCase):
         )
 
 
-class TimeseriesQueryTest(TimeseriesBase):
+class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={"project_id": [self.project.id]},
+                snuba_params=SnubaParams(
+                    start=self.day_ago,
+                    end=self.day_ago + timedelta(hours=2),
+                    projects=[self.project],
+                ),
                 rollup=1800,
             )
 
@@ -71,7 +76,7 @@ class TimeseriesQueryTest(TimeseriesBase):
                 selected_columns=["count()"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={"project_id": [self.project.id]},
+                snuba_params=SnubaParams(projects=[self.project]),
                 rollup=1800,
             )
 
@@ -81,11 +86,11 @@ class TimeseriesQueryTest(TimeseriesBase):
                 selected_columns=["transaction", "title"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={
-                    "start": self.day_ago,
-                    "end": self.day_ago + timedelta(hours=2),
-                    "project_id": [self.project.id],
-                },
+                snuba_params=SnubaParams(
+                    start=self.day_ago,
+                    end=self.day_ago + timedelta(hours=2),
+                    projects=[self.project],
+                ),
                 rollup=1800,
             )
 
@@ -94,11 +99,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -108,11 +111,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -122,11 +123,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -136,11 +135,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count_unique(user)"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -158,11 +155,11 @@ class TimeseriesQueryTest(TimeseriesBase):
                 selected_columns=["count()", "count_unique(user)"],
                 query="",
                 referrer="test_discover_query",
-                params={
-                    "start": self.day_ago,
-                    "end": self.day_ago + timedelta(hours=2),
-                    "project_id": [self.project.id],
-                },
+                snuba_params=SnubaParams(
+                    start=self.day_ago,
+                    end=self.day_ago + timedelta(hours=2),
+                    projects=[self.project],
+                ),
                 rollup=3600,
                 comparison_delta=timedelta(days=1),
             )
@@ -180,11 +177,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
             comparison_delta=timedelta(days=1),
         )
@@ -219,11 +214,11 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2, minutes=1),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago,
+                end=self.day_ago + timedelta(hours=2, minutes=1),
+                projects=[self.project],
+            ),
             rollup=3600,
             comparison_delta=timedelta(days=1),
         )
@@ -237,11 +232,11 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["count_unique(user)"],
             query="",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2, minutes=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago,
+                end=self.day_ago + timedelta(hours=2, minutes=2),
+                projects=[self.project],
+            ),
             rollup=3600,
             referrer="test_discover_query",
             comparison_delta=timedelta(days=1),
@@ -280,12 +275,12 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count_miserable(user)"],
             referrer="test_discover_query",
             query="",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id, project2.id],
-                "organization_id": self.organization.id,
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago,
+                end=self.day_ago + timedelta(hours=2),
+                projects=[self.project],
+                organization=self.organization,
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -321,12 +316,12 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["equation|count_miserable(user) - 100"],
             referrer="test_discover_query",
             query="",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id, project2.id],
-                "organization_id": self.organization.id,
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago,
+                end=self.day_ago + timedelta(hours=2),
+                projects=[self.project, project2],
+                organization=self.organization,
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -339,11 +334,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["equation|count() / 100"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
@@ -352,11 +345,9 @@ class TimeseriesQueryTest(TimeseriesBase):
         result = discover.timeseries_query(
             selected_columns=["equation|count_unique(user) / 100"],
             query="",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=2), projects=[self.project]
+            ),
             rollup=3600,
             referrer="test_discover_query",
         )
@@ -372,11 +363,9 @@ class TimeseriesQueryTest(TimeseriesBase):
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
-            params={
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=3),
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(
+                start=self.day_ago, end=self.day_ago + timedelta(hours=3), projects=[self.project]
+            ),
             rollup=3600,
         )
         assert len(result.data["data"]) == 4, "Should have empty results"
@@ -389,22 +378,22 @@ class TimeseriesQueryTest(TimeseriesBase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=project3.id,
         )
 
         result = discover.timeseries_query(
             selected_columns=["count()"],
             query=f"project:{self.project.slug} OR project:{project2.slug}",
-            params={
-                "start": before_now(minutes=5),
-                "end": before_now(seconds=1),
-                "project_id": [self.project.id, project2.id, project3.id],
-            },
+            snuba_params=SnubaParams(
+                start=before_now(minutes=5),
+                end=before_now(seconds=1),
+                projects=[self.project, project2, project3],
+            ),
             rollup=3600,
             referrer="test_discover_query",
         )
@@ -418,19 +407,19 @@ class TimeseriesQueryTest(TimeseriesBase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
 
@@ -439,11 +428,11 @@ class TimeseriesQueryTest(TimeseriesBase):
             query="(release:{} OR release:{}) AND project:{}".format(
                 "a" * 32, "b" * 32, self.project.slug
             ),
-            params={
-                "start": before_now(minutes=5),
-                "end": before_now(seconds=1),
-                "project_id": [self.project.id, project2.id],
-            },
+            snuba_params=SnubaParams(
+                start=before_now(minutes=5),
+                end=before_now(seconds=1),
+                projects=[self.project, project2],
+            ),
             rollup=3600,
             referrer="test_discover_query",
         )
@@ -462,23 +451,20 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
     def test_project_filter_adjusts_filter(self, mock_query):
         """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
         project2 = self.create_project(organization=self.organization)
-        top_events = {
+        top_events: EventsResponse = {
             "data": [
                 {
                     "project": self.project.slug,
                     "project.id": self.project.id,
                 }
-            ]
+            ],
+            "meta": {"fields": {}, "tips": {}},
         }
         start = before_now(minutes=5)
         end = before_now(seconds=1)
         discover.top_events_timeseries(
             selected_columns=["project", "count()"],
-            params={
-                "start": start,
-                "end": end,
-                "project_id": [self.project.id, project2.id],
-            },
+            snuba_params=SnubaParams(start=start, end=end, projects=[self.project, project2]),
             rollup=3600,
             top_events=top_events,
             timeseries_columns=["count()"],
@@ -519,29 +505,26 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
     def test_timestamp_fields(self, mock_query):
         timestamp1 = before_now(days=2, minutes=5)
         timestamp2 = before_now(minutes=2)
-        top_events = {
+        top_events: EventsResponse = {
             "data": [
                 {
-                    "timestamp": iso_format(timestamp1),
-                    "timestamp.to_hour": iso_format(timestamp1.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp1,
+                    "timestamp.to_hour": timestamp1.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp1.replace(hour=0, minute=0, second=0),
                 },
                 {
-                    "timestamp": iso_format(timestamp2),
-                    "timestamp.to_hour": iso_format(timestamp2.replace(minute=0, second=0)),
-                    "timestamp.to_day": iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                    "timestamp": timestamp2,
+                    "timestamp.to_hour": timestamp2.replace(minute=0, second=0),
+                    "timestamp.to_day": timestamp2.replace(hour=0, minute=0, second=0),
                 },
-            ]
+            ],
+            "meta": {"fields": {}, "tips": {}},
         }
         start = before_now(days=3, minutes=10)
         end = before_now(minutes=1)
         discover.top_events_timeseries(
             selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
-            params={
-                "start": start,
-                "end": end,
-                "project_id": [self.project.id],
-            },
+            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
             rollup=3600,
             top_events=top_events,
             timeseries_columns=["count()"],
@@ -558,24 +541,24 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
                 # Each timestamp field should generated a nested condition.
                 # Within each, the conditions will be ORed together.
                 [
-                    ["timestamp", "=", iso_format(timestamp1)],
-                    ["timestamp", "=", iso_format(timestamp2)],
+                    ["timestamp", "=", timestamp1],
+                    ["timestamp", "=", timestamp2],
                 ],
                 [
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp1.replace(hour=0, minute=0, second=0)),
+                        timestamp1.replace(hour=0, minute=0, second=0),
                     ],
                     [
                         to_day,
                         "=",
-                        iso_format(timestamp2.replace(hour=0, minute=0, second=0)),
+                        timestamp2.replace(hour=0, minute=0, second=0),
                     ],
                 ],
                 [
-                    [to_hour, "=", iso_format(timestamp1.replace(minute=0, second=0))],
-                    [to_hour, "=", iso_format(timestamp2.replace(minute=0, second=0))],
+                    [to_hour, "=", timestamp1.replace(minute=0, second=0)],
+                    [to_hour, "=", timestamp2.replace(minute=0, second=0)],
                 ],
             ],
             filter_keys={"project_id": [self.project.id]},
@@ -601,7 +584,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         discover.top_events_timeseries(
             selected_columns=["count()"],
             equations=["equation|count_unique(user) * 2"],
-            params={"start": start, "end": end, "project_id": [self.project.id]},
+            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
             rollup=3600,
             timeseries_columns=[],
             user_query="",
@@ -613,7 +596,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         mock_query.assert_called_with(
             ["count()"],
             query="",
-            params={"start": start, "end": end, "project_id": [self.project.id]},
+            snuba_params=SnubaParams(start=start, end=end, projects=[self.project]),
             equations=["equation|count_unique(user) * 2"],
             orderby=["equation[0]"],
             referrer=None,

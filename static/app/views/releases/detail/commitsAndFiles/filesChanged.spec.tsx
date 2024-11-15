@@ -1,4 +1,3 @@
-import selectEvent from 'react-select-event';
 import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
@@ -6,9 +5,11 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {CommitFile, ReleaseProject} from 'sentry/types';
+import type {CommitFile} from 'sentry/types/integrations';
+import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import FilesChanged from './filesChanged';
@@ -29,7 +30,7 @@ function CommitFileFixture(params: Partial<CommitFile> = {}): CommitFile {
 describe('FilesChanged', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {routerProps, routerContext, organization} = initializeOrg({
+  const {routerProps, router, organization} = initializeOrg({
     router: {params: {release: release.version}},
   });
   const repos = [RepositoryFixture({integrationId: '1'})];
@@ -54,7 +55,7 @@ describe('FilesChanged', () => {
           {...routerProps}
         />
       </ReleaseContext.Provider>,
-      {context: routerContext}
+      {router}
     );
   }
 
@@ -136,7 +137,7 @@ describe('FilesChanged', () => {
     renderComponent();
     expect(await screen.findByRole('button')).toHaveTextContent('example/repo-name');
     expect(screen.queryByText('getsentry/sentry-frontend')).not.toBeInTheDocument();
-    selectEvent.openMenu(screen.getByRole('button'));
+    await selectEvent.openMenu(screen.getByRole('button'));
     expect(screen.getByText('getsentry/sentry-frontend')).toBeInTheDocument();
   });
 });

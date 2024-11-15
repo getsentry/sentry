@@ -2,7 +2,7 @@ import logging
 import time
 from base64 import b64encode
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -12,8 +12,8 @@ from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.models.authenticator import Authenticator
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import control_silo_function
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr
@@ -132,7 +132,7 @@ class TwoFactorAuthView(BaseView):
         )
         msg.send_async([email])
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         user = auth.get_pending_2fa_user(request)
         if user is None:
             return HttpResponseRedirect(auth.get_login_url())

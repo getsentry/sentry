@@ -11,8 +11,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Frame} from 'sentry/types';
-import {CodecovStatusCode} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
+import {CodecovStatusCode} from 'sentry/types/integrations';
 import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
@@ -20,7 +20,7 @@ import {StacktraceLink} from './stacktraceLink';
 describe('StacktraceLink', function () {
   const org = OrganizationFixture();
   const platform = 'python';
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const event = EventFixture({
     projectID: project.id,
     release: ReleaseFixture({lastCommit: CommitFixture()}),
@@ -39,17 +39,6 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     HookStore.init?.();
-  });
-
-  it('renders nothing when missing integrations', async function () {
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {config: null, sourceUrl: null, integrations: []},
-    });
-    const {container} = render(<StacktraceLink frame={frame} event={event} line="" />);
-    await waitFor(() => {
-      expect(container).toBeEmptyDOMElement();
-    });
   });
 
   it('renders setup CTA with integration but no configs', async function () {

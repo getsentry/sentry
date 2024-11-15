@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,46 +11,52 @@ import ProgressRing, {
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
+import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
-  projects: Project[];
 };
 
 const progressTextCss = () => css`
   font-size: ${theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${theme.fontWeightBold};
 `;
 
-function OnboardingStatus({
+export default function OnboardingStatus({
   collapsed,
   org,
-  projects,
   currentPanel,
   orientation,
   hidePanel,
   onShowPanel,
 }: Props) {
-  const handleShowPanel = () => {
-    trackAnalytics('onboarding.wizard_opened', {organization: org});
-    onShowPanel();
-  };
   const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
+  const {shouldAccordionFloat} = useContext(ExpandedContext);
 
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
+  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const walkthrough = isDemoModeEnabled();
+
+  const handleToggle = useCallback(() => {
+    if (!walkthrough && !isActive === true) {
+      trackAnalytics('quick_start.opened', {
+        organization: org,
+        new_experience: false,
+      });
+    }
+    onShowPanel();
+  }, [walkthrough, isActive, onShowPanel, org]);
 
   const tasks = getMergedTasks({
     organization: org,
@@ -58,9 +64,8 @@ function OnboardingStatus({
     onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
+
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
 
@@ -71,13 +76,24 @@ function OnboardingStatus({
       !task.completionSeen
   );
 
-  const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const allTasksCompleted = doneTasks.length >= allDisplayedTasks.length;
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  useEffect(() => {
+    if (!allTasksCompleted || isActive) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization: org,
+      referrer: 'onboarding_sidebar',
+      new_experience: false,
+    });
+  }, [isActive, allTasksCompleted, org]);
+
+  if (!org.features?.includes('onboarding') || (allTasksCompleted && !isActive)) {
     return null;
   }
 
-  const walkthrough = isDemoWalkthrough();
   const label = walkthrough ? t('Guided Tours') : t('Quick Start');
   const task = walkthrough ? 'tours' : 'tasks';
 
@@ -86,7 +102,7 @@ function OnboardingStatus({
       <Container
         role="button"
         aria-label={label}
-        onClick={handleShowPanel}
+        onClick={handleToggle}
         isActive={isActive}
       >
         <ProgressRing
@@ -99,7 +115,7 @@ function OnboardingStatus({
           size={38}
           barWidth={6}
         />
-        {!collapsed && (
+        {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
             <Remaining>
@@ -180,5 +196,3 @@ const Container = styled('div')<{isActive: boolean}>`
     ${hoverCss};
   }
 `;
-
-export default withProjects(OnboardingStatus);

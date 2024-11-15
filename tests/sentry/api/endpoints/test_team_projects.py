@@ -1,14 +1,19 @@
+from unittest import TestCase
+from unittest.mock import Mock
+
+from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.signals import alert_rule_created
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.options import override_options
 
 
-@region_silo_test
 class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
@@ -38,8 +43,7 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-@region_silo_test
-class TeamProjectsCreateTest(APITestCase):
+class TeamProjectsCreateTest(APITestCase, TestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
 
@@ -96,6 +100,18 @@ class TeamProjectsCreateTest(APITestCase):
         )
         assert response.data["platform"][0] == "Invalid platform"
 
+    def test_invalid_name(self):
+
+        invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name=invalid_name,
+            platform="python",
+            status_code=400,
+        )
+        assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
+
     def test_duplicate_slug(self):
         self.create_project(slug="bar")
         response = self.get_error_response(
@@ -107,6 +123,9 @@ class TeamProjectsCreateTest(APITestCase):
         assert response.data["detail"] == "A project with this slug already exists."
 
     def test_default_rules(self):
+        signal_handler = Mock()
+        alert_rule_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -116,12 +135,18 @@ class TeamProjectsCreateTest(APITestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        rule = Rule.objects.filter(project=project).first()
+        rule = Rule.objects.get(project=project)
+
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
 
-    def test_without_default_rules(self):
+        # Ensure that creating the default alert rule does not trigger the
+        # alert_rule_created signal to avoid fake recording fake analytics.
+        assert signal_handler.call_count == 0
+        alert_rule_created.disconnect(signal_handler)
+
+    def test_without_default_rules_disable_member_project_creation(self):
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -132,7 +157,31 @@ class TeamProjectsCreateTest(APITestCase):
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
 
-    @with_feature("organizations:default-inbound-filters")
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+        test_team = self.create_team(organization=test_org)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.login_as(user=test_member)
+        response = self.get_error_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=403,
+        )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=201,
+        )
+
     def test_default_inbound_filters(self):
         filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
         python_response = self.get_success_response(
@@ -171,33 +220,6 @@ class TeamProjectsCreateTest(APITestCase):
 
         assert javascript_filter_states["browser-extensions"]
         assert set(javascript_filter_states["legacy-browsers"]) == {
-            "ie_pre_9",
-            "ie9",
-            "ie10",
-            "ie11",
-            "safari_pre_6",
-            "opera_pre_15",
-            "opera_mini_pre_8",
-            "android_pre_4",
-            "edge_pre_79",
-        }
-        assert javascript_filter_states["web-crawlers"]
-        assert javascript_filter_states["filtered-transaction"]
-
-    @with_feature("organizations:default-inbound-filters")
-    @with_feature("organizations:legacy-browser-update")
-    def test_updated_legacy_browser_default(self):
-        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
-        javascript_response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **project_data,
-            status_code=201,
-        )
-
-        javascript_project = Project.objects.get(id=javascript_response.data["id"])
-
-        assert set(inbound_filters.get_filter_state("legacy-browsers", javascript_project)) == {
             "ie",
             "firefox",
             "chrome",
@@ -207,3 +229,58 @@ class TeamProjectsCreateTest(APITestCase):
             "android",
             "edge",
         }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]
+
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
+    def test_similarity_project_option_valid(self):
+        """
+        Test that project option for similarity grouping is created when the project platform is
+        Seer-eligible.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "python"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is not None
+        )
+
+    def test_similarity_project_option_invalid(self):
+        """
+        Test that project option for similarity grouping is not created when the project platform
+        is not seer eligible.
+        """
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="foo",
+            slug="bar",
+            platform="php",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.name == "foo"
+        assert project.slug == "bar"
+        assert project.platform == "php"
+        assert project.teams.first() == self.team
+
+        assert (
+            ProjectOption.objects.get_value(
+                project=project, key="sentry:similarity_backfill_completed"
+            )
+            is None
+        )

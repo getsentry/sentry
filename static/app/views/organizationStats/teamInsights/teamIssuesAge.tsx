@@ -1,20 +1,21 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -52,7 +53,7 @@ const bucketLabels = {
 function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   const {
     data: oldestIssues,
-    isLoading: isOldestIssuesLoading,
+    isPending: isOldestIssuesLoading,
     isError: isOldestIssuesError,
     refetch: refetchOldestIssues,
   } = useApiQuery<Group[]>(
@@ -69,7 +70,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
 
   const {
     data: unresolvedIssueAge,
-    isLoading: isUnresolvedIssueAgeLoading,
+    isPending: isUnresolvedIssueAgeLoading,
     isError: isUnresolvedIssueAgeError,
     refetch: refetchUnresolvedIssueAge,
   } = useApiQuery<Record<string, number>>(
@@ -142,7 +143,7 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
         isLoading={isLoading}
       >
         {oldestIssues?.map(issue => {
-          const {title} = getTitle(issue, organization?.features, false);
+          const {title} = getTitle(issue);
 
           return (
             <Fragment key={issue.id}>

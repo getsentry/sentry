@@ -8,6 +8,7 @@ import os.path
 from collections import namedtuple
 from collections.abc import Sequence
 from datetime import timedelta
+from enum import Enum
 from typing import cast
 
 import sentry_relay.consts
@@ -73,6 +74,8 @@ ENVIRONMENT_NAME_PATTERN = r"^[^\n\r\f\/]*$"
 ENVIRONMENT_NAME_MAX_LENGTH = 64
 
 SENTRY_APP_SLUG_MAX_LENGTH = 64
+
+PROJECT_SLUG_MAX_LENGTH = 100
 
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
@@ -167,6 +170,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "register",
         "remote",
         "resources",
+        "rollback",
         "sa1",
         "sales",
         "security",
@@ -228,6 +232,8 @@ DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
 LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
+
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
@@ -264,10 +270,12 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
+    "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions",
     "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
     "sentry.rules.conditions.event_attribute.EventAttributeCondition",
     "sentry.rules.conditions.level.LevelCondition",
@@ -277,7 +285,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -298,6 +305,7 @@ TICKET_ACTIONS = frozenset(
         "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
         "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
         "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
     ]
 )
 
@@ -596,6 +604,67 @@ class ExportQueryType:
             raise ValueError(f"Not an ExportQueryType str: {string!r}")
 
 
+class InsightModules(Enum):
+    HTTP = "http"
+    DB = "db"
+    ASSETS = "assets"  # previously named resources
+    APP_START = "app_start"
+    SCREEN_LOAD = "screen_load"
+    VITAL = "vital"
+    CACHE = "cache"
+    QUEUE = "queue"
+    LLM_MONITORING = "llm_monitoring"
+
+
+INSIGHT_MODULE_FILTERS = {
+    InsightModules.HTTP: lambda transaction: any(
+        [
+            span.get("sentry_tags", {}).get("category") == "http"
+            and span.get("op") == "http.client"
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.DB: lambda transaction: any(
+        [
+            span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.ASSETS: lambda transaction: any(
+        [
+            span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.APP_START: lambda transaction: any(
+        [span.get("op").startswith("app.start.") for span in transaction["spans"]]
+    ),
+    InsightModules.SCREEN_LOAD: lambda transaction: any(
+        [
+            span.get("sentry_tags", {}).get("transaction.op") == "ui.load"
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.VITAL: lambda transaction: any(
+        [
+            span.get("sentry_tags", {}).get("transaction.op") == "pageload"
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.CACHE: lambda transaction: any(
+        [
+            span.get("op") in ["cache.get_item", "cache.get", "cache.put"]
+            for span in transaction["spans"]
+        ]
+    ),
+    InsightModules.QUEUE: lambda transaction: any(
+        [span.get("op") in ["queue.process", "queue.publish"] for span in transaction["spans"]]
+    ),
+    InsightModules.LLM_MONITORING: lambda transaction: any(
+        [span.get("op").startswith("ai.pipeline") for span in transaction["spans"]]
+    ),
+}
+
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
@@ -638,13 +707,24 @@ SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
+HIDE_AI_FEATURES_DEFAULT = False
+AUTOFIX_ENABLED_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
+ISSUE_ALERTS_THREAD_DEFAULT = True
+METRIC_ALERTS_THREAD_DEFAULT = True
+METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
+METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
+DATA_CONSENT_DEFAULT = False
+UPTIME_AUTODETECTION = True
+TARGET_SAMPLE_RATE_DEFAULT = 1.0
+SAMPLING_MODE_DEFAULT = "organization"
+ROLLBACK_ENABLED_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
-# Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+# Defined at https://github.com/getsentry/relay/blob/master/py/sentry_relay/consts.py
 DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
@@ -703,11 +783,14 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",
     "*/readyz",
     "*/ping",
+    "*/up",
 ]
 
 
@@ -904,6 +987,9 @@ EXTENSION_LANGUAGE_MAP = {
     "pm": "perl",
     "psgi": "perl",
     "t": "perl",
+    "ps1": "powershell",
+    "psd1": "powershell",
+    "psm1": "powershell",
     "py": "python",
     "gyp": "python",
     "gypi": "python",

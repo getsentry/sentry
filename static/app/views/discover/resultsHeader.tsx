@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {stringify} from 'query-string';
@@ -14,9 +13,13 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedQuery} from 'sentry/types';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
+import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import Banner from './banner';
 import DiscoverBreadcrumb from './breadcrumb';
@@ -34,6 +37,7 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
+  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -78,7 +82,14 @@ class ResultsHeader extends Component<Props, State> {
     if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({savedQuery, loading: false});
+        this.setState({
+          savedQuery: organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? (getSavedQueryWithDataset(savedQuery) as SavedQuery)
+            : savedQuery,
+          loading: false,
+        });
       });
     }
   }
@@ -87,7 +98,14 @@ class ResultsHeader extends Component<Props, State> {
     const {api, organization} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
-      this.setState({homepageQuery, loading: false});
+      this.setState({
+        homepageQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? (getSavedQueryWithDataset(homepageQuery) as SavedQuery)
+          : homepageQuery,
+        loading: false,
+      });
     });
   }
 
@@ -138,8 +156,10 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
+      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
+    const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
     return (
       <Layout.Header>
@@ -156,22 +176,33 @@ class ResultsHeader extends Component<Props, State> {
                 />
               </Layout.Title>
             </GuideAnchor>
-          ) : (
+          ) : hasDiscoverQueryFeature ? (
             <Fragment>
-              <Feature features="organizations:discover-query">
-                <DiscoverBreadcrumb
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  isHomepage={isHomepage}
-                />
-              </Feature>
+              <DiscoverBreadcrumb
+                eventView={eventView}
+                organization={organization}
+                location={location}
+                isHomepage={isHomepage}
+              />
               <EventInputName
                 savedQuery={savedQuery}
                 organization={organization}
                 eventView={eventView}
                 isHomepage={isHomepage}
               />
+            </Fragment>
+          ) : (
+            // Only has discover-basic
+            <Fragment>
+              <Layout.Title>
+                {t('Discover')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://docs.sentry.io/product/discover-queries/"
+                  title={t(
+                    'Create queries to get insights into the health of your system.'
+                  )}
+                />
+              </Layout.Title>
             </Fragment>
           )}
           {this.renderAuthor()}
@@ -190,7 +221,13 @@ class ResultsHeader extends Component<Props, State> {
             router={router}
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
-              this.setState({homepageQuery: updatedHomepageQuery});
+              this.setState({
+                homepageQuery: organization.features.includes(
+                  'performance-discover-dataset-selector'
+                )
+                  ? (getSavedQueryWithDataset(updatedHomepageQuery) as SavedQuery)
+                  : updatedHomepageQuery,
+              });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }
@@ -199,6 +236,23 @@ class ResultsHeader extends Component<Props, State> {
           />
         </Layout.HeaderActions>
         {isHomepage && this.renderBanner()}
+        <Feature
+          organization={organization}
+          features="performance-discover-dataset-selector"
+        >
+          {({hasFeature}) =>
+            hasFeature && (
+              <DatasetSelectorWrapper>
+                <DatasetSelectorTabs
+                  eventView={eventView}
+                  isHomepage={isHomepage}
+                  savedQuery={savedQuery}
+                  splitDecision={splitDecision}
+                />
+              </DatasetSelectorWrapper>
+            )
+          }
+        </Feature>
       </Layout.Header>
     );
   }
@@ -206,12 +260,18 @@ class ResultsHeader extends Component<Props, State> {
 
 const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   margin: ${space(0.5)} 0 0 0;
 `;
 
 const BannerWrapper = styled('div')`
+  grid-column: 1 / -1;
+`;
+
+// Force the dataset selector to have the entire width of the grid
+// so it doesn't go into the overflow menu state when the window is small
+const DatasetSelectorWrapper = styled('div')`
   grid-column: 1 / -1;
 `;
 

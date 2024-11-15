@@ -2,8 +2,13 @@ from sentry_relay.processing import is_glob_match
 
 
 def glob_match(
-    value, pat, doublestar=False, ignorecase=False, path_normalize=False, allow_newline=True
-):
+    value: str | None,
+    pat: str,
+    doublestar: bool = False,
+    ignorecase: bool = False,
+    path_normalize: bool = False,
+    allow_newline: bool = True,
+) -> bool:
     """A beefed up version of fnmatch.fnmatch"""
     return is_glob_match(
         value if value is not None else "",

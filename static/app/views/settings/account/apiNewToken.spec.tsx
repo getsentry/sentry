@@ -1,21 +1,15 @@
-import selectEvent from 'react-select-event';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
 
 describe('ApiNewToken', function () {
   it('renders', function () {
-    render(<ApiNewToken />, {
-      context: RouterContextFixture(),
-    });
+    render(<ApiNewToken />);
   });
 
   it('renders with disabled "Create Token" button', async function () {
-    render(<ApiNewToken />, {
-      context: RouterContextFixture(),
-    });
+    render(<ApiNewToken />);
 
     expect(await screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
   });
@@ -27,9 +21,7 @@ describe('ApiNewToken', function () {
       url: `/api-tokens/`,
     });
 
-    render(<ApiNewToken />, {
-      context: RouterContextFixture(),
-    });
+    render(<ApiNewToken />);
     const createButton = await screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name, value) =>
@@ -82,9 +74,7 @@ describe('ApiNewToken', function () {
       url: `/api-tokens/`,
     });
 
-    render(<ApiNewToken />, {
-      context: RouterContextFixture(),
-    });
+    render(<ApiNewToken />);
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name, value) =>
@@ -122,9 +112,7 @@ describe('ApiNewToken', function () {
       url: `/api-tokens/`,
     });
 
-    render(<ApiNewToken />, {
-      context: RouterContextFixture(),
-    });
+    render(<ApiNewToken />);
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name, value) =>

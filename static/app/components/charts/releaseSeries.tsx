@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Query} from 'history';
@@ -11,14 +10,16 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client, ResponseMeta} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {DateString, Organization} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
-import {formatVersion} from 'sentry/utils/formatters';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -45,7 +46,7 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -62,6 +63,14 @@ function getOrganizationReleases(
     query,
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
+
+const getOrganizationReleasesMemoized = memoize(
+  getOrganizationReleases,
+  (_, __, conditions) =>
+    Object.values(conditions)
+      .map(val => JSON.stringify(val))
+      .join('-')
+);
 
 export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
@@ -129,15 +138,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   _isMounted: boolean = false;
 
-  getOrganizationReleasesMemoized = memoize(
-    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
-      getOrganizationReleases(api, organization, conditions),
-    (_, __, conditions) =>
-      Object.values(conditions)
-        .map(val => JSON.stringify(val))
-        .join('-')
-  );
-
   async fetchData() {
     const {
       api,
@@ -163,7 +163,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     while (hasMore) {
       try {
         const getReleases = memoized
-          ? this.getOrganizationReleasesMemoized
+          ? getOrganizationReleasesMemoized
           : getOrganizationReleases;
         const [newReleases, , resp] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
@@ -291,7 +291,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             '</div>',
             '<div class="tooltip-footer">',
             time,
-            '</div>',
             '</div>',
             '<div class="tooltip-arrow"></div>',
           ].join('');

@@ -1,4 +1,7 @@
+import logging
+
 from django.contrib import messages
+from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -8,9 +11,11 @@ from rest_framework.request import Request
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.models.authprovider import AuthProvider
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
+
+logger = logging.getLogger("sentry.saml_setup_error")
 
 
 class AuthOrganizationLoginView(AuthLoginView):
@@ -32,6 +37,10 @@ class AuthOrganizationLoginView(AuthLoginView):
                 helper.initialize()
 
             if not helper.is_valid():
+                logger.info(
+                    "AuthOrganizationLoginView",
+                    extra=helper.state.get_state(),
+                )
                 return helper.error("Something unexpected happened during authentication.")
 
             return helper.current_step()
@@ -50,7 +59,7 @@ class AuthOrganizationLoginView(AuthLoginView):
         return self.respond("sentry/organization-login.html", context)
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, organization_slug) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, organization_slug) -> HttpResponseBase:
         org_context = organization_service.get_organization_by_slug(
             slug=organization_slug, only_visible=True
         )

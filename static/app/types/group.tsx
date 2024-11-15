@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -54,14 +56,17 @@ export enum SavedSearchType {
   SESSION = 2,
   REPLAY = 3,
   METRIC = 4,
+  SPAN = 5,
+  ERROR = 6,
+  TRANSACTION = 7,
 }
 
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
   CRON = 'cron',
-  PROFILE = 'profile',
   REPLAY = 'replay',
+  UPTIME = 'uptime',
 }
 
 export enum IssueType {
@@ -95,6 +100,7 @@ export enum IssueType {
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
+  REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
 export enum IssueTitle {
@@ -125,6 +131,7 @@ export enum IssueTitle {
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
+  REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -152,6 +159,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
+  replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -234,6 +242,7 @@ export type EventAttachment = IssueAttachment;
 export type Tag = {
   key: string;
   name: string;
+  alias?: string;
 
   isInput?: boolean;
 
@@ -245,6 +254,7 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
+  uniqueValues?: number;
   /**
    * Usually values are strings, but a predefined tag can define its SearchGroups
    */
@@ -291,6 +301,11 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
+export type Annotation = {
+  displayName: string;
+  url: string;
+};
+
 export type InboxReasonDetails = {
   count?: number | null;
   until?: string | null;
@@ -372,6 +387,7 @@ export enum GroupActivityType {
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
+  DELETED_ATTACHMENT = 'deleted_attachment',
 }
 
 interface GroupActivityBase {
@@ -391,7 +407,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -414,7 +430,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, unknown>;
+  data: {};
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -630,6 +646,11 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
   type: GroupActivityType.CREATE_ISSUE;
 }
 
+interface GroupActivityDeletedAttachment extends GroupActivityBase {
+  data: {};
+  type: GroupActivityType.DELETED_ATTACHMENT;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -657,7 +678,8 @@ export type GroupActivity =
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
-  | GroupActivitySetPriority;
+  | GroupActivitySetPriority
+  | GroupActivityDeletedAttachment;
 
 export type Activity = GroupActivity;
 
@@ -701,6 +723,7 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
+  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -761,7 +784,7 @@ export const enum PriorityLevel {
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
-  annotations: string[];
+  annotations: Annotation[];
   assignedTo: Actor | null;
   culprit: string;
   firstSeen: string;
@@ -784,6 +807,7 @@ export interface BaseGroup {
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
+  priorityLockedAt: string | null;
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -797,6 +821,7 @@ export interface BaseGroup {
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
+  latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
@@ -837,36 +862,6 @@ export interface GroupTombstoneHelper extends GroupTombstone {
   isTombstone: true;
 }
 
-export type ProcessingIssueItem = {
-  checksum: string;
-  data: {
-    // TODO(ts) This type is likely incomplete, but this is what
-    // project processing issues settings uses.
-    _scope: string;
-    image_arch: string;
-    image_path: string;
-    image_uuid: string;
-    dist?: string;
-    release?: string;
-  };
-  id: string;
-  lastSeen: string;
-  numEvents: number;
-  type: string;
-};
-
-export type ProcessingIssue = {
-  hasIssues: boolean;
-  hasMoreResolveableIssues: boolean;
-  issuesProcessing: number;
-  lastSeen: string;
-  numIssues: number;
-  project: string;
-  resolveableIssues: number;
-  signedLink: string;
-  issues?: ProcessingIssueItem[];
-};
-
 /**
  * Datascrubbing
  */
@@ -905,13 +900,21 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
+  action?: {
+    link?: string | LocationDescriptor;
+  };
   actionButton?: React.ReactNode;
+  /**
+   * If true, the action button will always be visible, not just on hover.
+   */
+  actionButtonAlwaysVisible?: boolean;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode;
+  subjectNode?: React.ReactNode;
+  value?: React.ReactNode | Record<string, string | number>;
 };
 
 export type KeyValueListData = KeyValueListDataItem[];

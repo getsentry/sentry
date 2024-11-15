@@ -11,11 +11,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
-const project = ProjectFixture({});
+const project = ProjectFixture();
 
 const integration = GitHubIntegrationFixture();
 const repo = RepositoryFixture({integrationId: integration.id});
@@ -71,9 +71,6 @@ describe('StackTrace', function () {
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
     expect(stackTraceContent).toBeInTheDocument();
-
-    // stack trace content has to have a platform icon and a frame list
-    expect(stackTraceContent.children).toHaveLength(2);
 
     // platform icon
     expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();

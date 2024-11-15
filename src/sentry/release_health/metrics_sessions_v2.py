@@ -2,6 +2,7 @@
 from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
+
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -40,10 +41,10 @@ from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
@@ -147,14 +148,12 @@ class Field(ABC):
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
-    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None:
-        ...
+    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None: ...
 
     @abstractmethod
     def _get_metric_fields(
         self, raw_groupby: Sequence[str], status_filter: StatusFilter
-    ) -> Sequence[MetricField]:
-        ...
+    ) -> Sequence[MetricField]: ...
 
     def extract_values(
         self,
@@ -526,7 +525,7 @@ def run_sessions_query(
     if orderby is not None:
         orderby_sequence = [orderby]
 
-    metrics_query = MetricsQuery(
+    metrics_query = DeprecatingMetricsQuery(
         org_id=org_id,
         project_ids=project_ids,
         select=list({column for field in fields.values() for column in field.metric_fields}),
@@ -588,7 +587,7 @@ def run_sessions_query(
 
     result_groups: Sequence[SessionsQueryGroup] = [
         # Convert group keys back to dictionaries:
-        {"by": group_key.to_output_dict(), **group}  # type: ignore
+        {"by": group_key.to_output_dict(), **group}  # type: ignore[typeddict-item]
         for group_key, group in output_groups.items()
     ]
     result_groups = _order_by_preflight_query_results(
@@ -677,7 +676,7 @@ def _order_by_preflight_query_results(
                     # Added a mypy ignore here because this is a one off as result groups
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
-                    group_key_dict.update({key: None})  # type: ignore
+                    group_key_dict.update({key: None})  # type: ignore[dict-item]
                 result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit

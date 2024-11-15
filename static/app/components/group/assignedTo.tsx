@@ -1,40 +1,56 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
+import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import type {
   OnAssignCallback,
   SuggestedAssignee,
-} from 'sentry/components/assigneeSelectorDropdown';
-import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import {Button} from 'sentry/components/button';
-import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
+} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
+import {useHandleAssigneeChange} from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
+import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import type {Group} from 'sentry/types/group';
+import type {Commit, Committer} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
+import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
 
-// TODO(ts): add the correct type
-type Rules = Array<any> | null;
+/**
+ * example: codeowners:/issues -> [['codeowners', '/issues']]
+ */
+type RuleDefinition = [string, string];
+/**
+ * example: #team1 -> ['team', 'team1']
+ */
+type RuleOwner = [string, string];
+type Rule = [RuleDefinition, RuleOwner[]];
 
 /**
  * Given a list of rule objects returned from the API, locate the matching
  * rules for a specific owner.
  */
-function findMatchedRules(rules: Rules, owner: Actor) {
+function findMatchedRules(
+  rules: EventOwners['rules'],
+  owner: Actor
+): Array<Rule[0]> | undefined {
   if (!rules) {
     return undefined;
   }
@@ -43,7 +59,7 @@ function findMatchedRules(rules: Rules, owner: Actor) {
     (actorType === 'user' && key === owner.email) ||
     (actorType === 'team' && key === owner.name);
 
-  const actorHasOwner = ([actorType, key]) =>
+  const actorHasOwner = ([actorType, key]: RuleOwner) =>
     actorType === owner.type && matchOwner(actorType, key);
 
   return rules
@@ -64,10 +80,11 @@ type IssueOwner = {
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
 };
-export type EventOwners = {
+export interface EventOwners {
   owners: Actor[];
-  rules: Rules;
-};
+  rule: RuleDefinition;
+  rules: Array<Rule>;
+}
 
 function getSuggestedReason(owner: IssueOwner) {
   if (owner.commits) {
@@ -76,7 +93,7 @@ function getSuggestedReason(owner: IssueOwner) {
 
   if (owner.rules?.length) {
     const firstRule = owner.rules[0];
-    return t('Owner of %s', firstRule.join(':'));
+    return `${toTitleCase(firstRule[0])}:${firstRule[1]}`;
   }
 
   return '';
@@ -108,7 +125,7 @@ function getSuggestedReason(owner: IssueOwner) {
  */
 export function getOwnerList(
   committers: Committer[],
-  eventOwners: EventOwners | null,
+  eventOwners: EventOwners | undefined,
   assignedTo: Actor | null
 ): Omit<SuggestedAssignee, 'assignee'>[] {
   const owners: IssueOwner[] = committers.map(commiter => ({
@@ -122,7 +139,7 @@ export function getOwnerList(
     const normalizedOwner: IssueOwner = {
       actor: owner,
       rules: matchingRule,
-      source: matchingRule?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
+      source: matchingRule?.[0]?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
     };
 
     const existingIdx =
@@ -171,127 +188,126 @@ function AssignedTo({
 }: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
-  const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
-  const {data} = useCommitters(
+  const {data: eventOwners} = useIssueEventOwners({
+    eventId: event?.id ?? '',
+    projectSlug: project.slug,
+  });
+  const {data: committersResponse} = useCommitters(
     {
       eventId: event?.id ?? '',
       projectSlug: project.slug,
+      group,
     },
     {
       notifyOnChangeProps: ['data'],
-      enabled: defined(event?.id),
     }
   );
+
+  const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
+    organization,
+    group,
+    onAssign,
+  });
 
   useEffect(() => {
     // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [project.id]);
   }, [api, organization, project]);
 
-  useEffect(() => {
-    if (!event) {
-      return () => {};
-    }
+  const owners = getOwnerList(
+    committersResponse?.committers ?? [],
+    eventOwners,
+    group.assignedTo
+  );
 
-    let unmounted = false;
-
-    api
-      .requestPromise(
-        `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`
-      )
-      .then(response => {
-        if (unmounted) {
-          return;
-        }
-
-        setEventOwners(response);
-      });
-
-    return () => {
-      unmounted = true;
-    };
-  }, [api, event, organization, project.slug]);
-
-  const owners = getOwnerList(data?.committers ?? [], eventOwners, group.assignedTo);
+  const makeTrigger = (props: any, isOpen: boolean) => {
+    return (
+      <DropdownButton data-test-id="assignee-selector" {...props}>
+        <ActorWrapper>
+          {assigneeLoading ? (
+            <StyledLoadingIndicator mini size={24} />
+          ) : group.assignedTo ? (
+            <ActorAvatar
+              data-test-id="assigned-avatar"
+              actor={group.assignedTo}
+              hasTooltip={false}
+              size={24}
+            />
+          ) : (
+            <IconWrapper>
+              <IconUser size="md" />
+            </IconWrapper>
+          )}
+          <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
+        </ActorWrapper>
+        {!disableDropdown && (
+          <Chevron
+            data-test-id="assigned-to-chevron-icon"
+            size="large"
+            direction={isOpen ? 'up' : 'down'}
+          />
+        )}
+      </DropdownButton>
+    );
+  };
 
   return (
     <SidebarSection.Wrap data-test-id="assigned-to">
       <StyledSidebarTitle>
         {t('Assigned To')}
         <Access access={['project:read']}>
-          <Button
-            onClick={() => {
-              openIssueOwnershipRuleModal({
-                project,
-                organization,
-                issueId: group.id,
-                eventData: event!,
-              });
-            }}
-            aria-label={t('Create Ownership Rule')}
-            icon={<IconSettings />}
-            borderless
-            size="xs"
-          />
+          <GuideAnchor target="issue_sidebar_owners">
+            <Button
+              onClick={() => {
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconSettings />}
+              borderless
+              size="xs"
+            />
+          </GuideAnchor>
         </Access>
       </StyledSidebarTitle>
-      <StyledSidebarSectionContent>
-        <AssigneeSelectorDropdown
-          organization={organization}
+      <SidebarSection.Content>
+        <StyledAssigneeSelectorDropdown
+          group={group}
           owners={owners}
-          disabled={disableDropdown}
-          id={group.id}
-          assignedTo={group.assignedTo}
-          onAssign={onAssign}
-        >
-          {({loading, isOpen, getActorProps}) => (
-            <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
-              <ActorWrapper>
-                {loading ? (
-                  <StyledLoadingIndicator mini size={24} />
-                ) : group.assignedTo ? (
-                  <ActorAvatar
-                    data-test-id="assigned-avatar"
-                    actor={group.assignedTo}
-                    hasTooltip={false}
-                    size={24}
-                  />
-                ) : (
-                  <IconWrapper>
-                    <IconUser size="md" />
-                  </IconWrapper>
-                )}
-                <ActorName>{getAssignedToDisplayName(group) ?? t('No one')}</ActorName>
-              </ActorWrapper>
-              {!disableDropdown && (
-                <IconChevron
-                  data-test-id="assigned-to-chevron-icon"
-                  direction={isOpen ? 'up' : 'down'}
-                />
-              )}
-            </DropdownButton>
-          )}
-        </AssigneeSelectorDropdown>
-      </StyledSidebarSectionContent>
+          loading={assigneeLoading}
+          onAssign={handleAssigneeChange}
+          onClear={() => handleAssigneeChange(null)}
+          trigger={makeTrigger}
+        />
+      </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
 
 export default AssignedTo;
 
+const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
+  width: 100%;
+`;
+
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: ${space(1)};
-  padding-right: ${space(0.25)};
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
 `;
 
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  max-width: 85%;
+  max-width: 100%;
   line-height: 1;
 `;
 
@@ -303,12 +319,6 @@ const IconWrapper = styled('div')`
 const ActorName = styled('div')`
   line-height: 1.2;
   ${p => p.theme.overflowEllipsis}
-`;
-
-const StyledSidebarSectionContent = styled(SidebarSection.Content)`
-  ${AutoCompleteRoot} {
-    display: block;
-  }
 `;
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`

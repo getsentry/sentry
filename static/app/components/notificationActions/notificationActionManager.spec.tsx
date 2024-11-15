@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
-import type {NotificationAction} from 'sentry/types';
+import type {NotificationAction} from 'sentry/types/notificationActions';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();

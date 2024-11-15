@@ -1,10 +1,9 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
@@ -12,18 +11,22 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {parseCursor} from 'sentry/utils/cursor';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
@@ -83,6 +86,7 @@ type Props = {
    */
   selected: DropdownOption;
   breakdown?: SpanOperationBreakdownFilter;
+  domainViewFilters?: DomainViewFilters;
   /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
@@ -100,7 +104,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   generatePerformanceTransactionEventsView?: () => EventView;
@@ -268,10 +272,12 @@ class _TransactionsList extends Component<Props> {
     cursor,
     numSamples,
     supportsInvestigationRule,
+    view,
   }: {
     numSamples: number | null | undefined;
     cursor?: string | undefined;
     supportsInvestigationRule?: boolean;
+    view?: DomainView;
   }): React.ReactNode {
     const {
       organization,
@@ -309,27 +315,32 @@ class _TransactionsList extends Component<Props> {
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
-              <Button
+              <LinkButton
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                   organization.slug,
                   {
                     showTransactions: mapShowTransactionToPercentile(showTransactions),
                     breakdown,
+                    view,
                   }
                 )}
                 size="xs"
                 data-test-id="transaction-events-open"
               >
                 {t('View Sampled Events')}
-              </Button>
+              </LinkButton>
             </GuideAnchor>
           ) : (
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
                 to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization.slug
+                  organization.slug,
+                  false,
+                  hasDatasetSelector(organization)
+                    ? SavedQueryDatasets.TRANSACTIONS
+                    : undefined
                 )}
                 size="xs"
                 data-test-id="discover-open"
@@ -353,6 +364,7 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
       referrer,
+      domainViewFilters,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -383,7 +395,10 @@ class _TransactionsList extends Component<Props> {
           isLoading
           pageLinks={null}
           tableData={null}
-          header={this.renderHeader({numSamples: null})}
+          header={this.renderHeader({
+            numSamples: null,
+            view: domainViewFilters?.view,
+          })}
         />
       );
     }
@@ -407,6 +422,7 @@ class _TransactionsList extends Component<Props> {
               numSamples: tableData?.data?.length ?? null,
               supportsInvestigationRule: this.props.supportsInvestigationRule,
               cursor,
+              view: domainViewFilters?.view,
             })}
           />
         )}
@@ -415,8 +431,15 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, cursorName, generateLink} =
-      this.props;
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      generateLink,
+      domainViewFilters,
+    } = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -449,6 +472,7 @@ class _TransactionsList extends Component<Props> {
             header={this.renderHeader({
               numSamples: null,
               supportsInvestigationRule: false,
+              view: domainViewFilters?.view,
             })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([

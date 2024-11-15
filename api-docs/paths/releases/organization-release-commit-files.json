@@ -5,9 +5,9 @@
     "operationId": "Retrieve Files Changed in a Release's Commits",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the release belongs to.",
+        "description": "The ID or slug of the organization the release belongs to.",
         "required": true,
         "schema": {
           "type": "string"

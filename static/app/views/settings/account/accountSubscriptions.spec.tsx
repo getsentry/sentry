@@ -1,4 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {SubscriptionsFixture} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,9 +16,7 @@ describe('AccountSubscriptions', function () {
       url: ENDPOINT,
       body: [],
     });
-    render(<AccountSubscriptions />, {
-      context: RouterContextFixture(),
-    });
+    render(<AccountSubscriptions />);
   });
 
   it('renders list and can toggle', async function () {
@@ -35,6 +32,8 @@ describe('AccountSubscriptions', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
+    expect(await screen.findByText('Product & Feature Updates')).toBeInTheDocument();
+
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Product & Feature Updates'})
     );
@@ -43,10 +42,10 @@ describe('AccountSubscriptions', function () {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: {
+        data: expect.objectContaining({
           listId: 2,
           subscribed: false,
-        },
+        }),
       })
     );
   });
@@ -65,6 +64,10 @@ describe('AccountSubscriptions', function () {
     });
     render(<AccountSubscriptions />);
 
+    // wait for the mock GET Request to resolve
+    const elements = await screen.findAllByText('Sentry Newsletter');
+    expect(elements).toHaveLength(2);
+
     await userEvent.click(
       screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]
     );
@@ -73,10 +76,10 @@ describe('AccountSubscriptions', function () {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: {
+        data: expect.objectContaining({
           listId: 1,
           subscribed: true,
-        },
+        }),
       })
     );
   });

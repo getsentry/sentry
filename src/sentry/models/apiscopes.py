@@ -4,7 +4,20 @@ from typing import TypedDict
 from django.db import models
 
 from bitfield import typed_dict_bitfield
+from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 from sentry.db.models import ArrayField
+
+
+def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
+    """
+    Adds missing hierarchy scopes to the list of scopes. Returns an
+    alphabetically sorted list of final scopes.
+    """
+    new_scopes = set(curr_scopes)
+    for scope in curr_scopes:
+        if scope in SENTRY_SCOPES:
+            new_scopes = new_scopes.union(SENTRY_SCOPE_HIERARCHY_MAPPING[scope])
+    return sorted(new_scopes)
 
 
 class ApiScopes(Sequence):

@@ -6,7 +6,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Meta} from 'sentry/types';
+import type {Meta} from 'sentry/types/group';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
 

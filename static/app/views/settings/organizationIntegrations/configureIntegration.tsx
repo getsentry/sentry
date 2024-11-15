@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,19 +19,20 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
-  IntegrationWithConfig,
-  Organization,
+  OrganizationIntegration,
   PluginWithProjectList,
-} from 'sentry/types';
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -44,7 +44,7 @@ import IntegrationExternalUserMappings from './integrationExternalUserMappings';
 import IntegrationItem from './integrationItem';
 import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
-import IntegrationServerlessFunctions from './integrationServerlessFunctions';
+import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
 type Props = RouteComponentProps<
   {
@@ -82,29 +82,26 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
-    isLoading: isLoadingConfig,
+    isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-    remove: removeConfig,
   } = useApiQuery<{
     providers: IntegrationProvider[];
   }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
   const {
     data: integration,
-    isLoading: isLoadingIntegration,
+    isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
-    remove: removeIntegration,
-  } = useApiQuery<IntegrationWithConfig>(
+  } = useApiQuery<OrganizationIntegration>(
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
   const {
     data: plugins,
-    isLoading: isLoadingPlugins,
+    isPending: isLoadingPlugins,
     isError: isErrorPlugins,
     refetch: refetchPlugins,
-    remove: removePlugins,
   } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
     staleTime: 0,
   });
@@ -164,13 +161,17 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    removePlugins();
+    queryClient.removeQueries({queryKey: makePluginQuery(organization)});
     refetchPlugins();
 
-    removeConfig();
+    queryClient.removeQueries({
+      queryKey: [`/organizations/${organization.slug}/config/integrations/`],
+    });
     refetchConfig();
 
-    removeIntegration();
+    queryClient.removeQueries({
+      queryKey: makeIntegrationQuery(organization, integrationId),
+    });
     refetchIntegration();
   };
 
@@ -252,9 +253,8 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     if (provider.key === 'discord') {
       return (
         <LinkButton
-          aria-label="Open this server in the Discord app"
+          aria-label={t('Open this server in the Discord app')}
           size="sm"
-          // @ts-ignore - the type of integration here is weird.
           href={`discord://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}

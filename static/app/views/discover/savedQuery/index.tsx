@@ -1,6 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -13,7 +11,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -24,19 +22,26 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SavedQuery} from 'sentry/types';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
+  getDatasetFromLocationOrSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -311,7 +316,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   renderButtonViewSaved(disabled: boolean) {
     const {organization} = this.props;
     return (
-      <Button
+      <LinkButton
         onClick={() => {
           trackAnalytics('discover_v2.view_saved_queries', {organization});
         }}
@@ -322,7 +327,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         to={getDiscoverQueriesUrl(organization)}
       >
         {t('Saved Queries')}
-      </Button>
+      </LinkButton>
     );
   }
 
@@ -386,12 +391,36 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonCreateAlert() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, location, savedQuery} = this.props;
+    const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQuery?.queryDataset
+    );
+
+    let alertType;
+    let buttonEventView = eventView;
+    if (hasDatasetSelector(organization)) {
+      alertType = defined(currentDataset)
+        ? {
+            [DiscoverDatasets.TRANSACTIONS]: 'throughput',
+            [DiscoverDatasets.ERRORS]: 'num_errors',
+          }[currentDataset]
+        : undefined;
+
+      if (currentDataset === DiscoverDatasets.TRANSACTIONS) {
+        // Inject the event.type:transaction filter for to avoid triggering
+        // the event.type missing banner error in the alerts form
+        buttonEventView = eventView.clone();
+        buttonEventView.query = eventView.query
+          ? `(${eventView.query}) AND (event.type:transaction)`
+          : 'event.type:transaction';
+      }
+    }
 
     return (
       <GuideAnchor target="create_alert_from_discover">
         <CreateAlertFromViewButton
-          eventView={eventView}
+          eventView={buttonEventView}
           organization={organization}
           projects={projects}
           onClick={this.handleCreateAlertSuccess}
@@ -399,6 +428,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           size="sm"
           aria-label={t('Create Alert')}
           data-test-id="discover2-create-from-discover"
+          alertType={alertType}
         />
       </GuideAnchor>
     );

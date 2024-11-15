@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import hashlib
+import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -18,25 +21,32 @@ from rest_framework.request import Request
 from sentry_relay.exceptions import UnpackError
 
 from sentry import options
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.orgauthtoken import (
+    OrgAuthToken,
+    is_org_auth_token_auth,
+    update_org_auth_token_last_used,
+)
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
-from sentry.models.user import User
+from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.rpc import compare_signature
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit, SiloMode
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.silo.base import SiloLimit, SiloMode
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+logger = logging.getLogger("sentry.api.authentication")
 
 
 class AuthenticationSiloLimit(SiloLimit):
@@ -101,7 +111,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
+def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.
@@ -126,10 +136,17 @@ def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
     else:
         try:
             relay = Relay.objects.get(relay_id=relay_id)
-            relay.is_internal = is_internal_relay(request, relay.public_key)
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
+
+
+def update_token_access_record(auth: object):
+    """
+    Perform updates to token models for security purposes (i.e. 'date_last_used')
+    """
+    if is_org_auth_token_auth(auth):
+        update_org_auth_token_last_used(auth, [])
 
 
 class QuietBasicAuthentication(BasicAuthentication):
@@ -152,10 +169,10 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
-            with configure_scope() as scope:
-                scope.set_tag(entity_id_tag, auth_token.entity_id)
-                for k, v in tags.items():
-                    scope.set_tag(k, v)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag(entity_id_tag, auth_token.entity_id)
+            for k, v in tags.items():
+                scope.set_tag(k, v)
 
         return (user, auth_token)
 
@@ -196,14 +213,21 @@ class RelayAuthentication(BasicAuthentication):
             raise AuthenticationFailed("Missing relay signature")
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
-    def authenticate_credentials(self, relay_id, relay_sig, request):
-        with configure_scope() as scope:
-            scope.set_tag("relay_id", relay_id)
+    def authenticate_credentials(
+        self, relay_id: str, relay_sig: str, request=None
+    ) -> tuple[AnonymousUser, None]:
+        Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+
+        if request is None:
+            raise AuthenticationFailed("missing request")
 
         relay, static = relay_from_id(request, relay_id)
 
         if relay is None:
             raise AuthenticationFailed("Unknown relay")
+
+        if not static:
+            relay.is_internal = is_internal_relay(request, relay.public_key)
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
@@ -229,10 +253,13 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if password:
             return None
 
+        key: ApiKeyReplica | ApiKey
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            key = ApiKeyReplica.objects.filter(key=userid).last()
-            if key is None:
+            key_replica = ApiKeyReplica.objects.filter(key=userid).last()
+            if key_replica is None:
                 raise AuthenticationFailed("API key is not valid")
+            else:
+                key = key_replica
         else:
             try:
                 key = ApiKey.objects.get_from_cache(key=userid)
@@ -298,6 +325,56 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
+    def _find_or_update_token_by_hash(self, token_str: str) -> ApiToken | ApiTokenReplica:
+        """
+        Find token by hash or update token's hash value if only found via plaintext.
+
+        1. Hash provided plaintext token.
+        2. Perform lookup based on hashed value.
+        3. If found, return the token.
+        4. If not found, search for the token based on its plaintext value.
+        5. If found, update the token's hashed value and return the token.
+        6. If not found via hash or plaintext value, raise AuthenticationFailed
+
+        Returns `ApiTokenReplica` if running in REGION silo or
+        `ApiToken` if running in CONTROL silo.
+        """
+
+        hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            try:
+                # Try to find the token by its hashed value first
+                return ApiTokenReplica.objects.get(hashed_token=hashed_token)
+            except ApiTokenReplica.DoesNotExist:
+                try:
+                    # If we can't find it by hash, use the plaintext string
+                    return ApiTokenReplica.objects.get(token=token_str)
+                except ApiTokenReplica.DoesNotExist:
+                    # If the token does not exist by plaintext either, it is not a valid token
+                    raise AuthenticationFailed("Invalid token")
+        else:
+            try:
+                # Try to find the token by its hashed value first
+                return ApiToken.objects.select_related("user", "application").get(
+                    hashed_token=hashed_token
+                )
+            except ApiToken.DoesNotExist:
+                try:
+                    # If we can't find it by hash, use the plaintext string
+                    api_token = ApiToken.objects.select_related("user", "application").get(
+                        token=token_str
+                    )
+                except ApiToken.DoesNotExist:
+                    # If the token does not exist by plaintext either, it is not a valid token
+                    raise AuthenticationFailed("Invalid token")
+                else:
+                    # Update it with the hashed value if found by plaintext
+                    api_token.hashed_token = hashed_token
+                    api_token.save(update_fields=["hashed_token"])
+
+                    return api_token
+
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth):
             return False
@@ -311,7 +388,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        user: AnonymousUser | RpcUser | None = AnonymousUser()
+        user: AnonymousUser | User | RpcUser | None = AnonymousUser()
 
         token: SystemToken | ApiTokenReplica | ApiToken | None = SystemToken.from_request(
             request, token_str
@@ -320,26 +397,16 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         application_is_inactive = False
 
         if not token:
-            if SiloMode.get_current_mode() == SiloMode.REGION:
-                try:
-                    atr = token = ApiTokenReplica.objects.get(token=token_str)
-                except ApiTokenReplica.DoesNotExist:
-                    raise AuthenticationFailed("Invalid token")
-                user = user_service.get_user(user_id=atr.user_id)
-                application_is_inactive = not atr.application_is_active
-            else:
-                try:
-                    at = token = (
-                        ApiToken.objects.filter(token=token_str)
-                        .select_related("user", "application")
-                        .get()
-                    )
-                except ApiToken.DoesNotExist:
-                    raise AuthenticationFailed("Invalid token")
-                user = at.user
+            token = self._find_or_update_token_by_hash(token_str)
+            if isinstance(token, ApiTokenReplica):  # we're running as a REGION silo
+                user = user_service.get_user(user_id=token.user_id)
+                application_is_inactive = not token.application_is_active
+            else:  # the token returned is an ApiToken from the CONTROL silo
+                user = token.user
                 application_is_inactive = (
-                    at.application is not None and not at.application.is_active
+                    token.application is not None and not token.application.is_active
                 )
+
         elif isinstance(token, SystemToken):
             user = token.user
 
@@ -354,6 +421,47 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
+
+        if token.organization_id:
+            # We need to make sure the organization to which the token has access is the same as the one in the URL
+            organization = None
+            organization_context = organization_service.get_organization_by_id(
+                id=token.organization_id
+            )
+            if organization_context:
+                organization = organization_context.organization
+
+            if organization:
+                resolved_url = resolve(request.path_info)
+                target_org_id_or_slug = resolved_url.kwargs.get("organization_id_or_slug")
+                if target_org_id_or_slug:
+                    if (
+                        organization.slug != target_org_id_or_slug
+                        and organization.id != target_org_id_or_slug
+                    ):
+                        # TODO (@athena): We want to raise auth excecption here but to be sure
+                        # I soft launch this by only logging the error for now
+                        # raise AuthenticationFailed("Unauthorized organization access")
+                        logger.info(
+                            "Token has access to organization %s but wants to get access to organization %s",
+                            organization.slug,
+                            target_org_id_or_slug,
+                        )
+                else:
+                    # TODO (@athena): We want to limit org level token's access to org level endpoints only
+                    # so in the future this will be an auth exception but for now we soft launch by logging an error
+                    logger.info(
+                        "Token has only access to organization %s but is calling an endpoint for multiple organizations: %s",
+                        organization.slug,
+                        request.path_info,
+                    )
+            else:
+                # TODO (@athena): If there is an organization token we should be able to fetch organization context
+                # Otherwise we should raise an exception
+                # For now adding logging to investigate if this is a valid case we need to address
+                logger.info(
+                    "Token has access to an unknown organization: %s", token.organization_id
+                )
 
         return self.transform_auth(
             user,
@@ -376,26 +484,31 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        token = None
         token_hashed = hash_token(token_str)
 
+        token: OrgAuthTokenReplica | OrgAuthToken
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            token = OrgAuthTokenReplica.objects.filter(
-                token_hashed=token_hashed,
-                date_deactivated__isnull=True,
-            ).last()
-            if token is None:
+            try:
+                token = OrgAuthTokenReplica.objects.get(
+                    token_hashed=token_hashed,
+                    date_deactivated__isnull=True,
+                )
+            except OrgAuthTokenReplica.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
         else:
             try:
-                token = OrgAuthToken.objects.filter(
+                token = OrgAuthToken.objects.get(
                     token_hashed=token_hashed, date_deactivated__isnull=True
-                ).get()
+                )
             except OrgAuthToken.DoesNotExist:
                 raise AuthenticationFailed("Invalid org token")
 
         return self.transform_auth(
-            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+            None,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_org_token=True,
         )
 
 
@@ -412,9 +525,9 @@ class DSNAuthentication(StandardAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
 
-        with configure_scope() as scope:
-            scope.set_tag("api_token_type", self.token_name)
-            scope.set_tag("api_project_key", key.id)
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("api_token_type", self.token_name)
+        scope.set_tag("api_project_key", key.id)
 
         return (AnonymousUser(), key)
 
@@ -448,7 +561,6 @@ class RpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        with configure_scope() as scope:
-            scope.set_tag("rpc_auth", True)
+        Scope.get_isolation_scope().set_tag("rpc_auth", True)
 
         return (AnonymousUser(), token)

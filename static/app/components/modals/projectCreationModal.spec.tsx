@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -18,7 +18,6 @@ import TeamStore from 'sentry/stores/teamStore';
 describe('Project Creation Modal', function () {
   const closeModal = jest.fn();
   const organization = OrganizationFixture();
-  const routerContext = RouterContextFixture([{organization}]);
 
   it('renders modal', async function () {
     render(
@@ -55,6 +54,12 @@ describe('Project Creation Modal', function () {
     const team = TeamFixture({
       access: ['team:admin', 'team:write', 'team:read'],
     });
+    const integrations = [
+      OrganizationIntegrationsFixture({
+        name: "Moo Deng's Workspace",
+        status: 'active',
+      }),
+    ];
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/rule-conditions/`,
@@ -82,6 +87,11 @@ describe('Project Creation Modal', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      body: integrations,
+    });
+
     OrganizationStore.onUpdate(organization);
     TeamStore.loadUserTeams([team]);
 
@@ -93,8 +103,7 @@ describe('Project Creation Modal', function () {
         CloseButton={makeCloseButton(closeModal)}
         Header={makeClosableHeader(closeModal)}
         Footer={ModalFooter}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByRole('button', {name: 'Next Step'})).toBeDisabled();

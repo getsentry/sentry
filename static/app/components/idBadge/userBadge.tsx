@@ -1,25 +1,28 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {space} from 'sentry/styles/space';
-import type {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types/user';
 
-export interface UserBadgeProps {
-  avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
-  className?: string;
+import Link from '../links/link';
+
+import BadgeDisplayName from './badgeDisplayName';
+import {BaseBadge, type BaseBadgeProps} from './baseBadge';
+
+export interface UserBadgeProps extends BaseBadgeProps {
   displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;
   hideEmail?: boolean;
+  to?: string;
   user?: AvatarUser;
 }
 
 function UserBadge({
-  avatarSize = 24,
   hideEmail = false,
   displayName,
   displayEmail,
   user,
-  className,
+  to,
+  ...props
 }: UserBadgeProps) {
   const title =
     displayName ||
@@ -34,45 +37,33 @@ function UserBadge({
         user.ip ||
         user.id));
 
+  const name = <Name hideEmail={!!hideEmail}>{title}</Name>;
+
   return (
-    <StyledUserBadge className={className}>
-      <StyledAvatar user={user} size={avatarSize} />
-      <StyledNameAndEmail>
-        <StyledName hideEmail={!!hideEmail}>{title}</StyledName>
-        {!hideEmail && <StyledEmail>{displayEmail || user?.email}</StyledEmail>}
-      </StyledNameAndEmail>
-    </StyledUserBadge>
+    <BaseBadge
+      displayName={
+        <BadgeDisplayName>
+          {to ? <Link to={to}>{name}</Link> : name}
+          {!hideEmail && <Email>{displayEmail || user?.email}</Email>}
+        </BadgeDisplayName>
+      }
+      user={user}
+      {...props}
+    />
   );
 }
 
-const StyledUserBadge = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const StyledNameAndEmail = styled('div')`
-  flex-shrink: 1;
-  min-width: 0;
-  line-height: normal;
-`;
-
-const StyledEmail = styled('div')`
-  font-size: 0.875em;
-  margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray300};
-  ${p => p.theme.overflowEllipsis};
-`;
-
-export const StyledName = styled('span')<{hideEmail: boolean}>`
+const Name = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${p => p.theme.overflowEllipsis};
 `;
 
-const StyledAvatar = styled(UserAvatar)`
-  min-width: ${space(3)};
-  min-height: ${space(3)};
-  margin-right: ${space(1)};
+const Email = styled('div')`
+  font-size: 0.875em;
+  margin-top: ${space(0.25)};
+  color: ${p => p.theme.gray300};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export default UserBadge;

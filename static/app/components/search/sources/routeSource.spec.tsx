@@ -61,7 +61,7 @@ describe('RouteSource', function () {
     });
   });
 
-  it('does not find any form field', function () {
+  it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
     const {organization, project, routerProps} = initializeOrg();
     render(
@@ -70,6 +70,8 @@ describe('RouteSource', function () {
       </RouteSource>
     );
 
-    expect(mock).toHaveBeenCalledWith(expect.objectContaining({results: []}));
+    await waitFor(() =>
+      expect(mock).toHaveBeenCalledWith(expect.objectContaining({results: []}))
+    );
   });
 });

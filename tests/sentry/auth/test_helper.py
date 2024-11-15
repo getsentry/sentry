@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
@@ -12,13 +15,13 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.outbox import outbox_context
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.silo import SiloMode
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -33,6 +36,13 @@ def _set_up_request():
     return request
 
 
+class _Identity(TypedDict):
+    id: str
+    email: str
+    name: str
+    data: dict[str, str]
+
+
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -42,7 +52,7 @@ class AuthIdentityHandlerTest(TestCase):
             organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
-        self.identity = {
+        self.identity: _Identity = {
             "id": "1234",
             "email": self.email,
             "name": "Morty",
@@ -279,8 +289,9 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
     def test_new_identity_with_existing_om_idp_flags(self, mock_messages):
         user = self.set_up_user()
         with assume_test_silo_mode(SiloMode.REGION):
-            with assume_test_silo_mode(SiloMode.REGION), outbox_context(
-                transaction.atomic(using=router.db_for_write(OrganizationMember))
+            with (
+                assume_test_silo_mode(SiloMode.REGION),
+                outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
             ):
                 existing_om = OrganizationMember.objects.create(
                     user_id=user.id,

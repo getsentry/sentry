@@ -1,18 +1,19 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
+import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
-import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
@@ -25,12 +26,12 @@ function LinkedIssue({eventId, groupId}: Props) {
 
   const {
     data: group,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<Group>([groupUrl], {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <Placeholder height="120px" bottomGutter={2} />;
   }
 
@@ -49,6 +50,14 @@ function LinkedIssue({eventId, groupId}: Props) {
   }
 
   const issueUrl = `${group.permalink}events/${eventId}/`;
+
+  const groupStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.filtered.stats?.['30d']
+    : group.stats?.['30d'];
+
+  const groupSecondaryStats: ReadonlyArray<TimeseriesValue> = group.filtered
+    ? group.stats?.['30d']
+    : [];
 
   return (
     <Section>
@@ -71,7 +80,11 @@ function LinkedIssue({eventId, groupId}: Props) {
           <SeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />
         </IssueCardHeader>
         <IssueCardBody>
-          <GroupChart statsPeriod="30d" data={group} height={56} />
+          <GroupChart
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
+            height={56}
+          />
         </IssueCardBody>
         <IssueCardFooter>
           <Times lastSeen={group.lastSeen} firstSeen={group.firstSeen} />

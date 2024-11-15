@@ -1,4 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -9,12 +10,14 @@ import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
 
-const getInstallSnipet = (params: Params) => `
+const getInstallSnippet = (params: Params) => `
 dependencies:
   sentry: ^${getPackageVersion(params, 'sentry.dart', '7.8.0')}`;
 
@@ -23,8 +26,8 @@ import 'package:sentry/sentry.dart';
 
 Future<void> main() async {
   await Sentry.init((options) {
-    options.dsn = '${params.dsn}';
-    // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+    options.dsn = '${params.dsn.public}';
+    // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
     // We recommend adjusting this value in production.
     options.tracesSampleRate = 1.0;
   });
@@ -73,6 +76,118 @@ Future<void> processOrderBatch(ISentrySpan span) async {
   }
 }`;
 
+const getConfigureMetricsSnippet = (params: Params) => `
+import 'package:sentry/sentry.dart';
+
+Future<void> main() async {
+ await Sentry.init((options) {
+   options.dsn = '${params.dsn.public}';
+   options.enableMetrics = true;
+ },
+);`;
+
+const metricsOnboarding: OnboardingConfig = {
+  install: (params: DocsParams) => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need Sentry Dart SDK version [code:7.19.0] or higher. Learn more about installation methods in our [docsLink:full documentation].',
+        {
+          code: <code />,
+          docsLink: <Link to={`/projects/${params.projectSlug}/getting-started/`} />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'yml',
+          partialLoading: params.sourcePackageRegistries?.isLoading,
+          code: getInstallSnippet(params),
+        },
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'To enable capturing metrics, you need to enable the metrics feature.'
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Dart',
+              value: 'dart',
+              language: 'dart',
+              code: getConfigureMetricsSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics()] namespace.",
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
+          code: [
+            {
+              label: 'Counter',
+              value: 'counter',
+              language: 'dart',
+              code: exampleSnippets.dart.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'dart',
+              code: exampleSnippets.dart.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'dart',
+              code: exampleSnippets.dart.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'dart',
+              code: exampleSnippets.dart.gauge,
+            },
+          ],
+        },
+        {
+          description: t(
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dart/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const onboarding: OnboardingConfig = {
   install: params => [
     {
@@ -87,7 +202,7 @@ const onboarding: OnboardingConfig = {
         {
           language: 'yml',
           partialLoading: params.sourcePackageRegistries.isLoading,
-          code: getInstallSnipet(params),
+          code: getInstallSnippet(params),
         },
       ],
     },
@@ -103,13 +218,9 @@ const onboarding: OnboardingConfig = {
           language: 'dart',
           code: getConfigureSnippet(params),
           additionalInfo: tct(
-            'You can configure the [sentryDsn: SENTRY_DSN], [sentryRelease: SENTRY_RELEASE], [sentryDist: SENTRY_DIST], and [sentryEnv: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [dartDefine: --dart-define] flag to the compiler, as noted in the code sample.',
+            'You can configure the [code: SENTRY_DSN], [code: SENTRY_RELEASE], [code: SENTRY_DIST], and [code: SENTRY_ENVIRONMENT] via the Dart environment variables passing the [code: --dart-define] flag to the compiler, as noted in the code sample.',
             {
-              sentryDsn: <code />,
-              sentryRelease: <code />,
-              sentryDist: <code />,
-              sentryEnv: <code />,
-              dartDefine: <code />,
+              code: <code />,
             }
           ),
         },
@@ -136,7 +247,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      title: t('Performance'),
+      title: t('Tracing'),
       description: t(
         "You'll be able to monitor the performance of your app using the SDK. For example:"
       ),
@@ -148,7 +259,7 @@ const onboarding: OnboardingConfig = {
             'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
             {
               perfDocs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dart/performance/instrumentation/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/dart/tracing/instrumentation/" />
               ),
             }
           ),
@@ -197,6 +308,8 @@ Sentry.captureUserFeedback(userFeedback);`,
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiDart,
+  crashReportOnboarding: feedbackOnboardingCrashApiDart,
+  customMetricsOnboarding: metricsOnboarding,
 };
 
 export default docs;

@@ -5,16 +5,18 @@ import pytest
 import responses
 from rest_framework.serializers import ValidationError
 
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.opsgenie.integration import OpsgenieIntegrationProvider
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.rule import Rule
-from sentry.tasks.integrations.migrate_opsgenie_plugins import (
+from sentry.integrations.opsgenie.tasks import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.rule import Rule
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 EXTERNAL_ID = "test-app"
@@ -134,6 +136,10 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
 
+        responses.add(
+            responses.GET, url="https://api.opsgenie.com/v2/alerts?limit=1", status=200, json={}
+        )
+
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234-5678"}]}
         installation.update_organization_config(data)
         team_id = str(org_integration.id) + "-" + "cool-team"
@@ -152,6 +158,10 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
         org_integration = OrganizationIntegration.objects.get(integration_id=integration.id)
         team_id = str(org_integration.id) + "-" + "cool-team"
+
+        responses.add(
+            responses.GET, url="https://api.opsgenie.com/v2/alerts?limit=1", status=200, json={}
+        )
 
         # valid
         data = {"team_table": [{"id": "", "team": "cool-team", "integration_key": "1234"}]}
@@ -173,8 +183,45 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             "team_table": [{"id": team_id, "team": "cool-team", "integration_key": "1234"}]
         }
 
+    @responses.activate
+    def test_update_config_invalid_rate_limited(self):
+        integration = self.create_provider_integration(
+            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
 
-@region_silo_test
+        data = {
+            "team_table": [
+                {"id": "", "team": "rad-team", "integration_key": "4321"},
+                {"id": "cool-team", "team": "cool-team", "integration_key": "1234"},
+            ]
+        }
+        responses.add(responses.GET, url="https://api.opsgenie.com/v2/alerts?limit=1", status=429)
+
+        with pytest.raises(ApiRateLimitedError):
+            installation.update_organization_config(data)
+
+    @responses.activate
+    def test_update_config_invalid_integration_key(self):
+        integration = self.create_provider_integration(
+            provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
+        )
+        integration.add_organization(self.organization, self.user)
+        installation = integration.get_installation(self.organization.id)
+
+        data = {
+            "team_table": [
+                {"id": "cool-team", "team": "cool-team", "integration_key": "1234"},
+                {"id": "", "team": "rad-team", "integration_key": "4321"},
+            ]
+        }
+        responses.add(responses.GET, url="https://api.opsgenie.com/v2/alerts?limit=1", status=401)
+
+        with pytest.raises(ApiUnauthorized):
+            installation.update_organization_config(data)
+
+
 class OpsgenieMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
@@ -197,8 +244,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    @patch("sentry.tasks.integrations.migrate_opsgenie_plugins.metrics")
-    def test_migrate_plugin(self, mock_metrics):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_migrate_plugin(self, mock_record):
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.
@@ -277,7 +324,11 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert self.plugin.is_configured(self.project) is False
         assert plugin2.is_enabled(project2) is False
         assert plugin2.is_configured(self.project) is False
-        mock_metrics.incr.assert_any_call("opsgenie.migration_success", skip_internal=False)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     def test_no_duplicate_keys(self):
         """

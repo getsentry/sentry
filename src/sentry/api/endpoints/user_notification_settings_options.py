@@ -5,14 +5,14 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.user import User
 from sentry.notifications.serializers import NotificationSettingsOptionSerializer
 from sentry.notifications.validators import UserNotificationSettingOptionWithValueSerializer
+from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint
@@ -21,9 +21,7 @@ class UserNotificationSettingsOptionsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ISSUES
-    # TODO(Steve): Make not private when we launch new system
-    private = True
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
 
     def get(self, request: Request, user: User) -> Response:
         """

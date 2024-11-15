@@ -9,8 +9,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
 describe('ProjectTeams', function () {
@@ -64,6 +66,7 @@ describe('ProjectTeams', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    ModalStore.reset();
   });
 
   it('can remove a team from project', async function () {
@@ -99,23 +102,27 @@ describe('ProjectTeams', function () {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Remove Team'));
-    expect(mock1).toHaveBeenCalledWith(
-      endpoint1,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    await waitFor(() => {
+      expect(mock1).toHaveBeenCalledWith(
+        endpoint1,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
     await userEvent.click(screen.getByText('Remove Team'));
-    expect(mock2).toHaveBeenCalledWith(
-      endpoint2,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    await waitFor(() => {
+      expect(mock2).toHaveBeenCalledWith(
+        endpoint2,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
   });
 
   it('cannot remove a team without admin scopes', async function () {
@@ -147,12 +154,14 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
     renderGlobalModal();
     await userEvent.click(screen.getByText('Remove Team'));
-    expect(mock1).toHaveBeenCalledWith(
-      endpoint1,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    await waitFor(() => {
+      expect(mock1).toHaveBeenCalledWith(
+        endpoint1,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove third team, but button should be disabled
@@ -195,12 +204,14 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
     renderGlobalModal();
     await userEvent.click(screen.getByText('Remove Team'));
-    expect(mock1).toHaveBeenCalledWith(
-      endpoint1,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    await waitFor(() => {
+      expect(mock1).toHaveBeenCalledWith(
+        endpoint1,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
@@ -212,12 +223,14 @@ describe('ProjectTeams', function () {
     // Click confirm
     await userEvent.click(screen.getByText('Remove Team'));
 
-    expect(mock2).toHaveBeenCalledWith(
-      endpoint2,
-      expect.objectContaining({
-        method: 'DELETE',
-      })
-    );
+    await waitFor(() => {
+      expect(mock2).toHaveBeenCalledWith(
+        endpoint2,
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
   });
 
   it('can associate a team with project', async function () {
@@ -238,12 +251,14 @@ describe('ProjectTeams', function () {
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
     await userEvent.click(screen.getByText('#team-slug-2'));
 
-    expect(mock).toHaveBeenCalledWith(
-      endpoint,
-      expect.objectContaining({
-        method: 'POST',
-      })
-    );
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+    });
   });
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {

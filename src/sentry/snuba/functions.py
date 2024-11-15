@@ -5,16 +5,17 @@ from typing import Any
 import sentry_sdk
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import (
+from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsQueryBuilder,
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -23,8 +24,7 @@ logger = logging.getLogger(__name__)
 def query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int = 0,
@@ -42,13 +42,15 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
     builder = ProfileFunctionsQueryBuilder(
         dataset=Dataset.Functions,
-        params=params,
+        params={},
         query=query,
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -66,7 +68,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -74,7 +78,7 @@ def query(
 def timeseries_query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
@@ -85,10 +89,14 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> Any:
+
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -96,20 +104,23 @@ def timeseries_query(
             functions_acl=functions_acl,
         ),
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer=referrer, query_source=query_source)
     results = builder.strip_alias_prefix(results)
+    results = builder.process_results(results)
 
     return SnubaTSResult(
         {
-            "data": zerofill(
-                results["data"],
-                params["start"],
-                params["end"],
-                rollup,
-                "time",
-            )
-            if zerofill_results
-            else results["data"],
+            "data": (
+                zerofill(
+                    results["data"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
+                    rollup,
+                    ["time"],
+                )
+                if zerofill_results
+                else results["data"]
+            ),
             "meta": {
                 "fields": {
                     value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
@@ -117,8 +128,8 @@ def timeseries_query(
                 }
             },
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -127,7 +138,7 @@ def top_events_timeseries(
     timeseries_columns,
     selected_columns,
     user_query,
-    params,
+    snuba_params,
     orderby,
     rollup,
     limit,
@@ -142,26 +153,30 @@ def top_events_timeseries(
     result_key_order=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
-                params=params,
+                snuba_params=snuba_params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
+                query_source=query_source,
             )
 
     top_functions_builder = ProfileTopFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         interval=rollup,
         top_events=top_events["data"],
         other=False,
@@ -178,12 +193,12 @@ def top_events_timeseries(
     if len(top_events["data"]) == limit and include_other:
         assert False, "Other is not supported"  # TODO: support other
 
-    result = top_functions_builder.run_query(referrer)
+    result = top_functions_builder.run_query(referrer=referrer, query_source=query_source)
 
     return format_top_events_timeseries_results(
         result,
         top_functions_builder,
-        params,
+        snuba_params,
         rollup,
         top_events=top_events,
         allow_empty=allow_empty,
@@ -195,7 +210,7 @@ def top_events_timeseries(
 def format_top_events_timeseries_results(
     result,
     query_builder,
-    params,
+    snuba_params,
     rollup,
     top_events=None,
     allow_empty=True,
@@ -208,18 +223,18 @@ def format_top_events_timeseries_results(
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    zerofill([], snuba_params.start_date, snuba_params.end_date, rollup, ["time"])
+                    if zerofill_results
+                    else []
+                ),
             },
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
 
-    with sentry_sdk.start_span(
-        op="discover.discover", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
         result = query_builder.strip_alias_prefix(result)
 
         span.set_data("result_count", len(result.get("data", [])))
@@ -247,9 +262,17 @@ def format_top_events_timeseries_results(
         return {
             key: SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        zerofill(
+                            item["data"],
+                            snuba_params.start_date,
+                            snuba_params.end_date,
+                            rollup,
+                            ["time"],
+                        )
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                     "meta": {
                         "fields": {
@@ -260,8 +283,8 @@ def format_top_events_timeseries_results(
                         }
                     },
                 },
-                params["start"],
-                params["end"],
+                snuba_params.start_date,
+                snuba_params.end_date,
                 rollup,
             )
             for key, item in results.items()

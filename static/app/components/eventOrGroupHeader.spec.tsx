@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
 
 const group = GroupFixture({
   level: 'error',
@@ -36,7 +36,7 @@ const event = EventFixture({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
@@ -181,7 +181,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {
@@ -211,7 +210,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {
@@ -245,7 +243,6 @@ describe('EventOrGroupHeader', function () {
             type: 'ReferenceError',
             filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
             function: 'useOverflowTabs',
-            display_title_with_tree_label: false,
           },
           actor: UserFixture(),
           isTombstone: true,

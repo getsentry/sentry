@@ -10,15 +10,17 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
-import useFetchFeedbackInfiniteListData from 'sentry/components/feedback/useFetchFeedbackInfiniteListData';
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useFetchInfiniteListData from 'sentry/utils/api/useFetchInfiniteListData';
+import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -39,6 +41,7 @@ function NoFeedback({title, subtitle}: {subtitle: string; title: string}) {
 }
 
 export default function FeedbackList() {
+  const {listQueryKey} = useFeedbackQueryKeys();
   const {
     isFetchingNextPage,
     isFetchingPreviousPage,
@@ -48,7 +51,10 @@ export default function FeedbackList() {
     issues,
     loadMoreRows,
     hits,
-  } = useFetchFeedbackInfiniteListData();
+  } = useFetchInfiniteListData<FeedbackIssueListItem>({
+    queryKey: listQueryKey,
+    uniqueField: 'id',
+  });
 
   const checkboxState = useListItemCheckboxState({
     hits,
@@ -78,14 +84,16 @@ export default function FeedbackList() {
         parent={parent}
         rowIndex={index}
       >
-        <FeedbackListItem
-          feedbackItem={item}
-          isSelected={checkboxState.isSelected(item.id)}
-          onSelect={() => {
-            checkboxState.toggleSelected(item.id);
-          }}
-          style={style}
-        />
+        <ErrorBoundary mini>
+          <FeedbackListItem
+            feedbackItem={item}
+            isSelected={checkboxState.isSelected(item.id)}
+            onSelect={() => {
+              checkboxState.toggleSelected(item.id);
+            }}
+            style={style}
+          />
+        </ErrorBoundary>
       </CellMeasurer>
     );
   };
@@ -93,7 +101,7 @@ export default function FeedbackList() {
   return (
     <Fragment>
       <FeedbackListHeader {...checkboxState} />
-      <OverflowPanelItem noPadding>
+      <FeedbackListItems>
         <InfiniteLoader
           isRowLoaded={isRowLoaded}
           loadMoreRows={loadMoreRows}
@@ -145,14 +153,13 @@ export default function FeedbackList() {
             </Tooltip>
           ) : null}
         </FloatingContainer>
-      </OverflowPanelItem>
+      </FeedbackListItems>
     </Fragment>
   );
 }
 
-const OverflowPanelItem = styled(PanelItem)`
+const FeedbackListItems = styled('div')`
   display: grid;
-  overflow: scroll;
   flex-grow: 1;
   min-height: 300px;
 `;
@@ -179,7 +186,7 @@ const Wrapper = styled('div')`
 `;
 
 const EmptyMessage = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

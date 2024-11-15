@@ -19,27 +19,26 @@ from sentry.testutils.cases import (
     ReplaysSnubaTestCase,
     SnubaTestCase,
 )
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationReplayCountEndpointTest(
     APITestCase, SnubaTestCase, ReplaysSnubaTestCase, PerformanceIssueTestCase
 ):
     def setUp(self):
         super().setUp()
-        self.min_ago = before_now(minutes=1)
+        self.project.update(flags=F("flags").bitor(Project.flags.has_replays))
+        self.min_ago = before_now(minutes=2)
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-replay-count",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {"organizations:session-replay": True}
 
-    def test_simple(self):
+    def test_simple_b(self):
         event_id_a = "a" * 32
         event_id_b = "b" * 32
         replay1_id = uuid.uuid4().hex
@@ -70,8 +69,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -79,8 +78,8 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": uuid.uuid4().hex,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -88,8 +87,10 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex}
+                },  # a replay id that doesn't exist
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -97,8 +98,8 @@ class OrganizationReplayCountEndpointTest(
         event_c = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay3_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -106,6 +107,7 @@ class OrganizationReplayCountEndpointTest(
 
         query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
+
             response = self.client.get(self.url, query, format="json")
 
         expected = {
@@ -146,8 +148,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -155,8 +157,8 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": uuid.uuid4().hex,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay2_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -164,8 +166,8 @@ class OrganizationReplayCountEndpointTest(
         self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": uuid.uuid4().hex}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -173,8 +175,8 @@ class OrganizationReplayCountEndpointTest(
         event_c = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay3_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay3_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -315,8 +317,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -324,8 +326,8 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -357,8 +359,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -366,8 +368,8 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -397,8 +399,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "transaction": "t-1",
             },
             project_id=self.project.id,
@@ -410,36 +412,6 @@ class OrganizationReplayCountEndpointTest(
 
         expected = {
             event_a.transaction: 1,
-        }
-        assert response.status_code == 200, response.content
-        assert response.data == expected
-
-    def test_max_51(self):
-        replay_ids = [uuid.uuid4().hex for _ in range(100)]
-        for replay_id in replay_ids:
-            self.store_replays(
-                mock_replay(
-                    datetime.datetime.now() - datetime.timedelta(seconds=22),
-                    self.project.id,
-                    replay_id,
-                )
-            )
-            event_a = self.store_event(
-                data={
-                    "event_id": uuid.uuid4().hex,
-                    "timestamp": iso_format(self.min_ago),
-                    "tags": {"replayId": replay_id},
-                    "fingerprint": ["group-1"],
-                },
-                project_id=self.project.id,
-            )
-
-        query = {"query": f"issue.id:[{event_a.group.id}]"}
-        with self.feature(self.features):
-            response = self.client.get(self.url, query, format="json")
-
-        expected = {
-            event_a.group.id: 51,
         }
         assert response.status_code == 200, response.content
         assert response.data == expected
@@ -516,12 +488,32 @@ class OrganizationReplayCountEndpointTest(
             b'escaped."}'
         ), response.content
 
+    def test_replay_count_invalid_replay_ids(self):
+        # test that the endpoint validates against invalid uuids, when querying on replay_id
+        bad_uuids = [
+            uuid.uuid4().hex[:16],  # too short
+            "42368708867",  # too short
+            "gz" * 16,  # not hex
+            "abcd-12-" * 4,  # too short after stripping dashes
+            "e{f@%-}9" * 4,  # garbage
+            # note the endpoint expects 32 hex chars, stripping trailing/leading '{}' and any number of '-'s
+            # so the following are still valid:
+            # "{aaa1aaaa-a123-aaaab-baaaaaa1934aff8--",  # will strip all '-' and '{', then reformat
+            # "a" * 32, "1" * 32, "0" * 32
+        ]
+
+        with self.feature(self.features):
+            for id in bad_uuids:
+                query = {"query": f"replay_id:[{id}]"}
+                response = self.client.get(self.url, query, format="json")
+                assert response.status_code == 400
+
     def test_endpoint_org_hasnt_sent_replays(self):
         event_id_a = "a" * 32
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -560,8 +552,8 @@ class OrganizationReplayCountEndpointTest(
         event_a = self.store_event(
             data={
                 "event_id": event_id_a,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay1_id},
+                "timestamp": self.min_ago.isoformat(),
+                "contexts": {"replay": {"replay_id": replay1_id}},
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -587,8 +579,7 @@ class OrganizationReplayCountEndpointTest(
         event_b = self.store_event(
             data={
                 "event_id": event_id_b,
-                "timestamp": iso_format(self.min_ago),
-                "tags": {"replayId": replay2_id},
+                "timestamp": self.min_ago.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project.id,

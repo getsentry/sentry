@@ -8,11 +8,12 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import Panel from 'sentry/components/panels/panel';
@@ -21,22 +22,20 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  NewInternalAppApiToken,
-  Organization,
-  Project,
-  SentryApp,
-} from 'sentry/types';
+import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import useApiRequests from 'sentry/utils/useApiRequests';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
 const docsLink = (
-  <Button external href={releasesSetupUrl}>
+  <LinkButton external href={releasesSetupUrl}>
     {t('Setup')}
-  </Button>
+  </LinkButton>
 );
 
 export const RELEASES_TOUR_STEPS: TourStep[] = [
@@ -94,28 +93,24 @@ type Props = {
   project: Project;
 };
 
-const ReleasesPromo = ({organization, project}: Props) => {
-  const {data, renderComponent, isLoading} = useApiRequests<{
-    internalIntegrations: SentryApp[];
-  }>({
-    endpoints: [
-      [
-        'internalIntegrations',
-        `/organizations/${organization.slug}/sentry-apps/`,
-        {query: {status: 'internal'}},
-      ],
-    ],
-  });
+function ReleasesPromo({organization, project}: Props) {
+  const {data, isPending} = useApiQuery<SentryApp[]>(
+    [`/organizations/${organization.slug}/sentry-apps/`, {query: {status: 'internal'}}],
+    {
+      staleTime: 0,
+    }
+  );
+
   const api = useApi();
   const [token, setToken] = useState<string | null>(null);
   const [integrations, setIntegrations] = useState<SentryApp[]>([]);
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && data.internalIntegrations) {
-      setIntegrations(data.internalIntegrations);
+    if (!isPending && data) {
+      setIntegrations(data);
     }
-  }, [isLoading, data.internalIntegrations]);
+  }, [isPending, data]);
   useEffect(() => {
     trackAnalytics('releases.quickstart_viewed', {
       organization,
@@ -200,15 +195,19 @@ sentry-cli releases finalize "$VERSION"`,
     [token, selectedItem, organization.slug, project.slug]
   );
 
-  return renderComponent(
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  return (
     <Panel>
       <Container>
         <ContainerHeader>
           <h3>{t('Set up Releases')}</h3>
 
-          <Button priority="default" size="sm" href={releasesSetupUrl} external>
+          <LinkButton priority="default" size="sm" href={releasesSetupUrl} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         </ContainerHeader>
 
         <p>
@@ -290,7 +289,7 @@ sentry-cli releases finalize "$VERSION"`,
                         >
                           <MenuItemFooterWrapper>
                             <IconContainer>
-                              <IconAdd color="activeText" isCircled legacySize="14px" />
+                              <IconAdd color="activeText" isCircled size="sm" />
                             </IconContainer>
                             <Label>{t('Create New Integration')}</Label>
                           </MenuItemFooterWrapper>
@@ -311,7 +310,7 @@ sentry-cli releases finalize "$VERSION"`,
       </Container>
     </Panel>
   );
-};
+}
 
 const Container = styled('div')`
   padding: ${space(3)};
@@ -387,7 +386,7 @@ const CodeSnippetDropdown = styled(DropdownAutoComplete)`
 const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1)} 0;
   color: ${p => p.theme.subText};
   line-height: ${p => p.theme.fontSizeSmall};

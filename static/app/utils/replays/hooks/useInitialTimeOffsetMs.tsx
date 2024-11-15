@@ -143,7 +143,7 @@ async function fromListPageQuery({
     return {
       highlight: {
         annotation: undefined,
-        nodeId,
+        nodeIds: [nodeId],
         spotlight: true,
       },
       offsetMs: firstTimestmpMs - replayStartTimestampMs,

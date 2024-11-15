@@ -31,6 +31,10 @@ export interface TabsProps<T>
    * selected tab item.
    */
   defaultValue?: T;
+  /**
+   * Disable tabs from being put in the overflow menu.
+   */
+  disableOverflow?: boolean;
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.
@@ -54,27 +58,42 @@ export const TabsContext = createContext<TabContext>({
   setTabListState: () => {},
 });
 
+export function TabStateProvider<T extends string | number>({
+  children,
+  ...props
+}: Omit<TabsProps<T>, 'className'>) {
+  const [tabListState, setTabListState] = useState<TabListState<any>>();
+
+  return (
+    <TabsContext.Provider
+      value={{
+        rootProps: {...props, orientation: 'horizontal'},
+        tabListState,
+        setTabListState,
+      }}
+    >
+      {children}
+    </TabsContext.Provider>
+  );
+}
+
 /**
  * Root tabs component. Provides the necessary data (via React context) for
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs<T extends React.Key>({
+export function Tabs<T extends string | number>({
   orientation = 'horizontal',
   className,
   children,
   ...props
 }: TabsProps<T>) {
-  const [tabListState, setTabListState] = useState<TabListState<any>>();
-
   return (
-    <TabsContext.Provider
-      value={{rootProps: {...props, orientation}, tabListState, setTabListState}}
-    >
+    <TabStateProvider orientation={orientation} {...props}>
       <TabsWrap orientation={orientation} className={className}>
         {children}
       </TabsWrap>
-    </TabsContext.Provider>
+    </TabStateProvider>
   );
 }
 

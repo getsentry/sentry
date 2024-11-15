@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Container, Iterable
+from collections.abc import Collection, Iterable
 from enum import Enum
 from typing import Any
 from urllib.parse import urljoin
@@ -12,8 +12,7 @@ from pydantic.dataclasses import dataclass
 from pydantic.tools import parse_obj_as
 
 from sentry import options
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
@@ -61,6 +60,9 @@ class Region:
 
     category: RegionCategory
     """The region's category."""
+
+    visible: bool = True
+    """Whether the region is visible in API responses"""
 
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
@@ -134,6 +136,9 @@ class RegionDirectory:
 
     def get_by_name(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
+
+    def get_regions(self, category: RegionCategory | None = None) -> Iterable[Region]:
+        return (r for r in self.regions if (category is None or r.category == category))
 
     def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
         return (r.name for r in self.regions if (category is None or r.category == category))
@@ -257,13 +262,21 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_slug: str) -> Region:
+def get_region_for_organization(organization_id_or_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
-    mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
+    if organization_id_or_slug.isdecimal():
+        mapping = OrganizationMapping.objects.filter(
+            organization_id=organization_id_or_slug
+        ).first()
+    else:
+        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
+
     if not mapping:
-        raise RegionResolutionError(f"Organization {organization_slug} has no associated mapping.")
+        raise RegionResolutionError(
+            f"Organization {organization_id_or_slug} has no associated mapping."
+        )
 
     return get_region_by_name(name=mapping.region_name)
 
@@ -308,7 +321,7 @@ def _find_orgs_for_user(user_id: int) -> set[int]:
 
 
 @control_silo_function
-def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
+def find_regions_for_orgs(org_ids: Iterable[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -335,7 +348,11 @@ def find_all_region_names() -> Iterable[str]:
 
 
 def find_all_multitenant_region_names() -> list[str]:
-    return list(get_global_directory().get_region_names(RegionCategory.MULTI_TENANT))
+    """
+    Return all visible multi_tenant regions.
+    """
+    regions = get_global_directory().get_regions(RegionCategory.MULTI_TENANT)
+    return list([r.name for r in regions if r.visible])
 
 
 def find_all_region_addresses() -> Iterable[str]:

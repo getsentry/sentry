@@ -1,21 +1,23 @@
 from copy import deepcopy
+from typing import Any
+
+import orjson
 
 from sentry.backup.comparators import get_default_comparators
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
-from sentry.utils import json
 
 
-def copy_model(model: json.JSONData, new_pk: int) -> json.JSONData:
+def copy_model(model: Any, new_pk: int) -> Any:
     new_model = deepcopy(model)
     new_model["pk"] = new_pk
     return new_model
 
 
 def test_good_ignore_differing_pks():
-    with open(get_fixture_path("backup", "single-integration.json")) as backup_file:
-        test_integration = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-integration.json"), "rb") as backup_file:
+        test_integration = orjson.loads(backup_file.read())[0]
     left = [copy_model(test_integration, 2)]
     right = [copy_model(test_integration, 2)]
     right = deepcopy(left)
@@ -27,8 +29,8 @@ def test_good_ignore_differing_pks():
 
 
 def test_bad_duplicate_entry():
-    with open(get_fixture_path("backup", "single-integration.json")) as backup_file:
-        test_integration = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-integration.json"), "rb") as backup_file:
+        test_integration = orjson.loads(backup_file.read())[0]
     test_json = [test_integration, deepcopy(test_integration)]
     out = validate(test_json, test_json, get_default_comparators())
     findings = out.findings
@@ -45,8 +47,8 @@ def test_bad_duplicate_entry():
 
 
 def test_bad_out_of_order_entry():
-    with open(get_fixture_path("backup", "single-integration.json")) as backup_file:
-        test_integration = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-integration.json"), "rb") as backup_file:
+        test_integration = orjson.loads(backup_file.read())[0]
 
     # Note that entries are appended in reverse pk order.
     test_json = [test_integration, copy_model(test_integration, 3), copy_model(test_integration, 2)]
@@ -65,8 +67,8 @@ def test_bad_out_of_order_entry():
 
 
 def test_bad_extra_left_entry():
-    with open(get_fixture_path("backup", "single-integration.json")) as backup_file:
-        test_integration = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-integration.json"), "rb") as backup_file:
+        test_integration = orjson.loads(backup_file.read())[0]
     left = [deepcopy(test_integration), copy_model(test_integration, 2)]
     right = [test_integration]
     out = validate(left, right)
@@ -82,8 +84,8 @@ def test_bad_extra_left_entry():
 
 
 def test_bad_extra_right_entry():
-    with open(get_fixture_path("backup", "single-integration.json")) as backup_file:
-        test_integration = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-integration.json"), "rb") as backup_file:
+        test_integration = orjson.loads(backup_file.read())[0]
     left = [test_integration]
     right = [deepcopy(test_integration), copy_model(test_integration, 2)]
     out = validate(left, right)
@@ -99,10 +101,10 @@ def test_bad_extra_right_entry():
 
 
 def test_bad_failing_comparator_field():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        left = json.load(backup_file)
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        left = orjson.loads(backup_file.read())
     right = deepcopy(left)
-    newer = json.loads(
+    newer = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -116,7 +118,7 @@ def test_bad_failing_comparator_field():
             }
         """
     )
-    older = json.loads(
+    older = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -143,9 +145,9 @@ def test_bad_failing_comparator_field():
 
 
 def test_good_both_sides_comparator_field_missing():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        test_json = json.load(backup_file)
-    userrole_without_date_updated = json.loads(
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        test_json = orjson.loads(backup_file.read())
+    userrole_without_date_updated = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -165,10 +167,10 @@ def test_good_both_sides_comparator_field_missing():
 
 
 def test_bad_left_side_comparator_field_missing():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        left = json.load(backup_file)
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        left = orjson.loads(backup_file.read())
     right = deepcopy(left)
-    userrole_without_date_updated = json.loads(
+    userrole_without_date_updated = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -181,7 +183,7 @@ def test_bad_left_side_comparator_field_missing():
             }
         """
     )
-    userrole_with_date_updated = json.loads(
+    userrole_with_date_updated = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -209,10 +211,10 @@ def test_bad_left_side_comparator_field_missing():
 
 
 def test_bad_right_side_comparator_field_missing():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        left = json.load(backup_file)
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        left = orjson.loads(backup_file.read())
     right = deepcopy(left)
-    userrole_without_date_updated = json.loads(
+    userrole_without_date_updated = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -225,7 +227,7 @@ def test_bad_right_side_comparator_field_missing():
             }
         """
     )
-    userrole_with_date_updated = json.loads(
+    userrole_with_date_updated = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -253,10 +255,10 @@ def test_bad_right_side_comparator_field_missing():
 
 
 def test_auto_assign_email_obfuscating_comparator():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        left = json.load(backup_file)
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        left = orjson.loads(backup_file.read())
     right = deepcopy(left)
-    email_left = json.loads(
+    email_left = orjson.loads(
         """
             {
                 "model": "sentry.email",
@@ -268,7 +270,7 @@ def test_auto_assign_email_obfuscating_comparator():
             }
         """
     )
-    email_right = json.loads(
+    email_right = orjson.loads(
         """
             {
                 "model": "sentry.email",
@@ -297,13 +299,13 @@ def test_auto_assign_email_obfuscating_comparator():
 
 
 def test_auto_assign_date_updated_comparator():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        left = json.load(backup_file)
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        left = orjson.loads(backup_file.read())
     right = deepcopy(left)
 
     # Note that `date_added` has different kinds of milliseconds, while `date_updated` has correctly
     # ordered dates.
-    userrole_left = json.loads(
+    userrole_left = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -317,7 +319,7 @@ def test_auto_assign_date_updated_comparator():
             }
         """
     )
-    userrole_right = json.loads(
+    userrole_right = orjson.loads(
         """
             {
                 "model": "sentry.userrole",
@@ -340,7 +342,7 @@ def test_auto_assign_date_updated_comparator():
 
 def test_auto_assign_foreign_key_comparator():
     left = [
-        json.loads(
+        orjson.loads(
             """
             {
                 "model": "sentry.user",
@@ -357,7 +359,7 @@ def test_auto_assign_foreign_key_comparator():
         )
     ]
     right = [
-        json.loads(
+        orjson.loads(
             """
             {
                 "model": "sentry.user",
@@ -374,7 +376,7 @@ def test_auto_assign_foreign_key_comparator():
         )
     ]
 
-    useremail_left = json.loads(
+    useremail_left = orjson.loads(
         """
             {
                 "model": "sentry.useremail",
@@ -389,7 +391,7 @@ def test_auto_assign_foreign_key_comparator():
             }
         """
     )
-    useremail_right = json.loads(
+    useremail_right = orjson.loads(
         """
             {
                 "model": "sentry.useremail",
@@ -413,7 +415,7 @@ def test_auto_assign_foreign_key_comparator():
 
 def test_auto_assign_ignored_comparator():
     left = [
-        json.loads(
+        orjson.loads(
             """
             {
                 "model": "sentry.user",
@@ -437,7 +439,7 @@ def test_auto_assign_ignored_comparator():
     ]
     right = deepcopy(left)
 
-    useremail_left = json.loads(
+    useremail_left = orjson.loads(
         """
             {
                 "model": "sentry.useremail",
@@ -452,7 +454,7 @@ def test_auto_assign_ignored_comparator():
             }
         """
     )
-    useremail_right = json.loads(
+    useremail_right = orjson.loads(
         """
             {
                 "model": "sentry.useremail",
@@ -475,7 +477,7 @@ def test_auto_assign_ignored_comparator():
 
 
 def test_bad_missing_custom_ordinal():
-    left = json.loads(
+    left = orjson.loads(
         """
             [
                 {
@@ -497,7 +499,7 @@ def test_bad_missing_custom_ordinal():
             ]
         """
     )
-    right = json.loads(
+    right = orjson.loads(
         """
             [
                 {
@@ -533,7 +535,7 @@ def test_bad_missing_custom_ordinal():
 
 
 def test_bad_unequal_custom_ordinal():
-    left = json.loads(
+    left = orjson.loads(
         """
             [
                 {
@@ -549,7 +551,7 @@ def test_bad_unequal_custom_ordinal():
             ]
         """
     )
-    right = json.loads(
+    right = orjson.loads(
         """
             [
                 {
@@ -574,8 +576,8 @@ def test_bad_unequal_custom_ordinal():
 
 
 def test_bad_duplicate_custom_ordinal():
-    with open(get_fixture_path("backup", "single-option.json")) as backup_file:
-        test_option = json.load(backup_file)[0]
+    with open(get_fixture_path("backup", "single-option.json"), "rb") as backup_file:
+        test_option = orjson.loads(backup_file.read())[0]
     test_json = [test_option, copy_model(test_option, 2)]
     out = validate(test_json, test_json, get_default_comparators())
     findings = out.findings
@@ -592,7 +594,7 @@ def test_bad_duplicate_custom_ordinal():
 
 
 def test_good_option_custom_ordinal():
-    left = json.loads(
+    left = orjson.loads(
         """
             [
                 {
@@ -620,7 +622,7 @@ def test_good_option_custom_ordinal():
     )
 
     # Note that all models are in reverse order for their kind.
-    right = json.loads(
+    right = orjson.loads(
         """
             [
 
@@ -654,7 +656,7 @@ def test_good_option_custom_ordinal():
 
 
 def test_good_user_custom_ordinal():
-    left = json.loads(
+    left = orjson.loads(
         """
             [
                 {
@@ -722,7 +724,7 @@ def test_good_user_custom_ordinal():
     )
 
     # Note that all models are in reverse order for their kind.
-    right = json.loads(
+    right = orjson.loads(
         """
             [
                 {
@@ -783,6 +785,205 @@ def test_good_user_custom_ordinal():
                         "validation_hash": "ABC123",
                         "date_hash_added": "2023-06-23T00:00:00.000Z",
                         "is_verified": true
+                    }
+                }
+            ]
+        """
+    )
+    out = validate(left, right)
+    findings = out.findings
+
+    assert len(findings) == 0
+
+
+def test_good_user_option_custom_ordinal():
+    left = orjson.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "first@example.com",
+                        "name": "",
+                        "email": "first@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.user",
+                    "pk": 2,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "second@example.com",
+                        "name": "",
+                        "email": "second@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 1,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 2,
+                    "fields": {
+                        "user": 2,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                }
+            ]
+        """
+    )
+
+    # Note that the `user`s of the `useroption` models here are reversed.
+    right = orjson.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "first@example.com",
+                        "name": "",
+                        "email": "first@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.user",
+                    "pk": 2,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "second@example.com",
+                        "name": "",
+                        "email": "second@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 1,
+                    "fields": {
+                        "user": 2,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 2,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                }
+            ]
+        """
+    )
+    out = validate(left, right)
+    findings = out.findings
+
+    assert len(findings) == 0
+
+
+# This tests for a prod-only check that is not enumerated in Django: that there can only be one copy
+# of a global option (no org_id/project_id) per key per user.
+def test_good_user_option_duplicate_globals():
+    left = orjson.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 3,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "1"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 5,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 8,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
+                    }
+                }
+            ]
+        """
+    )
+
+    right = orjson.loads(
+        """
+            [
+                {
+                    "model": "sentry.user",
+                    "pk": 1,
+                    "fields": {
+                        "password": "abc123",
+                        "last_login": null,
+                        "username": "testing@example.com",
+                        "name": "",
+                        "email": "testing@example.com"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 11,
+                    "fields": {
+                        "user": 1,
+                        "key": "foo",
+                        "value": "2"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 21,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "3"
+                    }
+                },
+                {
+                    "model": "sentry.useroption",
+                    "pk": 22,
+                    "fields": {
+                        "user": 1,
+                        "key": "bar",
+                        "value": "4"
                     }
                 }
             ]

@@ -1,7 +1,8 @@
+import orjson
+from django.utils.functional import cached_property
+
 from sentry.interfaces.base import Interface
 from sentry.security import csp
-from sentry.utils import json
-from sentry.utils.cache import memoize
 from sentry.web.helpers import render_to_string
 
 __all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
@@ -18,6 +19,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "chromenull://*",
     "data:text/html,chromewebdata",
     "safari-extension://*",
+    "safari-web-extension://*",
     "mxaddon-pkg://*",
     "jar://*",
     "webviewprogressproxy://*",
@@ -171,19 +173,22 @@ class Csp(SecurityReport):
         data.setdefault("effective_directive", None)
         return super().to_python(data, **kwargs)
 
-    def to_string(self, is_public=False, **kwargs):
-        return json.dumps({"csp-report": self.get_api_context()})
+    def to_string(self, event) -> str:
+        return orjson.dumps(
+            {"csp-report": self.get_api_context()},
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
 
     def to_email_html(self, event, **kwargs):
         return render_to_string(
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )
 
-    @memoize
+    @cached_property
     def normalized_blocked_uri(self):
         return csp.normalize_value(self.blocked_uri)
 
-    @memoize
+    @cached_property
     def local_script_violation_type(self):
         """
         If this is a locally-sourced script-src error, gives the type.

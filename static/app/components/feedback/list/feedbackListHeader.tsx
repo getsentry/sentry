@@ -96,7 +96,7 @@ const HeaderPanel = styled('div')`
 `;
 
 const HeaderPanelItem = styled('div')`
-  padding: ${space(1)} ${space(2)} ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1.5)} ${space(1)} 18px;
   display: flex;
   gap: ${space(1)};
   align-items: center;

@@ -5,18 +5,18 @@
     "operationId": "Retrieve a Service Hook",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the client keys belong to.",
+        "description": "The ID or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The ID or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -70,18 +70,18 @@
     "operationId": "Update a Service Hook",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the client keys belong to.",
+        "description": "The ID or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The ID or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -166,18 +166,18 @@
     "operationId": "Remove a Service Hook",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization the client keys belong to.",
+        "description": "The ID or slug of the organization the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project the client keys belong to.",
+        "description": "The ID or slug of the project the client keys belong to.",
         "required": true,
         "schema": {
           "type": "string"

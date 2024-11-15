@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import orjson
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
@@ -7,12 +8,9 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 from sentry_plugins.github.plugin import GitHubPlugin
 
 
-@region_silo_test
 class GitHubPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -38,9 +36,9 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.get_issue_url(group, 1) == "https://github.com/getsentry/sentry/issues/1"
 
     def test_is_configured(self):
-        assert self.plugin.is_configured(None, self.project) is False
+        assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("repo", "getsentry/sentry", self.project)
-        assert self.plugin.is_configured(None, self.project) is True
+        assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
     def test_create_issue(self):
@@ -68,7 +66,7 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.create_issue(request, group, form_data) == 1
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"title": "Hello", "body": "Fix this.", "assignee": None}
 
     @responses.activate
@@ -102,5 +100,5 @@ class GitHubPluginTest(PluginTestCase):
         assert self.plugin.link_issue(request, group, form_data) == {"title": "Hello world"}
         request = responses.calls[-1].request
         assert request.headers["Authorization"] == "Bearer foo"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "Hello"}

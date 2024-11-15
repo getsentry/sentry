@@ -1,12 +1,10 @@
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class EveryEventConditionTest(RuleTestCase):
     rule_cls = EveryEventCondition
 

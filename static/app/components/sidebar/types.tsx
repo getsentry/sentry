@@ -32,4 +32,8 @@ export type CommonSidebarProps = {
    * The orientation of the sidebar
    */
   orientation: SidebarOrientation;
+  /**
+   * Alternate collapsed state
+   */
+  hasNewNav?: boolean;
 };

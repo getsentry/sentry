@@ -13,11 +13,23 @@ import {
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import TagStore from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
-const stubEl = styled(p => p.children);
+const stubEl = styled((p: any) => p.children);
 
-function mountModal({columns, onApply, customMeasurements}, initialData) {
+function mountModal(
+  {
+    columns,
+    onApply,
+    customMeasurements,
+    dataset,
+  }: Pick<
+    React.ComponentProps<typeof ColumnEditModal>,
+    'columns' | 'onApply' | 'customMeasurements' | 'dataset'
+  >,
+  initialData
+) {
   return render(
     <ColumnEditModal
       CloseButton={makeCloseButton(() => {})}
@@ -30,8 +42,9 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
       closeModal={jest.fn()}
       measurementKeys={null}
       customMeasurements={customMeasurements}
+      dataset={dataset}
     />,
-    {context: initialData.routerContext}
+    {router: initialData.router}
   );
 }
 
@@ -153,7 +166,10 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [
-            {kind: 'function', function: ['count_unique', 'user-defined']},
+            {
+              kind: 'function',
+              function: ['count_unique', 'user-defined', undefined, undefined],
+            },
             {kind: 'field', field: 'user-def'},
           ],
           onApply: jest.fn(),
@@ -226,9 +242,12 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [
-            {kind: 'function', function: ['count', 'id']},
-            {kind: 'function', function: ['count_unique', 'title']},
-            {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
+            {kind: 'function', function: ['count', 'id', undefined, undefined]},
+            {kind: 'function', function: ['count_unique', 'title', undefined, undefined]},
+            {
+              kind: 'function',
+              function: ['percentile', 'transaction.duration', '0.66', undefined],
+            },
           ],
           onApply: jest.fn(),
           customMeasurements: {},
@@ -258,7 +277,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('function & column selection', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });
@@ -560,10 +579,60 @@ describe('Discover -> ColumnEditModal', function () {
         },
       ]);
     });
+
+    it('chooses the correct default parameters for the errors dataset', async function () {
+      mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+          ],
+          onApply,
+          customMeasurements: {},
+          dataset: DiscoverDatasets.ERRORS,
+        },
+        initialData
+      );
+
+      expect(await screen.findByText('count()')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('count()'));
+      await userEvent.click(screen.getByText(/count_if/));
+
+      expect(screen.getByText('event.type')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+    });
+
+    it('chooses the correct default count_if parameters for the transactions dataset', async function () {
+      mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+          ],
+          onApply,
+          customMeasurements: {},
+          dataset: DiscoverDatasets.TRANSACTIONS,
+        },
+        initialData
+      );
+
+      expect(await screen.findByText('count()')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('count()'));
+      await userEvent.click(screen.getByText(/count_if/));
+
+      expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    });
   });
 
   describe('equation automatic update', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });
@@ -573,11 +642,11 @@ describe('Discover -> ColumnEditModal', function () {
           columns: [
             {
               kind: 'function',
-              function: ['count_unique', 'user'],
+              function: ['count_unique', 'user', undefined, undefined],
             },
             {
               kind: 'function',
-              function: ['p95', ''],
+              function: ['p95', '', undefined, undefined],
             },
             {
               kind: 'equation',
@@ -608,7 +677,7 @@ describe('Discover -> ColumnEditModal', function () {
           columns: [
             {
               kind: 'function',
-              function: ['count_unique', 'user'],
+              function: ['count_unique', 'user', undefined, undefined],
             },
             {
               kind: 'equation',

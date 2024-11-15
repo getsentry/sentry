@@ -1,8 +1,4 @@
 import bisect
-import uuid
-from datetime import datetime, timezone
-
-from sentry.utils import json
 
 
 class WellKnownProjectOption:
@@ -19,8 +15,11 @@ class WellKnownProjectOption:
                     epoch = 1
                 else:
                     epoch = project.get_option("sentry:option-epoch") or 1
+            # Find where in the ordered epoch list the project's epoch would go
             idx = bisect.bisect(self._epoch_default_list, epoch)
             if idx > 0:
+                # Return the value corresponding to the highest epoch which doesn't exceed the
+                # project epoch
                 return self.epoch_defaults[self._epoch_default_list[idx - 1]]
         return self.default
 
@@ -52,32 +51,18 @@ class ProjectOptionsManager:
     def set(self, project, key, value):
         from sentry.models.options.project_option import ProjectOption
 
-        self.update_rev_for_option(project)
         return ProjectOption.objects.set_value(project, key, value)
 
     def isset(self, project, key):
         return project.get_option(key, default=Ellipsis) is not Ellipsis
 
     def get(self, project, key, default=None, validate=None):
-        from sentry.models.options.project_option import ProjectOption
-
-        return ProjectOption.objects.get_value(project, key, default, validate=validate)
+        return project.get_option(key, default=default, validate=validate)
 
     def delete(self, project, key):
         from sentry.models.options.project_option import ProjectOption
 
-        self.update_rev_for_option(project)
         return ProjectOption.objects.unset_value(project, key)
-
-    def update_rev_for_option(self, project):
-        from sentry.models.options.project_option import ProjectOption
-
-        ProjectOption.objects.set_value(project, "sentry:relay-rev", uuid.uuid4().hex)
-        ProjectOption.objects.set_value(
-            project,
-            "sentry:relay-rev-lastchange",
-            json.datetime_to_str(datetime.now(timezone.utc)),
-        )
 
     def register(self, key, default=None, epoch_defaults=None):
         self.registry[key] = WellKnownProjectOption(

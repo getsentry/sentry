@@ -10,7 +10,6 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.pagination import override_pagination_limit
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -27,11 +26,11 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
 
 
 class ClientCallable(Protocol):
-    def __call__(self, url: str, data: dict[str, Any], format: str, **kwargs: Any) -> HttpResponse:
-        ...
+    def __call__(
+        self, url: str, data: dict[str, Any], format: str, **kwargs: Any
+    ) -> HttpResponse: ...
 
 
-@region_silo_test
 class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -673,7 +672,6 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
 
 
-@region_silo_test
 class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
@@ -888,7 +886,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                 },
                 format="json",
@@ -909,7 +907,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
                 data={
-                    "project": [project.id],
+                    "project": [str(project.id)],
                     "team": ["myteams"],
                     "cursor": links["next"]["cursor"],
                 },

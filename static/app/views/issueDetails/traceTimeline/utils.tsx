@@ -1,5 +1,3 @@
-import type {Organization} from 'sentry/types';
-
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
 function getEventTimestamp(start: number, event: TimelineEvent) {
@@ -46,8 +44,4 @@ export function getChunkTimeRange(
 
   // Round up and down to the nearest second
   return [Math.floor(chunkStartTimestamp), Math.floor(chunkEndTimestamp) + 1];
-}
-
-export function hasTraceTimelineFeature(organization: Organization | null) {
-  return organization?.features?.includes('issues-trace-timeline');
 }

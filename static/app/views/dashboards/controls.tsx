@@ -6,24 +6,29 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from './detail';
+import {checkUserHasEditAccess, UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import type {DashboardListItem} from './types';
+import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
+  dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet) => void;
@@ -34,13 +39,16 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
 function Controls({
   dashboardState,
+  dashboard,
   dashboards,
   hasUnsavedFilters,
   widgetLimitReached,
+  onChangeEditAccess,
   onEdit,
   onCommit,
   onDelete,
@@ -63,6 +71,8 @@ function Controls({
   }
 
   const organization = useOrganization();
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -131,11 +141,29 @@ function Controls({
     );
   }
 
+  const defaultDataset = organization.features.includes(
+    'performance-discover-dataset-selector'
+  )
+    ? DataSet.ERRORS
+    : DataSet.EVENTS;
+
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboard.permissions,
+      dashboard.createdBy
+    );
+  }
+
   return (
     <StyledButtonBar gap={1} key="controls">
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
+            <FeedbackWidgetButton />
             <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"
@@ -150,6 +178,12 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
+            <Feature features="dashboards-edit-access">
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            </Feature>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
@@ -157,7 +191,7 @@ function Controls({
                 onEdit();
               }}
               icon={<IconEdit />}
-              disabled={!hasFeature || hasUnsavedFilters}
+              disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
               title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
               priority="default"
               size="sm"
@@ -171,25 +205,26 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                {hasDDMFeature(organization) ? (
+                {hasCustomMetrics(organization) ? (
                   <AddWidgetButton
                     onAddWidget={onAddWidget}
-                    aria-label="Add Widget"
+                    aria-label={t('Add Widget')}
                     priority="primary"
                     data-test-id="add-widget-library"
+                    disabled={widgetLimitReached}
                   />
                 ) : (
                   <Button
                     data-test-id="add-widget-library"
                     priority="primary"
                     size="sm"
-                    disabled={widgetLimitReached}
+                    disabled={widgetLimitReached || !hasEditAccess}
                     icon={<IconAdd isCircled />}
                     onClick={() => {
                       trackAnalytics('dashboards_views.widget_library.opened', {
                         organization,
                       });
-                      onAddWidget(DataSet.EVENTS);
+                      onAddWidget(defaultDataset);
                     }}
                   >
                     {t('Add Widget')}

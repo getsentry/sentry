@@ -5,12 +5,17 @@ import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {
+  type Docs,
+  DocsPageLocation,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -22,15 +27,16 @@ const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -38,14 +44,28 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+# this code will be profiled
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
     tct('The celery integration adds support for the [link:Celery Task Queue System].', {
       link: <ExternalLink href="https://docs.celeryq.dev/en/stable/" />,
     }),
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -56,6 +76,15 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  {
+                    code: <code />,
+                  }
+                )
+              : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -93,6 +122,13 @@ const onboarding: OnboardingConfig = {
       ],
       additionalInfo: (
         <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <AlternativeConfiguration />
+                <br />
+              </Fragment>
+            )}
           <h5>{t('Standalone Setup')}</h5>
           {t("If you're using Celery standalone, there are two ways to set this up:")}
           <ul>
@@ -118,14 +154,14 @@ const onboarding: OnboardingConfig = {
               )}
               <CodeSnippet dark language="python">
                 {`import sentry_sdk
-  from celery import Celery, signals
+from celery import Celery, signals
 
-  app = Celery("myapp")
+app = Celery("myapp")
 
-  #@signals.worker_init.connect
-  @signals.celeryd_init.connect
-  def init_sentry(**_kwargs):
-      sentry_sdk.init(...)  # same as above
+#@signals.worker_init.connect
+@signals.celeryd_init.connect
+def init_sentry(**_kwargs):
+    sentry_sdk.init(...)  # same as above
                 `}
               </CodeSnippet>
             </li>
@@ -185,6 +221,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

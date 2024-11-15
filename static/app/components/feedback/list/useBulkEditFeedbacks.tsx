@@ -7,10 +7,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types';
+import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeList} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
@@ -33,12 +36,21 @@ interface Props
 
 export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
+  const queryView = useLocationQuery({
+    fields: {
+      project: decodeList,
+    },
+  });
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: selectedIds,
     organization,
+    projectIds: queryView.project,
   });
+  const deleteFeedback = useDeleteFeedback(selectedIds, queryView.project);
 
-  const onToggleResovled = useCallback(
+  const onDelete = deleteFeedback;
+
+  const onToggleResolved = useCallback(
     ({newMailbox, moveToInbox}: {newMailbox: GroupStatus; moveToInbox?: boolean}) => {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
@@ -67,7 +79,6 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
               status: statusToText[newMailbox],
             }),
         confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
-        withoutBold: true,
       });
     },
     [deselectAll, resolve, selectedIds, organization]
@@ -118,7 +129,8 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   );
 
   return {
-    onToggleResovled,
+    onDelete,
+    onToggleResolved,
     onMarkAsRead,
     onMarkUnread,
   };

@@ -1,8 +1,8 @@
 {
   "post": {
     "tags": ["Integration"],
-    "description": "Create an external issue from an integration platform integration.",
-    "operationId": "Create an External Issue",
+    "description": "Create or update an external issue from an integration platform integration.",
+    "operationId": "Create or update an External Issue",
     "parameters": [
       {
         "name": "uuid",

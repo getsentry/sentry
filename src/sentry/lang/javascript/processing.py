@@ -55,6 +55,8 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta = new_frame.setdefault("data", {})
         if data_sourcemap := data.get("sourcemap"):
             frame_meta["sourcemap"] = data_sourcemap
+        if data_sourcemap_origin := data.get("sourcemap_origin"):
+            frame_meta["sourcemap_origin"] = data_sourcemap_origin
         if data_resolved_with := data.get("resolved_with"):
             frame_meta["resolved_with"] = data_resolved_with
         if data.get("symbolicated") is not None:

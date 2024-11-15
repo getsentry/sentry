@@ -120,6 +120,7 @@ class SpanMetricKey(Enum):
     RESPONSE_CONTENT_LENGTH = "http.response_content_length"
     DECODED_RESPONSE_CONTENT_LENGTH = "http.decoded_response_content_length"
     RESPONSE_TRANSFER_SIZE = "http.response_transfer_size"
+    CACHE_ITEM_SIZE = "cache.item_size"
 
     HTTP_ERROR_COUNT = "span.http_error_count"
     HTTP_ERROR_RATE = "span.http_error_rate"

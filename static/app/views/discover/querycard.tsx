@@ -7,7 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 type Props = {
   renderGraph: () => React.ReactNode;

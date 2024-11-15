@@ -14,10 +14,10 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
 
         // additional data/props that is related to rendering of form field rather than data
-        label: t('Show Sentry Branding'),
+        label: t('Show Sentry Branding in Crash Report Modal'),
         placeholder: 'e.g. secondary@example.com',
         help: t(
-          'Show "powered by Sentry within the feedback dialog. We appreciate you helping get the word out about Sentry! <3'
+          'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
         ),
         getData: data => ({options: data}),
       },
@@ -28,7 +28,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Enable Crash Report Notifications'),
         help: () =>
           tct(
-            'Get notified on [crashReportModalDocsLink: Crash Report Modal and User Report API submissions]. [feedbackWidgetDocsLink: Feedback widget] notifications are not affected by this setting and are on by default.',
+            'Get notified on feedback submissions from the [crashReportModalDocsLink: Crash Report Modal], [webApiEndpointLink: web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink: Feedback widget] notifications are not affected by this setting and are on by default.',
             {
               crashReportModalDocsLink: (
                 <a href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
@@ -36,8 +36,20 @@ const formGroups: JsonFormObject[] = [
               feedbackWidgetDocsLink: (
                 <a href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
               ),
+              webApiEndpointLink: (
+                <a href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+              ),
             }
           ),
+        getData: data => ({options: data}),
+      },
+      {
+        name: 'sentry:feedback_ai_spam_detection',
+        type: 'boolean',
+
+        // additional data/props that is related to rendering of form field rather than data
+        label: 'Enable Spam Detection',
+        help: 'Toggles whether or not to enable auto spam detection in User Feedback.',
         getData: data => ({options: data}),
       },
     ],

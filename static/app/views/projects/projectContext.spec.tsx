@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ProjectContext} from 'sentry/views/projects/projectContext';
+import {ProjectContextProvider} from 'sentry/views/projects/projectContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -38,7 +38,7 @@ describe('projectContext component', function () {
     });
 
     const projectContext = (
-      <ProjectContext
+      <ProjectContextProvider
         api={new MockApiClient()}
         loadingProjects={false}
         projects={[]}
@@ -46,7 +46,7 @@ describe('projectContext component', function () {
         projectSlug={project.slug}
       >
         {null}
-      </ProjectContext>
+      </ProjectContextProvider>
     );
 
     render(projectContext);
@@ -69,7 +69,7 @@ describe('projectContext component', function () {
     });
 
     const projectContext = (
-      <ProjectContext
+      <ProjectContextProvider
         api={new MockApiClient()}
         projects={[]}
         loadingProjects={false}
@@ -77,7 +77,7 @@ describe('projectContext component', function () {
         projectSlug={project.slug}
       >
         {null}
-      </ProjectContext>
+      </ProjectContextProvider>
     );
 
     const {rerender} = render(projectContext);
@@ -96,7 +96,7 @@ describe('projectContext component', function () {
     });
 
     rerender(
-      <ProjectContext
+      <ProjectContextProvider
         api={new MockApiClient()}
         projects={[]}
         loadingProjects={false}
@@ -104,13 +104,13 @@ describe('projectContext component', function () {
         projectSlug="new-slug"
       >
         {null}
-      </ProjectContext>
+      </ProjectContextProvider>
     );
 
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  it('fetches data again if projects list changes', function () {
+  it('fetches data again if projects list changes', async function () {
     const fetchMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
@@ -119,7 +119,7 @@ describe('projectContext component', function () {
     });
 
     const projectContext = (
-      <ProjectContext
+      <ProjectContextProvider
         api={new MockApiClient()}
         loadingProjects={false}
         projects={[]}
@@ -127,7 +127,7 @@ describe('projectContext component', function () {
         projectSlug={project.slug}
       >
         {null}
-      </ProjectContext>
+      </ProjectContextProvider>
     );
 
     const {rerender} = render(projectContext);
@@ -143,7 +143,7 @@ describe('projectContext component', function () {
     });
 
     rerender(
-      <ProjectContext
+      <ProjectContextProvider
         organization={org}
         loadingProjects={false}
         api={new MockApiClient()}
@@ -151,9 +151,9 @@ describe('projectContext component', function () {
         projectSlug={project.slug}
       >
         {null}
-      </ProjectContext>
+      </ProjectContextProvider>
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });

@@ -9,13 +9,14 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {ALL_VIEWS, DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/data';
 import EventDetails from 'sentry/views/discover/eventDetails';
 
 describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
+  const org = OrganizationFixture();
   const errorsView = EventView.fromSavedQuery(
-    ALL_VIEWS.find(view => view.name === 'Errors by Title')!
+    getAllViews(org).find(view => view.name === 'Errors by Title')!
   );
 
   beforeEach(function () {
@@ -186,7 +187,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates when tag values are clicked', async function () {
-    const {organization, routerContext} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -205,7 +206,7 @@ describe('Discover > EventDetails', function () {
           query: allEventsView.generateQueryStringObject(),
         }}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -229,7 +230,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates to homepage when tag values are clicked', async function () {
-    const {organization, routerContext, router} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -245,7 +246,7 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -269,7 +270,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('appends tag value to existing query when clicked', async function () {
-    const {organization, routerContext} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -288,7 +289,7 @@ describe('Discover > EventDetails', function () {
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -311,7 +312,7 @@ describe('Discover > EventDetails', function () {
   });
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
-    const {organization, router, routerContext} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: OrganizationFixture(),
       router: {
         location: {
@@ -328,7 +329,7 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const breadcrumb = await screen.findByTestId('breadcrumb-link');

@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -12,15 +11,17 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -35,7 +36,7 @@ const functionsFields = [
   'count()',
   'p75()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
@@ -121,7 +122,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
         />
       </SlowestFunctionsTitleContainer>
       <SlowestFunctionsList>
-        {functionsQuery.isLoading ? (
+        {functionsQuery.isPending ? (
           <SlowestFunctionsQueryState>
             <LoadingIndicator size={36} />
           </SlowestFunctionsQueryState>
@@ -174,22 +175,17 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   }, [props.func, props.project]);
 
   let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
-  if (defined(props.func['examples()']?.[0])) {
+  const example = props.func['all_examples()']?.[0];
+  if (defined(example)) {
+    const target = generateProfileRouteFromProfileReference({
+      orgSlug: props.organization.slug,
+      projectSlug: props.project?.slug ?? '',
+      frameName: frame.name as string,
+      framePackage: frame.package as string,
+      reference: example,
+    });
     rendered = (
-      <Link
-        onClick={props.onSlowestFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
-          orgSlug: props.organization.slug,
-          projectSlug: props.project?.slug ?? '',
-          profileId: props.func['examples()']?.[0] as string,
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: frame.name as string,
-            framePackage: frame.package as string,
-          },
-        })}
-      >
+      <Link onClick={props.onSlowestFunctionClick} to={target}>
         {rendered}
       </Link>
     );

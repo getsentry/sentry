@@ -7,7 +7,8 @@ from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -17,15 +18,17 @@ from sentry.snuba.referrer import Referrer
 class MetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.MetricsQueryBuilder):
+    def __init__(self, builder: metrics.MetricsQueryBuilder):
         self.builder = builder
         self.total_transaction_duration: float | None = None
+        self.total_score_weights: dict[str, int] = {}
 
     @property
     def search_filter_converter(
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
@@ -59,10 +62,13 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.DEVICE_CLASS_ALIAS: lambda alias: field_aliases.resolve_device_class(
                 self.builder, alias
             ),
+            constants.SPAN_MODULE_ALIAS: self._resolve_span_module,
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
+        # SPAN_METRICS_MAP and METRICS_MAP have some overlapping keys
+        mri_map = constants.SPAN_METRICS_MAP | constants.METRICS_MAP
+        metric_id = self.builder.resolve_metric_index(mri_map.get(value, value))
         if metric_id is None:
             # Maybe this is a custom measurment?
             for measurement in self.builder.custom_measurement_map:
@@ -78,6 +84,12 @@ class MetricsDatasetConfig(DatasetConfig):
         value_id = self.builder.resolve_tag_value(value)
 
         return value_id
+
+    @property
+    def should_skip_interval_calculation(self):
+        return self.builder.builder_config.skip_time_conditions and (
+            not self.builder.params.start or not self.builder.params.end
+        )
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -109,24 +121,13 @@ class MetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            | constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "avgIf",
-                        [
-                            Column("value"),
-                            Function(
-                                "equals",
-                                [
-                                    Column("metric_id"),
-                                    args["metric_id"],
-                                ],
-                            ),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_avg,
+                    snql_gauge=self._resolve_avg,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
@@ -171,6 +172,47 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
@@ -412,14 +454,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "maxIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_max,
+                    snql_gauge=self._resolve_max,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -428,14 +464,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "minIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_min,
+                    snql_gauge=self._resolve_min,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -444,14 +474,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg("column"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: Function(
-                        "sumIf",
-                        [
-                            Column("value"),
-                            Function("equals", [Column("metric_id"), args["metric_id"]]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_sum,
+                    snql_gauge=self._resolve_sum,
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
@@ -591,6 +615,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                                 "measurements.ttfb",
+                                "measurements.inp",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -611,8 +636,10 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
+                                "measurements.score.total",
                             ],
                             allow_custom_measurements=False,
                         )
@@ -630,6 +657,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -649,6 +677,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                                 "measurements.score.total",
@@ -661,6 +690,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
+                    "total_opportunity_score",
+                    snql_distribution=self._resolve_total_web_vital_opportunity_score_with_fixed_weights_function,
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
                     "count_scores",
                     required_args=[
                         fields.MetricArg(
@@ -670,6 +704,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.fcp",
                                 "measurements.score.lcp",
                                 "measurements.score.fid",
+                                "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
                             ],
@@ -727,6 +762,18 @@ class MetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                fields.MetricsFunction(
+                    "spm",
+                    snql_distribution=self._resolve_spm,
+                    optional_args=[
+                        (
+                            fields.NullColumn("interval")
+                            if self.should_skip_interval_calculation
+                            else fields.IntervalDefault("interval", 1, None)
+                        )
+                    ],
                     default_result_type="rate",
                 ),
                 fields.MetricsFunction(
@@ -868,6 +915,48 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="percent_change",
                 ),
+                fields.MetricsFunction(
+                    "cache_hit_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_hit_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "cache_miss_rate",
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_cache_miss_count(args),
+                        self._resolve_cache_hit_and_miss_count(args),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
+                    "http_response_rate",
+                    required_args=[
+                        fields.SnQLStringArg("code"),
+                    ],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_division(
+                        self._resolve_http_response_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        alias,
+                    ),
+                    default_result_type="percentage",
+                ),
             ]
         }
 
@@ -960,6 +1049,9 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
+
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
@@ -1022,6 +1114,9 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return Condition(lhs, Op(operator), value)
 
+    def _resolve_span_module(self, alias: str) -> SelectType:
+        return field_aliases.resolve_span_module(self.builder, alias)
+
     # Query Functions
     def _resolve_count_if(
         self,
@@ -1040,6 +1135,68 @@ class MetricsDatasetConfig(DatasetConfig):
                         condition,
                     ],
                 ),
+            ],
+            alias,
+        )
+
+    def _resolve_avg(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "avgIf",
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        args["metric_id"],
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_sum(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_min(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "minIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
+            ],
+            alias,
+        )
+
+    def _resolve_max(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        return Function(
+            "maxIf",
+            [
+                Column("value"),
+                Function("equals", [Column("metric_id"), args["metric_id"]]),
             ],
             alias,
         )
@@ -1345,6 +1502,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.fid",
             "measurements.cls",
             "measurements.ttfb",
+            "measurements.inp",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
@@ -1400,10 +1558,15 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
+            "measurements.score.total",
         ]:
             raise InvalidSearchQuery("performance_score only supports measurements")
+
+        if column == "measurements.score.total":
+            return self._resolve_total_performance_score_function(args, alias)
 
         weight_metric_id = self.resolve_metric(column.replace("score", "score.weight"))
 
@@ -1479,6 +1642,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1587,6 +1751,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
             "measurements.score.total",
@@ -1638,6 +1803,134 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_total_web_vital_opportunity_score_with_fixed_weights_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        """Calculates the total opportunity score for a page.
+        The formula for an individual web vital opportunity score is:
+        (sum_page_lcp_weight - sum_page_lcp_score) / sum_project_lcp_weight
+        The total opportunity score is the sum of all individual web vital opportunity scores with another layer of fixed weights applied.
+        """
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        opportunity_score_sums = {
+            vital: Function(
+                "minus",
+                [
+                    Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric(f"measurements.score.weight.{vital}"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric(f"measurements.score.{vital}"),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+        adjusted_opportunity_scores = {
+            vital: Function(
+                "multiply",
+                [
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                    Function(
+                        "if",
+                        [
+                            Function(
+                                "isZeroOrNull",
+                                [opportunity_score_sums[vital]],
+                            ),
+                            0,
+                            Function(
+                                "divide",
+                                [
+                                    opportunity_score_sums[vital],
+                                    self._resolve_total_score_weights_function(
+                                        f"measurements.score.weight.{vital}", None
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+        return Function(
+            "plus",
+            [
+                adjusted_opportunity_scores["lcp"],
+                Function(
+                    "plus",
+                    [
+                        adjusted_opportunity_scores["fcp"],
+                        Function(
+                            "plus",
+                            [
+                                adjusted_opportunity_scores["cls"],
+                                Function(
+                                    "plus",
+                                    [
+                                        adjusted_opportunity_scores["ttfb"],
+                                        adjusted_opportunity_scores["inp"],
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_total_score_weights_function(self, column: str, alias: str) -> SelectType:
+        """Calculates the total sum score weights for a given web vital.
+        This must be cached since it runs another query."""
+
+        self.builder.requires_other_aggregates = True
+        if column in self.total_score_weights and self.total_score_weights[column] is not None:
+            return Function("toFloat64", [self.total_score_weights[column]], alias)
+
+        total_query = metrics.MetricsQueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=[f"sum({column})"],
+        )
+
+        total_query.columns += self.builder.resolve_groupby()
+
+        total_results = total_query.run_query(Referrer.API_DISCOVER_TOTAL_SCORE_WEIGHTS_FIELD.value)
+        results = total_query.process_results(total_results)
+
+        if len(results["data"]) != 1:
+            self.total_score_weights[column] = 0
+            return Function("toFloat64", [0], alias)
+        self.total_score_weights[column] = results["data"][0][
+            fields.get_function_alias(f"sum({column})")
+        ]
+        return Function("toFloat64", [self.total_score_weights[column]], alias)
+
     def _resolve_count_scores_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
@@ -1651,6 +1944,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
+            "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
         ]:
@@ -1665,6 +1959,57 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
+    def _resolve_total_performance_score_function(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        scores = {
+            vital: Function(
+                "multiply",
+                [
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                    self._resolve_web_vital_score_function(
+                        {
+                            "column": f"measurements.score.{vital}",
+                            "metric_id": self.resolve_metric(f"measurements.score.{vital}"),
+                        },
+                        None,
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+
+        # TODO: Is there a way to sum more than 2 values at once?
+        return Function(
+            "plus",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                Function(
+                                    "plus",
+                                    [
+                                        scores["lcp"],
+                                        scores["fcp"],
+                                    ],
+                                ),
+                                scores["cls"],
+                            ],
+                        ),
+                        scores["ttfb"],
+                    ],
+                ),
+                scores["inp"],
+            ],
+            alias,
+        )
+
     def _resolve_total_transaction_duration(self, alias: str, scope: str) -> SelectType:
         """This calculates the total time, and based on the scope will return
         either the apps total time or whatever other local scope/filters are
@@ -1674,7 +2019,7 @@ class MetricsDatasetConfig(DatasetConfig):
         if self.total_transaction_duration is not None:
             return Function("toFloat64", [self.total_transaction_duration], alias)
 
-        total_query = builder.MetricsQueryBuilder(
+        total_query = metrics.MetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1725,7 +2070,19 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition)
+
+    def _resolve_spm(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
+    ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
+        return self._resolve_rate(60, args, alias, extra_condition, "span.self_time")
 
     def _resolve_eps(
         self,
@@ -1733,6 +2090,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(
@@ -1741,18 +2100,25 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
+        metric: str | None = "transaction.duration",
     ) -> SelectType:
         base_condition = Function(
             "equals",
             [
                 Column("metric_id"),
-                self.resolve_metric("transaction.duration"),
+                self.resolve_metric(metric),
             ],
         )
         if extra_condition:
             condition = Function("and", [base_condition, extra_condition])
         else:
             condition = base_condition
+
+        query_time_range_interval = (
+            self.builder.resolve_time_range_window()
+            if self.should_skip_interval_calculation
+            else args["interval"]
+        )
 
         return Function(
             "divide",
@@ -1765,10 +2131,109 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 (
-                    args["interval"]
+                    query_time_range_interval
                     if interval is None
-                    else Function("divide", [args["interval"], interval])
+                    else Function("divide", [query_time_range_interval, interval])
                 ),
             ],
+            alias,
+        )
+
+    def _resolve_cache_hit_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("true"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "equals",
+                [
+                    self.builder.column("cache.hit"),
+                    self.builder.resolve_tag_value("false"),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_cache_hit_and_miss_count(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+
+        statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            Function(
+                "in",
+                [
+                    self.builder.column("cache.hit"),
+                    list(status for status in statuses if status is not None),
+                ],
+            ),
+            alias,
+        )
+
+    def _resolve_http_response_count(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+    ) -> SelectType:
+        condition = Function(
+            "startsWith",
+            [
+                self.builder.column("span.status_code"),
+                args["code"],
+            ],
+        )
+
+        return self._resolve_count_if(
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    self.resolve_metric("span.self_time"),
+                ],
+            ),
+            condition,
             alias,
         )

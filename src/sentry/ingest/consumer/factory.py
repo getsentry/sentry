@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping
+from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any, NamedTuple, TypeVar
+from typing import NamedTuple, TypeVar
 
-from arroyo import Topic
-from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
-from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
-from arroyo.commit import ONCE_PER_SECOND
-from arroyo.processing.processor import StreamProcessor
+from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
     FilterStep,
@@ -17,12 +13,10 @@ from arroyo.processing.strategies import (
     RunTask,
 )
 from arroyo.types import Commit, FilteredPayload, Message, Partition
-from django.conf import settings
 
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
-from sentry.utils import kafka_config
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 from .attachment_event import decode_and_process_chunks, process_attachments_and_events
 from .simple_event import process_simple_event_message
@@ -48,7 +42,7 @@ def maybe_multiprocess_step(
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
         assert pool is not None
-        return RunTaskWithMultiprocessing(
+        return run_task_with_multiprocessing(
             function=function,
             next_step=next_step,
             max_batch_size=mp.max_batch_size,
@@ -68,6 +62,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
         consumer_type: str,
+        reprocess_only_stuck_events: bool,
+        stop_at_timestamp: int | None,
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
@@ -76,6 +72,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
+        self.reprocess_only_stuck_events = reprocess_only_stuck_events
+        self.stop_at_timestamp = stop_at_timestamp
 
         self.multi_process = None
         self._pool = MultiprocessingPool(num_processes)
@@ -103,7 +101,11 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         final_step = CommitOffsets(commit)
 
         if not self.is_attachment_topic:
-            event_function = partial(process_simple_event_message, consumer_type=self.consumer_type)
+            event_function = partial(
+                process_simple_event_message,
+                consumer_type=self.consumer_type,
+                reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+            )
             next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
             return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
@@ -118,21 +120,38 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # later step.
 
         assert self._attachments_pool is not None
+        processing_function = partial(
+            process_attachments_and_events,
+            reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+        )
         step_2 = maybe_multiprocess_step(
-            mp, process_attachments_and_events, final_step, self._attachments_pool
+            mp, processing_function, final_step, self._attachments_pool
         )
         # This `FilterStep` will skip over processing `None` (aka already handled attachment chunks)
         # in the second step. We filter this here explicitly,
         # to avoid arroyo from needlessly dispatching `None` messages.
         # However its currently not possible to make that `| None` disappear in the type.
-        filter_step = FilterStep(function=lambda msg: bool(msg.payload), next_step=step_2)
+
+        def filter_fn(msg):
+            if not bool(msg.payload):
+                return False
+
+            if self.stop_at_timestamp and msg.timestamp is not None:
+                if msg.timestamp.timestamp() > self.stop_at_timestamp:
+                    return False
+
+            return True
+
+        filter_step = FilterStep(function=filter_fn, next_step=step_2)
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
-        attachment_function = partial(decode_and_process_chunks, consumer_type=self.consumer_type)
-        step_1 = maybe_multiprocess_step(
-            mp, attachment_function, filter_step, self._pool  # type:ignore
+        attachment_function = partial(
+            decode_and_process_chunks,
+            consumer_type=self.consumer_type,
+            reprocess_only_stuck_events=self.reprocess_only_stuck_events,
         )
+        step_1 = maybe_multiprocess_step(mp, attachment_function, filter_step, self._pool)
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
 
@@ -142,57 +161,56 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self._attachments_pool.close()
 
 
-def get_ingest_consumer(
-    consumer_type: str,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    max_batch_size: int,
-    max_batch_time: int,
-    num_processes: int,
-    input_block_size: int | None,
-    output_block_size: int | None,
-    force_topic: str | None,
-    force_cluster: str | None,
-) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or ConsumerType.get_topic_name(consumer_type)
-    consumer_config = get_config(
-        topic,
-        group_id,
-        auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=strict_offset_reset,
-        force_cluster=force_cluster,
-    )
-    consumer = KafkaConsumer(consumer_config)
+class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    """
+    Processes transactions in either celery or no-celery mode.
+    Transactions are either dispatched to `save_transaction_event` or stored directly in the
+    consumer depending on the mode.
+    """
 
-    return StreamProcessor(
-        consumer=consumer,
-        topic=Topic(topic),
-        processor_factory=IngestStrategyFactory(
-            consumer_type=consumer_type,
-            num_processes=num_processes,
-            max_batch_size=max_batch_size,
-            max_batch_time=max_batch_time,
-            input_block_size=input_block_size,
-            output_block_size=output_block_size,
-        ),
-        commit_policy=ONCE_PER_SECOND,
-    )
+    def __init__(
+        self,
+        reprocess_only_stuck_events: bool,
+        stop_at_timestamp: int | None,
+        num_processes: int,
+        max_batch_size: int,
+        max_batch_time: int,
+        input_block_size: int | None,
+        output_block_size: int | None,
+        no_celery_mode: bool = False,
+    ):
+        self.consumer_type = ConsumerType.Transactions
+        self.reprocess_only_stuck_events = reprocess_only_stuck_events
+        self.stop_at_timestamp = stop_at_timestamp
 
+        self.multi_process = None
+        self._pool = MultiprocessingPool(num_processes)
 
-def get_config(
-    topic: str,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    force_cluster: str | None,
-) -> MutableMapping[str, Any]:
-    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]  # type:ignore
-    return build_kafka_consumer_configuration(
-        kafka_config.get_kafka_consumer_cluster_options(
-            cluster_name,
-        ),
-        group_id=group_id,
-        auto_offset_reset=auto_offset_reset,
-        strict_offset_reset=strict_offset_reset,
-    )
+        if num_processes > 1:
+            self.multi_process = MultiProcessConfig(
+                num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
+            )
+
+        self.health_checker = HealthChecker("ingest-transactions")
+        self.no_celery_mode = no_celery_mode
+
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        mp = self.multi_process
+
+        final_step = CommitOffsets(commit)
+
+        event_function = partial(
+            process_simple_event_message,
+            consumer_type=self.consumer_type,
+            reprocess_only_stuck_events=self.reprocess_only_stuck_events,
+            no_celery_mode=self.no_celery_mode,
+        )
+        next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
+        return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
+
+    def shutdown(self) -> None:
+        self._pool.close()

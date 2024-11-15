@@ -11,28 +11,29 @@ from rest_framework.request import Request
 from sentry import http
 from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
 )
 from sentry.integrations.github.integration import GitHubIntegrationProvider, build_repository_query
-from sentry.integrations.github.issues import GitHubIssueBasic
+from sentry.integrations.github.issues import GitHubIssuesSpec
 from sentry.integrations.github.utils import get_jwt
-from sentry.integrations.mixins import RepositoryMixin
-from sentry.integrations.mixins.commit_context import CommitContextMixin
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitHubEnterpriseAppsClient
+from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 DESCRIPTION = """
@@ -72,6 +73,12 @@ FEATURES = [
         Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
+    ),
+    FeatureDescription(
+        """
+        Automatically create GitHub issues based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -125,20 +132,40 @@ API_ERRORS = {
 
 
 class GitHubEnterpriseIntegration(
-    IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin
+    RepositoryIntegration, GitHubIssuesSpec, CommitContextIntegration
 ):
-    repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
+    @property
+    def integration_name(self) -> str:
+        return "github_enterprise"
+
     def get_client(self):
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
+
         base_url = self.model.metadata["domain_name"].split("/")[0]
-        return GitHubEnterpriseAppsClient(
+        return GitHubEnterpriseApiClient(
             base_url=base_url,
             integration=self.model,
             private_key=self.model.metadata["installation"]["private_key"],
             app_id=self.model.metadata["installation"]["id"],
             verify_ssl=self.model.metadata["installation"]["verify_ssl"],
+            org_integration_id=self.org_integration.id,
         )
+
+    # IntegrationInstallation methods
+
+    def message_from_error(self, exc):
+        if isinstance(exc, ApiError):
+            message = API_ERRORS.get(exc.code)
+            if message is None:
+                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
+            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
+        else:
+            return ERR_INTERNAL
+
+    # RepositoryIntegration methods
 
     def get_repositories(self, query=None):
         if not query:
@@ -162,29 +189,26 @@ class GitHubEnterpriseIntegration(
             for i in response.get("items", [])
         ]
 
-    def search_issues(self, query):
-        return self.get_client().search_issues(query)
+    def source_url_matches(self, url: str) -> bool:
+        raise IntegrationFeatureNotImplementedError
 
-    def reinstall(self):
-        installation_id = self.model.external_id.split(":")[1]
-        metadata = self.model.metadata
-        metadata["installation_id"] = installation_id
-        self.model.update(metadata=metadata)
-        self.reinstall_repositories()
-
-    def message_from_error(self, exc):
-        if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
-            if message is None:
-                message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
-        else:
-            return ERR_INTERNAL
-
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.example.org/octokit/octokit.rb/blob/master/README.md"
         return f"{repo.url}/blob/{branch}/{filepath}"
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        raise IntegrationFeatureNotImplementedError
+
+    def search_issues(self, query: str | None, **kwargs):
+        return self.get_client().search_issues(query)
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        # TODO: define this, used to migrate repositories
+        return False
 
 
 class InstallationForm(forms.Form):
@@ -419,9 +443,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "idp_config": state["oauth_config_information"],
         }
 
-        if state.get("reinstall_id"):
-            integration["reinstall_id"] = state["reinstall_id"]
-
         return integration
 
     def setup(self):
@@ -442,8 +463,6 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
 
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         installation_data = pipeline.fetch_state(key="installation_data")
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
         if "installation_id" in request.GET:
             pipeline.bind_state("installation_id", request.GET["installation_id"])

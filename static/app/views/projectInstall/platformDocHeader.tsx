@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -10,20 +10,21 @@ import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {
   platform: Platform;
   projectSlug: Project['slug'];
+  title?: string;
 };
 
-export function PlatformDocHeader({platform, projectSlug}: Props) {
+export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
   const api = useApi();
   const router = useRouter();
@@ -91,7 +92,9 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
 
   return (
     <StyledPageHeader>
-      <h2>{t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}</h2>
+      <h2>
+        {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
+      </h2>
       <ButtonBar gap={1}>
         <Confirm
           bypass={!shallProjectBeDeleted}
@@ -101,7 +104,7 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
           priority="danger"
           confirmText={t("Yes I'm sure")}
           onConfirm={handleGoBack}
-          onClose={() => {
+          onCancel={() => {
             if (!recentCreatedProject) {
               return;
             }
@@ -127,9 +130,9 @@ export function PlatformDocHeader({platform, projectSlug}: Props) {
           </Button>
         </Confirm>
         {platform.key !== 'other' && (
-          <Button size="sm" href={platform.link ?? undefined} external>
+          <LinkButton size="sm" href={platform.link ?? ''} external>
             {t('Full Documentation')}
-          </Button>
+          </LinkButton>
         )}
       </ButtonBar>
     </StyledPageHeader>

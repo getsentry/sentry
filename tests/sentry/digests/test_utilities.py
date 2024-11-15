@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 
-from sentry.digests import Digest
-from sentry.digests.notifications import build_digest, event_to_record
+from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,
@@ -15,46 +14,39 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
+from sentry.types.actor import ActorType
 
 
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
-    def create_event(self, project_id):
-        return (
-            self.store_event(
-                data={"timestamp": iso_format(before_now(minutes=1))}, project_id=project_id
-            ),
-        )
-
     def test_get_event_from_groups_in_digest(self):
         project = self.create_project(fire_project_created=True)
         rule = project.rule_set.all()[0]
 
         events = [
             self.store_event(
-                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=2))},
+                data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group1"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group1"], "timestamp": before_now(minutes=1).isoformat()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group2"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group2"], "timestamp": before_now(minutes=1).isoformat()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group3"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group3"], "timestamp": before_now(minutes=1).isoformat()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group4"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group4"], "timestamp": before_now(minutes=1).isoformat()},
                 project_id=project.id,
             ),
             self.store_event(
-                data={"fingerprint": ["group5"], "timestamp": iso_format(before_now(minutes=1))},
+                data={"fingerprint": ["group5"], "timestamp": before_now(minutes=1).isoformat()},
                 project_id=project.id,
             ),
         ]
@@ -62,7 +54,6 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         digest = build_digest(
             project, sort_records([event_to_record(event, (rule,)) for event in events])
         )[0]
-        assert digest is not None
 
         events.pop(0)  # remove event with same group
         assert {e.event_id for e in get_event_from_groups_in_digest(digest)} == {
@@ -133,7 +124,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"lineno": 1, "filename": "foo.bar"}]},
                     "request": {"url": "helloworld.org"},
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).isoformat(),
                     "fingerprint": ["user4group1"],
                 },
                 project_id=self.project.id,
@@ -142,7 +133,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"lineno": 1, "filename": "bar.foo"}]},
                     "request": {"url": "helloworld.org"},
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).isoformat(),
                     "fingerprint": ["user4group2"],
                 },
                 project_id=self.project.id,
@@ -175,7 +166,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
                 data={
                     "stacktrace": {"frames": [{"filename": label}]},
                     "fingerprint": [label],
-                    "timestamp": iso_format(before_now(minutes=1)),
+                    "timestamp": before_now(minutes=1).isoformat(),
                 },
                 project_id=project.id,
                 assert_no_errors=False,
@@ -190,17 +181,14 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             for event in self.team1_events + self.team2_events + self.user4_events
         ]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
 
         expected_result = {
-            self.user1.id: set(self.team1_events),
             self.user2.id: set(self.team2_events),
             self.user3.id: set(self.team1_events + self.team2_events),
             self.user4.id: set(self.user4_events),
         }
 
-        with self.feature("organizations:notification-all-recipients"):
-            assert_get_personalized_digests(self.project, digest, expected_result)
+        assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_direct_email(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
@@ -208,7 +196,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         rule = self.project.rule_set.all()[0]
         records = [event_to_record(event, (rule,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
 
         expected_result = {self.user1.id: set(self.team1_events)}
         assert_get_personalized_digests(
@@ -231,7 +218,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             )
         ]
         digest = build_digest(project, sort_records(records))[0]
-        assert digest is not None
         user_ids = [member.user_id for member in team.member_set]
         assert not user_ids
         participants_by_provider_by_event = get_participants_by_event(digest, project)
@@ -246,7 +232,6 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
         expected_result = {
             self.user1.id: set(events),
             self.user2.id: set(events),
@@ -263,16 +248,14 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         )
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
-        assert digest is not None
         expected_result = {
-            self.user1.id: set(events + self.team1_events),
+            self.user1.id: set(events),
             self.user2.id: set(events),
             self.user3.id: set(events + self.team1_events),
             self.user4.id: set(events),
             self.user5.id: set(events),
         }
-        with self.feature("organizations:notification-all-recipients"):
-            assert_get_personalized_digests(self.project, digest, expected_result)
+        assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_empty_records(self):
-        assert build_digest(self.project, []) == (None, [])
+        assert build_digest(self.project, []) == DigestInfo({}, {}, {})

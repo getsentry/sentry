@@ -4,17 +4,21 @@ import re
 from typing import Any
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models.authenticator import Authenticator
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.users.models.authenticator import Authenticator
 
 
 class OrganizationIndexTest(APITestCase):
@@ -25,7 +29,6 @@ class OrganizationIndexTest(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class OrganizationsListTest(OrganizationIndexTest):
     def test_membership(self):
         org = self.organization  # force creation
@@ -103,7 +106,6 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
@@ -274,8 +276,45 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         )
         self.assert_org_member_mapping(org_member=org_member)
 
+    def test_data_consent(self):
+        data = {"name": "hello world original", "agreeTerms": True}
+        response = self.get_success_response(**data)
 
-@region_silo_test
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == data["name"]
+        assert not OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent")
+
+        data = {"name": "hello world", "agreeTerms": True, "aggregatedDataConsent": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == data["name"]
+        assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
+
+
+@region_silo_test(regions=create_test_regions("de", "us"))
+class OrganizationsCreateInRegionTest(OrganizationIndexTest, HybridCloudTestMixin):
+    method = "post"
+
+    @override_settings(SENTRY_MONOLITH_REGION="us", SENTRY_REGION="de")
+    def test_success(self):
+        data = {"name": "hello world", "slug": "slug-world"}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == "hello world"
+        owners = [owner.id for owner in org.get_owners()]
+        assert [self.user.id] == owners
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            mapping = OrganizationMapping.objects.get(organization_id=organization_id)
+        assert mapping
+        assert mapping.region_name == "de"
+
+
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -324,7 +363,6 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
-@region_silo_test
 class OrganizationIndexMemberLimitTest(APITestCase):
     endpoint = "sentry-organization-index"
 

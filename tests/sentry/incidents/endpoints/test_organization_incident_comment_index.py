@@ -1,12 +1,14 @@
 from functools import cached_property
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models import IncidentActivity, IncidentActivityType, IncidentSubscription
+from sentry.incidents.models.incident import (
+    IncidentActivity,
+    IncidentActivityType,
+    IncidentSubscription,
+)
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationIncidentCommentCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-comments"
     method = "post"

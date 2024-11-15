@@ -10,16 +10,16 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum, UnsubscribeContext
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.activity import Activity
@@ -50,7 +50,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         }
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}
@@ -70,7 +70,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     def send(self) -> None:
         return send_activity_notification(self)
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         return {"activity": self.activity, **super().get_log_params(recipient)}
 
 
@@ -202,15 +202,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         return format_html(description, **context)
 
-    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
-        from sentry.integrations.message_builder import get_title_link
+    def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
+        from sentry.integrations.messaging.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, provider)
 
-    def build_attachment_title(self, recipient: RpcActor) -> str:
-        from sentry.integrations.message_builder import build_attachment_title
+    def build_attachment_title(self, recipient: Actor) -> str:
+        from sentry.integrations.messaging.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 
-    def get_log_params(self, recipient: RpcActor, **kwargs: Any) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor, **kwargs: Any) -> Mapping[str, Any]:
         return {"group": self.group.id, **super().get_log_params(recipient)}

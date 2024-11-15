@@ -14,11 +14,11 @@ from sentry.auth import access
 from sentry.models.project import Project
 from sentry.plugins import HIDDEN_PLUGINS
 from sentry.plugins.base.configuration import default_plugin_config, default_plugin_options
-from sentry.plugins.base.response import Response
+from sentry.plugins.base.response import DeferredResponse
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.projects.services.project import RpcProject
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
@@ -34,9 +34,7 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
-        if not hasattr(new_cls, "logger") or new_cls.logger in [
-            getattr(b, "logger", None) for b in bases
-        ]:
+        if "logger" not in attrs:
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 
@@ -119,10 +117,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -323,7 +321,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         if isinstance(response, HttpResponseRedirect):
             return response
 
-        if not isinstance(response, Response):
+        if not isinstance(response, DeferredResponse):
             raise NotImplementedError("Use self.render() when returning responses.")
 
         event = group.get_latest_event()
@@ -506,18 +504,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
-
-    def view_configure(self, request, project, **kwargs):
-        if request.method == "GET":
-            return Response(
-                self.get_configure_plugin_fields(
-                    request=request,  # DEPRECATED: this param should not be used
-                    project=project,
-                    **kwargs,
-                )
-            )
-        self.configure(project, request.data)
-        return Response({"message": "Successfully updated configuration."})
 
 
 class Plugin(IPlugin, metaclass=PluginMount):

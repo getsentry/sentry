@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 
 import {SectionToggleButton} from './styles';
 import type {
+  SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
@@ -17,17 +18,17 @@ import type {
   SelectSection,
 } from './types';
 
-export function getEscapedKey<Value extends React.Key | undefined>(value: Value): string {
+export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
   return CSS.escape(String(value));
 }
 
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOption<Value>[]
 ): SelectOptionWithKey<Value>[];
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOptionOrSection<Value>[]
 ): SelectOptionOrSectionWithKey<Value>[];
-export function getItemsWithKeys<Value extends React.Key>(
+export function getItemsWithKeys<Value extends SelectKey>(
   options: SelectOptionOrSection<Value>[]
 ): SelectOptionOrSectionWithKey<Value>[] {
   return options.map((item, i) => {
@@ -39,7 +40,10 @@ export function getItemsWithKeys<Value extends React.Key>(
       };
     }
 
-    return {...item, key: getEscapedKey(item.value)};
+    const existingKey =
+      'key' in item && typeof item.key === 'string' ? item.key : undefined;
+
+    return {...item, key: existingKey ?? getEscapedKey(item.value)};
   });
 }
 
@@ -47,7 +51,7 @@ export function getItemsWithKeys<Value extends React.Key>(
  * Recursively finds the selected option(s) from an options array. Useful for
  * non-flat arrays that contain sections (groups of options).
  */
-export function getSelectedOptions<Value extends React.Key>(
+export function getSelectedOptions<Value extends SelectKey>(
   items: SelectOptionOrSectionWithKey<Value>[],
   selection: Selection
 ): SelectOption<Value>[] {
@@ -58,7 +62,7 @@ export function getSelectedOptions<Value extends React.Key>(
     }
 
     // If this is an option
-    if (selection === 'all' || selection.has(getEscapedKey(cur.value))) {
+    if (selection === 'all' || selection.has(cur.key)) {
       const {key: _key, ...opt} = cur;
       return acc.concat(opt);
     }
@@ -71,23 +75,23 @@ export function getSelectedOptions<Value extends React.Key>(
  * arrays that contain sections (groups of options). Returns the values of options that
  * were removed.
  */
-export function getDisabledOptions<Value extends React.Key>(
-  items: SelectOptionOrSection<Value>[],
-  isOptionDisabled?: (opt: SelectOption<Value>) => boolean
-): Value[] {
-  return items.reduce((acc: Value[], cur) => {
+export function getDisabledOptions<Value extends SelectKey>(
+  items: SelectOptionOrSectionWithKey<Value>[],
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean
+): SelectKey[] {
+  return items.reduce((acc: SelectKey[], cur) => {
     // If this is a section
     if ('options' in cur) {
       if (cur.disabled) {
         // If the entire section is disabled, then mark all of its children as disabled
-        return acc.concat(cur.options.map(opt => opt.value));
+        return acc.concat(cur.options.map(opt => opt.key));
       }
       return acc.concat(getDisabledOptions(cur.options, isOptionDisabled));
     }
 
     // If this is an option
     if (isOptionDisabled?.(cur) ?? cur.disabled) {
-      return acc.concat(cur.value);
+      return acc.concat(cur.key);
     }
     return acc;
   }, []);
@@ -97,45 +101,48 @@ export function getDisabledOptions<Value extends React.Key>(
  * Recursively finds the option(s) that don't match the designated search string or are
  * outside the list box's count limit.
  */
-export function getHiddenOptions<Value extends React.Key>(
-  items: SelectOptionOrSection<Value>[],
+export function getHiddenOptions<Value extends SelectKey>(
+  items: SelectOptionOrSectionWithKey<Value>[],
   search: string,
-  limit: number = Infinity
-): Set<Value> {
+  limit: number = Infinity,
+  filterOption?: (opt: SelectOption<Value>, search: string) => boolean
+): Set<SelectKey> {
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) =>
-    `${opt.label ?? ''}${opt.textValue ?? ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const _filterOption =
+    filterOption ??
+    ((opt: SelectOption<Value>) =>
+      `${opt.label ?? ''}${opt.textValue ?? ''}`
+        .toLowerCase()
+        .includes(search.toLowerCase()));
 
-  const hiddenOptionsSet = new Set<Value>();
+  const hiddenOptionsSet = new Set<SelectKey>();
   const remainingItems = items
-    .flatMap<SelectOptionOrSection<Value> | null>(item => {
+    .flatMap<SelectOptionOrSectionWithKey<Value> | null>(item => {
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
-            if (filterOption(opt)) {
+            if (_filterOption(opt, search)) {
               return opt;
             }
 
-            hiddenOptionsSet.add(opt.value);
+            hiddenOptionsSet.add(opt.key);
             return null;
           })
-          .filter((opt): opt is SelectOption<Value> => !!opt);
+          .filter((opt): opt is SelectOptionWithKey<Value> => !!opt);
 
         return filteredOptions.length > 0 ? {...item, options: filteredOptions} : null;
       }
 
-      if (filterOption(item)) {
+      if (_filterOption(item, search)) {
         return item;
       }
 
-      hiddenOptionsSet.add(item.value);
+      hiddenOptionsSet.add(item.key);
       return null;
     })
-    .filter((item): item is SelectOptionOrSection<Value> => !!item);
+    .filter((item): item is SelectOptionOrSectionWithKey<Value> => !!item);
 
   //
   // Then, limit the number of remaining options to `limit`
@@ -162,10 +169,10 @@ export function getHiddenOptions<Value extends React.Key>(
     if ('options' in item) {
       const startingIndex = i === threshold[0] ? threshold[1] : 0;
       for (let j = startingIndex; j < item.options.length; j++) {
-        hiddenOptionsSet.add(item.options[j].value);
+        hiddenOptionsSet.add(item.options[j].key);
       }
     } else {
-      hiddenOptionsSet.add(item.value);
+      hiddenOptionsSet.add(item.key);
     }
   }
 
@@ -178,7 +185,7 @@ export function getHiddenOptions<Value extends React.Key>(
  * selected, then this function selects all of them. If all of the options are selected,
  * then this function unselects all of them.
  */
-export function toggleOptions<Value extends React.Key>(
+export function toggleOptions<Value extends SelectKey>(
   optionKeys: Value[],
   selectionManager: SelectionManager
 ) {
@@ -198,7 +205,7 @@ interface SectionToggleProps {
   item: Node<any>;
   listState: ListState<any>;
   listId?: string;
-  onToggle?: (section: SelectSection<React.Key>, type: 'select' | 'unselect') => void;
+  onToggle?: (section: SelectSection<SelectKey>, type: 'select' | 'unselect') => void;
 }
 
 /**

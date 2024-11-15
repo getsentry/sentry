@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
@@ -14,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -24,7 +24,7 @@ import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
 const searchHandlerMock = jest.fn();
 
-function WrappedComponent({data, withStaticFilters = false}) {
+function WrappedComponent({data, withStaticFilters = false}: any) {
   const eventView = generatePerformanceEventView(
     data.router.location,
     data.projects,
@@ -150,7 +150,7 @@ describe('Performance > Landing > Index', function () {
   it('renders basic UI elements', function () {
     const data = initializeData();
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
@@ -160,7 +160,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -169,7 +169,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -178,7 +178,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
@@ -191,7 +191,7 @@ describe('Performance > Landing > Index', function () {
       projects,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
     expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
@@ -208,7 +208,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.ALL},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(await screen.findByTestId('performance-table')).toBeInTheDocument();
 
@@ -248,7 +248,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
@@ -266,7 +266,7 @@ describe('Performance > Landing > Index', function () {
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
 
@@ -275,7 +275,7 @@ describe('Performance > Landing > Index', function () {
       selectedProject: 123,
     });
 
-    wrapper.rerender(<WrappedComponent data={updatedData} />, data.routerContext);
+    wrapper.rerender(<WrappedComponent data={updatedData} />);
 
     expect(screen.getByTestId('all-transactions-view')).toBeInTheDocument();
   });
@@ -286,7 +286,7 @@ describe('Performance > Landing > Index', function () {
       selectedProject: 99,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
   });
 
@@ -294,7 +294,7 @@ describe('Performance > Landing > Index', function () {
     it('does not search for empty string transaction', async function () {
       const data = initializeData();
 
-      render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
+      render(<WrappedComponent data={data} withStaticFilters />);
 
       await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
@@ -310,10 +310,7 @@ describe('Performance > Landing > Index', function () {
         },
       });
 
-      wrapper = render(
-        <WrappedComponent data={data} withStaticFilters />,
-        data.routerContext
-      );
+      wrapper = render(<WrappedComponent data={data} withStaticFilters />);
 
       expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     });
@@ -321,7 +318,7 @@ describe('Performance > Landing > Index', function () {
     it('extracts free text from the query', async function () {
       const data = initializeData();
 
-      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+      wrapper = render(<WrappedComponent data={data} />);
 
       await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
 
@@ -340,7 +337,7 @@ describe('Performance > Landing > Index', function () {
         ],
       });
 
-      wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+      wrapper = render(<WrappedComponent data={data} />);
       const titles = await screen.findAllByTestId('performance-widget-title');
       expect(titles.at(0)).toHaveTextContent('Most Regressed');
     });

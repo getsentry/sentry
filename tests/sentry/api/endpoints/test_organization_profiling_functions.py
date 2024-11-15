@@ -10,14 +10,12 @@ from sentry.api.endpoints.organization_profiling_functions import (
 from sentry.constants import MAX_ROLLUP_POINTS
 from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
 
 PROFILING_FEATURES = {
     "organizations:profiling-global-suspect-functions": True,
 }
 
 
-@region_silo_test
 class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-function-trends"
 
@@ -227,6 +225,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert trend_percentages == [10.0, 5.0]
         for data in results:
             assert isinstance(data["worst"], list)
+            assert isinstance(data["examples"], list)
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.detect_breakpoints")
     def test_improvement(self, mock_detect_breakpoints):
@@ -312,6 +311,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         assert trend_percentages == [0.1, 0.2]
         for data in results:
             assert isinstance(data["worst"], list)
+            assert isinstance(data["examples"], list)
 
 
 def test_get_rollup_from_range_max_buckets():

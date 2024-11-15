@@ -1,20 +1,21 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import requests
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleThresholdType, IncidentTrigger, TriggerStatus
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
+from sentry.types.actor import Actor
+from sentry.uptime.models import ProjectUptimeSubscriptionMode, UptimeStatus
 from sentry.utils import json
-from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
+from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-@region_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 
@@ -64,20 +65,20 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             organization=self.org, teams=[self.team], name="Elephant"
         )
         self.projects = [self.project, self.project2]
-        self.project_ids = [self.project.id, self.project2.id]
+        self.project_ids = [str(self.project.id), str(self.project2.id)]
         self.alert_rule = self.create_alert_rule(
             name="alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         self.other_alert_rule = self.create_alert_rule(
             name="other alert rule",
             organization=self.org,
             projects=[self.project2],
-            date_added=before_now(minutes=5).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=5),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         self.issue_rule = self.create_issue_alert_rule(
             data={
@@ -86,17 +87,80 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
+                "date_added": before_now(minutes=4),
             }
         )
         self.yet_another_alert_rule = self.create_alert_rule(
             name="yet another alert rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
-            owner=self.team2.actor.get_actor_tuple(),
+            date_added=before_now(minutes=3),
+            owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
         self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
+
+    def test_simple(self):
+        self.setup_project_and_rules()
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 4
+        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
+        assert result[1]["id"] == str(self.issue_rule.id)
+        assert result[1]["type"] == "rule"
+        self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
+        self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
+
+    def test_snoozed_rules(self):
+        """
+        Test that we properly serialize snoozed rules with and without an owner
+        """
+        self.setup_project_and_rules()
+        issue_rule2 = self.create_issue_alert_rule(
+            data={
+                "project": self.project2,
+                "name": "Issue Rule Test",
+                "conditions": [],
+                "actions": [],
+                "actionMatch": "all",
+                "date_added": before_now(minutes=4),
+            }
+        )
+        self.snooze_rule(user_id=self.user.id, rule=self.issue_rule)
+        self.snooze_rule(user_id=self.user.id, rule=issue_rule2, owner_id=self.user.id)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.alert_rule)
+        self.snooze_rule(
+            user_id=self.user.id, alert_rule=self.yet_another_alert_rule, owner_id=self.user.id
+        )
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {"per_page": "10", "project": self.project_ids}
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert len(result) == 5
+        self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
+        assert result[0]["snooze"]
+
+        assert result[1]["id"] == str(issue_rule2.id)
+        assert result[1]["type"] == "rule"
+        assert result[1]["snooze"]
+
+        assert result[2]["id"] == str(self.issue_rule.id)
+        assert result[2]["type"] == "rule"
+        assert result[2]["snooze"]
+
+        self.assert_alert_rule_serialized(self.other_alert_rule, result[3], skip_dates=True)
+        assert not result[3].get("snooze")
+
+        self.assert_alert_rule_serialized(self.alert_rule, result[4], skip_dates=True)
+        assert result[4]["snooze"]
 
     def test_invalid_limit(self):
         self.setup_project_and_rules()
@@ -128,7 +192,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.setup_project_and_rules()
         # Test Limit as 1, no cursor:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
+            request_data = {
+                "per_page": "1",
+                "project": str(self.project.id),
+                "sort": "name",
+                "asc": "1",
+            }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -145,9 +214,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "1",
-                "project": self.project.id,
+                "project": str(self.project.id),
                 "sort": "name",
-                "asc": 1,
+                "asc": "1",
             }
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
@@ -169,21 +238,26 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="!1?",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
         alert_rule1 = self.create_alert_rule(
             name="!1?zz",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=self.team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
         )
 
         # Test Limit as 1, no cursor:
         url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "1", "project": self.project.id, "sort": "name", "asc": 1}
+            request_data = {
+                "per_page": "1",
+                "project": str(self.project.id),
+                "sort": "name",
+                "asc": "1",
+            }
             response = self.client.get(
                 path=url,
                 data=request_data,
@@ -202,9 +276,9 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "1",
-                "project": self.project.id,
+                "project": str(self.project.id),
                 "sort": "name",
-                "asc": 1,
+                "asc": "1",
             }
             response = self.client.get(path=url, data=request_data, content_type="application/json")
         assert response.status_code == 200
@@ -234,7 +308,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
 
         # Test Limit as 1, next page of previous request:
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"cursor": next_cursor, "per_page": "1", "project": self.project.id}
+            request_data = {"cursor": next_cursor, "per_page": "1", "project": str(self.project.id)}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
@@ -301,12 +375,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project]
@@ -350,40 +424,63 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.one_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project, self.project2],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.two_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=date_added.replace(tzinfo=timezone.utc),
+            date_added=date_added,
         )
         self.three_alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project2]
         )
+        proj_uptime_monitor = self.create_project_uptime_subscription(project=self.project)
+        proj2_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
+            project=self.project2,
+        )
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "2", "project": [self.project.id]}
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
+            request_data = {"project": [self.project.id]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
 
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.one_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.two_alert_rule, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{proj_uptime_monitor.id}",
+            f"{self.one_alert_rule.id}",
+            f"{self.two_alert_rule.id}",
+            f"{self.yet_another_alert_rule.id}",
+            f"{self.issue_rule.id}",
+            f"{self.alert_rule.id}",
+        ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "2", "project": [self.project2.id]}
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
+            request_data = {"project": [self.project2.id]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 200
 
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(self.three_alert_rule, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(self.one_alert_rule, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{proj2_uptime_monitor.id}",
+            f"{self.three_alert_rule.id}",
+            f"{self.one_alert_rule.id}",
+            f"{self.other_alert_rule.id}",
+        ]
 
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
@@ -394,7 +491,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
+                "date_added": before_now(minutes=4),
             }
         )
 
@@ -464,7 +561,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         self.an_unassigned_alert_rule = self.create_alert_rule(
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=3).replace(tzinfo=timezone.utc),
+            date_added=before_now(minutes=3),
             owner=None,
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -512,8 +609,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
-                "owner": self.team.actor,
+                "date_added": before_now(minutes=4),
+                "owner": f"team:{self.team.id}",
             }
         )
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
@@ -529,6 +626,52 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
 
+        team_uptime_monitor = self.create_project_uptime_subscription(
+            owner=self.team, name="Uptime owned"
+        )
+        unowned_uptime_monitor = self.create_project_uptime_subscription(
+            name="Uptime unowned",
+            uptime_subscription=self.create_uptime_subscription(url="http://santry.io"),
+        )
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": [self.team.id],
+                "name": "Uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{team_uptime_monitor.id}"]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id],
+                "team": ["unassigned"],
+                "name": "Uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{unowned_uptime_monitor.id}"]
+
     def test_myteams_filter_superuser(self):
         superuser = self.create_user(is_superuser=True)
         another_org = self.create_organization(owner=superuser, name="Rowdy Tiger")
@@ -542,8 +685,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="alert rule",
             organization=another_org,
             projects=[another_project],
-            date_added=before_now(minutes=6).replace(tzinfo=timezone.utc),
-            owner=another_org_team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=6),
+            owner=Actor.from_id(user_id=None, team_id=another_org_team.id),
         )
 
         self.create_issue_alert_rule(
@@ -553,15 +696,15 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=4).replace(tzinfo=timezone.utc),
-                "owner": another_org_team.actor,
+                "date_added": before_now(minutes=4),
+                "owner": f"team:{another_org_team.id}",
             }
         )
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
-                "project": [another_project.id],
+                "project": [str(another_project.id)],
                 "team": ["myteams"],
             }
             response = self.client.get(
@@ -573,7 +716,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {
                 "per_page": "10",
-                "project": [another_project.id],
+                "project": [str(another_project.id)],
                 "team": [another_org_team.id],
             }
             response = self.client.get(
@@ -582,7 +725,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         assert len(response.data) == 2  # We are not on this team, but we are a superuser.
 
-    def test_team_filter_no_access(self):
+    def test_team_filter_no_cross_org_access(self):
         self.setup_project_and_rules()
         another_org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         another_org_team = self.create_team(organization=another_org, name="Meow Band", members=[])
@@ -595,11 +738,50 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["owner"] == f"team:{self.team.id}"
+
+    def test_team_filter_no_access(self):
+        self.setup_project_and_rules()
+
+        # disable Open Membership
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        user2 = self.create_user("bulldog@example.com")
+        team2 = self.create_team(organization=self.org, name="Barking Voices")
+        project2 = self.create_project(organization=self.org, teams=[team2], name="Bones")
+        self.create_member(user=user2, organization=self.org, role="member", teams=[team2])
+        self.login_as(user2)
+
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            request_data = {
+                "per_page": "10",
+                "project": [project2.id],
+                "team": [team2.id, self.team.id],
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
         assert response.status_code == 403
+        assert (
+            response.data["detail"] == "Error: You do not have permission to access Mariachi Band"
+        )
 
     def test_name_filter(self):
         self.setup_project_and_rules()
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        uptime_monitor = self.create_project_uptime_subscription(name="Uptime")
+        another_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+            name="yet another Uptime",
+        )
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
@@ -610,10 +792,17 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["name"] == "yet another alert rule"
+        assert [r["id"] for r in result] == [
+            f"{another_uptime_monitor.id}",
+            f"{self.yet_another_alert_rule.id}",
+        ]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id],
@@ -624,10 +813,14 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200
         result = json.loads(response.content)
-        assert len(result) == 1
-        assert result[0]["name"] == "Issue Rule Test"
+        assert [r["id"] for r in result] == [f"{self.issue_rule.id}"]
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -640,7 +833,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 3
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -653,7 +851,12 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 0
 
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -665,6 +868,24 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 4
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
+            request_data = {
+                "per_page": "10",
+                "project": [self.project.id, self.project2.id],
+                "name": "uptime",
+            }
+            response = self.client.get(
+                path=self.combined_rules_url, data=request_data, content_type="application/json"
+            )
+        assert response.status_code == 200
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [f"{another_uptime_monitor.id}", f"{uptime_monitor.id}"]
 
     def test_status_and_date_triggered_sort_order(self):
         self.setup_project_and_rules()
@@ -723,7 +944,17 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             alert_rule_trigger=trigger3,
             status=TriggerStatus.ACTIVE.value,
         )
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        uptime_monitor = self.create_project_uptime_subscription()
+        failed_uptime_monitor = self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+            uptime_status=UptimeStatus.FAILED,
+        )
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "10",
                 "project": [self.project.id, self.project2.id],
@@ -734,9 +965,10 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 7
-        # Assert critical rule is first, warnings are next (sorted by triggered date), and issue rules are last.
+        # Assert failed uptime monitor is first, critical rule is next, then warnings (sorted by triggered date),
+        # then issue rules and finally uptime monitors in ok status.
         assert [r["id"] for r in result] == [
+            f"{failed_uptime_monitor.id}",
             f"{alert_rule_critical.id}",
             f"{another_alert_rule_warning.id}",
             f"{alert_rule_warning.id}",
@@ -744,10 +976,16 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             f"{self.other_alert_rule.id}",
             f"{self.yet_another_alert_rule.id}",
             f"{self.issue_rule.id}",
+            f"{uptime_monitor.id}",
         ]
 
         # Test paging with the status setup:
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "per_page": "2",
                 "project": [self.project.id, self.project2.id],
@@ -758,15 +996,22 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(alert_rule_critical, result[0], skip_dates=True)
-        self.assert_alert_rule_serialized(another_alert_rule_warning, result[1], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{failed_uptime_monitor.id}",
+            f"{alert_rule_critical.id}",
+        ]
+
         links = requests.utils.parse_header_links(
             response.get("link", "").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
         # Get next page, we should be between the two status':
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+            ]
+        ):
             request_data = {
                 "cursor": next_cursor,
                 "per_page": "2",
@@ -778,8 +1023,61 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             )
         assert response.status_code == 200, response.content
         result = json.loads(response.content)
-        assert len(result) == 2
-        self.assert_alert_rule_serialized(alert_rule_warning, result[0], skip_dates=True)
+        assert [r["id"] for r in result] == [
+            f"{another_alert_rule_warning.id}",
+            f"{alert_rule_warning.id}",
+        ]
+
+    def test_uptime_feature(self):
+        self.setup_project_and_rules()
+        uptime_monitor = self.create_project_uptime_subscription(name="Uptime Monitor")
+        other_uptime_monitor = self.create_project_uptime_subscription(
+            name="Other Uptime Monitor",
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+        )
+        self.create_project_uptime_subscription(
+            name="Onboarding Uptime monitor",
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
+        )
+
+        request_data = {"name": "Uptime", "project": [self.project.id]}
+        response = self.client.get(
+            path=self.combined_rules_url, data=request_data, content_type="application/json"
+        )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert [r["id"] for r in result] == [
+            f"{other_uptime_monitor.id}",
+            f"{uptime_monitor.id}",
+        ]
+
+    def test_uptime_feature_name_sort(self):
+        self.setup_project_and_rules()
+        self.create_project_uptime_subscription(name="Uptime Monitor")
+        self.create_project_uptime_subscription(
+            name="Other Uptime Monitor",
+            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
+        )
+        self.create_project_uptime_subscription(
+            name="Onboarding Uptime monitor",
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            uptime_subscription=self.create_uptime_subscription(url="https://santry-iz-kool.io"),
+        )
+
+        request_data = {"project": [self.project.id], "sort": "name"}
+        response = self.client.get(
+            path=self.combined_rules_url, data=request_data, content_type="application/json"
+        )
+        assert response.status_code == 200, response.content
+        result = json.loads(response.content)
+        assert [r["name"] for r in result] == [
+            "yet another alert rule",
+            "Uptime Monitor",
+            "Other Uptime Monitor",
+            "Issue Rule Test",
+            "alert rule",
+        ]
 
     def test_expand_latest_incident(self):
         self.setup_project_and_rules()
@@ -823,8 +1121,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             name="the best rule",
             organization=self.org,
             projects=[self.project],
-            date_added=before_now(minutes=1).replace(tzinfo=timezone.utc),
-            owner=team.actor.get_actor_tuple(),
+            date_added=before_now(minutes=1),
+            owner=Actor.from_id(user_id=None, team_id=team.id),
         )
         self.create_issue_alert_rule(
             data={
@@ -833,8 +1131,8 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 "conditions": [],
                 "actions": [],
                 "actionMatch": "all",
-                "date_added": before_now(minutes=2).replace(tzinfo=timezone.utc),
-                "owner": team.actor,
+                "date_added": before_now(minutes=2),
+                "owner": f"team:{team.id}",
             }
         )
         team.delete()
@@ -851,16 +1149,16 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     @freeze_time()
     def test_last_triggered(self):
         self.login_as(user=self.user)
-        rule = Rule.objects.filter(project=self.project).first()
+        rule = Rule.objects.filter(project=self.project).get()
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
-        assert resp.data[0]["lastTriggered"] == datetime.now().replace(tzinfo=timezone.utc)
+        assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
     def test_project_deleted(self):
-        from sentry.models.scheduledeletion import RegionScheduledDeletion
-        from sentry.tasks.deletion.scheduled import run_deletion
+        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+        from sentry.deletions.tasks.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         team = self.create_team(organization=org, name="Mariachi Band", members=[self.user])

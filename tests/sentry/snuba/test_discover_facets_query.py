@@ -1,9 +1,10 @@
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
@@ -18,14 +19,14 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         with pytest.raises(InvalidSearchQuery):
             discover.get_facets(
                 "\n",
-                {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+                SnubaParams(projects=[self.project], end=self.min_ago, start=self.day_ago),
                 "testing.get-facets-test",
             )
 
     def test_no_results(self):
         results = discover.get_facets(
             "",
-            {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago},
+            SnubaParams(projects=[self.project], end=self.min_ago, start=self.day_ago),
             "testing.get-facets-test",
         )
         assert results == []
@@ -35,7 +36,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red", "paying": "1"},
             },
             project_id=self.project.id,
@@ -44,13 +45,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "blue", "paying": "0"},
             },
             project_id=self.project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params, "testing.get-facets-test")
+        result = discover.get_facets(
+            "",
+            SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago),
+            "testing.get-facets-test",
+        )
         assert len(result) == 5
         assert {r.key for r in result} == {"color", "paying", "level"}
         assert {r.value for r in result} == {"red", "blue", "1", "0", "error"}
@@ -61,7 +65,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -71,22 +75,20 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=other_project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        params = SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago)
         result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"color", "level"}
 
         # Query more than one project.
-        params = {
-            "project_id": [self.project.id, other_project.id],
-            "start": self.day_ago,
-            "end": self.min_ago,
-        }
+        params = SnubaParams(
+            projects=[self.project, other_project], start=self.day_ago, end=self.min_ago
+        )
         result = discover.get_facets("", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert keys == {"level", "toy", "color", "project"}
@@ -101,12 +103,15 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                     "message": "very bad",
                     "type": "default",
                     "environment": env,
-                    "timestamp": iso_format(before_now(minutes=2)),
+                    "timestamp": before_now(minutes=2).isoformat(),
                 },
                 project_id=self.project.id,
             )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params, "testing.get-facets-test")
+        result = discover.get_facets(
+            "",
+            SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago),
+            "testing.get-facets-test",
+        )
         keys = {r.key for r in result}
         assert keys == {"environment", "level"}
         assert {None, "prod", "staging"} == {f.value for f in result if f.key == "environment"}
@@ -117,7 +122,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -126,12 +131,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        params = SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago)
         result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
@@ -147,7 +152,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -156,12 +161,12 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
+        params = SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago)
         result = discover.get_facets("bad", params, "testing.get-facets-test")
         keys = {r.key for r in result}
         assert "color" in keys
@@ -177,7 +182,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "very bad",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "red"},
             },
             project_id=self.project.id,
@@ -186,13 +191,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(days=2)),
+                "timestamp": before_now(days=2).isoformat(),
                 "tags": {"toy": "train"},
             },
             project_id=self.project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params, "testing.get-facets-test")
+        result = discover.get_facets(
+            "",
+            SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago),
+            "testing.get-facets-test",
+        )
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
@@ -203,7 +211,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
                 data={
                     "message": "very bad",
                     "type": "default",
-                    "timestamp": iso_format(before_now(minutes=2)),
+                    "timestamp": before_now(minutes=2).isoformat(),
                     "tags": {"color": "zzz"},
                 },
                 project_id=self.project.id,
@@ -213,13 +221,16 @@ class GetFacetsTest(SnubaTestCase, TestCase):
             data={
                 "message": "oh my",
                 "type": "default",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"color": "aaa"},
             },
             project_id=self.project.id,
         )
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-        result = discover.get_facets("", params, "testing.get-facets-test")
+        result = discover.get_facets(
+            "",
+            SnubaParams(projects=[self.project], start=self.day_ago, end=self.min_ago),
+            "testing.get-facets-test",
+        )
         first = result[0]
         assert first.key == "color"
         assert first.value == "zzz"

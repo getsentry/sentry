@@ -11,7 +11,6 @@ interface DifferentialFlamegraphQueryParameters {
   environments: AggregateFlamegraphQueryParameters['environments'];
   fingerprint: string | undefined;
   projectID: number | null;
-  transaction: string;
 }
 
 export interface DifferentialFlamegraphQueryResult {
@@ -23,17 +22,16 @@ export function useDifferentialFlamegraphQuery(
   params: DifferentialFlamegraphQueryParameters
 ): DifferentialFlamegraphQueryResult {
   const sharedAggregateQueryParams: AggregateFlamegraphQueryParameters = useMemo(() => {
-    const p: AggregateFlamegraphQueryParameters = {
-      transaction: params.transaction,
+    const p: Exclude<AggregateFlamegraphQueryParameters, 'datetime'> = {
+      query: '',
       environments: params.environments,
       fingerprint: params.fingerprint,
       projects:
         params.projectID === null || isNaN(params.projectID) ? [] : [params.projectID],
-      datetime: {},
     };
 
     return p;
-  }, [params.transaction, params.environments, params.projectID, params.fingerprint]);
+  }, [params.environments, params.projectID, params.fingerprint]);
 
   const regressionDateRange = useRelativeDateTime({
     anchor: params.breakpoint,
@@ -46,6 +44,8 @@ export function useDifferentialFlamegraphQuery(
       datetime: {
         start: regressionDateRange.start,
         end: new Date(params.breakpoint * 1000),
+        period: null,
+        utc: null,
       },
     };
   }, [sharedAggregateQueryParams, regressionDateRange.start, params.breakpoint]);
@@ -56,6 +56,8 @@ export function useDifferentialFlamegraphQuery(
       datetime: {
         start: new Date(params.breakpoint * 1000),
         end: regressionDateRange.end,
+        period: null,
+        utc: null,
       },
     };
   }, [sharedAggregateQueryParams, regressionDateRange.end, params.breakpoint]);

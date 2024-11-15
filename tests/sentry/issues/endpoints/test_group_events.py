@@ -1,26 +1,22 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
 class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
-        self.features = {}
 
-    def do_request(self, url):
-        with self.feature(self.features):
-            return self.client.get(url, format="json")
+    def do_request(self, url: str):
+        return self.client.get(url, format="json")
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -30,14 +26,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             attrs["href"] = url
         return links
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -45,7 +41,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -62,14 +58,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert "context" not in response.data[0]
         assert "context" not in response.data[1]
 
-    def test_full_false(self):
+    def test_full_false(self) -> None:
         self.login_as(user=self.user)
 
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -77,7 +73,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -93,14 +89,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert "context" not in response.data[0]
         assert "context" not in response.data[1]
 
-    def test_full_true(self):
+    def test_full_true(self) -> None:
         self.login_as(user=self.user)
 
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -108,7 +104,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -122,14 +118,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert "context" in response.data[0]
         assert "context" in response.data[1]
 
-    def test_tags(self):
+    def test_tags(self) -> None:
         self.login_as(user=self.user)
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["1"],
                 "tags": {"foo": "baz", "bar": "buz"},
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -138,7 +134,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "b" * 32,
                 "fingerprint": ["1"],
                 "tags": {"bar": "biz"},
-                "timestamp": iso_format(before_now(seconds=61)),
+                "timestamp": before_now(seconds=61).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -188,13 +184,13 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert len(response.data) == 2
         assert {e["eventID"] for e in response.data} == {event_1.event_id, event_2.event_id}
 
-    def test_search_event_by_id(self):
+    def test_search_event_by_id(self) -> None:
         self.login_as(user=self.user)
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -202,7 +198,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={
                 "event_id": "b" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -213,7 +209,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_1.event_id
 
-    def test_search_event_by_message(self):
+    def test_search_event_by_message(self) -> None:
         self.login_as(user=self.user)
 
         event_1 = self.store_event(
@@ -221,7 +217,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
                 "message": "foo bar hello world",
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -231,7 +227,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "event_id": "b" * 32,
                 "fingerprint": ["group-1"],
                 "message": "this bar hello world",
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -258,14 +254,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
-    def test_search_by_release(self):
+    def test_search_by_release(self) -> None:
         self.login_as(user=self.user)
         self.create_release(self.project, version="first-release")
         event_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "release": "first-release",
             },
             project_id=self.project.id,
@@ -277,7 +273,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_1.event_id
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         self.login_as(user=self.user)
         events = {}
 
@@ -285,7 +281,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             events[name] = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group1"],
-                    "timestamp": iso_format(self.min_ago),
+                    "timestamp": self.min_ago.isoformat(),
                     "environment": name,
                 },
                 project_id=self.project.id,
@@ -322,14 +318,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert response.status_code == 200, response.content
         assert response.data == []
 
-    def test_filters_based_on_retention(self):
+    def test_filters_based_on_retention(self) -> None:
         self.login_as(user=self.user)
         self.store_event(
-            data={"fingerprint": ["group_1"], "timestamp": iso_format(before_now(days=2))},
+            data={"fingerprint": ["group_1"], "timestamp": before_now(days=2).isoformat()},
             project_id=self.project.id,
         )
         event_2 = self.store_event(
-            data={"fingerprint": ["group_1"], "timestamp": iso_format(self.min_ago)},
+            data={"fingerprint": ["group_1"], "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         group = event_2.group
@@ -341,11 +337,11 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert len(response.data) == 1
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted([str(event_2.event_id)])
 
-    def test_search_event_has_tags(self):
+    def test_search_event_has_tags(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
             data={
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "message": "foo",
                 "tags": {"logger": "python"},
             },
@@ -359,14 +355,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert {"key": "logger", "value": "python"} in response.data[0]["tags"]
 
     @freeze_time()
-    def test_date_filters(self):
+    def test_date_filters(self) -> None:
         self.login_as(user=self.user)
         event_1 = self.store_event(
-            data={"timestamp": iso_format(before_now(days=5)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(days=5).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event_2 = self.store_event(
-            data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event_1.group
@@ -386,16 +382,16 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == str(event_2.event_id)
 
-    def test_invalid_period(self):
+    def test_invalid_period(self) -> None:
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "lol"})
         assert response.status_code == 400
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         self.login_as(user=self.user)
-        first_seen = django_timezone.now() - timedelta(days=5)
+        first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
         response = self.client.get(
             f"/api/0/issues/{group.id}/events/",
@@ -403,7 +399,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
         assert response.status_code == 400
 
-    def test_multiple_group(self):
+    def test_multiple_group(self) -> None:
         self.login_as(user=self.user)
 
         event_1 = self.store_event(
@@ -411,7 +407,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -420,7 +416,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_2"],
                 "event_id": "b" * 32,
                 "message": "group2",
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -432,7 +428,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             assert len(response.data) == 1, response.data
             assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]
 
-    def test_pagination(self):
+    def test_pagination(self) -> None:
         self.login_as(user=self.user)
 
         for _ in range(2):
@@ -441,7 +437,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                     "fingerprint": ["group_1"],
                     "event_id": "a" * 32,
                     "message": "foo",
-                    "timestamp": iso_format(self.min_ago),
+                    "timestamp": self.min_ago.isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -454,7 +450,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert links["next"]["results"] == "true"
         assert len(response.data) == 1
 
-    def test_orderby(self):
+    def test_orderby(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
@@ -462,7 +458,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "a" * 32,
                 "message": "foo",
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -471,7 +467,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 "fingerprint": ["group_1"],
                 "event_id": "b" * 32,
                 "message": "foo",
-                "timestamp": iso_format(self.two_min_ago),
+                "timestamp": self.two_min_ago.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -482,7 +478,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert response.data[0]["eventID"] == "a" * 32
         assert response.data[1]["eventID"] == "b" * 32
 
-    def test_perf_issue(self):
+    def test_perf_issue(self) -> None:
         event_1 = self.create_performance_issue()
         event_2 = self.create_performance_issue()
 
@@ -496,13 +492,13 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
-    def test_generic_issue(self):
+    def test_generic_issue(self) -> None:
         event_1, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
         assert group_info is not None
         event_2, _, _ = self.store_search_issue(
@@ -510,7 +506,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            before_now(hours=1).replace(tzinfo=timezone.utc),
+            before_now(hours=1),
         )
 
         self.login_as(user=self.user)
@@ -522,3 +518,30 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+
+    def test_sample(self) -> None:
+        """Test that random=true doesn't blow up. We can't really test if they're in random order."""
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "a" * 32,
+                "message": "foo",
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group_1"],
+                "event_id": "b" * 32,
+                "message": "foo",
+                "timestamp": self.two_min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/events/?sample=true"
+        response = self.do_request(url)
+        assert len(response.data) == 2

@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import DataPath, Interface
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 
@@ -154,7 +154,6 @@ class Frame(Interface):
             "symbol_addr",
             "trust",
             "vars",
-            "snapshot",
             "lock",
         ):
             data.setdefault(key, None)
@@ -191,7 +190,7 @@ class Frame(Interface):
             }
         )
 
-    def get_api_context(self, is_public=False, pad_addr=None, platform=None):
+    def get_api_context(self, is_public=False, platform=None, pad_addr=None):
         from sentry.stacktraces.functions import (
             get_function_name_for_frame,
             get_source_link_for_frame,
@@ -248,12 +247,6 @@ class Frame(Interface):
         if self.data:
             if "symbolicator_status" in self.data:
                 data["symbolicatorStatus"] = self.data["symbolicator_status"]
-
-            if self.data.get("is_sentinel"):
-                data["isSentinel"] = True
-
-            if self.data.get("is_prefix"):
-                data["isPrefix"] = True
 
             if "min_grouping_level" in self.data:
                 data["minGroupingLevel"] = self.data["min_grouping_level"]
@@ -325,7 +318,7 @@ class Frame(Interface):
         # queries and JSON data)
         return self.function.startswith(("lambda$", "[Anonymous"))
 
-    def to_string(self, event):
+    def to_string(self, event) -> str:
         if event.platform is not None:
             choices = [event.platform]
         else:
@@ -525,7 +518,7 @@ class Stacktrace(Interface):
             }
         )
 
-    def to_string(self, event, is_public=False, **kwargs):
+    def to_string(self, event) -> str:
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(

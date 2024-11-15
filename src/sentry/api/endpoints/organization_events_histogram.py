@@ -57,7 +57,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
@@ -72,18 +72,18 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="histogram"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
 
                 with handle_query_errors():
                     results = dataset.histogram_query(
-                        data["field"],
-                        data.get("query"),
-                        params,
-                        data["numBuckets"],
-                        data["precision"],
+                        fields=data["field"],
+                        user_query=data.get("query"),
+                        snuba_params=snuba_params,
+                        num_buckets=data["numBuckets"],
+                        precision=data["precision"],
                         min_value=data.get("min"),
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),

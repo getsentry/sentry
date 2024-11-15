@@ -16,12 +16,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
-import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 
 export interface UrlState {
   widths: string[];
@@ -155,7 +155,6 @@ export default function SelectorTable({
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location as Location<any>}
       title={title}
     />
   );

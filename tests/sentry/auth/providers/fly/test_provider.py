@@ -31,6 +31,7 @@ class FlyOAuth2ProviderTest(TestCase):
         resource = {"id": "nathans-org", "role": "member"}
         result = provider.build_config(resource=resource)
         assert result == {"org": {"id": "nathans-org"}}
+        assert provider.is_partner == (self.auth_provider.provider == ChannelName.FLY_IO.value)
 
     def test_build_identity(self):
         provider = self.auth_provider.get_provider()
@@ -70,3 +71,16 @@ class FlyOAuth2ProviderTest(TestCase):
             "data": provider.get_oauth_data(data),
             "email_verified": False,
         }
+
+    def test_audit_log_data(self):
+        audit_log_data = self.auth_provider.get_audit_log_data()
+        assert audit_log_data["provider"] == "fly"
+        assert audit_log_data["config"] == {}
+
+
+@control_silo_test
+class NonPartnerFlyOAuth2ProviderTest(FlyOAuth2ProviderTest):
+    def setUp(self):
+        self.auth_provider: AuthProvider = AuthProvider.objects.create(
+            provider=ChannelName.FLY_NON_PARTNER.value, organization_id=self.organization.id
+        )

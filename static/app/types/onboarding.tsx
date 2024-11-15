@@ -1,16 +1,18 @@
-import type {RouteContextInterface} from 'react-router';
+import type {Query} from 'history';
 
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
-import type {
-  Group,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-  Project,
-} from 'sentry/types';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
+import type {Group} from './group';
+import type {Organization} from './organization';
+import type {PlatformIntegration, PlatformKey, Project} from './project';
 import type {AvatarUser} from './user';
+
+export enum OnboardingTaskGroup {
+  GETTING_STARTED = 'getting_started',
+  BEYOND_BASICS = 'beyond_basics',
+}
 
 export enum OnboardingTaskKey {
   FIRST_PROJECT = 'create_project',
@@ -21,11 +23,12 @@ export enum OnboardingTaskKey {
   RELEASE_TRACKING = 'setup_release_tracking',
   SOURCEMAPS = 'setup_sourcemaps',
   USER_REPORTS = 'setup_user_reports',
-  ISSUE_TRACKER = 'setup_issue_tracker',
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
   USER_SELECTED_PROJECTS = 'setup_userselected_projects',
+  REAL_TIME_NOTIFICATIONS = 'setup_real_time_notifications',
+  LINK_SENTRY_TO_SOURCE_CODE = 'link_sentry_to_source_code',
   /// Customized card that shows the selected integrations during onboarding
   INTEGRATIONS = 'integrations',
   /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
@@ -39,8 +42,8 @@ export enum OnboardingTaskKey {
 }
 
 export type OnboardingSupplementComponentProps = {
-  onCompleteTask: () => void;
   task: OnboardingTask;
+  onCompleteTask?: () => void;
 };
 
 export type OnboardingCustomComponentProps = {
@@ -72,14 +75,10 @@ interface OnboardingTaskDescriptorBase {
    */
   SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
   /**
-   * If a render function was provided, it will be used to render the entire card,
-   * and the card will be rendered before any other cards regardless of completion status.
-   * the render function is therefore responsible for determining the completion status
-   * of the card by returning null when it's completed.
-   *
-   * Note that this should not be given a react component.
+   * The group that this task belongs to, e.g. basic and level up
    */
-  renderCard?: (props: OnboardingCustomComponentProps) => JSX.Element | null;
+  group?: OnboardingTaskGroup;
+  pendingTitle?: string;
   /**
    * Joins with this task id for server-side onboarding state.
    * This allows you to create alias for exising onboarding tasks or create multiple
@@ -89,18 +88,24 @@ interface OnboardingTaskDescriptorBase {
 }
 
 interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
-  action: (props: RouteContextInterface) => void;
+  action: (props: InjectedRouter) => void;
   actionType: 'action';
 }
 
 interface OnboardingTypeDescriptorWithExternal extends OnboardingTaskDescriptorBase {
-  actionType: 'app' | 'external';
+  actionType: 'external';
   location: string;
+}
+
+interface OnboardingTypeDescriptorWithAppLink extends OnboardingTaskDescriptorBase {
+  actionType: 'app';
+  location: string | {pathname: string; query?: Query};
 }
 
 export type OnboardingTaskDescriptor =
   | OnboardingTypeDescriptorWithAction
-  | OnboardingTypeDescriptorWithExternal;
+  | OnboardingTypeDescriptorWithExternal
+  | OnboardingTypeDescriptorWithAppLink;
 
 export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
@@ -131,7 +136,16 @@ interface OnboardingTaskWithExternal
   requisiteTasks: OnboardingTaskDescriptor[];
 }
 
-export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
+interface OnboardingTaskWithAppLink
+  extends OnboardingTaskStatus,
+    OnboardingTypeDescriptorWithAppLink {
+  requisiteTasks: OnboardingTaskDescriptor[];
+}
+
+export type OnboardingTask =
+  | OnboardingTaskWithAction
+  | OnboardingTaskWithExternal
+  | OnboardingTaskWithAppLink;
 
 export enum OnboardingProjectStatus {
   WAITING = 'waiting',
@@ -139,12 +153,11 @@ export enum OnboardingProjectStatus {
   PROCESSED = 'processed',
 }
 
-export type OnboardingSelectedSDK = {
+export interface OnboardingSelectedSDK
+  extends Pick<PlatformIntegration, 'language' | 'link' | 'name' | 'type'> {
   category: Category;
   key: PlatformKey;
-  language: PlatformIntegration['language'];
-  type: PlatformIntegration['type'];
-};
+}
 
 export type OnboardingRecentCreatedProject = Project & {
   firstError: boolean;

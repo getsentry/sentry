@@ -8,15 +8,21 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
-from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -26,7 +32,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.integrations.gitlab")
 
 
-class GitlabProxySetupClient(IntegrationProxyClient):
+class GitLabSetupApiClient(IntegrationProxyClient):
     """
     API Client that doesn't require an installation.
     This client is used during integration setup to fetch data
@@ -62,9 +68,7 @@ class GitlabProxySetupClient(IntegrationProxyClient):
         return self.get(path)
 
 
-class GitLabProxyApiClient(IntegrationProxyClient):
-    integration_name = "gitlab"
-
+class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
     def __init__(self, installation: GitlabIntegration):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
@@ -72,6 +76,8 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
+        self.integration_name = "gitlab"
+
         super().__init__(
             integration_id=installation.model.id,
             org_integration_id=org_integration_id,
@@ -221,13 +227,25 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         """
         return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
 
-    def create_issue_comment(self, project_id, issue_id, data):
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]):
         """Create an issue note/comment
 
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
         return self.post(
-            GitLabApiClientPath.notes.format(project=project_id, issue_id=issue_id), data=data
+            GitLabApiClientPath.create_note.format(project=repo, issue_id=issue_id), data=data
+        )
+
+    def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
+        """Modify existing issue note
+
+        See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
+        """
+        return self.put(
+            GitLabApiClientPath.update_note.format(
+                project=repo, issue_id=issue_id, note_id=comment_id
+            ),
+            data=data,
         )
 
     def search_project_issues(self, project_id, query, iids=None):
@@ -292,6 +310,9 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         """
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+        raise IntegrationFeatureNotImplementedError
+
     def compare_commits(self, project_id, start_sha, end_sha):
         """Compare commits between two SHAs
 
@@ -308,52 +329,38 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    def check_file(self, repo: Repository, path: str, ref: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         """Fetch a file for stacktrace linking
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        try:
-            project_id = repo.config["project_id"]
-            encoded_path = quote(path, safe="")
+        project_id = repo.config["project_id"]
+        encoded_path = quote(path, safe="")
 
-            request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-            return self.head_cached(request_path, params={"ref": ref})
-        except ApiError as e:
-            # Gitlab can return 404 or 400 if the file doesn't exist
-            if e.code != 400:
-                raise
-            return None
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
 
-    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
+        # Gitlab can return 404 or 400 if the file doesn't exist
+        return self.head_cached(request_path, params={"ref": version})
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
         """Get the contents of a file
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
         file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
-        from base64 import b64decode
 
         project_id = repo.config["project_id"]
         encoded_path = quote(path, safe="")
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
-        headers = (
-            {
-                "Accept": "application/vnd.github.raw",
-                "Content-Type": "application/raw; charset=utf-8",
-            }
-            if codeowners
-            else {}
-        )
-        contents = self.get(request_path, params={"ref": ref}, raw_response=True, headers=headers)
+        request_path = GitLabApiClientPath.file_raw.format(project=project_id, path=encoded_path)
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
-        )
+        contents = self.get(request_path, params={"ref": ref}, raw_response=True)
+        result = contents.content.decode("utf-8")
+
         return result
 
     def get_blame_for_files(

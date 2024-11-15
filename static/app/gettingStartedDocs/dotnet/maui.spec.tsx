@@ -2,10 +2,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+
 import docs from './maui';
 
 describe('maui onboarding docs', function () {
-  it('renders docs correctly', async function () {
+  it('renders errors onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.maui': {
@@ -18,9 +20,7 @@ describe('maui onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Performance Monitoring'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Sample Application'})).toBeInTheDocument();
 
     // Renders SDK version from registry
@@ -28,6 +28,29 @@ describe('maui onboarding docs', function () {
       await screen.findByText(
         textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version 1\.99\.9/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders performance onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders profiling onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.PROFILING,
+      ],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.ProfilesSampleRate/))
     ).toBeInTheDocument();
   });
 });

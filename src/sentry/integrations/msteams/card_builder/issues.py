@@ -5,14 +5,13 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry import features
-from sentry.eventstore.models import Event
-from sentry.integrations.message_builder import (
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
-    format_actor_option,
-    format_actor_options,
+    format_actor_option_non_slack,
+    format_actor_options_non_slack,
 )
 from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.block import (
@@ -26,10 +25,10 @@ from sentry.integrations.msteams.card_builder.block import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder
@@ -54,7 +53,11 @@ logger = logging.getLogger(__name__)
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, group: Group, event: Event, rules: Sequence[Rule], integration: RpcIntegration
+        self,
+        group: Group,
+        event: Event | GroupEvent,
+        rules: Sequence[Rule],
+        integration: RpcIntegration,
     ):
         self.group = group
         self.event = event
@@ -185,14 +188,11 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def get_teams_choices(self) -> Sequence[tuple[str, str]]:
         teams = self.group.project.teams.all().order_by("slug")
         return [("Me", ME)] + [
-            (team["text"], team["value"]) for team in format_actor_options(teams)
+            (team["text"], team["value"]) for team in format_actor_options_non_slack(teams)
         ]
 
     def build_group_actions(self) -> ContainerBlock:
         status = self.group.get_status()
-        has_escalating = features.has(
-            "organizations:escalating-issues-msteams", self.group.project.organization
-        )
 
         resolve_action = self.create_issue_action_block(
             toggled=GroupStatus.RESOLVED == status,
@@ -209,21 +209,15 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         ignore_action = self.create_issue_action_block(
             toggled=GroupStatus.IGNORED == status,
-            action=ACTION_TYPE.IGNORE,
-            action_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
+            action=ACTION_TYPE.ARCHIVE,
+            action_title=IssueConstants.ARCHIVE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
-            reverse_action_title=IssueConstants.STOP_ARCHIVE
-            if has_escalating
-            else IssueConstants.STOP_IGNORING,
+            reverse_action_title=IssueConstants.UNARCHIVE,
             # card_kwargs
-            card_title=IssueConstants.ARCHIVE_INPUT_TITLE
-            if has_escalating
-            else IssueConstants.IGNORE_INPUT_TITLE,
-            submit_button_title=IssueConstants.ARCHIVE if has_escalating else IssueConstants.IGNORE,
-            input_id=IssueConstants.IGNORE_INPUT_ID,
-            choices=IssueConstants.ARCHIVE_INPUT_CHOICES
-            if has_escalating
-            else IssueConstants.IGNORE_INPUT_CHOICES,
+            card_title=IssueConstants.ARCHIVE_INPUT_TITLE,
+            submit_button_title=IssueConstants.ARCHIVE,
+            input_id=IssueConstants.ARCHIVE_INPUT_ID,
+            choices=IssueConstants.ARCHIVE_INPUT_CHOICES,
         )
 
         teams_choices = self.get_teams_choices()
@@ -248,7 +242,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "group_id": self.group.id,
                 "project_id": self.group.project.id,
                 "organization": self.group.project.organization.id,
-                "has_escalating": has_escalating,
                 "ignore_action": ignore_action,
             },
         )
@@ -264,7 +257,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def build_assignee_note(self) -> TextBlock | None:
         assignee = self.group.get_assignee()
         if assignee:
-            assignee_text = format_actor_option(assignee)["text"]
+            assignee_text = format_actor_option_non_slack(assignee)["text"]
 
             return create_text_block(
                 IssueConstants.ASSIGNEE_NOTE.format(assignee=assignee_text),

@@ -1,4 +1,5 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 const MILLION = 10 ** 6;
@@ -147,5 +148,25 @@ describe('formatUsageWithUnits', function () {
         useUnitScaling: true,
       })
     ).toBe('1.23 TB');
+  });
+
+  it('should format profile duration correctly', function () {
+    const hourInMs = 1000 * 60 * 60;
+    expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.profileDuration.plural)).toBe('0');
+    expect(
+      formatUsageWithUnits(7.6 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('7.6');
+    expect(
+      formatUsageWithUnits(hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('1');
+    expect(
+      formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('24');
+  });
+
+  it('Correctly groups invalid outcome reasons', function () {
+    expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
+    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large');
+    expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('internal');
   });
 });

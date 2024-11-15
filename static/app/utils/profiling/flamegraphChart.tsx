@@ -1,8 +1,13 @@
 import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {colorComponentsToRGBA} from './colors/utils';
-import {makeFormatter, makeTimelineFormatter} from './units/units';
+import {
+  assertValidProfilingUnit,
+  makeFormatter,
+  makeTimelineFormatter,
+} from './units/units';
 
 interface Series {
   fillColor: string;
@@ -12,8 +17,10 @@ interface Series {
   type: 'line' | 'area';
 }
 
-export interface ProfileSeriesMeasurement extends Profiling.Measurement {
+export interface ProfileSeriesMeasurement {
   name: string;
+  unit: string;
+  values: {elapsed: number; value: number}[];
 }
 
 function computeLabelPrecision(min: number, max: number): number {
@@ -30,11 +37,13 @@ function computeLabelPrecision(min: number, max: number): number {
 }
 
 interface ChartOptions {
+  timelineUnit?: ProfilingFormatterUnit;
   type?: 'line' | 'area';
 }
 
 export class FlamegraphChart {
   configSpace: Rect;
+  unit: ProfilingFormatterUnit;
   formatter: ReturnType<typeof makeFormatter>;
   tooltipFormatter: ReturnType<typeof makeFormatter>;
   timelineFormatter: (value: number) => string;
@@ -58,11 +67,12 @@ export class FlamegraphChart {
     options: ChartOptions = {}
   ) {
     this.series = new Array<Series>();
-    this.timelineFormatter = makeTimelineFormatter('nanoseconds');
+    this.timelineFormatter = makeTimelineFormatter(options.timelineUnit ?? 'nanoseconds');
 
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
+      this.unit = 'percent';
       this.configSpace = configSpace.clone();
       this.status = !measurements ? 'no metrics' : 'empty metrics';
       return;
@@ -108,14 +118,14 @@ export class FlamegraphChart {
         }
 
         // Track and update X domain max and min
-        if (m.elapsed_since_start_ns > this.domains.x[1]) {
-          this.domains.x[1] = m.elapsed_since_start_ns;
+        if (m.elapsed > this.domains.x[1]) {
+          this.domains.x[1] = m.elapsed;
         }
-        if (m.elapsed_since_start_ns < this.domains.x[0]) {
-          this.domains.x[1] = m.elapsed_since_start_ns;
+        if (m.elapsed < this.domains.x[0]) {
+          this.domains.x[1] = m.elapsed;
         }
 
-        this.series[j].points[i] = {x: m.elapsed_since_start_ns, y: m.value};
+        this.series[j].points[i] = {x: m.elapsed, y: m.value};
       }
     }
 
@@ -127,6 +137,9 @@ export class FlamegraphChart {
 
     this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
+
+    assertValidProfilingUnit(measurements[0].unit);
+    this.unit = measurements[0].unit;
 
     this.formatter = makeFormatter(
       measurements[0].unit,

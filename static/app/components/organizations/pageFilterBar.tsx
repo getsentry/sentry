@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {space} from 'sentry/styles/space';
+
 const PageFilterBar = styled('div')<{condensed?: boolean}>`
   display: flex;
   position: relative;
@@ -37,7 +39,15 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     z-index: 0;
   }
 
-  & button[aria-haspopup].focus-visible {
+  /* Less inner padding between buttons */
+  & > div:not(:first-child) > button[aria-haspopup] {
+    padding-left: ${space(1.5)};
+  }
+  & > div:not(:last-child) > button[aria-haspopup] {
+    padding-right: ${space(1.5)};
+  }
+
+  & button[aria-haspopup]:focus-visible {
     border-color: ${p => p.theme.focusBorder};
     box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
     z-index: 1;
@@ -60,7 +70,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
 
     /* Prevent date filter from shrinking below 6.5rem */
     &:last-child {
-      min-width: 6.5rem;
+      min-width: 4rem;
     }
   }
 

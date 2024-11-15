@@ -7,13 +7,12 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.shared_integrations.exceptions import IntegrationFormError
+from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
@@ -117,7 +116,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             return
         try:
             response = installation.create_issue(data)
-        except IntegrationFormError as e:
+        except Exception as e:
             logger.info(
                 "%s.rule_trigger.create_ticket.failure",
                 provider,
@@ -126,6 +125,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                     "integration_id": integration.id,
                     "error_message": str(e),
+                    "exception_type": type(e).__name__,
                 },
             )
             metrics.incr(
@@ -134,7 +134,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                     "provider": provider,
                 },
             )
-            return
 
-        if not event.get_tag("sample_event") == "yes":
-            create_link(integration, installation, event, response)
+            raise
+
+        create_link(integration, installation, event, response)

@@ -4,7 +4,7 @@ from datetime import timezone
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -15,8 +15,8 @@ from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCK
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.service import organization_service
 from sentry.plugins.providers import RepositoryProvider
-from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.utils import json
 from sentry.utils.email import parse_email
 
@@ -87,7 +87,7 @@ class BitbucketPluginWebhookEndpoint(View):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 

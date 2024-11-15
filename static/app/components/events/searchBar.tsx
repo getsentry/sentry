@@ -2,25 +2,21 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import type {Organization, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
+import {isAggregateField, isEquation, isMeasurement} from 'sentry/utils/discover/fields';
 import {
-  FIELD_TAGS,
-  isAggregateField,
-  isEquation,
-  isMeasurement,
-  SEMVER_TAGS,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  TRACING_FIELDS,
-} from 'sentry/utils/discover/fields';
+  DiscoverDatasets,
+  DiscoverDatasetsToDatasetMap,
+} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKey,
@@ -32,12 +28,17 @@ import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
-const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
-  `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
-  'g'
-);
+import {
+  SEARCH_SPECIAL_CHARS_REGEXP,
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_SET,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from './searchBarFieldConstants';
 
-const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
   if (!fields?.length) {
     return [];
@@ -121,35 +122,24 @@ const getSearchConfigFromCustomPerformanceMetrics = (
   return searchConfig;
 };
 
-const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
-  tags[key] = {
-    ...FIELD_TAGS[key],
-    kind: FieldKind.FIELD,
-  };
-  return tags;
-}, {});
-
-const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
-
-const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
-  tags[key] = {name: key, kind: FieldKind.METRICS};
-  return tags;
-}, {});
-
-const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
-  tags[key] = {
-    ...SEMVER_TAGS[key],
-    kind: FieldKind.FIELD,
-  };
-  return tags;
-}, {});
+export const getHasTag = (tags: TagCollection) => ({
+  key: FieldKey.HAS,
+  name: 'Has property',
+  values: Object.keys(tags).sort((a, b) => {
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  }),
+  predefined: true,
+  kind: FieldKind.FIELD,
+});
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
+  includeTransactions?: boolean;
   /**
    * Used to define the max height of the menu in px.
    */
@@ -157,6 +147,8 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  savedSearchType?: SavedSearchType;
+  supportedTags?: TagCollection | undefined;
 };
 
 function SearchBar(props: SearchBarProps) {
@@ -170,6 +162,9 @@ function SearchBar(props: SearchBarProps) {
     includeSessionTagsValues,
     maxMenuHeight,
     customMeasurements,
+    dataset,
+    savedSearchType = SavedSearchType.EVENT,
+    includeTransactions = true,
   } = props;
 
   const api = useApi();
@@ -209,18 +204,31 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      return fetchTagValues({
-        api,
-        orgSlug: organization.slug,
-        tagKey: tag.key,
-        search: query,
-        projectIds: projectIdStrings,
-        endpointParams,
-        // allows searching for tags on transactions as well
-        includeTransactions: true,
-        // allows searching for tags on sessions as well
-        includeSessions: includeSessionTagsValues,
-      }).then(
+      const fetchPromise =
+        dataset === DiscoverDatasets.SPANS_INDEXED
+          ? fetchSpanFieldValues({
+              api,
+              orgSlug: organization.slug,
+              fieldKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+            })
+          : fetchTagValues({
+              api,
+              orgSlug: organization.slug,
+              tagKey: tag.key,
+              search: query,
+              projectIds: projectIdStrings,
+              endpointParams,
+              // allows searching for tags on transactions as well
+              includeTransactions: includeTransactions,
+              // allows searching for tags on sessions as well
+              includeSessions: includeSessionTagsValues,
+              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+            });
+
+      return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
@@ -238,27 +246,31 @@ function SearchBar(props: SearchBarProps) {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    const combinedTags: TagCollection = orgHasPerformanceView
-      ? Object.assign(
-          {},
-          measurementsWithKind,
-          functionTags,
-          STATIC_SPAN_TAGS,
-          STATIC_FIELD_TAGS
-        )
-      : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+    const combinedTags: TagCollection =
+      dataset === DiscoverDatasets.ERRORS
+        ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        : dataset === DiscoverDatasets.TRANSACTIONS ||
+            dataset === DiscoverDatasets.METRICS_ENHANCED
+          ? Object.assign(
+              {},
+              measurementsWithKind,
+              functionTags,
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
+            )
+          : orgHasPerformanceView
+            ? Object.assign(
+                {},
+                measurementsWithKind,
+                functionTags,
+                STATIC_SPAN_TAGS,
+                STATIC_FIELD_TAGS
+              )
+            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
 
-    combinedTags.has = {
-      key: FieldKey.HAS,
-      name: 'Has property',
-      values: Object.keys(combinedTags).sort((a, b) => {
-        return a.toLowerCase().localeCompare(b.toLowerCase());
-      }),
-      predefined: true,
-      kind: FieldKind.FIELD,
-    };
+    combinedTags.has = getHasTag(combinedTags);
 
     const list =
       omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
@@ -275,7 +287,8 @@ function SearchBar(props: SearchBarProps) {
       {({measurements}) => (
         <SmartSearchBar
           hasRecentSearches
-          savedSearchType={SavedSearchType.EVENT}
+          savedSearchType={savedSearchType}
+          projectIds={projectIds}
           onGetTagValues={getEventFieldValues}
           supportedTags={getTagList(measurements)}
           prepareQuery={query => {

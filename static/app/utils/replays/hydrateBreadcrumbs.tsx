@@ -3,31 +3,14 @@ import invariant from 'invariant';
 import {t} from 'sentry/locale';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
-import type {
-  BreadcrumbFrame,
-  RawBreadcrumbFrame,
-  RecordingFrame,
-} from 'sentry/utils/replays/types';
-import {EventType, isBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {defaultTitle} from 'sentry/utils/replays/getFrameDetails';
+import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-function findCloseMutations(date: Date, rrwebFrames: RecordingFrame[]) {
-  const timeMS = date.getTime();
-  const incrementalFrames = rrwebFrames.filter(
-    frame => frame.type === EventType.IncrementalSnapshot
-  );
-  const framesBefore = incrementalFrames.filter(frame => frame.timestamp <= timeMS);
-  const framesAfter = incrementalFrames.filter(frame => frame.timestamp > timeMS);
-  return {
-    prev: framesBefore.at(-1) ?? null,
-    next: framesAfter.at(0) ?? null,
-  };
-}
 
 export default function hydrateBreadcrumbs(
   replayRecord: ReplayRecord,
-  breadcrumbFrames: RawBreadcrumbFrame[],
-  rrwebFrames: RecordingFrame[]
+  breadcrumbFrames: RawBreadcrumbFrame[]
 ): BreadcrumbFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
 
@@ -40,11 +23,16 @@ export default function hydrateBreadcrumbs(
         if (frame.category === 'replay.hydrate-error') {
           frame.data = {
             description: t('Encountered an error while hydrating'),
-            mutations: findCloseMutations(time, rrwebFrames),
           };
         }
         return {
           ...frame,
+          // Logcat and Timber are used for mobile replays and are considered a console frame instead of a custom breadcrumb frame
+          // custom frames might not have a defined category, so we need to set one
+          category:
+            frame.category === 'Logcat' || frame.category === 'Timber'
+              ? 'console'
+              : frame.category || defaultTitle(frame) || 'custom',
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sentry_relay.processing import validate_project_config
+from sentry_relay.processing import normalize_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
@@ -15,6 +15,7 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
     CUSTOM_RULE_START,
@@ -25,7 +26,6 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @pytest.fixture
@@ -78,10 +78,9 @@ def _validate_rules(project):
         "sampling": {
             "version": 2,
             "rules": rules,
-            "mode": "total",
         },
     }
-    validate_project_config(json.dumps(project_config), strict=True)
+    assert normalize_project_config(project_config) == project_config
 
 
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
@@ -91,11 +90,12 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
     fake_project = MagicMock()
-    # if blended rate is None that means no dynamic sampling behavior should happen.
-    # Therefore no rules should be set.
-    assert generate_rules(fake_project) == []
-    get_blended_sample_rate.assert_called_with(organization_id=fake_project.organization.id)
-    assert sentry_sdk.capture_exception.call_count == 1
+    # if blended rate is None that means dynamic sampling rate should be set to 1.
+    rules = generate_rules(fake_project)
+    assert rules[0]["samplingValue"]["value"] == 1.0
+    get_blended_sample_rate.assert_called_with(
+        organization_id=fake_project.organization.id, project=fake_project
+    )
     _validate_rules(fake_project)
 
 
@@ -123,7 +123,7 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
             },
         ]
         get_blended_sample_rate.assert_called_with(
-            organization_id=default_old_project.organization.id
+            organization_id=default_old_project.organization.id, project=default_old_project
         )
         _validate_rules(default_old_project)
 
@@ -204,7 +204,9 @@ def test_generate_rules_return_uniform_rules_and_env_rule(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 
@@ -492,7 +494,9 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 
@@ -565,7 +569,9 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 
@@ -788,3 +794,32 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
     assert rules[2]["id"] == 1000
 
     _validate_rules(default_old_project)
+
+
+@django_db_all
+@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
+@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
+def test_generate_rules_project_mode(
+    get_blended_sample_rate, get_enabled_user_biases, default_old_project
+):
+    # Ensure only the project base rate is generated
+    get_enabled_user_biases.return_value = {}
+
+    default_old_project.organization.update_option(
+        "sentry:sampling_mode", DynamicSamplingMode.PROJECT
+    )
+    default_old_project.update_option("sentry:target_sample_rate", 0.2)
+
+    with Feature(
+        {"organizations:ds-org-recalibration": True, "organizations:dynamic-sampling-custom": True}
+    ):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 0.2},
+                "type": "trace",
+            },
+        ]
+        assert not get_blended_sample_rate.called
+        _validate_rules(default_old_project)

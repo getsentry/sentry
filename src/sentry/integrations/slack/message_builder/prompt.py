@@ -1,5 +1,6 @@
-from sentry.integrations.slack.message_builder import SlackBody
-from sentry.utils import json
+import orjson
+
+from sentry.integrations.slack.message_builder.types import SlackBody
 
 from .base.block import BlockSlackMessageBuilder
 
@@ -13,10 +14,10 @@ class SlackPromptLinkMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self) -> SlackBody:
         return {
-            "blocks": json.dumps(
+            "blocks": orjson.dumps(
                 [
                     self.get_markdown_block(LINK_IDENTITY_MESSAGE),
                     self.get_action_block([("Link", self.url, "link"), ("Cancel", None, "ignore")]),
-                ]
-            )
+                ],
+            ).decode()
         }

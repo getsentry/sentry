@@ -2,7 +2,9 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import analytics, features
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
@@ -37,7 +39,14 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                 & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
             ).values_list("task", flat=True)
         )
-        if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
+
+        organization = Organization.objects.get(id=organization_id)
+        if features.has("organizations:quick-start-updates", organization):
+            required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
+        else:
+            required_tasks = OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
+
+        if completed >= required_tasks:
             try:
                 with transaction.atomic(router.db_for_write(OrganizationOption)):
                     OrganizationOption.objects.create(
@@ -45,5 +54,13 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                         key="onboarding:complete",
                         value={"updated": json.datetime_to_str(timezone.now())},
                     )
+
+                organization = Organization.objects.get(id=organization_id)
+                analytics.record(
+                    "onboarding.complete",
+                    user_id=organization.default_owner_id,
+                    organization_id=organization_id,
+                    referrer="onboarding_tasks",
+                )
             except IntegrityError:
                 pass

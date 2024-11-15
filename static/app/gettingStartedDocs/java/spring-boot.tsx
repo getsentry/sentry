@@ -9,6 +9,8 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -103,10 +105,10 @@ const getMavenInstallSnippet = (params: Params) => `
 </build>`;
 
 const getConfigurationPropertiesSnippet = (params: Params) => `
-sentry.dsn=${params.dsn}${
+sentry.dsn=${params.dsn.public}${
   params.isPerformanceSelected
     ? `
-# Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
 # We recommend adjusting this value in production.
 sentry.traces-sample-rate=1.0`
     : ''
@@ -114,10 +116,10 @@ sentry.traces-sample-rate=1.0`
 
 const getConfigurationYamlSnippet = (params: Params) => `
 sentry:
-  dsn: ${params.dsn}${
+  dsn: ${params.dsn.public}${
     params.isPerformanceSelected
       ? `
-  # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
+  # Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
   # We recommend adjusting this value in production.
   traces-sample-rate: 1.0`
       : ''
@@ -214,10 +216,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+        'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
         {
-          applicationPropertiesCode: <code />,
-          applicationYmlCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -287,14 +288,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/performance/',
-    },
   ],
 };
 
@@ -302,6 +295,8 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   replayOnboardingJsLoader,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
+  customMetricsOnboarding: getJavaMetricsOnboarding(),
 };
 
 export default docs;

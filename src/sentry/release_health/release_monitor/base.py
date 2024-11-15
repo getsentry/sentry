@@ -14,7 +14,7 @@ Totals = dict[int, dict[str, EnvironmentTotals]]
 
 class BaseReleaseMonitorBackend(Service):
     CHUNK_SIZE = 1000
-    MAX_SECONDS = 60
+    MAX_SECONDS = 360
 
     __all__ = ("fetch_projects_with_recent_sessions", "fetch_project_release_health_totals")
 

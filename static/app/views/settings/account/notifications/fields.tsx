@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 
 export type FineTuneField = {
   description: string;
@@ -66,6 +66,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     // No choices here because it's going to have dynamic content
     // Component will create choices,
   },
+  // TODO(isabella): Once GA, replace the following with Spend Notifications
   quota: {
     title: t('Quota Notifications'),
     description: t(
@@ -82,6 +83,17 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     ),
     type: 'select',
     defaultValue: '1',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+  },
+  brokenMonitors: {
+    title: t('Broken Monitors'),
+    description: t(
+      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+    ),
+    type: 'select',
     options: [
       {value: '1', label: t('On')},
       {value: '0', label: t('Off')},

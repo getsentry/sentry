@@ -3,6 +3,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
@@ -33,7 +35,7 @@ def _ensure_action_uuid(action: dict[Any, Any]) -> None:
     action[_ACTION_UUID_KEY] = str(uuid4())
 
 
-def add_uuid_to_all_rule_actions(apps, schema_editor) -> None:
+def add_uuid_to_all_rule_actions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     """
     Backfill all rule actions with an uuid.
     If the rule's data does not have any actions, simply move on and do not update.
@@ -57,13 +59,13 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0644_backfill_priority_for_groups"),

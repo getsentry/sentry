@@ -5,7 +5,8 @@ import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMappe
 import type {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import type FormModel from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {AvatarProject, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {AvatarProject, Project} from 'sentry/types/project';
 
 export const FieldType = [
   'array',
@@ -46,7 +47,7 @@ interface BaseField {
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: React.ReactNode;
+  disabledReason?: React.ReactNode | ((props: any) => React.ReactNode);
   extraHelp?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -190,6 +191,10 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+export type SentryOrganizationRoleSelectorType = {
+  type: 'sentry_organization_role_selector';
+};
+
 export type SelectAsyncType = {
   type: 'select_async';
 } & SelectAsyncFieldProps;
@@ -204,6 +209,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SentryOrganizationRoleSelectorType
   | SelectAsyncType
   | ChoiceMapperType
   | {type: (typeof FieldType)[number]}

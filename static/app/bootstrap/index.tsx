@@ -1,4 +1,4 @@
-import type {Config} from 'sentry/types';
+import type {Config} from 'sentry/types/system';
 import {extractSlug} from 'sentry/utils/extractSlug';
 
 const BOOTSTRAP_URL = '/api/client-config/';
@@ -94,9 +94,14 @@ function preloadOrganizationData(config: Config) {
   const preloadPromises: Record<string, any> = {orgSlug: slug};
   window.__sentry_preload = preloadPromises;
   try {
-    preloadPromises.organization = promiseRequest(makeUrl('/?detailed=0'));
+    if (!slug) {
+      return;
+    }
+    preloadPromises.organization = promiseRequest(
+      makeUrl('/?detailed=0&include_feature_flags=1')
+    );
     preloadPromises.projects = promiseRequest(
-      makeUrl('/projects/?all_projects=1&collapse=latestDeploys')
+      makeUrl('/projects/?all_projects=1&collapse=latestDeploys&collapse=unusedFeatures')
     );
     preloadPromises.teams = promiseRequest(makeUrl('/teams/'));
   } catch (e) {

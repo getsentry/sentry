@@ -9,10 +9,8 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 @patch.dict(NotificationAction._registry, {})
 class NotificationActionsAvailableEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-available-actions"

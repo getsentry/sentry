@@ -7,7 +7,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -25,7 +24,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 
@@ -138,7 +137,7 @@ export interface FrameSourceMapDebuggerData {
   uploadedSourceMapWithCorrectDebugId: boolean;
 }
 
-interface SourceMapsDebuggerModalProps extends ModalRenderProps {
+export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
     organization: Organization | null;
   };
@@ -171,10 +170,7 @@ export function SourceMapsDebuggerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <ModalHeadingContainer>
-          <h4>{t('Make Your Stack Traces Readable')}</h4>
-          <FeatureBadge type="beta" tooltipProps={{position: 'right'}} />
-        </ModalHeadingContainer>
+        <h4>{t('Make Your Stack Traces Readable')}</h4>
       </Header>
       <Body>
         <p>
@@ -391,6 +387,7 @@ export function SourceMapsDebuggerModal({
               <FeedbackModal
                 featureName="sourcemaps-debugger"
                 feedbackTypes={[t('This was helpful'), t('This was not helpful')]}
+                useNewUserFeedback
                 {...modalProps}
               />
             ));
@@ -895,16 +892,18 @@ function ReleaseSourceFileMatchingChecklistItem({
   }
 
   if (sourceResolutionResults.stackFramePath === null) {
-    <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction type="muted">
-        <h6>{t('Stack Frame Without Path')}</h6>
-        <p>
-          {t(
-            "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
-          )}
-        </p>
-      </CheckListInstruction>
-    </CheckListItem>;
+    return (
+      <CheckListItem status="alert" title={errorMessage}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Stack Frame Without Path')}</h6>
+          <p>
+            {t(
+              "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
+            )}
+          </p>
+        </CheckListInstruction>
+      </CheckListItem>
+    );
   }
 
   return (
@@ -950,7 +949,7 @@ function ReleaseSourceFileMatchingChecklistItem({
         {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
-            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the the stack frame path.',
+            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
             {
               link: (
                 <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/" />
@@ -1330,7 +1329,7 @@ const ListItemTitleWrapper = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p =>
     ({
       none: p.theme.gray300,
@@ -1363,7 +1362,7 @@ const MonoBlock = styled('code')`
   border: 1px solid ${p => p.theme.gray200};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   white-space: nowrap;
 `;
 
@@ -1385,11 +1384,6 @@ const InstructionList = styled('ul')`
   li {
     margin-bottom: ${space(0.5)};
   }
-`;
-
-const ModalHeadingContainer = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`

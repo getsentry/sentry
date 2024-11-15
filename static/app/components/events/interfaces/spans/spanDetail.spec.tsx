@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 
 describe('SpanDetail', function () {
   const organization = OrganizationFixture();
@@ -150,7 +150,7 @@ describe('SpanDetail', function () {
           }),
           organization: OrganizationFixture({
             ...organization,
-            features: ['performance-database-view'],
+            features: ['insights-initial-modules'],
           }),
         })
       );
@@ -164,7 +164,7 @@ describe('SpanDetail', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'View Query Summary'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/performance/database/spans/span/a7ebd21614897/?project=2'
+        '/organizations/org-slug/insights/database/spans/span/a7ebd21614897/?project=2'
       );
     });
   });

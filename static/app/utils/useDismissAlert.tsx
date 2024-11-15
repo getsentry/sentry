@@ -11,7 +11,7 @@ type Opts = {
 
   /**
    * Number of days before the dismissal is expired.
-   * After expiration the the user will need to re-dismiss things.
+   * After expiration the user will need to re-dismiss things.
    */
   expirationDays?: number;
 };

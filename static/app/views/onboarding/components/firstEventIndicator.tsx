@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 import type {HTMLMotionProps, Variants} from 'framer-motion';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventWaiterProps} from 'sentry/utils/eventWaiter';
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -29,7 +29,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
         children({
           indicator: <Indicator firstIssue={firstIssue} {...props} />,
           firstEventButton: (
-            <Button
+            <LinkButton
               title={t("You'll need to send your first error to continue")}
               tooltipProps={{disabled: !!firstIssue}}
               disabled={!firstIssue}
@@ -37,6 +37,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               onClick={() =>
                 trackAnalytics('growth.onboarding_take_to_error', {
                   organization: props.organization,
+                  platform: props.project.platform,
                 })
               }
               to={`/organizations/${props.organization.slug}/issues/${
@@ -46,7 +47,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               }?referrer=onboarding-first-event-indicator`}
             >
               {t('Take me to my error')}
-            </Button>
+            </LinkButton>
           ),
         })
       }

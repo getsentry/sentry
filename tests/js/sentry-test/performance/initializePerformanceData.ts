@@ -4,8 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction, Project} from 'sentry/types';
-import {EntryType} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {
@@ -35,7 +36,6 @@ export function initializeData(settings?: InitializeDataSettings) {
 
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const routerLocation: {query: {project?: string}} = {
     query: {
@@ -48,7 +48,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   const router = {
     location: routerLocation,
   };
-  const initialData = initializeOrg({organization, projects, project, router});
+  const initialData = initializeOrg({organization, projects, router});
   const location = initialData.router.location;
   const eventView = EventView.fromLocation(location);
 
@@ -123,6 +123,7 @@ function makeSpan(opt: SpanOpt): ExampleSpan {
   const {id} = opt;
   return {
     id,
+    trace: 'trace',
     startTimestamp: 10100,
     finishTimestamp: 10200,
     exclusiveTime: 100,

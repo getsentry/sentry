@@ -6,8 +6,9 @@ import omit from 'lodash/omit';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -80,6 +81,9 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  // Skips adding parens before applying dashboard filters
+  // Used for datasets that do not support parens/boolean logic
+  skipDashboardFilterParens?: boolean;
 };
 
 type State<SeriesResponse> = {
@@ -155,6 +159,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       customDidUpdateComparator
         ? customDidUpdateComparator(prevProps, this.props)
         : widget.limit !== prevProps.widget.limit ||
+          !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
@@ -194,13 +199,17 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   private _isMounted: boolean = false;
 
   applyDashboardFilters(widget: Widget): Widget {
-    const {dashboardFilters} = this.props;
+    const {dashboardFilters, skipDashboardFilterParens} = this.props;
 
     const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions +
-        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions && !skipDashboardFilterParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
     });
     return widget;
   }
@@ -315,7 +324,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       })
     );
     const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
-    const transformedTimeseriesResults: Series[] = [];
+    const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
       rawResultsClone[requestIndex] = data;

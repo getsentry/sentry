@@ -1,3 +1,5 @@
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
@@ -13,15 +15,15 @@ export class Profile {
   timestamp: number | null;
   // Duration of the profile
   duration: number;
-  // Releative timestamp of the first sample in the timestamp.
+  // Relative timestamp of the first sample in the timestamp.
   startedAt: number;
-  // Releative timestamp of the last sample in the timestamp.
+  // Relative timestamp of the last sample in the timestamp.
   endedAt: number;
   threadId: number;
   type: string;
 
   // Unit in which the timings are reported in
-  unit = 'microseconds';
+  unit: ProfilingFormatterUnit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
 
@@ -30,6 +32,9 @@ export class Profile {
 
   // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
+
+  // Max stack size of each sample
+  readonly MAX_STACK_SIZE = 256;
 
   samples: CallTreeNode[] = [];
   sample_durations_ns: number[] = [];
@@ -41,7 +46,8 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
+  callTreeNodeProfileIdMap: Map<CallTreeNode, Profiling.ProfileReference[] | string[]> =
+    new Map();
 
   constructor({
     duration,
@@ -58,8 +64,8 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
-    type: string;
-    unit: string;
+    type: 'flamechart' | 'flamegraph' | 'empty';
+    unit: ProfilingFormatterUnit;
     timestamp?: number;
   }) {
     this.threadId = threadId;
@@ -79,7 +85,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    type: '',
+    type: 'empty',
   }).build();
 
   isEmpty(): boolean {

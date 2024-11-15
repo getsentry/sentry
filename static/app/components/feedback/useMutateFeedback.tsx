@@ -2,7 +2,9 @@ import {useCallback} from 'react';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import type {Actor, GroupStatus, Organization} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {GroupStatus} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -17,9 +19,14 @@ type TContext = unknown;
 interface Props {
   feedbackIds: TFeedbackIds;
   organization: Organization;
+  projectIds: string[];
 }
 
-export default function useMutateFeedback({feedbackIds, organization}: Props) {
+export default function useMutateFeedback({
+  feedbackIds,
+  organization,
+  projectIds,
+}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
@@ -43,13 +50,13 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
         ? {}
         : ids === 'all'
           ? listQueryKey[1]!
-          : {query: {id: ids}};
+          : {query: {id: ids, project: projectIds}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);
     },
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const markAsRead = useCallback(

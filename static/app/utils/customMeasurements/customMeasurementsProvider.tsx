@@ -6,7 +6,8 @@ import type {Client} from 'sentry/api';
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -82,7 +83,7 @@ export function CustomMeasurementsProvider({
           return;
         }
 
-        const errorResponse = t('Unable to fetch custom performance metrics');
+        const errorResponse = t('Unable to fetch custom performance measurements');
         addErrorMessage(errorResponse);
         handleXhrErrorResponse(errorResponse, e);
       });

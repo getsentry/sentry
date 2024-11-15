@@ -12,14 +12,14 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {DateString} from 'sentry/types/core';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {
-  DateString,
   EventsStats,
   EventsStatsData,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'sentry/types';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -70,10 +70,6 @@ type DefaultProps = {
    */
   includePrevious: boolean;
   /**
-   * Transform the response data to be something ingestible by charts
-   */
-  includeTransformedData: boolean;
-  /**
    * Interval to group results in
    *
    * e.g. 1d, 1h, 1m, 1s
@@ -95,6 +91,10 @@ type DefaultProps = {
    * Absolute end date for query
    */
   end?: DateString;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeTransformedData?: boolean;
   /**
    * Relative time period for query.
    *
@@ -189,7 +189,7 @@ type EventsRequestPartialProps = {
   /**
    * Extra query parameters to be added.
    */
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   /**
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */

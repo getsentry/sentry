@@ -21,19 +21,6 @@ class OrganizationSavedSearchDeletedEvent(analytics.Event):
     )
 
 
-class FunctionTimerEvent(analytics.Event):
-    type = "function_timer.timed"
-
-    attributes = (
-        analytics.Attribute("function_name"),
-        analytics.Attribute("duration"),
-        analytics.Attribute("organization_id"),
-        analytics.Attribute("project_id"),
-        analytics.Attribute("group_id", required=False),
-        analytics.Attribute("frame_abs_path", required=False),
-    )
-
-
 class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     type = "group_similar_issues_embeddings.count"
 
@@ -46,7 +33,25 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     )
 
 
+class DevToolbarApiRequestEvent(analytics.Event):
+    type = "devtoolbar.api_request"
+
+    attributes = (
+        analytics.Attribute("view_name"),
+        analytics.Attribute("route"),
+        analytics.Attribute("query_string", required=False),
+        analytics.Attribute("origin", required=False),
+        analytics.Attribute("method"),
+        analytics.Attribute("status_code", type=int),
+        analytics.Attribute("organization_id", type=int, required=False),
+        analytics.Attribute("organization_slug", required=False),
+        analytics.Attribute("project_id", type=int, required=False),
+        analytics.Attribute("project_slug", required=False),
+        analytics.Attribute("user_id", type=int, required=False),
+    )
+
+
 analytics.register(OrganizationSavedSearchCreatedEvent)
 analytics.register(OrganizationSavedSearchDeletedEvent)
-analytics.register(FunctionTimerEvent)
 analytics.register(GroupSimilarIssuesEmbeddingsCountEvent)
+analytics.register(DevToolbarApiRequestEvent)

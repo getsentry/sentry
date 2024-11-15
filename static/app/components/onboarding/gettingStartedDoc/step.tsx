@@ -25,6 +25,7 @@ interface CodeSnippetTab {
   label: string;
   language: string;
   value: string;
+  filename?: string;
 }
 
 interface TabbedCodeSnippetProps {
@@ -46,7 +47,7 @@ interface TabbedCodeSnippetProps {
   partialLoading?: boolean;
 }
 
-function TabbedCodeSnippet({
+export function TabbedCodeSnippet({
   tabs,
   onCopy,
   onSelectAndCopy,
@@ -54,7 +55,7 @@ function TabbedCodeSnippet({
 }: TabbedCodeSnippetProps) {
   const [selectedTabValue, setSelectedTabValue] = useState(tabs[0].value);
   const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0];
-  const {code, language} = selectedTab;
+  const {code, language, filename} = selectedTab;
 
   return (
     <OnboardingCodeSnippet
@@ -67,6 +68,7 @@ function TabbedCodeSnippet({
       tabs={tabs}
       selectedTab={selectedTabValue}
       onTabClick={value => setSelectedTabValue(value)}
+      filename={filename}
     >
       {language === 'javascript'
         ? beautify.js(code, {
@@ -79,7 +81,7 @@ function TabbedCodeSnippet({
   );
 }
 
-type ConfigurationType = {
+export type Configuration = {
   /**
    * Additional information to be displayed below the code snippet
    */
@@ -91,7 +93,7 @@ type ConfigurationType = {
   /**
    * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
    */
-  configurations?: ConfigurationType[];
+  configurations?: Configuration[];
   /**
    * A brief description of the configuration
    */
@@ -124,15 +126,23 @@ interface BaseStepProps {
    * Content that goes directly above the code snippet
    */
   codeHeader?: React.ReactNode;
-  configurations?: ConfigurationType[];
+  /**
+   * Whether the step instructions are collapsible
+   */
+  collapsible?: boolean;
+  /**
+   * An array of configurations to be displayed
+   */
+  configurations?: Configuration[];
   /**
    * A brief description of the step
    */
   description?: React.ReactNode | React.ReactNode[];
   /**
-   * Whether the step is optional
+   * Fired when the optional toggle is clicked.
+   * Useful for when we want to fire analytics events.
    */
-  isOptional?: boolean;
+  onOptionalToggleClick?: (showOptionalConfig: boolean) => void;
 }
 interface StepPropsWithTitle extends BaseStepProps {
   title: string;
@@ -154,7 +164,7 @@ function getConfiguration({
   onCopy,
   onSelectAndCopy,
   partialLoading,
-}: ConfigurationType) {
+}: Configuration) {
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
@@ -197,7 +207,8 @@ export function Step({
   configurations,
   additionalInfo,
   description,
-  isOptional = false,
+  onOptionalToggleClick,
+  collapsible = false,
   codeHeader,
 }: StepProps) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
@@ -240,22 +251,23 @@ export function Step({
     </Fragment>
   );
 
-  return isOptional ? (
+  return collapsible ? (
     <div>
-      <OptionalConfigWrapper>
+      <OptionalConfigWrapper
+        expanded={showOptionalConfig}
+        onClick={() => {
+          onOptionalToggleClick?.(!showOptionalConfig);
+          setShowOptionalConfig(!showOptionalConfig);
+        }}
+      >
+        <h4 style={{marginBottom: 0}}>{title ?? StepTitle[type]}</h4>
         <ToggleButton
           priority="link"
           borderless
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
-        >
-          <h4 style={{marginBottom: 0}}>
-            {title ?? StepTitle[type]}
-            {t(' (Optional)')}
-          </h4>
-        </ToggleButton>
+        />
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
@@ -296,13 +308,15 @@ const GeneralAdditionalInfo = styled(Description)`
   margin-top: ${space(2)};
 `;
 
-const OptionalConfigWrapper = styled('div')`
+const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  gap: ${space(1)};
+  margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
-  margin-bottom: 0.5em;
 `;
 
 const ToggleButton = styled(Button)`
+  padding: 0;
   &,
   :hover {
     color: ${p => p.theme.gray500};

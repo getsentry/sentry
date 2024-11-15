@@ -1,18 +1,22 @@
-import type {MetricsOperation} from 'sentry/types';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
+import type {MetricAggregation, MetricType, MRI} from 'sentry/types/metrics';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
-  getDDMInterval,
+  getDefaultAggregation,
   getFormattedMQL,
+  getMetricsInterval,
   isFormattedMQL,
 } from 'sentry/utils/metrics';
+import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 
 describe('getDDMInterval', () => {
   it('should return the correct interval for non-"1m" intervals', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-31'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('2h');
   });
@@ -24,7 +28,7 @@ describe('getDDMInterval', () => {
     };
     const useCase = 'custom';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('10s');
   });
@@ -33,7 +37,7 @@ describe('getDDMInterval', () => {
     const dateTimeObj = {start: '2023-01-01', end: '2023-01-01T01:05:00.000Z'};
     const useCase = 'sessions';
 
-    const result = getDDMInterval(dateTimeObj, useCase);
+    const result = getMetricsInterval(dateTimeObj, useCase);
 
     expect(result).toBe('1m');
   });
@@ -62,7 +66,7 @@ describe('getDateTimeParams', () => {
 describe('getFormattedMQL', () => {
   it('should format metric widget object into a string', () => {
     const result = getFormattedMQL({
-      op: 'avg',
+      aggregation: 'avg',
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: ['result'],
       query: 'result:success',
@@ -75,7 +79,7 @@ describe('getFormattedMQL', () => {
 
   it('defaults to an empty string', () => {
     const result = getFormattedMQL({
-      op: '' as MetricsOperation,
+      aggregation: '' as MetricAggregation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
       query: '',
@@ -121,9 +125,11 @@ describe('isFormattedMQL', () => {
 });
 
 describe('getAbsoluteDateTimeRange', () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+  beforeEach(() => {
+    setMockDate(new Date('2024-01-01T00:00:00Z'));
+  });
+  afterEach(() => {
+    resetMockDate();
   });
 
   it('should return the correct object with "start" and "end" when period is not provided', () => {
@@ -150,8 +156,19 @@ describe('getAbsoluteDateTimeRange', () => {
       end: '2024-01-01T00:00:00.000Z',
     });
   });
+});
 
-  afterAll(() => {
-    jest.useRealTimers();
+describe('getDefaultAggregation', () => {
+  it.each(['c', 'd', 'g', 's'])(
+    'should give default aggregation - metric type %s',
+    metricType => {
+      const mri = `${metricType as MetricType}:custom/xyz@test` as MRI;
+
+      expect(getDefaultAggregation(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
+    }
+  );
+
+  it('should fallback to sum', () => {
+    expect(getDefaultAggregation('b:roken/MRI@none' as MRI)).toBe('sum');
   });
 });

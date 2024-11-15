@@ -1,5 +1,4 @@
-import {browserHistory} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -10,6 +9,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import AlertRuleDetails from './ruleDetails';
 
@@ -24,7 +24,6 @@ describe('AlertRuleDetails', () => {
 
   const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
-    const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
       <AlertRuleDetails
@@ -37,7 +36,7 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {context: routerContext, organization: org}
+      {router, organization: org}
     );
   };
 
@@ -92,7 +91,7 @@ describe('AlertRuleDetails', () => {
   it('displays alert rule with list of issues', async () => {
     createWrapper();
     expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
-    expect(screen.getByText('RequestError:')).toBeInTheDocument();
+    expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',

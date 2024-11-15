@@ -1,12 +1,14 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
+from urllib3.response import HTTPResponse
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -14,16 +16,18 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
-    IncidentStatus,
-    TriggerStatus,
 )
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
-from sentry.models.useremail import UserEmail
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
@@ -31,7 +35,9 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 
 from . import FireTest
 
@@ -39,7 +45,6 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
@@ -77,7 +82,6 @@ class EmailActionHandlerTest(FireTest):
         )
 
 
-@region_silo_test
 class EmailActionHandlerGetTargetsTest(TestCase):
     @cached_property
     def incident(self):
@@ -238,7 +242,6 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 
 @freeze_time()
-@region_silo_test
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
@@ -266,7 +269,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "environment": "All",
             "is_critical": False,
             "is_warning": False,
-            "threshold_direction_string": ">",
+            "threshold_prefix_string": ">",
             "time_window": "10 minutes",
             "triggered_at": timezone.now(),
             "project_slug": self.project.slug,
@@ -275,6 +278,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": 0,
+            "activator": "",
+            "condition_type": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -284,7 +290,131 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             IncidentStatus(incident.status),
         )
 
-    @with_feature("organizations:customer-domains")
+    def test_with_activated_alert(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+            activator="testing",
+        )
+        activations = alert_rule.activations.all()
+        incident = self.create_incident(alert_rule=alert_rule, activation=activations[0])
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=metric_alert_email",
+        )
+        expected = {
+            "link": alert_link,
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_prefix_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": AlertRuleMonitorTypeInt.ACTIVATED,
+            "activator": "testing",
+            "condition_type": AlertRuleActivationConditionType.DEPLOY_CREATION.value,
+        }
+        assert expected == generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_dynamic_alert(self, mock_seer_request):
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        incident = self.create_incident(alert_rule=alert_rule)
+        alert_rule_trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, alert_threshold=0
+        )
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="?referrer=metric_alert_email&type=anomaly_detection",
+        )
+        expected = {
+            "link": alert_link,
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": f"({alert_rule.sensitivity} responsiveness)",
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_prefix_string": "Dynamic",
+            "time_window": "30 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": 0,
+            "activator": "",
+            "condition_type": None,
+        }
+        assert expected == generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+
+    @with_feature("system:multi-region")
     def test_links_customer_domains(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
@@ -317,7 +447,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             IncidentStatus.CLOSED,
         )
         assert generated_email_context["threshold"] == 100
-        assert generated_email_context["threshold_direction_string"] == "<"
+        assert generated_email_context["threshold_prefix_string"] == "<"
 
     def test_resolve_critical_trigger_with_warning(self):
         status = TriggerStatus.RESOLVED
@@ -334,7 +464,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             IncidentStatus.WARNING,
         )
         assert generated_email_context["threshold"] == 100
-        assert generated_email_context["threshold_direction_string"] == "<"
+        assert generated_email_context["threshold_prefix_string"] == "<"
         assert not generated_email_context["is_critical"]
         assert generated_email_context["is_warning"]
         assert generated_email_context["status"] == "Warning"
@@ -380,7 +510,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
         assert generated_email_context["aggregate"] == "percentage(sessions_crashed, sessions)"
         assert generated_email_context["threshold"] == 100
-        assert generated_email_context["threshold_direction_string"] == ">"
+        assert generated_email_context["threshold_prefix_string"] == ">"
 
     def test_environment(self):
         status = TriggerStatus.ACTIVE

@@ -1,9 +1,8 @@
-import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Location, Query} from 'history';
 import * as qs from 'query-string';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QueryCount from 'sentry/components/queryCount';
@@ -11,16 +10,17 @@ import {t, tct} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
 
-type Props = RouteComponentProps<
-  {groupId: Group['id']; orgId: Organization['slug']},
-  {}
-> & {
+type Props = {
+  groupId: Group['id'];
+  location: Location<Query>;
   organization: Organization;
   project: Project;
 };
@@ -38,7 +38,7 @@ class GroupMergedView extends Component<Props, State> {
     mergedItems: [],
     loading: true,
     error: false,
-    query: this.props.location.query.query || '',
+    query: (this.props.location.query.query ?? '') as string,
   };
 
   componentDidMount() {
@@ -47,13 +47,12 @@ class GroupMergedView extends Component<Props, State> {
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
-      nextProps.params.groupId !== this.props.params.groupId ||
+      nextProps.groupId !== this.props.groupId ||
       nextProps.location.search !== this.props.location.search
     ) {
-      const queryParams = nextProps.location.query;
       this.setState(
         {
-          query: queryParams.query,
+          query: (nextProps.location.query.query ?? '') as string,
         },
         this.fetchData
       );
@@ -78,8 +77,7 @@ class GroupMergedView extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupingChange, undefined);
 
   getEndpoint() {
-    const {params, location, organization} = this.props;
-    const {groupId} = params;
+    const {groupId, location, organization} = this.props;
 
     const queryParams = {
       ...location.query,
@@ -103,9 +101,9 @@ class GroupMergedView extends Component<Props, State> {
   };
 
   handleUnmerge = () => {
-    const {organization, params} = this.props;
+    const {organization, groupId} = this.props;
     GroupingStore.onUnmerge({
-      groupId: params.groupId,
+      groupId,
       orgSlug: organization.slug,
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
@@ -114,15 +112,14 @@ class GroupMergedView extends Component<Props, State> {
     const unmergeKeys = [...GroupingStore.getState().unmergeList.values()];
     trackAnalytics('issue_details.merged_tab.unmerge_clicked', {
       organization,
-      group_id: params.groupId,
+      group_id: groupId,
       event_ids_unmerged: unmergeKeys.join(','),
       total_unmerged: unmergeKeys.length,
     });
   };
 
   render() {
-    const {project, organization, params} = this.props;
-    const {groupId} = params;
+    const {project, organization, groupId} = this.props;
     const {loading: isLoading, error, mergedItems, mergedLinks} = this.state;
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
@@ -132,55 +129,52 @@ class GroupMergedView extends Component<Props, State> {
     );
 
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <HeaderWrapper>
-            <Title>
-              {tct('Fingerprints included in this issue [count]', {
-                count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
-              })}
-            </Title>
-            <small>
-              {
-                // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
-                // See https://github.com/getsentry/sentry/issues/56334.
-                t(
-                  'This is an experimental feature. All changes may take up to 24 hours take effect.'
-                )
-              }
-            </small>
-          </HeaderWrapper>
+      <Fragment>
+        <HeaderWrapper>
+          <Title>
+            {tct('Fingerprints included in this issue [count]', {
+              count: <QueryCount count={fingerprintsWithLatestEvent.length} />,
+            })}
+          </Title>
+          <small>
+            {
+              // TODO: Once clickhouse is upgraded and the lag is no longer an issue, revisit this wording.
+              // See https://github.com/getsentry/sentry/issues/56334.
+              t(
+                'This is an experimental feature. All changes may take up to 24 hours take effect.'
+              )
+            }
+          </small>
+        </HeaderWrapper>
 
-          {isLoading && <LoadingIndicator />}
-          {isError && (
-            <LoadingError
-              message={t('Unable to load merged events, please try again later')}
-              onRetry={this.fetchData}
-            />
-          )}
+        {isLoading && <LoadingIndicator />}
+        {isError && (
+          <LoadingError
+            message={t('Unable to load merged events, please try again later')}
+            onRetry={this.fetchData}
+          />
+        )}
 
-          {isLoadedSuccessfully && (
-            <MergedList
-              project={project}
-              organization={organization}
-              fingerprints={mergedItems}
-              pageLinks={mergedLinks}
-              groupId={groupId}
-              onUnmerge={this.handleUnmerge}
-              onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
-            />
-          )}
-        </Layout.Main>
-      </Layout.Body>
+        {isLoadedSuccessfully && (
+          <MergedList
+            project={project}
+            organization={organization}
+            fingerprints={mergedItems}
+            pageLinks={mergedLinks}
+            groupId={groupId}
+            onUnmerge={this.handleUnmerge}
+            onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
+          />
+        )}
+      </Fragment>
     );
   }
 }
 
-export {GroupMergedView};
-
 export default withOrganization(GroupMergedView);
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 

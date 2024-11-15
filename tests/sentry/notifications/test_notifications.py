@@ -4,32 +4,34 @@ from time import time
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+import orjson
 import responses
 from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
 from sentry_relay.processing import parse_release
+from slack_sdk.web import SlackResponse
 
-from sentry.digests.notifications import Notification
 from sentry.event_manager import EventManager
+from sentry.eventstream.types import EventStreamEventType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.users.models.identity import Identity, IdentityStatus
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -57,14 +59,55 @@ def get_attachment():
     return attachments[0], data["text"][0]
 
 
+def get_blocks():
+    assert len(responses.calls) >= 1
+    data = parse_qs(responses.calls[0].request.body)
+    assert "text" in data
+    assert "blocks" in data
+
+    blocks = json.loads(data["blocks"][0])
+
+    # title with link, text, footer
+    if blocks[1]["type"] == "context":
+        title_block = blocks[1]["elements"][0]["text"]
+    else:
+        title_block = blocks[1]["text"]["text"]
+
+    url_block = blocks[-1].get("elements")
+    if url_block:
+        url_block = url_block[0].get("url")
+
+    # assume the divider is the last element
+    footer = blocks[-2].get("elements")
+    if footer:
+        footer = footer[0].get("text")
+    # otherwise try to get footer from the last element
+    if not footer:
+        footer = blocks[-1]["elements"][0]["text"]
+
+    return title_block, data["text"][0], footer, url_block
+
+
 def get_notification_uuid(url: str):
     query_params = parse_qs(urlparse(url).query)
-    notification_uuid = query_params["notification_uuid"][0]
+    notification_uuid = query_params["notification_uuid"][0].split("|")[0]
     assert len(notification_uuid) > 1
     return notification_uuid
 
 
 @control_silo_test
+@patch(
+    "slack_sdk.web.client.WebClient.chat_postMessage",
+    return_value=SlackResponse(
+        client=None,
+        http_verb="POST",
+        api_url="https://slack.com/api/chat.postMessage",
+        req_args={},
+        data={"ok": True},
+        headers={},
+        status_code=200,
+    ),
+)
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user
@@ -101,22 +144,13 @@ class ActivityNotificationTest(APITestCase):
                 type=type,
                 value="always",
             )
-
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         responses.add_passthru(
             settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
         )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
-    @responses.activate
-    def test_sends_note_notification(self):
+    def test_sends_note_notification(self, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when a comment is created on an issue.
@@ -137,23 +171,26 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert "blah blah</p></div>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[2]["elements"][0]["text"]
+        text = mock_post.call_args.kwargs["text"]
+
         # check the Slack version
         assert text == f"New comment by {self.name}"
-        assert attachment["title"] == f"{self.group.title}"
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        assert self.group.title in block
+        title_link = block  # removes emoji and <>
+        notification_uuid = get_notification_uuid(block)
         assert (
-            attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}"
-        )
-        assert attachment["text"] == "blah blah"
+            f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}"
+        ) in title_link
+        assert title_link.split("\n")[-1] == "blah blah"
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    @responses.activate
-    def test_sends_unassignment_notification(self):
+    def test_sends_unassignment_notification(self, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
@@ -178,18 +215,21 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.user.username}</strong> unassigned" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[3]["elements"][0]["text"]
+        text = mock_post.call_args.kwargs["text"]
 
         assert text == f"Issue unassigned by {self.name}"
-        assert attachment["title"] == self.group.title
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        assert self.group.title in block
+        title_link = block[13:][1:-1]  # removes emoji and <>
+        notification_uuid = get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=unassigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    @responses.activate
-    def test_html_escape(self):
+    def test_html_escape(self, mock_post):
         other_user = self.create_user(name="<b>test</b>", is_staff=False, is_superuser=False)
         activity = Activity(
             project=self.project, data={"assignee": other_user.id}, group=self.group
@@ -201,8 +241,7 @@ class ActivityNotificationTest(APITestCase):
         assert "&lt;b&gt;test&lt;/b&gt;" in html
         assert "<b>test</b>" not in html
 
-    @responses.activate
-    def test_regression_html_link(self):
+    def test_regression_html_link(self, mock_post):
         notification = RegressionActivityNotification(
             Activity(
                 project=self.project,
@@ -217,15 +256,14 @@ class ActivityNotificationTest(APITestCase):
         assert "as a regression in 777" in context["text_description"]
         assert "as a regression in <a href=" in context["html_description"]
 
-    @responses.activate
     @patch("sentry.analytics.record")
-    def test_sends_resolution_notification(self, record_analytics):
+    def test_sends_resolution_notification(self, record_analytics, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        with assume_test_silo_mode(SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.REGION):
             with self.tasks():
                 response = self.client.put(url, format="json", data={"status": "resolved"})
             assert response.status_code == 200, response.content
@@ -238,18 +276,23 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[3]["elements"][0]["text"]
+        text = mock_post.call_args.kwargs["text"]
 
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        assert self.group.title in block
+        title_link = block[13:][1:-1]  # removes emoji and <>
+        notification_uuid = get_notification_uuid(title_link)
         assert (
             text
             == f"{self.name} marked <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification&notification_uuid={notification_uuid}|{self.short_id}> as resolved"
         )
-        assert attachment["title"] == self.group.title
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
+
         assert self.analytics_called_with_args(
             record_analytics,
             "integrations.email.notification_sent",
@@ -268,9 +311,8 @@ class ActivityNotificationTest(APITestCase):
             actor_type="User",
         )
 
-    @responses.activate
     @patch("sentry.analytics.record")
-    def test_sends_deployment_notification(self, record_analytics):
+    def test_sends_deployment_notification(self, record_analytics, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when a release is deployed.
@@ -299,19 +341,21 @@ class ActivityNotificationTest(APITestCase):
             in msg.alternatives[0][0]
         )
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        footer = blocks[1]["elements"][0]["text"]
+        url = blocks[2]["elements"][0]["url"]
+        text = mock_post.call_args.kwargs["text"]
 
         assert (
             text
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
-        notification_uuid = get_notification_uuid(attachment["actions"][0]["url"])
-        assert (
-            attachment["actions"][0]["url"]
-            == f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
+        notification_uuid = get_notification_uuid(url)
+        assert url == (
+            f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
         )
         assert (
-            attachment["footer"]
+            footer
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/deploy/?referrer=release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
@@ -332,9 +376,8 @@ class ActivityNotificationTest(APITestCase):
             actor_type="User",
         )
 
-    @responses.activate
     @patch("sentry.analytics.record")
-    def test_sends_regression_notification(self, record_analytics):
+    def test_sends_regression_notification(self, record_analytics, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue regresses.
@@ -370,13 +413,17 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[3]["elements"][0]["text"]
+        text = mock_post.call_args.kwargs["text"]
 
         assert text == "Issue marked as regression"
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        title_link = block[13:][1:-1]  # removes emoji and <>
+        notification_uuid = get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,
@@ -396,15 +443,14 @@ class ActivityNotificationTest(APITestCase):
             actor_type="User",
         )
 
-    @responses.activate
     @patch("sentry.analytics.record")
-    def test_sends_resolved_in_release_notification(self, record_analytics):
+    def test_sends_resolved_in_release_notification(self, record_analytics, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved by a release.
         """
         release = self.create_release()
-        with assume_test_silo_mode(SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.REGION):
             url = f"/api/0/issues/{self.group.id}/"
             with self.tasks():
                 response = self.client.put(
@@ -428,13 +474,18 @@ class ActivityNotificationTest(APITestCase):
             f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
         )
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[3]["elements"][0]["text"]
+        text = mock_post.call_args.kwargs["text"]
+
         assert text == f"Issue marked as resolved in {parsed_version} by {self.name}"
-        assert attachment["title"] == self.group.title
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        assert self.group.title in block
+        title_link = block[13:][1:-1]  # removes emoji and <>
+        notification_uuid = get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,
@@ -454,16 +505,14 @@ class ActivityNotificationTest(APITestCase):
             actor_type="User",
         )
 
-    @responses.activate
-    def test_sends_processing_issue_notification(self):
+    def test_sends_processing_issue_notification(self, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
 
-    @responses.activate
     @patch("sentry.analytics.record")
-    def test_sends_issue_notification(self, record_analytics):
+    def test_sends_issue_notification(self, record_analytics, mock_post):
         """
         Test that an email AND Slack notification are sent with
         the expected values when an issue comes in that triggers an alert rule.
@@ -474,7 +523,7 @@ class ActivityNotificationTest(APITestCase):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        with assume_test_silo_mode(SiloMode.MONOLITH):
+        with assume_test_silo_mode(SiloMode.REGION):
             Rule.objects.create(
                 project=self.project,
                 label="a rule",
@@ -483,7 +532,7 @@ class ActivityNotificationTest(APITestCase):
                     "actions": [action_data],
                 },
             )
-            min_ago = iso_format(before_now(minutes=1))
+            min_ago = before_now(minutes=1).isoformat()
             event = self.store_event(
                 data={
                     "message": "Hello world",
@@ -499,6 +548,8 @@ class ActivityNotificationTest(APITestCase):
                     is_new_group_environment=True,
                     group_id=event.group_id,
                     cache_key=cache_key,
+                    project_id=self.project.id,
+                    eventstream_type=EventStreamEventType.Error,
                 )
 
         msg = mail.outbox[0]
@@ -509,13 +560,16 @@ class ActivityNotificationTest(APITestCase):
         assert isinstance(msg.alternatives[0][0], str)
         assert "Hello world</pre>" in msg.alternatives[0][0]
 
-        attachment, text = get_attachment()
+        blocks = orjson.loads(mock_post.call_args_list[0].kwargs["blocks"])
+        block = blocks[1]["text"]["text"]
+        footer = blocks[4]["elements"][0]["text"]
 
-        assert attachment["title"] == "Hello world"
-        notification_uuid = get_notification_uuid(attachment["title_link"])
+        assert "Hello world" in block
+        title_link = block[13:][1:-1]  # removes emoji and <>
+        notification_uuid = get_notification_uuid(title_link)
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            footer
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
         assert self.analytics_called_with_args(
             record_analytics,
@@ -534,17 +588,3 @@ class ActivityNotificationTest(APITestCase):
             notification_uuid=notification_uuid,
             actor_type="User",
         )
-
-
-class NotificationTupleTest(APITestCase):
-    def test_missing_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group)
-        assert notification.notification_uuid is None
-
-    def test_notification_uuid(self):
-        rule = self.create_project_rule()
-        group = self.create_group()
-        notification = Notification(rule, group, notification_uuid=str(uuid.uuid4()))
-        assert notification.notification_uuid is not None

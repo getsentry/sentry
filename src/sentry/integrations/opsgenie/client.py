@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from typing import Literal
-from urllib.parse import quote
 
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.group import Group
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.client.base import BaseApiResponseX
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -17,20 +18,14 @@ OPSGENIE_DEFAULT_PRIORITY = "P3"
 OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
 
 
-class OpsgenieClient(IntegrationProxyClient):
+class OpsgenieClient(ApiClient):
     integration_name = "opsgenie"
 
-    def __init__(
-        self,
-        integration: RpcIntegration | Integration,
-        integration_key: str,
-        org_integration_id: int | None,
-        keyid: str | None = None,
-    ) -> None:
+    def __init__(self, integration: RpcIntegration | Integration, integration_key: str) -> None:
         self.integration = integration
         self.base_url = f"{self.metadata['base_url']}{OPSGENIE_API_VERSION}"
         self.integration_key = integration_key
-        super().__init__(org_integration_id=org_integration_id, keyid=keyid)
+        super().__init__(integration_id=self.integration.id)
 
     @property
     def metadata(self):
@@ -39,18 +34,9 @@ class OpsgenieClient(IntegrationProxyClient):
     def _get_auth_headers(self):
         return {"Authorization": f"GenieKey {self.integration_key}"}
 
-    # This doesn't work if the team name is "." or "..", which Opsgenie allows for some reason
-    # despite their API not working with these names.
-    def get_team_id(self, team_name: str) -> BaseApiResponseX:
-        params = {"identifierType": "name"}
-        quoted_name = quote(team_name)
-        path = f"/teams/{quoted_name}"
-        return self.get(path=path, headers=self._get_auth_headers(), params=params)
-
-    def authorize_integration(self, type: str) -> BaseApiResponseX:
-        body = {"type": type}
-        path = "/integrations/authenticate"
-        return self.post(path=path, headers=self._get_auth_headers(), data=body)
+    def get_alerts(self, limit: int | None = 1) -> BaseApiResponseX:
+        path = f"/alerts?limit={limit}"
+        return self.get(path=path, headers=self._get_auth_headers())
 
     def _get_rule_urls(self, group, rules):
         organization = group.project.organization
@@ -108,6 +94,7 @@ class OpsgenieClient(IntegrationProxyClient):
         notification_uuid: str | None = None,
     ):
         headers = self._get_auth_headers()
+        interaction_type = OnCallInteractionType.CREATE
         if isinstance(data, (Event, GroupEvent)):
             group = data.group
             event = data
@@ -122,6 +109,7 @@ class OpsgenieClient(IntegrationProxyClient):
         else:
             # if we're acknowledging the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
+                interaction_type = OnCallInteractionType.RESOLVE
                 alias = data["identifier"]
                 resp = self.post(
                     f"/alerts/{alias}/acknowledge",
@@ -132,5 +120,6 @@ class OpsgenieClient(IntegrationProxyClient):
                 return resp
             # this is a metric alert
             payload = data
-        resp = self.post("/alerts", data=payload, headers=headers)
+        with record_event(interaction_type).capture():
+            resp = self.post("/alerts", data=payload, headers=headers)
         return resp

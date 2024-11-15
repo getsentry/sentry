@@ -1,16 +1,20 @@
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 
-function makeRecords(records: Record<string, boolean>) {
-  return new Map(Object.entries(records));
+function setRecords(records: Record<string, boolean>) {
+  SelectedGroupStore.onGroupChange(new Set(Object.keys(records)));
+  for (const [key, isSelected] of Object.entries(records)) {
+    if (isSelected) {
+      SelectedGroupStore.toggleSelect(key);
+    }
+  }
 }
 
 describe('SelectedGroupStore', function () {
   let trigger: jest.SpyInstance;
 
   beforeEach(function () {
-    SelectedGroupStore.records = new Map();
-
+    SelectedGroupStore.init();
     trigger = jest.spyOn(SelectedGroupStore, 'trigger').mockImplementation(() => {});
   });
 
@@ -21,16 +25,16 @@ describe('SelectedGroupStore', function () {
   describe('prune()', function () {
     it('removes records no longer in the GroupStore', function () {
       jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['3']);
-      SelectedGroupStore.records = makeRecords({1: true, 2: true, 3: true});
+      setRecords({1: true, 2: true, 3: true});
       SelectedGroupStore.prune();
-      expect([...SelectedGroupStore.records.entries()]).toEqual([['3', true]]);
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([['3', true]]);
     });
 
     it("doesn't have any effect when already in sync", function () {
       jest.spyOn(GroupStore, 'getAllItemIds').mockImplementation(() => ['1', '2', '3']);
-      SelectedGroupStore.records = makeRecords({1: true, 2: true, 3: true});
+      setRecords({1: true, 2: true, 3: true});
       SelectedGroupStore.prune();
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', true],
         ['2', true],
         ['3', true],
@@ -40,18 +44,18 @@ describe('SelectedGroupStore', function () {
 
   describe('add()', function () {
     it("defaults value of new ids to 'allSelected()'", function () {
-      SelectedGroupStore.records = makeRecords({1: true});
+      setRecords({1: true});
       SelectedGroupStore.add(['2']);
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', true],
         ['2', true],
       ]);
     });
 
     it('does not update existing ids', function () {
-      SelectedGroupStore.records = makeRecords({1: false, 2: true});
+      setRecords({1: false, 2: true});
       SelectedGroupStore.add(['3']);
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', false],
         ['2', true],
         ['3', false],
@@ -88,17 +92,17 @@ describe('SelectedGroupStore', function () {
 
   describe('allSelected()', function () {
     it('returns true when all ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: true});
+      setRecords({1: true, 2: true});
       expect(SelectedGroupStore.allSelected()).toBe(true);
     });
 
     it('returns false when some ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: false});
+      setRecords({1: true, 2: false});
       expect(SelectedGroupStore.allSelected()).toBe(false);
     });
 
     it('returns false when no ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: false, 2: false});
+      setRecords({1: false, 2: false});
       expect(SelectedGroupStore.allSelected()).toBe(false);
     });
 
@@ -109,36 +113,36 @@ describe('SelectedGroupStore', function () {
 
   describe('anySelected()', function () {
     it('returns true if any ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: false});
+      setRecords({1: true, 2: false});
       expect(SelectedGroupStore.anySelected()).toBe(true);
     });
 
     it('returns false when no ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: false, 2: false});
+      setRecords({1: false, 2: false});
       expect(SelectedGroupStore.anySelected()).toBe(false);
     });
   });
 
   describe('multiSelected()', function () {
     it('returns true when multiple ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: true, 3: false});
+      setRecords({1: true, 2: true, 3: false});
       expect(SelectedGroupStore.multiSelected()).toBe(true);
     });
 
     it('returns false when a single id is selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: false});
+      setRecords({1: true, 2: false});
       expect(SelectedGroupStore.multiSelected()).toBe(false);
     });
 
     it('returns false when no ids are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: false, 2: false});
+      setRecords({1: false, 2: false});
       expect(SelectedGroupStore.multiSelected()).toBe(false);
     });
   });
 
   describe('getSelectedIds()', function () {
     it('returns selected ids', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: false, 3: true});
+      setRecords({1: true, 2: false, 3: true});
       const ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).toBe(true);
@@ -147,7 +151,7 @@ describe('SelectedGroupStore', function () {
     });
 
     it('returns empty set with no selected ids', function () {
-      SelectedGroupStore.records = makeRecords({1: false});
+      setRecords({1: false});
       const ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).toBe(false);
@@ -157,12 +161,12 @@ describe('SelectedGroupStore', function () {
 
   describe('isSelected()', function () {
     it('returns true if id is selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true});
+      setRecords({1: true});
       expect(SelectedGroupStore.isSelected('1')).toBe(true);
     });
 
     it('returns false if id is unselected or unknown', function () {
-      SelectedGroupStore.records = makeRecords({1: false});
+      setRecords({1: false});
       expect(SelectedGroupStore.isSelected('1')).toBe(false);
       expect(SelectedGroupStore.isSelected('2')).toBe(false);
       expect(SelectedGroupStore.isSelected('')).toBe(false);
@@ -171,9 +175,9 @@ describe('SelectedGroupStore', function () {
 
   describe('deselectAll()', function () {
     it('sets all records to false', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: true, 3: false});
+      setRecords({1: true, 2: true, 3: false});
       SelectedGroupStore.deselectAll();
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', false],
         ['2', false],
         ['3', false],
@@ -188,19 +192,19 @@ describe('SelectedGroupStore', function () {
 
   describe('toggleSelect()', function () {
     it('toggles state given pre-existing id', function () {
-      SelectedGroupStore.records = makeRecords({1: true});
+      setRecords({1: true});
       SelectedGroupStore.toggleSelect('1');
-      expect(SelectedGroupStore.records.get('1')).toBe(false);
+      expect(SelectedGroupStore.getState().records.get('1')).toBe(false);
     });
 
     it('does not toggle state given unknown id', function () {
       SelectedGroupStore.toggleSelect('1');
       SelectedGroupStore.toggleSelect('');
-      expect([...SelectedGroupStore.records.entries()]).toEqual([]);
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([]);
     });
 
     it('triggers an update given pre-existing id', function () {
-      SelectedGroupStore.records = makeRecords({1: true});
+      setRecords({1: true});
       SelectedGroupStore.toggleSelect('1');
       expect(trigger).toHaveBeenCalled();
     });
@@ -213,18 +217,18 @@ describe('SelectedGroupStore', function () {
 
   describe('toggleSelectAll()', function () {
     it('selects all ids if any are unselected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: false});
+      setRecords({1: true, 2: false});
       SelectedGroupStore.toggleSelectAll();
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', true],
         ['2', true],
       ]);
     });
 
     it('unselects all ids if all are selected', function () {
-      SelectedGroupStore.records = makeRecords({1: true, 2: true});
+      setRecords({1: true, 2: true});
       SelectedGroupStore.toggleSelectAll();
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['1', false],
         ['2', false],
       ]);
@@ -243,7 +247,7 @@ describe('SelectedGroupStore', function () {
       SelectedGroupStore.add(ids);
       SelectedGroupStore.toggleSelect('12');
       SelectedGroupStore.shiftToggleItems('14');
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['11', false],
         ['12', true],
         ['13', true],
@@ -257,7 +261,7 @@ describe('SelectedGroupStore', function () {
       SelectedGroupStore.add(ids);
       SelectedGroupStore.toggleSelect('14');
       SelectedGroupStore.shiftToggleItems('12');
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['11', false],
         ['12', true],
         ['13', true],
@@ -273,7 +277,7 @@ describe('SelectedGroupStore', function () {
 
       // Select everything
       SelectedGroupStore.shiftToggleItems('15');
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['11', true],
         ['12', true],
         ['13', true],
@@ -284,7 +288,7 @@ describe('SelectedGroupStore', function () {
       // Deslect between 14 and 12
       SelectedGroupStore.toggleSelect('14');
       SelectedGroupStore.shiftToggleItems('12');
-      expect([...SelectedGroupStore.records.entries()]).toEqual([
+      expect([...SelectedGroupStore.getState().records.entries()]).toEqual([
         ['11', true],
         ['12', false],
         ['13', false],
@@ -292,5 +296,11 @@ describe('SelectedGroupStore', function () {
         ['15', true],
       ]);
     });
+  });
+
+  it('returns a stable reference from getState', function () {
+    setRecords({1: true, 2: true});
+    const state = SelectedGroupStore.getState();
+    expect(Object.is(state, SelectedGroupStore.getState())).toBe(true);
   });
 });

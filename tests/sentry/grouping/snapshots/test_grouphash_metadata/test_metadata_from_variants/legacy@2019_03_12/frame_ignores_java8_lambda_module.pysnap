@@ -1,0 +1,18 @@
+---
+created: '2024-11-13T17:36:33.190334+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "5fd1358271b3a3dba3287e135029688d"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (normalized generated module name)
+              "<module>"
+            function*
+              "call"

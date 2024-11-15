@@ -13,16 +13,15 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
-from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import BaseMetricsTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class BaseTestReleaseMonitor(TestCase, SnubaTestCase):
+class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     backend_class: type[BaseReleaseMonitorBackend]
@@ -78,7 +77,7 @@ class BaseTestReleaseMonitor(TestCase, SnubaTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -153,8 +152,8 @@ class BaseTestReleaseMonitor(TestCase, SnubaTestCase):
             },
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
-        self.project1.refresh_from_db()
-        assert self.project1.flags.has_sessions
+        project1 = Project.objects.get(id=self.project1.id)
+        assert project1.flags.has_sessions
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -541,10 +540,6 @@ class BaseTestReleaseMonitor(TestCase, SnubaTestCase):
         process_projects_with_sessions(no_env_project.organization_id, [no_env_project.id])
         no_env_project.refresh_from_db()
         assert not no_env_project.flags.has_releases
-
-
-class TestSessionReleaseMonitor(BaseTestReleaseMonitor):
-    backend_class = SessionReleaseMonitorBackend
 
 
 class TestMetricReleaseMonitor(BaseTestReleaseMonitor, BaseMetricsTestCase):

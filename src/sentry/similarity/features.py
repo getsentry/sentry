@@ -1,8 +1,5 @@
-import functools
 import itertools
 import logging
-
-from sentry.utils.dates import to_timestamp
 
 logger = logging.getLogger("sentry.similarity")
 
@@ -68,10 +65,10 @@ class FeatureSet:
         self.expected_encoding_errors = expected_encoding_errors
         assert set(self.aliases) == set(self.features)
 
-    def __get_scope(self, project):
+    def __get_scope(self, project) -> str:
         return f"{project.id}"
 
-    def __get_key(self, group):
+    def __get_key(self, group) -> str:
         return f"{group.id}"
 
     def extract(self, event):
@@ -83,7 +80,7 @@ class FeatureSet:
                 log = (
                     logger.debug
                     if isinstance(error, self.expected_extraction_errors)
-                    else functools.partial(logger.warning, exc_info=True)
+                    else logger.warning
                 )
                 log(
                     "Could not extract features from %r for %r due to error: %r",
@@ -98,8 +95,8 @@ class FeatureSet:
         if not events:
             return []
 
-        scope = None
-        key = None
+        scope: str | None = None
+        key: str | None = None
 
         items = []
         for event in events:
@@ -126,19 +123,20 @@ class FeatureSet:
                     log = (
                         logger.debug
                         if isinstance(error, self.expected_encoding_errors)
-                        else functools.partial(logger.warning, exc_info=True)
+                        else logger.warning
                     )
                     log(
                         "Could not encode features from %r for %r due to error: %r",
                         event,
                         label,
                         error,
+                        exc_info=True,
                     )
                 else:
                     if features:
                         items.append((self.aliases[label], features))
 
-        return self.index.record(scope, key, items, timestamp=int(to_timestamp(event.datetime)))
+        return self.index.record(scope, key, items, timestamp=int(event.datetime.timestamp()))
 
     def classify(self, events, limit=None, thresholds=None):
         if not events:
@@ -147,7 +145,7 @@ class FeatureSet:
         if thresholds is None:
             thresholds = {}
 
-        scope = None
+        scope: str | None = None
 
         labels = []
         items = []
@@ -166,13 +164,14 @@ class FeatureSet:
                     log = (
                         logger.debug
                         if isinstance(error, self.expected_encoding_errors)
-                        else functools.partial(logger.warning, exc_info=True)
+                        else logger.warning
                     )
                     log(
                         "Could not encode features from %r for %r due to error: %r",
                         event,
                         label,
                         error,
+                        exc_info=True,
                     )
                 else:
                     if features:
@@ -185,7 +184,7 @@ class FeatureSet:
                 scope,
                 items,
                 limit=limit,
-                timestamp=int(to_timestamp(event.datetime)),
+                timestamp=int(event.datetime.timestamp()),
             )
         ]
 
@@ -212,7 +211,7 @@ class FeatureSet:
         # within so that we can make the most efficient queries possible and
         # reject queries that cross scopes if we haven't explicitly allowed
         # unsafe actions.
-        scopes = {}
+        scopes: dict[str, set[str]] = {}
         for source in sources:
             scopes.setdefault(self.__get_scope(source.project), set()).add(source)
 

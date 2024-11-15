@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -9,13 +8,14 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   EventsStatsData,
   OrganizationSummary,
-  Project,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
@@ -24,16 +24,12 @@ import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/me
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {
-  generateTrendFunctionAsString,
-  modifyTrendView,
-  normalizeTrends,
-} from 'sentry/views/performance/trends/utils';
+import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
+import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import type {ViewProps} from 'sentry/views/performance/types';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Content from './content';
 
@@ -64,7 +60,6 @@ function TrendChart({
   end: propsEnd,
   projects,
 }: Props) {
-  const router = useRouter();
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
@@ -106,7 +101,6 @@ function TrendChart({
 
   const contentCommonProps = {
     theme,
-    router,
     start,
     end,
     utc,

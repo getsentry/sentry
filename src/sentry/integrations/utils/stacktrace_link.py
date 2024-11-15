@@ -3,13 +3,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
-from sentry import analytics
-from sentry.api.utils import Timer
-from sentry.integrations.mixins import RepositoryMixin
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import EventFrame
 
@@ -27,16 +26,12 @@ class RepositoryLinkOutcome(TypedDict):
 
 
 def get_link(
-    config: RepositoryProjectPathConfig,
-    src_path: str,
-    version: str | None = None,
-    group_id: str | None = None,
-    frame_abs_path: str | None = None,
+    config: RepositoryProjectPathConfig, src_path: str, version: str | None = None
 ) -> RepositoryLinkOutcome:
     result: RepositoryLinkOutcome = {}
 
     integration = integration_service.get_integration(
-        organization_integration_id=config.organization_integration_id
+        organization_integration_id=config.organization_integration_id, status=ObjectStatus.ACTIVE
     )
     if not integration:
         result["error"] = "integration_not_found"
@@ -46,21 +41,10 @@ def get_link(
 
     link = None
     try:
-        if isinstance(install, RepositoryMixin):
-            with Timer() as t:
-                link = install.get_stacktrace_link(
-                    config.repository, src_path, str(config.default_branch or ""), version
-                )
-                analytics.record(
-                    "function_timer.timed",
-                    function_name="get_stacktrace_link",
-                    duration=t.duration,
-                    organization_id=config.project.organization_id,
-                    project_id=config.project_id,
-                    group_id=group_id,
-                    frame_abs_path=frame_abs_path,
-                )
-
+        if isinstance(install, RepositoryIntegration):
+            link = install.get_stacktrace_link(
+                config.repository, src_path, str(config.default_branch or ""), version
+            )
     except ApiError as e:
         if e.code != 403:
             raise
@@ -71,7 +55,7 @@ def get_link(
         result["sourceUrl"] = link
     else:
         result["error"] = result.get("error") or "file_not_found"
-        assert isinstance(install, RepositoryMixin)
+        assert isinstance(install, RepositoryIntegration)
         result["attemptedUrl"] = install.format_source_url(
             config.repository, src_path, str(config.default_branch or "")
         )
@@ -115,7 +99,7 @@ def get_stacktrace_config(
             result["error"] = "stack_root_mismatch"
             continue
 
-        outcome = get_link(config, src_path, ctx["commit_id"], ctx["group_id"], ctx["abs_path"])
+        outcome = get_link(config, src_path, ctx["commit_id"])
         result["iteration_count"] += 1
 
         result["current_config"] = {

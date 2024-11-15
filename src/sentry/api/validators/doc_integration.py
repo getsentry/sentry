@@ -6,8 +6,6 @@ from typing import Any
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import best_match
 
-from sentry.utils.json import JSONData
-
 logger = logging.getLogger(__name__)
 
 METADATA_SCHEMA: dict[str, Any] = {
@@ -27,7 +25,7 @@ METADATA_SCHEMA: dict[str, Any] = {
 METADATA_PROPERTIES = list(METADATA_SCHEMA["properties"].keys())
 
 
-def validate_metadata_schema(instance: JSONData):
+def validate_metadata_schema(instance: Any):
     v = Draft7Validator(METADATA_SCHEMA)
     if not v.is_valid(instance):
         raise best_match(v.iter_errors(instance))

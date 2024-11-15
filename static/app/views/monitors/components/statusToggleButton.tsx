@@ -4,7 +4,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import type {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 

@@ -4,12 +4,12 @@ from django.urls import reverse
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationAccessRequest(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -30,6 +30,8 @@ class OrganizationAccessRequest(Model):
         from sentry.utils.email import MessageBuilder
 
         organization = self.team.organization
+        if not self.member.user_id:
+            return
         user = user_service.get_user(user_id=self.member.user_id)
         if user is None:
             return
@@ -50,7 +52,8 @@ class OrganizationAccessRequest(Model):
 
         if self.requester_id:
             requester = user_service.get_user(user_id=self.requester_id)
-            context.update({"requester": requester.get_display_name()})
+            if requester is not None:
+                context.update({"requester": requester.get_display_name()})
 
         msg = MessageBuilder(
             subject="Sentry Access Request",
@@ -69,14 +72,22 @@ class OrganizationAccessRequest(Model):
             organization=self.team.organization,
             user_id__isnull=False,
         ).values_list("user_id", flat=True)
-        member_users = user_service.get_many(filter=dict(user_ids=list(member_list)))
+        member_users = user_service.get_many_by_id(
+            ids=[uid for uid in member_list if uid is not None]
+        )
 
         msg.send_async([user.email for user in member_users])
 
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
 
+        if self.member.user_id is None:
+            return
+
         user = user_service.get_user(user_id=self.member.user_id)
+        if user is None:
+            return
+
         email = user.email
         organization = self.team.organization
 

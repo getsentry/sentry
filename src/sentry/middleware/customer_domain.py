@@ -10,8 +10,9 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import resolve, reverse
 
-from sentry.api.utils import generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry import features
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
@@ -52,16 +53,25 @@ def _resolve_redirect_url(request, activeorg):
     if redirect_subdomain:
         redirect_url = generate_organization_url(activeorg)
     result = resolve(request.path)
-    org_slug_path_mismatch = (
-        result.kwargs
-        and "organization_slug" in result.kwargs
-        and result.kwargs["organization_slug"] != activeorg
+    org_slug_path_mismatch = result.kwargs and (
+        ("organization_slug" in result.kwargs and result.kwargs["organization_slug"] != activeorg)
+        or (
+            "organization_id_or_slug" in result.kwargs
+            and result.kwargs["organization_id_or_slug"] != activeorg
+            and not str(result.kwargs["organization_id_or_slug"]).isdecimal()
+        )
     )
     if not redirect_subdomain and not org_slug_path_mismatch:
         return None
     kwargs = {**result.kwargs}
+
+    # Make sure if organization_id_or_slug is passed in, it is a slug
     if org_slug_path_mismatch:
-        kwargs["organization_slug"] = activeorg
+        if "organization_slug" in kwargs:
+            kwargs["organization_slug"] = activeorg
+        else:
+            kwargs["organization_id_or_slug"] = activeorg
+
     path = reverse(result.url_name or result.func, kwargs=kwargs)
     qs = _query_string(request)
     redirect_url = f"{redirect_url}{path}{qs}"
@@ -79,7 +89,7 @@ class CustomerDomainMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         if (
             request.method != "GET"
-            or not getattr(settings, "SENTRY_USE_CUSTOMER_DOMAINS", False)
+            or not features.has("system:multi-region")
             or not hasattr(request, "subdomain")
         ):
             return self.get_response(request)

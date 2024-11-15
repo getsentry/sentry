@@ -147,7 +147,7 @@ if rabbitmq:
         + (env("SENTRY_RABBITMQ_VHOST") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_VHOST") or "/")
     )
 else:
-    BROKER_URL = "redis://:" + redis_password + "@" + redis + ":" + redis_port + "/" + redis_db
+    BROKER_URL = f"redis://{redis_password}@{redis}:{redis_port}/{redis_db}"
 
 
 ###############

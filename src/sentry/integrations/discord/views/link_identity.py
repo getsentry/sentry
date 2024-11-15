@@ -1,19 +1,16 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpRequest, HttpResponse
-from django.urls import reverse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
+from collections.abc import Mapping
+from typing import Any
 
-from sentry import analytics
-from sentry.integrations.utils.identities import get_identity_or_404
-from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.actor import ActorType
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.types.integrations import ExternalProviders
+from django.urls import reverse
+
+from sentry.integrations.discord.views.linkage import DiscordIdentityLinkageView
+from sentry.integrations.messaging.linkage import LinkIdentityView
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
-from sentry.web.frontend.base import BaseView, control_silo_view
-from sentry.web.helpers import render_to_response
+from sentry.utils.signing import sign
+
+from .constants import SALT
 
 
 def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
@@ -22,44 +19,15 @@ def build_linking_url(integration: RpcIntegration, discord_id: str) -> str:
         "discord_id": discord_id,
         "integration_id": integration.id,
     }
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(salt=SALT, **kwargs)}))
 
 
-@control_silo_view
-class DiscordLinkIdentityView(BaseView):
-    """
-    Django view for linking user to Discord account.
-    """
+class DiscordLinkIdentityView(DiscordIdentityLinkageView, LinkIdentityView):
+    def get_success_template_and_context(
+        self, params: Mapping[str, Any], integration: Integration | None
+    ) -> tuple[str, dict[str, Any]]:
+        return "sentry/integrations/discord/linked.html", {}
 
-    @method_decorator(never_cache)
-    def handle(self, request: HttpRequest, signed_params: str) -> HttpResponse:
-        try:
-            params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
-            return render_to_response("sentry/integrations/discord/expired-link.html")
-
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.DISCORD,
-            request.user,
-            integration_id=params["integration_id"],
-        )
-
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-link-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
-
-        Identity.objects.link_identity(user=request.user, idp=idp, external_id=params["discord_id"])  # type: ignore
-
-        analytics.record(
-            "integrations.discord.identity_linked",
-            provider="discord",
-            actor_id=request.user.id,
-            actor_type=ActorType.USER,
-        )
-        return render_to_response(
-            "sentry/integrations/discord/linked.html",
-            request=request,
-        )
+    @property
+    def analytics_operation_key(self) -> str | None:
+        return "identity_linked"

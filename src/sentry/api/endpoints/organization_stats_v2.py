@@ -99,11 +99,17 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replay", "profile", "monitor"),
+        ("error", "transaction", "attachment", "replay", "profile", "profile_duration", "monitor"),
         required=False,
         help_text=(
-            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
-            "If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
+            "Filter by data category. Each category represents a different type of data:\n\n"
+            "- `error`: Error events (includes `default` and `security` categories)\n"
+            "- `transaction`: Transaction events\n"
+            "- `attachment`: File attachments (note: cannot be combined with other categories since quantity represents bytes)\n"
+            "- `replay`: Session replay events\n"
+            "- `profile`: Performance profiles\n"
+            "- `profile_duration`: Profile duration data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `monitor`: Cron monitor events"
         ),
     )
     outcome = serializers.ChoiceField(
@@ -140,16 +146,16 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(20, 1),
-            RateLimitCategory.USER: RateLimit(20, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+            RateLimitCategory.IP: RateLimit(limit=20, window=1),
+            RateLimitCategory.USER: RateLimit(limit=20, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
         }
     }
     permission_classes = (OrganizationAndStaffPermission,)
 
     @extend_schema(
         operation_id="Retrieve Event Counts for an Organization (v2)",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
@@ -164,22 +170,21 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
+
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with sentry_sdk.start_span(
-                op="outcomes.endpoint", description="massage_outcomes_result"
-            ):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 

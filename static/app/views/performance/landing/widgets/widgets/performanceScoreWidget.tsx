@@ -7,13 +7,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
@@ -21,35 +19,20 @@ import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
-  const {InteractiveTitle, organization} = props;
+  const {InteractiveTitle} = props;
   const theme = useTheme();
-  const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
-
-  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isPending: isProjectScoresLoading} =
+    useProjectWebVitalsScoresQuery();
 
   const projectScore =
-    (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
+    isProjectScoresLoading || isPending
       ? undefined
-      : shouldUseStoredScores
-        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
-        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
+  const moduleURL = useModuleURL('vital');
 
   return (
     <GenericPerformanceWidget
@@ -58,10 +41,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
       HeaderActions={() => (
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-            size="sm"
-          >
+          <LinkButton to={`${moduleURL}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>
@@ -73,8 +53,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
       Queries={{
         project: {
           component: provided => {
-            const loading = shouldUseStoredScores ? isProjectScoresLoading : isLoading;
-            const data = shouldUseStoredScores ? projectScores : projectData;
+            const loading = isProjectScoresLoading;
+            const data = projectScores;
             return (
               <Fragment>
                 {provided.children({
@@ -95,7 +75,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         {
           component: () => (
             <Wrapper>
-              {projectScore && !noTransactions ? (
+              {projectScore ? (
                 <PerformanceScoreRingWithTooltips
                   inPerformanceWidget
                   projectScore={projectScore}
@@ -112,9 +92,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
-                  weights={weights}
                 />
-              ) : isLoading ? (
+              ) : isPending ? (
                 <StyledLoadingIndicator size={40} />
               ) : (
                 <WidgetEmptyStateWarning />

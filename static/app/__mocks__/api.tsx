@@ -34,6 +34,7 @@ interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
+  host: string;
   match: MatchCallable[];
   method: string;
   statusCode: number;
@@ -138,6 +139,7 @@ class Client implements ApiNamespace.Client {
 
     Client.mockResponses.unshift([
       {
+        host: '',
         url: '',
         status: 200,
         statusCode: 200,
@@ -161,6 +163,9 @@ class Client implements ApiNamespace.Client {
 
   static findMockResponse(url: string, options: Readonly<ApiNamespace.RequestOptions>) {
     return Client.mockResponses.find(([response]) => {
+      if (response.host && (options.host || '') !== response.host) {
+        return false;
+      }
       if (url !== response.url) {
         return false;
       }

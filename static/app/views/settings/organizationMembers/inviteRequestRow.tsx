@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
-import Tag from 'sentry/components/tag';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, OrgRole} from 'sentry/types';
+import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 
 type Props = {
   allRoles: OrgRole[];
@@ -35,7 +35,7 @@ function InviteRequestRow({
   allRoles,
 }: Props) {
   const role = allRoles.find(r => r.id === inviteRequest.role);
-  const roleDisallowed = !role?.allowed;
+  const roleDisallowed = !role?.isAllowed;
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
@@ -75,6 +75,7 @@ function InviteRequestRow({
           onChange={r => onUpdate({role: r.value})}
           value={inviteRequest.role}
           roles={allRoles}
+          aria-label={t('Role: %s', role?.name)}
         />
       ) : (
         <div>{inviteRequest.roleName}</div>

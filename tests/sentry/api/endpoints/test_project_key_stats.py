@@ -4,12 +4,10 @@ from sentry.constants import DataCategory
 from sentry.models.projectkey import ProjectKey
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
 @freeze_time("2022-01-01 03:30:00")
-@region_silo_test
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -158,8 +156,8 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         response = self.client.get(
             self.path,
             data={
-                "since": before_now(days=1).timestamp(),
-                "until": before_now().timestamp(),
+                "since": int(before_now(days=1).timestamp()),
+                "until": int(before_now().timestamp()),
             },
         )
         assert response.status_code == 200, response.content

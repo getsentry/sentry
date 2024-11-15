@@ -1,10 +1,12 @@
-from sentry.utils import json
+from typing import Any
+
+import orjson
 
 
-def get_old_json_paths(filename: str) -> json.JSONData:
+def get_old_json_paths(filename: str) -> Any:
     try:
-        with open(filename) as f:
-            old_raw_paths = json.load(f)["paths"]
+        with open(filename, "rb") as f:
+            old_raw_paths = orjson.loads(f.read())["paths"]
     except OSError:
         raise Exception(
             "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."
@@ -12,10 +14,10 @@ def get_old_json_paths(filename: str) -> json.JSONData:
     return old_raw_paths
 
 
-def get_old_json_components(filename: str) -> json.JSONData:
+def get_old_json_components(filename: str) -> Any:
     try:
-        with open(filename) as f:
-            old_raw_components = json.load(f)["components"]
+        with open(filename, "rb") as f:
+            old_raw_components = orjson.loads(f.read())["components"]
     except OSError:
         raise Exception(
             "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."
@@ -103,6 +105,16 @@ OPENAPI_TAGS = [
         },
     },
     {
+        "name": "Dashboards",
+        "x-sidebar-name": "Dashboards",
+        "description": "Endpoints for Dashboards",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
         "name": "Crons",
         "x-sidebar-name": "Crons",
         "description": "Endpoints for Crons",
@@ -136,6 +148,26 @@ OPENAPI_TAGS = [
         "name": "Integrations",
         "x-sidebar-name": "Integrations",
         "description": "Endpoints for Integrations",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
+        "name": "Environments",
+        "x-sidebar-name": "Environments",
+        "description": "Endpoints for Environments",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
+    {
+        "name": "Users",
+        "x-sidebar-name": "Users",
+        "description": "Endpoints for Users",
         "x-display-description": False,
         "externalDocs": {
             "description": "Found an error? Let us know.",

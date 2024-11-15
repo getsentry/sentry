@@ -9,9 +9,9 @@ from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.services.auth import auth_service
 from sentry.models.organization import Organization
 
-from ...services.hybrid_cloud.auth import auth_service
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
@@ -20,11 +20,11 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
-        transaction = sentry_sdk.Hub.current.scope.transaction
+        transaction = sentry_sdk.Scope.get_current_scope().transaction
         if transaction is not None:
             transaction.set_tag("http.status_code", status_code)
+        super().__init__({"schemas": [SCIM_API_ERROR], "detail": detail})
         self.status_code = status_code
-        self.detail = {"schemas": [SCIM_API_ERROR], "detail": detail}
 
 
 class SCIMFilterError(ValueError):

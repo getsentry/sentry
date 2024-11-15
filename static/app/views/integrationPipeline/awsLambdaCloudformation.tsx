@@ -4,13 +4,13 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/actions/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
@@ -200,6 +200,7 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
           <ListItem>
             <h3>{t("Add Sentry's CloudFormation")}</h3>
             <StyledButton
+              size="xs"
               priority="primary"
               onClick={this.trackOpenCloudFormation}
               external
@@ -283,6 +284,6 @@ const StyledList = styled(List)`
   padding: 100px 50px 50px 50px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-bottom: 20px;
 `;

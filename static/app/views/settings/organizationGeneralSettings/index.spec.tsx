@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,8 +13,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
@@ -24,6 +25,7 @@ jest.mock('sentry/utils/analytics');
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
   const {organization, router} = initializeOrg();
+  let configState: Config;
 
   const defaultProps = {
     organization,
@@ -36,6 +38,7 @@ describe('OrganizationGeneralSettings', function () {
   };
 
   beforeEach(function () {
+    configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -45,6 +48,12 @@ describe('OrganizationGeneralSettings', function () {
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
       body: [GitHubIntegrationFixture()],
+    });
+  });
+
+  afterEach(function () {
+    act(function () {
+      ConfigStore.loadInitialData(configState);
     });
   });
 
@@ -97,7 +106,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new slug', async function () {
-    render(<OrganizationGeneralSettings {...defaultProps} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {router});
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -116,12 +125,18 @@ describe('OrganizationGeneralSettings', function () {
           data: {slug: 'new-slug'},
         })
       );
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/new-slug/');
+    });
+    await waitFor(() => {
+      expect(router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({pathname: '/settings/new-slug/'})
+      );
     });
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = OrganizationFixture({features: ['customer-domains']});
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
+    const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

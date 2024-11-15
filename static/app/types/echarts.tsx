@@ -7,12 +7,12 @@ import type {
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
 export type SeriesDataUnit = {
+  // number because we sometimes use timestamps
   name: string | number;
   value: number;
   itemStyle?: {
     color?: string;
   };
-  // number because we sometimes use timestamps
   onClick?: (series: Series, instance: ECharts) => void;
 };
 
@@ -30,6 +30,8 @@ export type Series = {
   markLine?: LineSeriesOption['markLine'];
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
+  symbol?: LineSeriesOption['symbol'];
+  symbolSize?: LineSeriesOption['symbolSize'];
   z?: number;
 };
 

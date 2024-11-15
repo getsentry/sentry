@@ -1,32 +1,30 @@
 from __future__ import annotations
 
-from django.http import HttpResponseRedirect
-
-from sentry import features
-from sentry.api.utils import generate_organization_url
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.silo.base import SiloMode
-
-__all__ = ["IntegrationPipeline"]
-
 import logging
 
 from django.db import IntegrityError
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.manager import default_manager
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
+from sentry.silo.base import SiloMode
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
-logger = logging.getLogger(__name__)
+__all__ = ["IntegrationPipeline"]
 
-from . import default_manager
+logger = logging.getLogger(__name__)
 
 
 def ensure_integration(key, data):
@@ -88,6 +86,13 @@ class IntegrationPipeline(Pipeline):
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
         return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
 
+    def initialize(self) -> None:
+        super().initialize()
+
+        metrics.incr(
+            "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
+        )
+
     def finish_pipeline(self):
         try:
             data = self.provider.build_integration(self.state.data)
@@ -121,16 +126,15 @@ class IntegrationPipeline(Pipeline):
         )
         self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
+
+        metrics.incr(
+            "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
+        )
+
         return response
 
     def _finish_pipeline(self, data):
-        if "reinstall_id" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, id=data["reinstall_id"]
-            )
-            self.integration.update(external_id=data["external_id"], status=ObjectStatus.ACTIVE)
-            self.integration.get_installation(self.organization.id).reinstall()
-        elif "expect_exists" in data:
+        if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
@@ -244,7 +248,7 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization):
+        if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},

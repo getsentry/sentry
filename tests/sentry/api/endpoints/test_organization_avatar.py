@@ -2,7 +2,6 @@ from base64 import b64encode
 
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationAvatarTestBase(APITestCase):
@@ -13,7 +12,6 @@ class OrganizationAvatarTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@region_silo_test
 class OrganizationAvatarTest(OrganizationAvatarTestBase):
     def test_get(self):
         response = self.get_success_response(self.organization.slug)
@@ -23,7 +21,6 @@ class OrganizationAvatarTest(OrganizationAvatarTestBase):
         assert response.data["avatar"]["avatarUrl"] is None
 
 
-@region_silo_test
 class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
     method = "put"
 

@@ -6,21 +6,24 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.mixins import IssueBasicMixin
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.source_code_management.metrics import (
+    SourceCodeIssueIntegrationInteractionType,
+)
 from sentry.models.group import Group
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
+from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 
 ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
 
 
-class GitlabIssueBasic(IssueBasicMixin):
+class GitlabIssuesSpec(SourceCodeIssueIntegration):
     def make_external_key(self, data):
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
-    def get_issue_url(self, key):
+    def get_issue_url(self, key: str) -> str:
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
@@ -77,31 +80,32 @@ class GitlabIssueBasic(IssueBasicMixin):
         ]
 
     def create_issue(self, data, **kwargs):
-        client = self.get_client()
+        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+            client = self.get_client()
 
-        project_id = data.get("project")
+            project_id = data.get("project")
 
-        if not project_id:
-            raise IntegrationError("project kwarg must be provided")
+            if not project_id:
+                raise IntegrationError("project kwarg must be provided")
 
-        try:
-            issue = client.create_issue(
-                project=project_id,
-                data={"title": data["title"], "description": data["description"]},
-            )
-            project = client.get_project(project_id)
-        except ApiError as e:
-            raise IntegrationError(self.message_from_error(e))
+            try:
+                issue = client.create_issue(
+                    project=project_id,
+                    data={"title": data["title"], "description": data["description"]},
+                )
+                project = client.get_project(project_id)
+            except ApiError as e:
+                raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
-        return {
-            "key": project_and_issue_iid,
-            "title": issue["title"],
-            "description": issue["description"],
-            "url": issue["web_url"],
-            "project": project_id,
-            "metadata": {"display_name": project_and_issue_iid},
-        }
+            project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
+            return {
+                "key": project_and_issue_iid,
+                "title": issue["title"],
+                "description": issue["description"],
+                "url": issue["web_url"],
+                "project": project_id,
+                "metadata": {"display_name": project_and_issue_iid},
+            }
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]
@@ -115,9 +119,8 @@ class GitlabIssueBasic(IssueBasicMixin):
             return
 
         try:
-            client.create_issue_comment(
-                project_id=project_id, issue_id=issue_id, data={"body": comment}
-            )
+            # GitLab has projects which are equivalent to repos
+            client.create_comment(repo=project_id, issue_id=issue_id, data={"body": comment})
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 

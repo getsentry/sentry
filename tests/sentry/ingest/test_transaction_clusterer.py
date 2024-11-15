@@ -321,8 +321,9 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
     # Add a transaction to project2 so it runs again
     _record_sample(ClustererNamespace.TRANSACTIONS, project2, "foo")
 
-    with mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1), freeze_time(
-        "2000-01-01 01:00:01"
+    with (
+        mock.patch("sentry.ingest.transaction_clusterer.tasks.PROJECTS_PER_TASK", 1),
+        freeze_time("2000-01-01 01:00:01"),
     ):
         spawn_clusterers()
 
@@ -379,7 +380,7 @@ def test_get_deleted_project():
 @django_db_all
 def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
-        return get_project_config(project, full_config=True).to_dict()["config"].get("txNameRules")
+        return get_project_config(project).to_dict()["config"].get("txNameRules")
 
     feature = "organizations:transaction-name-normalize"
     with Feature({feature: False}):

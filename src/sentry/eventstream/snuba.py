@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import sentry_kafka_schemas
 import urllib3
 
 from sentry import quotas
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
+from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.types import EventStreamEventType
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -89,7 +90,7 @@ class SnubaProtocolEventStream(EventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool,
         group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
@@ -105,9 +106,10 @@ class SnubaProtocolEventStream(EventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         if event.get_tag("sample_event") == "true":
@@ -166,7 +168,7 @@ class SnubaProtocolEventStream(EventStream):
             contexts = event_data.setdefault("contexts", {})
 
             # add user.geo to contexts if it exists
-            user_dict = event_data.get("user") or event_data.get("sentry.interfaces.User") or {}
+            user_dict = event_data.get("user") or {}
             geo = user_dict.get("geo", {})
             if "geo" not in contexts and isinstance(geo, dict):
                 contexts["geo"] = geo
@@ -210,11 +212,9 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
-    def start_delete_groups(
-        self, project_id: int, group_ids: Sequence[int]
-    ) -> Mapping[str, Any] | None:
+    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
-            return None
+            raise ValueError("expected groups to delete!")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -239,9 +239,9 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any] | None:
+    ) -> dict[str, Any]:
         if not previous_group_ids:
-            return None
+            raise ValueError("expected groups to merge!")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -288,9 +288,9 @@ class SnubaProtocolEventStream(EventStream):
             state_copy["project_id"], "end_unmerge", extra_data=(state_copy,), asynchronous=False
         )
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any] | None:
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
         if not tag:
-            return None
+            raise ValueError("expected tag")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -420,13 +420,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         serialized_data = json.dumps(data)
 
-        codec = sentry_kafka_schemas.get_codec(
-            topic={
-                "events": "events",
-                "transactions": "transactions",
-                "search_issues": "generic-events",
-            }[entity]
-        )
+        topic_mapping: Mapping[str, Topic] = {
+            "events": Topic.EVENTS,
+            "transactions": Topic.TRANSACTIONS,
+            "search_issues": Topic.EVENTSTREAM_GENERIC,
+        }
+
+        codec = get_topic_codec(topic_mapping[entity])
         codec.decode(serialized_data.encode("utf-8"), validate=True)
 
         try:
@@ -454,9 +454,10 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().insert(
@@ -482,4 +483,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
+            eventstream_type=eventstream_type,
         )

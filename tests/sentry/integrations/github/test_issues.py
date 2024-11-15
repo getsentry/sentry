@@ -1,25 +1,29 @@
 import datetime
 from functools import cached_property
 from typing import cast
+from unittest import mock
 from unittest.mock import patch
 
+import orjson
+import pytest
 import responses
 from django.test import RequestFactory
+from django.utils import timezone
 from pytest import fixture
 
 from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.github.issues import GitHubIssueBasic
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import FeedbackGroup
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.silo import all_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -30,7 +34,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
+        ten_days = timezone.now() + datetime.timedelta(days=10)
         self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -91,7 +95,6 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["label"] == "Labels"
 
 
-@region_silo_test
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
     def request(self):
@@ -108,7 +111,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         )
         install = self.integration.get_installation(self.organization.id)
         self.install = cast(GitHubIntegration, install)
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         self.repo = "getsentry/sentry"
 
     @fixture(autouse=True)
@@ -192,7 +195,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    def test_create_issue(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue(self, mock_record):
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -217,6 +221,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "url": "https://github.com/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
         if self.should_call_api_without_proxying():
             assert len(responses.calls) == 2
@@ -226,7 +234,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert payload == {
                 "body": "This is the description",
                 "assignee": None,
@@ -236,12 +244,31 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         else:
             self._check_proxying()
 
+    @responses.activate
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_issue_failure(self, mock_record):
+        """
+        Test that metrics are being correctly emitted on failure.
+        """
+        form_data = {
+            "title": "rip",
+            "description": "Goodnight, sweet prince",
+        }
+
+        with pytest.raises(IntegrationError):
+            self.install.create_issue(form_data)
+
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""
         event = self.create_performance_issue()
-        description = GitHubIssueBasic().get_group_description(event.group, event)
+        description = self.install.get_group_description(event.group, event)
         assert "db - SELECT `books_author`.`id`, `books_author" in description
-        title = GitHubIssueBasic().get_group_title(event.group, event)
+        title = self.install.get_group_title(event.group, event)
         assert title == "N+1 Query"
 
     def test_generic_issues_content(self):
@@ -252,18 +279,18 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
         group_event = event.for_group(event.groups[0])
         group_event.occurrence = occurrence
 
-        description = GitHubIssueBasic().get_group_description(group_event.group, group_event)
+        description = self.install.get_group_description(group_event.group, group_event)
         assert group_event.occurrence.evidence_display[0].value in description
         assert group_event.occurrence.evidence_display[1].value in description
         assert group_event.occurrence.evidence_display[2].value in description
-        title = GitHubIssueBasic().get_group_title(group_event.group, group_event)
+        title = self.install.get_group_title(group_event.group, group_event)
         assert title == group_event.occurrence.issue_title
 
     def test_error_issues_content(self):
@@ -272,15 +299,15 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
         assert event.group is not None
 
-        description = GitHubIssueBasic().get_group_description(event.group, event)
+        description = self.install.get_group_description(event.group, event)
         assert "oh no" in description
-        title = GitHubIssueBasic().get_group_title(event.group, event)
+        title = self.install.get_group_title(event.group, event)
         assert title == event.title
 
     @responses.activate
@@ -455,7 +482,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "hello"}
 
     @responses.activate

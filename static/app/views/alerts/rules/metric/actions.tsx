@@ -7,7 +7,7 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
 }
 
 /**
- * Add a new rule or update an existing rule
+ * Add a new alert rule or update an existing alert rule
  *
  * @param api API Client
  * @param orgId Organization slug
@@ -16,7 +16,7 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
  */
 export function addOrUpdateRule(
   api: Client,
-  orgId: string,
+  orgId: string, // organization slug
   rule: MetricRule,
   query?: object | any
 ) {

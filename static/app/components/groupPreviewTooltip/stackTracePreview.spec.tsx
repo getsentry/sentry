@@ -2,8 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {EventError} from 'sentry/types';
-import type {ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
 import {StackTracePreview} from './stackTracePreview';
@@ -44,10 +43,7 @@ describe('StackTracePreview', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    ['stack-trace-content', []],
-    ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
-  ])('renders %s', async (component, features) => {
+  it.each([['stack-trace-content', []]])('renders %s', async (component, features) => {
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',
@@ -109,5 +105,7 @@ describe('StackTracePreview', () => {
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
+    // Hide the platform icon for stack trace previews
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });

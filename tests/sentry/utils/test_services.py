@@ -34,7 +34,7 @@ class Error(Operation):
 
 @pytest.fixture
 def delegator_fixture() -> tuple[Delegator, Mock, Mock]:
-    executor = SynchronousExecutor()
+    executor: SynchronousExecutor[object] = SynchronousExecutor()
     selector = Mock()
     callback = Mock()
     delegator = Delegator(
@@ -195,7 +195,7 @@ def test_make_writebehind_selector_invalid_key(register_option):
         option_name="feature.rollout",
         move_to="new",
         move_from="old",
-        key_fetch=lambda *args: {"lol": "nope"},  # type: ignore
+        key_fetch=lambda *args: {"lol": "nope"},  # type: ignore[arg-type]
     )
     with override_options({"feature.rollout": 1.0}):
         result = selector(context, "do_thing", {})

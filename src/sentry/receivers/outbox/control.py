@@ -5,37 +5,26 @@ These receivers are triggered on the control silo as outbox messages
 are drained. Receivers are expected to make local state changes (tombstones)
 and perform RPC calls to propagate changes to relevant region(s).
 """
+
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from hashlib import sha1
 from typing import Any
 
-import sentry_sdk
 from django.dispatch import receiver
-from requests import Response
-from requests.exceptions import HTTPError
-from rest_framework import status
 
-from sentry.exceptions import RestrictedIPAddress
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.outbox.signals import process_control_outbox
+from sentry.integrations.models.integration import Integration
+from sentry.issues.services.issue import issue_service
 from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.outbox import OutboxCategory, process_control_outbox
+from sentry.models.files.utils import get_relocation_storage
+from sentry.organizations.services.organization import RpcOrganizationSignal, organization_service
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.issue import issue_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
-from sentry.shared_integrations.exceptions import (
-    ApiConflictError,
-    ApiConnectionResetError,
-    ApiError,
-    ApiHostError,
-    ApiTimeoutError,
-)
-from sentry.silo.base import SiloMode
-from sentry.silo.client import SiloClientError
-from sentry.utils import metrics
+from sentry.relocation.services.relocation_export.service import region_relocation_export_service
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.tasks.sentry_apps import clear_region_cache
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +42,17 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
+
     if (
         sentry_app := maybe_process_tombstone(
             model=SentryApp, object_identifier=object_identifier, region_name=region_name
         )
     ) is None:
         return
-    sentry_app  # Currently we do not sync any other sentry_app changes, but if we did, you can use this variable.
+
+    # Spawn a task to clear caches, as there can be 1000+ installations
+    # for a sentry app.
+    clear_region_cache.delay(sentry_app_id=sentry_app.id, region_name=region_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
@@ -71,150 +64,6 @@ def process_api_application_updates(object_identifier: int, region_name: str, **
     ) is None:
         return
     api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
-
-
-@receiver(process_control_outbox, sender=OutboxCategory.WEBHOOK_PROXY)
-def process_async_webhooks(
-    payload: Mapping[str, Any],
-    region_name: str,
-    shard_identifier: int,
-    object_identifier: int,
-    **kwds: Any,
-):
-    from sentry.models.outbox import ControlOutbox
-    from sentry.silo.client import RegionSiloClient
-    from sentry.types.region import get_region_by_name
-
-    if SiloMode.get_current_mode() == SiloMode.REGION:
-        sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
-        return
-
-    logging_context: dict[str, str | int] = {
-        "outbox_message_object_id": object_identifier,
-        "shard_id": shard_identifier,
-    }
-    try:
-        region = get_region_by_name(name=region_name)
-        webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
-    except Exception:
-        sentry_sdk.capture_exception()
-        logger.exception(
-            "integration_proxy.failed_to_preprocess_outbox_message",
-            extra=logging_context,
-        )
-        raise
-
-    try:
-        client = RegionSiloClient(region=region)
-        with metrics.timer(
-            "integration_proxy.control.process_async_webhooks",
-            tags={"destination_region": region.name},
-        ):
-            request_prefix_hash = sha1(
-                f"{shard_identifier}{object_identifier}".encode()
-            ).hexdigest()
-            logging_context["region"] = region.name
-            logging_context["request_method"] = webhook_payload.method
-            logging_context["proxy_path"] = webhook_payload.path
-            logging_context["request_hash"] = request_prefix_hash
-
-            logger.info(
-                "integration_proxy.issuing_proxy_request",
-                extra=logging_context,
-            )
-
-            response = client.request(
-                method=webhook_payload.method,
-                path=webhook_payload.path,
-                headers=webhook_payload.headers,
-                # We need to send the body as raw bytes to avoid interfering with webhook signatures
-                data=webhook_payload.body.encode("utf-8"),
-                json=False,
-                prefix_hash=request_prefix_hash,
-            )
-        logger.info(
-            "webhook_proxy.complete",
-            extra={
-                "status": getattr(
-                    response, "status_code", 204
-                ),  # Request returns empty dict instead of a response object when the code is a 204
-                **logging_context,
-            },
-        )
-    except SiloClientError as e:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "silo_client_error", "destination_region": region.name},
-        )
-
-        logger.warning(
-            "webhook_proxy.silo_client_error",
-            extra=logging_context,
-        )
-        sentry_sdk.capture_exception(e)
-    except ApiHostError as err:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "host_error", "destination_region": region.name},
-        )
-        with sentry_sdk.push_scope() as scope:
-            scope.set_context(
-                "region",
-                {
-                    "name": region.name,
-                    "id": region.category,
-                    "address": region.address,
-                },
-            )
-            err_cause = err.__cause__
-            if err_cause is not None and isinstance(err_cause, RestrictedIPAddress):
-                # Region silos that are IP address restricted are actionable.
-                silo_client_err = SiloClientError("Region silo is IP address restricted")
-                silo_client_err.__cause__ = err
-                sentry_sdk.capture_exception(silo_client_err)
-                return
-            sentry_sdk.capture_exception(err)
-        return
-    except ApiConflictError as e:
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "conflict", "destination_region": region.name},
-        )
-        logger.warning(
-            "webhook_proxy.conflict_occurred",
-            extra={"conflict_text": e.text, **logging_context},
-        )
-    except (ApiTimeoutError, ApiConnectionResetError):
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "timeout_reset", "destination_region": region.name},
-        )
-        logger.warning("integration_proxy.timeout_error", extra=logging_context)
-        raise
-    except ApiError as api_err:
-        err_cause = api_err.__cause__
-        if err_cause is not None and isinstance(err_cause, HTTPError):
-            orig_response: Response | None = err_cause.response
-            if (
-                orig_response is not None
-                and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
-            ):
-                # Retry on 5xx errors
-                raise
-        # For some integrations, we make use of outboxes to handle asynchronous webhook requests.
-        # There is an edge case where webhook requests eventually become invalid and
-        # the 3rd-party destination (integration provider) will reject them.
-        # JWT expirations is one example of causing this issue. Issues like these are no longer salvageable, and we must
-        # discard these associated webhook outbox messages. If we do not discard them, then these outbox messages
-        # will be re-processed causing a backlog on the ControlOutbox table.
-        metrics.incr(
-            "integration_proxy.control.process_async_webhook.failure",
-            tags={"reason": "discard", "destination_region": region.name},
-        )
-
-        logger.warning("integration_proxy.api_error", extra={"error": api_err, **logging_context})
-
-        return
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SEND_SIGNAL)
@@ -255,3 +104,49 @@ def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
         from_email=payload["from_email"],
         text=payload["text"],
     )
+
+
+# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
+@receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REQUEST)
+def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
+    encrypt_with_public_key = (
+        payload["encrypt_with_public_key"].encode("utf-8")
+        if isinstance(payload["encrypt_with_public_key"], str)
+        else payload["encrypt_with_public_key"]
+    )
+    region_relocation_export_service.request_new_export(
+        relocation_uuid=payload["relocation_uuid"],
+        requesting_region_name=payload["requesting_region_name"],
+        replying_region_name=payload["replying_region_name"],
+        org_slug=payload["org_slug"],
+        encrypt_with_public_key=encrypt_with_public_key,
+    )
+
+
+# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
+@receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
+def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
+    # We expect the `ProxyRelocationExportService::reply_with_export` implementation to have written
+    # the export data to the control silo's local relocation-specific GCS bucket. Here, we just read
+    # it into memory and attempt the RPC call back to the requesting region.
+    uuid = payload["relocation_uuid"]
+    slug = payload["org_slug"]
+    relocation_storage = get_relocation_storage()
+    path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+    try:
+        encrypted_bytes = relocation_storage.open(path)
+    except Exception:
+        raise FileNotFoundError("Could not open SaaS -> SaaS export in proxy relocation bucket.")
+
+    with encrypted_bytes:
+        region_relocation_export_service.reply_with_export(
+            relocation_uuid=payload["relocation_uuid"],
+            requesting_region_name=payload["requesting_region_name"],
+            replying_region_name=payload["replying_region_name"],
+            org_slug=payload["org_slug"],
+            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+            encrypted_contents=None,
+            encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
+        )

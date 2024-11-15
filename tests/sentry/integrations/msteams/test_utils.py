@@ -1,11 +1,11 @@
 import time
 
+import orjson
 import responses
 
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -52,19 +52,19 @@ class GetChannelIdTest(TestCase):
         )
 
         def user_conversation_id_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             if payload["members"] == [{"id": "d_p_r"}] and payload["channelData"] == {
                 "tenant": {"id": "3141-5926-5358"}
             }:
-                return (200, {}, json.dumps({"id": "dread_pirate_roberts"}))
+                return 200, {}, orjson.dumps({"id": "dread_pirate_roberts"}).decode()
             elif payload["members"] == [{"id": "p_b"}] and payload["channelData"] == {
                 "tenant": {"id": "2718-2818-2845"}
             }:
-                return (200, {}, json.dumps({"id": "princess_bride"}))
+                return 200, {}, orjson.dumps({"id": "princess_bride"}).decode()
             elif payload["members"] == [{"id": "p_t_d"}] and payload["channelData"] == {
                 "tenant": {"id": "1618-0339-8874"}
             }:
-                return (200, {}, json.dumps({"id": "prepare_to_die"}))
+                return 200, {}, orjson.dumps({"id": "prepare_to_die"}).decode()
 
         responses.add_callback(
             responses.POST,

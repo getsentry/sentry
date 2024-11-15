@@ -20,7 +20,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
 )
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 
@@ -29,8 +29,8 @@ from sentry.tasks.base import instrumented_task
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2 hours
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=3 * 60,  # 3 minutes
+    time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)

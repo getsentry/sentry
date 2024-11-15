@@ -1,17 +1,17 @@
+import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
-import FeedbackItemUsername from 'sentry/components/feedback/feedbackItem/feedbackItemUsername';
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
-import FeedbackTimestampsTooltip from 'sentry/components/feedback/feedbackItem/feedbackTimestampsTooltip';
 import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
-import {Flex} from 'sentry/components/profiling/flex';
-import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
-import type {Event, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useDimensions} from 'sentry/utils/useDimensions';
 
 interface Props {
   eventData: Event | undefined;
@@ -26,30 +26,33 @@ const fixIssueLinkSpacing = css`
   }
 `;
 
-export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
-  return (
-    <VerticalSpacing>
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
-        <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
+type Dimensions = ReturnType<typeof useDimensions>;
+function dimensionsToSize({width}: Dimensions) {
+  if (width < 600) {
+    return 'small';
+  }
+  if (width < 800) {
+    return 'medium';
+  }
+  return 'large';
+}
 
-        <TimeSince
-          date={feedbackItem.firstSeen}
-          style={{alignSelf: 'center', whiteSpace: 'nowrap'}}
-          tooltipProps={{
-            title: eventData ? (
-              <FeedbackTimestampsTooltip feedbackItem={feedbackItem} />
-            ) : undefined,
-            overlayStyle: {maxWidth: 300},
-          }}
+export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const dimensions = useDimensions({elementRef: wrapperRef});
+
+  return (
+    <VerticalSpacing ref={wrapperRef}>
+      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
+        <FeedbackShortId feedbackItem={feedbackItem} />
+        <FeedbackActions
+          eventData={eventData}
+          feedbackItem={feedbackItem}
+          size={dimensionsToSize(dimensions)}
         />
       </Flex>
 
-      <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
-        <FeedbackShortId feedbackItem={feedbackItem} />
-        <FeedbackActions eventData={eventData} feedbackItem={feedbackItem} />
-      </Flex>
-
-      {eventData && (
+      {eventData && feedbackItem.project ? (
         <Flex wrap="wrap" justify="flex-start" css={fixIssueLinkSpacing}>
           <ErrorBoundary mini>
             <IssueTrackingSection
@@ -59,7 +62,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
             />
           </ErrorBoundary>
         </Flex>
-      )}
+      ) : null}
     </VerticalSpacing>
   );
 }
@@ -68,6 +71,6 @@ const VerticalSpacing = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;

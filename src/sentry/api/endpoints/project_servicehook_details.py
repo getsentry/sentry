@@ -10,18 +10,19 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.validators import ServiceHookValidator
 from sentry.constants import ObjectStatus
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
+from sentry.sentry_apps.api.serializers.servicehook import ServiceHookSerializer
+from sentry.sentry_apps.models.servicehook import ServiceHook
 
 
 @region_silo_endpoint
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, hook_id) -> Response:
@@ -31,9 +32,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         Return a service hook bound to a project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :auth: required
@@ -42,16 +43,16 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)
         except ServiceHook.DoesNotExist:
             raise ResourceDoesNotExist
-        return self.respond(serialize(hook, request.user))
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
     def put(self, request: Request, project, hook_id) -> Response:
         """
         Update a Service Hook
         `````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :param string url: the url for the webhook
@@ -95,16 +96,16 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
                 data=hook.get_audit_log_data(),
             )
 
-        return self.respond(serialize(hook, request.user))
+        return self.respond(serialize(hook, request.user, ServiceHookSerializer()))
 
     def delete(self, request: Request, project, hook_id) -> Response:
         """
         Remove a Service Hook
         `````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :auth: required

@@ -3,16 +3,16 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.api.endpoints.project_transfer import SALT
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.signing import sign
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -23,7 +23,6 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
         self.assert_team_admin_cannot_access(self.path)
 
 
-@region_silo_test
 class AcceptTransferProjectTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -38,6 +37,9 @@ class AcceptTransferProjectTest(APITestCase):
         )
         self.project = self.create_project(name="proj", teams=[self.from_team])
         self.transaction_id = uuid4().hex
+        ProjectOption.objects.set_value(
+            self.project, "sentry:project-transfer-transaction-id", self.transaction_id
+        )
         self.path = reverse("sentry-api-0-accept-project-transfer")
 
     def test_requires_authentication(self):
@@ -48,6 +50,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_handle_incorrect_url_data(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.id,
             # This is bad data
             from_organization_id=9999999,
@@ -61,9 +64,26 @@ class AcceptTransferProjectTest(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 404
 
+    def test_handle_incorrect_transaction_id(self):
+        self.login_as(self.owner)
+        url_data = sign(
+            salt=SALT,
+            actor_id=self.member.id,
+            from_organization_id=self.from_organization.id,
+            project_id=self.project.id,
+            user_id=self.owner.id,
+            transaction_id="fake_or_obsolete_transaction_id",
+        )
+        resp = self.client.get(self.path + "?" + urlencode({"data": url_data}))
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Invalid transaction id"
+        resp = self.client.get(self.path)
+        assert resp.status_code == 404
+
     def test_returns_org_options_with_signed_link(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -83,6 +103,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_transfers_project_to_team_deprecated(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -102,6 +123,7 @@ class AcceptTransferProjectTest(APITestCase):
 
         self.login_as(rando_user)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=rando_org.id,
             project_id=self.project.id,
@@ -120,6 +142,7 @@ class AcceptTransferProjectTest(APITestCase):
     def test_transfers_project_to_correct_organization(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,
@@ -133,10 +156,12 @@ class AcceptTransferProjectTest(APITestCase):
         assert resp.status_code == 204
         p = Project.objects.get(id=self.project.id)
         assert p.organization_id == self.to_organization.id
+        assert ProjectOption.objects.get_value(p, "sentry:project-transfer-transaction-id") is None
 
     def test_use_org_when_team_and_org_provided(self):
         self.login_as(self.owner)
         url_data = sign(
+            salt=SALT,
             actor_id=self.member.user_id,
             from_organization_id=self.from_organization.id,
             project_id=self.project.id,

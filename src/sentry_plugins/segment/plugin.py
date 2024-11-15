@@ -1,5 +1,5 @@
 from sentry import http
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -30,7 +30,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
         )
     ]
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         return [
             get_secret_field_config(
                 name="write_key",
@@ -51,8 +51,8 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
             "level": event.get_tag("level") or "",
             "environment": event.get_tag("environment") or "",
         }
-        if "sentry.interfaces.Http" in event.interfaces:
-            http = event.interfaces["sentry.interfaces.Http"]
+        if "request" in event.interfaces:
+            http = event.interfaces["request"]
             headers = http.headers
             if not isinstance(headers, dict):
                 headers = dict(headers or ())
@@ -64,8 +64,8 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
                     "requestReferer": headers.get("Referer", ""),
                 }
             )
-        if "sentry.interfaces.Exception" in event.interfaces:
-            exc = event.interfaces["sentry.interfaces.Exception"].values[0]
+        if "exception" in event.interfaces:
+            exc = event.interfaces["exception"].values[0]
             props.update({"exceptionType": exc.type})
         return props
 
@@ -81,16 +81,16 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
             "environment": event.get_tag("environment") or "",
         }
 
-        if "sentry.interfaces.User" in event.interfaces:
-            user = event.interfaces["sentry.interfaces.User"]
+        if "user" in event.interfaces:
+            user = event.interfaces["user"]
             if user.ip_address:
                 context["ip"] = user.ip_address
             user_id = user.id
         else:
             user_id = None
 
-        if "sentry.interfaces.Http" in event.interfaces:
-            http = event.interfaces["sentry.interfaces.Http"]
+        if "request" in event.interfaces:
+            http = event.interfaces["request"]
             headers = http.headers
             if not isinstance(headers, dict):
                 headers = dict(headers or ())
@@ -107,8 +107,8 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
                 }
             )
 
-        if "sentry.interfaces.Exception" in event.interfaces:
-            exc = event.interfaces["sentry.interfaces.Exception"].values[0]
+        if "exception" in event.interfaces:
+            exc = event.interfaces["exception"].values[0]
             props.update({"exceptionType": exc.type})
 
         return {
@@ -131,7 +131,7 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
 
         # we avoid instantiating interfaces here as they're only going to be
         # used if there's a User present
-        user_interface = event.data.get("sentry.interfaces.User")
+        user_interface = event.data.get("user")
         if not user_interface:
             return
 

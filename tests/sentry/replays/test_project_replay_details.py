@@ -7,17 +7,21 @@ from django.urls import reverse
 
 from sentry.models.files.file import File
 from sentry.replays.lib import kafka
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_video_filename,
+    storage,
+    storage_kv,
+)
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import kafka_config
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@region_silo_test
 class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-project-replay-details"
 
@@ -152,7 +156,8 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert_expected_response(response_data["data"], expected_response)
 
-    def test_delete(self):
+    def test_delete_replay_from_filestore(self):
+        """Test deleting files uploaded through the filestore interface."""
         # test deleting as a member, as they should be able to
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
@@ -172,9 +177,11 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         recording_segment_id = recording_segment.id
 
         with self.feature(REPLAYS_FEATURES):
-            with TaskRunner(), mock.patch.object(
-                kafka_config, "get_kafka_producer_cluster_options"
-            ), mock.patch.object(kafka, "KafkaPublisher"):
+            with (
+                TaskRunner(),
+                mock.patch.object(kafka_config, "get_kafka_producer_cluster_options"),
+                mock.patch.object(kafka, "KafkaPublisher"),
+            ):
                 response = self.client.delete(self.url)
                 assert response.status_code == 204
 
@@ -189,3 +196,56 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
             assert False, "File was not deleted."
         except File.DoesNotExist:
             pass
+
+    def test_delete_replay_from_clickhouse_data(self):
+        """Test deleting files uploaded through the direct storage interface."""
+        kept_replay_id = uuid4().hex
+
+        t1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        t2 = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(t1, self.project.id, self.replay_id, segment_id=0))
+        self.store_replays(mock_replay(t2, self.project.id, self.replay_id, segment_id=1))
+        self.store_replays(mock_replay(t1, self.project.id, kept_replay_id, segment_id=0))
+
+        metadata1 = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=0,
+            retention_days=30,
+            file_id=None,
+        )
+        storage.set(metadata1, b"hello, world!")
+        storage_kv.set(make_video_filename(metadata1), b"hello, world!")
+
+        metadata2 = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=1,
+            retention_days=30,
+            file_id=None,
+        )
+        storage.set(metadata2, b"hello, world!")
+        # Intentionally not written.
+        # storage_kv.set(make_video_filename(metadata2), b"hello, world!")
+
+        metadata3 = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=kept_replay_id,
+            segment_id=0,
+            retention_days=30,
+            file_id=None,
+        )
+        storage.set(metadata3, b"hello, world!")
+        storage_kv.set(make_video_filename(metadata3), b"hello, world!")
+
+        with self.feature(REPLAYS_FEATURES):
+            with TaskRunner():
+                response = self.client.delete(self.url)
+                assert response.status_code == 204
+
+        assert storage.get(metadata1) is None
+        assert storage.get(metadata2) is None
+        assert storage.get(metadata3) is not None
+        assert storage_kv.get(make_video_filename(metadata1)) is None
+        assert storage_kv.get(make_video_filename(metadata2)) is None
+        assert storage_kv.get(make_video_filename(metadata3)) is not None

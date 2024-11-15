@@ -1,14 +1,14 @@
+from sentry.auth.services.auth.serial import serialize_auth_provider
 from sentry.hybridcloud.models import ApiKeyReplica, ExternalActorReplica
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.services.replica import region_replica_service
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.outbox import outbox_context
 from sentry.models.teamreplica import TeamReplica
-from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
-from sentry.services.hybrid_cloud.replica import region_replica_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -17,7 +17,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_t
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_replicate_external_actor():
+def test_replicate_external_actor() -> None:
     org = Factories.create_organization()
     integration = Factories.create_integration(organization=org, external_id="hohohomerrychristmas")
     user = Factories.create_user()
@@ -66,7 +66,7 @@ def test_replicate_external_actor():
 
 @django_db_all(transaction=True)
 @all_silo_test(regions=create_test_regions("us"))
-def test_replicate_auth_provider():
+def test_replicate_auth_provider() -> None:
     user = Factories.create_user()
     org = Factories.create_organization(owner=user)
 
@@ -112,7 +112,7 @@ def test_replicate_auth_provider():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_replicate_api_key():
+def test_replicate_api_key() -> None:
     org = Factories.create_organization()
     with assume_test_silo_mode(SiloMode.CONTROL):
         api_key = Factories.create_api_key(org, scope_list=["a", "b"])
@@ -134,7 +134,7 @@ def test_replicate_api_key():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_replicate_auth_identity():
+def test_replicate_auth_identity() -> None:
     user = Factories.create_user()
     user2 = Factories.create_user()
     user3 = Factories.create_user()
@@ -203,7 +203,7 @@ def test_replicate_auth_identity():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_replicate_team():
+def test_replicate_team() -> None:
     org = Factories.create_organization()
     with assume_test_silo_mode(SiloMode.CONTROL):
         assert TeamReplica.objects.count() == 0
@@ -218,16 +218,6 @@ def test_replicate_team():
     assert replicated.slug == team.slug
     assert replicated.name == team.name
     assert replicated.status == team.status
-    assert replicated.org_role == team.org_role
-
-    with assume_test_silo_mode(SiloMode.REGION):
-        team.org_role = "boo"
-        team.save()
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = TeamReplica.objects.get(team_id=team.id)
-
-    assert replicated.org_role == team.org_role
 
     with assume_test_silo_mode(SiloMode.REGION):
         teams = [
@@ -254,7 +244,7 @@ def test_replicate_team():
 
 @django_db_all(transaction=True)
 @all_silo_test
-def test_replicate_organization_member_team():
+def test_replicate_organization_member_team() -> None:
     org = Factories.create_organization()
     team = Factories.create_team(org)
     user = Factories.create_user()

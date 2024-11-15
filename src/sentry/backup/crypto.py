@@ -4,8 +4,9 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import BinaryIO, NamedTuple
+from typing import IO, Any, NamedTuple
 
+import orjson
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
@@ -13,7 +14,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from google.cloud.kms import KeyManagementServiceClient as KeyManagementServiceClient
 from google_crc32c import value as crc32c
 
-from sentry.utils import json
 from sentry.utils.env import gcp_project_id
 
 
@@ -51,10 +51,8 @@ class EncryptionError(Exception):
 
 class Encryptor(ABC):
     """
-    A `BinaryIO`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
+    A `IO[bytes]`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
     """
-
-    __fp: BinaryIO
 
     @abstractmethod
     def get_public_key_pem(self) -> bytes:
@@ -66,11 +64,11 @@ class LocalFileEncryptor(Encryptor):
     Encrypt using a public key stored on the local machine.
     """
 
-    def __init__(self, fp: BinaryIO):
-        self.__fp = fp
+    def __init__(self, fp: IO[bytes]):
+        self.__key = fp.read()
 
     def get_public_key_pem(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
 
 class GCPKMSEncryptor(Encryptor):
@@ -81,8 +79,8 @@ class GCPKMSEncryptor(Encryptor):
 
     crypto_key_version: CryptoKeyVersion | None = None
 
-    def __init__(self, fp: BinaryIO):
-        self.__fp = fp
+    def __init__(self, fp: IO[bytes]):
+        self.__key = fp.read()
 
     @classmethod
     def from_crypto_key_version(cls, crypto_key_version: CryptoKeyVersion) -> GCPKMSEncryptor:
@@ -93,7 +91,7 @@ class GCPKMSEncryptor(Encryptor):
     def get_public_key_pem(self) -> bytes:
         if self.crypto_key_version is None:
             # Read the user supplied configuration into the proper format.
-            gcp_kms_config_json = json.load(self.__fp)
+            gcp_kms_config_json = orjson.loads(self.__key)
             try:
                 self.crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
             except TypeError:
@@ -115,7 +113,7 @@ class GCPKMSEncryptor(Encryptor):
         return public_key.pem.encode("utf-8")
 
 
-def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encryptor) -> io.BytesIO:
+def create_encrypted_export_tarball(json_export: Any, encryptor: Encryptor) -> io.BytesIO:
     """
     Generate a tarball with 3 files:
 
@@ -135,14 +133,14 @@ def create_encrypted_export_tarball(json_export: json.JSONData, encryptor: Encry
     pem = encryptor.get_public_key_pem()
     data_encryption_key = Fernet.generate_key()
     backup_encryptor = Fernet(data_encryption_key)
-    encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_export).encode("utf-8"))
+    encrypted_json_export = backup_encryptor.encrypt(orjson.dumps(json_export))
 
     # Encrypt the newly minted DEK using asymmetric public key encryption.
     dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
     sha256 = hashes.SHA256()
     mgf = padding.MGF1(algorithm=sha256)
     oaep_padding = padding.OAEP(mgf=mgf, algorithm=sha256, label=None)
-    encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore
+    encrypted_dek = dek_encryption_key.encrypt(data_encryption_key, oaep_padding)  # type: ignore[union-attr]
 
     # Generate the tarball and write it to to a new output stream.
     tar_buffer = io.BytesIO()
@@ -176,7 +174,7 @@ class UnwrappedEncryptedExportTarball(NamedTuple):
     encrypted_json_blob: str
 
 
-def unwrap_encrypted_export_tarball(tarball: BinaryIO) -> UnwrappedEncryptedExportTarball:
+def unwrap_encrypted_export_tarball(tarball: IO[bytes]) -> UnwrappedEncryptedExportTarball:
     export = None
     encrypted_dek = None
     public_key_pem = None
@@ -213,11 +211,9 @@ class DecryptionError(Exception):
 
 class Decryptor(ABC):
     """
-    A `BinaryIO`-wrapper that contains relevant information and methods to decrypt an encrypted
+    A `IO[bytes]`-wrapper that contains relevant information and methods to decrypt an encrypted
     tarball.
     """
-
-    __fp: BinaryIO
 
     @abstractmethod
     def read(self) -> bytes:
@@ -233,15 +229,15 @@ class LocalFileDecryptor(Decryptor):
     Decrypt using a private key stored on the local machine.
     """
 
-    def __init__(self, fp: BinaryIO):
-        self.__fp = fp
+    def __init__(self, fp: IO[bytes]):
+        self.__key = fp.read()
 
     @classmethod
     def from_bytes(cls, b: bytes) -> LocalFileDecryptor:
         return cls(io.BytesIO(b))
 
     def read(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
         """
@@ -249,7 +245,7 @@ class LocalFileDecryptor(Decryptor):
         """
 
         # Compare the public and private key, to ensure that they are a match.
-        private_key_pem = self.__fp.read()
+        private_key_pem = self.__key
         private_key = serialization.load_pem_private_key(
             private_key_pem,
             password=None,
@@ -269,7 +265,7 @@ class LocalFileDecryptor(Decryptor):
             password=None,
             backend=default_backend(),
         )
-        return private_key.decrypt(  # type: ignore
+        return private_key.decrypt(  # type: ignore[union-attr]
             unwrapped.encrypted_data_encryption_key,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -285,21 +281,21 @@ class GCPKMSDecryptor(Decryptor):
     Management Service.
     """
 
-    def __init__(self, fp: BinaryIO):
-        self.__fp = fp
+    def __init__(self, fp: IO[bytes]):
+        self.__key = fp.read()
 
     @classmethod
     def from_bytes(cls, b: bytes) -> GCPKMSDecryptor:
         return cls(io.BytesIO(b))
 
     def read(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
-        gcp_kms_config_bytes = self.__fp.read()
+        gcp_kms_config_bytes = self.__key
 
         # Read the user supplied configuration into the proper format.
-        gcp_kms_config_json = json.loads(gcp_kms_config_bytes)
+        gcp_kms_config_json = orjson.loads(gcp_kms_config_bytes)
         try:
             crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
         except TypeError:
@@ -332,7 +328,7 @@ class GCPKMSDecryptor(Decryptor):
         return decrypt_response.plaintext
 
 
-def decrypt_encrypted_tarball(tarball: BinaryIO, decryptor: Decryptor) -> bytes:
+def decrypt_encrypted_tarball(tarball: IO[bytes], decryptor: Decryptor) -> bytes:
     """
     A tarball encrypted by a call to `_export` with `encrypt_with` set has some specific properties
     (filenames, etc). This method handles all of those, and decrypts using the provided private key
@@ -345,3 +341,13 @@ def decrypt_encrypted_tarball(tarball: BinaryIO, decryptor: Decryptor) -> bytes:
     decrypted_dek = decryptor.decrypt_data_encryption_key(unwrapped)
     fernet = Fernet(decrypted_dek)
     return fernet.decrypt(unwrapped.encrypted_json_blob)
+
+
+class EncryptorDecryptorPair:
+    """
+    An Encryptor and Decryptor that use paired public and private keys, respectively.
+    """
+
+    def __init__(self, encryptor: Encryptor, decryptor: Decryptor):
+        self.encryptor = encryptor
+        self.decryptor = decryptor

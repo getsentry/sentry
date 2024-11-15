@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -42,7 +41,6 @@ class ReleaseWebhookTestBase(TestCase):
         )
 
 
-@region_silo_test
 class ReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
         super().setUp()
@@ -73,6 +71,13 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         resp = self.client.post(path)
         assert resp.status_code == 404
 
+        path = reverse(
+            "sentry-release-hook",
+            kwargs={"project_id": "dummy", "plugin_id": "dummy", "signature": self.signature},
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 404
+
     @patch("sentry.plugins.base.plugins.get")
     def test_valid_signature(self, mock_plugin_get):
         MockPlugin = mock_plugin_get.return_value
@@ -95,7 +100,6 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         assert not MockPlugin.get_release_hook.called
 
 
-@region_silo_test
 class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
         super().setUp()

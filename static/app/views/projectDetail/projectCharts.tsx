@@ -1,6 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
@@ -28,9 +26,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -404,6 +407,7 @@ class ProjectCharts extends Component<Props, State> {
                     interval={this.barChartInterval}
                     chartComponent={BarChart}
                     disableReleases
+                    dataset={DiscoverDatasets.ERRORS}
                   />
                 ) : (
                   <ProjectErrorsBasicChart
@@ -436,7 +440,6 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Sessions')}
                   help={getSessionTermDescription(SessionTerm.STABILITY, null)}
-                  router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -448,7 +451,6 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('ANR Rate')}
                   help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-                  router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -460,7 +462,6 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('Foreground ANR Rate')}
                   help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
-                  router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -472,7 +473,6 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Users')}
                   help={getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, null)}
-                  router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -483,7 +483,6 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.SESSIONS && (
                 <ProjectBaseSessionsChart
                   title={t('Number of Sessions')}
-                  router={router}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}

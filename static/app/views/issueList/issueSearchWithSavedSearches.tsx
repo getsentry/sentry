@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/button';
@@ -13,9 +14,11 @@ import IssueListSearchBar from './searchBar';
 type IssueSearchWithSavedSearchesProps = {
   onSearch: (query: string) => void;
   query: string;
+  className?: string;
 };
 
 export function IssueSearchWithSavedSearches({
+  className,
   query,
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
@@ -36,16 +39,19 @@ export function IssueSearchWithSavedSearches({
   }
 
   return (
-    <SearchBarWithButtonContainer>
-      <StyledButton onClick={onSavedSearchesToggleClicked}>
-        {selectedSavedSearch?.name ?? t('Custom Search')}
-      </StyledButton>
+    <SearchBarWithButtonContainer className={className}>
+      {!organization.features.includes('issue-stream-custom-views') && (
+        <StyledButton onClick={onSavedSearchesToggleClicked}>
+          {selectedSavedSearch?.name ?? t('Custom Search')}
+        </StyledButton>
+      )}
       <StyledIssueListSearchBarWithButton
         searchSource="main_search"
         organization={organization}
-        query={query || ''}
+        initialQuery={query || ''}
         onSearch={onSearch}
-        excludedTags={['environment']}
+        placeholder={t('Search for events, users, tags, and more')}
+        roundCorners={organization.features.includes('issue-stream-custom-views')}
       />
     </SearchBarWithButtonContainer>
   );
@@ -84,11 +90,18 @@ const StyledButton = styled(Button)`
   }
 `;
 
-const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)`
+const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
+  roundCorners: boolean;
+}>`
   flex: 1;
+  min-width: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+  ${p =>
+    !p.roundCorners &&
+    css`
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    `}
 `;

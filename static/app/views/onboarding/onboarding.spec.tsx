@@ -11,8 +11,8 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import type {PlatformKey, Project} from 'sentry/types';
-import {OnboardingProjectStatus} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
@@ -25,7 +25,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -36,7 +36,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -50,7 +50,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -61,7 +61,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -82,7 +82,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -136,6 +136,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Next.js',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
           },
           projects: {
             [nextJsProject.id]: {
@@ -149,7 +151,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -172,7 +174,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -221,6 +223,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Rect',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
           projects: {
             [reactProject.id]: {
@@ -234,7 +238,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -267,7 +271,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -316,6 +320,8 @@ describe('Onboarding', function () {
             type: 'framework',
             language: 'javascript',
             category: 'browser',
+            name: 'Rect',
+            link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
           projects: {
             [reactProject.id]: {
@@ -329,7 +335,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -353,10 +359,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -367,7 +370,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -382,9 +385,6 @@ describe('Onboarding', function () {
 
     // Modal is open
     await screen.findByText('Do you use a framework?');
-
-    // Close modal
-    await userEvent.click(screen.getByRole('button', {name: 'Skip'}));
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
@@ -392,10 +392,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -406,7 +403,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );

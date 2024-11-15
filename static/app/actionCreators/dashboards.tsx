@@ -5,7 +5,7 @@ import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   DashboardDetails,
   DashboardListItem,
@@ -27,7 +27,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -73,7 +73,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -114,7 +114,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -161,7 +161,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -187,7 +187,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]]);
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }
@@ -215,6 +215,37 @@ export function validateWidgetRequest(
       },
     },
   ] as const;
+}
+
+export function updateDashboardPermissions(
+  api: Client,
+  orgId: string,
+  dashboard: DashboardDetails
+): Promise<DashboardDetails> {
+  const {permissions} = dashboard;
+  const data = {
+    permissions,
+  };
+  const promise: Promise<DashboardDetails> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    {
+      method: 'PUT',
+      data,
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else {
+      addErrorMessage(t('Unable to update dashboard permissions'));
+    }
+  });
+
+  return promise;
 }
 
 export function validateWidget(

@@ -1,24 +1,25 @@
+from __future__ import annotations
+
 import logging
 import time
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from typing import Any
 
-import rb
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
 
-from sentry.digests import Record, ScheduleEntry
-from sentry.digests.backends.base import Backend, InvalidState
+from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry
+from sentry.digests.types import Record
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_script
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger("sentry.digests")
 
-script = load_script("digests/digests.lua")
+script = load_redis_script("digests/digests.lua")
 
 
 class RedisBackend(Backend):
@@ -73,7 +74,6 @@ class RedisBackend(Backend):
 
     def __init__(self, **options: Any) -> None:
         cluster, options = get_cluster_from_options("SENTRY_DIGESTS_OPTIONS", options)
-        assert isinstance(cluster, rb.Cluster)
         self.cluster = cluster
         self.locks = LockManager(RedisLockBackend(self.cluster))
 
@@ -124,7 +124,6 @@ class RedisBackend(Backend):
         # them back to the appropriate boolean here.
         return bool(
             script(
-                self._get_connection(key),
                 [key],
                 [
                     "ADD",
@@ -140,6 +139,7 @@ class RedisBackend(Backend):
                     self.capacity if self.capacity else -1,
                     self.truncation_chance,
                 ],
+                self._get_connection(key),
             )
         )
 
@@ -147,9 +147,9 @@ class RedisBackend(Backend):
         self, host: int, deadline: float, timestamp: float
     ) -> Iterable[tuple[bytes, float]]:
         return script(
-            self.cluster.get_local_client(host),
             ["-"],
             ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
+            self.cluster.get_local_client(host),
         )
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
@@ -167,11 +167,11 @@ class RedisBackend(Backend):
                     error,
                 )
 
-    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> Any:
-        return script(
-            self.cluster.get_local_client(host),
+    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> None:
+        script(
             ["-"],
             ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
+            self.cluster.get_local_client(host),
         )
 
     def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
@@ -191,7 +191,7 @@ class RedisBackend(Backend):
     @contextmanager
     def digest(
         self, key: str, minimum_delay: int | None = None, timestamp: float | None = None
-    ) -> Any:
+    ) -> Generator[list[Record]]:
         if minimum_delay is None:
             minimum_delay = self.minimum_delay
 
@@ -202,7 +202,6 @@ class RedisBackend(Backend):
         with self._get_timeline_lock(key, duration=30).acquire():
             try:
                 response = script(
-                    connection,
                     [key],
                     [
                         "DIGEST_OPEN",
@@ -212,6 +211,7 @@ class RedisBackend(Backend):
                         key,
                         self.capacity if self.capacity else -1,
                     ],
+                    connection,
                 )
             except ResponseError as e:
                 if "err(invalid_state):" in str(e):
@@ -220,12 +220,9 @@ class RedisBackend(Backend):
                     raise
 
             records = [
-                Record(
-                    key.decode(),
-                    self.codec.decode(value) if value is not None else None,
-                    float(timestamp),
-                )
+                Record(key.decode(), self.codec.decode(value), float(timestamp))
                 for key, value, timestamp in response
+                if value is not None
             ]
 
             # If the record value is `None`, this means the record data was
@@ -244,10 +241,10 @@ class RedisBackend(Backend):
             yield filtered_records
 
             script(
-                connection,
                 [key],
                 ["DIGEST_CLOSE", self.namespace, self.ttl, timestamp, key, minimum_delay]
                 + [record.key for record in records],
+                connection,
             )
 
     def delete(self, key: str, timestamp: float | None = None) -> None:
@@ -256,4 +253,4 @@ class RedisBackend(Backend):
 
         connection = self._get_connection(key)
         with self._get_timeline_lock(key, duration=30).acquire():
-            script(connection, [key], ["DELETE", self.namespace, self.ttl, timestamp, key])
+            script([key], ["DELETE", self.namespace, self.ttl, timestamp, key], connection)

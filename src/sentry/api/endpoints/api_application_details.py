@@ -10,8 +10,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.scheduledeletion import ScheduledDeletion
 
 
 class ApiApplicationSerializer(serializers.Serializer):
@@ -36,9 +36,9 @@ class ApiApplicationSerializer(serializers.Serializer):
 @control_silo_endpoint
 class ApiApplicationDetailsEndpoint(Endpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)

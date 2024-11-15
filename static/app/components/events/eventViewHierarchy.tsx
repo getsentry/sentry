@@ -1,18 +1,20 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
-import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Event, IssueAttachment, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {EventDataSection} from './eventDataSection';
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
 
@@ -37,13 +39,13 @@ function EventViewHierarchyContent({event, project}: Props) {
   const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
 
   // There should be only one view hierarchy
-  const {isLoading, data} = useApiQuery<string | ViewHierarchyData>(
+  const {isPending, data} = useApiQuery<string | ViewHierarchyData>(
     [
       defined(hierarchyMeta)
         ? getAttachmentUrl({
             attachment: hierarchyMeta,
             eventId: hierarchyMeta.event_id,
-            orgId: organization.slug,
+            orgSlug: organization.slug,
             projectSlug: project.slug,
           })
         : '',
@@ -79,25 +81,16 @@ function EventViewHierarchyContent({event, project}: Props) {
     return null;
   }
 
-  if (isLoading || !data) {
+  if (isPending || !data) {
     return <LoadingIndicator />;
   }
 
   return (
-    <EventDataSection
-      type="view_hierarchy"
-      title={
-        <Fragment>
-          {t('View Hierarchy')}
-
-          <FeatureBadge type="new" />
-        </Fragment>
-      }
-    >
+    <InterimSection title={t('View Hierarchy')} type={SectionKey.VIEW_HIERARCHY}>
       <ErrorBoundary mini>
         <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

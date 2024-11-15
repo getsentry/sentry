@@ -7,6 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -17,7 +18,7 @@ const getSdkSetupSnippet = (params: Params) => `from sanic import Sanic
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
 )
 `;
 
@@ -30,10 +31,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentrySanicCode:sanic] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:sanic] extra:',
         {
-          sentrySdkCode: <code />,
-          sentrySanicCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -45,7 +45,7 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "f you're on Python 3.6, you also need the [code:aiocontextvars] package:",
+                "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
                 {
                   code: <code />,
                 }
@@ -115,6 +115,7 @@ const docs: Docs = {
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

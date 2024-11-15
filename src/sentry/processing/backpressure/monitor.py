@@ -17,7 +17,7 @@ from sentry.processing.backpressure.memory import (
     iter_cluster_memory_usage,
     query_rabbitmq_memory_usage,
 )
-from sentry.processing.backpressure.topology import PROCESSING_SERVICES
+from sentry.processing.backpressure.topology import ProcessingServices
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ def load_service_definitions() -> dict[str, Service]:
     services: dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
-            _is_clsuter, cluster, _config = redis.get_dynamic_cluster_from_options(
+            _is_cluster, cluster, _config = redis.get_dynamic_cluster_from_options(
                 setting=f"SENTRY_PROCESSING_SERVICES[{name}]",
                 config={"cluster": cluster_id},
             )
@@ -70,10 +70,10 @@ def load_service_definitions() -> dict[str, Service]:
 
 
 def assert_all_services_defined(services: dict[str, Service]) -> None:
-    for name in PROCESSING_SERVICES:
-        if name not in services:
+    for name in ProcessingServices:
+        if name.value not in services:
             raise ValueError(
-                f"The `{name}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
+                f"The `{name.value}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
             )
 
 
@@ -97,7 +97,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                     memory.percentage,
                 )
         except Exception as e:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
             unhealthy_services[name] = e

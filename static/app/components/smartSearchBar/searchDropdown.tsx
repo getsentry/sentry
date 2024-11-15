@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,11 +10,10 @@ import {Overlay} from 'sentry/components/overlay';
 import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
-import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
@@ -42,6 +42,7 @@ type Props = {
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
   numericKeys?: Set<string>;
+  onDocsOpen?: () => void;
   onIconClick?: (value: string) => void;
   percentageKeys?: Set<string>;
   runShortcut?: (shortcut: Shortcut) => void;
@@ -69,6 +70,7 @@ function SearchDropdown({
   durationKeys,
   numericKeys,
   percentageKeys,
+  onDocsOpen,
   sizeKeys,
   textOperatorKeys,
   disallowedLogicalOperators,
@@ -148,13 +150,14 @@ function SearchDropdown({
               </Button>
             ))}
         </ButtonBar>
-        <Button
+        <LinkButton
           size="xs"
           href="https://docs.sentry.io/product/sentry-basics/search/"
           external
+          onClick={() => onDocsOpen?.()}
         >
           {t('Read the docs')}
-        </Button>
+        </LinkButton>
       </DropdownFooter>
     </SearchDropdownOverlay>
   );
@@ -510,7 +513,7 @@ const SearchDropdownGroupTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -577,7 +580,7 @@ const SearchItemTitleWrapper = styled('div')<{hasSingleField?: boolean}>`
   max-width: ${p => (p.hasSingleField ? '100%' : 'min(280px, 50%)')};
 
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};

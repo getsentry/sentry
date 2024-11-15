@@ -1,8 +1,12 @@
 from unittest.mock import patch
 
+import orjson
+import pytest
+from slack_sdk.web import SlackResponse
+from slack_sdk.webhook import WebhookResponse
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
-from sentry.utils import json
 
 
 class BaseEventTest(APITestCase):
@@ -18,6 +22,51 @@ class BaseEventTest(APITestCase):
         )
         self.project = self.create_project()
         self.rule = self.create_project_rule(project=self.project)
+
+    @pytest.fixture(autouse=True)
+    def mock_webhook_send(self):
+        with patch(
+            "slack_sdk.webhook.WebhookClient.send",
+            return_value=WebhookResponse(
+                url="",
+                body='{"ok": True}',
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_view_open(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.views_open",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://api.slack.com/methods/views.open",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self._mock_view_open:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_view_update(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.views_update",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://api.slack.com/methods/views.update",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self._mock_view_update:
+            yield
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -39,7 +88,7 @@ class BaseEventTest(APITestCase):
             slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = json.dumps({"issue": self.group.id, "rule": self.rule.id})
+            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         if original_message is None:
             original_message = {}
@@ -61,7 +110,7 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
 
         return self.client.post("/extensions/slack/action/", data=payload)
 
@@ -193,6 +242,7 @@ class BaseEventTest(APITestCase):
             }
             payload["response_urls"] = []
             payload["view"] = view
+            payload["type"] = type
 
         elif type == "block_actions":
             payload["container"] = {
@@ -218,9 +268,10 @@ class BaseEventTest(APITestCase):
             }
             payload["response_url"] = self.response_url
             payload["actions"] = action_data or []
+            payload["type"] = type
 
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
         return self.client.post("/extensions/slack/action/", data=payload)

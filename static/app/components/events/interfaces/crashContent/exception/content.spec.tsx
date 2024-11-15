@@ -14,12 +14,12 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});
@@ -46,11 +46,7 @@ describe('Exception Content', function () {
       body: projectDetails,
     });
 
-    const {
-      organization: org,
-      router,
-      routerContext,
-    } = initializeOrg({
+    const {organization: org, router} = initializeOrg({
       router: {
         location: {query: {project: project.id}},
       },
@@ -137,7 +133,6 @@ describe('Exception Content', function () {
       <Content
         type={StackType.ORIGINAL}
         groupingCurrentLevel={0}
-        hasHierarchicalGrouping
         newestFirst
         stackView={StackView.APP}
         event={event}
@@ -145,7 +140,7 @@ describe('Exception Content', function () {
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization: org, router, context: routerContext}
+      {organization: org, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -203,7 +198,6 @@ describe('Exception Content', function () {
     render(
       <Content
         type={StackType.ORIGINAL}
-        hasHierarchicalGrouping={false}
         stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
@@ -244,7 +238,6 @@ describe('Exception Content', function () {
 
     const defaultProps = {
       type: StackType.ORIGINAL,
-      hasHierarchicalGrouping: false,
       newestFirst: true,
       platform: 'python' as const,
       stackView: StackView.APP,

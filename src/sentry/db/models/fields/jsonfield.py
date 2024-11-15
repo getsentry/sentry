@@ -25,6 +25,9 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+
+from __future__ import annotations
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
@@ -54,18 +57,21 @@ class JSONField(models.TextField):
     description = "JSON object"
     no_creator_hook = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, json_dumps=json.dumps, **kwargs):
+        self.json_dumps = json_dumps
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
         super().__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
 
-    def contribute_to_class(self, cls, name):
+    def contribute_to_class(
+        self, cls: type[models.Model], name: str, private_only: bool = False
+    ) -> None:
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super().contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name, private_only=private_only)
         if not self.no_creator_hook:
             setattr(cls, name, Creator(self))
 
@@ -83,8 +89,8 @@ class JSONField(models.TextField):
             if callable(default):
                 default = default()
             if isinstance(default, str):
-                return json.loads(default, skip_trace=True)
-            return json.loads(json.dumps(default), skip_trace=True)
+                return json.loads(default)
+            return json.loads(self.json_dumps(default))
         return super().get_default()
 
     def get_internal_type(self):
@@ -101,7 +107,7 @@ class JSONField(models.TextField):
                 if self.blank:
                     return ""
             try:
-                value = json.loads(value, skip_trace=True)
+                value = json.loads(value)
             except ValueError:
                 msg = self.error_messages["invalid"] % value
                 raise ValidationError(msg)
@@ -116,7 +122,7 @@ class JSONField(models.TextField):
             if not self.null and self.blank:
                 return ""
             return None
-        return json.dumps(value)
+        return self.json_dumps(value)
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)

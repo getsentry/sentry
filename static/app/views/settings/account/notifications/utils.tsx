@@ -1,4 +1,6 @@
-import type {OrganizationSummary, Project} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
 
 /**
@@ -36,17 +38,23 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat'
+  event: DataCategoryExact | string // TODO(isabella): get rid of strings after removing need for backward compatibility on gs
 ) {
   switch (event) {
-    case 'transaction':
-      return 'https://docs.sentry.io/product/performance/transaction-summary/#what-is-a-transaction';
-    case 'attachment':
+    case DataCategoryExact.TRANSACTION || 'transaction':
+      // For pre-AM3 plans prior to June 11th, 2024
+      return 'https://docs.sentry.io/pricing/quotas/legacy-manage-transaction-quota/';
+    case DataCategoryExact.SPAN || 'span':
+      // For post-AM3 plans after June 11th, 2024
+      return 'https://docs.sentry.io/pricing/quotas/manage-transaction-quota/';
+    case DataCategoryExact.ATTACHMENT || 'attachment':
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
-    case 'replay':
+    case DataCategoryExact.REPLAY || 'replay':
       return 'https://docs.sentry.io/product/session-replay/';
-    case 'monitorSeat':
+    case DataCategoryExact.MONITOR_SEAT || 'monitorSeat':
       return 'https://docs.sentry.io/product/crons/';
+    case DataCategoryExact.PROFILE_DURATION || 'profileDuration':
+      return 'https://docs.sentry.io/product/explore/profiling/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }

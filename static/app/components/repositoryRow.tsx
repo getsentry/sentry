@@ -11,8 +11,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types';
-import {RepositoryStatus} from 'sentry/types';
+import type {Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
 
 type Props = {
   api: Client;

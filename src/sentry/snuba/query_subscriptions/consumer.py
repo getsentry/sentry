@@ -76,7 +76,7 @@ def handle_message(
     :param message:
     :return:
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         try:
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
@@ -100,7 +100,7 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.fetch_subscription", tags={"dataset": dataset}
             ):
-                subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
+                subscription = QuerySubscription.objects.get_from_cache(
                     subscription_id=contents["subscription_id"]
                 )
                 if subscription.status != QuerySubscription.Status.ACTIVE.value:
@@ -137,6 +137,10 @@ def handle_message(
                 logger.exception("Failed to delete unused subscription from snuba.")
             return
 
+        if subscription.snuba_query is None:
+            metrics.incr("snuba_query_subscriber.subscription_snuba_query_missing")
+            return
+
         if subscription.type not in subscriber_registry:
             metrics.incr(
                 "snuba_query_subscriber.subscription_type_not_registered", tags={"dataset": dataset}
@@ -155,10 +159,13 @@ def handle_message(
         sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
 
         callback = subscriber_registry[subscription.type]
-        with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
-            "snuba_query_subscriber.callback.duration",
-            instance=subscription.type,
-            tags={"dataset": dataset},
+        with (
+            sentry_sdk.start_span(op="process_message") as span,
+            metrics.timer(
+                "snuba_query_subscriber.callback.duration",
+                instance=subscription.type,
+                tags={"dataset": dataset},
+            ),
         ):
             span.set_data("payload", contents)
             span.set_data("subscription_dataset", subscription.snuba_query.dataset)

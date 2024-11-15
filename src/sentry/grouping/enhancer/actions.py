@@ -3,18 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 
-ACTIONS = ["group", "app", "prefix", "sentinel"]
-ACTION_BITSIZE = {
-    # version -> bit-size
-    1: 4,
-    2: 8,
-}
-assert len(ACTIONS) < 1 << max(ACTION_BITSIZE.values())
+ACTIONS = ["group", "app"]
+ACTION_BITSIZE = 8
+assert len(ACTIONS) < 1 << ACTION_BITSIZE
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
@@ -61,14 +56,14 @@ class Action:
     def _from_config_structure(cls, val, version: int):
         if isinstance(val, list):
             return VarAction(val[0], val[1])
-        flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE[version]]
+        flag, range = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range)
 
 
 class FlagAction(Action):
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key
-        self._is_updater = key in {"group", "app", "prefix", "sentinel"}
+        self._is_updater = key in {"group", "app"}
         self._is_modifier = key == "app"
         self.flag = flag
         self.range = range  # e.g. None, "up", "down"
@@ -81,9 +76,7 @@ class FlagAction(Action):
         )
 
     def _to_config_structure(self, version: int):
-        return ACTIONS.index(self.key) | (
-            ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE[version]
-        )
+        return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
     def _slice_to_range(self, seq, idx):
         if self.range is None:
@@ -141,16 +134,6 @@ class FlagAction(Action):
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
                 )
 
-            elif self.key == "prefix":
-                component.update(
-                    is_prefix_frame=self.flag, hint=f"marked as prefix frame by {rule_hint}"
-                )
-
-            elif self.key == "sentinel":
-                component.update(
-                    is_sentinel_frame=self.flag, hint=f"marked as sentinel frame by {rule_hint}"
-                )
-
 
 class VarAction(Action):
     range = None
@@ -158,7 +141,6 @@ class VarAction(Action):
     _VALUE_PARSERS: dict[str, Callable[[Any], Any]] = {
         "max-frames": int,
         "min-frames": int,
-        "invert-stacktrace": get_rule_bool,
         "category": lambda x: x,
     }
 

@@ -6,22 +6,18 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, Generic, NamedTuple, Protocol, TypeVar
+from typing import IO, TYPE_CHECKING, Generic, NamedTuple, Protocol, TypeVar
 
+import orjson
 import sentry_sdk
+from django.conf import settings
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry.api.serializers import serialize
-from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
-from sentry.debug_files.artifact_bundle_indexing import (
-    BundleManifest,
-    mark_bundle_for_flat_file_indexing,
-    update_artifact_bundle_index,
-)
 from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
     get_bundles_indexing_state,
@@ -42,14 +38,17 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from rediscluster import RedisCluster
 
 
 class ChunkFileState:
@@ -100,14 +99,15 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this organization.
-    file_size = sum(x[2] for x in file_blobs)
-    if file_size > get_max_file_size(organization):
+    file_size = sum(size for _, _, size in file_blobs if size is not None)
+    max_file_size = get_max_file_size(organization)
+    if file_size > max_file_size:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail="File exceeds maximum size",
+            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
         )
 
         return None
@@ -168,12 +168,18 @@ def _get_cache_key(task, scope, checksum):
             % (
                 str(scope).encode("ascii"),
                 checksum.encode("ascii"),
-                str(task).encode("utf-8"),
+                str(task).encode(),
             )
         ).hexdigest()
     )
 
 
+def _get_redis_cluster_for_assemble() -> RedisCluster:
+    cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+
+
+@sentry_sdk.tracing.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -183,26 +189,34 @@ def get_assemble_status(task, scope, checksum):
     notice or error message.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    rv = default_cache.get(cache_key)
+    client = _get_redis_cluster_for_assemble()
+    rv = client.get(cache_key)
+
     if rv is None:
         return None, None
-    return tuple(rv)
+
+    # It is stored as bytes with [state, detail] on Redis.
+    return tuple(orjson.loads(rv))
 
 
+@sentry_sdk.tracing.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.set(cache_key, (state, detail), 600)
+    redis_client = _get_redis_cluster_for_assemble()
+    redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
+@sentry_sdk.tracing.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.delete(cache_key)
+    redis_client = _get_redis_cluster_for_assemble()
+    redis_client.delete(cache_key)
 
 
 @instrumented_task(
@@ -217,10 +231,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.lang.native.sources import record_last_upload
     from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
-    from sentry.reprocessing import bump_reprocessing_revision
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    Scope.get_isolation_scope().set_tag("project", project_id)
 
     delete_file = False
 
@@ -264,12 +276,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             delete_file = False
 
             if created:
-                # Bump the reprocessing revision since the symbol has changed
-                # and might resolve processing issues. If the file was not
-                # created, someone else has created it and will bump the
-                # revision instead.
                 record_last_upload(project)
-                bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(
             AssembleTask.DIF,
@@ -522,11 +529,13 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # We rather use the `project` of the bundle manifest instead.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
-                project_ids = Project.objects.filter(
-                    organization=self.organization,
-                    status=ObjectStatus.ACTIVE,
-                    slug=project_in_manifest,
-                ).values_list("id", flat=True)
+                project_ids = list(
+                    Project.objects.filter(
+                        organization=self.organization,
+                        status=ObjectStatus.ACTIVE,
+                        slug=project_in_manifest,
+                    ).values_list("id", flat=True)
+                )
                 if len(project_ids) > 0:
                     self.project_ids = project_ids
 
@@ -634,12 +643,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
                 dist=(self.dist or NULL_STRING),
             )
 
-        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
-            try:
-                self._index_bundle_into_flat_file(artifact_bundle)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
-
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
@@ -741,27 +744,6 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # Backfill older bundles we did not index yet if any are missing
         if indexed_bundles + 1 < total_bundles:
             backfill_artifact_bundle_db_indexing.delay(self.organization.id, release, dist)
-
-    @sentry_sdk.tracing.trace
-    def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
-        identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, self.archive.has_debug_ids(), self.project_ids, self.release, self.dist
-        )
-
-        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
-
-        for identifier in identifiers:
-            try:
-                was_indexed = update_artifact_bundle_index(
-                    identifier, bundles_to_add=bundles_to_add
-                )
-                if not was_indexed:
-                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
-                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
-                    # no need to explicitly spawn any backfill task for this
-            except Exception as e:
-                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
-                sentry_sdk.capture_exception(e)
 
 
 def prepare_post_assembler(

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 
@@ -59,7 +59,7 @@ describe('Docs Search Modal', function () {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Open Modal
-    openHelpSearchModal();
+    await act(() => openHelpSearchModal());
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

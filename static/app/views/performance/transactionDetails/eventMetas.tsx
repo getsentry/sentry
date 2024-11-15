@@ -2,10 +2,10 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
-import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
-import {generateIconName} from 'sentry/components/events/contextSummary/utils';
+import {LinkButton} from 'sentry/components/button';
+import {DateTime} from 'sentry/components/dateTime';
+import ContextIcon from 'sentry/components/events/contexts/contextIcon';
+import {generateIconName} from 'sentry/components/events/contexts/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -13,10 +13,10 @@ import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
   QuickTraceQueryChildrenProps,
@@ -24,6 +24,7 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import theme from 'sentry/utils/theme';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -95,7 +96,7 @@ class EventMetas extends Component<Props, State> {
     const hasReplay =
       organization.features.includes('session-replay') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
-      Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+      Boolean(getReplayIdFromEvent(event));
 
     const type = isTransaction(event) ? 'transaction' : 'event';
 
@@ -189,9 +190,9 @@ class EventMetas extends Component<Props, State> {
                 ))}
               {hasReplay && (
                 <ReplayButtonContainer>
-                  <Button href="#replay" size="sm" icon={<IconPlay />}>
+                  <LinkButton href="#replay" size="sm" icon={<IconPlay />}>
                     {t('Replay')}
-                  </Button>
+                  </LinkButton>
                 </ReplayButtonContainer>
               )}
               <QuickTraceContainer>

@@ -99,6 +99,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'wifi',
+        groups: ['product'],
+        keywords: ['internet'],
+        name: 'Wifi',
+        defaultProps: {},
+      },
+      {
         id: 'telescope',
         groups: ['product'],
         keywords: [],
@@ -138,6 +145,13 @@ const SECTIONS: TSection[] = [
         groups: ['product', 'action'],
         keywords: ['cron', 'monitors', 'clock', 'cycle'],
         name: 'Timer',
+        defaultProps: {},
+      },
+      {
+        id: 'seer',
+        groups: ['product'],
+        keywords: ['ai'],
+        name: 'Seer',
         defaultProps: {},
       },
     ],
@@ -400,17 +414,17 @@ const SECTIONS: TSection[] = [
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
-        additionalProps: ['isSolid'],
+        additionalProps: ['locked'],
         name: 'Lock',
         defaultProps: {
-          isSolid: false,
+          locked: false,
         },
       },
       {
-        id: 'lock-isSolid',
+        id: 'lock-locked',
         name: 'Lock',
         defaultProps: {
-          isSolid: true,
+          locked: true,
         },
       },
       {
@@ -495,13 +509,6 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['poor'],
         name: 'Sad',
-        defaultProps: {},
-      },
-      {
-        id: 'frozen',
-        groups: ['status'],
-        keywords: ['frame', 'mobile'],
-        name: 'Frozen',
         defaultProps: {},
       },
       {
@@ -1011,11 +1018,45 @@ const SECTIONS: TSection[] = [
         name: 'Zoom',
         defaultProps: {isZoomIn: true},
       },
+      {
+        id: 'focus',
+        keywords: ['foreground'],
+        name: 'Focus',
+        defaultProps: {isFocused: true},
+      },
+      {
+        id: 'blur',
+        keywords: ['background'],
+        name: 'Focus',
+        defaultProps: {isFocused: false},
+      },
+      {
+        id: 'tap',
+        keywords: ['finger', 'hand', 'cursor'],
+        name: 'Tap',
+        defaultProps: {},
+      },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'good'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {},
+      },
+      {
+        id: 'thumb',
+        keywords: ['feedback', 'bad', 'poor'],
+        additionalProps: ['direction'],
+        name: 'Thumb',
+        defaultProps: {
+          direction: ['down'],
+        },
+      },
     ],
   },
   {
     id: 'chart',
-    label: 'Chart',
+    label: 'Visualizations',
     icons: [
       {
         id: 'graph-type-line',
@@ -1049,6 +1090,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-scatter',
+        name: 'Graph',
+        defaultProps: {
+          type: 'scatter',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view'],
@@ -1072,6 +1120,17 @@ const SECTIONS: TSection[] = [
       {
         id: 'profiling',
         name: 'Profiling',
+        defaultProps: {},
+      },
+      {
+        id: 'table',
+        name: 'Table',
+        defaultProps: {},
+      },
+      {
+        id: 'grid',
+        name: 'Grid',
+        keywords: ['squares', 'layout'],
         defaultProps: {},
       },
     ],
@@ -1179,17 +1238,17 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'option',
-        groups: ['device'],
-        keywords: [''],
-        name: 'Option',
-        defaultProps: {},
-      },
-      {
         id: 'fileBroken',
         groups: ['device'],
         keywords: ['file', 'missing', 'error'],
         name: 'FileBroken',
+        defaultProps: {},
+      },
+      {
+        id: 'image',
+        groups: ['device'],
+        keywords: ['image', 'photo', 'screenshot'],
+        name: 'Image',
         defaultProps: {},
       },
     ],

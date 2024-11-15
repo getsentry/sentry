@@ -1,6 +1,5 @@
 from sentry.api.endpoints.auth_index import PREFILLED_SU_MODAL_KEY
 from sentry.auth.superuser import is_active_superuser
-from sentry.models.user import User
 from sentry.receivers.superuser import disable_superuser, enable_superuser
 from sentry.testutils.cases import TestCase
 
@@ -8,8 +7,8 @@ from sentry.testutils.cases import TestCase
 class SuperuserReceiverTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.superuser = User(is_superuser=True, email="superuser_test@sentry.io")
-        self.non_superuser = User(is_superuser=False, email="not_a_superuser_test@sentry.io")
+        self.superuser = self.create_user(is_superuser=True)
+        self.non_superuser = self.create_user(is_superuser=False)
 
         self.superuser_request = self.make_request(user=self.superuser)
         self.non_superuser_request = self.make_request(user=self.non_superuser)

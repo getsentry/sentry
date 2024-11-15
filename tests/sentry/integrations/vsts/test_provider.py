@@ -12,9 +12,9 @@ from django.http import HttpRequest
 
 from sentry.identity.vsts.provider import VSTSIdentityProvider, VSTSOAuth2CallbackView
 from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
-from sentry.models.identity import Identity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test

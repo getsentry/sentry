@@ -1,9 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
 import type {BaseButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,14 +10,20 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Datasource} from 'sentry/views/alerts/rules/metric/types';
+import {getQueryDatasource} from 'sentry/views/alerts/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+
+import {handleXhrErrorResponse} from '../../utils/handleXhrErrorResponse';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
@@ -46,7 +51,6 @@ type CustomDynamicSamplingRule = {
 };
 type CreateCustomRuleVariables = {
   organization: Organization;
-  period: string | null;
   projects: number[];
   query: string;
 };
@@ -82,15 +86,13 @@ function useGetExistingRule(
   query: string,
   projects: number[],
   organization: Organization,
-  numSamples: number | null | undefined
+  isTransactionQuery: boolean
 ) {
-  const enabled = hasTooFewSamples(numSamples);
-
   const result = useApiQuery<CustomDynamicSamplingRule | '' | null>(
     makeRuleExistsQueryKey(query, projects, organization),
     {
+      enabled: isTransactionQuery,
       staleTime: 0,
-      enabled,
       // No retries for 4XX errors.
       // This makes the error feedback a lot faster, and there is no unnecessary network traffic.
       retry: (failureCount, error) => {
@@ -133,13 +135,13 @@ function useCreateInvestigationRuleMutation() {
     onSuccess: (_data, variables) => {
       addSuccessMessage(t('Successfully created investigation rule'));
       // invalidate the rule-exists query
-      queryClient.invalidateQueries(
-        makeRuleExistsQueryKey(
+      queryClient.invalidateQueries({
+        queryKey: makeRuleExistsQueryKey(
           variables.query,
           variables.projects,
           variables.organization
-        )
-      );
+        ),
+      });
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: variables.organization,
         projects: variables.projects,
@@ -173,68 +175,56 @@ function useCreateInvestigationRuleMutation() {
 const InvestigationInProgressNotification = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
 `;
 
-function checkIsTransactionQueryMissing(error: RequestError | null) {
-  if (error?.responseJSON?.query) {
-    const query = error.responseJSON.query;
-    if (Array.isArray(query)) {
-      for (const reason of query) {
-        if (reason === 'not_transaction_query') {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
 function InvestigationRuleCreationInternal(props: PropsInternal) {
+  const {organization, eventView} = props;
   const projects = [...props.eventView.project];
-  const organization = props.organization;
-  const period = props.eventView.statsPeriod || null;
-  const query = props.eventView.getQuery();
+
+  const isTransactionsDataset =
+    hasDatasetSelector(organization) &&
+    eventView.dataset === DiscoverDatasets.TRANSACTIONS;
+
+  const query = isTransactionsDataset
+    ? appendEventTypeCondition(eventView.getQuery())
+    : eventView.getQuery();
+
+  const isTransactionQueryMissing =
+    getQueryDatasource(query)?.source !== Datasource.TRANSACTION &&
+    !isTransactionsDataset;
+
   const createInvestigationRule = useCreateInvestigationRuleMutation();
   const {
     data: rule,
-    isLoading,
+    isFetching: isLoading,
     isError,
     error,
-  } = useGetExistingRule(query, projects, organization, props.numSamples);
+  } = useGetExistingRule(query, projects, organization, !isTransactionQueryMissing);
 
-  const isTransactionQueryMissing = checkIsTransactionQueryMissing(error);
   const isBreakingRequestError = isError && !isTransactionQueryMissing;
+  const isLikelyMoreNeeded = hasTooFewSamples(props.numSamples);
 
   useEffect(() => {
     if (isBreakingRequestError) {
-      addErrorMessage(t('Unable to fetch investigation rule'));
+      const msg = t('Unable to fetch investigation rule');
+      handleXhrErrorResponse(msg, error);
+      addErrorMessage(msg);
     }
-  }, [isBreakingRequestError]);
+  }, [isBreakingRequestError, error]);
 
-  if (!hasTooFewSamples(props.numSamples)) {
-    // no results yet (we can't take a decision) or enough results,
-    // we don't need investigation rule UI
-    return null;
-  }
-  if (isLoading) {
-    return null;
-  }
-  if (isBreakingRequestError) {
+  if (isLoading || isBreakingRequestError) {
     return null;
   }
 
-  const isInvestigationRuleInProgress = !!rule;
-
-  if (isInvestigationRuleInProgress) {
-    // investigation rule in progress, just show a message
-    const existingRule = rule as CustomDynamicSamplingRule;
-    const ruleStartDate = new Date(existingRule.startDate);
-    const now = new Date();
-    const interval = moment.duration(now.getTime() - ruleStartDate.getTime()).humanize();
+  // investigation rule in progress
+  if (rule) {
+    const interval = moment
+      .duration(new Date().getTime() - new Date(rule.startDate).getTime())
+      .humanize();
 
     return (
       <InvestigationInProgressNotification>
@@ -283,10 +273,10 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       }
     >
       <Button
-        priority="primary"
         {...props.buttonProps}
+        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         disabled={isTransactionQueryMissing}
-        onClick={() => createInvestigationRule({organization, period, projects, query})}
+        onClick={() => createInvestigationRule({organization, projects, query})}
         icon={<IconStack />}
       >
         {t('Get Samples')}
@@ -302,14 +292,17 @@ export function InvestigationRuleCreation(props: Props) {
     return null;
   }
 
-  return (
-    <Feature features="investigation-bias">
-      <InvestigationRuleCreationInternal {...props} organization={organization} />
-    </Feature>
-  );
+  return <InvestigationRuleCreationInternal {...props} organization={organization} />;
 }
 
 const StyledIconQuestion = styled(IconQuestion)`
   position: relative;
   top: 2px;
 `;
+
+function appendEventTypeCondition(query: string) {
+  if (query.length > 0) {
+    return `event.type:transaction (${query})`;
+  }
+  return 'event.type:transaction';
+}

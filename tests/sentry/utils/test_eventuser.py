@@ -8,14 +8,12 @@ from django.utils import timezone
 from snuba_sdk import BooleanOp
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.eventuser import EventUser
 
-now = before_now(days=1).replace(minute=10).replace(second=0).replace(microsecond=0)
+now = before_now(days=1).replace(minute=10, second=0, microsecond=0, tzinfo=None)
 
 
-@region_silo_test
 @freeze_time(now)
 class EventUserTestCase(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -31,7 +29,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -44,7 +42,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "nisanthan",
                     "ip_address": "1.1.1.1",
                 },
-                "timestamp": iso_format(before_now(seconds=20)),
+                "timestamp": before_now(seconds=20).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -57,7 +55,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "minion",
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -147,7 +145,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=30 + i)),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -163,7 +161,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].ip_address == self.event_2.data.get("user").get("ip_address")
 
     def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(self):
-        for i in range(10):
+        for i in range(5):
             self.store_event(
                 data={
                     "user": {
@@ -172,7 +170,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=30 + i)),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -184,23 +182,56 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "minion",
                         "ip_address": f"8.8.8.{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=40 + i)),
+                    "timestamp": before_now(seconds=40 + i).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "user": {
+                        "id": "gru",
+                        "email": "gru@universal.com",
+                        "username": "gru",
+                        "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
+                    },
+                    "timestamp": before_now(seconds=50 + i).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    "user": {
+                        "id": "scarlet",
+                        "email": "scarlet@universal.com",
+                        "username": "scarlet",
+                        "ip_address": f"2001:db8:0:85a3::ac1f:{i}008",
+                    },
+                    "timestamp": before_now(seconds=60 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
 
         eusers = EventUser.for_projects(
             [self.project],
-            {"ip": ["8.8.8.8", "1.1.1.4"]},
+            {
+                "ip": [
+                    "2001:0db8:0000:85a3:0000:0000:ac1f:3008",
+                    "2001:db8:0:85a3::ac1f:8001",
+                    "8.8.8.4",
+                    "1.1.1.2",
+                ]
+            },
             filter_boolean=BooleanOp.OR,
         )
-        assert len(eusers) == 2
-        assert eusers[0].user_ident == self.event_3.data.get("user").get("id")
-        assert eusers[0].email == self.event_3.data.get("user").get("email")
-        assert eusers[0].ip_address == self.event_3.data.get("user").get("ip_address")
-        assert eusers[1].user_ident == self.event_2.data.get("user").get("id")
-        assert eusers[1].email == self.event_2.data.get("user").get("email")
-        assert eusers[1].ip_address == "1.1.1.4"
+        assert len(eusers) == 4
+        assert eusers[0].email == "nisanthan@sentry.io"
+        assert eusers[0].ip_address == "1.1.1.2"
+        assert eusers[1].email == "minion@universal.com"
+        assert eusers[1].ip_address == "8.8.8.4"
+        assert eusers[2].email == "gru@universal.com"
+        assert eusers[2].ip_address == "2001:db8:0:85a3::ac1f:8001"
+        assert eusers[3].email == "scarlet@universal.com"
+        assert eusers[3].ip_address == "2001:db8:0:85a3::ac1f:3008"
 
     @mock.patch("sentry.analytics.record")
     def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_username(
@@ -215,7 +246,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "nisanthan",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=30 + i)),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -225,9 +256,9 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "id": "myminion",
                         "email": "minion@universal.com",
                         "username": "minion",
-                        "ip_address": f"8.8.8.{i}",
+                        "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=40 + i)),
+                    "timestamp": before_now(seconds=40 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -263,8 +294,8 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     f"AND user_name IN array('nisanthan', 'minion')\n"
                     f"ORDER BY latest_timestamp DESC",
                     query_try=0,
-                    count_rows_returned=20,
-                    count_rows_filtered=18,
+                    count_rows_returned=21,
+                    count_rows_filtered=19,
                     query_time_ms=0,
                 ),
                 call(
@@ -291,7 +322,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "username": "test",
                         "ip_address": f"1.1.1.{i}",
                     },
-                    "timestamp": iso_format(before_now(seconds=30 + i)),
+                    "timestamp": before_now(seconds=30 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -304,9 +335,9 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                         "id": "test2",
                         "email": email_2,
                         "username": "test2",
-                        "ip_address": f"8.8.8.{i}",
+                        "ip_address": f"2001:0db8:0000:85a3:0000:0000:ac1f:800{i}",
                     },
-                    "timestamp": iso_format(before_now(minutes=60 + i)),
+                    "timestamp": before_now(minutes=60 + i).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -328,7 +359,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
         assert eusers[0].ip_address == "1.1.1.0"
         assert eusers[1].user_ident == id_2
         assert eusers[1].email == email_2
-        assert eusers[1].ip_address == "8.8.8.5"
+        assert eusers[1].ip_address == "2001:db8:0:85a3::ac1f:8005"
 
         mock_record.assert_has_calls(
             [
@@ -389,7 +420,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": "cocoa",
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -407,7 +438,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": None,
                     "ip_address": "8.8.8.8",
                 },
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -428,7 +459,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
                     "username": None,
                     "ip_address": "8.8.8.1",
                 },
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
             },
             project_id=self.project.id,
         )

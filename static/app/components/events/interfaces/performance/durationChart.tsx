@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -11,8 +11,10 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, Group, Organization} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import type {EventError} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   findRangeOfMultiSeries,
   getDurationUnit,

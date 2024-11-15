@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
-from sentry.utils import json
 
 
 class BaseEventTest(APITestCase):
@@ -41,7 +42,7 @@ class BaseEventTest(APITestCase):
 
         if type == "block_suggestion":
             payload = {
-                "payload": json.dumps(
+                "payload": orjson.dumps(
                     {
                         "type": type,
                         "user": slack_user,
@@ -61,7 +62,7 @@ class BaseEventTest(APITestCase):
                         "channel": self.channel,
                         "message": original_message,
                     }
-                )
+                ).decode()
             }
         if data:
             payload.update(data)

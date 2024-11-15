@@ -4,10 +4,9 @@ import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
-import {Chunk} from 'sentry/components/events/contexts/chunk';
+import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
   isNotMarkMeasurement,
@@ -36,6 +35,7 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -51,9 +51,9 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
-import {EntryType} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {EntryBreadcrumbs, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -63,10 +63,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
-import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
@@ -190,8 +189,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     return <LoadingIndicator />;
   }
 
-  const {user, contexts, projectSlug} = detail.event;
-  const {feedback} = contexts ?? {};
+  const {projectSlug} = detail.event;
+
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${detail.traceFullDetailedEvent.project_slug}/events/${detail.traceFullDetailedEvent.event_id}/json/`;
   const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
   const {errors, performance_issues} = detail.traceFullDetailedEvent;
@@ -274,7 +273,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   return (
     <Wrapper>
       <Actions>
-        <Button
+        <LinkButton
           size="sm"
           icon={<IconOpen />}
           href={eventJsonUrl}
@@ -286,7 +285,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           }
         >
           {t('JSON')} (<FileSize bytes={detail.event?.size} />)
-        </Button>
+        </LinkButton>
       </Actions>
 
       <Title>
@@ -400,7 +399,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             enableHiding
             location={location}
             organization={organization}
-            transaction={detail.traceFullDetailedEvent}
+            tags={detail.traceFullDetailedEvent.tags ?? []}
+            event={detail.traceFullDetailedEvent}
           />
 
           {measurementNames.length > 0 && (
@@ -441,36 +441,19 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!objectIsEmpty(feedback) && (
-        <Chunk
-          key="feedback"
-          type="feedback"
-          alias="feedback"
-          group={undefined}
-          event={detail.event}
-          value={feedback}
-        />
-      )}
-      {user && !objectIsEmpty(user) && (
-        <Chunk
-          key="user"
-          type="user"
-          alias="user"
-          group={undefined}
-          event={detail.event}
-          value={user}
-        />
-      )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       {detail.event._metrics_summary ? (
         <CustomMetricsEventData
+          projectId={detail.event.projectID}
           metricsSummary={detail.event._metrics_summary}
           startTimestamp={detail.event.startTimestamp}
         />
       ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
-      {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
+      {project && (
+        <EventAttachments event={detail.event} project={project} group={undefined} />
+      )}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
       {projectSlug && (
         <EventRRWebIntegration
@@ -506,7 +489,7 @@ function SpanDetailsBody({
         </Tooltip>
         <div>
           <div>{t('Span')}</div>
-          <TransactionOp> {getSpanOperation(detail.span)}</TransactionOp>
+          <TransactionOp> {getSpanOperation(detail.node.value)}</TransactionOp>
         </div>
       </Title>
       {detail.event.projectSlug && (
@@ -596,7 +579,7 @@ const Title = styled(FlexBox)`
 
 const TransactionOp = styled('div')`
   font-size: 25px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;
@@ -616,7 +599,7 @@ const Measurements = styled('div')`
   padding-top: 10px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};

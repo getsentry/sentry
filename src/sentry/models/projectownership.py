@@ -5,27 +5,29 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+import sentry_sdk
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import options  # noqa
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.activity import Activity
-from sentry.models.actor import ActorTuple
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
-from sentry.ownership.grammar import Rule, load_schema, resolve_actors
+from sentry.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
@@ -34,13 +36,13 @@ READ_CACHE_DURATION = 3600
 _Everyone = enum.Enum("_Everyone", "EVERYONE")
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectOwnership(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
-    schema = JSONField(null=True)
+    schema: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
     # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=True)
@@ -60,7 +62,7 @@ class ProjectOwnership(Model):
     __repr__ = sane_repr("project_id", "is_active")
 
     @classmethod
-    def get_cache_key(self, project_id):
+    def get_cache_key(self, project_id) -> str:
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
@@ -106,7 +108,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> tuple[_Everyone | Sequence[ActorTuple], Sequence[Rule] | None]:
+    ) -> tuple[_Everyone | list[Actor], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -133,17 +135,21 @@ class ProjectOwnership(Model):
 
         owners = {o for rule in rules for o in rule.owners}
         owners_to_actors = resolve_actors(owners, project_id)
-        ordered_actors = []
+        ordered_actors: list[Actor] = []
         for rule in rules:
             for o in rule.owners:
-                if o in owners and owners_to_actors.get(o) is not None:
-                    ordered_actors.append(owners_to_actors[o])
-                    owners.remove(o)
+                if o in owners:
+                    actor = owners_to_actors.get(o)
+                    if actor is not None:
+                        ordered_actors.append(actor)
+                        owners.remove(o)
 
         return ordered_actors, rules
 
     @classmethod
-    def _hydrate_rules(cls, project_id, rules, type: str = OwnerRuleType.OWNERSHIP_RULE.value):
+    def _hydrate_rules(
+        cls, project_id: int, rules: Sequence[Rule], type: str = OwnerRuleType.OWNERSHIP_RULE.value
+    ):
         """
         Get the last matching rule to take the most precedence.
         """
@@ -156,9 +162,7 @@ class ProjectOwnership(Model):
         result = [
             (
                 rule,
-                ActorTuple.resolve_many(
-                    [actors[owner] for owner in rule.owners if owner in actors]
-                ),
+                Actor.resolve_many([actors[owner] for owner in rule.owners if owner in actors]),
                 type,
             )
             for rule in rules
@@ -166,8 +170,10 @@ class ProjectOwnership(Model):
         return result
 
     @classmethod
+    @metrics.wraps("projectownership.get_issue_owners")
+    @sentry_sdk.trace
     def get_issue_owners(
-        cls, project_id, data, limit=2
+        cls, project_id: int, data: Mapping[str, Any], limit: int = 2
     ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str]]:
         """
         Get the issue owners for a project if there are any.
@@ -178,40 +184,44 @@ class ProjectOwnership(Model):
         """
         from sentry.models.projectcodeowners import ProjectCodeOwners
 
-        with metrics.timer("projectownership.get_autoassign_owners"):
-            ownership = cls.get_ownership_cached(project_id)
-            codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
-            if not (ownership or codeowners):
-                return []
+        ownership = cls.get_ownership_cached(project_id)
+        codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
+        if not (ownership or codeowners):
+            return []
 
-            if not ownership:
-                ownership = cls(project_id=project_id)
+        if not ownership:
+            ownership = cls(project_id=project_id)
 
-            ownership_rules = cls._matching_ownership_rules(ownership, data)
-            codeowners_rules = cls._matching_ownership_rules(codeowners, data) if codeowners else []
+        # rules_with_owners is ordered by priority, descending, see also:
+        # https://docs.sentry.io/product/issues/ownership-rules/#evaluation-flow
+        rules_with_owners = []
 
-            if not (codeowners_rules or ownership_rules):
-                return []
-
+        with metrics.timer("projectownership.get_issue_owners_ownership_rules"):
+            ownership_rules = list(reversed(cls._matching_ownership_rules(ownership, data)))
             hydrated_ownership_rules = cls._hydrate_rules(
                 project_id, ownership_rules, OwnerRuleType.OWNERSHIP_RULE.value
             )
+            for item in hydrated_ownership_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
+
+        if not codeowners:
+            return rules_with_owners
+
+        with metrics.timer("projectownership.get_issue_owners_codeowners_rules"):
+            codeowners_rules = list(reversed(cls._matching_ownership_rules(codeowners, data)))
             hydrated_codeowners_rules = cls._hydrate_rules(
                 project_id, codeowners_rules, OwnerRuleType.CODEOWNERS.value
             )
+            for item in hydrated_codeowners_rules:
+                if item[1]:  # actors
+                    rules_with_owners.append(item)
+                    if len(rules_with_owners) == limit:
+                        return rules_with_owners
 
-            rules_in_evaluation_order = [
-                *hydrated_ownership_rules[::-1],
-                *hydrated_codeowners_rules[::-1],
-            ]
-            rules_with_owners = list(
-                filter(
-                    lambda item: len(item[1]) > 0,
-                    rules_in_evaluation_order,
-                )
-            )
-
-            return rules_with_owners[:limit]
+        return rules_with_owners
 
     @classmethod
     def _get_autoassignment_types(cls, ownership):
@@ -235,8 +245,8 @@ class ProjectOwnership(Model):
         group: Group | None = None,
         organization_id: int | None = None,
         force_autoassign: bool = False,
-        logging_extra: dict[str, str] | None = None,
-    ):
+        logging_extra: dict[str, str | bool | int] | None = None,
+    ) -> None:
         """
         Get the auto-assign owner for a project if there are any.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -249,8 +259,8 @@ class ProjectOwnership(Model):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
-        from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.models.user import User
+        from sentry.users.services.user import RpcUser
 
         if logging_extra is None:
             logging_extra = {}
@@ -262,6 +272,7 @@ class ProjectOwnership(Model):
             return
 
         with metrics.timer("projectownership.get_autoassign_owners"):
+
             ownership = cls.get_ownership_cached(project_id)
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -269,22 +280,20 @@ class ProjectOwnership(Model):
 
             autoassignment_types = cls._get_autoassignment_types(ownership)
             if not len(autoassignment_types):
-                logger.info("handle_auto_assignment.autoassignment_disabled", extra=logging_extra)
                 return
             logging_extra["autoassignment_types"] = autoassignment_types
 
             # Get the most recent GroupOwner that matches the following order: Suspect Committer, then Ownership Rule, then Code Owner
-            issue_owner = GroupOwner.get_autoassigned_owner_cached(
+            issue_owner = GroupOwner.get_autoassigned_owner(
                 group.id, project_id, autoassignment_types
             )
+
             if issue_owner is False:
-                logger.info("handle_auto_assignment.no_issue_owner", extra=logging_extra)
                 return
             logging_extra["issue_owner"] = issue_owner
 
             owner = issue_owner.owner()
             if not owner:
-                logger.info("handle_auto_assignment.no_owner", extra=logging_extra)
                 return
 
             logging_extra["owner"] = owner
@@ -313,7 +322,6 @@ class ProjectOwnership(Model):
             if activity:
                 auto_assigned = activity[0].data.get("integration")
                 if not auto_assigned and not force_autoassign:
-                    logger.info("autoassignment.post_manual_assignment", extra=logging_extra)
                     return
 
             if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
@@ -325,14 +333,12 @@ class ProjectOwnership(Model):
                 isinstance(owner, Team)
                 and GroupAssignee.objects.filter(group=group, team=owner.id).exists()
             ):
-                logger.info("handle_auto_assignment.team_already_assigned", extra=logging_extra)
                 return
 
             if (
                 isinstance(owner, RpcUser)
                 and GroupAssignee.objects.filter(group=group, user_id=owner.id).exists()
             ):
-                logger.info("handle_auto_assignment.user_already_assigned", extra=logging_extra)
                 return
 
             assignment = GroupAssignee.objects.assign(
@@ -354,15 +360,7 @@ class ProjectOwnership(Model):
                     organization_id=organization_id or ownership.project.organization_id,
                     project_id=project_id,
                     group_id=group.id,
-                )
-                logger.info(
-                    "handle_auto_assignment.success",
-                    extra={
-                        **logging_extra,
-                        # owner_id returns a string including the owner type (user or team) and id
-                        "assignee": issue_owner.owner_id(),
-                        "reason": "created" if assignment["new_assignment"] else "updated",
-                    },
+                    updated_assignment=assignment["updated_assignment"],
                 )
 
     @classmethod
@@ -370,15 +368,28 @@ class ProjectOwnership(Model):
         cls,
         ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
-    ) -> Sequence[Rule]:
-        rules = []
+    ) -> list[Rule]:
+        if ownership.schema is None:
+            return []
 
-        if ownership.schema is not None:
-            for rule in load_schema(ownership.schema):
-                if rule.test(data):
-                    rules.append(rule)
+        # "projectownership" or "projectcodeowners"
+        ownership_type = type(ownership).__name__.lower()
 
-        return rules
+        munged_data = Matcher.munge_if_needed(data)
+        metrics.distribution(
+            key="projectownership.matching_ownership_rules.frames",
+            value=len(munged_data[0]),
+            tags={"ownership_type": ownership_type},
+        )
+
+        rules = load_schema(ownership.schema)
+        metrics.distribution(
+            key="projectownership.matching_ownership_rules.rules",
+            value=len(rules),
+            tags={"ownership_type": ownership_type},
+        )
+
+        return [rule for rule in rules if rule.test(data, munged_data)]
 
 
 def process_resource_change(instance, change, **kwargs):
@@ -390,9 +401,6 @@ def process_resource_change(instance, change, **kwargs):
         instance if change == "updated" else None,
         READ_CACHE_DURATION,
     )
-    autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
-    if len(autoassignment_types) > 0:
-        GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
     GroupOwner.invalidate_assignee_exists_cache(instance.project.id)
     GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 

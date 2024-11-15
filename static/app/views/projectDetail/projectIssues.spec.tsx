@@ -10,7 +10,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  const {organization, router, project, routerContext} = initializeOrg({
+  const {organization, router, project} = initializeOrg({
     organization: {
       features: ['discover-basic'],
     },
@@ -66,7 +66,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -83,7 +83,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         location={router.location}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -95,7 +95,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
       query: {
-        limit: 5,
+        limit: '5',
         query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
         statsPeriod: '14d',
@@ -112,7 +112,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -142,7 +142,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -158,7 +158,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
-        sort: ['-count'],
+        sort: '-count',
         statsPeriod: '14d',
       },
     });
@@ -175,7 +175,7 @@ describe('ProjectDetail > ProjectIssues', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
@@ -188,7 +188,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
-        limit: 5,
+        limit: '5',
         environment: 'staging',
         statsPeriod: '7d',
         query: 'error.unhandled:true is:unresolved',

@@ -1,7 +1,7 @@
-import selectEvent from 'react-select-event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -10,7 +10,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('EditSavedSearchModal', function () {
@@ -25,6 +25,10 @@ describe('EditSavedSearchModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
       body: [],
     });
   });
@@ -56,7 +60,7 @@ describe('EditSavedSearchModal', function () {
       body: {
         id: 'saved-search-id',
         name: 'test',
-        query: 'is:unresolved browser:firefox',
+        query: 'is:unresolved browser:firefox event.type:error',
         sort: IssueSortOptions.TRENDS,
         visibility: SavedSearchVisibility.OWNER,
       },
@@ -67,10 +71,12 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
     await userEvent.paste('new search name');
 
-    await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    await userEvent.paste('test');
-
     await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
+
+    await userEvent.click(
+      screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    await userEvent.paste('event.type:error');
 
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
 
@@ -82,7 +88,7 @@ describe('EditSavedSearchModal', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new search name',
-            query: 'test',
+            query: 'is:unresolved browser:firefox event.type:error',
             visibility: SavedSearchVisibility.ORGANIZATION,
           }),
         })
@@ -115,11 +121,6 @@ describe('EditSavedSearchModal', function () {
     await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
     await userEvent.paste('new search name');
 
-    await userEvent.clear(screen.getByTestId('smart-search-input'));
-    await userEvent.paste('test');
-
-    await selectEvent.select(screen.getByText('Last Seen'), 'Trends');
-
     // Hovering over the visibility dropdown shows disabled reason
     await userEvent.hover(screen.getByText(/only me/i));
     await screen.findByText(/only organization admins can create global saved searches/i);
@@ -132,7 +133,7 @@ describe('EditSavedSearchModal', function () {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'new search name',
-            query: 'test',
+            query: 'is:unresolved browser:firefox',
             visibility: SavedSearchVisibility.OWNER,
           }),
         })

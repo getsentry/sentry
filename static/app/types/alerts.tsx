@@ -38,8 +38,10 @@ export const enum IssueAlertConditionType {
   REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-  HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition',
+  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
+  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
 }
 
 export const enum IssueAlertFilterType {
@@ -212,6 +214,28 @@ export type IssueAlertRuleCondition = Omit<
   [key: string]: number | string;
 };
 
+interface SlackAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.SLACK;
+  workspace: string | undefined;
+  channel_id?: string | undefined;
+  notes?: string | undefined;
+  tags?: string | undefined;
+}
+interface DiscordAction {
+  channel_id: string | undefined;
+  id: IssueAlertActionType.DISCORD;
+  server: string | undefined;
+  tags?: string | undefined;
+}
+interface MSTeamsAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.MS_TEAMS;
+  team: string | undefined;
+}
+
+export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
+
 export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
   actionMatch: 'all' | 'any' | 'none';
@@ -286,3 +310,37 @@ export enum RuleActionsCategories {
   SOME_DEFAULT = 'some_default',
   NO_DEFAULT = 'no_default',
 }
+
+export enum MonitorType {
+  CONTINUOUS = 0,
+  ACTIVATED = 1,
+}
+
+export enum ActivationConditionType {
+  RELEASE_CREATION = 0,
+  DEPLOY_CREATION = 1,
+}
+
+export type AlertRuleActivation = {
+  activator: string;
+  alertRuleId: string;
+  conditionType: string;
+  dateCreated: string;
+  finishedAt: string;
+  id: string;
+  isComplete: boolean;
+  querySubscriptionId: string;
+  metricValue?: number;
+};
+
+export enum ActivationTrigger {
+  ACTIVATED = 'activated',
+  FINISHED = 'finished',
+}
+
+export type ActivationTriggerActivity = {
+  activator: string;
+  conditionType: string;
+  dateCreated: string;
+  type: ActivationTrigger;
+};

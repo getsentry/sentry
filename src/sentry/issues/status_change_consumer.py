@@ -5,13 +5,19 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from sentry_sdk.tracing import NoOpSpan, Transaction
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupinbox import GroupInboxReason
+from sentry.models.groupinbox import (
+    GroupInboxReason,
+    GroupInboxRemoveAction,
+    add_group_to_inbox,
+    remove_group_from_inbox,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
@@ -58,6 +64,11 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_RESOLVED,
         )
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
     elif new_status == GroupStatus.IGNORED:
         # The IGNORED status supports 3 substatuses. For UNTIL_ESCALATING and
         # UNTIL_CONDITION_MET, we expect the caller to monitor the conditions/escalating
@@ -75,13 +86,22 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
         )
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
     elif new_status == GroupStatus.UNRESOLVED and new_substatus == GroupSubStatus.ESCALATING:
+        # Update the group status, priority, and add the group to the inbox
         manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
         activity_type = None
+        group_inbox_reason = None
         if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
+            group_inbox_reason = GroupInboxReason.REGRESSION
+
         elif new_substatus == GroupSubStatus.ONGOING:
+            group_inbox_reason = GroupInboxReason.ONGOING
             if group.substatus == GroupSubStatus.ESCALATING:
                 # If the group was previously escalating, update the priority via AUTO_SET_ONGOING
                 activity_type = ActivityType.AUTO_SET_ONGOING
@@ -103,6 +123,10 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             from_substatus=group.substatus,
+        )
+        add_group_to_inbox(group, group_inbox_reason)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
         )
     else:
         logger.error(
@@ -136,8 +160,10 @@ def bulk_get_groups_from_fingerprints(
             ).select_related("group")
         )
 
-    result: dict[tuple[int, str], Group] = {
-        (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
+    result = {
+        (grouphash.project_id, grouphash.hash): grouphash.group
+        for grouphash in query
+        if grouphash.group is not None
     }
 
     found_fingerprints = set(result.keys())
@@ -145,13 +171,7 @@ def bulk_get_groups_from_fingerprints(
         (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
     }
     for project_id, fingerprint in fingerprints_set - found_fingerprints:
-        logger.error(
-            "grouphash.not_found",
-            extra={
-                "project_id": project_id,
-                "fingerprint": fingerprint,
-            },
-        )
+        metrics.incr("occurrence_ingest.grouphash.not_found")
 
     return result
 
@@ -174,7 +194,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)
@@ -200,6 +220,14 @@ def process_status_change_message(
         groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
         group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
         if not group:
+            logger.info(
+                "status_change.dropped_group_not_found",
+                extra={
+                    "fingerprint": fingerprint,
+                    "new_status": status_change_data["new_status"],
+                    "project_id": status_change_data["project_id"],
+                },
+            )
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
                 sample_rate=1.0,
@@ -207,7 +235,10 @@ def process_status_change_message(
             return None
         txn.set_tag("group_id", group.id)
 
-    with metrics.timer("occurrence_consumer._process_message.status_change.update_group_status"):
+    with metrics.timer(
+        "occurrence_consumer._process_message.status_change.update_group_status",
+        tags={"occurrence_type": group.issue_type.type_id},
+    ):
         update_status(group, status_change_data)
 
     return group

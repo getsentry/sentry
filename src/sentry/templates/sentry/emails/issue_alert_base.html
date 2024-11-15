@@ -148,8 +148,8 @@
                         <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
                       <br />
-                      {% if subtitle %}
-                      <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
+                      {% if subtitle and not is_new_design %}
+                        <small>{{ subtitle|truncatechars:40|soft_break:40 }}</small>
                       {% endif %}
                     </h3>
                   </div>
@@ -160,15 +160,20 @@
         </tr>
       </table>
 
-      <div class="event">
-        <div class="event-id">ID: {{ event.event_id }}</div>
-        {% if timezone %}
-            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
-        {% else %}
-            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
-        {% endif %}
-      </div>
+      {% if not is_new_design %}
+        <div class="event">
+          <div class="event-id">ID: {{ event.event_id }}</div>
+            {% if timezone %}
+                <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+            {% else %}
+                <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+            {% endif %}
+        </div>
+      {% endif %}
 
+      {% if chart_image %}
+        <img src="{{chart_image}}" alt="{{issue_title}} Chart" />
+      {% endif %}
       <div class="interface">
         <table>
           <colgroup>
@@ -176,7 +181,7 @@
           </colgroup>
           <tbody>
             <tr>
-              <th>project</th>
+              <th>Project</th>
               <td><a href="{{group.project.get_absolute_url}}">{{ project_label }}</a></td>
             </tr>
             {% if environment %}
@@ -185,10 +190,35 @@
                 <td>{{ environment }}</td>
               </tr>
             {% endif %}
-            <tr>
-              <th>level</th>
-              <td>{{ group.get_level_display }}</td>
-            </tr>
+            {% if is_new_design %}
+              <tr>
+                {% if issue_type == "Endpoint Regression" %}
+                  <th>Endpoint</th>
+                {% elif issue_type == "Function Regression" %}
+                  <th>Function</th>
+                {% endif %}
+                <td>{{ event.transaction }}</td>
+              </tr>
+              <tr>
+                <th>Change</th>
+                <td>{{ subtitle }}</td>
+              </tr>
+              <tr>
+                <th>Start Time</th>
+                <td>
+                  {% if timezone %}
+                    {{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}
+                  {% else %}
+                    {{ event.datetime|date:"N j, Y, g:i:s a e"}}
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <th>Level</th>
+                <td>{{ group.get_level_display }}</td>
+              </tr>
+            {% endif %}
           </tbody>
         </table>
       </div>

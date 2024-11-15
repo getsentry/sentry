@@ -13,7 +13,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
@@ -33,7 +35,7 @@ type Props = {
    */
   page: 'issue_details' | 'project_settings';
   project: Project;
-  onSave?: (text: string | null) => void;
+  onSave?: (ownership: IssueOwnership) => void;
 } & typeof defaultProps;
 
 type State = {
@@ -82,14 +84,14 @@ class OwnerInput extends Component<Props, State> {
     );
 
     request
-      .then(() => {
+      .then(ownership => {
         addSuccessMessage(t('Updated issue ownership rules'));
         this.setState(
           {
             hasChanges: false,
             text,
           },
-          () => onSave?.(text)
+          () => onSave?.(ownership)
         );
         trackIntegrationAnalytics('project_ownership.saved', {
           page,
@@ -270,12 +272,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 

@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from datetime import datetime
 from hashlib import md5
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -18,12 +18,13 @@ from sentry.event_manager import (
     _get_or_create_group_release,
     _increment_release_associated_counts,
     _process_existing_aggregate,
-    _save_grouphash_and_group,
     get_event_type,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
@@ -38,6 +39,7 @@ issue_rate_limiter = RedisSlidingWindowRateLimiter(
 logger = logging.getLogger(__name__)
 
 
+@sentry_sdk.tracing.trace
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -89,6 +91,7 @@ class IssueArgs(TypedDict):
     priority: int | None
 
 
+@sentry_sdk.tracing.trace
 def _create_issue_kwargs(
     occurrence: IssueOccurrence, event: Event, release: Release | None
 ) -> IssueArgs:
@@ -105,7 +108,11 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
-        "priority": occurrence.initial_issue_priority,
+        "priority": (
+            occurrence.initial_issue_priority
+            if occurrence.initial_issue_priority is not None
+            else occurrence.type.default_priority
+        ),
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -118,9 +125,9 @@ class OccurrenceMetadata(TypedDict):
     title: str
     location: str | None
     last_received: str
-    initial_priority: int | None
 
 
+@sentry_sdk.tracing.trace
 def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> OccurrenceMetadata:
     """
     Returns the materialized metadata to be merged with issue.
@@ -133,6 +140,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata.update(event.get_event_metadata())
     event_metadata["title"] = occurrence.issue_title
     event_metadata["value"] = occurrence.subtitle
+    event_metadata["initial_priority"] = occurrence.initial_issue_priority
 
     if occurrence.type == FeedbackGroup:
         # TODO: Should feedbacks be their own event type, so above call to event.get_event_medata
@@ -150,10 +158,10 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "metadata": event_metadata,
         "location": event.location,
         "last_received": json.datetime_to_str(event.datetime),
-        "initial_priority": occurrence.initial_issue_priority,
     }
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("issues.ingest.save_issue_from_occurrence")
 def save_issue_from_occurrence(
     occurrence: IssueOccurrence, event: Event, release: Release | None
@@ -196,18 +204,16 @@ def save_issue_from_occurrence(
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
-        with sentry_sdk.start_span(
-            op="issues.save_issue_from_occurrence.transaction"
-        ) as span, metrics.timer(
-            "issues.save_issue_from_occurrence.transaction",
-            tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
-            sample_rate=1.0,
-        ) as metric_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="issues.save_issue_from_occurrence.transaction") as span,
+            metrics.timer(
+                "issues.save_issue_from_occurrence.transaction",
+                tags={"platform": event.platform or "unknown", "type": occurrence.type.type_id},
+                sample_rate=1.0,
+            ) as metric_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
-            group, is_new = _save_grouphash_and_group(
-                project, event, new_grouphash, **cast(Mapping[str, Any], issue_kwargs)
-            )
+            group, is_new = save_grouphash_and_group(project, event, new_grouphash, **issue_kwargs)
             is_regression = False
             span.set_tag("save_issue_from_occurrence.outcome", "new_group")
             metric_tags["save_issue_from_occurrence.outcome"] = "new_group"
@@ -217,7 +223,7 @@ def save_issue_from_occurrence(
                 tags={
                     "platform": event.platform or "unknown",
                     "type": occurrence.type.type_id,
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
             group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
@@ -231,9 +237,19 @@ def save_issue_from_occurrence(
                     tags={
                         "platform": event.platform or "unknown",
                         "frame_mix": frame_mix,
-                        "sdk": normalized_sdk_tag_from_event(event),
+                        "sdk": normalized_sdk_tag_from_event(event.data),
                     },
                 )
+        if is_new and occurrence.assignee:
+            try:
+                # Since this calls hybrid cloud it has to be run outside the transaction
+                assignee = occurrence.assignee.resolve()
+                GroupAssignee.objects.assign(group, assignee, create_only=True)
+            except Exception:
+                logger.exception("Failed process assignment for occurrence")
+
+    elif existing_grouphash.group is None:
+        return None
     else:
         group = existing_grouphash.group
         if group.issue_category.value != occurrence.type.category:
@@ -255,6 +271,7 @@ def save_issue_from_occurrence(
     return group_info
 
 
+@sentry_sdk.tracing.trace
 def send_issue_occurrence_to_eventstream(
     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
 ) -> None:

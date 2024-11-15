@@ -8,7 +8,8 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatSecondsToClock, parseClockToSeconds} from 'sentry/utils/formatters';
+import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
+import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 

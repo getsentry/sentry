@@ -1,5 +1,5 @@
 import type React from 'react';
-import {createContext, Fragment, useContext, useState} from 'react';
+import {createContext, Fragment, useCallback, useContext, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/alert';
@@ -9,7 +9,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 type PageAlertType = keyof Theme['alert'];
 
 export enum DismissId {
-  RESOURCE_SIZE_ALERT,
+  RESOURCE_SIZE_ALERT = 0,
+  CACHE_SDK_UPDATE_ALERT = 1,
 }
 
 export type PageAlertOptions = {
@@ -44,24 +45,25 @@ const pageErrorContext = createContext<{
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
-  const setPageInfo: PageAlertSetter = (message, options) => {
+  const setPageInfo: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, type: 'info', ...options});
-  };
-  const setPageMuted: PageAlertSetter = (message, options) => {
+  }, []);
+
+  const setPageMuted: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, type: 'muted', ...options});
-  };
+  }, []);
 
-  const setPageSuccess: PageAlertSetter = (message, options) => {
+  const setPageSuccess: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, type: 'success', ...options});
-  };
+  }, []);
 
-  const setPageWarning: PageAlertSetter = (message, options) => {
+  const setPageWarning: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, type: 'warning', ...options});
-  };
+  }, []);
 
-  const setPageError: PageAlertSetter = (message, options) => {
+  const setPageError: PageAlertSetter = useCallback((message, options) => {
     setPageAlert({message, type: 'error', ...options});
-  };
+  }, []);
 
   return (
     <pageErrorContext.Provider
@@ -81,7 +83,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
 
 export function PageAlert() {
   const {pageAlert} = useContext(pageErrorContext);
-  const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<string[]>(
+  const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<number[]>(
     localStorageKey,
     []
   );

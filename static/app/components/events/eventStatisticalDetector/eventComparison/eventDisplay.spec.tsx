@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 import {EventDisplay} from './eventDisplay';
 
@@ -12,6 +12,10 @@ describe('eventDisplay', () => {
 
   beforeEach(() => {
     mockProject = ProjectFixture();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${mockProject.slug}/`,
+      body: mockProject,
+    });
   });
 
   it('renders an empty state if no events returned', async () => {
@@ -67,7 +71,7 @@ describe('eventDisplay', () => {
       />
     );
 
-    expect(await screen.findByText('mock-tag')).toBeInTheDocument();
+    expect(await screen.findByText('mock-tag', {selector: 'div'})).toBeInTheDocument();
     expect(screen.getByText('mock-value')).toBeInTheDocument();
   });
 
@@ -142,7 +146,7 @@ describe('eventDisplay', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Full Event Details'})
-    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/?');
+    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/');
   });
 
   it('allows for pagination if there are more events loaded', async () => {

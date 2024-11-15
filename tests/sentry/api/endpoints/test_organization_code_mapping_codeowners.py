@@ -4,7 +4,6 @@ from django.urls import reverse
 
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 GITHUB_CODEOWNER = {
     "filepath": "CODEOWNERS",
@@ -13,7 +12,6 @@ GITHUB_CODEOWNER = {
 }
 
 
-@region_silo_test
 class OrganizationCodeMappingCodeOwnersTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -47,13 +45,16 @@ class OrganizationCodeMappingCodeOwnersTest(APITestCase):
         resp = self.client.get(self.url)
         assert resp.status_code == 404
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_codeowner_file", return_value=None)
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
+        return_value=None,
+    )
     def test_no_codeowner_file_found(self, mock_get_codeowner_file):
         resp = self.client.get(self.url)
         assert resp.status_code == 404
 
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=GITHUB_CODEOWNER,
     )
     def test_codeowner_contents(self, mock_get_codeowner_file):

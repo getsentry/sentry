@@ -18,7 +18,6 @@ describe('Built-in Repositories', function () {
         api={api}
         organization={organization}
         project={project}
-        isLoading={false}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         builtinSymbolSources={builtinSymbolSources}
       />

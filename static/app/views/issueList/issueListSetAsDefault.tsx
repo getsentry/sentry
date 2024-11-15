@@ -1,15 +1,14 @@
-import {browserHistory} from 'react-router';
-
 import {Button} from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
 import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -41,7 +40,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
     ? pinnedSearch?.id === selectedSavedSearch?.id
     : false;
 
-  const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
+  const {mutate: pinSearch, isPending: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(
@@ -53,7 +52,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
       );
     },
   });
-  const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
+  const {mutate: unpinSearch, isPending: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(
@@ -95,8 +94,8 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
   // Hide if we are already on the default search,
   // except when the user has a different search pinned.
   if (
-    isDefaultIssueStreamSearch({query, sort}, {organization}) &&
-    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch, {organization}))
+    isDefaultIssueStreamSearch({query, sort}) &&
+    (!pinnedSearch || isDefaultIssueStreamSearch(pinnedSearch))
   ) {
     return null;
   }

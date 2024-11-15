@@ -1,9 +1,10 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
-import scrollToElement from 'scroll-to-element';
 
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
@@ -19,26 +20,28 @@ import {
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
-  Frame,
-  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
@@ -101,6 +104,14 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
+  const {sectionData} = useEventDetails();
+  const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
+  const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(SectionKey.DEBUGMETA),
+    debugSectionConfig?.initialCollapse ?? false
+  );
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
 
   const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
@@ -118,7 +129,9 @@ function NativeFrame({
   const packageClickable =
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-    !isHoverPreviewed;
+    !isHoverPreviewed &&
+    // We know the debug section is rendered (only once streamline ui is enabled)
+    (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const expandable =
@@ -229,6 +242,7 @@ function NativeFrame({
     }
   }
 
+  // This isn't possible when the page doesn't have the images loaded section
   function handleGoToImagesLoaded(e: MouseEvent) {
     e.stopPropagation(); // to prevent collapsing if collapsible
 
@@ -241,7 +255,15 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    scrollToElement('#images-loaded');
+    if (hasStreamlinedUI) {
+      // Expand the section
+      setIsCollapsed(false);
+    }
+
+    // Scroll to the section
+    document
+      .getElementById(SectionKey.DEBUGMETA)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   }
 
   function handleToggleContext(e: MouseEvent) {
@@ -268,6 +290,7 @@ function NativeFrame({
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
+          {expandable ? <InteractionStateLayer /> : null}
           <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
@@ -327,7 +350,9 @@ function NativeFrame({
           </GenericCellWrapper>
           <FunctionNameCell>
             {functionName ? (
-              <AnnotatedText value={functionName.value} meta={functionName.meta} />
+              <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
+                <AnnotatedText value={functionName.value} meta={functionName.meta} />
+              </Tooltip>
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -400,11 +425,10 @@ function NativeFrame({
             {expandable && (
               <ToggleButton
                 size="zero"
+                borderless
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-                icon={
-                  <IconChevron legacySize="8px" direction={expanded ? 'up' : 'down'} />
-                }
+                icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>
@@ -424,6 +448,7 @@ function NativeFrame({
           isExpanded={expanded}
           registersMeta={registersMeta}
           frameMeta={frameMeta}
+          platform={platform}
         />
       )}
     </StackTraceFrame>
@@ -471,8 +496,8 @@ const ExpandCell = styled('div')`
 `;
 
 const ToggleButton = styled(Button)`
-  width: 16px;
-  height: 16px;
+  display: block;
+  color: ${p => p.theme.subText};
 `;
 
 const Registers = styled(Context)`
@@ -505,6 +530,7 @@ const RowHeader = styled('span')<{
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
   grid-template-rows: repeat(2, auto);
@@ -534,19 +560,6 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.border};
     }
   }
-
-  &:last-child {
-    ${RowHeader} {
-      border-bottom-right-radius: 5px;
-      border-bottom-left-radius: 5px;
-    }
-  }
-
-  &:first-child {
-    ${RowHeader} {
-      border-top-right-radius: 5px;
-    }
-  }
 `;
 
 const SymbolicatorIcon = styled('div')`
@@ -556,7 +569,7 @@ const SymbolicatorIcon = styled('div')`
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.subText};

@@ -1,9 +1,16 @@
+from collections.abc import Callable, Sequence
+from typing import cast
+
 from rest_framework import serializers
 
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.project import Project
+from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
+
+GENERIC_FILTERS_VERSION = 1
 
 
 class FilterStatKeys:
@@ -290,3 +297,120 @@ _healthcheck_filter = _FilterSpec(
     serializer_cls=None,
     config_name="ignoreTransactions",
 )
+
+
+def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) -> RuleCondition:
+    """
+    Condition that expresses error message matching for an inbound filter.
+    """
+    conditions = []
+
+    for ty, value in values:
+        ty_and_value: list[RuleCondition] = []
+
+        if ty is not None:
+            ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
+        if value is not None:
+            ty_and_value.append({"op": "glob", "name": "value", "value": [value]})
+
+        if len(ty_and_value) == 1:
+            conditions.append(ty_and_value[0])
+        elif len(ty_and_value) == 2:
+            conditions.append(
+                {
+                    "op": "and",
+                    "inner": ty_and_value,
+                }
+            )
+
+    return cast(
+        RuleCondition,
+        {
+            "op": "any",
+            "name": "event.exception.values",
+            "inner": {
+                "op": "or",
+                "inner": conditions,
+            },
+        },
+    )
+
+
+def _chunk_load_error_filter() -> RuleCondition:
+    """
+    Filters out chunk load errors.
+
+    Example:
+    ChunkLoadError: Loading chunk 3662 failed.\n(error:
+    https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+    """
+    values = [
+        ("ChunkLoadError", "Loading chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+    ]
+
+    return _error_message_condition(values)
+
+
+def _hydration_error_filter() -> RuleCondition:
+    """
+    Filters out hydration errors.
+
+    Example:
+    418 - Hydration failed because the initial UI does not match what was rendered on the server.
+    419 - The server could not finish this Suspense boundary, likely due to an error during server rendering.
+        Switched to client rendering.
+    422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
+    423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire
+        root will switch to client rendering.
+    425 - Text content does not match server-rendered HTML.
+    """
+    values = [
+        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
+        (None, "*https://react.dev/errors/{418,419,422,423,425}*"),
+    ]
+
+    return _error_message_condition(values)
+
+
+# List of all active generic filters that Sentry currently sends to Relay.
+ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition]]] = [
+    ("chunk-load-error", _chunk_load_error_filter),
+    ("react-hydration-errors", _hydration_error_filter),
+]
+
+
+def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
+    """
+    Computes the generic inbound filters configuration for inbound filters.
+
+    Generic inbound filters are able to express arbitrary filtering conditions on an event, using
+    Relay's `RuleCondition` DSL. They differ from static inbound filters which filter events based on a
+    hardcoded set of rules, specific to each type.
+    """
+    generic_filters: list[GenericFilter] = []
+
+    for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
+        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+        # why the value true is determined by either `1` or `True`.
+        if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
+            continue
+
+        condition = generic_filter_fn()
+        if condition is not None:
+            generic_filters.append(
+                {
+                    "id": generic_filter_id,
+                    "isEnabled": True,
+                    "condition": condition,
+                }
+            )
+
+    if not generic_filters:
+        return None
+
+    return {
+        "version": GENERIC_FILTERS_VERSION,
+        "filters": generic_filters,
+    }

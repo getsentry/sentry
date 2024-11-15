@@ -8,29 +8,38 @@ import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
   projectId,
   projectSlug,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
-}: OnboardingLayoutProps) {
+  hideMaskBlockToggles,
+}: OnboardingLayoutProps & {hideMaskBlockToggles?: boolean}) {
+  const api = useApi();
   const organization = useOrganization();
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {steps} = useMemo(() => {
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+
+  const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
@@ -50,6 +59,8 @@ export function ReplayOnboardingLayout({
         mask,
         block,
       },
+      isSelfHosted,
+      urlPrefix,
     };
 
     return {
@@ -62,7 +73,6 @@ export function ReplayOnboardingLayout({
       nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
-    cdn,
     docsConfig,
     dsn,
     isLoadingRegistry,
@@ -76,11 +86,16 @@ export function ReplayOnboardingLayout({
     configType,
     mask,
     block,
+    urlPrefix,
+    isSelfHosted,
+    api,
+    projectKeyId,
   ]);
 
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
+        {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
           {steps.map(step =>
             step.type === StepType.CONFIGURE ? (
@@ -88,7 +103,7 @@ export function ReplayOnboardingLayout({
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  codeHeader: (
+                  codeHeader: hideMaskBlockToggles ? null : (
                     <ReplayConfigToggle
                       blockToggle={block}
                       maskToggle={mask}
@@ -126,4 +141,10 @@ const Wrapper = styled('div')`
       margin-bottom: 0;
     }
   }
+`;
+
+const Introduction = styled('div')`
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 ${space(2)} 0;
 `;

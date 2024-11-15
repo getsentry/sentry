@@ -2,31 +2,28 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
-
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-
-if TYPE_CHECKING:
-    from sentry.api.event_search import SearchFilter
 
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.release import Release, follows_semver_versioning_scheme
+from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.search.base import ANY
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils.eventuser import KEYWORD_MAP, EventUser
 
 
@@ -101,6 +98,9 @@ def parse_size(value: str, size: str) -> float:
     except ValueError:
         raise InvalidQuery(f"{value} is not a valid size value")
 
+    # size units are case insensitive
+    size = size.lower()
+
     if size == "bit":
         byte = size_value / 8
     elif size == "nb":
@@ -165,6 +165,8 @@ def parse_numeric_value(value: str, suffix: str | None = None) -> float:
     if not suffix:
         return parsed_value
 
+    # numeric "nuts" are case insensitive
+    suffix = suffix.lower()
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(f"{suffix} is not a valid number suffix, must be k, m or b")
@@ -452,6 +454,7 @@ def _run_latest_release_query(
             INNER JOIN "sentry_release_project" srp ON sr.id = srp.release_id
             {env_join}
             WHERE sr.organization_id = %s
+            AND sr.status = {ReleaseStatus.OPEN}
             AND srp.project_id IN %s
             {extra_conditions}
             {env_where}
@@ -702,7 +705,10 @@ def split_query_into_tokens(query: str) -> Sequence[str]:
 
 
 def parse_query(
-    projects: Sequence[Project], query: str, user: User, environments: Sequence[Environment]
+    projects: Sequence[Project],
+    query: str,
+    user: User | AnonymousUser,
+    environments: Sequence[Environment],
 ) -> dict[str, Any]:
     """| Parses the query string and returns a dict of structured query term values:
     | Required:
@@ -811,36 +817,6 @@ def convert_user_tag_to_query(key: str, value: str) -> str | None:
     return None
 
 
-@dataclass
-class SupportedConditions:
-    field_name: str
-    operators: frozenset[str] | None = None
-
-
-supported_cdc_conditions = [
-    SupportedConditions("status", frozenset(["IN"])),
-]
-supported_cdc_conditions_lookup = {
-    condition.field_name: condition for condition in supported_cdc_conditions
-}
-
-
-def validate_cdc_search_filters(search_filters: Sequence[SearchFilter] | None) -> bool:
-    """
-    Validates whether a set of search filters can be handled by the cdc search backend.
-    """
-    for search_filter in search_filters or ():
-        supported_condition = supported_cdc_conditions_lookup.get(search_filter.key.name)
-        if not supported_condition:
-            return False
-        if (
-            supported_condition.operators
-            and search_filter.operator not in supported_condition.operators
-        ):
-            return False
-    return True
-
-
 # Mapping of device class to the store corresponding tag value
 DEVICE_CLASS: dict[str, set[str]] = {
     "low": {"1"},
@@ -854,3 +830,15 @@ def map_device_class_level(device_class: str) -> str | None:
         if device_class in value:
             return key
     return None
+
+
+def validate_snuba_array_parameter(parameter: Sequence[str]) -> bool:
+    """Returns whether parameter is within a reasonable length to be used as a snuba parameter"""
+    # 4 here is for the 2 quotes around the string + a comma + a space
+    # this should be roughly equivalent to len(str(parameter)), but runs 2x as fast
+    # python -m timeit -n 10000 -s "array=['abcdef123456']*1000" "sum(len(x) for x in array) + 4 * len(array)"
+    # 10000 loops, best of 5: 23.6 usec per loop
+    # python -m timeit -n 10000 -s "array=['abcdef123456']*1000" "len(str(array))"
+    # 10000 loops, best of 5: 42.6 usec per loop
+    converted_length = sum(len(item) for item in parameter) + (4 * len(parameter))
+    return converted_length <= MAX_PARAMETERS_IN_ARRAY

@@ -1,11 +1,14 @@
-from ..base import ModelDeletionTask, ModelRelation
+from collections.abc import Sequence
+
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
-class SentryAppDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class SentryAppDeletionTask(ModelDeletionTask[SentryApp]):
+    def get_child_relations(self, instance: SentryApp) -> list[BaseRelation]:
         from sentry.models.apiapplication import ApiApplication
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-        from sentry.models.user import User
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+        from sentry.users.models.user import User
 
         return [
             ModelRelation(SentryAppInstallation, {"sentry_app_id": instance.id}),
@@ -13,7 +16,7 @@ class SentryAppDeletionTask(ModelDeletionTask):
             ModelRelation(ApiApplication, {"id": instance.application_id}),
         ]
 
-    def mark_deletion_in_progress(self, instance_list):
+    def mark_deletion_in_progress(self, instance_list: Sequence[SentryApp]) -> None:
         from sentry.constants import SentryAppStatus
 
         for instance in instance_list:

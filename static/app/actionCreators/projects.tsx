@@ -13,7 +13,8 @@ import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PlatformKey, Project, Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -58,7 +59,7 @@ export function loadStats(api: Client, params: StatsParams) {
 
 // This is going to queue up a list of project ids we need to fetch stats for
 // Will be cleared when debounced function fires
-const _projectStatsToFetch: Set<string> = new Set();
+export const _projectStatsToFetch: Set<string> = new Set();
 
 // Max projects to query at a time, otherwise if we fetch too many in the same request
 // it can timeout
@@ -352,29 +353,6 @@ export function removeProject({
     method: 'DELETE',
     data: {origin},
   });
-}
-
-/**
- * Load platform documentation specific to the project. The DSN and various
- * other project specific secrets will be included in the documentation.
- *
- * @param api API Client
- * @param orgSlug Organization Slug
- * @param projectSlug Project Slug
- * @param platform Project platform.
- */
-export function loadDocs({
-  api,
-  orgSlug,
-  projectSlug,
-  platform,
-}: {
-  api: Client;
-  orgSlug: string;
-  platform: PlatformKey | 'python-tracing' | 'node-tracing' | 'react-native-tracing';
-  projectSlug: string;
-}) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 
 /**

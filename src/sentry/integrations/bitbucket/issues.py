@@ -5,11 +5,14 @@ from typing import Any
 
 from django.urls import reverse
 
-from sentry.integrations.mixins import IssueBasicMixin
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.source_code_management.metrics import (
+    SourceCodeIssueIntegrationInteractionType,
+)
 from sentry.models.group import Group
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
+from sentry.silo.base import all_silo_function
+from sentry.users.models.user import User
 
 ISSUE_TYPES = (
     ("bug", "Bug"),
@@ -27,8 +30,8 @@ PRIORITIES = (
 )
 
 
-class BitbucketIssueBasicMixin(IssueBasicMixin):
-    def get_issue_url(self, key):
+class BitbucketIssuesSpec(SourceCodeIssueIntegration):
+    def get_issue_url(self, key: str) -> str:
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
@@ -119,24 +122,25 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         ]
 
     def create_issue(self, data, **kwargs):
-        client = self.get_client()
-        if not data.get("repo"):
-            raise IntegrationFormError({"repo": ["Repository is required"]})
+        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
+            client = self.get_client()
+            if not data.get("repo"):
+                raise IntegrationFormError({"repo": ["Repository is required"]})
 
-        data["content"] = {"raw": data["description"]}
-        del data["description"]
+            data["content"] = {"raw": data["description"]}
+            del data["description"]
 
-        try:
-            issue = client.create_issue(data.get("repo"), data)
-        except ApiError as e:
-            self.raise_error(e)
+            try:
+                issue = client.create_issue(data.get("repo"), data)
+            except ApiError as e:
+                self.raise_error(e)
 
-        return {
-            "key": issue["id"],
-            "title": issue["title"],
-            "description": issue["content"]["html"],  # users content rendered as html
-            "repo": data.get("repo"),
-        }
+            return {
+                "key": issue["id"],
+                "title": issue["title"],
+                "description": issue["content"]["html"],  # users content rendered as html
+                "repo": data.get("repo"),
+            }
 
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
@@ -171,3 +175,10 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                 )
             except ApiError as e:
                 self.raise_error(e)
+
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        client = self.get_client()
+        repo = kwargs["repo"]
+        resp = client.search_issues(repo, query)
+        assert isinstance(resp, dict)
+        return resp

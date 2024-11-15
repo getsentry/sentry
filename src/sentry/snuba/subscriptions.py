@@ -1,7 +1,11 @@
 import logging
+from collections.abc import Collection, Iterable
+from datetime import timedelta
 
 from django.db import router, transaction
 
+from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -14,7 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 def create_snuba_query(
-    query_type, dataset, query, aggregate, time_window, resolution, environment, event_types=None
+    query_type: SnubaQuery.Type,
+    dataset: Dataset,
+    query: str,
+    aggregate: str,
+    time_window: timedelta,
+    resolution: timedelta,
+    environment: Environment | None,
+    event_types: Collection[SnubaQueryEventType.EventType] = (),
 ):
     """
     Constructs a SnubaQuery which is the postgres representation of a query in snuba
@@ -123,7 +134,12 @@ def update_snuba_query(
         )
 
 
-def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
+def bulk_create_snuba_subscriptions(
+    projects: Iterable[Project],
+    subscription_type: str,
+    snuba_query: SnubaQuery | None,
+    query_extra: str | None = None,
+) -> list[QuerySubscription]:
     """
     Creates a subscription to a snuba query for each project.
 
@@ -136,11 +152,18 @@ def bulk_create_snuba_subscriptions(projects, subscription_type, snuba_query):
     subscriptions = []
     # TODO: Batch this up properly once we care about multi-project rules.
     for project in projects:
-        subscriptions.append(create_snuba_subscription(project, subscription_type, snuba_query))
+        subscriptions.append(
+            create_snuba_subscription(project, subscription_type, snuba_query, query_extra)
+        )
     return subscriptions
 
 
-def create_snuba_subscription(project, subscription_type, snuba_query) -> QuerySubscription:
+def create_snuba_subscription(
+    project: Project,
+    subscription_type: str,
+    snuba_query: SnubaQuery | None,
+    query_extra: str | None = None,
+) -> QuerySubscription:
     """
     Creates a subscription to a snuba query.
 
@@ -149,14 +172,13 @@ def create_snuba_subscription(project, subscription_type, snuba_query) -> QueryS
     to identify the registered callback associated with this subscription.
     :param snuba_query: A `SnubaQuery` instance to subscribe the project to.
     :return: The QuerySubscription representing the subscription
-
-    TODO: construct QuerySubscription with query_extra
     """
     subscription = QuerySubscription.objects.create(
         status=QuerySubscription.Status.CREATING.value,
         project=project,
         snuba_query=snuba_query,
         type=subscription_type,
+        query_extra=query_extra,
     )
 
     create_subscription_in_snuba.apply_async(

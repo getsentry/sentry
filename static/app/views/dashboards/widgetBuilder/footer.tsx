@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import type {LinkProps} from 'sentry/components/links/link';
@@ -25,7 +25,7 @@ export function Footer({
   return (
     <Wrapper>
       <Actions gap={1}>
-        <Button to={goBackLocation}>{t('Cancel')}</Button>
+        <LinkButton to={goBackLocation}>{t('Cancel')}</LinkButton>
         {isEditing && onDelete && (
           <Confirm
             priority="danger"

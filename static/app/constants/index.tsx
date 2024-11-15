@@ -1,8 +1,10 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategoryExact} from 'sentry/types';
+import type {DataCategoryInfo, Scope} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
+import type {PermissionResource} from 'sentry/types/integrations';
+import type {OrgRole} from 'sentry/types/organization';
 
 /**
  * Common constants here
@@ -56,6 +58,7 @@ export const ALLOWED_SCOPES = [
   'event:read',
   'event:write',
   'member:admin',
+  'member:invite',
   'member:read',
   'member:write',
   'org:admin',
@@ -80,30 +83,34 @@ export const ORG_ROLES: OrgRole[] = [
   {
     id: 'member',
     name: 'Member',
-    allowed: true,
+    isAllowed: true,
     desc: 'Members can view and act on events, as well as view most other data within the organization.',
     minimumTeamRole: 'contributor',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'admin',
     name: 'Admin',
-    allowed: true,
+    isAllowed: true,
     desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'manager',
     name: 'Manager',
-    allowed: true,
+    isAllowed: true,
     desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
   {
     id: 'owner',
     name: 'Organization Owner',
-    allowed: true,
+    isAllowed: true,
     desc: 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
     minimumTeamRole: 'admin',
+    isTeamRolesAllowed: true,
   },
 ];
 
@@ -218,8 +225,7 @@ export const MAX_PICKABLE_DAYS = 90;
 
 export const DEFAULT_STATS_PERIOD = '14d';
 
-export const DEFAULT_QUERY = 'is:unresolved';
-export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -248,7 +254,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'errors',
     displayName: 'error',
     titleName: t('Errors'),
+    productName: t('Error Monitoring'),
     uid: 1,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION]: {
     name: DataCategoryExact.TRANSACTION,
@@ -256,7 +264,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'transactions',
     displayName: 'transaction',
     titleName: t('Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 2,
+    isBilledCategory: true,
   },
   [DataCategoryExact.ATTACHMENT]: {
     name: DataCategoryExact.ATTACHMENT,
@@ -264,7 +274,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'attachments',
     displayName: 'attachment',
     titleName: t('Attachments'),
+    productName: t('Attachments'),
     uid: 4,
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -272,7 +284,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'profiles',
     displayName: 'profile',
     titleName: t('Profiles'),
+    productName: t('Continuous Profiling'),
     uid: 6,
+    isBilledCategory: false,
   },
   [DataCategoryExact.REPLAY]: {
     name: DataCategoryExact.REPLAY,
@@ -280,7 +294,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'replays',
     displayName: 'replay',
     titleName: t('Session Replays'),
+    productName: t('Session Replay'),
     uid: 7,
+    isBilledCategory: true,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
     name: DataCategoryExact.TRANSACTION_PROCESSED,
@@ -288,7 +304,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'transactions',
     displayName: 'transaction',
     titleName: t('Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 8,
+    isBilledCategory: false,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
     name: DataCategoryExact.TRANSACTION_INDEXED,
@@ -296,7 +314,9 @@ export const DATA_CATEGORY_INFO = {
     plural: 'indexed transactions',
     displayName: 'indexed transaction',
     titleName: t('Indexed Transactions'),
+    productName: t('Performance Monitoring'),
     uid: 9,
+    isBilledCategory: false,
   },
   [DataCategoryExact.MONITOR]: {
     name: DataCategoryExact.MONITOR,
@@ -304,15 +324,39 @@ export const DATA_CATEGORY_INFO = {
     plural: 'monitor check-ins',
     displayName: 'monitor check-in',
     titleName: t('Monitor Check-Ins'),
+    productName: t('Cron Monitoring'),
     uid: 10,
+    isBilledCategory: false,
+  },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span',
+    plural: 'spans',
+    displayName: 'span',
+    titleName: t('Spans'),
+    productName: t('Tracing'),
+    uid: 12,
+    isBilledCategory: true,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
     plural: 'monitorSeats',
-    displayName: 'cron monitors',
+    displayName: 'cron monitor',
     titleName: t('Cron Monitors'),
+    productName: t('Cron Monitoring'),
     uid: 13,
+    isBilledCategory: true,
+  },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profile_duration',
+    plural: 'profileDuration',
+    displayName: 'profile hour',
+    titleName: t('Profile Hours'),
+    productName: t('Continuous Profiling'),
+    uid: 17,
+    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
@@ -354,16 +398,20 @@ export const FILTER_MASK = '[Filtered]';
 export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NOT_FOUND: 'ORG_NOT_FOUND',
   ORG_NO_ACCESS: 'ORG_NO_ACCESS',
+  NO_ORGS: 'NO_ORGS',
 };
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';
+export const SPAN_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export const IS_ACCEPTANCE_TEST = !!process.env.IS_ACCEPTANCE_TEST;
 export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
+export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

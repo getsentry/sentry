@@ -10,7 +10,6 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
@@ -25,7 +24,6 @@ def mock_baxter_response():
         yield
 
 
-@region_silo_test
 class PushEventWebhookTest(APITestCase):
     @mock_baxter_response()
     def test_simple(self):
@@ -69,6 +67,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -78,6 +77,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@users.noreply.github.com"
         assert commit.author.external_id is None
@@ -128,6 +128,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "alberto@sentry.io"
         assert commit.author.external_id == "github:baxterthehacker"
@@ -137,6 +138,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "alberto@sentry.io"
         assert commit.author.external_id == "github:baxterthehacker"
@@ -192,6 +194,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "133d60480286590a610a0eb7352ff6e02b9674c4"
         assert commit.message == "Update README.md (àgain)"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 45, 15, tzinfo=timezone.utc)
@@ -200,6 +203,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert commit.key == "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c"
         assert commit.message == "Update README.md"
+        assert commit.author is not None
         assert commit.author.name == "bàxterthehacker"
         assert commit.author.email == "baxterthehacker@example.com"
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)

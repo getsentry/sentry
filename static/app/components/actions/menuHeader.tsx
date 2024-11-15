@@ -5,7 +5,7 @@ import {space} from 'sentry/styles/space';
 
 const MenuHeader = styled(MenuItem)`
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(1)};

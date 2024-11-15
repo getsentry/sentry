@@ -1,4 +1,4 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -101,7 +101,9 @@ export type GrowthEventParameters = {
   'growth.onboarding_start_onboarding': {
     source?: string;
   };
-  'growth.onboarding_take_to_error': {};
+  'growth.onboarding_take_to_error': {
+    platform?: string;
+  };
   'growth.onboarding_view_full_docs': {};
   'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;
@@ -117,7 +119,11 @@ export type GrowthEventParameters = {
   'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'invite_modal.add_more': InviteModal;
   'invite_modal.closed': InviteModal;
-  'invite_modal.invites_sent': InviteModal;
+  'invite_modal.invites_sent': InviteModal & {
+    failed_invites: number;
+    is_new_modal: boolean;
+    sent_invites: number;
+  };
   'invite_modal.opened': InviteModal & {
     can_invite: boolean;
     source?: string;

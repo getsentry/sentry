@@ -48,6 +48,6 @@ class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
         assert notification.activity.data["text"] == body[2]["text"]
         notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (
-            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=note\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid})"
+            f"{self.project.slug} | [Notification Settings](http://testserver/settings/account/notifications/workflow/?referrer=note\\_activity-msteams-user&amp;notification\\_uuid={notification_uuid}&amp;organizationId={self.organization.id})"
             == body[3]["columns"][1]["items"][0]["text"]
         )

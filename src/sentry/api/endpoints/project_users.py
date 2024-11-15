@@ -19,7 +19,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     }
     rate_limits = {
         "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=60),
         },
     }
     permission_classes = (ProjectAndStaffPermission,)
@@ -31,8 +31,8 @@ class ProjectUsersEndpoint(ProjectEndpoint):
 
         Return a list of users seen within this project.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :pparam string key: the tag key to look up.
         :auth: required
         :qparam string query: Limit results to users matching the given query.

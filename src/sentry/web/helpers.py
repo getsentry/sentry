@@ -8,7 +8,6 @@ from django.http import HttpRequest, HttpResponse
 from django.template import loader
 from django.utils import timezone
 
-from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 logger = logging.getLogger("sentry")
@@ -34,7 +33,7 @@ def render_to_string(
 
 
 def render_to_response(
-    template: str,
+    template: Sequence[str] | str,
     context: Mapping[str, Any] | None = None,
     request: HttpRequest | None = None,
     status: int = 200,

@@ -9,6 +9,7 @@ from sentry import quotas
 from sentry.sentry_metrics.client.base import GenericMetricsBackend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsTestCase  # NOQA:S007
+from sentry.utils.env import in_test_environment
 
 
 def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
@@ -32,7 +33,6 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 
 class SnubaMetricsBackend(GenericMetricsBackend):
-
     """
     This backend is meant for use in dev/testing
     environments. It allows for producing metrics
@@ -51,20 +51,17 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a counter metric for internal use cases only.
         """
-
+        assert in_test_environment(), "This backend should only be used in testing environments"
         BaseMetricsTestCase.store_metric(
-            name=build_mri(metric_name, "c", use_case_id, unit),
+            mri=build_mri(metric_name, "c", use_case_id, unit),
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            type="counter",
             timestamp=int(datetime.now().timestamp()),
-            use_case_id=use_case_id,
         )
 
     def set(
@@ -77,22 +74,19 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a set metric for internal use cases only. Can support
         a sequence of values.
         """
-
+        assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
-                name=build_mri(metric_name, "s", use_case_id, unit),
+                mri=build_mri(metric_name, "s", use_case_id, unit),
                 tags=tags,
                 value=val,
                 org_id=org_id,
                 project_id=project_id,
-                type="set",
                 timestamp=int(datetime.now().timestamp()),
-                use_case_id=use_case_id,
             )
 
     def distribution(
@@ -105,21 +99,19 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a distribution metric for internal use cases only. Can
         support a sequence of values.
         """
+        assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
-                name=build_mri(metric_name, "d", use_case_id, unit),
+                mri=build_mri(metric_name, "d", use_case_id, unit),
                 tags=tags,
                 value=val,
                 org_id=org_id,
                 project_id=project_id,
-                type="distribution",
                 timestamp=int(datetime.now().timestamp()),
-                use_case_id=use_case_id,
             )
 
     def close(self) -> None:

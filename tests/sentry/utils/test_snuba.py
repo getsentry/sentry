@@ -1,9 +1,9 @@
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import HTTPError, ReadTimeoutError
 
@@ -28,7 +28,7 @@ from sentry.utils.snuba import (
 
 class SnubaUtilsTest(TestCase):
     def setUp(self):
-        self.now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        self.now = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
         self.proj1 = self.create_project()
         self.proj1env1 = self.create_environment(project=self.proj1, name="prod")
         self.proj1group1 = self.create_group(self.proj1)
@@ -53,7 +53,7 @@ class SnubaUtilsTest(TestCase):
             project_id=self.proj1.id, group_id=self.proj1group2.id, release_id=self.release1.id
         )
 
-    def test_translation(self):
+    def test_translation_no_translation(self):
         # Case 1: No translation
         filter_keys = {"sdk": ["python", "js"]}
         forward, reverse = get_snuba_translators(filter_keys)
@@ -61,6 +61,7 @@ class SnubaUtilsTest(TestCase):
         result = [{"sdk": "python", "count": 123}, {"sdk": "js", "count": 234}]
         assert all(reverse(row) == row for row in result)
 
+    def test_translation_environment_id_to_name_and_back(self):
         # Case 2: Environment ID -> Name and back
         filter_keys = {"environment": [self.proj1env1.id]}
         forward, reverse = get_snuba_translators(filter_keys)
@@ -68,6 +69,7 @@ class SnubaUtilsTest(TestCase):
         row = {"environment": self.proj1env1.name, "count": 123}
         assert reverse(row) == {"environment": self.proj1env1.id, "count": 123}
 
+    def test_translation_both_environment_and_release(self):
         # Case 3, both Environment and Release
         filter_keys = {
             "environment": [self.proj1env1.id],
@@ -89,6 +91,7 @@ class SnubaUtilsTest(TestCase):
             "count": 123,
         }
 
+    def test_translation_two_groups_many_to_many_of_groups(self):
         # Case 4: 2 Groups, many-to-many mapping of Groups
         # to Releases. Reverse translation depends on multiple
         # fields.
@@ -301,7 +304,7 @@ class PrepareQueryParamsTest(TestCase):
 
 class QuantizeTimeTest(unittest.TestCase):
     def setUp(self):
-        self.now = django_timezone.now().replace(microsecond=0)
+        self.now = timezone.now().replace(microsecond=0)
 
     def test_quantizes_with_duration(self):
         key_hash = 0

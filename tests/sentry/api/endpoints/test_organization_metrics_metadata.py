@@ -1,331 +1,174 @@
-from collections.abc import Sequence
-from datetime import datetime, timedelta
-from unittest.mock import patch
+from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
-    get_cache_key_for_code_location,
-)
-from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
-from sentry.testutils.cases import APITestCase, BaseSpansTestCase
+from sentry.snuba.metrics.naming_layer import TransactionMRI
+from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
-@freeze_time("2023-11-21T10:30:30.000Z")
-class OrganizationMetricsMetadataTest(APITestCase, BaseSpansTestCase):
-    endpoint = "sentry-api-0-organization-metrics-metadata"
+@freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
+class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
+    method = "get"
+    endpoint = "sentry-api-0-organization-metrics-tag-details"
 
     def setUp(self):
         super().setUp()
-        self.login_as(user=self.user)
-        self.redis_client = get_redis_client_for_metrics_meta()
-        self.current_time = timezone.now()
+        self.login_as(self.user)
 
-    def _mock_code_location(
-        self,
-        filename: str,
-        pre_context: list[str] | None = None,
-        post_context: list[str] | None = None,
-    ) -> str:
-        code_location = {
-            "function": "foo",
-            "module": "bar",
-            "filename": filename,
-            "abs_path": f"/usr/src/foo/{filename}",
-            "lineNo": 10,
-            "context_line": "context",
-        }
-
-        if pre_context is not None:
-            code_location["pre_context"] = pre_context
-        if post_context is not None:
-            code_location["post_context"] = post_context
-
-        return json.dumps(code_location)
-
-    def _store_code_location(
-        self, organization_id: int, project_id: int, metric_mri: str, timestamp: int, value: str
-    ):
-        cache_key = get_cache_key_for_code_location(
-            organization_id, project_id, metric_mri, timestamp
+        release_1 = self.create_release(
+            project=self.project, version="1.0", date_added=MetricsAPIBaseTestCase.MOCK_DATETIME
         )
-        self.redis_client.sadd(cache_key, value)
+        release_2 = self.create_release(
+            project=self.project,
+            version="2.0",
+            date_added=MetricsAPIBaseTestCase.MOCK_DATETIME + timedelta(minutes=5),
+        )
 
-    def _round_to_day(self, time: datetime) -> int:
-        return int(time.timestamp() / 86400) * 86400
+        # Use Case: TRANSACTIONS
+        for value, transaction, platform, env, release, time in (
+            (1, "/hello", "android", "prod", release_1.version, self.now()),
+            (6, "/hello", "ios", "dev", release_2.version, self.now()),
+            (5, "/world", "windows", "prod", release_1.version, self.now() + timedelta(minutes=30)),
+            (3, "/hello", "ios", "dev", release_2.version, self.now() + timedelta(hours=1)),
+            (2, "/hello", "android", "dev", release_1.version, self.now() + timedelta(hours=1)),
+            (
+                4,
+                "/world",
+                "windows",
+                "prod",
+                release_2.version,
+                self.now() + timedelta(hours=1, minutes=30),
+            ),
+        ):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                TransactionMRI.DURATION.value,
+                {
+                    "transaction": transaction,
+                    "platform": platform,
+                    "environment": env,
+                    "release": release,
+                },
+                self.now().timestamp(),
+                value,
+            )
+        # Use Case: CUSTOM
+        for value, release, tag_value, time in (
+            (1, release_1.version, "tag_value_1", self.now()),
+            (1, release_1.version, "tag_value_1", self.now()),
+            (1, release_1.version, "tag_value_2", self.now() - timedelta(days=40)),
+            (1, release_2.version, "tag_value_3", self.now() - timedelta(days=50)),
+            (1, release_2.version, "tag_value_4", self.now() - timedelta(days=60)),
+        ):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "d:custom/my_test_metric@percent",
+                {
+                    "transaction": "/hello",
+                    "platform": "platform",
+                    "environment": "prod",
+                    "release": release,
+                    "mytag": tag_value,
+                },
+                self.now().timestamp(),
+                value,
+            )
 
-    def _store_code_locations(
-        self,
-        organization: Organization,
-        projects: Sequence[Project],
-        metric_mris: Sequence[str],
-        days: int,
-    ):
-        timestamps = [
-            self._round_to_day(self.current_time - timedelta(days=day)) for day in range(0, days)
-        ]
-        for project in projects:
-            for metric_mri in metric_mris:
-                for timestamp in timestamps:
-                    self._store_code_location(
-                        organization.id,
-                        project.id,
-                        metric_mri,
-                        timestamp,
-                        self._mock_code_location("script.py"),
-                    )
-                    self._store_code_location(
-                        organization.id,
-                        project.id,
-                        metric_mri,
-                        timestamp,
-                        self._mock_code_location("main.py"),
-                    )
+        self.prod_env = self.create_environment(name="prod", project=self.project)
+        self.dev_env = self.create_environment(name="dev", project=self.project)
 
-    def test_get_locations_with_stats_period(self):
-        projects = [self.create_project(name="project_1")]
-        mris = [
-            "d:custom/sentry.process_profile.track_outcome@second",
-        ]
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
-        self._store_code_locations(self.organization, projects, mris, 2)
-
+    def test_tag_details_for_transactions_use_case(self):
         response = self.get_success_response(
-            self.organization.slug,
-            metric=mris,
-            project=[project.id for project in projects],
-            statsPeriod="1d",
-            codeLocations="true",
+            self.project.organization.slug,
+            "transaction",
+            metric=["d:transactions/duration@millisecond"],
+            project=[self.project.id],
+            useCase="transactions",
         )
-        code_locations = response.data["codeLocations"]
-
-        assert len(code_locations) == 2
-
-        assert code_locations[0]["mri"] == mris[0]
-        assert code_locations[0]["timestamp"] == self._round_to_day(
-            self.current_time - timedelta(days=1)
-        )
-
-        assert code_locations[1]["mri"] == mris[0]
-        assert code_locations[1]["timestamp"] == self._round_to_day(self.current_time)
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 2
-        for index, filename in enumerate(("main.py", "script.py")):
-            assert frames[index]["filename"] == filename
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 2
-        for index, filename in enumerate(("main.py", "script.py")):
-            assert frames[index]["filename"] == filename
-
-    def test_get_locations_with_start_and_end(self):
-        projects = [self.create_project(name="project_1")]
-        mris = [
-            "d:custom/sentry.process_profile.track_outcome@second",
+        assert sorted(response.data, key=lambda x: x["value"]) == [
+            {"key": "transaction", "value": "/hello"},
+            {"key": "transaction", "value": "/world"},
         ]
 
-        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
-        self._store_code_locations(self.organization, projects, mris, 2)
-
+    def test_tag_details_for_custom_use_case(self):
         response = self.get_success_response(
-            self.organization.slug,
-            metric=mris,
-            project=[project.id for project in projects],
-            # We use an interval of 1 day but shifted by 1 day in the past.
-            start=(self.current_time - timedelta(days=2)).isoformat(),
-            end=(self.current_time - timedelta(days=1)).isoformat(),
-            codeLocations="true",
+            self.project.organization.slug,
+            "mytag",
+            metric=["d:custom/my_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
         )
-        code_locations = response.data["codeLocations"]
+        assert sorted(response.data, key=lambda x: x["value"]) == [
+            {"key": "mytag", "value": "tag_value_1"},
+            {"key": "mytag", "value": "tag_value_2"},
+            {"key": "mytag", "value": "tag_value_3"},
+            {"key": "mytag", "value": "tag_value_4"},
+        ]
 
-        assert len(code_locations) == 1
-
-        assert code_locations[0]["mri"] == mris[0]
-        assert code_locations[0]["timestamp"] == self._round_to_day(
-            self.current_time - timedelta(days=1)
+    def test_non_existing_tag_for_transactions_use_case(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:transactions/duration@millisecond"],
+            project=[self.project.id],
+            useCase="transactions",
         )
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 2
-        for index, filename in enumerate(("main.py", "script.py")):
-            assert frames[index]["filename"] == filename
-
-    def test_get_locations_with_start_and_end_and_no_data(self):
-        projects = [self.create_project(name="project_1")]
-        mris = ["d:custom/sentry.process_profile.track_outcome@second"]
-
-        # We specify two days, since we are querying a stats period of 1 day, thus from one day to another.
-        self._store_code_locations(self.organization, projects, mris, 2)
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=mris,
-            project=[project.id for project in projects],
-            # We use an interval outside which we have no data.
-            start=(self.current_time - timedelta(days=3)).isoformat(),
-            end=(self.current_time - timedelta(days=2)).isoformat(),
-            codeLocations="true",
-        )
-        codeLocations = response.data["codeLocations"]
-
-        assert len(codeLocations) == 0
-
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._get_code_locations"
-    )
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.BATCH_SIZE",
-        10,
-    )
-    def test_get_locations_batching(self, get_code_locations_mock):
-        get_code_locations_mock.return_value = []
-
-        projects = [self.create_project(name="project_1")]
-        mris = ["d:custom/sentry.process_profile.track_outcome@second"]
-
-        self.get_success_response(
-            self.organization.slug,
-            metric=mris,
-            project=[project.id for project in projects],
-            statsPeriod="90d",
-            codeLocations="true",
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:transactions/duration@millisecond and tag: my_non_existent_tag"
         )
 
-        # With a window of 90 days, it means that we are actually requesting 91 days, thus we have 10 batches of 10
-        # elements each.
-        assert len(get_code_locations_mock.mock_calls) == 10
-
-    def test_get_locations_with_incomplete_location(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self._store_code_location(
-            self.organization.id,
-            project.id,
-            mri,
-            self._round_to_day(self.current_time),
-            '{"lineno": 10}',
+    def test_non_existing_tag_for_custom_use_case(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:custom/my_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
+        )
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_test_metric@percent and tag: my_non_existent_tag"
         )
 
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="1d",
-            codeLocations="true",
+    def test_tag_details_for_non_existent_metric(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=["d:custom/my_non_existent_test_metric@percent"],
+            project=[self.project.id],
+            useCase="custom",
         )
-        code_locations = response.data["codeLocations"]
-
-        assert len(code_locations) == 1
-
-        assert code_locations[0]["mri"] == mri
-        assert code_locations[0]["timestamp"] == self._round_to_day(self.current_time)
-
-        frames = code_locations[0]["frames"]
-        assert len(frames) == 1
-        assert frames[0]["lineNo"] == 10
-        # We check that all the remaining elements are `None` or empty.
-        del frames[0]["lineNo"]
-        for value in frames[0].values():
-            assert value is None or value == []
-
-    def test_get_locations_with_corrupted_location(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self._store_code_location(
-            self.organization.id,
-            project.id,
-            mri,
-            self._round_to_day(self.current_time),
-            '}"invalid": "json"{',
+        assert response.status_code == 404
+        assert (
+            response.json()["detail"]
+            == "No data found for metric: d:custom/my_non_existent_test_metric@percent and tag: my_non_existent_tag"
         )
 
-        self.get_error_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="1d",
-            status_code=500,
-            codeLocations="true",
+    # fix this
+    def test_tag_details_for_multiple_supplied_metrics(self):
+        response = self.get_error_response(
+            self.project.organization.slug,
+            "my_non_existent_tag",
+            metric=[
+                "d:custom/my_test_metric@percent",
+                "d:transactions/duration@millisecond",
+            ],
+            project=[self.project.id],
+            useCase="custom",
         )
 
-    def test_get_pre_post_context(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self._store_code_location(
-            self.organization.id,
-            project.id,
-            mri,
-            self._round_to_day(self.current_time),
-            self._mock_code_location("script.py", ["pre"], ["post"]),
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="1d",
-            codeLocations="true",
-        )
-
-        code_locations = response.data["codeLocations"]
-
-        frame = code_locations[0]["frames"][0]
-        assert frame["preContext"] == ["pre"]
-        assert frame["postContext"] == ["post"]
-
-    def test_get_no_pre_post_context(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self._store_code_location(
-            self.organization.id,
-            project.id,
-            mri,
-            self._round_to_day(self.current_time),
-            self._mock_code_location("script.py"),
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="1d",
-            codeLocations="true",
-        )
-
-        code_locations = response.data["codeLocations"]
-
-        frame = code_locations[0]["frames"][0]
-        assert frame["preContext"] == []
-        assert frame["postContext"] == []
-
-    @patch(
-        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
-        50,
-    )
-    def test_get_locations_with_too_many_combinations(self):
-        project = self.create_project(name="project_1")
-        mri = "d:custom/sentry.process_profile.track_outcome@second"
-
-        self.get_error_response(
-            self.organization.slug,
-            metric=[mri],
-            project=[project.id],
-            statsPeriod="90d",
-            status_code=400,
-            codeLocations="true",
+        assert (
+            response.json()["detail"]
+            == "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
         )

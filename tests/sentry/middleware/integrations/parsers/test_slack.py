@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -11,12 +10,14 @@ from django.test import RequestFactory
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.utils.auth import _encode_data
+from sentry.integrations.slack.views import SALT
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_no_webhook_outboxes
+from sentry.testutils.outbox import assert_no_webhook_payloads
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -38,7 +39,11 @@ class SlackRequestParserTest(TestCase):
         return HttpResponse(status=200, content="passthrough")
 
     @responses.activate
-    def test_webhook(self):
+    @patch(
+        "slack_sdk.signature.SignatureVerifier.is_valid",
+        return_value=True,
+    )
+    def test_webhook(self, mock_verify):
         # Retrieve the correct integration
         data = urlencode({"team_id": self.integration.external_id}).encode("utf-8")
         signature = _encode_data(secret="slack-signing-secret", data=data, timestamp=self.timestamp)
@@ -65,7 +70,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 201
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
         # ...even if it returns an error
         responses.add(
@@ -79,14 +84,14 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 401
         assert response.content == b"error_response"
         assert len(responses.calls) == 2
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @responses.activate
     def test_django_view(self):
         # Retrieve the correct integration
         path = reverse(
             "sentry-integration-slack-link-identity",
-            kwargs={"signed_params": sign(integration_id=self.integration.id)},
+            kwargs={"signed_params": sign(salt=SALT, integration_id=self.integration.id)},
         )
         request = self.factory.post(path)
         parser = SlackRequestParser(request, self.get_response)
@@ -101,7 +106,7 @@ class SlackRequestParserTest(TestCase):
         assert response.status_code == 200
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
-        assert_no_webhook_outboxes()
+        assert_no_webhook_payloads()
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -118,16 +123,14 @@ class SlackRequestParserTest(TestCase):
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
         parser = SlackRequestParser(request, self.get_response)
         response = parser.get_response()
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=request)
-        payload = dataclasses.asdict(webhook_payload)
         mock_slack_task.apply_async.assert_called_once_with(
             kwargs={
                 "region_names": ["us"],
-                "payload": payload,
+                "payload": create_async_request_payload(request),
                 "response_url": response_url,
             }
         )
-        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == status.HTTP_200_OK
 
     @patch("sentry.middleware.integrations.parsers.slack.convert_to_async_slack_response")
     @patch.object(
@@ -144,8 +147,9 @@ class SlackRequestParserTest(TestCase):
                 {"team_id": self.integration.external_id, "response_url": response_url}
             )
         }
-        with assume_test_silo_mode_of(OrganizationIntegration), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationIntegration))
+        with (
+            assume_test_silo_mode_of(OrganizationIntegration),
+            outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))),
         ):
             OrganizationIntegration.objects.filter(organization_id=self.organization.id).delete()
         request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
@@ -153,3 +157,26 @@ class SlackRequestParserTest(TestCase):
         response = parser.get_response()
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert mock_slack_task.apply_async.call_count == 0
+
+    def test_async_request_payload(self):
+        data = {
+            "payload": json.dumps(
+                {
+                    "team_id": self.integration.external_id,
+                    "response_url": "https://hooks.slack.com/commands/TXXXXX1/12345678/something",
+                }
+            )
+        }
+        request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
+        result = create_async_request_payload(request)
+
+        assert "method" in result
+        assert result["method"] == request.method
+        assert "path" in result
+        assert result["path"] == request.get_full_path()
+        assert "uri" in result
+        assert result["uri"] == request.build_absolute_uri()
+        assert "headers" in result
+        assert isinstance(result["headers"], dict)
+        assert "body" in result
+        assert result["body"] == request.body.decode("utf8")

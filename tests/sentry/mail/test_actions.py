@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -10,7 +11,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.skips import requires_snuba
 
@@ -128,11 +129,11 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"targetType": "IssueOwners"})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
     def test_full_integration(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -162,6 +163,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -170,7 +173,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -199,6 +202,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -207,7 +212,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         assert "uh oh" in sent.subject
 
     def test_full_integration_fallthrough_not_provided(self):
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -235,6 +240,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -257,25 +264,19 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks(), self.feature(
-            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        with (
+            self.tasks(),
+            self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()),
         ):
             post_process_group(
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
-                group_states=[
-                    {
-                        "id": event.group_id,
-                        "is_new": True,
-                        "is_regression": False,
-                        "is_new_group_environment": False,
-                    }
-                ],
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 1
@@ -290,7 +291,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             organization=self.organization, members=[gil_workflow, dan_workflow]
         )
         self.project.add_team(team_workflow)
-        one_min_ago = iso_format(before_now(minutes=1))
+        one_min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "message": "hello",
@@ -326,6 +327,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
             )
 
         assert len(mail.outbox) == 3

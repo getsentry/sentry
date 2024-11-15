@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
-import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import FormModel from 'sentry/components/forms/model';
 
@@ -79,15 +79,15 @@ describe('ProjectMapperField', () => {
     expect(defaultProps.onChange).toHaveBeenCalledWith([[24, 1]], []);
   });
 
-  it('allows a single Sentry project to map to multiple items but not the value', () => {
+  it('allows a single Sentry project to map to multiple items but not the value', async () => {
     render(<RenderField {...defaultProps} value={[[24, 1]]} />);
 
     // can find the same project again
-    selectEvent.openMenu(screen.getByText(/Sentry project/));
+    await selectEvent.openMenu(screen.getByText(/Sentry project/));
     expect(screen.getAllByText('beans')).toHaveLength(2);
 
     // but not the value
-    selectEvent.openMenu(screen.getByText('mapped-dropdown-placeholder'));
+    await selectEvent.openMenu(screen.getByText('mapped-dropdown-placeholder'));
     expect(screen.getByText('label 1')).toBeInTheDocument();
 
     // validate we can still find 2

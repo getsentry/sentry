@@ -1,10 +1,13 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
-import type {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
@@ -26,6 +29,7 @@ type Props = {
   projectSlug: Project['slug'];
   group?: Group;
   isShare?: boolean;
+  sectionKey?: SectionKey;
 };
 
 function EventEntryContent({
@@ -36,10 +40,6 @@ function EventEntryContent({
   group,
   isShare,
 }: Props) {
-  const hasHierarchicalGrouping =
-    !!organization.features?.includes('grouping-stacktrace-ui') &&
-    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
-
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
@@ -47,10 +47,10 @@ function EventEntryContent({
       return (
         <Exception
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -67,7 +67,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -100,21 +99,23 @@ function EventEntryContent({
       return (
         <Threads
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-          organization={organization as Organization}
         />
       );
 
     case EntryType.DEBUGMETA:
+      if (isShare) {
+        return null;
+      }
+
       return (
         <DebugMeta
           event={event}
           projectSlug={projectSlug}
           groupId={group?.id}
-          organization={organization as Organization}
           data={entry.data}
         />
       );
@@ -154,9 +155,9 @@ export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
       customComponent={
-        <EventDataSection type={props.entry.type} title={props.entry.type}>
+        <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
-        </EventDataSection>
+        </InterimSection>
       }
     >
       <EventEntryContent {...props} />

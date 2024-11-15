@@ -1,8 +1,6 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationConfigIntegrationsTest(APITestCase):
     endpoint = "sentry-api-0-organization-config-integrations"
 
@@ -22,6 +20,12 @@ class OrganizationConfigIntegrationsTest(APITestCase):
     def test_provider_key(self):
         response = self.get_success_response(
             self.organization.slug, qs_params={"provider_key": "example_server"}
+        )
+        assert len(response.data["providers"]) == 1
+        assert response.data["providers"][0]["name"] == "Example Server"
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"providerKey": "example_server"}
         )
         assert len(response.data["providers"]) == 1
         assert response.data["providers"][0]["name"] == "Example Server"

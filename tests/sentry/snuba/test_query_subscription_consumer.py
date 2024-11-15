@@ -6,11 +6,12 @@ from unittest import mock
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.types import BrokerValue, Message, Partition, Topic
+from arroyo.types import BrokerValue, Message, Partition
+from arroyo.types import Topic as ArroyoTopic
 from dateutil.parser import parse as parse_date
-from django.conf import settings
 from sentry_kafka_schemas import get_codec
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.runner.commands.run import DEFAULT_BLOCK_SIZE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -23,17 +24,23 @@ from sentry.snuba.query_subscriptions.consumer import (
 from sentry.snuba.query_subscriptions.run import QuerySubscriptionStrategyFactory
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.utils import json
+from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.kafka_config import get_topic_definition
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
 class BaseQuerySubscriptionTest:
     @cached_property
+    def dataset(self):
+        return Dataset.Metrics
+
+    @cached_property
     def topic(self):
-        return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
+        return Topic.METRICS_SUBSCRIPTIONS_RESULTS.value
 
     @cached_property
     def jsoncodec(self):
@@ -76,6 +83,9 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             yield
 
     def test_arroyo_consumer(self):
+        topic_defn = get_topic_definition(Topic.EVENTS)
+        create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
+
         registration_key = "registered_test_2"
         mock_callback = mock.Mock()
         register_subscriber(registration_key)(mock_callback)
@@ -95,9 +105,9 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
         commit = mock.Mock()
-        partition = Partition(Topic("test"), 0)
+        partition = Partition(ArroyoTopic("test"), 0)
         strategy = QuerySubscriptionStrategyFactory(
-            self.topic,
+            self.dataset.value,
             1,
             1,
             1,

@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ExportQueryType} from 'sentry/components/dataExport';
@@ -30,7 +30,7 @@ describe('DataDownload', function () {
     expect(getValid).toHaveBeenCalledTimes(1);
   });
 
-  it("should render the 'Error' view when appropriate", function () {
+  it("should render the 'Error' view when appropriate", async function () {
     const errors = {
       download: {
         status: 403,
@@ -43,26 +43,29 @@ describe('DataDownload', function () {
     getDataExportDetails({errors}, 403);
 
     render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('403 -')).toBeInTheDocument(); // Either the code or the mock is mistaken about the data return format
   });
 
-  it("should render the 'Early' view when appropriate", function () {
+  it("should render the 'Early' view when appropriate", async function () {
     const status = DownloadStatus.EARLY;
     getDataExportDetails({status});
 
     render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(
       screen.getByText(textWithMarkupMatcher('What are you doing here?'))
     ).toBeInTheDocument();
     expect(screen.getByText(/were you invited/)).toBeInTheDocument();
   });
 
-  it("should render the 'Expired' view when appropriate", function () {
+  it("should render the 'Expired' view when appropriate", async function () {
     const status = DownloadStatus.EXPIRED;
     const response = {status, query: {type: ExportQueryType.ISSUES_BY_TAG}};
     getDataExportDetails(response);
 
     render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('This is awkward.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start a New Download'})).toHaveAttribute(
       'href',
@@ -70,11 +73,12 @@ describe('DataDownload', function () {
     );
   });
 
-  it("should render the 'Valid' view when appropriate", function () {
+  it("should render the 'Valid' view when appropriate", async function () {
     const status = DownloadStatus.VALID;
     getDataExportDetails({dateExpired, status});
 
     render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByText('All done.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download CSV'})).toHaveAttribute(
       'href',
@@ -87,7 +91,7 @@ describe('DataDownload', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render the Open in Discover button when needed', function () {
+  it('should render the Open in Discover button when needed', async function () {
     const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
@@ -99,6 +103,7 @@ describe('DataDownload', function () {
     });
 
     render(<DataDownload {...RouteComponentPropsFixture()} params={mockRouteParams} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
 

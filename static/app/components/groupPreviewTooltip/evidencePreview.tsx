@@ -33,19 +33,19 @@ function SpanEvidencePreviewBody({
   groupId,
   query,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = usePreviewEvent({groupId, query});
+  const {data, isPending, isError} = usePreviewEvent({groupId, query});
 
   useEffect(() => {
-    if (isLoading) {
+    if (isPending) {
       onRequestBegin();
     } else {
       onRequestEnd();
     }
 
     return onUnmount;
-  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+  }, [isPending, onRequestBegin, onRequestEnd, onUnmount]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <EmptyWrapper>
         <LoadingIndicator hideMessage size={32} />

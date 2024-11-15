@@ -9,12 +9,10 @@ from django.urls import reverse
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.region import get_local_region
 
 
-@region_silo_test
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
@@ -193,8 +191,17 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 400, resp.content
 
+    def test_submission_message_too_large(self):
+        resp = self.client.post(
+            self.path_with_qs,
+            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "a" * 9001},
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="application/json",
+        )
+        assert resp.status_code == 400, resp.content
+        assert not UserReport.objects.exists()
 
-@region_silo_test
+
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedEnvironmentTest(TestCase):
     def setUp(self):
@@ -214,7 +221,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         self.environment.add_project(self.project)
 
     def make_event(self, **kwargs):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         result = {
             "event_id": "a" * 32,
             "message": "foo",
@@ -238,58 +245,40 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         assert response.status_code == 200, response.content
         assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
-    def test_user_report_gets_environment(self):
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self.path,
-            {"name": "Jane Bloggs", "email": "jane@example.com", "comments": "This is an example!"},
-            HTTP_REFERER="http://example.com",
-        )
-        self.make_event(environment=self.environment.name, event_id=self.event_id)
-        assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
-
     @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
     def test_calls_feedback_shim_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
         self.make_event(environment=self.environment.name, event_id=self.event_id)
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.client.post(
-                self.path,
-                {
-                    "name": "Jane Bloggs",
-                    "email": "jane@example.com",
-                    "comments": "This is an example!",
-                },
-                HTTP_REFERER="http://example.com",
-                HTTP_ACCEPT="application/json",
-            )
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
-            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "jane@example.com"
-            assert mock_event_data["contexts"]["feedback"]["message"] == "This is an example!"
-            assert mock_event_data["contexts"]["feedback"]["name"] == "Jane Bloggs"
-            assert mock_event_data["platform"] == "other"
-            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
-            assert mock_event_data["level"] == "error"
+        self.client.post(
+            self.path,
+            {
+                "name": "Jane Bloggs",
+                "email": "jane@example.com",
+                "comments": "This is an example!",
+            },
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="application/json",
+        )
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
+        mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
+        assert mock_event_data["contexts"]["feedback"]["contact_email"] == "jane@example.com"
+        assert mock_event_data["contexts"]["feedback"]["message"] == "This is an example!"
+        assert mock_event_data["contexts"]["feedback"]["name"] == "Jane Bloggs"
+        assert mock_event_data["platform"] == "other"
+        assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
+        assert mock_event_data["level"] == "error"
 
     @mock.patch("sentry.feedback.usecases.create_feedback.produce_occurrence_to_kafka")
-    def test_calls_feedback_shim_no_event_if_ff_enabled(self, mock_produce_occurrence_to_kafka):
-        with self.feature({"organizations:user-feedback-ingest": True}):
-            self.client.post(
-                self.path,
-                {
-                    "name": "Jane Bloggs",
-                    "email": "jane@example.com",
-                    "comments": "This is an example!",
-                },
-                HTTP_REFERER="http://example.com",
-                HTTP_ACCEPT="application/json",
-            )
-            assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
-            mock_event_data = mock_produce_occurrence_to_kafka.call_args_list[0][1]["event_data"]
-            assert mock_event_data["contexts"]["feedback"]["contact_email"] == "jane@example.com"
-            assert mock_event_data["contexts"]["feedback"]["message"] == "This is an example!"
-            assert mock_event_data["contexts"]["feedback"]["name"] == "Jane Bloggs"
-            assert mock_event_data["platform"] == "other"
-            assert mock_event_data["contexts"]["feedback"]["associated_event_id"] == self.event_id
-            assert mock_event_data["level"] == "error"
+    def test_does_not_call_feedback_shim_no_event_if_ff_enabled(
+        self, mock_produce_occurrence_to_kafka
+    ):
+        self.client.post(
+            self.path,
+            {
+                "name": "Jane Bloggs",
+                "email": "jane@example.com",
+                "comments": "This is an example!",
+            },
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="application/json",
+        )
+        assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0

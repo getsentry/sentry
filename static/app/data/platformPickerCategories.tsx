@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'android',
@@ -17,6 +17,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript-vue',
   'node',
   'node-express',
+  'node-nestjs',
   'php',
   'php-laravel',
   'python',
@@ -39,14 +40,18 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-react',
   'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
+  'javascript-nuxt',
   'unity',
 ]);
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnet',
   'dotnet-aspnetcore',
@@ -55,9 +60,9 @@ const server: Set<PlatformKey> = new Set([
   'go-http',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-iris',
-  'go-martini',
   'go-negroni',
   'java',
   'java-log4j2',
@@ -69,10 +74,14 @@ const server: Set<PlatformKey> = new Set([
   'node',
   'node-connect',
   'node-express',
+  'node-fastify',
+  'node-hapi',
   'node-koa',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',
+  'powershell',
   'python',
   'python-aiohttp',
   'python-asgi',

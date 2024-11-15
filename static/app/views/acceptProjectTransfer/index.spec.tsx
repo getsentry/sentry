@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -22,7 +21,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: ProjectFixture(),
-        organizations: [OrganizationFixture({teams: [TeamFixture()]})],
+        organizations: [OrganizationFixture()],
       },
     });
 
@@ -53,7 +52,7 @@ describe('AcceptProjectTransfer', function () {
       method: 'GET',
       body: {
         project: ProjectFixture(),
-        organizations: [OrganizationFixture({teams: [TeamFixture()]})],
+        organizations: [OrganizationFixture()],
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });

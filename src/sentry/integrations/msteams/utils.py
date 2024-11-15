@@ -3,9 +3,11 @@ from __future__ import annotations
 import enum
 import logging
 
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
-from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 
@@ -18,7 +20,7 @@ logger = logging.getLogger("sentry.integrations.msteams")
 # cards, may as well just do that here first.
 class ACTION_TYPE(str, enum.Enum):
     RESOLVE = "1"
-    IGNORE = "2"
+    ARCHIVE = "2"
     ASSIGN = "3"
     UNRESOLVE = "4"
     UNASSIGN = "5"
@@ -52,7 +54,7 @@ def get_user_conversation_id(integration: Integration, user_id: str) -> str:
     return conversation_id
 
 
-def get_channel_id(organization, integration_id, name):
+def get_channel_id(organization: Organization, integration_id: int, name: str) -> str | None:
     integrations = integration_service.get_integrations(
         providers=["msteams"],
         organization_id=organization.id,

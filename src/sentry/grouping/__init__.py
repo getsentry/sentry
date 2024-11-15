@@ -41,6 +41,10 @@ Variants
     in the past were able to provide a grouping hash (the checksum) which was
     used for grouping exclusively.
 
+`HashedChecksumVariant`:
+    A ChecksumVariant with a hash value which has been normalized by running the
+    provided checksum through a hashing function.
+
 `FallbackVariant`:
     This variant produces always the same hash.  It's used if nothing else works.
 
@@ -83,7 +87,7 @@ removes a component (and its children) entirely from the grouping output.
 Here an example of how components can be used::
 
     function_name = 'lambda$1234'
-    threads = GroupingComponent(
+    threads = BaseGroupingComponent(
         id="function",
         values=[function_name],
         contributes=False,

@@ -1,11 +1,11 @@
-import {useMemo} from 'react';
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
@@ -15,12 +15,12 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
-import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Deploy, Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -31,7 +31,6 @@ import {
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
 } from '../../utils';
-import type {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
@@ -62,9 +61,7 @@ function getCrashFreeIcon(crashFreePercent: number, iconSize: IconSize = 'sm') {
 
 type Props = {
   activeDisplay: ReleasesDisplayOption;
-  expectedThresholds: number;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
-  hasThresholds: boolean;
   index: number;
   isTopRelease: boolean;
   location: Location;
@@ -73,27 +70,21 @@ type Props = {
   releaseVersion: string;
   showPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-  thresholdStatuses: ThresholdStatus[];
   adoptionStages?: Release['adoptionStages'];
-  lastDeploy?: Deploy | undefined;
 };
 
 function ReleaseCardProjectRow({
   activeDisplay,
   adoptionStages,
-  expectedThresholds,
   getHealthData,
-  hasThresholds,
   index,
   isTopRelease,
-  lastDeploy,
   location,
   organization,
   project,
   releaseVersion,
   showPlaceholders,
   showReleaseAdoptionStages,
-  thresholdStatuses,
 }: Props) {
   const theme = useTheme();
   const {id, newGroups} = project;
@@ -103,22 +94,6 @@ function ReleaseCardProjectRow({
     id,
     ReleasesDisplayOption.SESSIONS
   );
-
-  const thresholdEnvStatuses = useMemo(() => {
-    return (
-      thresholdStatuses?.filter(status => {
-        return status.environment?.name === lastDeploy?.environment;
-      }) || []
-    );
-  }, [thresholdStatuses, lastDeploy]);
-
-  const healthyThresholdStatuses = thresholdEnvStatuses.filter(status => {
-    return status.is_healthy;
-  });
-
-  const pendingThresholdStatuses = thresholdEnvStatuses.filter(status => {
-    return new Date(status.end || '') > new Date();
-  });
 
   const crashFreeRate = getHealthData.getCrashFreeRate(releaseVersion, id, activeDisplay);
   const get24hCountByProject = getHealthData.get24hCountByProject(id, activeDisplay);
@@ -137,10 +112,7 @@ function ReleaseCardProjectRow({
 
   return (
     <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout
-        showReleaseAdoptionStages={showReleaseAdoptionStages}
-        hasThresholds={hasThresholds}
-      >
+      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
@@ -238,57 +210,9 @@ function ReleaseCardProjectRow({
           </Tooltip>
         </NewIssuesColumn>
 
-        {hasThresholds && (
-          <DisplaySmallCol>
-            {/* TODO: link to release details page */}
-            {expectedThresholds > 0 && (
-              <Tooltip
-                title={
-                  <div>
-                    <div>
-                      {pendingThresholdStatuses.length !== thresholdEnvStatuses.length &&
-                        `${
-                          healthyThresholdStatuses.length -
-                          pendingThresholdStatuses.length
-                        } / ${thresholdEnvStatuses.length} ` + t('thresholds succeeded')}
-                    </div>
-                    {pendingThresholdStatuses.length > 0 && (
-                      <div>
-                        {`${pendingThresholdStatuses.length} / ${thresholdEnvStatuses.length} ` +
-                          t('still pending')}
-                      </div>
-                    )}
-                    {thresholdEnvStatuses.length !== expectedThresholds && (
-                      <div>{`... / ${expectedThresholds}`}</div>
-                    )}
-                    {t('Open in Release Details')}
-                  </div>
-                }
-              >
-                <ThresholdHealth
-                  loading={thresholdEnvStatuses.length !== expectedThresholds}
-                  allHealthy={
-                    thresholdEnvStatuses.length === expectedThresholds &&
-                    healthyThresholdStatuses.length === expectedThresholds
-                  }
-                  allThresholdsFinished={
-                    pendingThresholdStatuses.length === 0 &&
-                    thresholdEnvStatuses.length === expectedThresholds
-                  }
-                >
-                  {thresholdEnvStatuses.length === expectedThresholds
-                    ? healthyThresholdStatuses.length
-                    : '...'}{' '}
-                  / {expectedThresholds}
-                </ThresholdHealth>
-              </Tooltip>
-            )}
-          </DisplaySmallCol>
-        )}
-
         <ViewColumn>
           <GuideAnchor disabled={!isTopRelease || index !== 0} target="view_release">
-            <Button
+            <LinkButton
               size="xs"
               to={{
                 pathname: `/organizations/${
@@ -302,7 +226,7 @@ function ReleaseCardProjectRow({
               }}
             >
               {t('View')}
-            </Button>
+            </LinkButton>
           </GuideAnchor>
         </ViewColumn>
       </ReleaseProjectsLayout>
@@ -349,20 +273,4 @@ const ViewColumn = styled('div')`
   ${p => p.theme.overflowEllipsis};
   line-height: 20px;
   text-align: right;
-`;
-
-const ThresholdHealth = styled('div')<{
-  allHealthy?: boolean;
-  allThresholdsFinished?: boolean;
-  loading?: boolean;
-}>`
-  color: ${p => {
-    if (!p.loading && !p.allHealthy) {
-      return p.theme.errorText;
-    }
-    if (!p.loading && p.allThresholdsFinished) {
-      return p.theme.successText;
-    }
-    return p.theme.activeText;
-  }};
 `;

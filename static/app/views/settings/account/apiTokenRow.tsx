@@ -1,34 +1,59 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import Confirm from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
+  canEdit?: boolean;
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
+function ApiTokenRow({token, onRemove, tokenPrefix = '', canEdit = false}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {token.name ? token.name : ''}
+        {canEdit ? (
+          <LinkWrapper name={token.name}>
+            <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
+              {token.name ? token.name : 'Token created on '}
+              <DateTime
+                date={getDynamicText({
+                  value: token.dateCreated,
+                  fixed: new Date(1508208080000), // National Pasta Day
+                })}
+                hidden={!!token.name}
+              />
+            </Link>
+          </LinkWrapper>
+        ) : (
+          <h1>{token.name ? token.name : ''}</h1>
+        )}
         <ButtonWrapper>
-          <Button
-            data-test-id="token-delete"
-            onClick={() => onRemove(token)}
-            icon={<IconSubtract isCircled size="xs" />}
+          <Confirm
+            onConfirm={() => onRemove(token)}
+            message={t(
+              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+            )}
           >
-            {t('Remove')}
-          </Button>
+            <Button
+              data-test-id="token-delete"
+              icon={<IconSubtract isCircled size="xs" />}
+            >
+              {t('Remove')}
+            </Button>
+          </Confirm>
         </ButtonWrapper>
       </Controls>
 
@@ -110,6 +135,10 @@ const Heading = styled('div')`
 
 const TokenPreview = styled('div')`
   color: ${p => p.theme.gray300};
+`;
+
+const LinkWrapper = styled('div')<{name: string}>`
+  font-style: ${p => (p.name ? 'normal' : 'italic')};
 `;
 
 const ButtonWrapper = styled('div')`

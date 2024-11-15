@@ -46,7 +46,7 @@ def aggregate_duration() -> Function:
     return Function(
         "dateDiff",
         parameters=[
-            "second",
+            "millisecond",
             Function("min", parameters=[Column("replay_start_timestamp")]),
             Function("max", parameters=[Column("timestamp")]),
         ],

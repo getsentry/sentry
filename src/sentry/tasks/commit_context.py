@@ -1,18 +1,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping, Sequence
+from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
+from celery import Task
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
 from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
-from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.commit_context import (
     find_commit_context_for_event_all_frames,
@@ -22,22 +22,13 @@ from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.pullrequest import (
-    CommentType,
-    PullRequest,
-    PullRequestComment,
-    PullRequestCommit,
-)
-from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
-from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
 
@@ -46,87 +37,10 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
+# TODO: replace this with isinstance(installation, CommitContextIntegration)
+PR_COMMENT_SUPPORTED_PROVIDERS = {"github"}
+
 logger = logging.getLogger(__name__)
-
-
-def queue_comment_task_if_needed(
-    commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
-):
-    from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
-
-    logger.info(
-        "github.pr_comment.queue_comment_check",
-        extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
-    )
-
-    # client will raise an Exception if the request is not successful
-    try:
-        response = installation.get_client().get_pullrequest_from_commit(
-            repo=repo.name, sha=commit.key
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return
-
-    if not isinstance(response, list) or len(response) != 1:
-        # the response should return a single PR, return if multiple
-        if len(response) > 1:
-            logger.info(
-                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
-                extra={
-                    "organization_id": commit.organization_id,
-                    "repository_id": repo.id,
-                    "commit_sha": commit.key,
-                },
-            )
-        return
-
-    merge_commit_sha = response[0]["merge_commit_sha"]
-
-    pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id,
-        repository_id=commit.repository_id,
-        merge_commit_sha=merge_commit_sha,
-    )
-    if not pr_query.exists():
-        logger.info(
-            "github.pr_comment.queue_comment_check.missing_pr",
-            extra={
-                "organization_id": commit.organization_id,
-                "repository_id": repo.id,
-                "commit_sha": commit.key,
-            },
-        )
-        return
-
-    pr = pr_query.first()
-    # need to query explicitly for merged PR comments since we can have multiple comments per PR
-    merged_pr_comment_query = PullRequestComment.objects.filter(
-        pull_request_id=pr.id, comment_type=CommentType.MERGED_PR
-    )
-    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
-        not merged_pr_comment_query.exists()
-        or group_owner.group_id not in merged_pr_comment_query[0].group_ids
-    ):
-        lock = locks.get(
-            DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
-        )
-        with lock.acquire():
-            cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
-            if cache.get(cache_key) is not None:
-                return
-
-            # create PR commit row for suspect commit and PR
-            PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
-
-            logger.info(
-                "github.pr_comment.queue_comment_workflow",
-                extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
-            )
-
-            cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
-
-            github_comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
@@ -141,15 +55,14 @@ def queue_comment_task_if_needed(
     bind=True,
 )
 def process_commit_context(
-    self,
-    event_id,
-    event_platform,
-    event_frames,
-    group_id,
-    project_id,
-    sdk_name=None,
-    **kwargs,
-):
+    self: Task,
+    event_id: str,
+    event_platform: str,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id: int,
+    project_id: int,
+    sdk_name: str | None = None,
+) -> None:
     """
     For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
     """
@@ -270,27 +183,13 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if OrganizationOption.objects.get_value(
-                organization=project.organization,
-                key="sentry:github_pr_bot",
-                default=True,
+            if (
+                installation
+                and isinstance(installation, CommitContextIntegration)
+                and installation.integration_name
+                in PR_COMMENT_SUPPORTED_PROVIDERS  # TODO: remove this check
             ):
-                logger.info(
-                    "github.pr_comment",
-                    extra={"organization_id": project.organization_id},
-                )
-                repo = Repository.objects.filter(id=commit.repository_id)
-                if (
-                    installation is not None
-                    and repo.exists()
-                    and repo.get().provider == "integrations:github"
-                ):
-                    queue_comment_task_if_needed(commit, group_owner, repo.get(), installation)
-                else:
-                    logger.info(
-                        "github.pr_comment.incorrect_repo_config",
-                        extra={"organization_id": project.organization_id},
-                    )
+                installation.queue_comment_task_if_needed(project, commit, group_owner, group_id)
 
             ProjectOwnership.handle_auto_assignment(
                 project_id=project.id,

@@ -6,23 +6,26 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.grouping.api import GroupingConfig
+from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
+from sentry.grouping.utils import hash_from_values
+from sentry.grouping.variants import ComponentVariant
+from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
+NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
 
-@region_silo_test
+
 class EventTest(TestCase, PerformanceIssueTestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -184,7 +187,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.ip_address is None
 
     def test_issueless_event(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
 
         event = self.store_event(
             data={
@@ -209,7 +212,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": iso_format(before_now(seconds=1)),
+                # snuba does not store subsecond data
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -254,7 +258,17 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.location == event_from_snuba.location
         assert event_from_nodestore.culprit == event_from_snuba.culprit
 
-        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+        user_from_nodestore = event_from_nodestore.get_minimal_user()
+        user_from_nodestore = User.to_python(
+            {
+                "id": user_from_nodestore._data.get("id"),
+                "email": user_from_nodestore._data.get("email"),
+                "username": user_from_nodestore._data.get("username"),
+                "ip_address": user_from_nodestore._data.get("ip_address"),
+            }
+        )
+        assert user_from_nodestore == event_from_snuba.get_minimal_user()
+
         assert event_from_nodestore.ip_address == event_from_snuba.ip_address
         assert event_from_nodestore.tags == event_from_snuba.tags
 
@@ -273,8 +287,9 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Foo bar",
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                # snuba does not store sub-second data
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
@@ -363,7 +378,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         )
         grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
-            "id": "mobile:2021-02-12",
+            "id": NEWSTYLE_GROUPING_CONFIG,
         }
 
         event1 = Event(
@@ -381,12 +396,52 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event2.interfaces  # Populate cache
         variants2 = event2.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-        assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
-            v.as_dict()["hash"] for v in variants2.values()
+        assert variants1["app"].as_dict()["hash"] is None
+        assert variants2["app"].as_dict()["hash"] is None
+        assert variants1["system"].as_dict()["hash"] == variants2["system"].as_dict()["hash"]
+
+    def test_get_hashes_pulls_existing_hashes(self):
+        hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={
+                "message": "Dogs are great!",
+                "hashes": hashes,
+            },
+            project_id=self.project.id,
         )
 
+        assert event.get_hashes() == hashes
 
-@region_silo_test
+    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
+        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+        event = Event(
+            event_id="11212012123120120415201309082013",
+            data={"message": "Dogs are great!"},
+            project_id=self.project.id,
+        )
+
+        hashes = event.get_hashes()
+        expected_hash_values = [hash_from_values(["Dogs are great!"])]
+        expected_variants = get_grouping_variants_for_event(event)
+
+        variants = event.get_grouping_variants()
+
+        assert hashes == expected_hash_values
+        assert variants == expected_variants
+
+        # Since the `variants` dictionaries are equal, it suffices to only check the values in one
+        assert "default" in variants
+        default_variant = variants["default"]
+
+        assert isinstance(default_variant, ComponentVariant)
+        assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
+        assert default_variant.component.id == "default"
+        assert len(default_variant.component.values) == 1
+        assert default_variant.component.values[0].id == "message"
+        assert default_variant.component.values[0].values == ["Dogs are great!"]
+
+
 class EventGroupsTest(TestCase):
     def test_none(self):
         event = Event(
@@ -463,59 +518,6 @@ class EventGroupsTest(TestCase):
         assert event.groups == [self.group]
 
 
-@region_silo_test
-class EventBuildGroupEventsTest(TestCase):
-    def test_none(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-        )
-        assert list(event.build_group_events()) == []
-
-    def test(self):
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group],
-        )
-        assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
-
-    def test_multiple(self):
-        self.group_2 = self.create_group()
-        event = Event(
-            event_id="a" * 32,
-            data={
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-            groups=[self.group, self.group_2],
-        )
-        sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
-        assert sorted(event.build_group_events(), key=sort_key) == sorted(
-            [GroupEvent.from_event(event, self.group), GroupEvent.from_event(event, self.group_2)],
-            key=sort_key,
-        )
-
-
-@region_silo_test
 class EventForGroupTest(TestCase):
     def test(self):
         event = Event(
@@ -534,7 +536,6 @@ class EventForGroupTest(TestCase):
         )
 
 
-@region_silo_test
 class GroupEventFromEventTest(TestCase):
     def test(self):
         event = Event(
@@ -574,7 +575,6 @@ class GroupEventFromEventTest(TestCase):
             group_event.project
 
 
-@region_silo_test
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
     def test(self):
         occurrence, group_info = self.process_occurrence(
@@ -628,7 +628,6 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
-@region_silo_test
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated
@@ -648,7 +647,7 @@ class EventNodeStoreTest(TestCase):
         e2 = Event(project_id=1, event_id="mno", data=None)
         e2_node_id = e2.data.id
         assert e2.data.data == {}  # NodeData returns {} by default
-        eventstore.backend.bind_nodes([e2], "data")
+        eventstore.backend.bind_nodes([e2])
         assert e2.data.data == {}
         e2_body = nodestore.backend.get(e2_node_id)
         assert e2_body is None
@@ -659,7 +658,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project1.id,
@@ -667,7 +666,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project2.id,

@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {AggregationKey, MobileVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
@@ -24,6 +24,7 @@ import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/opt
 
 export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
 export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
+export const DEFAULT_DYNAMIC_TIME_WINDOW = 60; // 1h
 export const DEFAULT_CHANGE_COMP_DELTA = 10080; // 1w
 
 export const DEFAULT_AGGREGATE = 'count()';
@@ -89,6 +90,9 @@ export const DuplicateMetricFields: string[] = [
   'name',
   'projectId',
   'comparisonDelta',
+  'seasonality',
+  'sensitivity',
+  'detectionType',
 ];
 
 export const DuplicateTriggerFields: string[] = ['alertThreshold', 'label'];
@@ -126,7 +130,13 @@ export function getWizardAlertFieldConfig(
   const config: OptionConfig = {
     aggregations,
     fields: ['transaction.duration'],
-    measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+    measurementKeys: [
+      ...Object.keys(WEB_VITAL_DETAILS),
+      MobileVital.APP_START_COLD,
+      MobileVital.APP_START_WARM,
+      MobileVital.TIME_TO_INITIAL_DISPLAY,
+      MobileVital.TIME_TO_FULL_DISPLAY,
+    ],
   };
 
   if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
@@ -172,11 +182,12 @@ export function createDefaultRule(
     environment: null,
     resolveThreshold: '',
     thresholdType: AlertRuleThresholdType.ABOVE,
+    detectionType: AlertRuleComparisonType.STATIC,
     ...defaultRuleOptions,
   };
 }
 
-function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
+export function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
   if (!period) {
     return undefined;
   }

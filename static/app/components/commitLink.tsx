@@ -3,8 +3,8 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types';
-import {getShortCommitHash} from 'sentry/utils';
+import type {Repository} from 'sentry/types/integrations';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
 type CommitFormatterParameters = {
   baseUrl: string;
@@ -42,6 +42,7 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 ];
 
 type Props = {
+  className?: string;
   commitId?: string;
   commitTitle?: string;
   inline?: boolean;
@@ -57,6 +58,7 @@ function CommitLink({
   showIcon = true,
   onClick,
   commitTitle,
+  className,
 }: Props) {
   if (!commitId || !repository) {
     return <span>{t('Unknown Commit')}</span>;
@@ -96,11 +98,12 @@ function CommitLink({
       size="sm"
       icon={showIcon ? <Icon size="sm" /> : null}
       onClick={onClick}
+      className={className}
     >
       {label}
     </LinkButton>
   ) : (
-    <ExternalLink href={commitUrl} onClick={onClick}>
+    <ExternalLink href={commitUrl} onClick={onClick} className={className}>
       {showIcon ? <Icon size="xs" /> : null}
       {' ' + label}
     </ExternalLink>

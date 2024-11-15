@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
-from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 

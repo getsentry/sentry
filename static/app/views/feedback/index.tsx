@@ -1,10 +1,10 @@
-import type {RouteComponentProps} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = RouteComponentProps<{}, {}> & {
@@ -20,7 +20,9 @@ export default function FeedbackContainer({children}: Props) {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      <AnalyticsArea name="feedback">
+        <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      </AnalyticsArea>
     </Feature>
   );
 }

@@ -6,14 +6,26 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import pytest
 import responses
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.vsts import VstsIntegrationProvider
+from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
     provider = VstsIntegrationProvider()
+
+    def _get_integration_and_install(self) -> tuple[Integration, VstsIntegration]:
+        integration = Integration.objects.get(provider="vsts")
+        installation = get_installation_of_type(
+            VstsIntegration,
+            integration,
+            integration.organizationintegration_set.get().organization_id,
+        )
+        return integration, installation
 
     @pytest.fixture(autouse=True)
     def setup_data(self):
@@ -46,6 +58,17 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         responses.add(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
+            json={
+                "access_token": self.access_token,
+                "token_type": "grant",
+                "expires_in": 300,  # seconds (5 min)
+                "refresh_token": self.refresh_token,
+            },
+        )
+
+        responses.add(
+            responses.POST,
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             json={
                 "access_token": self.access_token,
                 "token_type": "grant",
@@ -183,19 +206,27 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert redirect.netloc == "app.vssps.visualstudio.com"
         assert redirect.path == "/oauth2/authorize"
 
+    def assert_vsts_new_oauth_redirect(self, redirect):
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "login.microsoftonline.com"
+        assert redirect.path == "/common/oauth2/v2.0/authorize"
+
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
         assert f'<option value="{account_id}"'.encode() in response.content
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_installation(self):
+    def assert_installation(self, new=False):
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()
         redirect = urlparse(resp["Location"])
 
         assert resp.status_code == 302
-        self.assert_vsts_oauth_redirect(redirect)
+        if new:
+            self.assert_vsts_new_oauth_redirect(redirect)
+        else:
+            self.assert_vsts_oauth_redirect(redirect)
 
         query = parse_qs(redirect.query)
 

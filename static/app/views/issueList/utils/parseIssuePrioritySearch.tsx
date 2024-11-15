@@ -1,6 +1,6 @@
 import type {TokenResult} from 'sentry/components/searchSyntax/parser';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {PriorityLevel} from 'sentry/types';
+import {PriorityLevel} from 'sentry/types/group';
 
 const VALID_PRIORITIES = new Set([
   PriorityLevel.HIGH,

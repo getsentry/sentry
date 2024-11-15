@@ -1,5 +1,6 @@
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
@@ -10,7 +11,7 @@ const organizationNavigation: NavigationSection[] = [
     name: t('User Settings'),
     items: [
       {
-        path: `${userSettingsPathPrefix}`,
+        path: `${userSettingsPathPrefix}/`,
         title: t('General Settings'),
         description: t('Configure general settings for your account'),
         id: 'user-settings',
@@ -108,6 +109,13 @@ const organizationNavigation: NavigationSection[] = [
         show: ({isSelfHosted}) => isSelfHosted || false,
         id: 'early-features',
         recordAnalytics: true,
+      },
+      {
+        path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
+        title: t('Dynamic Sampling'),
+        description: t('Manage your sampling rate'),
+        show: ({organization}) =>
+          !!organization && hasDynamicSamplingCustomFeature(organization),
       },
     ],
   },

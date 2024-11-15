@@ -12,7 +12,6 @@ export type StarfishEventParameters = {
   'starfish.pageview': {
     route: string;
   };
-  'starfish.panel.open': {};
   'starfish.request': {
     duration: number;
     statusCode?: string;
@@ -44,7 +43,6 @@ export type StarfishEventKey = keyof StarfishEventParameters;
 export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
   'starfish.chart.zoom': 'Starfish: Chart Zoomed',
   'starfish.pageview': 'Starfish: Page Viewed',
-  'starfish.panel.open': 'Starfish: Slide Over Panel Opened',
   'starfish.request': 'Starfish: API Request Completed',
   'starfish.samples.loaded': 'Starfish: Samples Loaded',
   'starfish.web_service_view.endpoint_list.endpoint.clicked':

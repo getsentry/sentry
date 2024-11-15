@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 import responses
 from django.urls import reverse
 
-from sentry.models.identity import Identity
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test
@@ -16,7 +16,7 @@ class GithubSearchTest(APITestCase):
     provider = "github"
     base_url = "https://api.github.com"
 
-    def create_integration(self):
+    def _create_integration(self):
         future = datetime.now() + timedelta(hours=1)
         return self.create_provider_integration(
             provider=self.provider,
@@ -32,11 +32,11 @@ class GithubSearchTest(APITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = self.create_integration()
+        self.integration = self._create_integration()
         identity = Identity.objects.create(
             idp=self.create_identity_provider(type=self.provider),
             user=self.user,
-            external_id=self.user.id,
+            external_id=str(self.user.id),
             data={"access_token": "123456789"},
         )
         self.integration.add_organization(self.organization, self.user, identity.id)
@@ -46,7 +46,7 @@ class GithubSearchTest(APITestCase):
         self.url = reverse(
             "sentry-integration-github-search",
             kwargs={
-                "organization_slug": self.organization.slug,
+                "organization_id_or_slug": self.organization.slug,
                 "integration_id": self.installation.model.id,
             },
         )
@@ -196,7 +196,10 @@ class GithubSearchTest(APITestCase):
     def test_missing_integration(self):
         url = reverse(
             "sentry-integration-github-search",
-            kwargs={"organization_slug": self.organization.slug, "integration_id": "1234567890"},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "integration_id": "1234567890",
+            },
         )
         resp = self.client.get(
             url, data={"field": "externalIssue", "query": "search", "repo": "example"}

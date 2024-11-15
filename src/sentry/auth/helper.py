@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib import messages
@@ -24,7 +25,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
-from sentry.api.utils import generate_organization_url
+from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
@@ -35,23 +36,24 @@ from sentry.auth.partnership_configs import ChannelName
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.auth.superuser import is_active_superuser
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
-from sentry.pipeline import Pipeline, PipelineSessionStore
-from sentry.pipeline.provider import PipelineProvider
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     organization_service,
 )
+from sentry.pipeline import Pipeline, PipelineSessionStore
+from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
-from sentry.utils import auth, json, metrics
+from sentry.users.models.user import User
+from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
@@ -61,7 +63,6 @@ from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
-from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
 
 if TYPE_CHECKING:
@@ -133,8 +134,8 @@ class AuthIdentityHandler:
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
-        with sentry_sdk.push_scope() as scope:
-            scope.level = "warning"
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
             scope.set_extra("chosen_user", chosen_user.id)
@@ -210,7 +211,7 @@ class AuthIdentityHandler:
         subdomain = None
         if data:
             subdomain = data.get("subdomain") or None
-        if features.has("organizations:customer-domains", self.organization, actor=user):
+        if features.has("system:multi-region"):
             subdomain = self.organization.slug
 
         try:
@@ -433,7 +434,9 @@ class AuthIdentityHandler:
             # add events that we can handle on the front end
             provider = self.auth_provider.provider if self.auth_provider else None
             params = {
-                "frontend_events": json.dumps({"event_name": "Sign Up", "event_label": provider})
+                "frontend_events": orjson.dumps(
+                    {"event_name": "Sign Up", "event_label": provider}
+                ).decode()
             }
             url = add_params_to_url(url, params)
         response = HttpResponseRedirect(url)
@@ -718,13 +721,13 @@ class AuthHelper(Pipeline):
         # provider_key to get_provider, and our get_provider override accepts a null
         # provider_key. But it technically violates the type contract and we'll need
         # to change the superclass to accommodate this one.
-        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore
+        super().__init__(request, provider_key, organization, auth_provider)  # type: ignore[arg-type]
 
         # Override superclass's type hints to be narrower
         self.organization: RpcOrganization = self.organization
         self.provider: Provider = self.provider
 
-    def get_provider(self, provider_key: str | None) -> PipelineProvider:
+    def get_provider(self, provider_key: str | None, **kwargs) -> PipelineProvider:
         if self.provider_model:
             return cast(PipelineProvider, self.provider_model.get_provider())
         elif provider_key:

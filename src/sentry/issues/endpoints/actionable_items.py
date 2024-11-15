@@ -29,12 +29,15 @@ class SourceMapProcessingResponse(TypedDict):
     errors: list[ActionableItemResponse]
 
 
-# This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint
-# that is only used by the Sentry UI. The Source Map Debugging endpoint will remain public as it will only ever
-# return information about the source map debugging process while this endpoint will grow. Actionable items are
-# errors or messages we show to users about problems with their event which we will show the user how to fix.
 @region_silo_endpoint
 class ActionableItemsEndpoint(ProjectEndpoint):
+    """
+    This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint
+    that is only used by the Sentry UI. The Source Map Debugging endpoint will remain public as it will only ever
+    return information about the source map debugging process while this endpoint will grow. Actionable items are
+    errors or messages we show to users about problems with their event which we will show the user how to fix.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

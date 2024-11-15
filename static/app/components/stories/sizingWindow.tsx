@@ -1,13 +1,15 @@
+import type {ComponentProps} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {space} from 'sentry/styles/space';
 
-export interface Props {
+export interface StyleProps {
   display?: 'block' | 'flex';
 }
 
-const SizingWindow = styled(NegativeSpaceContainer)<Props>`
+const SizingWindow = styled(NegativeSpaceContainer)<StyleProps>`
   border: 1px solid ${p => p.theme.yellow400};
   border-radius: ${p => p.theme.borderRadius};
 
@@ -16,14 +18,15 @@ const SizingWindow = styled(NegativeSpaceContainer)<Props>`
 
   ${p =>
     p.display === 'block'
-      ? `
-        display: block;
-        overflow: auto;
-      `
-      : `
-        display: flex;
-        overflow: hidden;
-      `}
+      ? css`
+          display: block;
+          overflow: auto;
+        `
+      : css`
+          display: flex;
+          overflow: hidden;
+        `}
 `;
 
+export type SizingWindowProps = ComponentProps<typeof SizingWindow>;
 export default SizingWindow;

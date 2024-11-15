@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from sentry.analytics.attribute import Attribute
 from sentry.analytics.utils import get_data
-from sentry.utils.dates import to_timestamp
 
 
 class Event:
@@ -46,7 +45,7 @@ class Event:
     def serialize(self) -> Mapping[str, Any]:
         return {
             "uuid": b64encode(self.uuid.bytes),
-            "timestamp": to_timestamp(self.datetime),
+            "timestamp": self.datetime.timestamp(),
             "type": self.type,
             "data": self.data,
         }

@@ -10,10 +10,11 @@ import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
   filterSessionsInTimeWindow,
   getCount,
@@ -255,7 +256,7 @@ class ProjectSessionsChartRequest extends Component<
             const crashedSessionsPercent =
               responseData.groups[0]?.series[field].slice(
                 fetchedWithPrevious ? dataMiddleIndex : 0
-              )[i] * 100 ?? 0;
+              )[i] * 100;
 
             return {
               name: interval,
@@ -270,8 +271,7 @@ class ProjectSessionsChartRequest extends Component<
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const crashedSessionsPercent =
-              responseData.groups[0]?.series[field].slice(0, dataMiddleIndex)[i] * 100 ??
-              0;
+              responseData.groups[0]?.series[field].slice(0, dataMiddleIndex)[i] * 100;
 
             return {
               name: responseData.intervals[i + dataMiddleIndex],

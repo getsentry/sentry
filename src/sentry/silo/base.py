@@ -8,10 +8,16 @@ import threading
 import typing
 from collections.abc import Callable, Generator, Iterable
 from enum import Enum
-from typing import Any
+from typing import Any, ParamSpec, TypeVar
+
+from sentry.utils.env import in_test_environment
 
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
+
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class SiloMode(Enum):
@@ -36,11 +42,17 @@ class SiloMode(Enum):
     def __str__(self) -> str:
         return str(self.value)
 
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, SiloMode):
+            return NotImplemented
+        else:
+            return self.value < other.value
+
     @classmethod
     def get_current_mode(cls) -> SiloMode:
         from django.conf import settings
 
-        configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
+        configured_mode = settings.SILO_MODE
         process_level_silo_mode = cls.resolve(configured_mode)
         return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
@@ -59,7 +71,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
         """
         Prevents re-entrant cases unless the exit_single_process_silo_context is
         explicitly embedded, ensuring that this single process silo mode simulates
@@ -70,7 +82,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def exit() -> Generator[None, None, None]:
+    def exit() -> Generator[None]:
         """
         Used by silo endpoint decorators and other contexts to signal that a
         potential inter process interaction is being simulated locally for acceptance
@@ -106,10 +118,10 @@ class SiloLimit(abc.ABC):
     @abc.abstractmethod
     def handle_when_unavailable(
         self,
-        original_method: Callable[..., Any],
+        original_method: Callable[P, R],
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
-    ) -> Callable[..., Any]:
+    ) -> Callable[P, R]:
         """Handle an attempt to access an unavailable element.
 
         Return a callback that accepts the same varargs as the original call to
@@ -124,8 +136,8 @@ class SiloLimit(abc.ABC):
 
     def create_override(
         self,
-        original_method: Callable[..., Any],
-    ) -> Callable[..., Any]:
+        original_method: Callable[P, R],
+    ) -> Callable[P, R]:
         """Create a method that conditionally overrides another method.
 
         The returned method passes through to the original only if this server
@@ -135,7 +147,7 @@ class SiloLimit(abc.ABC):
         :return: the conditional method object
         """
 
-        def override(*args: Any, **kwargs: Any) -> Any:
+        def override(*args: P.args, **kwargs: P.kwargs) -> R:
             # It's important to do this check inside the override, so that tests
             # using `override_settings` or a similar context can change the value of
             # settings.SILO_MODE effectively. Otherwise, availability would be
@@ -154,3 +166,32 @@ class SiloLimit(abc.ABC):
 
         functools.update_wrapper(override, original_method)
         return override
+
+
+class FunctionSiloLimit(SiloLimit):
+    """Decorator for functions that are scoped to a silo"""
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[P, R],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[P, R]:
+        if in_test_environment():
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Called {original_method.__name__} in "
+                f"{current_mode} mode. This function is available only in: {mode_str}"
+            )
+            raise self.AvailabilityError(message)
+        return original_method
+
+    def __call__(self, decorated_obj: Callable[P, R]) -> Callable[P, R]:
+        if not callable(decorated_obj):
+            raise TypeError("`@FunctionSiloLimit` must decorate a function")
+        return self.create_override(decorated_obj)
+
+
+region_silo_function = FunctionSiloLimit(SiloMode.REGION)
+control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
+all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

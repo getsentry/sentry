@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.utils.http import absolute_uri
 
 from .base import MSTeamsMessageBuilder

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
@@ -13,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
@@ -61,6 +62,7 @@ class DashboardWidgetTypes(TypesClass):
     """
     This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
+    SPANS = 102
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -72,8 +74,46 @@ class DashboardWidgetTypes(TypesClass):
         (METRICS, "custom-metrics"),
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
+        (SPANS, "spans"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+    """
+     Dataset inferred by split script, version 1
+    """
+    SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
+
+    @classmethod
+    def as_text_choices(cls):
+        return tuple((source.name.lower(), source.value) for source in cls)
 
 
 # TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
@@ -106,7 +146,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -133,6 +173,10 @@ class DashboardWidgetQuery(Model):
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     date_modified = models.DateTimeField(default=timezone.now)
+    # Whether this query is hidden from the UI, used by metric widgets
+    is_hidden = models.BooleanField(default=False)
+    # Used by Big Number to select aggregate displayed
+    selected_aggregate = models.IntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -142,7 +186,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -210,7 +254,7 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_only_model
+@region_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.
@@ -231,6 +275,11 @@ class DashboardWidget(Model):
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
     discover_widget_split = BoundedPositiveIntegerField(
         choices=DashboardWidgetTypes.as_choices(), null=True
+    )
+
+    # The method of which the discover split datasets was decided
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
     )
 
     class Meta:

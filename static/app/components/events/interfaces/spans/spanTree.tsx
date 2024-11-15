@@ -17,7 +17,7 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
@@ -44,6 +44,7 @@ import type WaterfallModel from './waterfallModel';
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  isEmbedded: boolean;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
@@ -771,7 +772,7 @@ class SpanTree extends Component<PropType> {
                   autoHeight
                   isScrolling={isScrolling}
                   onScroll={onChildScroll}
-                  scrollTop={scrollTop}
+                  scrollTop={this.props.isEmbedded ? 0 : scrollTop}
                   deferredMeasurementCache={this.cache}
                   height={height}
                   width={width}

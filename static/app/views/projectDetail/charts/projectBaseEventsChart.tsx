@@ -9,7 +9,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -28,6 +28,10 @@ type Props = Omit<
 };
 
 class ProjectBaseEventsChart extends Component<Props> {
+  defaultProps = {
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+  };
+
   componentDidMount() {
     this.fetchTotalCount();
   }
@@ -39,14 +43,15 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, selection, onTotalValuesChange, query} = this.props;
+    const {api, organization, selection, onTotalValuesChange, query, dataset} =
+      this.props;
     const {projects, environments, datetime} = selection;
 
     try {
       const totals = await fetchTotalCount(api, organization.slug, {
         field: [],
         query,
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
+        dataset,
         environment: environments,
         project: projects.map(proj => String(proj)),
         ...normalizeDateTimeParams(datetime),
@@ -69,6 +74,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
+      dataset,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;
@@ -85,7 +91,7 @@ class ProjectBaseEventsChart extends Component<Props> {
           query={query}
           api={api}
           projects={projects}
-          dataset={DiscoverDatasets.METRICS_ENHANCED}
+          dataset={dataset}
           environments={environments}
           start={start}
           end={end}

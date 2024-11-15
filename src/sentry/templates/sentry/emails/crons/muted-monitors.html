@@ -1,0 +1,41 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block head %}
+    {{ block.super }}
+    <style>
+        img.hero {margin-bottom: 15px; width: 100%;}
+    </style>
+{% endblock %}
+
+{% block main %}
+    <img class="hero" src="{% absolute_asset_url 'sentry' 'images/email/crons/crons-hero.jpg' %}" />
+    <h3>Your Cron Monitors Have Been Muted</h3>
+    <p>
+      The Cron Monitors below have not processed a successful check-in for multiple weeks. We have automatically muted the failing environments for these monitors:
+    </p>
+      <ul>
+        {% for monitor_name, project_slug, monitor_url, earliest_incident_start_date in muted_monitors %}
+          <li>
+            <a href="{{monitor_url}}">{{monitor_name}}</a> | <strong>{{project_slug}}</strong>
+            <br /> Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+          </li>
+        {% endfor %}
+      </ul>
+    <p>
+      To unmute your monitors, please head over to Crons and manually unmute your monitors.
+    </p>
+    <p><a href="{{ view_monitors_link }}" class="btn">View Monitors</a></p>
+    <p class="notice">
+      Note that muted monitors will still count towards on-demand budget, but can be disabled in order to preserve your on-demand budget for the next billing cycle.
+    </p>
+    <p>
+      We recommend checking out our <a href="https://docs.sentry.io/product/crons/troubleshooting/">troubleshooting guide and our FAQs</a> for further information on how you can bring you monitors back to a healthy status.
+    </p>
+    <p>
+      Still facing issues? <a href="https://sentry.zendesk.com/hc/en-us/requests/new">Reach out to our support team</a>.
+    </p>
+{% endblock %}

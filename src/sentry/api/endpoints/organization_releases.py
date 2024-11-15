@@ -29,13 +29,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
-from sentry.models.release import (
-    Release,
-    ReleaseCommitError,
-    ReleaseProject,
-    ReleaseStatus,
-    SemverFilter,
-)
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.exceptions import ReleaseCommitError
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -45,11 +42,12 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.events.filter import handle_operator_negation, parse_semver
+from sentry.search.utils import get_latest_release
 from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -90,8 +88,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == RELEASE_ALIAS:
             query_q = Q()
+            raw_value = search_filter.value.raw_value
             if search_filter.value.is_wildcard():
-                raw_value = search_filter.value.raw_value
                 if raw_value.endswith("*") and raw_value.startswith("*"):
                     query_q = Q(version__contains=raw_value[1:-1])
                 elif raw_value.endswith("*"):
@@ -100,6 +98,17 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                     query_q = Q(version__endswith=raw_value[1:])
             elif search_filter.operator == "!=":
                 query_q = ~Q(version=search_filter.value.value)
+            elif search_filter.operator == "NOT IN":
+                query_q = ~Q(version__in=raw_value)
+            elif search_filter.operator == "IN":
+                query_q = Q(version__in=raw_value)
+            elif raw_value == "latest":
+                latest_releases = get_latest_release(
+                    projects=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    organization_id=organization.id,
+                )
+                query_q = Q(version__in=latest_releases)
             else:
                 query_q = Q(version=search_filter.value.value)
 
@@ -146,7 +155,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-def debounce_update_release_health_data(organization, project_ids):
+def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
     """
@@ -237,7 +246,7 @@ class OrganizationReleasesEndpoint(
             organization,
             project_ids=project_ids,
             project_slugs=project_slugs,
-            include_all_accessible="GET" != request.method,
+            include_all_accessible=False,
         )
 
     def get(self, request: Request, organization) -> Response:
@@ -246,7 +255,7 @@ class OrganizationReleasesEndpoint(
         ```````````````````````````````
         Return a list of releases for a given organization.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
@@ -350,9 +359,11 @@ class OrganizationReleasesEndpoint(
                     organization.id,
                     filter_params["project_id"],
                     release_versions,
-                    filter_params["start"]
-                    if filter_params["start"]
-                    else datetime.utcnow() - timedelta(days=90),
+                    (
+                        filter_params["start"]
+                        if filter_params["start"]
+                        else datetime.utcnow() - timedelta(days=90)
+                    ),
                     filter_params["end"] if filter_params["end"] else datetime.utcnow(),
                 )
                 valid_versions = [
@@ -424,7 +435,7 @@ class OrganizationReleasesEndpoint(
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -433,7 +444,7 @@ class OrganizationReleasesEndpoint(
         :param url url: a URL that points to the release.  This can be the
                         path to an online interface to the sourcecode
                         for instance.
-        :param array projects: a list of project slugs that are involved in
+        :param array projects: a list of project ids or slugs that are involved in
                                this release
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
@@ -458,131 +469,155 @@ class OrganizationReleasesEndpoint(
             data=request.data, context={"organization": organization}
         )
 
-        with configure_scope() as scope:
-            if serializer.is_valid():
-                result = serializer.validated_data
-                scope.set_tag("version", result["version"])
+        scope = Scope.get_isolation_scope()
+        if serializer.is_valid():
+            result = serializer.validated_data
+            scope.set_tag("version", result["version"])
 
-                allowed_projects = {p.slug: p for p in self.get_projects(request, organization)}
+            # Get all projects that are available to the user/token
+            # Note: Does not use the "projects" data param from the request
+            projects_from_request = self.get_projects(request, organization)
+            allowed_projects = {}
+            for project in projects_from_request:
+                allowed_projects[project.slug] = project
+                allowed_projects[project.id] = project
 
-                projects = []
-                for slug in result["projects"]:
-                    if slug not in allowed_projects:
-                        return Response({"projects": ["Invalid project slugs"]}, status=400)
-                    projects.append(allowed_projects[slug])
+            projects = []
+            for id_or_slug in result["projects"]:
+                if id_or_slug not in allowed_projects:
+                    return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
+                projects.append(allowed_projects[id_or_slug])
 
-                new_status = result.get("status")
-                owner_id: int | None = None
-                if owner := result.get("owner"):
-                    owner_id = owner.id
+            new_status = result.get("status")
+            owner_id: int | None = None
+            if owner := result.get("owner"):
+                owner_id = owner.id
 
-                # release creation is idempotent to simplify user
-                # experiences
-                try:
-                    release, created = Release.objects.get_or_create(
-                        organization_id=organization.id,
-                        version=result["version"],
-                        defaults={
-                            "ref": result.get("ref"),
-                            "url": result.get("url"),
-                            "owner_id": owner_id,
-                            "date_released": result.get("dateReleased"),
-                            "status": new_status or ReleaseStatus.OPEN,
-                            "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
-                        },
-                    )
-                except IntegrityError:
-                    raise ConflictError(
-                        "Could not create the release it conflicts with existing data",
-                    )
-                if created:
-                    release_created.send_robust(release=release, sender=self.__class__)
-
-                if not created and new_status is not None and new_status != release.status:
-                    release.status = new_status
-                    release.save()
-
-                new_projects = []
-                for project in projects:
-                    created = release.add_project(project)
-                    if created:
-                        new_projects.append(project)
-
-                if release.date_released:
-                    for project in new_projects:
-                        Activity.objects.create(
-                            type=ActivityType.RELEASE.value,
-                            project=project,
-                            ident=Activity.get_version_ident(result["version"]),
-                            data={"version": result["version"]},
-                            datetime=release.date_released,
-                        )
-
-                commit_list = result.get("commits")
-                if commit_list:
-                    try:
-                        release.set_commits(commit_list)
-                        self.track_set_commits_local(
-                            request,
-                            organization_id=organization.id,
-                            project_ids=[project.id for project in projects],
-                        )
-                    except ReleaseCommitError:
-                        raise ConflictError("Release commits are currently being processed")
-
-                refs = result.get("refs")
-                if not refs:
-                    refs = [
-                        {
-                            "repository": r["repository"],
-                            "previousCommit": r.get("previousId"),
-                            "commit": r["currentId"],
-                        }
-                        for r in result.get("headCommits", [])
-                    ]
-                scope.set_tag("has_refs", bool(refs))
-                if refs:
-                    if not request.user.is_authenticated and not request.auth:
-                        scope.set_tag("failure_reason", "user_not_authenticated")
-                        return Response(
-                            {"refs": ["You must use an authenticated API token to fetch refs"]},
-                            status=400,
-                        )
-                    fetch_commits = not commit_list
-                    try:
-                        release.set_refs(refs, request.user.id, fetch=fetch_commits)
-                    except InvalidRepository as e:
-                        scope.set_tag("failure_reason", "InvalidRepository")
-                        return Response({"refs": [str(e)]}, status=400)
-
-                if not created and not new_projects:
-                    # This is the closest status code that makes sense, and we want
-                    # a unique 2xx response code so people can understand when
-                    # behavior differs.
-                    #   208 Already Reported (WebDAV; RFC 5842)
-                    status = 208
-                else:
-                    status = 201
-
-                analytics.record(
-                    "release.created",
-                    user_id=request.user.id if request.user and request.user.id else None,
+            # release creation is idempotent to simplify user
+            # experiences
+            created = False
+            try:
+                release, created = Release.objects.get_or_create(
                     organization_id=organization.id,
-                    project_ids=[project.id for project in projects],
-                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                    created_status=status,
-                    auth_type=get_auth_api_token_type(request.auth),
+                    version=result["version"],
+                    defaults={
+                        "ref": result.get("ref"),
+                        "url": result.get("url"),
+                        "owner_id": owner_id,
+                        "date_released": result.get("dateReleased"),
+                        "status": new_status or ReleaseStatus.OPEN,
+                        "user_agent": request.META.get("HTTP_USER_AGENT", "")[:256],
+                    },
+                )
+            except IntegrityError:
+                raise ConflictError(
+                    "Could not create the release it conflicts with existing data",
                 )
 
-                if is_org_auth_token_auth(request.auth):
-                    update_org_auth_token_last_used(
-                        request.auth, [project.id for project in projects]
+            # In case of disabled Open Membership, we have to check for project-level
+            # permissions on the existing release.
+            release_projects = ReleaseProject.objects.filter(release=release)
+            existing_projects = [rp.project for rp in release_projects]
+
+            if not request.access.has_projects_access(existing_projects):
+                projects_str = ", ".join([p.slug for p in existing_projects])
+                return Response(
+                    {
+                        "projects": [
+                            f"You do not have permission to one of the projects: {projects_str}"
+                        ]
+                    },
+                    status=400,
+                )
+
+            if created:
+                release_created.send_robust(release=release, sender=self.__class__)
+
+            if not created and new_status is not None and new_status != release.status:
+                release.status = new_status
+                release.save()
+
+            new_releaseprojects = []
+            for project in projects:
+                _, releaseproject_created = release.add_project(project)
+                if releaseproject_created:
+                    new_releaseprojects.append(project)
+
+            if release.date_released:
+                for project in new_releaseprojects:
+                    Activity.objects.create(
+                        type=ActivityType.RELEASE.value,
+                        project=project,
+                        ident=Activity.get_version_ident(result["version"]),
+                        data={"version": result["version"]},
+                        datetime=release.date_released,
                     )
 
-                scope.set_tag("success_status", status)
-                return Response(serialize(release, request.user), status=status)
-            scope.set_tag("failure_reason", "serializer_error")
-            return Response(serializer.errors, status=400)
+            commit_list = result.get("commits")
+            if commit_list:
+                try:
+                    release.set_commits(commit_list)
+                    self.track_set_commits_local(
+                        request,
+                        organization_id=organization.id,
+                        project_ids=[project.id for project in projects],
+                    )
+                except ReleaseCommitError:
+                    raise ConflictError("Release commits are currently being processed")
+
+            refs = result.get("refs")
+            if not refs:
+                refs = [
+                    {
+                        "repository": r["repository"],
+                        "previousCommit": r.get("previousId"),
+                        "commit": r["currentId"],
+                    }
+                    for r in result.get("headCommits", [])
+                ]
+            scope.set_tag("has_refs", bool(refs))
+            if refs:
+                if not request.user.is_authenticated and not request.auth:
+                    scope.set_tag("failure_reason", "user_not_authenticated")
+                    return Response(
+                        {"refs": ["You must use an authenticated API token to fetch refs"]},
+                        status=400,
+                    )
+                fetch_commits = not commit_list
+                try:
+                    release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                except InvalidRepository as e:
+                    scope.set_tag("failure_reason", "InvalidRepository")
+                    return Response({"refs": [str(e)]}, status=400)
+
+            if not created and not new_releaseprojects:
+                # This is the closest status code that makes sense, and we want
+                # a unique 2xx response code so people can understand when
+                # behavior differs.
+                #   208 Already Reported (WebDAV; RFC 5842)
+                status = 208
+            else:
+                status = 201
+
+            analytics.record(
+                "release.created",
+                user_id=request.user.id if request.user and request.user.id else None,
+                organization_id=organization.id,
+                project_ids=[project.id for project in projects],
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                created_status=status,
+                auth_type=get_auth_api_token_type(request.auth),
+            )
+
+            if is_org_auth_token_auth(request.auth):
+                update_org_auth_token_last_used(request.auth, [project.id for project in projects])
+
+            scope.set_tag("success_status", status)
+            return Response(
+                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            )
+        scope.set_tag("failure_reason", "serializer_error")
+        return Response(serializer.errors, status=400)
 
 
 @region_silo_endpoint
@@ -597,7 +632,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         ```````````````````````````````
         Return a list of releases for a given organization, sorted for most recent releases.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         """
         query = request.GET.get("query")
 

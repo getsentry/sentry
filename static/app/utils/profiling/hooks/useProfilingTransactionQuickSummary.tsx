@@ -1,12 +1,14 @@
 import {useMemo} from 'react';
 
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {UseProfileEventsOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {
+  getProfilesTableFields,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 interface UseProfilingTransactionQuickSummaryOptions {
   project: Project;
@@ -29,8 +31,14 @@ export function useProfilingTransactionQuickSummary(
     skipSlowestProfile = false,
   } = options;
 
+  const profilesQueryString = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    return conditions.formatString();
+  }, [transaction]);
+
   const baseQueryOptions: Omit<UseProfileEventsOptions, 'sort' | 'referrer'> = {
-    query: `transaction:"${transaction}"`,
+    query: profilesQueryString,
     fields: getProfilesTableFields(project.platform),
     enabled: Boolean(transaction),
     limit: 1,
@@ -58,7 +66,7 @@ export function useProfilingTransactionQuickSummary(
     enabled: !skipLatestProfile,
   });
 
-  const query = useMemo(() => {
+  const functionsQueryString = useMemo(() => {
     const conditions = new MutableSearch('');
     conditions.setFilterValues('transaction', [transaction]);
     conditions.setFilterValues('is_application', ['1']);
@@ -72,7 +80,7 @@ export function useProfilingTransactionQuickSummary(
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: functionsQueryString,
     limit: 5,
     enabled: !skipFunctions,
   });
@@ -99,9 +107,9 @@ export function useProfilingTransactionQuickSummary(
     functions,
     // general
     isLoading:
-      slowestProfileQuery.isLoading ||
-      latestProfileQuery.isLoading ||
-      functionsQuery.isLoading,
+      slowestProfileQuery.isPending ||
+      latestProfileQuery.isPending ||
+      functionsQuery.isPending,
   };
 }
 
@@ -110,7 +118,7 @@ const functionsFields = [
   'function',
   'count()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ] as const;
 
-type FunctionsField = (typeof functionsFields)[number];
+export type FunctionsField = (typeof functionsFields)[number];

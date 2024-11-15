@@ -23,8 +23,10 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams, Span
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -87,13 +89,13 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> dict[str, Any]:
-        params = super().get_snuba_params(request, organization, check_global_views)
+    ) -> SnubaParams:
+        snuba_params = super().get_snuba_params(request, organization, check_global_views)
 
-        if len(params.get("project_id", [])) != 1:
+        if len(snuba_params.project_ids) != 1:
             raise ParseError(detail="You must specify exactly 1 project.")
 
-        return params
+        return snuba_params
 
     def get_orderby_column(self, request: Request) -> tuple[str, str]:
         orderbys = super().get_orderby(request)
@@ -155,7 +157,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -176,7 +178,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
         def data_fn(offset: int, limit: int) -> Any:
             suspects = query_suspect_span_groups(
-                params,
+                snuba_params,
                 fields,
                 query,
                 span_ops,
@@ -233,7 +235,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response(status=404)
 
@@ -251,7 +253,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
         def data_fn(offset: int, limit: int) -> Any:
             example_transactions = query_example_transactions(
-                params,
+                snuba_params,
                 query,
                 direction,
                 orderby_column,
@@ -326,18 +328,17 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: dict[str, str],
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None = None,
         ) -> SnubaTSResult:
-            with sentry_sdk.start_span(
-                op="discover.discover", description="timeseries.filter_transform"
-            ):
+            with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
-                    params,
+                    {},
                     rollup,
+                    snuba_params=snuba_params,
                     query=query,
                     selected_columns=query_columns,
                     config=QueryBuilderConfig(
@@ -369,18 +370,18 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-            with sentry_sdk.start_span(
-                op="discover.discover", description="timeseries.transform_results"
-            ):
+            with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
                 result = discover.zerofill(
                     results["data"],
-                    params["start"],
-                    params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     rollup,
                     "time",
                 )
 
-            return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+            return SnubaTSResult(
+                {"data": result}, snuba_params.start_date, snuba_params.end_date, rollup
+            )
 
         return Response(
             self.get_event_stats_data(
@@ -399,6 +400,7 @@ class ExampleSpan:
     start_timestamp: float
     finish_timestamp: float
     exclusive_time: float
+    trace_id: str
 
     def serialize(self) -> Any:
         return {
@@ -406,6 +408,7 @@ class ExampleSpan:
             "startTimestamp": self.start_timestamp,
             "finishTimestamp": self.finish_timestamp,
             "exclusiveTime": self.exclusive_time,
+            "trace": self.trace_id,
         }
 
 
@@ -460,30 +463,13 @@ class SuspectSpan:
 
 
 @dataclasses.dataclass(frozen=True)
-class Span:
-    op: str
-    group: str
-
-    @staticmethod
-    def from_str(s: str) -> Span:
-        parts = s.rsplit(":", 1)
-        if len(parts) != 2:
-            raise ValueError(
-                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
-            )
-        if not is_span_id(parts[1]):
-            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
-        return Span(op=parts[0], group=parts[1])
-
-
-@dataclasses.dataclass(frozen=True)
 class EventID:
     project_id: int
     event_id: str
 
 
 def query_suspect_span_groups(
-    params: ParamsType,
+    snuba_params: SnubaParams,
     fields: list[str],
     query: str | None,
     span_ops: list[str] | None,
@@ -515,9 +501,10 @@ def query_suspect_span_groups(
         if is_equation(column)
     ]
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         equations=equations,
         query=query,
@@ -589,7 +576,7 @@ def query_suspect_span_groups(
             op=suspect["array_join_spans_op"],
             group=suspect["array_join_spans_group"],
             description=get_span_description(
-                EventID(params["project_id"][0], suspect["any_id"]),
+                EventID(snuba_params.project_ids[0], suspect["any_id"]),
                 span_op=suspect["array_join_spans_op"],
                 span_group=suspect["array_join_spans_group"],
             ),
@@ -606,7 +593,9 @@ def query_suspect_span_groups(
     ]
 
 
-class SpanQueryBuilder(QueryBuilder):
+class SpanQueryBuilder(BaseQueryBuilder):
+    config_class = DiscoverDatasetConfig
+
     def resolve_span_function(
         self,
         function: str,
@@ -659,7 +648,7 @@ class SpanQueryBuilder(QueryBuilder):
 
 
 def query_example_transactions(
-    params: ParamsType,
+    snuba_params: SnubaParams,
     query: str | None,
     direction: str,
     orderby: str,
@@ -680,7 +669,8 @@ def query_example_transactions(
 
     builder = SpanQueryBuilder(
         dataset=Dataset.Discover,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         selected_columns=selected_columns,
         query=query,
         orderby=[],
@@ -723,7 +713,7 @@ def query_example_transactions(
     examples: dict[Span, list[EventID]] = {Span(span.op, span.group): []}
 
     for example in results["data"]:
-        value = EventID(params["project_id"][0], example["id"])
+        value = EventID(snuba_params.project_ids[0], example["id"])
         examples[span].append(value)
 
     return examples
@@ -803,6 +793,7 @@ def get_example_transaction(
             start_timestamp=span["start_timestamp"],
             finish_timestamp=span["timestamp"],
             exclusive_time=span["exclusive_time"],
+            trace_id=trace_context["trace_id"],
         )
         for span in matching_spans
     ]

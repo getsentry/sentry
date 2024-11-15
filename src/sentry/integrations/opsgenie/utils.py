@@ -4,13 +4,17 @@ import logging
 from typing import Any, cast
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
+
+OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 
 def build_incident_attachment(
@@ -37,13 +41,25 @@ def build_incident_attachment(
         "source": "Sentry",
         "priority": priority,
         "details": {
-            "URL": data["title_link"],  # type: ignore
+            "URL": data["title_link"],  # type: ignore[dict-item]
         },
     }
     return payload
 
 
-def get_team(team_id: str | None, org_integration: RpcOrganizationIntegration | None):
+def attach_custom_priority(
+    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+) -> dict[str, Any]:
+    app_config = action.get_single_sentry_app_config()
+    if new_status == IncidentStatus.CLOSED or app_config is None:
+        return data
+
+    priority = app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
+    data["priority"] = priority
+    return data
+
+
+def get_team(team_id: int | str | None, org_integration: RpcOrganizationIntegration | None):
     if not org_integration:
         return None
     teams = org_integration.config.get("team_table")
@@ -64,9 +80,11 @@ def send_incident_alert_notification(
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 
-    integration, org_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
+    integration = result.integration
+    org_integration = result.organization_integration
     if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         logger.info("Opsgenie integration removed, but the rule is still active.")
         return False
@@ -83,6 +101,8 @@ def send_incident_alert_notification(
     )
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = attach_custom_priority(attachment, action, new_status)
+
     try:
         resp = client.send_notification(attachment)
         logger.info(

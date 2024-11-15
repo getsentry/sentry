@@ -6,13 +6,12 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.rule import Rule
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
-@region_silo_test
 class ProjectRuleEnableTestCase(APITestCase):
     endpoint = "sentry-api-0-project-rule-enable"
     method = "PUT"
@@ -73,11 +72,11 @@ class ProjectRuleEnableTestCase(APITestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project, action_data=actions, condition_data=conditions
         )
 
         rule2 = self.create_project_rule(
-            project=self.project, action_match=actions, condition_match=conditions
+            project=self.project, action_data=actions, condition_data=conditions
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()
@@ -115,15 +114,15 @@ class ProjectRuleEnableTestCase(APITestCase):
         )
         self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=dev_env.id,
         )
 
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=prod_env.id,
         )
         rule2.status = ObjectStatus.DISABLED
@@ -155,15 +154,15 @@ class ProjectRuleEnableTestCase(APITestCase):
         dev_env = self.create_environment(self.project, name="dev", organization=self.organization)
         self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
             environment_id=dev_env.id,
         )
 
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=actions,
-            condition_match=conditions,
+            action_data=actions,
+            condition_data=conditions,
         )
         rule2.status = ObjectStatus.DISABLED
         rule2.save()

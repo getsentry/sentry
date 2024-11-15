@@ -11,7 +11,7 @@ describe('metric details -> RelatedIssues', () => {
   const project = ProjectFixture();
 
   it('adds environment to query parameters', async () => {
-    const {routerContext, organization, router} = initializeOrg({
+    const {router, organization} = initializeOrg({
       router: {
         location: {
           pathname: '/mock-pathname/',
@@ -47,7 +47,7 @@ describe('metric details -> RelatedIssues', () => {
           usingPeriod: true,
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(await screen.findByTestId('group')).toBeInTheDocument();
@@ -58,8 +58,9 @@ describe('metric details -> RelatedIssues', () => {
       },
     });
     // The links should contain the query parameters, our test environment isn't able to update it
-    expect(
-      screen.getByRole('link', {name: /Level: Warning RequestError fetchData/})
-    ).toHaveAttribute('href', expect.stringContaining('environment=test-env'));
+    expect(screen.getByRole('link', {name: /RequestError fetchData/})).toHaveAttribute(
+      'href',
+      expect.stringContaining('environment=test-env')
+    );
   });
 });

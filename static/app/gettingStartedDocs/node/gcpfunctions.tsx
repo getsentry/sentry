@@ -5,94 +5,60 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getCrashReportJavaScriptInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
-import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
-import {getDefaulServerlessImports} from 'sentry/utils/gettingStartedDocs/node';
+import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const productSelection = (params: Params): ProductSelectionMap => {
-  return {
-    [ProductSolution.ERROR_MONITORING]: true,
-    [ProductSolution.PROFILING]: params.isProfilingSelected,
-    [ProductSolution.PERFORMANCE_MONITORING]: params.isPerformanceSelected,
-    [ProductSolution.SESSION_REPLAY]: params.isReplaySelected,
-  };
-};
-
-const getInstallSnippet = (params: Params) => `
-dependencies: {
-  //...
-  "@sentry/serverless": "^7",${
-    params.isProfilingSelected
-      ? `
-  "@sentry/profiling-node": "^1",`
-      : ''
-  }
-  //...
-}`;
-
 const getSdkSetupSnippet = (params: Params) => `
-${getDefaulServerlessImports({productSelection: productSelection(params)}).join('\n')}
-
-Sentry.GCPFunction.init({
-  dsn: "${params.dsn}",
-  integrations: [${
-    params.isProfilingSelected
-      ? `
-      new ProfilingIntegration(),`
-      : ''
-  }
-],${
-  params.isPerformanceSelected
-    ? `
-      // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-    : ''
-}${
-  params.isProfilingSelected
-    ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-    : ''
-}
-});
+// IMPORTANT: Make sure to import and initialize Sentry at the top of your file.
+${getSdkInitSnippet(params, 'gpc')}
+// Place any other require/import statements here
 
 // Use wrapHttpFunction to instrument your http functions
-exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   /* Your function code */
 });
 
 // Use wrapEventFunction to instrument your background functions
-exports.helloEvents = Sentry.GCPFunction.wrapEventFunction(
+exports.helloEvents = Sentry.wrapEventFunction(
   (data, context, callback) => {
     /* Your function code */
   }
 );
 
 // Use wrapCloudEventFunction to instrument your CloudEvent functions
-exports.helloEvents = Sentry.GCPFunction.wrapCloudEventFunction(
+exports.helloEvents = Sentry.wrapCloudEventFunction(
   (context, callback) => {
     /* Your function code */
   }
 );`;
 
 const getVerifySnippet = () => `
-exports.helloHttp = Sentry.GCPFunction.wrapHttpFunction((req, res) => {
+exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
 });`;
 
 const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.GCPFunction.init({
-  dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -103,7 +69,9 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'json',
-          code: getInstallSnippet(params),
+          configurations: getInstallConfig(params, {
+            basePackage: '@sentry/google-cloud-serverless',
+          }),
         },
       ],
     },
@@ -111,9 +79,12 @@ const onboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct('Use the Sentry SDK to wrap your functions:', {
-        code: <code />,
-      }),
+      description: tct(
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, use the Sentry SDK to wrap your functions:',
+        {
+          code: <code />,
+        }
+      ),
       configurations: [
         {
           language: 'javascript',
@@ -122,7 +93,8 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/sourcemaps/',
+      guideLink:
+        'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/sourcemaps/',
       ...params,
     }),
   ],
@@ -147,35 +119,26 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/serverless]:',
+        'You need a minimum version [code:8.0.0] of [code:@sentry/google-cloud-serverless]:',
         {
-          codeVersion: <code />,
-          codePackage: <code />,
+          code: <code />,
         }
       ),
-      configurations: [{language: 'json', code: getInstallSnippet(params)}],
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/google-cloud-serverless',
+      }),
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getMetricsConfigureSnippet(params),
-            },
-          ],
+          code: getMetricsConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
@@ -183,9 +146,25 @@ const customMetricsOnboarding: OnboardingConfig = {
   verify: getJSServerMetricsOnboarding().verify,
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportJavaScriptInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

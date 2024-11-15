@@ -1,7 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {MemberRole} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -41,6 +41,7 @@ const formGroups: JsonFormObject[] = [
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
           ),
         }),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
       {
         name: 'aiSuggestedSolution',
@@ -54,67 +55,19 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
-      },
-    ],
-  },
-
-  {
-    title: 'Membership',
-    fields: [
-      {
-        name: 'defaultRole',
-        type: 'select',
-        required: true,
-        label: t('Default Role'),
-        // seems weird to have choices in initial form data
-        choices: ({initialData} = {}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
-        help: t('The default role new members will receive'),
-        disabled: ({access}) => !access.has('org:admin'),
+        visible: ({features}) =>
+          !ConfigStore.get('isSelfHostedErrorsOnly') && !features.has('autofix'),
       },
       {
-        name: 'openMembership',
+        name: 'uptimeAutodetection',
         type: 'boolean',
-        required: true,
-        label: t('Open Membership'),
-        help: t('Allow organization members to freely join any team'),
-      },
-      {
-        name: 'eventsMemberAdmin',
-        type: 'boolean',
-        label: t('Let Members Delete Events'),
-        help: t(
-          'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
-        ),
-      },
-      {
-        name: 'alertsMemberWrite',
-        type: 'boolean',
-        label: t('Let Members Create and Edit Alerts'),
-        help: t(
-          'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
-        ),
-      },
-      {
-        name: 'attachmentsRole',
-        type: 'select',
-        choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
-        label: t('Attachments Access'),
-        help: t(
-          'Role required to download event attachments, such as native crash reports or log files.'
-        ),
-        visible: ({features}) => features.has('event-attachments'),
-      },
-      {
-        name: 'debugFilesRole',
-        type: 'select',
-        choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
-        label: t('Debug Files Access'),
-        help: t(
-          'Role required to download debug information files, proguard mappings and source maps.'
-        ),
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        // TOOD(epurkhiser): Currently there's no need for users to change this
+        // setting as it will just be confusing. In the future when
+        // autodetection is used for suggested URLs it will make more sense to
+        // for users to have the option to disable this.
+        visible: false,
       },
     ],
   },

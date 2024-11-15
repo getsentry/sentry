@@ -53,7 +53,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             )
 
         # This method is specific to the GithubIntegration
-        trees = installation.get_trees_for_org()  # type: ignore
+        trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
         trees_helper = CodeMappingTreesHelper(trees)
         possible_code_mappings: list[dict[str, str]] = []
         resp_status: int = status.HTTP_204_NO_CONTENT

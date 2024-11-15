@@ -1,8 +1,9 @@
-import {useMemo} from 'react';
-
+import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import type {Event, EventsStatsData} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
+import type {EventsStatsData} from 'sentry/types/organization';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -11,12 +12,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {transformEventStats} from 'sentry/views/performance/trends/chart';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {TrendFunctionField} from 'sentry/views/performance/trends/types';
-import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils';
-
-import {DataSection} from '../styles';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import Chart from './lineChart';
@@ -58,7 +56,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     return acc;
   }, {}) as NormalizedTrendsTransaction;
 
-  const {data, isLoading} = useGenericDiscoverQuery<
+  const {data, isPending} = useGenericDiscoverQuery<
     {
       data: EventsStatsData;
       meta: MetaType;
@@ -77,26 +75,21 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     }),
   });
 
-  const p95Series = useMemo(
-    () =>
-      transformEventStats(
-        data?.['p95(transaction.duration)']?.data ?? [],
-        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
-      ),
-    [data]
-  );
-
   return (
-    <DataSection>
-      <TransitionChart loading={isLoading} reloading>
-        <TransparentLoadingMask visible={isLoading} />
+    <InterimSection
+      type={SectionKey.REGRESSION_BREAKPOINT_CHART}
+      title={t('Regression Breakpoint Chart')}
+    >
+      <TransitionChart loading={isPending} reloading>
+        <TransparentLoadingMask visible={isPending} />
         <Chart
-          percentileSeries={p95Series}
+          percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}
           datetime={datetime}
+          chartType={ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION}
         />
       </TransitionChart>
-    </DataSection>
+    </InterimSection>
   );
 }
 

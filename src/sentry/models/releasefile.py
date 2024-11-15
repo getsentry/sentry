@@ -18,14 +18,14 @@ from django.db import models, router
 from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
@@ -43,7 +43,7 @@ ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
-class PublicReleaseFileManager(models.Manager):
+class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
     """Manager for all release files that are not internal.
 
     Internal release files include:
@@ -59,7 +59,7 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.
@@ -67,6 +67,7 @@ class ReleaseFile(Model):
     The ident of the file should be sha1(name) or
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()
@@ -240,7 +241,7 @@ class ReleaseArchive:
         The caller is responsible for cleanup of the temporary files.
         """
         temp_dir = TemporaryDirectory()
-        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+        safe_extract_zip(self._fileobj, temp_dir.name)
 
         return temp_dir
 
@@ -411,7 +412,7 @@ def update_artifact_index(
         name=archive_file.name,
         release_id=release.id,
         organization_id=release.organization_id,
-        dist_id=dist.id if dist else dist,
+        dist_id=dist.id if dist is not None else dist,
         file=archive_file,
         artifact_count=0,  # Artifacts will be counted with artifact index
     )

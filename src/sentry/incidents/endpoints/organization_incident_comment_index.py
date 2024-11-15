@@ -13,7 +13,8 @@ from sentry.api.serializers.rest_framework.mentions import (
     extract_user_ids_from_mentions,
 )
 from sentry.incidents.logic import create_incident_activity
-from sentry.incidents.models import IncidentActivityType
+from sentry.incidents.models.incident import IncidentActivityType
+from sentry.users.services.user.serial import serialize_generic_user
 
 
 class CommentSerializer(serializers.Serializer, MentionsMixin):
@@ -47,7 +48,7 @@ class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
             activity = create_incident_activity(
                 incident,
                 IncidentActivityType.COMMENT,
-                user=request.user,
+                user=serialize_generic_user(request.user),
                 comment=serializer.validated_data["comment"],
                 mentioned_user_ids=mentioned_user_ids,
             )

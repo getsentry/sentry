@@ -4,19 +4,16 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Integration,
-  IntegrationProvider,
-  ObjectStatus,
-  Organization,
-} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
@@ -147,7 +144,7 @@ export default class InstalledIntegration extends Component<Props> {
                       size="sm"
                     />
                   )}
-                  <StyledButton
+                  <StyledLinkButton
                     borderless
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && disableAction}
@@ -155,7 +152,7 @@ export default class InstalledIntegration extends Component<Props> {
                     data-test-id="integration-configure-button"
                   >
                     {t('Configure')}
-                  </StyledButton>
+                  </StyledLinkButton>
                 </Tooltip>
               </div>
               <div>
@@ -196,6 +193,10 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
   color: ${p => p.theme.gray300};
 `;
 
@@ -253,7 +254,7 @@ const StyledIntegrationStatus = styled(IntegrationStatus)`
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 `;
 

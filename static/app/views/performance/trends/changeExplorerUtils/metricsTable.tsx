@@ -1,14 +1,13 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import type {Organization} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -20,7 +19,8 @@ import type {
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
@@ -107,7 +107,7 @@ export function MetricsTable(props: MetricsTableProps) {
     [trendView.end]
   );
 
-  const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery(
+  const {data: beforeBreakpoint, isPending: isLoadingBefore} = useDiscoverQuery(
     getQueryParams(
       startTime,
       breakpointTime,
@@ -121,7 +121,7 @@ export function MetricsTable(props: MetricsTableProps) {
     )
   );
 
-  const {data: afterBreakpoint, isLoading: isLoadingAfter} = useDiscoverQuery(
+  const {data: afterBreakpoint, isPending: isLoadingAfter} = useDiscoverQuery(
     getQueryParams(
       breakpointTime,
       endTime,
@@ -190,7 +190,6 @@ export function MetricsTable(props: MetricsTableProps) {
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location}
       isLoading={isLoadingBefore || isLoadingAfter || isLoading}
     />
   );

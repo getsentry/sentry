@@ -8,7 +8,6 @@ from fixtures.sdk_crash_detection.crash_event_cocoa import (
     get_sentry_frame,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.safe import get_path, set_path
 from tests.sentry.utils.sdk_crashes.test_sdk_crash_detection import BaseSDKCrashDetectionMixin
 
@@ -622,7 +621,6 @@ class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
-@region_silo_test
 class SDKCrashDetectionCocoaTest(
     TestCase, CococaSDKFilenameTestMixin, CococaSDKFramesTestMixin, CococaSDKFunctionTestMixin
 ):

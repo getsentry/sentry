@@ -1,15 +1,17 @@
 import {Component} from 'react';
-import type {RouteComponentProps, RouteContextInterface} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
-import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {
+  RouteComponentProps,
+  RouteContextInterface,
+} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
@@ -25,16 +27,6 @@ export interface AsyncComponentState {
   reloading: boolean;
   remainingRequests?: number;
 }
-
-type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
-
-type RenderSearchInputArgs = Omit<
-  SearchInputProps,
-  'api' | 'onSuccess' | 'onError' | 'url' | keyof RouteComponentProps<{}, {}>
-> & {
-  stateKey?: string;
-  url?: SearchInputProps['url'];
-};
 
 /**
  * Wraps methods on the AsyncComponent to catch errors and set the `error`
@@ -118,7 +110,7 @@ class DeprecatedAsyncComponent<
       return;
     }
 
-    // Take a measurement from when this component is initially created until it finishes it's first
+    // Take a measurement from when this component is initially created until it finishes its first
     // set of API requests
     if (
       !this._measurement.hasMeasured &&
@@ -379,25 +371,6 @@ class DeprecatedAsyncComponent<
    */
   getEndpoints(): Array<[string, string, any?, any?]> {
     return [];
-  }
-
-  renderSearchInput({stateKey, url, ...props}: RenderSearchInputArgs) {
-    const [firstEndpoint] = this.getEndpoints() || [null];
-    const stateKeyOrDefault = stateKey || firstEndpoint?.[0];
-    const urlOrDefault = url || firstEndpoint?.[1];
-    return (
-      <AsyncComponentSearchInput
-        url={urlOrDefault}
-        {...props}
-        api={this.api}
-        onSuccess={(data, resp) => {
-          this.handleRequestSuccess({stateKey: stateKeyOrDefault, data, resp});
-        }}
-        onError={() => {
-          this.renderError(new Error('Error with AsyncComponentSearchInput'));
-        }}
-      />
-    );
   }
 
   renderLoading(): React.ReactNode {

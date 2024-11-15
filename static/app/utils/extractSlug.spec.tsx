@@ -10,9 +10,12 @@ describe('extractSlug', () => {
     {hostname: 'sentry.io:443'},
     {hostname: 'acme.sentry.io'},
     {hostname: 'acme.sentry.io:443'},
-  ])('should return null when not using known dev hostnames', ({hostname}) => {
-    expect(extractSlug(hostname)).toBeNull();
-  });
+  ])(
+    'should return null when not using known dev hostnames "$hostname"',
+    ({hostname}) => {
+      expect(extractSlug(hostname)).toBeNull();
+    }
+  );
 
   it.each([
     {hostname: 'localhost', slug: '', domain: 'localhost'},

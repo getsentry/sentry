@@ -6,7 +6,7 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -14,7 +14,6 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -77,7 +76,6 @@ function Chart({
   chartColors,
   isLineChart,
 }: Props) {
-  const router = useRouter();
   const theme = useTheme();
 
   if (!data || data.length <= 0) {
@@ -231,7 +229,6 @@ function Chart({
 
   return (
     <ChartZoom
-      router={router}
       period={statsPeriod}
       start={start}
       end={end}

@@ -3,16 +3,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SavedQueryVersions} from 'sentry/types';
+import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -83,17 +84,17 @@ function TeamMisery({
             isEmpty={projects.length === 0 || periodTableData?.data?.length === 0}
             emptyMessage={t('No key transactions starred by this team')}
             emptyAction={
-              <Button
+              <LinkButton
                 size="sm"
                 external
                 href="https://docs.sentry.io/product/performance/transaction-summary/#starring-key-transactions"
               >
                 {t('Learn More')}
-              </Button>
+              </LinkButton>
             }
             headers={[
               <FlexCenter key="transaction">
-                <StyledIconStar isSolid color="yellow400" /> {t('Key transaction')}
+                <StyledIconStar isSolid color="yellow300" /> {t('Key transaction')}
               </FlexCenter>,
               t('Project'),
               tct('Last [period]', {period}),
@@ -126,7 +127,7 @@ function TeamMisery({
                 <Fragment key={idx}>
                   <KeyTransactionTitleWrapper>
                     <div>
-                      <StyledIconStar isSolid color="yellow400" />
+                      <StyledIconStar isSolid color="yellow300" />
                     </div>
                     <TransactionWrapper>
                       <Link

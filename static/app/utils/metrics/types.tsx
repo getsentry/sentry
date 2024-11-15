@@ -1,4 +1,5 @@
-import type {DateString, MRI} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -11,9 +12,14 @@ export type MetricTag = {
 };
 
 export type SortState = {
-  name: 'name' | 'avg' | 'min' | 'max' | 'sum' | undefined;
+  name: 'name' | MetricAggregation | undefined;
   order: 'asc' | 'desc';
 };
+
+export enum MetricSeriesFilterUpdateType {
+  ADD = 'add',
+  EXCLUDE = 'exclude',
+}
 
 export interface FocusedMetricsSeries {
   id: string;
@@ -21,41 +27,62 @@ export interface FocusedMetricsSeries {
 }
 
 export interface MetricsQuery {
+  aggregation: MetricAggregation;
   mri: MRI;
-  op: string;
+  condition?: number;
   groupBy?: string[];
   query?: string;
 }
 
-export enum MetricQueryType {
+export enum MetricExpressionType {
   QUERY = 1,
-  FORMULA = 2,
+  EQUATION = 2,
+}
+
+export enum MetricChartOverlayType {
+  RELEASES = 'releases',
+  SAMPLES = 'samples',
 }
 
 export interface BaseWidgetParams {
   displayType: MetricDisplayType;
   id: number;
-  type: MetricQueryType;
+  isHidden: boolean;
+  type: MetricExpressionType;
   focusedSeries?: FocusedMetricsSeries[];
+  overlays?: MetricChartOverlayType[];
   sort?: SortState;
 }
 
-export interface MetricQueryWidgetParams extends BaseWidgetParams, MetricsQuery {
-  type: MetricQueryType.QUERY;
+export interface MetricsQueryWidget extends BaseWidgetParams, MetricsQuery {
+  type: MetricExpressionType.QUERY;
   powerUserMode?: boolean;
 }
 
-export interface MetricFormulaWidgetParams extends BaseWidgetParams {
+export interface MetricsEquationWidget extends BaseWidgetParams {
   formula: string;
-  type: MetricQueryType.FORMULA;
+  type: MetricExpressionType.EQUATION;
 }
 
-export type MetricWidgetQueryParams = MetricQueryWidgetParams | MetricFormulaWidgetParams;
+export type MetricsWidget = MetricsQueryWidget | MetricsEquationWidget;
 
-export interface DdmQueryParams {
-  widgets: string; // stringified json representation of MetricWidgetQueryParams
+export function isMetricsEquationWidget(
+  widget: MetricsWidget
+): widget is MetricsEquationWidget {
+  return widget.type === MetricExpressionType.EQUATION;
+}
+
+export function isMetricsQueryWidget(
+  widget: MetricsWidget
+): widget is MetricsQueryWidget {
+  return widget.type === MetricExpressionType.QUERY;
+}
+
+export interface MetricsQueryParams {
+  widgets: string; // stringified json representation of MetricsWidget
   end?: DateString;
   environment?: string[];
+  interval?: string;
   project?: number[];
   start?: DateString;
   statsPeriod?: string | null;

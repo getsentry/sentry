@@ -7,12 +7,11 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import useRouter from 'sentry/utils/useRouter';
 
 // We want p99 to be before p75 because echarts renders the series in order.
 // So if p75 is before p99, p99 will be rendered on top of p75 which will
@@ -32,7 +31,6 @@ export function ProfilesSummaryChart({
   selection,
   hideCount,
 }: ProfileSummaryChartProps) {
-  const router = useRouter();
   const theme = useTheme();
 
   const seriesOrder = useMemo(() => {
@@ -177,7 +175,7 @@ export function ProfilesSummaryChart({
   return (
     <ProfilesChartContainer>
       <ProfilesChartTitle>{t('Durations')}</ProfilesChartTitle>
-      <ChartZoom router={router} {...selection?.datetime}>
+      <ChartZoom {...selection?.datetime}>
         {zoomRenderProps => (
           <AreaChart
             {...chartProps}
@@ -194,7 +192,7 @@ export function ProfilesSummaryChart({
 const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: ${space(0.25)} ${space(1)};
 `;
 

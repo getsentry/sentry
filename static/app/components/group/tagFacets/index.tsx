@@ -4,21 +4,23 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import type {Tag} from 'sentry/actionCreators/events';
-import type {GroupTagResponseItem} from 'sentry/actionCreators/group';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {formatVersion} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useFetchIssueTagsForDetailsPage} from 'sentry/views/issueDetails/utils';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {
+  type GroupTag,
+  useGroupTagsReadable,
+} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
@@ -43,9 +45,9 @@ export const BACKEND_TAGS = [
 
 export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
 
-export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
+export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
   // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
-  const transformedTagsData = {};
+  const transformedTagsData: Record<string, GroupTag> = {};
   Object.keys(tagsData).forEach(tagKey => {
     if (tagKey === 'release') {
       transformedTagsData[tagKey] = {
@@ -75,53 +77,12 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTagResponseItem>) {
   return transformedTagsData;
 }
 
-export function sumTagFacetsForTopValues(tag: Tag) {
-  return {
-    ...tag,
-    name: tag.key,
-    totalValues: tag.topValues.reduce((acc, {count}) => acc + count, 0),
-    topValues: tag.topValues.map(({name, count}) => ({
-      key: tag.key,
-      name,
-      value: name,
-      count,
-
-      // These values aren't displayed in the sidebar
-      firstSeen: '',
-      lastSeen: '',
-    })),
-  };
-}
-
-// Statistical detector issues need to use a Discover query
-// which means we need to massage the values to fit the component API
-function transformTagFacetDataToGroupTagResponseItems(
-  tagFacetData: Record<string, Tag>
-): Record<string, GroupTagResponseItem> {
-  const keyedResponse = {};
-
-  // Statistical detectors are scoped to a single transaction so
-  // the filter out transaction since the tag is not helpful in the UI
-  Object.keys(tagFacetData)
-    .filter(tagKey => tagKey !== 'transaction')
-    .forEach(tagKey => {
-      const tagData = tagFacetData[tagKey];
-      keyedResponse[tagKey] = sumTagFacetsForTopValues(tagData);
-    });
-
-  return keyedResponse;
-}
-
 type Props = {
   environments: string[];
   groupId: string;
   project: Project;
   tagKeys: string[];
-  event?: Event;
-  isStatisticalDetector?: boolean;
-  tagFormatter?: (
-    tagsData: Record<string, GroupTagResponseItem>
-  ) => Record<string, GroupTagResponseItem>;
+  tagFormatter?: (tagsData: Record<string, GroupTag>) => Record<string, GroupTag>;
 };
 
 export default function TagFacets({
@@ -130,56 +91,35 @@ export default function TagFacets({
   groupId,
   tagFormatter,
   project,
-  isStatisticalDetector,
-  event,
 }: Props) {
   const organization = useOrganization();
-  const now = useMemo(() => Date.now(), []);
 
-  const {transaction, aggregateRange2, breakpoint} =
-    event?.occurrence?.evidenceData ?? {};
-  const {isLoading, isError, data, refetch} = useFetchIssueTagsForDetailsPage({
+  const {isPending, isError, data, refetch} = useGroupTagsReadable({
     groupId,
-    orgSlug: organization.slug,
     environment: environments,
-    isStatisticalDetector,
-    statisticalDetectorParameters:
-      isStatisticalDetector && defined(breakpoint)
-        ? {
-            transaction,
-            durationBaseline: aggregateRange2,
-            start: new Date(breakpoint * 1000).toISOString(),
-            end: new Date(now).toISOString(),
-          }
-        : undefined,
   });
 
-  const tagsData = useMemo(() => {
+  const tagsData = useMemo((): Record<string, GroupTag> => {
     if (!data) {
       return {};
     }
 
-    let keyed = keyBy(data, 'key');
-    if (isStatisticalDetector) {
-      keyed = transformTagFacetDataToGroupTagResponseItems(keyed as Record<string, Tag>);
-    }
+    const keyed = keyBy(data, 'key');
+    const formatted = tagFormatter?.(keyed) ?? keyed;
 
-    const formatted =
-      tagFormatter?.(keyed as Record<string, GroupTagResponseItem>) ?? keyed;
+    return formatted;
+  }, [data, tagFormatter]);
 
-    if (!organization.features.includes('device-classification')) {
-      delete formatted['device.class'];
-    }
-
-    return formatted as Record<string, GroupTagResponseItem>;
-  }, [data, tagFormatter, organization, isStatisticalDetector]);
-
-  const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
+  // filter out replayId since we no longer want to
+  // display this on issue details
+  const topTagKeys = tagKeys.filter(
+    tagKey => Object.keys(tagsData).includes(tagKey) && tagKey !== 'replayId'
+  );
   const remainingTagKeys = Object.keys(tagsData)
-    .filter(tagKey => !tagKeys.includes(tagKey))
+    .filter(tagKey => !tagKeys.includes(tagKey) && tagKey !== 'replayId')
     .sort();
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <WrapperWithTitle>
         <TagPlaceholders>
@@ -242,7 +182,9 @@ function WrapperWithTitle({children}: {children: ReactNode}) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>
-        {t('All Tags')}
+        <GuideAnchor target="issue_sidebar_tags" position="left">
+          {t('All Tags')}
+        </GuideAnchor>
         <QuestionTooltip
           size="xs"
           position="top"
@@ -266,7 +208,7 @@ function TagFacetsDistributionMeterWrapper({
   organization: Organization;
   project: Project;
   tagKeys: string[];
-  tagsData: Record<string, GroupTagResponseItem>;
+  tagsData: Record<string, GroupTag>;
   expandFirstTag?: boolean;
 }) {
   const location = useLocation();

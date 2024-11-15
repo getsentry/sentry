@@ -1,8 +1,6 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class BuiltinSymbolSourcesNoSlugTest(APITestCase):
     endpoint = "sentry-api-0-builtin-symbol-sources"
 
@@ -23,7 +21,6 @@ class BuiltinSymbolSourcesNoSlugTest(APITestCase):
         assert "hidden" in body[0]
 
 
-@region_silo_test
 class BuiltinSymbolSourcesWithSlugTest(APITestCase):
     endpoint = "sentry-api-0-organization-builtin-symbol-sources"
 

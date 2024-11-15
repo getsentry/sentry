@@ -5,8 +5,6 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import features
-from sentry.ingest.transaction_clusterer.base import ReplacementRule
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -119,74 +117,4 @@ def cluster_projects(projects: Sequence[Project]) -> None:
                     "projects.unclustered.number": unclustered,
                     "projects.unclustered.ids": [p.id for p in pending],
                 },
-            )
-
-
-@instrumented_task(
-    name="sentry.ingest.span_clusterer.tasks.spawn_span_cluster_projects",
-    queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
-    default_retry_delay=5,  # copied from transaction name clusterer
-    max_retries=5,  # copied from transaction name clusterer
-)
-def spawn_clusterers_span_descs(**kwargs: Any) -> None:
-    """Look for existing span description sets in redis and spawn clusterers for each"""
-    with sentry_sdk.start_span(op="span_descs-cluster_spawn"):
-        project_count = 0
-        project_iter = redis.get_active_projects(ClustererNamespace.SPANS)
-        project_iter = (
-            p for p in project_iter if features.has("projects:span-metrics-extraction", p)
-        )
-        while batch := list(islice(project_iter, PROJECTS_PER_TASK)):
-            project_count += len(batch)
-            cluster_projects_span_descs.delay(batch)
-
-        metrics.incr("span_descs-spawned_projects", amount=project_count, sample_rate=1.0)
-
-
-@instrumented_task(
-    name="sentry.ingest.span_clusterer.tasks.cluster_projects_span_descs",
-    queue="transactions.name_clusterer",  # XXX(iker): we should use a different queue
-    default_retry_delay=5,  # copied from transaction name clusterer
-    max_retries=5,  # copied from transaction name clusterer
-    soft_time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT,
-    time_limit=PROJECTS_PER_TASK * CLUSTERING_TIMEOUT_PER_PROJECT + 2,  # extra 2s to emit metrics
-)
-def cluster_projects_span_descs(projects: Sequence[Project]) -> None:
-    num_clustered = 0
-    try:
-        for project in projects:
-            with sentry_sdk.start_span(op="span_descs-cluster") as span:
-                span.set_data("project_id", project.id)
-                descriptions = list(redis.get_span_descriptions(project))
-                new_rules = []
-                if len(descriptions) >= MERGE_THRESHOLD_SPANS:
-                    clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD_SPANS)
-                    clusterer.add_input(descriptions)
-                    new_rules = clusterer.get_rules()
-                    # Span description rules must match a prefix in the string
-                    # (HTTP verb, domain...), but we only feed the URL path to
-                    # the clusterer to avoid scrubbing other tokens. The prefix
-                    # `**` in the glob ensures we match the prefix but we don't
-                    # scrub it.
-                    new_rules = [ReplacementRule(r) for r in new_rules]
-
-                track_clusterer_run(ClustererNamespace.SPANS, project)
-
-                # The Redis store may have more up-to-date last_seen values,
-                # so we must update the stores to bring these values to
-                # project options, even if there aren't any new rules.
-                num_rules_added = rules.update_rules(ClustererNamespace.SPANS, project, new_rules)
-
-                # Track a global counter of new rules:
-                metrics.incr("span_descs.new_rules_discovered", num_rules_added, sample_rate=1.0)
-
-                # Clear transaction names to prevent the set from picking up
-                # noise over a long time range.
-                redis.clear_samples(ClustererNamespace.SPANS, project)
-            num_clustered += 1
-    finally:
-        unclustered = len(projects) - num_clustered
-        if unclustered > 0:
-            metrics.incr(
-                "span_descs.cluster_projects.unclustered", amount=unclustered, sample_rate=1.0
             )

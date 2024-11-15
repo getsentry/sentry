@@ -2,20 +2,23 @@ from datetime import datetime
 from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.builder.profiles import (
+    ProfilesQueryBuilder,
+    ProfilesTimeseriesQueryBuilder,
+)
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 
 def query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int = 0,
@@ -31,13 +34,15 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        params={},
         query=query,
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -52,7 +57,7 @@ def query(
             functions_acl=functions_acl,
         ),
     )
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -60,7 +65,7 @@ def query(
 def timeseries_query(
     selected_columns: list[str],
     query: str | None,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
@@ -71,10 +76,13 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
-        params=params,
+        params={},
+        snuba_params=snuba_params,
         query=query,
         interval=rollup,
         selected_columns=selected_columns,
@@ -82,19 +90,21 @@ def timeseries_query(
             functions_acl=functions_acl,
         ),
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer=referrer, query_source=query_source)
 
     return SnubaTSResult(
         {
-            "data": zerofill(
-                results["data"],
-                params["start"],
-                params["end"],
-                rollup,
-                "time",
-            )
-            if zerofill_results
-            else results["data"],
+            "data": (
+                zerofill(
+                    results["data"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
+                    rollup,
+                    ["time"],
+                )
+                if zerofill_results
+                else results["data"]
+            ),
             "meta": {
                 "fields": {
                     value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
@@ -102,7 +112,7 @@ def timeseries_query(
                 }
             },
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )

@@ -4,16 +4,16 @@ import moment from 'moment-timezone';
 
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   feedbackItem: FeedbackIssue;
 };
 
 export default function FeedbackTimestampsTooltip({feedbackItem}: Props) {
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const options = user?.options ?? {};
   const format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
   const dateFirstSeen = feedbackItem.firstSeen ? moment(feedbackItem.firstSeen) : null;

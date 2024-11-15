@@ -3,13 +3,13 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
-// TODO: Make dyanmic for other platforms/integrations
+// TODO: Make dynamic for other platforms/integrations
 export default function AddInstallationInstructions() {
   return (
     <Fragment>
       <p>
         {tct(
-          'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and performance monitoring without any code changes. We use CloudFormation Stack ([learnMore]) to create the Sentry role which gives us access to your AWS account.',
+          'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error monitoring and allow you to use tracing without any code changes. We use CloudFormation Stack ([learnMore]) to create the Sentry role which gives us access to your AWS account.',
           {
             learnMore: (
               <ExternalLink href="https://aws.amazon.com/cloudformation/">
@@ -27,8 +27,8 @@ export default function AddInstallationInstructions() {
       </p>
       <p>
         {tct(
-          'If you don’t want to add CloudFormation stack to your AWS environment, press the [manualSetup] button instead.',
-          {manualSetup: <strong>{t('Manual Setup')}</strong>}
+          'If you don’t want to add CloudFormation stack to your AWS environment, press the [manual] button above instead.',
+          {manual: <strong>{t('Manual')}</strong>}
         )}
       </p>
     </Fragment>

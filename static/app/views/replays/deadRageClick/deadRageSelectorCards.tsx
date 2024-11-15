@@ -1,22 +1,22 @@
-import type {ComponentProps, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
-import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   ContentContainer,
   HeaderContainer,
@@ -133,7 +133,6 @@ function AccordionWidget({
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
-            buttonOnLeft
             collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
@@ -142,7 +141,7 @@ function AccordionWidget({
                 d.dom_element.fullSelector
               )}"`;
               return {
-                header: () => (
+                header: (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
@@ -151,7 +150,7 @@ function AccordionWidget({
                     id={d.project_id}
                   />
                 ),
-                content: () => (
+                content: (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}
@@ -216,7 +215,7 @@ function SearchButton({
   label: ReactNode;
   path: string;
   sort: string;
-} & Omit<ComponentProps<typeof LinkButton>, 'size' | 'to'>) {
+} & Omit<LinkButtonProps, 'size' | 'to' | 'external'>) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -279,6 +278,7 @@ const StyledButton = styled(LinkButton)`
   border-left: none;
   border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  background-color: transparent;
 `;
 
 const StyledAccordionHeader = styled('div')`

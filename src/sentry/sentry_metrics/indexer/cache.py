@@ -284,7 +284,7 @@ class CachingIndexer(StringIndexer):
                 _INDEXER_CACHE_RESOLVE_METRIC,
                 tags={"cache_hit": "false", "use_case": use_case_id.value},
             )
-            # TODO this random rollout is backwards
+            # TODO: this random rollout is backwards
             if random.random() >= options.get(
                 "sentry-metrics.indexer.disable-memcache-replenish-rollout"
             ):

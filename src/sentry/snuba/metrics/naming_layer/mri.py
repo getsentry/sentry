@@ -24,7 +24,6 @@ __all__ = (
     "MRI_SCHEMA_REGEX",
     "MRI_EXPRESSION_REGEX",
     "ErrorsMRI",
-    "BundleAnalysisMRI",
     "parse_mri",
     "get_available_operations",
     "is_mri_field",
@@ -39,6 +38,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import cast
 
+from sentry_kafka_schemas.codecs import ValidationError
+
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -51,24 +52,7 @@ from sentry.snuba.metrics.utils import (
     MetricUnit,
 )
 
-
-def _build_namespace_regex() -> str:
-    """
-    Builds a namespace regex for matching MRIs based on the declared use case ids in the
-    product.
-    """
-    use_case_ids = []
-    for use_case_id in UseCaseID:
-        use_case_ids.append(use_case_id.value)
-
-    return rf"({'|'.join(use_case_ids)})"
-
-
-MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
-MRI_NAMESPACE_REGEX = _build_namespace_regex()
-MRI_NAME_REGEX = r"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)"
-MRI_UNIT_REGEX = r"[\w.]*"
-MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
+MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
@@ -149,6 +133,7 @@ class TransactionMRI(Enum):
 
     # Derived
     ALL = "e:transactions/all@none"
+    ALL_DURATION = "e:transactions/all_duration@none"
     FAILURE_COUNT = "e:transactions/failure_count@none"
     FAILURE_RATE = "e:transactions/failure_rate@ratio"
     SATISFIED = "e:transactions/satisfied@none"
@@ -178,11 +163,26 @@ class TransactionMRI(Enum):
 class SpanMRI(Enum):
     USER = "s:spans/user@none"
     DURATION = "d:spans/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:spans/count_per_root_project@none"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
-    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
+
+    # Measurement-based metrics
+    AI_TOTAL_TOKENS = "c:spans/ai.total_tokens.used@none"
+    AI_TOTAL_COST = "c:spans/ai.total_cost@usd"
+    CACHE_ITEM_SIZE = "d:spans/cache.item_size@byte"
     DECODED_RESPONSE_CONTENT_LENGTH = "d:spans/http.decoded_response_content_length@byte"
+    MESSAGE_RECEIVE_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
+    MOBILE_FRAMES_DELAY = "g:spans/mobile.frames_delay@second"
+    MOBILE_FROZEN_FRAMES = "g:spans/mobile.frozen_frames@none"
+    MOBILE_SLOW_FRAMES = "g:spans/mobile.slow_frames@none"
+    MOBILE_TOTAL_FRAMES = "g:spans/mobile.total_frames@none"
+    RESPONSE_CONTENT_LENGTH = "d:spans/http.response_content_length@byte"
     RESPONSE_TRANSFER_SIZE = "d:spans/http.response_transfer_size@byte"
+    WEB_VITALS_INP = "d:spans/webvital.inp@millisecond"
+    WEB_VITALS_SCORE_INP = "d:spans/webvital.score.inp@ratio"
+    WEB_VITALS_SCORE_TOTAL = "d:spans/webvital.score.total@ratio"
+    WEB_VITALS_SCORE_WEIGHT = "d:spans/webvital.score.weight.inp@ratio"
 
     # Derived
     ALL = "e:spans/all@none"
@@ -195,10 +195,6 @@ class SpanMRI(Enum):
 
 class ErrorsMRI(Enum):
     EVENT_INGESTED = "c:escalating_issues/event_ingested@none"
-
-
-class BundleAnalysisMRI(Enum):
-    BUNDLE_SIZE = "d:bundle_analysis/bundle_size@byte"
 
 
 @dataclass
@@ -256,7 +252,12 @@ def format_mri_field(field: str) -> str:
     try:
         parsed = parse_mri_field(field)
 
-        return str(parsed) if parsed else field
+        if parsed:
+            return str(parsed)
+
+        else:
+            return field
+
     except InvalidParams:
         return field
 
@@ -269,15 +270,14 @@ def format_mri_field_value(field: str, value: str) -> str:
     it will be returned as 1 minute.
 
     """
-
     try:
         parsed_mri_field = parse_mri_field(field)
         if parsed_mri_field is None:
             return value
 
         unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-
         return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
+
     except InvalidParams:
         return value
 
@@ -358,3 +358,17 @@ def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
     else:
         entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
+
+
+def extract_use_case_id(mri: str) -> UseCaseID:
+    """
+    Returns the use case ID given the MRI, throws an error if MRI is invalid or the use case doesn't exist.
+    """
+    parsed_mri = parse_mri(mri)
+    if parsed_mri is not None:
+        if parsed_mri.namespace in {id.value for id in UseCaseID}:
+            return UseCaseID(parsed_mri.namespace)
+
+        raise ValidationError(f"The use case of the MRI {parsed_mri.namespace} does not exist")
+
+    raise ValidationError(f"The MRI {mri} is not valid")

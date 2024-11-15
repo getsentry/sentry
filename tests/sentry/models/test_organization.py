@@ -13,28 +13,27 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.deletions.tasks.hybrid_cloud import (
+    schedule_hybrid_cloud_foreign_key_jobs,
+    schedule_hybrid_cloud_foreign_key_jobs_control,
+)
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.silo import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import (
-    schedule_hybrid_cloud_foreign_key_jobs,
-    schedule_hybrid_cloud_foreign_key_jobs_control,
-)
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 
 
-@region_silo_test
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -75,7 +74,10 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert org.default_owner_id is None
 
     @mock.patch.object(
-        Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
+        Organization,
+        "get_members_with_org_roles",
+        side_effect=Organization.get_members_with_org_roles,
+        autospec=True,
     )
     def test_default_owner_id_cached(self, mock_get_owners):
         user = self.create_user("foo@example.com")
@@ -93,11 +95,15 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.flags.codecov_access = True
         org.flags.require_2fa = True
         org.flags.disable_member_project_creation = True
+        org.flags.prevent_superuser_access = True
+        org.flags.disable_member_invite = True
         assert flag_has_changed(org, "allow_joinleave") is False
         assert flag_has_changed(org, "early_adopter")
         assert flag_has_changed(org, "codecov_access")
         assert flag_has_changed(org, "require_2fa")
         assert flag_has_changed(org, "disable_member_project_creation")
+        assert flag_has_changed(org, "prevent_superuser_access")
+        assert flag_has_changed(org, "disable_member_invite")
 
     def test_has_changed(self):
         org = self.create_organization()
@@ -175,7 +181,6 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         self.assertFalse(has_changed(inst, "name"))
 
 
-@region_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -227,9 +232,11 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=compliant_member)
         self.assert_org_member_mapping(org_member=non_compliant_member)
 
-        with self.options(
-            {"system.url-prefix": "http://example.com"}
-        ), self.tasks(), outbox_runner():
+        with (
+            self.options({"system.url-prefix": "http://example.com"}),
+            self.tasks(),
+            outbox_runner(),
+        ):
             self.org.handle_2fa_required(self.request)
 
         self.is_organization_member(compliant_user.id, compliant_member.id)
@@ -279,9 +286,11 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=member)
             non_compliant.append((user, member))
 
-        with self.options(
-            {"system.url-prefix": "http://example.com"}
-        ), self.tasks(), outbox_runner():
+        with (
+            self.options({"system.url-prefix": "http://example.com"}),
+            self.tasks(),
+            outbox_runner(),
+        ):
             self.org.handle_2fa_required(self.request)
 
         for user, member in non_compliant:
@@ -339,9 +348,11 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options(
-            {"system.url-prefix": "http://example.com"}
-        ), self.tasks(), outbox_runner():
+        with (
+            self.options({"system.url-prefix": "http://example.com"}),
+            self.tasks(),
+            outbox_runner(),
+        ):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 api_key = ApiKey.objects.create(
                     organization_id=self.org.id,
@@ -372,9 +383,11 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         user, member = self._create_user_and_member()
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options(
-            {"system.url-prefix": "http://example.com"}
-        ), self.tasks(), outbox_runner():
+        with (
+            self.options({"system.url-prefix": "http://example.com"}),
+            self.tasks(),
+            outbox_runner(),
+        ):
             request = copy.deepcopy(self.request)
             request.META["REMOTE_ADDR"] = None
             self.org.handle_2fa_required(request)
@@ -408,7 +421,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
         assert url == "http://testserver/organizations/acme/issues/?project=123#ref"
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_absolute_url_with_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_url("/organizations/acme/restore/")
@@ -420,8 +433,21 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
+    def test_get_bulk_owner_profiles(self):
+        u1, u2, u3 = (self.create_user() for _ in range(3))
+        o1, o2, o3 = (self.create_organization(owner=u) for u in (u1, u2, u3))
+        o2.get_default_owner()  # populate _default_owner
+        with assume_test_silo_mode_of(User):
+            u3.delete()
 
-@region_silo_test
+        bulk_owner_profiles = Organization.get_bulk_owner_profiles([o1, o2, o3])
+        assert set(bulk_owner_profiles.keys()) == {o1.id, o2.id}
+        assert bulk_owner_profiles[o1.id].id == u1.id
+        assert bulk_owner_profiles[o2.id].id == u2.id
+        assert bulk_owner_profiles[o2.id].name == u2.name
+        assert bulk_owner_profiles[o2.id].email == u2.email
+
+
 class OrganizationDeletionTest(TestCase):
     def add_org_notification_settings(self, org: Organization, user: User):
         with assume_test_silo_mode(SiloMode.CONTROL):

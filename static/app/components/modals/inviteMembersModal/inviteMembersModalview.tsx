@@ -19,7 +19,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member} from 'sentry/types';
+import type {Member} from 'sentry/types/organization';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];
@@ -40,6 +40,7 @@ interface Props {
   setRole: (role: string, index: number) => void;
   setTeams: (teams: string[], index: number) => void;
   willInvite: boolean;
+  error?: string;
 }
 
 export default function InviteMembersModalView({
@@ -61,6 +62,7 @@ export default function InviteMembersModalView({
   setRole,
   setTeams,
   willInvite,
+  error,
 }: Props) {
   const disableInputs = sendingInvites || complete;
 
@@ -68,8 +70,15 @@ export default function InviteMembersModalView({
   const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
   const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
 
+  const errorAlert = error ? (
+    <Alert type="error" showIcon>
+      {error}
+    </Alert>
+  ) : null;
+
   return (
     <Fragment>
+      {errorAlert}
       <Heading>{t('Invite New Members')}</Heading>
       {willInvite ? (
         <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
@@ -98,7 +107,7 @@ export default function InviteMembersModalView({
             emails={[...emails]}
             role={role}
             teams={[...teams]}
-            roleOptions={member ? member.roles : ORG_ROLES}
+            roleOptions={member?.orgRoleList ?? ORG_ROLES}
             roleDisabledUnallowed={willInvite}
             inviteStatus={inviteStatus}
             onRemove={() => removeInviteRow(i)}
@@ -176,7 +185,7 @@ export default function InviteMembersModalView({
 }
 
 const Heading = styled('h1')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
   margin-bottom: ${space(0.75)};
@@ -198,7 +207,7 @@ const InviteeHeadings = styled('div')`
   ${inviteRowGrid};
 
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

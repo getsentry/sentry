@@ -661,7 +661,7 @@ export function getOptionField(option: string, field: Field) {
   );
 }
 
-function getSectionFieldSet(section: Section, fields: Field[]) {
+function getSectionFieldSet(section: Section, fields: React.ReactNode[]) {
   return (
     <fieldset key={section.key}>
       {section.heading && <legend>{section.heading}</legend>}
@@ -670,11 +670,11 @@ function getSectionFieldSet(section: Section, fields: Field[]) {
   );
 }
 
-export function getForm(fieldMap: Record<string, Field>) {
+export function getForm(fieldMap: Record<string, React.ReactNode>) {
   const sets: React.ReactNode[] = [];
 
   for (const section of sections) {
-    const set: Field[] = [];
+    const set: React.ReactNode[] = [];
 
     for (const option of optionsForSection(section)) {
       if (fieldMap[option.key]) {

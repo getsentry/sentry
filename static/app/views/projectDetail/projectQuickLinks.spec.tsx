@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: {features: ['performance-view']},
   });
 
@@ -21,7 +21,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('heading', {name: 'Quick Links'})).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
         location={router.location}
         project={ProjectFixture()}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const keyTransactions = screen.getByText('View Transactions');

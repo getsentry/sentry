@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import Datetime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
@@ -152,9 +152,9 @@ export function getAbsoluteSummary(
 
   return (
     <Fragment>
-      <Datetime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime date={start} dateOnly={showDateOnly} utc={!!utc} />
       {'–'}
-      <Datetime date={end} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime date={end} dateOnly={showDateOnly} utc={!!utc} />
     </Fragment>
   );
 }

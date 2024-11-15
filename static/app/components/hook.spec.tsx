@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Hook from 'sentry/components/hook';
 import HookStore from 'sentry/stores/hookStore';
@@ -50,11 +50,13 @@ describe('Hook', function () {
 
     expect(screen.getByTestId('hook-wrapper')).toBeInTheDocument();
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        New Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          New Hook
+        </HookWrapper>
+      ))
+    );
 
     rerender(<Hook name="sidebar:help-menu" organization={OrganizationFixture()} />);
 
@@ -77,17 +79,21 @@ describe('Hook', function () {
       </Hook>
     );
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        First Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          First Hook
+        </HookWrapper>
+      ))
+    );
 
-    HookStore.add('sidebar:help-menu', () => (
-      <HookWrapper key="new" organization={null}>
-        Second Hook
-      </HookWrapper>
-    ));
+    act(() =>
+      HookStore.add('sidebar:help-menu', () => (
+        <HookWrapper key="new" organization={null}>
+          Second Hook
+        </HookWrapper>
+      ))
+    );
 
     for (let i = 0; i < idx; i++) {
       expect(screen.getByText(`hook: ${idx}`)).toBeInTheDocument();

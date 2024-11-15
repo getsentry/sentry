@@ -1,5 +1,4 @@
-import logging
-
+import orjson
 from django.http import HttpRequest, HttpResponse
 
 from sentry import eventstore
@@ -8,12 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.grouping.api import GroupingConfigNotFound
-from sentry.grouping.variants import PerformanceProblemVariant
-from sentry.utils import json, metrics
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
-
-logger = logging.getLogger(__name__)
+from sentry.grouping.grouping_info import get_grouping_info
 
 
 @region_silo_endpoint
@@ -35,59 +29,23 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         if event is None:
             raise ResourceDoesNotExist
 
-        rv = {}
-        config_name = request.GET.get("config") or None
+        _grouping_info = get_grouping_info(request.GET.get("config", None), project, event)
 
-        # We always fetch the stored hashes here.  The reason for this is
-        # that we want to show in the UI if the forced grouping algorithm
-        # produced hashes that would normally also appear in the event.
-        hashes = event.get_hashes()
+        # TODO: All of the below is a temporary hack to preserve compatibility between the BE and FE as
+        # we transition from using dashes in the keys/variant types to using underscores. For now, until
+        # we change the FE, we switch back to dashes before sending the data.
+        grouping_info = {}
 
-        try:
-            if event.get_event_type() == "transaction":
-                # Transactions events are grouped using performance detection. They
-                # are not subject to grouping configs, and the only relevant
-                # grouping variant is `PerformanceProblemVariant`.
+        for key, variant_dict in _grouping_info.items():
+            new_key = key.replace("_", "-")
+            new_type = variant_dict.get("type", "").replace("_", "-")
 
-                problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes.hashes])
+            variant_dict["key"] = new_key
+            if "type" in variant_dict:
+                variant_dict["type"] = new_type
 
-                # Create a variant for every problem associated with the event
-                # TODO: Generate more unique keys, in case this event has more than
-                # one problem of a given type
-                variants = {
-                    problem.problem.type.slug: PerformanceProblemVariant(problem)
-                    for problem in problems
-                    if problem
-                }
-            else:
-                variants = event.get_grouping_variants(
-                    force_config=config_name, normalize_stacktraces=True
-                )
+            grouping_info[new_key] = variant_dict
 
-        except GroupingConfigNotFound:
-            raise ResourceDoesNotExist(detail="Unknown grouping config")
-
-        for key, variant in variants.items():
-            d = variant.as_dict()
-            # Since the hashes are generated on the fly and might no
-            # longer match the stored ones we indicate if the hash
-            # generation caused the hash to mismatch.
-            d["hashMismatch"] = hash_mismatch = (
-                d["hash"] is not None
-                and d["hash"] not in hashes.hashes
-                and d["hash"] not in hashes.hierarchical_hashes
-            )
-
-            if hash_mismatch:
-                metrics.incr("event_grouping_info.hash_mismatch")
-                logger.error(
-                    "event_grouping_info.hash_mismatch",
-                    extra={"project_id": project.id, "event_id": event_id},
-                )
-            else:
-                metrics.incr("event_grouping_info.hash_match")
-
-            d["key"] = key
-            rv[key] = d
-
-        return HttpResponse(json.dumps(rv), content_type="application/json")
+        return HttpResponse(
+            orjson.dumps(grouping_info, option=orjson.OPT_UTC_Z), content_type="application/json"
+        )

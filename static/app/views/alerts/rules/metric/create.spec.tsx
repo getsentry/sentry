@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
@@ -30,6 +30,10 @@ describe('Incident Rules Create', function () {
       body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
       body: [
         {
@@ -42,7 +46,7 @@ describe('Incident Rules Create', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-meta/`,
@@ -60,18 +64,20 @@ describe('Incident Rules Create', function () {
       />
     );
 
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: {
-          interval: '60m',
-          project: [2],
-          query: 'event.type:error',
-          statsPeriod: '9999m',
-          yAxis: 'count()',
-          referrer: 'api.organization-event-stats',
-        },
-      })
+    await waitFor(() =>
+      expect(eventStatsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            interval: '60m',
+            project: [2],
+            query: 'event.type:error',
+            statsPeriod: '9998m',
+            yAxis: 'count()',
+            referrer: 'api.organization-event-stats',
+          },
+        })
+      )
     );
   });
 });

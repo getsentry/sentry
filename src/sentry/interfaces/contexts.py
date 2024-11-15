@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import string
-from typing import ClassVar, TypeVar
+from typing import Any, ClassVar, TypeVar
 
+import sentry_sdk
 from django.utils.encoding import force_str
 
 from sentry.interfaces.base import Interface
@@ -93,6 +94,9 @@ class ContextType:
             # we still want to display the info the UI
             if value is not None:
                 ctx_data[force_str(key)] = value
+            # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
+            if isinstance(value, (int, float, list, dict)):
+                ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
     def to_json(self):
@@ -130,6 +134,16 @@ class ContextType:
                         yield (self.alias, value)
                     else:
                         yield (f"{self.alias}.{field}", value)
+
+    def change_type(self, value: int | float | list | dict) -> Any:
+        if isinstance(value, (float, int)) and len(str_value := force_str(value)) > 15:
+            return str_value
+        if isinstance(value, list):
+            return [self.change_type(el) for el in value]
+        elif isinstance(value, dict):
+            return {key: self.change_type(el) for key, el in value.items()}
+        else:
+            return value
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
@@ -219,7 +233,12 @@ class Contexts(Interface):
     @classmethod
     def normalize_context(cls, alias, data):
         ctx_type = data.get("type", alias)
-        ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        try:
+            ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        except TypeError:
+            # Debugging information for SENTRY-FOR-SENTRY-2NH2.
+            sentry_sdk.set_context("ctx_type", ctx_type)
+            raise
         return ctx_cls(alias, data)
 
     def iter_contexts(self):

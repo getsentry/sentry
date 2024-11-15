@@ -4,7 +4,7 @@ import logging
 import pickle
 import re
 import time
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Callable, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
@@ -16,8 +16,7 @@ from arroyo.dlq import InvalidMessage
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import BrokerValue, Message, Partition, Topic, Value
 
-from sentry.ratelimits.cardinality import CardinalityLimiter
-from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_option
+from sentry.sentry_metrics.aggregation_option_registry import get_aggregation_options
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -26,12 +25,9 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.indexer.limiters.cardinality import (
-    TimeseriesCardinalityLimiter,
-    cardinality_limiter_factory,
-)
 from sentry.sentry_metrics.indexer.mock import MockIndexer, RawSimpleIndexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -47,7 +43,7 @@ BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
 
 @pytest.fixture(autouse=True)
-def update_sentry_settings(settings):
+def update_sentry_settings(settings: Any) -> None:
     settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
 
 
@@ -71,6 +67,7 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
     actual_deserialized = json.loads(actual_payload.value)
     expected_deserialized = json.loads(expected_payload.value)
     del actual_deserialized["mapping_meta"]
+
     assert actual_deserialized == expected_deserialized
 
 
@@ -82,7 +79,9 @@ def compare_message_batches_ignoring_metadata(
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
-def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
+def _batch_message_set_up(
+    next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2
+) -> tuple[Any, Any, Any]:
     # batch time is in seconds
     batch_messages_step = BatchMessages(
         next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
@@ -137,7 +136,7 @@ def test_batch_messages() -> None:
     assert batch_messages_step._BatchMessages__batch is None
 
 
-def test_batch_messages_rejected_message():
+def test_batch_messages_rejected_message() -> None:
     next_step = Mock()
     next_step.submit.side_effect = MessageRejected()
 
@@ -161,7 +160,7 @@ def test_batch_messages_rejected_message():
     assert next_step.submit.called
 
 
-def test_batch_messages_join():
+def test_batch_messages_join() -> None:
     next_step = Mock()
 
     batch_messages_step, message1, _ = _batch_message_set_up(next_step)
@@ -175,7 +174,7 @@ def test_batch_messages_join():
     assert not next_step.submit.called
 
 
-def test_metrics_batch_builder():
+def test_metrics_batch_builder() -> None:
     max_batch_time = 3.0  # seconds
     max_batch_size = 2
 
@@ -244,7 +243,7 @@ counter_payloads: list[dict[str, Any]] = [
             "session.status": "init",
         },
         "timestamp": ts,
-        "type": b"c",
+        "type": "c",
         "value": 1.0,
         "org_id": 1,
         "project_id": 3,
@@ -261,7 +260,7 @@ distribution_payloads: list[dict[str, Any]] = [
             "session.status": "healthy",
         },
         "timestamp": ts,
-        "type": b"d",
+        "type": "d",
         "value": [4, 5, 6],
         "org_id": 1,
         "project_id": 3,
@@ -279,7 +278,7 @@ set_payloads: list[dict[str, Any]] = [
             "session.status": "errored",
         },
         "timestamp": ts,
-        "type": b"s",
+        "type": "s",
         "value": [3],
         "org_id": 1,
         "project_id": 3,
@@ -291,7 +290,8 @@ set_payloads: list[dict[str, Any]] = [
 
 
 def __translated_payload(
-    payload, indexer=None
+    payload: dict[str, Any],
+    indexer=None,
 ) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
@@ -312,9 +312,15 @@ def __translated_payload(
         for k, v in payload["tags"].items()
     }
 
-    agg_option = get_aggregation_option(payload["name"])
-    if agg_option:
-        payload["aggregation_option"] = agg_option
+    agg_options = get_aggregation_options(payload["name"])
+
+    if agg_options:
+        # Keep this assert for now to indicate that we only have maximum 1 aggregation
+        # option per metric bucket, regardless of the use case in the bucket
+        assert len(agg_options) == 1
+
+        agg_option = agg_options.popitem()[0]
+        payload["aggregation_option"] = agg_option.value
 
     payload["metric_id"] = indexer.resolve(
         use_case_id=use_case_id, org_id=org_id, string=payload["name"]
@@ -349,32 +355,42 @@ def test_process_messages() -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-    expected_new_batch = []
-    for i, m in enumerate(message_batch):
-        assert isinstance(m.value, BrokerValue)
-        expected_new_batch.append(
-            Message(
-                BrokerValue(
-                    KafkaPayload(
-                        None,
-                        json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                        [
-                            ("metric_type", message_payloads[i]["type"]),
-                        ],
-                    ),
-                    m.value.partition,
-                    m.value.offset,
-                    m.value.timestamp,
+    # Add a bunch of special aggregation options
+    # The expectation with this is that there should
+    # always be only 1 aggregation per bucket/payload
+    with override_options(
+        {
+            "sentry-metrics.10s-granularity": True,
+            "sentry-metrics.drop-percentiles.per-use-case": {"spans", "transactions"},
+        }
+    ):
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        expected_new_batch = []
+
+        for i, m in enumerate(message_batch):
+            assert isinstance(m.value, BrokerValue)
+            expected_new_batch.append(
+                Message(
+                    BrokerValue(
+                        KafkaPayload(
+                            None,
+                            json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                            [
+                                ("metric_type", message_payloads[i]["type"].encode()),
+                            ],
+                        ),
+                        m.value.partition,
+                        m.value.offset,
+                        m.value.timestamp,
+                    )
                 )
             )
-        )
 
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
 @pytest.mark.django_db
-def test_process_messages_default_card_rollout(set_sentry_option) -> None:
+def test_process_messages_default_card_rollout(set_sentry_option: Callable[..., Any]) -> None:
     message_payloads = counter_payloads + distribution_payloads + set_payloads
     message_batch = [
         Message(
@@ -392,12 +408,7 @@ def test_process_messages_default_card_rollout(set_sentry_option) -> None:
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-        1.0,
-    ):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     assert len(new_batch.data) == len(message_batch)
 
 
@@ -421,7 +432,7 @@ invalid_payloads = [
     ),
     (
         {
-            "name": "c:transactions/alert@none" * 21,
+            "name": "c:transactions/alert@" + ("none" * 50),
             "tags": {
                 "environment": "production",
                 "session.status": "errored",
@@ -447,7 +458,7 @@ invalid_payloads = [
 @pytest.mark.django_db
 @pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
 def test_process_messages_invalid_messages(
-    invalid_payload, error_text, format_payload, caplog
+    invalid_payload: dict[str, Any], error_text: str, format_payload: bool, caplog: Any
 ) -> None:
     """
     Test the following kinds of invalid payloads:
@@ -477,7 +488,7 @@ def test_process_messages_invalid_messages(
         ),
         Message(
             BrokerValue(
-                KafkaPayload(None, formatted_payload, []),
+                KafkaPayload(None, formatted_payload, []),  # type: ignore[arg-type]
                 Partition(Topic("topic"), 0),
                 1,
                 BROKER_TIMESTAMP,
@@ -517,7 +528,7 @@ def test_process_messages_invalid_messages(
 
 
 @pytest.mark.django_db
-def test_process_messages_rate_limited(caplog, settings) -> None:
+def test_process_messages_rate_limited(caplog: Any, settings: Any) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
     happens when postgres writes are being rate-limited.
@@ -585,57 +596,6 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert "dropped_message" in caplog.text
-
-
-@pytest.mark.django_db
-def test_process_messages_cardinality_limited(
-    caplog, settings, monkeypatch, set_sentry_option
-) -> None:
-    """
-    Test that the message processor correctly calls the cardinality limiter.
-    """
-    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-
-    # set any limit at all to ensure we actually use the underlying rate limiter
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
-
-        class MockCardinalityLimiter(CardinalityLimiter):
-            def check_within_quotas(self, requested_quotas):
-                # Grant nothing, limit everything
-                return 123, []
-
-            def use_quotas(self, grants, timestamp):
-                pass
-
-        monkeypatch.setitem(
-            cardinality_limiter_factory.rate_limiters,
-            "performance",
-            TimeseriesCardinalityLimiter("performance", MockCardinalityLimiter()),
-        )
-
-        message_payloads = counter_payloads + distribution_payloads + set_payloads
-        message_batch = [
-            Message(
-                BrokerValue(
-                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                    Partition(Topic("topic"), 0),
-                    i + 1,
-                    datetime.now(),
-                )
-            )
-            for i, payload in enumerate(message_payloads)
-        ]
-
-        last = message_batch[-1]
-        outer_message = Message(Value(message_batch, last.committable))
-
-        with caplog.at_level(logging.ERROR):
-            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-
-        compare_message_batches_ignoring_metadata(new_batch, [])
 
 
 def test_valid_metric_name() -> None:

@@ -22,15 +22,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
-
-      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
         with:
-          python-version: 3.11.6
+          node-version-file: '.volta.json'
+
+      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+        with:
+          python-version: 3.12.6
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install pip setuptools wheel -c requirements-dev-frozen.txt
+          install-cmd: echo
 
       - name: Step configurations
         id: config
@@ -49,15 +52,15 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('yarn.lock') }}
+          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('yarn.lock', '.volta.json') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
         run: yarn install --frozen-lockfile --production
 
       - run: |
-          SETUPTOOLS_USE_DISTUTILS=stdlib python setup.py bdist_wheel --build-number 0
-          cp requirements-frozen.txt dist/
+          python3 -m tools.fast_editable --path .
+          python3 -m sentry.build.main
 
       - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
         env:
@@ -82,6 +85,6 @@ jobs:
             --cache-to type=inline \
             --tag ghcr.io/getsentry/sentry-self-hosted:${{ github.sha }} \
             --file self-hosted/Dockerfile \
-            --build-arg SOURCE_COMMIt=${{ github.sha }} \
+            --build-arg SOURCE_COMMIT=${{ github.sha }} \
             "${args[@]}" \
             .

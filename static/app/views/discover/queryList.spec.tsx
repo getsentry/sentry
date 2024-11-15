@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -13,7 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
 
@@ -30,7 +30,7 @@ describe('Discover > QueryList', function () {
     eventsStatsMock,
     wrapper;
 
-  const {router, routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -104,7 +104,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
-  it('renders pre-built queries and saved ones', function () {
+  it('renders pre-built queries and saved ones', async function () {
     render(
       <QueryList
         savedQuerySearchQuery=""
@@ -118,7 +118,130 @@ describe('Discover > QueryList', function () {
       />
     );
 
-    expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: {
+          environment: [],
+          interval: '30m',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.discover.default-chart',
+          statsPeriod: '14d',
+          yAxis: ['count()'],
+        },
+      })
+    );
+  });
+
+  it('renders pre-built queries with dataset', async function () {
+    organization = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-view',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={organization}
+        savedQueries={[]}
+        renderPrebuilt
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />,
+      {router}
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'transactions',
+          query: '',
+          referrer: 'api.discover.homepage.prebuilt',
+          statsPeriod: '24h',
+          yAxis: 'count()',
+        }),
+      })
+    );
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'errors',
+          environment: [],
+          field: ['url', 'count()', 'count_unique(issue)'],
+          query: 'has:url',
+          referrer: 'api.discover.homepage.prebuilt',
+          statsPeriod: '24h',
+          topEvents: 5,
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
+    expect(router.push).toHaveBeenLastCalledWith({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: expect.objectContaining({queryDataset: 'error-events'}),
+    });
+  });
+
+  it('passes dataset to the query if flag is enabled', async function () {
+    const org = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={org}
+        savedQueries={savedQueries}
+        renderPrebuilt
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: {
+          environment: [],
+          interval: '30m',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.discover.default-chart',
+          statsPeriod: '14d',
+          yAxis: ['count()'],
+          dataset: 'transactions',
+        },
+      })
+    );
   });
 
   it('can duplicate and trigger change callback', async function () {
@@ -192,7 +315,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -214,7 +337,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -442,6 +565,7 @@ describe('Discover > QueryList', function () {
               orderby: 'count()',
               fields: ['test', 'count()'],
               yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.TRANSACTIONS,
             }),
           ]}
           pageLinks=""
@@ -491,6 +615,78 @@ describe('Discover > QueryList', function () {
           })
         );
       });
+    });
+  });
+
+  it('passes dataset to open modal', async function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['dashboards-edit', 'performance-discover-dataset-selector'],
+    });
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        renderPrebuilt={false}
+        organization={featuredOrganization}
+        savedQueries={[
+          DiscoverSavedQueryFixture({
+            display: DisplayModes.DEFAULT,
+            orderby: 'count()',
+            fields: ['test', 'count()'],
+            yAxis: ['count()'],
+            queryDataset: SavedQueryDatasets.TRANSACTIONS,
+          }),
+        ]}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />
+    );
+
+    const contextMenu = await screen.findByTestId('menu-trigger');
+    expect(contextMenu).toBeInTheDocument();
+
+    expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
+
+    await userEvent.click(contextMenu);
+
+    const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
+
+    await userEvent.click(addToDashboardMenuItem);
+
+    await waitFor(() => {
+      expect(openAddToDashboardModal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widget: {
+            displayType: 'line',
+            interval: undefined,
+            limit: undefined,
+            queries: [
+              {
+                aggregates: ['count()'],
+                columns: [],
+                conditions: '',
+                fields: ['count()'],
+                name: '',
+                orderby: '',
+              },
+            ],
+            title: 'Saved query #1',
+            widgetType: 'transaction-like',
+          },
+          widgetAsQueryParams: expect.objectContaining({
+            cursor: '0:1:1',
+            dataset: 'transaction-like',
+            defaultTableColumns: ['test', 'count()'],
+            defaultTitle: 'Saved query #1',
+            defaultWidgetQuery:
+              'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+            displayType: 'line',
+            source: 'discoverv2',
+            statsPeriod: '14d',
+          }),
+        })
+      );
     });
   });
 });

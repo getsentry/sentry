@@ -4,6 +4,13 @@
     "sentry.organization",
     "sentry.project"
   ],
+  "flags.flagauditlogmodel": [
+    "sentry.organization"
+  ],
+  "flags.flagwebhooksigningsecretmodel": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "hybridcloud.apikeyreplica": [
     "sentry.apikey",
     "sentry.organization"
@@ -14,6 +21,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.controlcacheversion": [],
   "hybridcloud.externalactorreplica": [
     "sentry.externalactor",
     "sentry.integration",
@@ -43,12 +51,7 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
@@ -56,6 +59,10 @@
   ],
   "sentry.alertruleactivationcondition": [
     "sentry.alertrule"
+  ],
+  "sentry.alertruleactivations": [
+    "sentry.alertrule",
+    "sentry.querysubscription"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
@@ -86,10 +93,12 @@
   ],
   "sentry.apiauthorization": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apigrant": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
   ],
   "sentry.apikey": [
@@ -97,17 +106,12 @@
   ],
   "sentry.apitoken": [
     "sentry.apiapplication",
+    "sentry.organization",
     "sentry.user"
-  ],
-  "sentry.appconnectbuild": [
-    "sentry.project"
   ],
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
-  ],
-  "sentry.artifactbundleflatfileindex": [
-    "sentry.project"
   ],
   "sentry.artifactbundleindex": [
     "sentry.artifactbundle",
@@ -144,7 +148,9 @@
     "sentry.authprovider",
     "sentry.organization"
   ],
-  "sentry.broadcast": [],
+  "sentry.broadcast": [
+    "sentry.user"
+  ],
   "sentry.broadcastseen": [
     "sentry.broadcast",
     "sentry.user"
@@ -191,6 +197,13 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.dashboardpermissions": [
+    "sentry.dashboard"
+  ],
+  "sentry.dashboardpermissionsteam": [
+    "sentry.dashboardpermissions",
+    "sentry.team"
+  ],
   "sentry.dashboardproject": [
     "sentry.dashboard",
     "sentry.project"
@@ -206,6 +219,9 @@
   ],
   "sentry.dashboardwidgetqueryondemand": [
     "sentry.dashboardwidgetquery"
+  ],
+  "sentry.datasecrecywaiver": [
+    "sentry.organization"
   ],
   "sentry.debugidartifactbundle": [
     "sentry.artifactbundle",
@@ -238,8 +254,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -253,10 +268,6 @@
     "sentry.file",
     "sentry.group",
     "sentry.project"
-  ],
-  "sentry.eventprocessingissue": [
-    "sentry.processingissue",
-    "sentry.rawevent"
   ],
   "sentry.exporteddata": [
     "sentry.file",
@@ -291,10 +302,6 @@
     "sentry.fileblob",
     "sentry.organization"
   ],
-  "sentry.flatfileindexstate": [
-    "sentry.artifactbundle",
-    "sentry.artifactbundleflatfileindex"
-  ],
   "sentry.group": [
     "sentry.project",
     "sentry.release"
@@ -328,12 +335,16 @@
     "sentry.grouptombstone",
     "sentry.project"
   ],
+  "sentry.grouphashmetadata": [
+    "sentry.grouphash"
+  ],
   "sentry.grouphistory": [
-    "sentry.actor",
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
@@ -372,6 +383,10 @@
     "sentry.project",
     "sentry.rule"
   ],
+  "sentry.groupsearchview": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.groupseen": [
     "sentry.group",
     "sentry.project",
@@ -401,7 +416,9 @@
   "sentry.identityprovider": [],
   "sentry.incident": [
     "sentry.alertrule",
-    "sentry.organization"
+    "sentry.alertruleactivations",
+    "sentry.organization",
+    "sentry.querysubscription"
   ],
   "sentry.incidentactivity": [
     "sentry.incident",
@@ -432,9 +449,6 @@
     "sentry.organizationintegration"
   ],
   "sentry.integrationfeature": [],
-  "sentry.latestappconnectbuildscheck": [
-    "sentry.project"
-  ],
   "sentry.latestreporeleaseenvironment": [
     "sentry.commit",
     "sentry.deploy",
@@ -448,13 +462,17 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
     "sentry.monitorenvironment",
     "sentry.monitorlocation",
     "sentry.project"
+  ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
   ],
   "sentry.monitorenvironment": [
     "sentry.environment",
@@ -556,24 +574,18 @@
     "sentry.group",
     "sentry.project"
   ],
-  "sentry.processingissue": [
-    "sentry.project"
-  ],
   "sentry.proguardartifactrelease": [
     "sentry.organization",
     "sentry.project",
     "sentry.projectdebugfile"
   ],
   "sentry.project": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.projecttemplate"
   ],
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization",
-    "sentry.project"
-  ],
-  "sentry.projectavatar": [
-    "sentry.file",
     "sentry.project"
   ],
   "sentry.projectbookmark": [
@@ -612,6 +624,12 @@
     "sentry.project",
     "sentry.team"
   ],
+  "sentry.projecttemplate": [
+    "sentry.organization"
+  ],
+  "sentry.projecttemplateoption": [
+    "sentry.projecttemplate"
+  ],
   "sentry.projecttransactionthreshold": [
     "sentry.organization",
     "sentry.project",
@@ -643,9 +661,6 @@
     "sentry.project",
     "sentry.snubaquery"
   ],
-  "sentry.rawevent": [
-    "sentry.project"
-  ],
   "sentry.recentsearch": [
     "sentry.organization",
     "sentry.user"
@@ -661,7 +676,6 @@
   "sentry.relayusage": [],
   "sentry.release": [
     "sentry.organization",
-    "sentry.project",
     "sentry.user"
   ],
   "sentry.releaseactivity": [
@@ -731,13 +745,18 @@
     "sentry.project",
     "sentry.repository"
   ],
-  "sentry.reprocessingreport": [
-    "sentry.project"
+  "sentry.rollbackorganization": [
+    "sentry.organization"
+  ],
+  "sentry.rollbackuser": [
+    "sentry.organization",
+    "sentry.user"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",
@@ -765,7 +784,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -784,9 +802,6 @@
   "sentry.sentryappinstallationtoken": [
     "sentry.apitoken",
     "sentry.sentryappinstallation"
-  ],
-  "sentry.sentryfunction": [
-    "sentry.organization"
   ],
   "sentry.sentryshot": [
     "sentry.organization"
@@ -813,10 +828,6 @@
   "sentry.team": [
     "sentry.organization"
   ],
-  "sentry.teamavatar": [
-    "sentry.file",
-    "sentry.team"
-  ],
   "sentry.teamkeytransaction": [
     "sentry.organization",
     "sentry.projectteam"
@@ -829,7 +840,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [
@@ -858,5 +868,54 @@
   ],
   "social_auth.usersocialauth": [
     "sentry.user"
+  ],
+  "uptime.projectuptimesubscription": [
+    "sentry.environment",
+    "sentry.project",
+    "sentry.team",
+    "sentry.user",
+    "uptime.uptimesubscription"
+  ],
+  "uptime.uptimesubscription": [],
+  "workflow_engine.action": [
+    "sentry.integration"
+  ],
+  "workflow_engine.datacondition": [
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.dataconditiongroup": [
+    "sentry.organization"
+  ],
+  "workflow_engine.dataconditiongroupaction": [
+    "workflow_engine.action",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.datasource": [
+    "sentry.organization"
+  ],
+  "workflow_engine.datasourcedetector": [
+    "workflow_engine.datasource",
+    "workflow_engine.detector"
+  ],
+  "workflow_engine.detector": [
+    "sentry.organization",
+    "sentry.team",
+    "sentry.user",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.detectorstate": [
+    "workflow_engine.detector"
+  ],
+  "workflow_engine.detectorworkflow": [
+    "workflow_engine.detector",
+    "workflow_engine.workflow"
+  ],
+  "workflow_engine.workflow": [
+    "sentry.organization",
+    "workflow_engine.dataconditiongroup"
+  ],
+  "workflow_engine.workflowdataconditiongroup": [
+    "workflow_engine.dataconditiongroup",
+    "workflow_engine.workflow"
   ]
 }

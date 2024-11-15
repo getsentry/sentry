@@ -1,6 +1,6 @@
 import {useEffect, useMemo} from 'react';
 
-import hydrateEventTags from 'sentry/components/feedback/hydrateEventTags';
+import hydrateFeedbackTags from 'sentry/components/feedback/hydrateFeedbackTags';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -32,11 +32,15 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
     }
   );
 
-  const tags = useMemo(() => hydrateEventTags(eventData), [eventData]);
+  const tags = useMemo(
+    () => hydrateFeedbackTags(eventData, issueData),
+    [eventData, issueData]
+  );
 
   const {markAsRead} = useMutateFeedback({
     feedbackIds: [feedbackId],
     organization,
+    projectIds: issueData?.project ? [issueData.project.id] : [],
   });
 
   // TODO: it would be excellent if `PUT /issues/` could return the same data
@@ -45,7 +49,7 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   // Until that is fixed, we're going to run `markAsRead` after the issue is
   // initially fetched in order to speedup initial fetch and avoid race conditions.
   useEffect(() => {
-    if (issueResult.isFetched && !issueData?.hasSeen) {
+    if (issueResult.isFetched && issueData && !issueData.hasSeen) {
       markAsRead(true);
     }
   }, [issueResult.isFetched]); // eslint-disable-line react-hooks/exhaustive-deps

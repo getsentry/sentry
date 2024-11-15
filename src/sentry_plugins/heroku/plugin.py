@@ -5,17 +5,16 @@ import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.bases.releasetracking import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -51,7 +50,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> HttpResponse | None:
+    def handle(self, request: HttpRequest) -> HttpResponse | None:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
@@ -168,7 +167,7 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
     def get_conf_key(self):
         return "heroku"
 
-    def get_config(self, project, **kwargs):
+    def get_config(self, project, user=None, initial=None, add_additional_fields: bool = False):
         repo_list = list(Repository.objects.filter(organization_id=project.organization_id))
         if not ProjectOption.objects.get_value(project=project, key="heroku:repository"):
             choices = [("", "select a repo")]
@@ -215,5 +214,5 @@ class HerokuPlugin(CorePluginMixin, ReleaseTrackingPlugin):
         <pre class="clippy">heroku webhooks:add -i api:release -l notify -u {hook_url} -a YOUR_APP_NAME</pre>
         """
 
-    def get_release_hook(self):
+    def get_release_hook(self) -> type[HerokuReleaseHook]:
         return HerokuReleaseHook

@@ -56,7 +56,7 @@ describe('Alert utils', function () {
         query: expect.objectContaining({
           name: 'Test error alert',
           field: ['issue', 'count()', 'count_unique(user)'],
-          sort: ['-count'],
+          sort: '-count',
           query: 'id:test',
           yAxis: 'count()',
           start: '1970-01-01T00:00:00.000',
@@ -90,7 +90,7 @@ describe('Alert utils', function () {
         query: expect.objectContaining({
           name: 'Test transaction alert',
           field: ['transaction', 'p90()'],
-          sort: ['-p90'],
+          sort: '-p90',
           query: 'id:test',
           yAxis: 'p90()',
         }),

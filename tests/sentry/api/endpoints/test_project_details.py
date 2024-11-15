@@ -6,13 +6,18 @@ from time import time
 from typing import Any
 from unittest import mock
 
+import orjson
 from django.db import router
 from django.urls import reverse
+from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
@@ -25,14 +30,13 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
-from sentry.utils import json
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 def _dyn_sampling_data(multiple_uniform_rules=False, uniform_rule_last_position=True):
@@ -102,11 +106,10 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
 
 
 def first_symbol_source_id(sources_json):
-    sources = json.loads(sources_json)
+    sources = orjson.loads(sources_json)
     return sources[0]["id"]
 
 
-@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -247,8 +250,85 @@ class ProjectDetailsTest(APITestCase):
 
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
+    def test_highlight_preset(self):
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert self.project.get_option("sentry:highlight_tags") is None
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        expected_preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightPreset"] == expected_preset
+        assert resp.data["highlightContext"] == expected_preset["context"]
+        assert resp.data["highlightTags"] == expected_preset["tags"]
 
-@region_silo_test
+    def test_is_dynamically_sampled_pan_rate(self):
+        # test with feature flags disabled
+        with self.feature("organizations:dynamic-sampling"):
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled(self):
+        # test with feature flags disabled
+        with self.feature(
+            {
+                "organizations:dynamic-sampling": False,
+                "organizations:dynamic-sampling-custom": False,
+            }
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = organization
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        # test not sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test dynamically sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = project
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
+        )
+
+        # test with not sampled project
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampled project
+        self.project.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
+
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -260,8 +340,8 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -427,7 +507,6 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.data["detail"] == "You do not have permission to perform this action."
 
 
-@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -609,8 +688,11 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "sentry:replay_hydration_error_issues": True,
+            "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
-            "sentry:feedback_user_report_notification": True,
+            "sentry:feedback_user_report_notifications": True,
+            "sentry:feedback_ai_spam_detection": True,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
@@ -724,8 +806,15 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("feedback:branding") == "0"
+        assert project.get_option("sentry:replay_hydration_error_issues") is True
+        assert project.get_option("sentry:toolbar_allowed_origins") == [
+            "*.sentry.io",
+            "example.net",
+            "nugettrends.com",
+        ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
-        assert project.get_option("sentry:feedback_user_report_notification") is True
+        assert project.get_option("sentry:feedback_user_report_notifications") is True
+        assert project.get_option("sentry:feedback_ai_spam_detection") is True
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
@@ -734,6 +823,96 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("filters:react-hydration-errors", "1")
         assert project.get_option("filters:chunk-load-error", "1")
+
+    def test_custom_metrics_cardinality_limit(self):
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=1000,
+        )
+
+        config = self.project.get_option("relay.cardinality-limiter.limits")
+
+        assert config == [
+            {
+                "limit": {
+                    "id": "project-override-custom",
+                    "window": {"windowSeconds": 3600, "granularitySeconds": 600},
+                    "limit": 1000,
+                    "namespace": "custom",
+                    "scope": "name",
+                }
+            }
+        ]
+
+        limit = config[0]["limit"]
+        normalized_limit = normalize_cardinality_limit_config(limit)
+        assert normalized_limit == limit
+
+        assert resp.data["relayCustomMetricCardinalityLimit"] == 1000
+
+    def test_custom_metrics_cardinality_limit_invalid_text(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit="text",
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == ["A valid integer is required."]
+
+    def test_custom_metrics_cardinality_limit_invalid_negative_number(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=-1000,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be a non-negative integer."
+        ]
+
+    def test_custom_metrics_cardinality_limit_invalid_too_high(self):
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=4_294_967_296,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] == [
+            "Cardinality limit must be smaller or equal to 4,294,967,295."
+        ]
+
+    def test_custom_metrics_cardinality_limit_accepts_none(self):
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=None,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limts", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] is None
+
+    def test_custom_metrics_cardinality_limit_gets_deleted_when_receiving_none(self):
+        self.project.update_option(
+            "relay.cardinality-limiter.limits",
+            [
+                {
+                    "limit": {
+                        "id": "project-override-custom",
+                        "window": {"windowSeconds": 3600, "granularitySeconds": 600},
+                        "limit": 1000,
+                        "namespace": "custom",
+                        "scope": "name",
+                    }
+                }
+            ],
+        )
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            relayCustomMetricCardinalityLimit=None,
+        )
+        assert self.project.get_option("replay.cardinality-limiter.limits", []) == []
+        assert resp.data["relayCustomMetricCardinalityLimit"] is None
 
     def test_bookmarks(self):
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
@@ -837,6 +1016,93 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == [
             'Invalid syntax near "er ror" (line 1),\nDeep wildcard used more than once (line 2)',
         ]
+
+    def test_highlight_tags(self):
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        assert self.project.get_option("sentry:highlight_tags") is None
+        preset = get_highlight_preset_for_project(self.project)
+        assert resp.data["highlightTags"] == preset["tags"]
+        assert resp.data["highlightPreset"] == preset
+
+        # Set to custom
+        highlight_tags = ["bears", "beets", "battlestar_galactica"]
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=highlight_tags,
+        )
+        assert self.project.get_option("sentry:highlight_tags") == highlight_tags
+        assert resp.data["highlightTags"] == highlight_tags
+
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightTags=[],
+        )
+        assert self.project.get_option("sentry:highlight_tags") == []
+        assert resp.data["highlightTags"] == []
+        assert resp.data["highlightPreset"] == preset
+
+    def test_highlight_context(self):
+        # Unrelated change returns presets
+        resp = self.get_success_response(self.org_slug, self.proj_slug)
+        preset = get_highlight_preset_for_project(self.project)
+        assert self.project.get_option("sentry:highlight_context") is None
+        assert resp.data["highlightContext"] == preset["context"]
+        assert resp.data["highlightPreset"] == preset
+
+        # Set to custom
+        highlight_context_type = "bird-words"
+        highlight_context = {highlight_context_type: ["red", "robin", "blue", "jay", "red", "blue"]}
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=highlight_context,
+        )
+        option_result = self.project.get_option("sentry:highlight_context")
+        resp_result = resp.data["highlightContext"]
+        for highlight_context_key in highlight_context[highlight_context_type]:
+            assert highlight_context_key in option_result[highlight_context_type]
+            assert highlight_context_key in resp_result[highlight_context_type]
+
+        # Filters duplicates
+        assert (
+            len(option_result[highlight_context_type])
+            == len(resp_result[highlight_context_type])
+            == 4
+        )
+
+        # Set to empty
+        resp = self.get_success_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={},
+        )
+        assert self.project.get_option("sentry:highlight_context") == {}
+        assert resp.data["highlightContext"] == {}
+        assert resp.data["highlightPreset"] == preset
+
+        # Checking validation
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext=["bird-words", ["red", "blue"]],
+        )
+        assert "Expected a dictionary" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"": ["empty", "context", "type"]},
+        )
+        assert "Key '' is invalid" in resp.data["highlightContext"][0]
+        resp = self.get_error_response(
+            self.org_slug,
+            self.proj_slug,
+            highlightContext={"bird-words": ["invalid", 123, "integer"]},
+        )
+        assert "must be a list of strings" in resp.data["highlightContext"][0]
 
     def test_store_crash_reports(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
@@ -1005,11 +1271,13 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([config]).decode()
             )
             config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
             # redact password
             redacted_source = config.copy()
@@ -1029,10 +1297,14 @@ class ProjectUpdateTest(APITestCase):
             }
 
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
+                self.org_slug,
+                self.proj_slug,
+                symbolSources=orjson.dumps([redacted_source]).decode(),
             )
             # on save the magic object should be replaced with the previously set password
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
     @mock.patch("sentry.api.base.create_audit_entry")
     def test_redacted_symbol_source_secrets_unknown_secret(self, create_audit_entry):
@@ -1052,21 +1324,23 @@ class ProjectUpdateTest(APITestCase):
                 "password": "beepbeep",
             }
             self.get_success_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([config]).decode()
             )
             config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
 
-            assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
+            assert (
+                self.project.get_option("sentry:symbol_sources") == orjson.dumps([config]).decode()
+            )
 
             # prepare new call, this secret is not known
             new_source = config.copy()
             new_source["password"] = {"hidden-secret": True}
             new_source["id"] = "oops"
             response = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([new_source])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([new_source]).decode()
             )
             assert response.status_code == 400
-            assert json.loads(response.content) == {
+            assert orjson.loads(response.content) == {
                 "symbolSources": ["Hidden symbol source secret is missing a value"]
             }
 
@@ -1098,7 +1372,7 @@ class ProjectUpdateTest(APITestCase):
             "password": "beepbeep",
         }
 
-        project.update_option("sentry:symbol_sources", json.dumps([source1, source2]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([source1, source2]).decode())
         return [source1, source2]
 
     def test_symbol_sources_no_modification(self):
@@ -1106,97 +1380,75 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
             resp = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1, source2])
+                self.org_slug,
+                self.proj_slug,
+                symbolSources=orjson.dumps([source1, source2]).decode(),
             )
 
             assert resp.status_code == 200
-            assert project.get_option("sentry:symbol_sources", json.dumps([source1, source2]))
+            assert project.get_option(
+                "sentry:symbol_sources", orjson.dumps([source1, source2]).decode()
+            )
 
     def test_symbol_sources_deletion(self):
         source1, source2 = self.symbol_sources()
         project = Project.objects.get(id=self.project.id)
         with Feature({"organizations:custom-symbol-sources": False}):
             resp = self.get_response(
-                self.org_slug, self.proj_slug, symbolSources=json.dumps([source1])
+                self.org_slug, self.proj_slug, symbolSources=orjson.dumps([source1]).decode()
             )
 
             assert resp.status_code == 200
-            assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
+            assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
+    @with_feature("organizations:uptime-settings")
+    def test_uptime_settings(self):
+        # test when the value is set to False
+        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=False)
+        assert self.project.get_option("sentry:uptime_autodetection") is False
+        assert resp.data["uptimeAutodetection"] is False
+        # test when the value is set to True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, uptimeAutodetection=True)
+        assert self.project.get_option("sentry:uptime_autodetection") is True
+        assert resp.data["uptimeAutodetection"] is True
 
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert poll_project_recap_server.called
+    @with_feature({"organizations:dynamic-sampling-custom": False})
+    def test_target_sample_rate_without_feature(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_automatic_mode(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        # automatic mode is called "organization" in code
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert poll_project_recap_server.called
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_invalid(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_feature(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        with Feature({"organizations:recap-server": False}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_url") is None
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 400
-            assert project.get_option("sentry:recap_server_token") is None
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_no_modification(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(
-                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
-            )
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") == "http://example.com"
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") == "wat"
-            assert not poll_project_recap_server.called
-
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    def test_recap_server_deletion(self, poll_project_recap_server):
-        project = Project.objects.get(id=self.project.id)
-        project.update_option("sentry:recap_server_url", "http://example.com")
-        project.update_option("sentry:recap_server_token", "wat")
-        with Feature({"organizations:recap-server": True}):
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_url") is None
-            assert not poll_project_recap_server.called
-
-            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="")
-
-            assert resp.status_code == 200
-            assert project.get_option("sentry:recap_server_token") is None
-            assert not poll_project_recap_server.called
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
+        assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
 
-@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1273,7 +1525,7 @@ class CopyProjectSettingsTest(APITestCase):
         # default rule
         rules = Rule.objects.filter(project_id=project.id)
         assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
+        assert rules[0].label == "Send a notification for high priority issues"
 
     def test_simple(self):
         project = self.create_project()
@@ -1395,7 +1647,6 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
-@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"
@@ -1417,12 +1668,12 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-        deleted_project = Project.objects.get(id=self.project.id)
-        assert deleted_project.status == ObjectStatus.PENDING_DELETION
-        assert deleted_project.slug == "abc123"
+        project = Project.objects.get(id=self.project.id)
+        assert project.status == ObjectStatus.PENDING_DELETION
+        assert project.slug == "abc123"
         assert OrganizationOption.objects.filter(
-            organization_id=deleted_project.organization_id,
-            key=deleted_project.build_pending_deletion_key(),
+            organization_id=project.organization_id,
+            key=project.build_pending_deletion_key(),
         ).exists()
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)
@@ -1452,6 +1703,16 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
+    @mock.patch(
+        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+    )
+    def test_delete_project_and_delete_grouping_records(
+        self, mock_call_seer_delete_project_grouping_records
+    ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        self._delete_project_and_assert_deleted()
+        mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
+
 
 class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"
@@ -1476,7 +1737,6 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.project.update(date_added=old_date)
 
 
-@region_silo_test
 class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingBase):
     endpoint = "sentry-api-0-project-details"
 
@@ -1485,8 +1745,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         self.url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
         self.login_as(user=self.user)
@@ -1586,8 +1846,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -1630,8 +1890,8 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
         url = reverse(
             "sentry-api-0-project-details",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 

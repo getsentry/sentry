@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
@@ -8,7 +7,8 @@ import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {
   assignDefaultLayout,
   getInitialColumnDepths,

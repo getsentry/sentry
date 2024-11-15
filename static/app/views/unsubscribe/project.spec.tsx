@@ -5,7 +5,8 @@ import UnsubscribeProject from 'sentry/views/unsubscribe/project';
 
 describe('UnsubscribeProject', function () {
   const params = {orgId: 'acme', id: '9876'};
-  let mockUpdate, mockGet;
+  let mockUpdate: jest.Mock;
+  let mockGet: jest.Mock;
   beforeEach(() => {
     mockUpdate = MockApiClient.addMockResponse({
       url: '/organizations/acme/unsubscribe/project/9876/?_=signature-value',
@@ -25,13 +26,13 @@ describe('UnsubscribeProject', function () {
     });
   });
 
-  it('loads data from the the API based on URL parameters', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+  it('loads data from the API based on URL parameters', async function () {
+    const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();
@@ -40,12 +41,12 @@ describe('UnsubscribeProject', function () {
   });
 
   it('makes an API request when the form is submitted', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+    const {router, routerProps} = initializeOrg({
       router: {location: {query: {_: 'signature-value'}}, params},
     });
     render(
       <UnsubscribeProject {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('acme / react')).toBeInTheDocument();

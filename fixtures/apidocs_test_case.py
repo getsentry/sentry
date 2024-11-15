@@ -1,15 +1,15 @@
 import functools
 import os
 
+import orjson
 from django.conf import settings
 from openapi_core.contrib.django import DjangoOpenAPIRequest, DjangoOpenAPIResponse
 from openapi_core.spec import Spec
 from openapi_core.validation.response.validators import V30ResponseDataValidator
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 
 @requires_snuba
@@ -17,8 +17,8 @@ class APIDocsTestCase(APITestCase):
     @functools.cached_property
     def cached_schema(self):
         path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
-        with open(path) as json_file:
-            data = json.load(json_file)
+        with open(path, "rb") as json_file:
+            data = orjson.loads(json_file.read())
             data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
             del data["components"]
 
@@ -41,7 +41,7 @@ class APIDocsTestCase(APITestCase):
             "event_id": (name * 32)[:32],
             "fingerprint": ["1"],
             "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
             "user": {"id": self.user.id, "email": self.user.email},
             "release": name,
         }

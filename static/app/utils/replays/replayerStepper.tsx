@@ -1,6 +1,8 @@
-import {Replayer} from '@sentry-internal/rrweb';
+import {EventType, IncrementalSource, type Replayer} from '@sentry-internal/rrweb';
 
 import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
+
+import {createHiddenPlayer} from './createHiddenPlayer';
 
 interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   frames: Frame[] | undefined;
@@ -15,7 +17,7 @@ interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
 }
 
 type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
-  frame: Frame | undefined;
+  current: Frame | undefined;
 };
 
 export default function replayerStepper<
@@ -36,7 +38,19 @@ export default function replayerStepper<
       return;
     }
 
-    const replayer = createHiddenPlayer(rrwebEvents);
+    // Skip media interaction events as they are unnecessary to the
+    // stepper. Prevents errors with `play()`
+    // (https://developer.chrome.com/blog/play-request-was-interrupted)
+    // as well.
+    const rrwebEventsWithoutMediaInteractions = rrwebEvents.filter(
+      ({type, data}) =>
+        type !== EventType.IncrementalSnapshot ||
+        data.source !== IncrementalSource.MediaInteraction
+    );
+
+    const {replayer, cleanupReplayer} = createHiddenPlayer(
+      rrwebEventsWithoutMediaInteractions
+    );
 
     const nextFrame = (function () {
       let i = 0;
@@ -45,6 +59,9 @@ export default function replayerStepper<
 
     const onDone = () => {
       resolve(collection);
+      // to avoid recursion, since destroy() in cleanupReplayer() calls pause()
+      replayer.off('pause', handlePause);
+      cleanupReplayer();
     };
 
     const nextOrDone = () => {
@@ -57,54 +74,29 @@ export default function replayerStepper<
     };
 
     const frameRef: FrameRef<Frame> = {
-      frame: undefined,
+      current: undefined,
     };
 
     const considerFrame = (frame: Frame) => {
       if (shouldVisitFrame(frame, replayer)) {
-        frameRef.frame = frame;
-        window.setTimeout(() => {
+        frameRef.current = frame;
+        window.requestAnimationFrame(() => {
           const timestamp =
             'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
           replayer.pause(timestamp);
-        }, 0);
+        });
       } else {
-        frameRef.frame = undefined;
+        frameRef.current = undefined;
         nextOrDone();
       }
     };
 
     const handlePause = () => {
-      onVisitFrame(frameRef.frame!, collection, replayer);
+      onVisitFrame(frameRef.current!, collection, replayer);
       nextOrDone();
     };
 
     replayer.on('pause', handlePause);
     considerFrame(nextFrame());
-  });
-}
-
-function createHiddenPlayer(rrwebEvents: RecordingFrame[]): Replayer {
-  const domRoot = document.createElement('div');
-  domRoot.className = 'sentry-block';
-  const {style} = domRoot;
-
-  style.position = 'fixed';
-  style.inset = '0';
-  style.width = '0';
-  style.height = '0';
-  style.overflow = 'hidden';
-
-  document.body.appendChild(domRoot);
-
-  return new Replayer(rrwebEvents, {
-    root: domRoot,
-    loadTimeout: 1,
-    showWarning: false,
-    blockClass: 'sentry-block',
-    speed: 99999,
-    skipInactive: true,
-    triggerFocus: false,
-    mouseTail: false,
   });
 }

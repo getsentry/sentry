@@ -1,0 +1,18 @@
+---
+created: '2024-11-13T17:36:33.087509+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+---
+contributing variants:
+  system*
+    hash: "aee9aaca552e7fd593d085ca5a2260cf"
+    component:
+      system*
+        stacktrace*
+          frame*
+            module*
+              "foo.bar.Baz"
+            function* (normalized lambda function name)
+              "<function>"

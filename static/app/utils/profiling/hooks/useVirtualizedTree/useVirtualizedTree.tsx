@@ -131,9 +131,9 @@ export function useVirtualizedTree<T extends TreeLike>(
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
+    scrollTop: 0,
     roots: props.tree,
     selectedNodeIndex: props.initialSelectedNodeIndex ?? null,
-    scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: getMaxScrollHeight(props.scrollContainer),
   });

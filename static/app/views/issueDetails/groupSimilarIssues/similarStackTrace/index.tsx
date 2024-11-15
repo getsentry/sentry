@@ -1,12 +1,9 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import * as Layout from 'sentry/components/layouts/thirds';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -14,19 +11,16 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
 
-type RouteParams = {
-  groupId: string;
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
-  location: Location;
+type Props = {
   project: Project;
 };
 
@@ -36,8 +30,14 @@ type ItemState = {
   similar: SimilarItem[];
 };
 
-function SimilarStackTrace({params, location, project}: Props) {
-  const {orgId, groupId} = params;
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
+function SimilarStackTrace({project}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const params = useParams<{groupId: string; orgId: string}>();
 
   const [items, setItems] = useState<ItemState>({
     similar: [],
@@ -49,9 +49,13 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const hasSimilarityEmbeddingsFeature = project.features.includes(
-    'similarity-embeddings'
-  );
+  const hasSimilarityEmbeddingsFeature =
+    project.features.includes('similarity-embeddings') ||
+    location.query.similarityEmbeddings === '1';
+  // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
+  // backend option is using its default value of `True`). This is just so we can turn it off
+  // on demand to see if/how that changes the results.
+  const useReranking = String(location.query.useReranking !== '0');
 
   const fetchData = useCallback(() => {
     setStatus('loading');
@@ -60,20 +64,23 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     if (hasSimilarityEmbeddingsFeature) {
       reqs.push({
-        endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
+        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar-issues-embeddings/?${qs.stringify(
           {
-            k: 5,
-            threshold: 0.99,
+            k: 10,
+            threshold: 0.01,
+            useReranking,
           }
         )}`,
         dataKey: 'similar',
       });
     } else if (hasSimilarityFeature) {
       reqs.push({
-        endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
-          ...location.query,
-          limit: 50,
-        })}`,
+        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar/?${qs.stringify(
+          {
+            ...location.query,
+            limit: 50,
+          }
+        )}`,
         dataKey: 'similar',
       });
     }
@@ -81,10 +88,11 @@ function SimilarStackTrace({params, location, project}: Props) {
     GroupingStore.onFetch(reqs);
   }, [
     location.query,
-    groupId,
-    orgId,
+    params.groupId,
+    organization.slug,
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
+    useReranking,
   ]);
 
   const onGroupingChange = useCallback(
@@ -106,12 +114,12 @@ function SimilarStackTrace({params, location, project}: Props) {
         return;
       }
 
-      if (mergedParent && mergedParent !== groupId) {
+      if (mergedParent && mergedParent !== params.groupId) {
         // Merge success, since we can't specify target, we need to redirect to new parent
-        navigate(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
+        navigate(`/organizations/${organization.slug}/issues/${mergedParent}/similar/`);
       }
     },
-    [navigate, groupId, orgId]
+    [navigate, params.groupId, organization.slug]
   );
 
   useEffect(() => {
@@ -146,7 +154,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     GroupingStore.onMerge({
       params,
-      query: location.query,
+      query: location.query.query as string,
       projectId: firstIssue.issue.project.slug,
     });
   }, [params, location.query, items]);
@@ -157,79 +165,64 @@ function SimilarStackTrace({params, location, project}: Props) {
 
   return (
     <Fragment>
-      {hasSimilarityEmbeddingsFeature && (
-        <Alert
-          type="info"
-          showIcon
-          defaultExpanded
-          expand={
-            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made. If you have any questions, you can feel free to reach out to the team at #proj-ml-grouping.'
-          }
-        >
-          Hi there! We're running an internal POC to improve grouping with ML techniques.
-          Each similar issue has been scored as "Would Group: Yes" and "Would Group: No,"
-          which refers to whether or not we'd group the similar issue into the main issue.
-        </Alert>
+      <HeaderWrapper>
+        <Title>{t('Issues with a similar stack trace')}</Title>
+        <small>
+          {t(
+            'This is an experimental feature. Data may not be immediately available while we process merges.'
+          )}
+        </small>
+      </HeaderWrapper>
+      {status === 'loading' && <LoadingIndicator />}
+      {status === 'error' && (
+        <LoadingError
+          message={t('Unable to load similar issues, please try again later')}
+          onRetry={fetchData}
+        />
       )}
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <HeaderWrapper>
-            <Title>{t('Issues with a similar stack trace')}</Title>
-            <small>
+      {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+        <Panel>
+          <EmptyStateWarning>
+            <p>{t("There don't seem to be any similar issues.")}</p>
+          </EmptyStateWarning>
+        </Panel>
+      )}
+      {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+        <Panel>
+          <EmptyStateWarning>
+            <p>
               {t(
-                'This is an experimental feature. Data may not be immediately available while we process merges.'
+                "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
               )}
-            </small>
-          </HeaderWrapper>
-          {status === 'loading' && <LoadingIndicator />}
-          {status === 'error' && (
-            <LoadingError
-              message={t('Unable to load similar issues, please try again later')}
-              onRetry={fetchData}
-            />
-          )}
-          {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
-            <Panel>
-              <EmptyStateWarning>
-                <p>{t("There don't seem to be any similar issues.")}</p>
-              </EmptyStateWarning>
-            </Panel>
-          )}
-          {status === 'ready' && !hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-            <Panel>
-              <EmptyStateWarning>
-                <p>
-                  {t(
-                    "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
-                  )}
-                </p>
-              </EmptyStateWarning>
-            </Panel>
-          )}
-          {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
-            <List
-              items={items.similar}
-              filteredItems={items.filtered}
-              onMerge={handleMerge}
-              orgId={orgId}
-              project={project}
-              groupId={groupId}
-              pageLinks={items.pageLinks}
-            />
-          )}
-          {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-            <List
-              items={items.similar.concat(items.filtered)}
-              filteredItems={[]}
-              onMerge={handleMerge}
-              orgId={orgId}
-              project={project}
-              groupId={groupId}
-              pageLinks={items.pageLinks}
-            />
-          )}
-        </Layout.Main>
-      </Layout.Body>
+            </p>
+          </EmptyStateWarning>
+        </Panel>
+      )}
+      {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+        <List
+          items={items.similar}
+          filteredItems={items.filtered}
+          onMerge={handleMerge}
+          orgId={organization.slug}
+          project={project}
+          groupId={params.groupId}
+          pageLinks={items.pageLinks}
+          location={location}
+        />
+      )}
+      {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+        <List
+          items={items.similar.concat(items.filtered)}
+          filteredItems={[]}
+          onMerge={handleMerge}
+          orgId={organization.slug}
+          project={project}
+          groupId={params.groupId}
+          pageLinks={items.pageLinks}
+          location={location}
+        />
+      )}
+      <DataConsentBanner source="grouping" />
     </Fragment>
   );
 }
@@ -237,6 +230,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 export default SimilarStackTrace;
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 

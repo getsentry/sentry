@@ -1,22 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 
 describe('Button', function () {
   it('renders', function () {
     render(<Button priority="primary">Button</Button>);
-  });
-
-  it('renders react-router link', function () {
-    render(<Button to="/some/route">Router Link</Button>);
-  });
-
-  it('renders normal link', function () {
-    render(<Button href="/some/relative/url">Normal Link</Button>);
-  });
-
-  it('renders disabled normal link', function () {
-    render(<Button href="/some/relative/url">Normal Link</Button>);
   });
 
   it('calls `onClick` callback', async function () {
@@ -37,5 +25,28 @@ describe('Button', function () {
     await userEvent.click(screen.getByText('Click me'));
 
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('LinkButton', function () {
+  it('renders react-router link', function () {
+    render(<LinkButton to="/some/route">Router Link</LinkButton>);
+  });
+
+  it('renders normal link', function () {
+    render(<LinkButton href="/some/relative/url">Normal Link</LinkButton>);
+    expect(screen.getByRole('button', {name: 'Normal Link'})).toHaveAttribute(
+      'href',
+      '/some/relative/url'
+    );
+  });
+
+  it('renders disabled link', function () {
+    render(
+      <LinkButton disabled href="/some/relative/url">
+        Disabled Link
+      </LinkButton>
+    );
+    expect(screen.getByRole('button', {name: 'Disabled Link'})).toBeDisabled();
   });
 });

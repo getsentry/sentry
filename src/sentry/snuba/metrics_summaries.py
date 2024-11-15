@@ -1,7 +1,8 @@
-from sentry.search.events.builder import MetricsSummariesQueryBuilder
+from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 
 
 def query(
@@ -29,6 +30,8 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ):
     builder = MetricsSummariesQueryBuilder(
         Dataset.MetricsSummaries,
@@ -53,5 +56,5 @@ def query(
         ),
     )
 
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     return result

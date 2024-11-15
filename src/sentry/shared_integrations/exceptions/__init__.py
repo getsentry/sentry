@@ -20,7 +20,10 @@ __all__ = (
     "ApiTimeoutError",
     "ApiUnauthorized",
     "ApiRateLimitedError",
+    "ApiInvalidRequestError",
     "IntegrationError",
+    "IntegrationFormError",
+    "UnsupportedResponseType",
 )
 
 
@@ -84,21 +87,22 @@ class ApiError(Exception):
             return ApiRateLimitedError(response.text, url=url)
         elif response.status_code == 409:
             return ApiConflictError(response.text, url=url)
+        elif response.status_code == 400:
+            return ApiInvalidRequestError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
 
 class _RequestHasUrl(Protocol):
     @property
-    def url(self) -> str:
-        ...
+    def url(self) -> str: ...
 
 
 class ApiHostError(ApiError):
     code = 503
 
     @classmethod
-    def from_exception(cls, exception: RequestException) -> ApiHostError:
+    def from_exception(cls, exception: Exception) -> ApiHostError:
         maybe_request = getattr(exception, "request", None)
         if maybe_request is not None:
             return cls.from_request(maybe_request)
@@ -151,6 +155,10 @@ class ApiConnectionResetError(ApiError):
     code = errno.ECONNRESET
 
 
+class ApiInvalidRequestError(ApiError):
+    code = 400
+
+
 class UnsupportedResponseType(ApiError):
     @property
     def content_type(self) -> str:
@@ -171,7 +179,12 @@ class DuplicateDisplayNameError(IntegrationError):
 
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors: Mapping[str, Any]) -> None:
-        super().__init__("Invalid integration action")
+        error = "Invalid integration action"
+        if field_errors:
+            error = str(field_errors)
+
+        super().__init__(error)
+
         self.field_errors = field_errors
 
 

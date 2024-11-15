@@ -8,8 +8,9 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {EventTransaction} from 'sentry/types';
-import {EntryType, IssueTitle, IssueType} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import {IssueTitle, IssueType} from 'sentry/types/group';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {SpanEvidenceSection} from './spanEvidence';
@@ -119,7 +120,7 @@ describe('spanEvidence', () => {
     expect(settingsBtn).toBeInTheDocument();
     expect(settingsBtn).toHaveAttribute(
       'href',
-      `/settings/projects/project-slug/performance/?issueType=${
+      `/settings/${organization.slug}/projects/${project.slug}/performance/?issueType=${
         IssueType.PERFORMANCE_SLOW_DB_QUERY
       }#${sanitizeQuerySelector(IssueTitle.PERFORMANCE_SLOW_DB_QUERY)}`
     );

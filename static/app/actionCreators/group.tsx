@@ -1,19 +1,13 @@
 import * as Sentry from '@sentry/react';
 
-import type {Tag} from 'sentry/actionCreators/events';
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import type {
-  Actor,
-  Group,
-  Member,
-  Note,
-  Tag as GroupTag,
-  TagValue,
-  User,
-} from 'sentry/types';
-import {buildTeamId, buildUserId, defined} from 'sentry/utils';
+import type {Actor} from 'sentry/types/core';
+import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -214,7 +208,7 @@ export function updateNote(
 type ParamsType = {
   environment?: string | string[] | null;
   itemIds?: string[];
-  project?: number[] | null;
+  project?: number[] | string[] | null;
   query?: string;
 };
 
@@ -227,16 +221,16 @@ type QueryArgs =
   | {
       query: string;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       id: Array<number> | Array<string>;
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     }
   | {
       environment?: string | Array<string>;
-      project?: Array<number>;
+      project?: Array<number | string>;
     };
 
 /**
@@ -402,62 +396,6 @@ export function mergeGroups(
     options
   );
 }
-
-export type GroupTagResponseItem = {
-  key: string;
-  name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-    readable?: boolean;
-  }>;
-  totalValues: number;
-};
-
-export type GroupTagsResponse = GroupTagResponseItem[];
-
-type FetchIssueTagsParameters = {
-  environment: string[];
-  orgSlug: string;
-  groupId?: string;
-  isStatisticalDetector?: boolean;
-  limit?: number;
-  readable?: boolean;
-  statisticalDetectorParameters?: {
-    durationBaseline: number;
-    end: string;
-    start: string;
-    transaction: string;
-  };
-};
-
-export const makeFetchIssueTagsQueryKey = ({
-  groupId,
-  orgSlug,
-  environment,
-  readable,
-  limit,
-}: FetchIssueTagsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
-  {query: {environment, readable, limit}},
-];
-
-export const useFetchIssueTags = (
-  parameters: FetchIssueTagsParameters,
-  {
-    enabled = true,
-    ...options
-  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
-) => {
-  return useApiQuery<GroupTagsResponse | Tag[]>(makeFetchIssueTagsQueryKey(parameters), {
-    staleTime: 30000,
-    enabled: defined(parameters.groupId) && enabled,
-    ...options,
-  });
-};
 
 type FetchIssueTagValuesParameters = {
   groupId: string;

@@ -6,6 +6,7 @@ from datetime import timedelta
 from threading import Lock
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
@@ -114,7 +115,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return table
 
     def get(self, key: str) -> bytes | None:
-        row = self._get_table().read_row(key)
+        with sentry_sdk.start_span(op="bigtable.get"):
+            row = self._get_table().read_row(key)
         if row is None:
             return None
 
@@ -129,7 +131,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             value = self.__decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
-            # value may be returned by ``__decode_row`` if the the row has
+            # value may be returned by ``__decode_row`` if the row has
             # outlived its TTL, so we need to check its value here.
             if value is not None:
                 yield row.row_key.decode("utf-8"), value

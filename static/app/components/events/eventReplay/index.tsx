@@ -1,153 +1,57 @@
-import {useCallback} from 'react';
-import ReactLazyLoad from 'react-lazyload';
-import styled from '@emotion/styled';
+import {lazy, useEffect} from 'react';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
+import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
-import {replayBackendPlatforms} from 'sentry/data/platformCategories';
-import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
+import type {Group} from 'sentry/types/group';
+import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import useUrlParams from 'sentry/utils/useUrlParams';
+import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
-type Props = {
+interface Props {
   event: Event;
   projectSlug: string;
   group?: Group;
-};
+}
 
-const CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const ReplayOnboardingPanel = lazy(() => import('./replayInlineOnboardingPanel'));
 
-function EventReplayContent({
-  event,
-  group,
-  replayId,
-}: Props & {replayId: undefined | string}) {
-  const organization = useOrganization();
-  const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
+export default function EventReplay({event, group, projectSlug}: Props) {
+  const replayId = getReplayIdFromEvent(event);
+  const {hasSentOneReplay} = useHaveSelectedProjectsSentAnyReplayEvents();
+  const {canShowUpsell, upsellPlatform, upsellProjectId} = useEventCanShowReplayUpsell({
+    event,
+    group,
+    projectSlug,
+  });
+  const isSampleError = useIsSampleEvent();
 
-  const replayOnboardingPanel = useCallback(
-    () => import('./replayInlineOnboardingPanel'),
-    []
-  );
-  const replayPreview = useCallback(() => import('./replayPreview'), []);
-  const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
+  const {setParamValue: setProjectId} = useUrlParams('project');
 
-  const hasReplayClipFeature = organization.features.includes(
-    'issue-details-inline-replay-viewer'
-  );
+  useEffect(() => {
+    if (canShowUpsell) {
+      setProjectId(upsellProjectId);
+    }
+  }, [upsellProjectId, setProjectId, canShowUpsell]);
 
-  if (fetching) {
-    return null;
+  if (replayId) {
+    return <ReplayClipSection event={event} replayId={replayId} group={group} />;
   }
 
-  const platform = group?.project.platform ?? group?.platform ?? 'other';
-  const projectId = group?.project.id ?? event.projectID ?? '';
-
-  // frontend or backend platforms
-  if (!hasOrgSentReplays || (!replayId && replayBackendPlatforms.includes(platform))) {
+  if (canShowUpsell && !hasSentOneReplay && !isSampleError) {
     return (
       <ErrorBoundary mini>
         <LazyLoad
-          component={replayOnboardingPanel}
-          platform={platform}
-          projectId={projectId}
+          LazyComponent={ReplayOnboardingPanel}
+          platform={upsellPlatform}
+          projectId={upsellProjectId}
         />
       </ErrorBoundary>
     );
   }
 
-  if (!replayId) {
-    return null;
-  }
-
-  const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
-  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
-
-  const commonProps = {
-    analyticsContext: 'issue_details',
-    replaySlug: replayId,
-    orgSlug: organization.slug,
-    eventTimestampMs,
-    fullReplayButtonProps: {
-      analyticsEventKey: 'issue_details.open_replay_details_clicked',
-      analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-      analyticsParams: {
-        ...getAnalyticsDataForEvent(event),
-        ...getAnalyticsDataForGroup(group),
-        organization,
-      },
-    },
-    loadingFallback: (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
-        <LoadingIndicator />
-      </StyledNegativeSpaceContainer>
-    ),
-  };
-
-  return (
-    <ReplaySectionMinHeight>
-      <ErrorBoundary mini>
-        <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-          <ReactLazyLoad debounce={50} height={448} offset={0} once>
-            {hasReplayClipFeature ? (
-              <LazyLoad
-                {...commonProps}
-                component={replayClipPreview}
-                clipOffsets={CLIP_OFFSETS}
-              />
-            ) : (
-              <LazyLoad {...commonProps} component={replayPreview} />
-            )}
-          </ReactLazyLoad>
-        </ReplayGroupContextProvider>
-      </ErrorBoundary>
-    </ReplaySectionMinHeight>
-  );
-}
-
-export default function EventReplay({event, group, projectSlug}: Props) {
-  const organization = useOrganization();
-  const hasReplaysFeature = organization.features.includes('session-replay');
-
-  const project = useProjectFromSlug({organization, projectSlug});
-  const canUpsellReplay = projectCanUpsellReplay(project);
-  const replayId = getReplayIdFromEvent(event);
-
-  if (hasReplaysFeature && (replayId || canUpsellReplay)) {
-    return (
-      <EventReplayContent
-        event={event}
-        group={group}
-        projectSlug={projectSlug}
-        replayId={replayId}
-      />
-    );
-  }
-
   return null;
 }
-
-// The min-height here is due to max-height that is set in replayPreview.tsx
-const ReplaySectionMinHeight = styled(EventReplaySection)`
-  min-height: 508px;
-`;
-
-const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: 400px;
-  margin-bottom: ${space(2)};
-`;

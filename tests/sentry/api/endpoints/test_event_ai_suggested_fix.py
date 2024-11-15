@@ -9,7 +9,6 @@ from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -35,7 +34,7 @@ def openai_mock(monkeypatch):
                     finish_reason="stop",
                 )
             ],
-            created=time.time(),
+            created=int(time.time()),
             model="gpt3.5-trubo",
             object="chat.completion",
         )
@@ -46,7 +45,6 @@ def openai_mock(monkeypatch):
     monkeypatch.setattr("sentry.api.endpoints.event_ai_suggested_fix.OpenAI", mock_openai)
 
 
-@region_silo_test
 class EventAiSuggestedFixEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -66,8 +64,8 @@ class EventAiSuggestedFixEndpointTest(APITestCase):
         self.path = reverse(
             "sentry-api-0-event-ai-fix-suggest",
             kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": self.event.event_id,
             },
         )
@@ -81,11 +79,23 @@ class EventAiSuggestedFixEndpointTest(APITestCase):
         ):
             response = self.client.get(self.path)
             assert response.status_code == 403
+            assert response.json() == {"restriction": "organization_consent_required"}
+
+            self.organization.update_option("sentry:ai_suggested_solution", True)
+            response = self.client.get(self.path)
+            assert response.status_code == 403
             assert response.json() == {"restriction": "individual_consent"}
+
             response = self.client.get(self.path + "?consent=yes")
             assert response.status_code == 200
             assert response.json() == {"suggestion": "AI generated response"}
 
+            self.organization.update_option("sentry:ai_suggested_solution", False)
+            response = self.client.get(self.path + "?consent=yes")
+            assert response.status_code == 403
+            assert response.json() == {"restriction": "organization_consent_required"}
+
+        self.organization.update_option("sentry:ai_suggested_solution", True)
         with patch(
             "sentry.api.endpoints.event_ai_suggested_fix.get_openai_policy",
             return_value="subprocessor",

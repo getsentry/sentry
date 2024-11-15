@@ -14,6 +14,12 @@ type Props = FormProps & {
   onSubmit?: (data: Record<string, any>) => any | void;
 };
 
+/**
+ * @deprecated
+ *
+ * DO NOT USE THIS. Prefer using `Form` instead. Form already supports API
+ * requests, this is quite old and should be removed
+ */
 function ApiForm({onSubmit, apiMethod, apiEndpoint, hostOverride, ...otherProps}: Props) {
   const api = useApi();
 

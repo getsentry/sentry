@@ -5,6 +5,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportBackendInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -22,14 +27,14 @@ sentry = { version = "${getPackageVersion(
 )}", features = ["UNSTABLE_metrics"] }`;
 
 const getConfigureSnippet = (params: Params) => `
-let _guard = sentry::init(("${params.dsn}", sentry::ClientOptions {
+let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
   release: sentry::release_name!(),
   ..Default::default()
 }));`;
 
 const getVerifySnippet = (params: Params) => `
 fn main() {
-  let _guard = sentry::init(("${params.dsn}", sentry::ClientOptions {
+  let _guard = sentry::init(("${params.dsn.public}", sentry::ClientOptions {
     release: sentry::release_name!(),
     ..Default::default()
   }));
@@ -97,11 +102,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need at least version 0.32.1 of the [codeSentry:sentry] or  [codeSentryCore:sentry-core] crates installed. Enable the [codeFeature:UNSTABLE_metrics] feature:',
+        'You need at least version 0.32.1 of the [code:sentry] or  [code:sentry-core] crates installed. Enable the [code:UNSTABLE_metrics] feature:',
         {
-          codeSentry: <code />,
-          codeSentryCore: <code />,
-          codeSentryFeature: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -118,13 +121,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. Try out this example:",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:Sentry.metrics] namespace. Try out this example:",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -140,7 +139,7 @@ const customMetricsOnboarding: OnboardingConfig = {
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -158,9 +157,25 @@ const customMetricsOnboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportBackendInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/rust/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

@@ -15,15 +15,15 @@ from sentry.api.serializers.models.projectownership import ProjectOwnershipSeria
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
 
-MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 250_000
+DEFAULT_MAX_RAW_LENGTH = 100_000
+LARGE_MAX_RAW_LENGTH = 250_000
+XLARGE_MAX_RAW_LENGTH = 750_000
 
 
 class ProjectOwnershipRequestSerializer(serializers.Serializer):
@@ -63,11 +63,12 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 )
 
     def get_max_length(self):
-        if features.has(
-            "organizations:higher-ownership-limit", self.context["ownership"].project.organization
-        ):
-            return HIGHER_MAX_RAW_LENGTH
-        return MAX_RAW_LENGTH
+        organization = self.context["ownership"].project.organization
+        if features.has("organizations:ownership-size-limit-xlarge", organization):
+            return XLARGE_MAX_RAW_LENGTH
+        if features.has("organizations:ownership-size-limit-large", organization):
+            return LARGE_MAX_RAW_LENGTH
+        return DEFAULT_MAX_RAW_LENGTH
 
     def validate_autoAssignment(self, value):
         if value not in [
@@ -154,11 +155,6 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             new_values["auto_assignment"] = True
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
-            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            if autoassignment_types:
-                GroupOwner.invalidate_autoassigned_owner_cache(
-                    ownership.project_id, autoassignment_types
-                )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
@@ -225,8 +221,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Retrieve Ownership Configuration for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=None,
         responses={200: ProjectOwnershipSerializer},
@@ -247,8 +243,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectOwnershipRequestSerializer,
         responses={

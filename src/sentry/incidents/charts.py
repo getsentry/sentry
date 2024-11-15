@@ -9,19 +9,22 @@ from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
+from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import build_query_strings
+from sentry.users.models.user import User
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -98,7 +101,7 @@ def fetch_metric_alert_events_timeseries(
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "yAxis": rule_aggregate,
-                "referrer": "api.alerts.chartcuterie",
+                "referrer": Referrer.API_ALERTS_CHARTCUTERIE.value,
                 **query_params,
             },
         )
@@ -152,6 +155,31 @@ def fetch_metric_alert_incidents(
         return []
 
 
+def fetch_metric_alert_anomalies(
+    organization: Organization,
+    alert_rule: AlertRule,
+    time_period: Mapping[str, str],
+    user: Optional["User"] = None,
+) -> list[Any]:
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/alert-rules/{alert_rule.id}/anomalies/",
+            params={
+                **time_period,
+            },
+        )
+        return resp.data
+    except Exception as exc:
+        logger.error(
+            "Failed to load anomalies for chart: %s",
+            exc,
+            exc_info=True,
+        )
+        return []
+
+
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
@@ -161,9 +189,15 @@ def build_metric_alert_chart(
     end: str | None = None,
     user: Optional["User"] = None,
     size: ChartSize | None = None,
+    subscription: QuerySubscription | None = None,
 ) -> str | None:
-    """Builds the dataset required for metric alert chart the same way the frontend would"""
-    snuba_query: SnubaQuery = alert_rule.snuba_query
+    """
+    Builds the dataset required for metric alert chart the same way the frontend would
+    """
+    if alert_rule.snuba_query is None:
+        return None
+
+    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
@@ -194,27 +228,48 @@ def build_metric_alert_chart(
             user,
         ),
     }
+    # Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
+    # For now, we defer to incident lines as indicators for anomalies
+    if (
+        features.has(
+            "organizations:anomaly-detection-alerts-charts",
+            organization,
+        )
+        and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+    ):
+        chart_data["anomalies"] = fetch_metric_alert_anomalies(
+            organization,
+            alert_rule,
+            time_period,
+            user,
+        )
 
     allow_mri = features.has(
         "organizations:custom-metrics",
         organization,
         actor=user,
+    ) or features.has(
+        "organizations:insights-alerts",
+        organization,
+        actor=user,
     )
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
+    # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
         return None
 
-    project_id = first_subscription_or_none.project_id
+    project_id = subscription.project_id if subscription else first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
+    query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
-        snuba_query.query
+        query_str
         if is_crash_free_alert
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
-            snuba_query.query,
+            query_str,
             snuba_query.event_types,
             discover=True,
         )

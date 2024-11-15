@@ -3,7 +3,7 @@ import {useEffect, useMemo} from 'react';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -39,7 +39,7 @@ export function useUserTeams(): UseTeamsResult {
 
   const {
     data: additionalTeams = [],
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Team[]>(buildUserTeamsQueryKey(organization?.slug ?? ''), {
     staleTime: 0,
@@ -63,7 +63,7 @@ export function useUserTeams(): UseTeamsResult {
 
   return {
     teams,
-    isLoading: queryEnabled ? isLoading : storeState.loading,
+    isLoading: queryEnabled ? isPending : storeState.loading,
     isError: queryEnabled ? isError : null,
   };
 }

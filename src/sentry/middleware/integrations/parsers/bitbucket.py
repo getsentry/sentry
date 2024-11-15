@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from sentry.integrations.bitbucket import BitbucketWebhookEndpoint
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import RegionResolutionError, get_region_by_name
 
 logger = logging.getLogger(__name__)
@@ -45,8 +45,8 @@ class BitbucketRequestParser(BaseRequestParser):
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
-        return self.get_response_from_outbox_creation(
-            regions=[region], shard_identifier_override=mapping.organization_id
+        return self.get_response_from_webhookpayload(
+            regions=[region], identifier=mapping.organization_id
         )
 
     def get_response(self):

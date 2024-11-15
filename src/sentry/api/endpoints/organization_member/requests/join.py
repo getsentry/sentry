@@ -11,11 +11,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
+from sentry.auth.services.auth import auth_service
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.outbox import outbox_context
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -52,16 +52,16 @@ def create_organization_join_request(organization, email, ip_address=None):
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     # Disable authentication and permission requirements.
     permission_classes = ()
 
     rate_limits = {
         "POST": {
-            RateLimitCategory.IP: RateLimit(5, 86400),
-            RateLimitCategory.USER: RateLimit(5, 86400),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 86400),
+            RateLimitCategory.IP: RateLimit(limit=5, window=86400),
+            RateLimitCategory.USER: RateLimit(limit=5, window=86400),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=86400),
         }
     }
 

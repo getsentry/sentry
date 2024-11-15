@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -11,11 +11,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, User} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
+import FeatureObserver from 'sentry/utils/featureObserver';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -51,6 +53,8 @@ type State = {
   project: Project | null;
 };
 
+const ProjectContext = createContext<Project | null>(null);
+
 /**
  * Higher-order component that sets `project` as a child context
  * value to be accessed by child elements.
@@ -58,11 +62,7 @@ type State = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-class ProjectContext extends Component<Props, State> {
-  static childContextTypes = {
-    project: SentryPropTypeValidators.isProject,
-  };
-
+class ProjectContextProvider extends Component<Props, State> {
   state = this.getInitialState();
 
   getInitialState(): State {
@@ -72,12 +72,6 @@ class ProjectContext extends Component<Props, State> {
       errorType: null,
       memberList: [],
       project: null,
-    };
-  }
-
-  getChildContext() {
-    return {
-      project: this.state.project,
     };
   }
 
@@ -187,6 +181,9 @@ class ProjectContext extends Component<Props, State> {
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
+        FeatureObserver.singleton({}).observeProjectFlags({
+          project,
+        });
       } catch (error) {
         this.setState({
           loading: false,
@@ -240,7 +237,11 @@ class ProjectContext extends Component<Props, State> {
     }
 
     if (!error && project) {
-      return typeof children === 'function' ? children({project}) : children;
+      return (
+        <ProjectContext.Provider value={project}>
+          {typeof children === 'function' ? children({project}) : children}
+        </ProjectContext.Provider>
+      );
     }
 
     switch (errorType) {
@@ -275,9 +276,9 @@ class ProjectContext extends Component<Props, State> {
   }
 }
 
-export {ProjectContext};
+export {ProjectContext, ProjectContextProvider};
 
-export default withApi(withOrganization(withProjects(ProjectContext)));
+export default withApi(withOrganization(withProjects(ProjectContextProvider)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;

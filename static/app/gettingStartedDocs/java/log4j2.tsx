@@ -9,6 +9,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -110,7 +111,7 @@ const getConsoleAppenderSnippet = (params: Params) => `
             <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
         </Console>
         <Sentry name="Sentry"
-                dsn=${params.dsn}>
+                dsn=${params.dsn.public}>
     </Appenders>
     <Loggers>
         <Root level="info">
@@ -124,7 +125,7 @@ const getLogLevelSnippet = (params: Params) => `
 <!-- Setting minimumBreadcrumbLevel modifies the default minimum level to add breadcrumbs from INFO to DEBUG  -->
 <!-- Setting minimumEventLevel the default minimum level to capture an event from ERROR to WARN  -->
 <Sentry name="Sentry"
-        dsn="${params.dsn}"
+        dsn="${params.dsn.public}"
         minimumBreadcrumbLevel="DEBUG"
         minimumEventLevel="WARN"
 />`;
@@ -154,7 +155,7 @@ const introduction = (
     {tct(
       'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
       {
-        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
+        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x/" />,
         appenderLink: (
           <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
         ),
@@ -242,11 +243,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           language: 'xml',
           description: tct(
-            'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryConsoleAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [sentryAppenderCode:SentryAppender] that logs to the Sentry server at the ERROR level.',
+            'The following example using the [code:log4j2.xml] format to configure a [code:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
             {
-              log4j2Code: <code />,
-              sentryConsoleAppenderCode: <code />,
-              sentryAppenderCode: <code />,
+              code: <code />,
             }
           ),
           code: getConsoleAppenderSnippet(params),
@@ -296,7 +295,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getVerifyJavaSnippet(),
             },
             {
-              language: 'java',
+              language: 'kotlin',
               label: 'Kotlin',
               value: 'kotlin',
               code: getVerifyKotlinSnippet(),
@@ -333,6 +332,8 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
+  customMetricsOnboarding: getJavaMetricsOnboarding(),
   onboarding,
 };
 

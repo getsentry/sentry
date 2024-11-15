@@ -8,13 +8,17 @@ from urllib.parse import quote
 from requests import PreparedRequest
 from rest_framework.response import Response
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
-from sentry.models.identity import Identity
+from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import control_silo_function
+from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -153,9 +157,10 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
-class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
+class VstsApiClient(IntegrationProxyClient, VstsApiMixin, RepositoryClient):
     integration_name = "vsts"
     _identity: Identity | None = None
+    INVALID_CLIENT_ERROR = "invalid_client"
 
     def __init__(
         self,
@@ -197,9 +202,24 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
         if time_expires is None:
             raise InvalidIdentity("VstsApiClient requires identity with specified expired time")
         if int(time_expires) <= int(time()):
-            self.identity.get_provider().refresh_identity(
-                self.identity, redirect_url=self.oauth_redirect_url
+            # TODO(iamrajjoshi): Remove this after migration
+            # Need this here because there is no way to get any identifier which would tell us which method we should use to refresh the token
+            from sentry.identity.vsts.provider import VSTSNewIdentityProvider
+            from sentry.integrations.vsts.integration import VstsIntegrationProvider
+
+            integration = integration_service.get_integration(
+                organization_integration_id=self.org_integration_id, status=ObjectStatus.ACTIVE
             )
+            # check if integration has migrated to new identity provider
+            migration_version = integration.metadata.get("integration_migration_version", 0)
+            if migration_version < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION:
+                self.identity.get_provider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
+            else:
+                VSTSNewIdentityProvider().refresh_identity(
+                    self.identity, redirect_url=self.oauth_redirect_url
+                )
 
     @control_silo_function
     def authorize_request(
@@ -278,9 +298,9 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                         # TODO(dcramer): this is problematic when the link already exists
                         "op": "replace" if f_name != "link" else "add",
                         "path": FIELD_MAP[f_name],
-                        "value": {"rel": "Hyperlink", "url": f_value}
-                        if f_name == "link"
-                        else f_value,
+                        "value": (
+                            {"rel": "Hyperlink", "url": f_value} if f_name == "link" else f_value
+                        ),
                     }
                 )
 
@@ -289,7 +309,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
 
         return self.patch(VstsApiPath.work_items.format(instance=self.base_url, id=id), data=data)
 
-    def get_work_item(self, id: str) -> Response:
+    def get_work_item(self, id: int) -> Response:
         return self.get(VstsApiPath.work_items.format(instance=self.base_url, id=id))
 
     def get_work_item_states(self, project: str) -> Response:
@@ -368,7 +388,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             params={"stateFilter": "WellFormed"},
         )
 
-    def get_projects(self) -> Response:
+    def get_projects(self) -> list[dict[str, Any]]:
         def gen_params(page_number: int, page_size: int) -> Mapping[str, str | int]:
             # ADO supports a continuation token in the response but only in the newer API version (
             # https://docs.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-6.1
@@ -419,7 +439,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
             api_preview=True,
         )
 
-    def check_file(self, repo: Repository, path: str, version: str) -> str | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponseX:
         return self.get_cached(
             path=VstsApiPath.items.format(
                 instance=repo.config["instance"],
@@ -432,3 +452,8 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
                 "versionDescriptor.version": version,
             },
         )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        raise IntegrationFeatureNotImplementedError

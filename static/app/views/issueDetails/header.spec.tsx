@@ -1,18 +1,19 @@
-import {browserHistory} from 'react-router';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, PriorityLevel} from 'sentry/types';
+import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
+  const {router} = initializeOrg();
   const project = ProjectFixture({
     teams: [TeamFixture()],
   });
@@ -24,6 +25,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -51,35 +53,55 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={jsProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/activity/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/activity/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/feedback/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/feedback/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/attachments/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/attachments/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/merged/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/replays/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/replays/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
@@ -92,6 +114,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -100,7 +123,7 @@ describe('GroupHeader', () => {
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
         features: ['similarity-view'],
-        platform: 'apple-ios',
+        platform: 'unity',
       });
 
       const MOCK_GROUP = GroupFixture();
@@ -119,11 +142,14 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={mobileProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/similar/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
@@ -136,6 +162,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -163,17 +190,22 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={projectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {organization: orgWithFeatures, router}
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
@@ -189,24 +221,52 @@ describe('GroupHeader', () => {
   });
 
   describe('priority', () => {
-    it('can change priority', async function () {
-      const mockModifyIssue = MockApiClient.addMockResponse({
-        url: `/projects/org-slug/project-slug/issues/`,
-        method: 'PUT',
-        body: {},
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+    });
+
+    it('shows priority even if stats is off', async () => {
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture()}
+          group={GroupFixture({
+            priority: PriorityLevel.HIGH,
+            // Setting an issue category where stats are turned off
+            issueCategory: IssueCategory.UPTIME,
+          })}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+          event={null}
+        />
+      );
+
+      expect(await screen.findByText('Priority')).toBeInTheDocument();
+      expect(await screen.findByText('High')).toBeInTheDocument();
+    });
+
+    it('can change priority', async () => {
+      const mockModifyIssue = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/`,
+        method: 'PUT',
         body: {},
       });
 
       render(
         <GroupHeader
           baseUrl=""
-          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          organization={OrganizationFixture()}
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+          event={null}
         />
       );
 

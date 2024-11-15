@@ -233,7 +233,15 @@
       "annotations": {
         "type": "array",
         "items": {
-          "type": "string"
+          "type": "object",
+          "properties": {
+            "displayName": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
         }
       },
       "assignedTo": {

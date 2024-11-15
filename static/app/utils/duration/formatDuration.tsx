@@ -1,7 +1,7 @@
+import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import type {Duration, Unit} from 'sentry/utils/duration/types';
-import {formatSecondsToClock} from 'sentry/utils/formatters';
 
-type Format =
+export type Format =
   // example: `3,600`
   | 'count-locale'
   // example: `86400`
@@ -13,7 +13,11 @@ type Format =
   // example: `01:00:00.000
   | 'hh:mm:ss.sss'
   // example: `01:00:00`
-  | 'hh:mm:ss';
+  | 'hh:mm:ss'
+  // example: `PT4H18M3S`
+  // See https://en.wikipedia.org/wiki/ISO_8601#Durations
+  // See https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#durations
+  | 'ISO8601';
 
 type Args = {
   /**
@@ -75,13 +79,62 @@ export default function formatDuration({
     case 'hh:mm:ss': // fall-through
     case 'h:mm:ss.sss': // fall-through
     case 'hh:mm:ss.sss':
+      const truncatedValueInMs = normalizeTimespanToMs(
+        Math.floor(valueInUnit),
+        precision
+      );
+      const valueInSec = msToPrecision(truncatedValueInMs, 'sec');
+
+      const padAll = style.startsWith('hh:mm:ss');
       const includeMs = style.endsWith('.sss');
-      const valueInSec = msToPrecision(ms, 'sec');
-      const str = formatSecondsToClock(valueInSec, {
-        padAll: style.startsWith('hh:mm:ss'),
-      });
+      const str = formatSecondsToClock(valueInSec, {padAll});
       const [head, tail] = str.split('.');
-      return includeMs ? [head, tail ?? '000'].join('.') : String(head);
+      return includeMs
+        ? [head, precision === 'ms' ? tail ?? '000' : '000'].join('.')
+        : String(head);
+    case 'ISO8601':
+      const output = ['P'];
+
+      let incr = 0;
+      const weeks = Math.floor(msToPrecision(ms - incr, 'week'));
+      output.push(weeks ? weeks + 'W' : '');
+      if (precision !== 'week') {
+        incr += weeks * PRECISION_FACTORS.week;
+        const days = Math.floor(msToPrecision(ms - incr, 'day'));
+        output.push(days ? days + 'D' : '');
+
+        if (precision !== 'day') {
+          incr += days * PRECISION_FACTORS.day;
+          const hours = Math.floor(msToPrecision(ms - incr, 'hour'));
+          output.push(hours ? hours + 'H' : '');
+
+          if (precision !== 'hour') {
+            output.push('T');
+            incr += hours * PRECISION_FACTORS.hour;
+            const minutes = Math.floor(msToPrecision(ms - incr, 'min'));
+            output.push(minutes ? minutes + 'M' : '');
+
+            if (precision !== 'min') {
+              incr += minutes * PRECISION_FACTORS.min;
+              const seconds = Math.floor(msToPrecision(ms - incr, 'sec'));
+
+              if (precision !== 'sec') {
+                incr += seconds * PRECISION_FACTORS.sec;
+                const milliseconds = Math.floor(msToPrecision(ms - incr, 'ms'));
+                output.push(seconds || milliseconds ? String(seconds) : '');
+                output.push(
+                  milliseconds ? '.' + milliseconds.toString().padStart(3, '0') : ''
+                );
+                output.push(seconds || milliseconds ? 'S' : '');
+              } else {
+                output.push(seconds ? String(seconds) + 'S' : '');
+              }
+            }
+          }
+        }
+      }
+
+      return output.join('');
     default:
       throw new Error('Invalid style');
   }

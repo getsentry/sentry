@@ -14,15 +14,11 @@ env:
 
 jobs:
   check-diff:
-    name: build api
-    runs-on: ubuntu-22.04
+    name: (Optional) Shows the difference between the prod and dev schema
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for python file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -36,15 +32,17 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Checkout getsentry/sentry-api-schema
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: steps.changes.outputs.api_docs == 'true'
         with:
           ref: 'main'
           repository: getsentry/sentry-api-schema
           path: sentry-api-schema
 
-      - uses: getsentry/action-setup-volta@c52be2ea13cfdc084edb806e81958c13e445941e # v1.2.0
-        if: steps.changes.outputs.api_docs == 'true'
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        id: setup-node
+        with:
+          node-version-file: '.volta.json'
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_docs == 'true'
@@ -58,3 +56,18 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         run: |
           npx json-diff@0.5.4 --color sentry-api-schema/openapi-derefed.json tests/apidocs/openapi-derefed.json
+
+      - name: Dump RPC schema for new version
+        id: newschema
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          mkdir schemas
+          sentry rpcschema > rpc_method_schema.json
+
+      - name: Output RPC schema comparison
+        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          base: sentry-api-schema/rpc_method_schema.json
+          revision: ./rpc_method_schema.json
+          fail-on: WARN

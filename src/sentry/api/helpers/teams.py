@@ -20,9 +20,9 @@ def is_team_admin(org_member: OrganizationMember, team: Team | None = None) -> b
 
 def get_teams(request, organization, teams=None):
     # do normal teams lookup based on request params
-    requested_teams = set(request.GET.getlist("team", [])) if teams is None else teams
+    requested_teams = set(request.GET.getlist("team", []) if teams is None else teams)
 
-    verified_ids = set()
+    verified_ids: set[int] = set()
 
     if "myteams" in requested_teams:
         requested_teams.remove("myteams")
@@ -41,7 +41,7 @@ def get_teams(request, organization, teams=None):
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 
-    teams_query = Team.objects.filter(id__in=requested_teams)
+    teams_query = Team.objects.filter(id__in=requested_teams, organization=organization)
     for team in teams_query:
         if team.id in verified_ids:
             continue

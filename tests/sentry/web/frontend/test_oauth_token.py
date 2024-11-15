@@ -161,7 +161,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            expires_at="2022-01-01 11:11",
+            expires_at="2022-01-01 11:11+00:00",
         )
         resp = self.client.post(
             self.path,
@@ -175,6 +175,33 @@ class OAuthTokenCodeTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_one_time_use_grant(self):
+        self.login_as(self.user)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        # attempt to re-use the same grant code
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
 
     def test_invalid_redirect_uri(self):
         self.login_as(self.user)
@@ -439,7 +466,55 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.application == self.token.application
         assert token2.user == self.token.user
         assert token2.get_scopes() == self.token.get_scopes()
+        assert self.token.expires_at is not None
+        assert token2.expires_at is not None
         assert token2.expires_at > self.token.expires_at
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
+
+
+@control_silo_test
+class OAuthTokenOrganizationScopedTest(TestCase):
+    @cached_property
+    def path(self):
+        return "/oauth/token/"
+
+    def setUp(self):
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            scopes=["org:read"],
+            requires_org_level_access=True,
+        )
+        self.client_secret = self.application.client_secret
+        self.grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            organization_id=self.organization.id,
+        )
+
+    def test_valid_params(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.application == self.application
+        assert token.user == self.grant.user
+        assert token.get_scopes() == self.grant.get_scopes()
+        assert token.organization_id == self.organization.id

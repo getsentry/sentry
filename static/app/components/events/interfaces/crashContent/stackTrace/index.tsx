@@ -1,26 +1,23 @@
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {PlatformKey} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import Content from './content';
-import {HierarchicalGroupingContent} from './hierarchicalGroupingContent';
 import {NativeContent} from './nativeContent';
 import rawStacktraceContent from './rawContent';
 
-type Props = Pick<
-  React.ComponentProps<typeof HierarchicalGroupingContent>,
-  'groupingCurrentLevel'
-> & {
+type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
   newestFirst: boolean;
   platform: PlatformKey;
   stacktrace: StacktraceType;
+  groupingCurrentLevel?: number;
   inlined?: boolean;
   lockAddress?: string;
   maxDepth?: number;
@@ -35,7 +32,6 @@ export function StackTraceContent({
   event,
   newestFirst,
   platform,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   maxDepth,
   meta,
@@ -43,6 +39,7 @@ export function StackTraceContent({
   threadId,
   lockAddress,
 }: Props) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   if (stackView === StackView.RAW) {
     return (
       <ErrorBoundary mini>
@@ -65,27 +62,7 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
-          hideIcon={inlined}
-          maxDepth={maxDepth}
-        />
-      </ErrorBoundary>
-    );
-  }
-
-  if (hasHierarchicalGrouping) {
-    return (
-      <ErrorBoundary mini>
-        <StyledHierarchicalGroupingContent
-          data={stacktrace}
-          className="no-exception"
-          includeSystemFrames={stackView === StackView.FULL}
-          platform={platform}
-          event={event}
-          newestFirst={newestFirst}
-          groupingCurrentLevel={groupingCurrentLevel}
-          meta={meta}
-          hideIcon={inlined}
-          inlined={inlined}
+          hideIcon={inlined || hasStreamlinedUI}
           maxDepth={maxDepth}
         />
       </ErrorBoundary>
@@ -102,7 +79,7 @@ export function StackTraceContent({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
-        hideIcon={inlined}
+        hideIcon={inlined || hasStreamlinedUI}
         inlined={inlined}
         maxDepth={maxDepth}
         threadId={threadId}
@@ -119,12 +96,6 @@ const inlinedStyles = `
 `;
 
 const StyledNativeContent = styled(NativeContent)<{inlined?: boolean}>`
-  ${p => p.inlined && inlinedStyles}
-`;
-
-const StyledHierarchicalGroupingContent = styled(HierarchicalGroupingContent)<{
-  inlined?: boolean;
-}>`
   ${p => p.inlined && inlinedStyles}
 `;
 

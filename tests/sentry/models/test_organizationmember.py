@@ -14,26 +14,32 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.services.user.service import user_service
 
 
 class MockOrganizationRoles:
     TEST_ORG_ROLES = [
-        {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
-        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
-        {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
+        {
+            "id": "alice",
+            "name": "Alice",
+            "desc": "In Wonderland",
+            "scopes": ["project:read", "project:write"],
+        },
+        {"id": "bob", "name": "Bob", "desc": "The builder", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?", "scopes": ["project:write"]},
     ]
 
     TEST_TEAM_ROLES = [
-        {"id": "alice", "name": "Alice"},
-        {"id": "bob", "name": "Bob"},
-        {"id": "carol", "name": "Carol"},
+        {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
+        {"id": "bob", "name": "Bob", "desc": "The builder"},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?"},
     ]
 
     def __init__(self):
@@ -49,7 +55,6 @@ class MockOrganizationRoles:
         return self.organization_roles.get(x)
 
 
-@region_silo_test
 class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")
@@ -90,7 +95,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         msg = mail.outbox[0]
         assert msg.to == ["foo@example.com"]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_send_invite_email_customer_domains(self):
         member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
         with self.tasks():
@@ -129,6 +134,29 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         assert context["organization"] == self.organization
         assert context["provider"] == provider
+        assert context["actor_email"] == user.email
+
+        assert not context["has_password"]
+        assert "set_password_url" in context
+
+    @patch("sentry.utils.email.MessageBuilder")
+    def test_send_sso_unlink_email_str_sender(self, builder):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user = self.create_user(email="foo@example.com")
+            user.password = ""
+            user.save()
+
+        member = self.create_member(user=user, organization=self.organization)
+        provider = manager.get("dummy")
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            member.send_sso_unlink_email(user.email, provider)
+
+        context = builder.call_args[1]["context"]
+
+        assert context["organization"] == self.organization
+        assert context["provider"] == provider
+        assert context["actor_email"] == user.email
 
         assert not context["has_password"]
         assert "set_password_url" in context
@@ -179,8 +207,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        assert member.token is None
-        assert member.token_expires_at is None
+        assert (member.token, member.token_expires_at) == (None, None)
 
         member.regenerate_token()
         assert member.token
@@ -286,7 +313,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             role="member",
             user=user,
             token="abc-def",
-            token_expires_at="2018-01-01 10:00:00",
+            token_expires_at="2018-01-01 10:00:00+00:00",
         )
         with outbox_runner():
             OrganizationMember.objects.delete_expired(timezone.now())
@@ -491,8 +518,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_get_allowed_org_roles_to_invite_subset_logic(self):
         mock_org_roles = MockOrganizationRoles()
-        with patch("sentry.roles.organization_roles.get", mock_org_roles.get), patch(
-            "sentry.roles.organization_roles.get_all", mock_org_roles.get_all
+        with (
+            patch("sentry.roles.organization_roles.get", mock_org_roles.get),
+            patch("sentry.roles.organization_roles.get_all", mock_org_roles.get_all),
         ):
             alice = self.create_member(
                 user=self.create_user(), organization=self.organization, role="alice"

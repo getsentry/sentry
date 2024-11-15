@@ -6,7 +6,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -14,8 +15,8 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {t, tct} from 'sentry/locale';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -25,7 +26,7 @@ const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
 const Important = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 1.2em;
 `;
 
@@ -42,7 +43,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
         </TextBlock>
       </Body>
       <Footer>
-        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+        <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
       </Footer>
     </div>
   );
@@ -137,7 +138,9 @@ function AccountClose() {
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>
-        {t('This will permanently remove all associated data for your user')}.
+        {t(
+          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted.'
+        )}
       </TextBlock>
 
       <Alert type="error" showIcon>
@@ -147,30 +150,39 @@ function AccountClose() {
       </Alert>
 
       <Panel>
-        <PanelHeader>{t('Remove the following organizations')}</PanelHeader>
+        <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
-          <PanelAlert type="info">
+          <PanelAlert type="warning">
+            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'
             )}
             <br />
-            {tct(
-              "Boxes which can't be unchecked mean that you are the only organization owner and the organization [strong:will be deleted].",
-              {strong: <strong />}
+            {t(
+              "Boxes which can't be unchecked mean that you are the only organization owner and the organization will be deleted."
             )}
           </PanelAlert>
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label>
-                <input
-                  style={{marginRight: 6}}
-                  type="checkbox"
-                  value={organization.slug}
-                  onChange={evt => handleChange(organization, singleOwner, evt)}
+              <label
+                css={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Checkbox
+                  css={{
+                    marginRight: 6,
+                  }}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  size="sm"
+                  role="checkbox"
                 />
                 {organization.slug}
               </label>

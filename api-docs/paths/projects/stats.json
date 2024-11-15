@@ -6,18 +6,18 @@
     "operationId": "Retrieve Event Counts for a Project",
     "parameters": [
       {
-        "name": "organization_slug",
+        "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The slug of the organization.",
+        "description": "The ID or slug of the organization.",
         "required": true,
         "schema": {
           "type": "string"
         }
       },
       {
-        "name": "project_slug",
+        "name": "project_id_or_slug",
         "in": "path",
-        "description": "The slug of the project.",
+        "description": "The ID or slug of the project.",
         "required": true,
         "schema": {
           "type": "string"

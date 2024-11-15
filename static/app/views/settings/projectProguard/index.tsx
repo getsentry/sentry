@@ -1,15 +1,17 @@
 import {Fragment, useCallback, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import type {DebugIdBundleAssociation, Organization, Project} from 'sentry/types';
 import type {DebugFile} from 'sentry/types/debugFiles';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -39,7 +41,7 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
 
   const {
     data: mappings,
-    isLoading: dataLoading,
+    isPending: dataLoading,
     getResponseHeader,
     refetch: fetchData,
   } = useApiQuery<DebugFile[]>(
@@ -170,7 +172,6 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
                   associations={associationsResults[index].data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
-                  downloadRole={organization.debugFilesRole}
                   key={mapping.id}
                   orgSlug={organization.slug}
                 />

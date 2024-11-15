@@ -1,15 +1,14 @@
-import {useContext} from 'react';
 import omit from 'lodash/omit';
 
 import type {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -17,11 +16,11 @@ import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/m
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 
-import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import type {DashboardFilters, Widget} from '../types';
+import {type DashboardFilters, type Widget, WidgetType} from '../types';
 
-import {DashboardsMEPContext} from './dashboardsMEPContext';
+import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
@@ -119,6 +118,7 @@ type Props = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   onDataFetched?: (results: OnDataFetchedProps) => void;
+  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
 
 function WidgetQueries({
@@ -131,9 +131,13 @@ function WidgetQueries({
   cursor,
   limit,
   onDataFetched,
+  onWidgetSplitDecision,
 }: Props) {
-  const config = ErrorsAndTransactionsConfig;
-  const context = useContext(DashboardsMEPContext);
+  // Discover and Errors datasets are the only datasets processed in this component
+  const config = getDatasetConfig(
+    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
+  );
+  const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
 
@@ -186,6 +190,23 @@ function WidgetQueries({
       isSeriesMetricsExtractedDataResults.every(Boolean) &&
         isSeriesMetricsExtractedDataResults.some(Boolean)
     );
+
+    const resultValues = Object.values(rawResults);
+    if (organization.features.includes('performance-discover-dataset-selector')) {
+      let splitDecision: WidgetType | undefined = undefined;
+      if (rawResults.meta) {
+        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+      } else if (Object.values(rawResults).length > 0) {
+        // Multi-series queries will have a meta key on each series
+        // We can just read the decision from one.
+        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+      }
+
+      if (splitDecision) {
+        // Update the dashboard state with the split decision
+        onWidgetSplitDecision?.(splitDecision);
+      }
+    }
   };
 
   const isTableMetricsDataResults: boolean[] = [];
@@ -204,6 +225,16 @@ function WidgetQueries({
       isTableMetricsExtractedDataResults.every(Boolean) &&
         isTableMetricsExtractedDataResults.some(Boolean)
     );
+
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
+        rawResults?.meta?.discoverSplitDecision
+      )
+    ) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision?.(rawResults?.meta?.discoverSplitDecision);
+    }
   };
 
   return (

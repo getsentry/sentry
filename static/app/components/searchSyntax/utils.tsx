@@ -1,4 +1,4 @@
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import type {TokenResult} from './parser';
 import {allOperators, Token} from './parser';
@@ -203,6 +203,10 @@ type GetKeyNameOpts = {
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
+  /**
+   * Display explicit tags with `tags[name]` instead of `name`
+   */
+  showExplicitTagPrefix?: boolean;
 };
 
 /**
@@ -212,11 +216,14 @@ export const getKeyName = (
   key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
   options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs} = options;
+  const {aggregateWithArgs, showExplicitTagPrefix = false} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
     case Token.KEY_EXPLICIT_TAG:
+      if (showExplicitTagPrefix) {
+        return key.text;
+      }
       return key.key.value;
     case Token.KEY_AGGREGATE:
       return aggregateWithArgs
@@ -240,4 +247,66 @@ export function isWithinToken(
 
 export function isOperator(value: string) {
   return allOperators.some(op => op === value);
+}
+
+function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
+  let stringifiedToken = '';
+
+  if (token.negated) {
+    stringifiedToken += '!';
+  }
+
+  stringifiedToken += stringifyToken(token.key);
+  stringifiedToken += ':';
+  stringifiedToken += token.operator;
+  stringifiedToken += stringifyToken(token.value);
+
+  return stringifiedToken;
+}
+
+export function stringifyToken(token: TokenResult<Token>) {
+  switch (token.type) {
+    case Token.FREE_TEXT:
+    case Token.SPACES:
+      return token.value;
+    case Token.FILTER:
+      return stringifyTokenFilter(token);
+    case Token.LOGIC_GROUP:
+      return `(${token.inner.map(innerToken => stringifyToken(innerToken)).join(' ')})`;
+    case Token.LOGIC_BOOLEAN:
+      return token.value;
+    case Token.VALUE_TEXT_LIST:
+      const textListItems = token.items
+        .map(item => item.value?.text ?? '')
+        .filter(text => text.length > 0);
+      return `[${textListItems.join(',')}]`;
+    case Token.VALUE_NUMBER_LIST:
+      const numberListItems = token.items
+        .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
+        .filter(str => str.length > 0);
+      return `[${numberListItems.join(',')}]`;
+    case Token.KEY_SIMPLE:
+      return token.value;
+    case Token.KEY_AGGREGATE:
+      return token.text;
+    case Token.KEY_AGGREGATE_ARGS:
+      return token.text;
+    case Token.KEY_AGGREGATE_PARAMS:
+      return token.text;
+    case Token.KEY_EXPLICIT_TAG:
+      return `${token.prefix}[${token.key.value}]`;
+    case Token.VALUE_TEXT:
+      return token.quoted ? `"${token.value}"` : token.value;
+    case Token.VALUE_RELATIVE_DATE:
+      return `${token.sign}${token.value}${token.unit}`;
+    case Token.VALUE_BOOLEAN:
+    case Token.VALUE_DURATION:
+    case Token.VALUE_ISO_8601_DATE:
+    case Token.VALUE_PERCENTAGE:
+    case Token.VALUE_SIZE:
+    case Token.VALUE_NUMBER:
+      return token.text;
+    default:
+      return '';
+  }
 }

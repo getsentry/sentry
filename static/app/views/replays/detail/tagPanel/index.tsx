@@ -9,35 +9,14 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 import {t} from 'sentry/locale';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-const notTags = [
-  'browser.name',
-  'browser.version',
-  'device.brand',
-  'device.family',
-  'device.model_id',
-  'device.name',
-  'platform',
-  'releases',
-  'replayType',
-  'os.name',
-  'os.version',
-  'sdk.name',
-  'sdk.version',
-  'user.email',
-  'user.username',
-  // TODO(replay): Remove this when backend changes `name` -> `username`
-  'user.name',
-  'user.id',
-  'user.ip',
-];
 const notSearchable = [
   'sdk.blockAllMedia',
   'sdk.errorSampleRate ',
@@ -48,6 +27,7 @@ const notSearchable = [
   'sdk.networkRequestHasHeaders',
   'sdk.networkResponseHasHeaders',
   'sdk.sessionSampleRate',
+  'sdk.shouldRecordCanvas',
   'sdk.useCompression',
   'sdk.useCompressionOption',
 ];
@@ -85,9 +65,8 @@ function TagPanel() {
     (name: string, value: ReactNode): LocationDescriptor => ({
       pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
       query: {
-        query: notTags.includes(name)
-          ? `${name}:"${value}"`
-          : `tags["${name}"]:"${value}"`,
+        // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
+        query: `${name}:"${value}"`,
       },
     }),
     [organization.slug]

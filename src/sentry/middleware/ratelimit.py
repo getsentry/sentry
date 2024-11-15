@@ -4,6 +4,8 @@ import logging
 import uuid
 from collections.abc import Callable
 
+import orjson
+import sentry_sdk
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
@@ -18,7 +20,7 @@ from sentry.ratelimits import (
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -37,16 +39,17 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        response = self.get_response(request)
-        self.process_response(request, response)
-        return response
+        with sentry_sdk.start_span(op="ratelimit.__call__"):
+            response = self.get_response(request)
+            self.process_response(request, response)
+            return response
 
     def process_view(
         self, request: HttpRequest, view_func, view_args, view_kwargs
     ) -> HttpResponseBase | None:
         """Check if the endpoint call will violate."""
 
-        with metrics.timer("middleware.ratelimit.process_view"):
+        with metrics.timer("middleware.ratelimit.process_view", sample_rate=0.01):
             try:
                 # TODO: put these fields into their own object
                 request.will_be_rate_limited = False
@@ -88,6 +91,7 @@ class RatelimitMiddleware:
                 request.rate_limit_metadata = above_rate_limit_check(
                     request.rate_limit_key, rate_limit, request.rate_limit_uid, rate_limit_group
                 )
+
                 # TODO: also limit by concurrent window once we have the data
                 rate_limit_cond = (
                     request.rate_limit_metadata.rate_limit_type != RateLimitType.NOT_LIMITED
@@ -106,7 +110,7 @@ class RatelimitMiddleware:
                         },
                     )
                     response = HttpResponse(
-                        json.dumps(
+                        orjson.dumps(
                             DEFAULT_ERROR_MESSAGE.format(
                                 limit=request.rate_limit_metadata.limit,
                                 window=request.rate_limit_metadata.window,
@@ -114,6 +118,7 @@ class RatelimitMiddleware:
                         ),
                         status=429,
                     )
+                    assert request.method is not None
                     return apply_cors_headers(
                         request=request, response=response, allowed_methods=[request.method]
                     )
@@ -126,7 +131,7 @@ class RatelimitMiddleware:
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase
     ) -> HttpResponseBase:
-        with metrics.timer("middleware.ratelimit.process_response"):
+        with metrics.timer("middleware.ratelimit.process_response", sample_rate=0.01):
             try:
                 rate_limit_metadata: RateLimitMeta | None = getattr(
                     request, "rate_limit_metadata", None
@@ -135,12 +140,12 @@ class RatelimitMiddleware:
                     response["X-Sentry-Rate-Limit-Remaining"] = rate_limit_metadata.remaining
                     response["X-Sentry-Rate-Limit-Limit"] = rate_limit_metadata.limit
                     response["X-Sentry-Rate-Limit-Reset"] = rate_limit_metadata.reset_time
-                    response[
-                        "X-Sentry-Rate-Limit-ConcurrentRemaining"
-                    ] = rate_limit_metadata.concurrent_remaining
-                    response[
-                        "X-Sentry-Rate-Limit-ConcurrentLimit"
-                    ] = rate_limit_metadata.concurrent_limit
+                    response["X-Sentry-Rate-Limit-ConcurrentRemaining"] = (
+                        rate_limit_metadata.concurrent_remaining
+                    )
+                    response["X-Sentry-Rate-Limit-ConcurrentLimit"] = (
+                        rate_limit_metadata.concurrent_limit
+                    )
                 if hasattr(request, "rate_limit_key") and hasattr(request, "rate_limit_uid"):
                     finish_request(request.rate_limit_key, request.rate_limit_uid)
             except Exception:

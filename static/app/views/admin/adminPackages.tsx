@@ -11,7 +11,7 @@ type Data = {
 };
 
 export default function AdminPackages() {
-  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/packages/'], {
+  const {data, isPending, isError} = useApiQuery<Data>(['/internal/packages/'], {
     staleTime: 0,
   });
 
@@ -19,7 +19,7 @@ export default function AdminPackages() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

@@ -1,31 +1,59 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getIngestionSeriesId, MetricChart} from 'sentry/components/metrics/chart/chart';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import {getWidgetTitle} from 'sentry/utils/metrics';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
+import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
-  DEFAULT_SORT_STATE,
-  metricDisplayTypeOptions,
-} from 'sentry/utils/metrics/constants';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+  type FocusedMetricsSeries,
+  MetricExpressionType,
+  type SortState,
+} from 'sentry/utils/metrics/types';
+import {
+  type MetricsQueryApiQueryParams,
+  useMetricsQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/ddm/chart/chart';
-import {SummaryTable} from 'sentry/views/ddm/summaryTable';
-import {createChartPalette} from 'sentry/views/ddm/utils/metricsChartPalette';
-import {getChartTimeseries} from 'sentry/views/ddm/widget';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {BigNumber, getBigNumberData} from 'sentry/views/dashboards/metrics/bigNumber';
+import {getTableData, MetricTable} from 'sentry/views/dashboards/metrics/table';
+import type {
+  DashboardMetricsExpression,
+  Order,
+} from 'sentry/views/dashboards/metrics/types';
+import {
+  expressionsToApiQueries,
+  getMetricWidgetTitle,
+  toMetricDisplayType,
+} from 'sentry/views/dashboards/metrics/utils';
+import {DisplayType} from 'sentry/views/dashboards/types';
+import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
+import {SummaryTable} from 'sentry/views/metrics/summaryTable';
+import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
+import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
+import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
+import {getChartTimeseries} from 'sentry/views/metrics/widget';
 
-import {DASHBOARD_CHART_GROUP} from '../../../views/dashboards/dashboard';
-import {DisplayType} from '../../../views/dashboards/types';
-
-function useFocusedSeries({timeseriesData, queries, onChange}) {
+function useFocusedSeries({
+  timeseriesData,
+  queries,
+  onChange,
+}: {
+  queries: MetricsQueryApiQueryParams[];
+  timeseriesData: MetricsQueryApiResponse | null;
+  onChange?: () => void;
+}) {
   const [focusedSeries, setFocusedSeries] = useState<FocusedMetricsSeries[]>([]);
 
   const chartSeries = useMemo(() => {
@@ -89,62 +117,100 @@ function useFocusedSeries({timeseriesData, queries, onChange}) {
   };
 }
 
-function useHoverSeries() {
-  const chartRef = useRef<ReactEchartsRef>(null);
-
-  const setHoveredSeries = useCallback((seriesId: string) => {
-    if (!chartRef.current) {
-      return;
-    }
-    const echartsInstance = chartRef.current.getEchartsInstance();
-    echartsInstance.dispatchAction({
-      type: 'highlight',
-      seriesId: [seriesId, getIngestionSeriesId(seriesId)],
-    });
-  }, []);
-
-  const resetHoveredSeries = useCallback(() => {
-    setHoveredSeries('');
-  }, [setHoveredSeries]);
-
-  return {
-    chartRef,
-    setHoveredSeries,
-    resetHoveredSeries,
-  };
+interface MetricVisualizationProps {
+  displayType: DisplayType;
+  expressions: DashboardMetricsExpression[];
+  interval: string;
+  onDisplayTypeChange: (displayType: DisplayType) => void;
+  onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
 }
 
-// TODO: add types
-export function MetricVisualization({queries, displayType, onDisplayTypeChange}) {
+const EMPTY_FN = () => {};
+
+export function MetricVisualization({
+  expressions,
+  displayType,
+  onDisplayTypeChange,
+  onOrderChange,
+  interval,
+}: MetricVisualizationProps) {
   const {selection} = usePageFilters();
-  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
+  const organization = useOrganization();
+  const metricsNewInputs = hasMetricsNewInputs(organization);
+  const hasSetMetric = useMemo(
+    () =>
+      expressions.some(
+        expression =>
+          expression.type === MetricExpressionType.QUERY &&
+          parseMRI(expression.mri)!.type === 's'
+      ),
+    [expressions]
+  );
+  const {interval: validatedInterval} = useMetricsIntervalOptions({
+    interval,
+    hasSetMetric,
+    datetime: selection.datetime,
+    onIntervalChange: EMPTY_FN,
+  });
+
+  const queries = useMemo(
+    () => expressionsToApiQueries(expressions, metricsNewInputs),
+    [expressions, metricsNewInputs]
+  );
 
   const {
     data: timeseriesData,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useMetricsQuery(queries, selection, {
-    intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
+    interval: validatedInterval,
   });
 
-  const {chartRef, setHoveredSeries, resetHoveredSeries} = useHoverSeries();
+  const widgetMQL = useMemo(() => getMetricWidgetTitle(expressions), [expressions]);
 
-  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
-    timeseriesData,
-    queries,
-    onChange: resetHoveredSeries,
-  });
+  const visualizationComponent = useMemo(() => {
+    if (!timeseriesData) {
+      return <LoadingIndicator />;
+    }
+    if (displayType === DisplayType.TABLE) {
+      return (
+        <MetricTableVisualization
+          isLoading={isPending}
+          timeseriesData={timeseriesData}
+          queries={queries}
+          onOrderChange={onOrderChange}
+        />
+      );
+    }
+    if (displayType === DisplayType.BIG_NUMBER) {
+      return (
+        <MetricBigNumberVisualization
+          timeseriesData={timeseriesData}
+          isLoading={isPending}
+          queries={queries}
+        />
+      );
+    }
 
-  const widgetMQL = useMemo(() => getWidgetTitle(queries), [queries]);
+    return (
+      <MetricChartVisualization
+        isLoading={isPending}
+        timeseriesData={timeseriesData}
+        queries={queries}
+        displayType={displayType}
+      />
+    );
+  }, [timeseriesData, displayType, isPending, queries, onOrderChange]);
 
-  if (!chartSeries || !timeseriesData || isError) {
+  if (isError && !timeseriesData) {
     return (
       <StyledMetricChartContainer>
-        {isLoading && <LoadingIndicator />}
+        {isPending && <LoadingIndicator />}
         {isError && (
           <Alert type="error">
-            {error?.responseJSON?.detail || t('Error while fetching metrics data')}
+            {(error?.responseJSON?.detail as string) ||
+              t('Error while fetching metrics data')}
           </Alert>
         )}
       </StyledMetricChartContainer>
@@ -165,42 +231,132 @@ export function MetricVisualization({queries, displayType, onDisplayTypeChange})
           </StyledTooltip>
         </WidgetTitle>
         <CompactSelect
-          size="xs"
+          size="sm"
           triggerProps={{prefix: t('Visualization')}}
           value={displayType}
-          options={metricDisplayTypeOptions}
-          onChange={({value}) => onDisplayTypeChange(value) as DisplayType}
+          options={Object.keys(displayTypes).map(value => ({
+            label: displayTypes[value],
+            value,
+          }))}
+          onChange={({value}) => onDisplayTypeChange(value as DisplayType)}
         />
       </ViualizationHeader>
-      <StyledMetricChartContainer>
-        <TransparentLoadingMask visible={isLoading} />
-        <MetricChart
-          ref={chartRef}
-          series={chartSeries}
-          displayType={displayType}
-          group={DASHBOARD_CHART_GROUP}
-          height={200}
-        />
-        <SummaryTable
-          series={chartSeries}
-          onSortChange={setTableSort}
-          sort={tableSort}
-          onRowClick={setSeriesVisibility}
-          onColorDotClick={toggleSeriesVisibility}
-          onRowHover={setHoveredSeries}
-        />
-      </StyledMetricChartContainer>
+      {visualizationComponent}
     </StyledOuterContainer>
   );
 }
 
+interface MetricTableVisualizationProps {
+  isLoading: boolean;
+  queries: MetricsQueryApiQueryParams[];
+  timeseriesData: MetricsQueryApiResponse;
+  onOrderChange?: ({id, order}: {id: number; order: Order}) => void;
+}
+
+function MetricTableVisualization({
+  timeseriesData,
+  queries,
+  isLoading,
+  onOrderChange,
+}: MetricTableVisualizationProps) {
+  const tableData = useMemo(() => {
+    return getTableData(timeseriesData, queries);
+  }, [timeseriesData, queries]);
+
+  const handleOrderChange = useCallback(
+    (column: {id: number; order: Order}) => {
+      onOrderChange?.(column);
+    },
+    [onOrderChange]
+  );
+
+  return (
+    <Fragment>
+      <TransparentLoadingMask visible={isLoading} />
+      <MetricTable
+        isLoading={isLoading}
+        data={tableData}
+        onOrderChange={handleOrderChange}
+      />
+    </Fragment>
+  );
+}
+
+function MetricBigNumberVisualization({
+  timeseriesData,
+  isLoading,
+}: MetricTableVisualizationProps) {
+  const bigNumberData = useMemo(() => {
+    return timeseriesData ? getBigNumberData(timeseriesData) : undefined;
+  }, [timeseriesData]);
+
+  if (!bigNumberData) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <LoadingScreen loading={isLoading} />
+      <BigNumber>{bigNumberData}</BigNumber>
+    </Fragment>
+  );
+}
+
+interface MetricChartVisualizationProps extends MetricTableVisualizationProps {
+  displayType: DisplayType;
+}
+
+function MetricChartVisualization({
+  timeseriesData,
+  queries,
+  displayType,
+  isLoading,
+}: MetricChartVisualizationProps) {
+  const {chartRef, setHoveredSeries} = useSeriesHover();
+
+  const handleHoverSeries = useCallback(
+    (seriesId: string) => {
+      setHoveredSeries([seriesId, getIngestionSeriesId(seriesId)]);
+    },
+    [setHoveredSeries]
+  );
+
+  const {chartSeries, toggleSeriesVisibility, setSeriesVisibility} = useFocusedSeries({
+    timeseriesData,
+    queries,
+    onChange: () => handleHoverSeries(''),
+  });
+  const [tableSort, setTableSort] = useState<SortState>(DEFAULT_SORT_STATE);
+
+  return (
+    <Fragment>
+      <TransparentLoadingMask visible={isLoading} />
+      <MetricChart
+        ref={chartRef}
+        series={chartSeries}
+        displayType={toMetricDisplayType(displayType)}
+        group={DASHBOARD_CHART_GROUP}
+        height={200}
+      />
+      <SummaryTable
+        series={chartSeries}
+        onSortChange={setTableSort}
+        sort={tableSort}
+        onRowClick={setSeriesVisibility}
+        onColorDotClick={toggleSeriesVisibility}
+        onRowHover={handleHoverSeries}
+      />
+    </Fragment>
+  );
+}
+
 const StyledOuterContainer = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(3)};
 `;
 
 const StyledMetricChartContainer = styled('div')`
-  padding: ${space(2)};
   gap: ${space(3)};
   display: flex;
   flex-direction: column;
@@ -213,9 +369,6 @@ const ViualizationHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   gap: ${space(1)};
-  padding-left: ${space(2)};
-  padding-top: ${space(1.5)};
-  padding-right: ${space(2)};
 `;
 
 const WidgetTitle = styled('div')`

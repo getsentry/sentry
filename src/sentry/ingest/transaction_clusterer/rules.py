@@ -20,11 +20,9 @@ TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
 
 
 class RuleStore(Protocol):
-    def read(self, project: Project) -> RuleSet:
-        ...
+    def read(self, project: Project) -> RuleSet: ...
 
-    def write(self, project: Project, rules: RuleSet) -> None:
-        ...
+    def write(self, project: Project, rules: RuleSet) -> None: ...
 
 
 class RedisRuleStore:
@@ -63,7 +61,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(key, rules)
+                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -147,18 +145,17 @@ class CompositeRuleStore:
         sorted_rules = [rule for rule in sorted_rules if rule[1] >= last_seen_deadline]
 
         if self.MERGE_MAX_RULES < len(rules):
-            with sentry_sdk.configure_scope() as scope:
-                sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
-                scope.set_context(
-                    "clustering_rules_max",
-                    {
-                        "num_existing_rules": len(rules),
-                        "max_amount": self.MERGE_MAX_RULES,
-                        "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
-                    },
-                )
-                sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
+            sentry_sdk.set_measurement("discarded_rules", len(rules) - self.MERGE_MAX_RULES)
+            sentry_sdk.Scope.get_isolation_scope().set_context(
+                "clustering_rules_max",
+                {
+                    "num_existing_rules": len(rules),
+                    "max_amount": self.MERGE_MAX_RULES,
+                    "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
+                },
+            )
+            sentry_sdk.set_tag("namespace", self._namespace.value.name)
+            sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}

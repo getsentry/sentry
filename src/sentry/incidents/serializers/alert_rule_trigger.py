@@ -1,3 +1,4 @@
+from django import forms
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -10,7 +11,7 @@ from sentry.incidents.logic import (
     rewrite_trigger_action_fields,
     update_alert_rule_trigger,
 )
-from sentry.incidents.models import AlertRuleTrigger, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
 
@@ -45,6 +46,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             self._handle_actions(alert_rule_trigger, actions)
 
             return alert_rule_trigger
+        except forms.ValidationError as e:
+            # if we fail in create_alert_rule_trigger, then only one message is ever returned
+            raise serializers.ValidationError(e.error_list[0].message)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
@@ -56,6 +60,9 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
             alert_rule_trigger = update_alert_rule_trigger(instance, **validated_data)
             self._handle_actions(alert_rule_trigger, actions)
             return alert_rule_trigger
+        except forms.ValidationError as e:
+            # if we fail in update_alert_rule_trigger, then only one message is ever returned
+            raise serializers.ValidationError(e.error_list[0].message)
         except AlertRuleTriggerLabelAlreadyUsedError:
             raise serializers.ValidationError("This label is already in use for this alert rule")
 
@@ -78,6 +85,11 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     )
                 else:
                     action_instance = None
+
+                if not action_data.get("target_identifier", ""):
+                    raise serializers.ValidationError(
+                        "One or more of your actions is missing a target identifier."
+                    )
 
                 action_serializer = AlertRuleTriggerActionSerializer(
                     context={

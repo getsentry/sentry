@@ -13,11 +13,11 @@ import StackTraceContent from 'sentry/components/events/interfaces/crashContent/
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
-const project = ProjectFixture({});
+const project = ProjectFixture();
 
 const integration = GitHubIntegrationFixture();
 const repo = RepositoryFixture({integrationId: integration.id});

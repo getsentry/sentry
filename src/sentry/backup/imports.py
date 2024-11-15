@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import BinaryIO
+from typing import IO, Any
 from uuid import uuid4
 
+import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
+from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
+    DELETED_FIELDS,
+    DELETED_MODELS,
     ImportKind,
     ModelRelations,
     NormalizedModelName,
@@ -21,11 +26,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.db.models.paranoia import ParanoidModel
-from sentry.models.importchunk import ControlImportChunkReplica
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.nodestore.django.models import Node
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
     RpcImportErrorKind,
@@ -33,10 +34,15 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.backup.services.import_export.service import ImportExportService
+from sentry.db.models.paranoia import ParanoidModel
+from sentry.hybridcloud.models.outbox import OutboxFlushError, RegionOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.models.importchunk import ControlImportChunkReplica
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -46,6 +52,14 @@ __all__ = (
     "import_in_config_scope",
     "import_in_global_scope",
 )
+
+logger = logging.getLogger(__name__)
+
+# The maximum number of models that may be sent at a time.
+MAX_BATCH_SIZE = 20
+
+# The maximum number of times we attempt to drain an organization's outbox before slug provisioning.
+MAX_SHARD_DRAIN_ATTEMPTS = 3
 
 
 class ImportingError(Exception):
@@ -59,7 +73,7 @@ def _clear_model_tables_before_import():
     for model in reversed:
         using = router.db_for_write(model)
         manager = model.with_deleted if issubclass(model, ParanoidModel) else model.objects
-        manager.all().delete()  # type: ignore
+        manager.all().delete()
 
         # TODO(getsentry/team-ospo#190): Remove the "Node" kludge below in favor of a more permanent
         # solution.
@@ -71,7 +85,7 @@ def _clear_model_tables_before_import():
 
 
 def _import(
-    src: BinaryIO,
+    src: IO[bytes],
     scope: ImportScope,
     *,
     decryptor: Decryptor | None = None,
@@ -88,10 +102,10 @@ def _import(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.email import Email
     from sentry.models.organization import Organization
     from sentry.models.organizationmember import OrganizationMember
-    from sentry.models.user import User
+    from sentry.users.models.email import Email
+    from sentry.users.models.user import User
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Imports must be run in REGION or MONOLITH instances only"
@@ -125,16 +139,37 @@ def _import(
     #
     # Needless to say, there is probably a better way to do this, but we'll use this hacky
     # workaround for now to enable forward progress.
-    deferred_org_auth_tokens = None
+    #
+    # Note: this is a list serialized JSON lists of `OrgAuthToken` models, batched into
+    # `MAX_BATCH_SIZE` length batches.
+    deferred_org_auth_tokens: list[str] = []
 
     # TODO(getsentry#team-ospo/190): Reading the entire export into memory as a string is quite
     # wasteful - in the future, we should explore chunking strategies to enable a smaller memory
     # footprint when processing super large (>100MB) exports.
-    content = (
+    content: bytes | str = (
         decrypt_encrypted_tarball(src, decryptor)
         if decryptor is not None
         else src.read().decode("utf-8")
     )
+
+    if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
+        # Parse the content JSON and remove fields and models that we have marked for deletion in
+        # the function.
+        content_as_json = orjson.loads(content)
+        shimmed_models = set(DELETED_FIELDS.keys())
+        for i, json_model in enumerate(content_as_json):
+            if json_model["model"] in shimmed_models:
+                fields_to_remove = DELETED_FIELDS[json_model["model"]]
+                for field in fields_to_remove:
+                    json_model["fields"].pop(field, None)
+
+            if json_model["model"] in DELETED_MODELS:
+                del content_as_json[i]
+
+        # Return the content to byte form, as that is what the Django deserializer expects.
+        content = orjson.dumps(content_as_json)
+
     filters = []
     if filter_by is not None:
         filters.append(filter_by)
@@ -151,7 +186,7 @@ def _import(
             # matched orgs, and finally add those pks to a `User.pk` instance of `Filter`.
             filtered_org_pks = set()
             seen_first_org_member_model = False
-            user_filter: Filter[int] = Filter(model=User, field="pk")
+            user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
             # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
@@ -198,7 +233,7 @@ def _import(
             raise TypeError("Filter arguments must only apply to `Organization` or `User` models")
 
         user_filter = next(f for f in filters if f.model == User)
-        email_filter = Filter(
+        email_filter = Filter[str](
             model=Email,
             field="email",
             values={v for k, v in user_to_email.items() if k in user_filter.values},
@@ -206,26 +241,49 @@ def _import(
 
         filters.append(email_filter)
 
-    # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
-    # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
+    # The input JSON blob should already be ordered by model kind. We simply break it up into
+    # smaller chunks, while guaranteeing that each chunk contains at most 1 model kind.
+    #
+    # This generator returns a three-tuple of values: 1. the name of the model being generated, 2. a
+    # serialized JSON string containing some number of such model instances, and 3. an offset
+    # representing how many instances of this model have already been produced by this generator,
+    # NOT including the current instance.
+    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
-        models = json.loads(content)
+        models = orjson.loads(content)
         last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
+        num_current_model_instances_yielded = 0
         for model in models:
             model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:
                 if last_seen_model_name is not None and len(batch) > 0:
-                    yield (last_seen_model_name, json.dumps(batch))
+                    yield (
+                        last_seen_model_name,
+                        orjson.dumps(batch).decode(),
+                        num_current_model_instances_yielded,
+                    )
 
+                num_current_model_instances_yielded = 0
                 batch = []
                 last_seen_model_name = model_name
+            if len(batch) >= MAX_BATCH_SIZE:
+                yield (
+                    last_seen_model_name,
+                    orjson.dumps(batch, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode(),
+                    num_current_model_instances_yielded,
+                )
+                num_current_model_instances_yielded += len(batch)
+                batch = []
 
             batch.append(model)
 
         if last_seen_model_name is not None and batch:
-            yield (last_seen_model_name, json.dumps(batch))
+            yield (
+                last_seen_model_name,
+                orjson.dumps(batch).decode(),
+                num_current_model_instances_yielded,
+            )
 
     # A wrapper for some immutable state we need when performing a single `do_write().
     @dataclass(frozen=True)
@@ -240,7 +298,8 @@ def _import(
         import_write_context: ImportWriteContext,
         pk_map: PrimaryKeyMap,
         model_name: NormalizedModelName,
-        json_data: json.JSONData,
+        json_data: Any,
+        offset: int,
     ) -> None:
         model_relations = import_write_context.dependencies.get(model_name)
         if not model_relations:
@@ -249,13 +308,23 @@ def _import(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         import_by_model = ImportExportService.get_importer_for_model(model_relations.model)
         model_name_str = str(model_name)
+        min_ordinal = offset + 1
+
+        extra = {
+            "model_name": model_name_str,
+            "import_uuid": flags.import_uuid,
+            "min_ordinal": min_ordinal,
+        }
+        logger.info("import_by_model.request_import", extra=extra)
+
         result = import_by_model(
-            model_name=model_name_str,
+            import_model_name=model_name_str,
             scope=import_write_context.scope,
             flags=import_write_context.flags,
             filter_by=import_write_context.filter_by,
             pk_map=RpcPrimaryKeyMap.into_rpc(pk_map.partition(dep_models)),
             json_data=json_data,
+            min_ordinal=min_ordinal,
         )
 
         if isinstance(result, RpcImportError):
@@ -273,37 +342,46 @@ def _import(
         # the RPC divide, we create a replica of the `ControlImportChunk` that successful import
         # would have generated in the calling region as well.
         if result.min_ordinal is not None and SiloMode.CONTROL in deps[model_name].silos:
-            # If `min_ordinal` is not null, these values must not be either.
-            assert result.max_ordinal is not None
-            assert result.min_source_pk is not None
-            assert result.max_source_pk is not None
+            # Maybe we are resuming an import on a retry. Check to see if this
+            # `ControlImportChunkReplica` already exists, and only write it if it does not. There
+            # can't be races here, since there is only one celery task running at a time, pushing
+            # updates in a synchronous manner.
+            existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
+                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+            ).first()
+            if existing_control_import_chunk_replica is not None:
+                logger.info("import_by_model.control_replica_already_exists", extra=extra)
+            else:
+                # If `min_ordinal` is not null, these values must not be either.
+                assert result.max_ordinal is not None
+                assert result.min_source_pk is not None
+                assert result.max_source_pk is not None
 
-            inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
-                model_name_str
-            ]
-            existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
-                model_name_str
-            ]
-            overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
-                model_name_str
-            ]
-            control_import_chunk_replica = ControlImportChunkReplica(
-                import_uuid=flags.import_uuid,
-                model=model_name_str,
-                # TODO(getsentry/team-ospo#190): The next two fields assume the entire model is
-                # being imported in a single call; we may change this in the future.
-                min_ordinal=result.min_ordinal,
-                max_ordinal=result.max_ordinal,
-                min_source_pk=result.min_source_pk,
-                max_source_pk=result.max_source_pk,
-                min_inserted_pk=result.min_inserted_pk,
-                max_inserted_pk=result.max_inserted_pk,
-                inserted_map={k: v[0] for k, v in inserted.items()},
-                existing_map={k: v[0] for k, v in existing.items()},
-                overwrite_map={k: v[0] for k, v in overwrite.items()},
-                inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
-            )
-            control_import_chunk_replica.save()
+                inserted = out_pk_map.partition({model_name}, {ImportKind.Inserted}).mapping[
+                    model_name_str
+                ]
+                existing = out_pk_map.partition({model_name}, {ImportKind.Existing}).mapping[
+                    model_name_str
+                ]
+                overwrite = out_pk_map.partition({model_name}, {ImportKind.Overwrite}).mapping[
+                    model_name_str
+                ]
+
+                control_import_chunk_replica = ControlImportChunkReplica(
+                    import_uuid=flags.import_uuid,
+                    model=model_name_str,
+                    min_ordinal=result.min_ordinal,
+                    max_ordinal=result.max_ordinal,
+                    min_source_pk=result.min_source_pk,
+                    max_source_pk=result.max_source_pk,
+                    min_inserted_pk=result.min_inserted_pk,
+                    max_inserted_pk=result.max_inserted_pk,
+                    inserted_map={k: v[0] for k, v in inserted.items()},
+                    existing_map={k: v[0] for k, v in existing.items()},
+                    overwrite_map={k: v[0] for k, v in overwrite.items()},
+                    inserted_identifiers={k: v[2] for k, v in inserted.items() if v[2] is not None},
+                )
+                control_import_chunk_replica.save()
 
     import_write_context = ImportWriteContext(
         scope=RpcImportScope.into_rpc(scope),
@@ -318,12 +396,12 @@ def _import(
     def do_writes(pk_map: PrimaryKeyMap) -> None:
         nonlocal deferred_org_auth_tokens, import_write_context
 
-        for model_name, json_data in yield_json_models(content):
+        for model_name, json_data, offset in yield_json_models(content):
             if model_name == org_auth_token_model_name:
-                deferred_org_auth_tokens = json_data
+                deferred_org_auth_tokens.append(json_data)
                 continue
 
-            do_write(import_write_context, pk_map, model_name, json_data)
+            do_write(import_write_context, pk_map, model_name, json_data, offset)
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
@@ -334,28 +412,61 @@ def _import(
         if not org_pk_mapping:
             return
 
-        org_ids_and_slugs: set[tuple[int, str]] = set()
+        slug_mapping: dict[int, str] = {}
         for old_primary_key in org_pk_mapping:
             org_id, _, org_slug = org_pk_mapping[old_primary_key]
-            org_ids_and_slugs.add((org_id, org_slug or ""))
+            slug_mapping[org_id] = org_slug or ""
 
-        if len(org_ids_and_slugs) > 0:
+        if len(slug_mapping) > 0:
+            # HACK(azaslavsky): Okay, this gets a bit complicated, but bear with me: the following
+            # `bulk_create...` calls will result in some actions on the control silo that call back
+            # into this region. So the client (this region) calls the server (the control silo)
+            # which may need to make one or more calls back into the client (this region). Because
+            # some of our `OrganizationMemberTeam` outboxes may not be drained due to the HACK we
+            # performed in `import_export/impl.py` (see that file for more details), there may be a
+            # massive backlog of `OrganizationMemberTeam` outboxes that need to clear before this
+            # region can respond. In the worst case scenario, this will result in a timeout of the
+            # original, outer `bulk_create...` call.
+            #
+            # So, the solution we take here is to manually clear all `ORGANIZATION_SCOPE` outboxes
+            # for each imported organization on this side first, so that when this region responds
+            # to the call triggered from the server-side of `bulk_create...`, the
+            # `ORGANIZATION`-scoped outbox queue is empty and is free to only serve requests
+            # specifically related to slug provisioning.
+            for id in slug_mapping.keys():
+                # To combat ephemeral errors, we'll try this a few times before accepting failure.
+                for attempt in range(MAX_SHARD_DRAIN_ATTEMPTS):
+                    try:
+                        # Manually create an empty outbox targeting this organization's shard, so
+                        # that we can force it to drain.
+                        RegionOutbox(
+                            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                            shard_identifier=id,
+                            category=OutboxCategory.ORGANIZATION_UPDATE,
+                            object_identifier=id,
+                        ).drain_shard(flush_all=True)
+
+                        # If we reach this line without throwing, we've successfully drained the
+                        # outboxes for this organization, and are free to continue the outer loop.
+                        break
+                    except (OutboxFlushError, DatabaseError):
+                        # We'll capture this for now to see how often it happens, though eventually
+                        # we might want to remove this to reduce log spam on Sentry's side.
+                        capture_exception()
+
+                        # Only re-raise if we've exhausted our retries and want to actually error
+                        # out.
+                        if attempt + 1 == MAX_SHARD_DRAIN_ATTEMPTS:
+                            raise
+
             organization_provisioning_service.bulk_create_organization_slugs(
-                org_ids_and_slugs=org_ids_and_slugs
+                slug_mapping=slug_mapping
             )
 
     pk_map = PrimaryKeyMap()
     if SiloMode.get_current_mode() == SiloMode.MONOLITH and not is_split_db():
         with unguarded_write(using="default"), transaction.atomic(using="default"):
             if scope == ImportScope.Global:
-                confirmed = printer.confirm(
-                    """Proceeding with this operation will irrecoverably delete all existing
-                    low-volume data - are you sure want to continue?"""
-                )
-                if not confirmed:
-                    printer.echo("Import cancelled.")
-                    return
-
                 try:
                     _clear_model_tables_before_import()
                 except DatabaseError:
@@ -368,11 +479,18 @@ def _import(
     resolve_org_slugs_from_pk_map(pk_map)
 
     if deferred_org_auth_tokens:
-        do_write(import_write_context, pk_map, org_auth_token_model_name, deferred_org_auth_tokens)
+        for i, deferred_org_auth_token_batch in enumerate(deferred_org_auth_tokens):
+            do_write(
+                import_write_context,
+                pk_map,
+                org_auth_token_model_name,
+                deferred_org_auth_token_batch,
+                i * MAX_BATCH_SIZE,
+            )
 
 
 def import_in_user_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -388,20 +506,20 @@ def import_in_user_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _import(
         src,
         ImportScope.User,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
 
 def import_in_organization_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -426,13 +544,13 @@ def import_in_organization_scope(
         ImportScope.Organization,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
         printer=printer,
     )
 
 
 def import_in_config_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
@@ -451,20 +569,20 @@ def import_in_config_scope(
     """
 
     # Import here to prevent circular module resolutions.
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     return _import(
         src,
         ImportScope.Config,
         decryptor=decryptor,
         flags=flags,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         printer=printer,
     )
 
 
 def import_in_global_scope(
-    src: BinaryIO,
+    src: IO[bytes],
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,

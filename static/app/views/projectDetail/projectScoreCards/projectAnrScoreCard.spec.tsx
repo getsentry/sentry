@@ -1,13 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
 describe('ProjectDetail > ProjectAnr', function () {
-  let endpointMock, endpointMockPreviousPeriod;
+  let endpointMock: jest.Mock;
+  let endpointMockPreviousPeriod: jest.Mock;
 
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {
         query: {project: '1', statsPeriod: '7d'},
@@ -108,8 +109,8 @@ describe('ProjectDetail > ProjectAnr', function () {
       })
     );
 
-    await waitFor(() => expect(screen.getByText('11.562%')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText('0.03%')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('11.56%')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('3%')).toBeInTheDocument());
   });
 
   it('renders open in issues CTA', async function () {
@@ -123,11 +124,11 @@ describe('ProjectDetail > ProjectAnr', function () {
         location={router.location}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
-    await waitFor(() => expect(screen.getByText('11.562%')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('11.56%')).toBeInTheDocument());
 
     expect(screen.getByRole('button', {name: 'View Issues'})).toHaveAttribute(
       'href',

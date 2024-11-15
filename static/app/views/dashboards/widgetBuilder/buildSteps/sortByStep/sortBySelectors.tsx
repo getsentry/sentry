@@ -7,7 +7,8 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import {
   EQUATION_PREFIX,
   explodeField,
@@ -82,7 +83,7 @@ export function SortBySelectors({
       >
         <SelectControl
           name="sortDirection"
-          aria-label="Sort direction"
+          aria-label={t('Sort direction')}
           menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
@@ -102,10 +103,10 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE ? (
+        {displayType === DisplayType.TABLE || widgetType === WidgetType.SPANS ? (
           <SelectControl
             name="sortBy"
-            aria-label="Sort by"
+            aria-label={t('Sort by')}
             menuPlacement="auto"
             disabled={disableSort}
             placeholder={`${t('Select a column')}\u{2026}`}

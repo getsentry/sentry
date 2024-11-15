@@ -20,10 +20,11 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
+from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
     from sentry.db.models.base import BaseModel, ModelSiloLimit
@@ -41,7 +42,7 @@ def monkey_patch_single_process_silo_mode_state():
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
@@ -58,7 +59,7 @@ def monkey_patch_single_process_silo_mode_state():
             state.region = old_region
 
     @contextlib.contextmanager
-    def exit() -> Generator[None, None, None]:
+    def exit() -> Generator[None]:
         old_mode = state.mode
         old_region = state.region
         state.mode = None
@@ -195,7 +196,7 @@ class _SiloModeTestModification:
         silo_mode_attr = "__silo_mode_override"
 
         @contextmanager
-        def create_context(obj: TestCase) -> Generator[None, None, None]:
+        def create_context(obj: TestCase) -> Generator[None]:
             tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
 
             if type(obj) is not tagged_class:
@@ -282,7 +283,7 @@ class _SiloModeTestModification:
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
 
-        return pytest.mark.parametrize("silo_mode", self.silo_modes)(new_test_method)
+        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method)
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
@@ -336,7 +337,9 @@ expected to pass with the current silo mode set to REGION.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
+def assume_test_silo_mode(
+    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -355,8 +358,12 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
-            with region_dir.swap_to_default_region():
-                yield
+            if region_name is None:
+                with region_dir.swap_to_default_region():
+                    yield
+            else:
+                with region_dir.swap_to_region_by_name(region_name):
+                    yield
         else:
             with override_settings(SENTRY_REGION=None):
                 yield
@@ -369,8 +376,8 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
-    non-monolith mode. That is, they must be tagged with `control_silo_only_model` or
-    `region_silo_only_model`. The enclosed context is swapped into the appropriate
+    non-monolith mode. That is, they must be tagged with `control_silo_model` or
+    `region_silo_model`. The enclosed context is swapped into the appropriate
     mode, allowing the model to be accessed.
 
     If no silo-scoped models are provided, no mode swap is performed.
@@ -418,7 +425,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
 
     if len(_protected_operations):
         return _protected_operations
@@ -477,7 +484,7 @@ def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
         # in None sql query dicts.  However, typing the parameter that way breaks things due to a lack of covariance in
         # the VT TypeVar for Dict.
         if sql is None:
-            continue  # type: ignore
+            continue  # type: ignore[unreachable]
         match = match_fence_query(sql)
         if match:
             operation = match.group("operation")
@@ -599,14 +606,8 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 
 def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
-    from sentry.models.actor import Actor
-
     # HybridCloudForeignKey can point to region models if they have snowflake ids
-    if issubclass(related_model, SnowflakeIdMixin):
-        return
-
-    # This particular relation is being removed before we go multi region.
-    if related_model is Actor:
+    if uses_snowflake_id(related_model):
         return
 
     # but they cannot point to region models otherwise.
