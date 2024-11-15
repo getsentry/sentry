@@ -29,6 +29,7 @@ from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -43,13 +44,7 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
-from sentry.models.release import (
-    Release,
-    follows_semver_versioning_scheme,
-    get_semver_releases,
-    greatest_semver_release,
-    most_recent_release,
-)
+from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
@@ -718,6 +713,30 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
     else:
         release = most_recent_release(project)
     return release
+
+
+def most_recent_release(project: Project, commit: Commit | None = None) -> Release | None:
+    queryset = Release.objects.filter(projects=project, organization_id=project.organization_id)
+    if commit:
+        queryset = queryset.filter(releasecommit__commit=commit)
+    return (
+        queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")
+        .first()
+    )
+
+
+def greatest_semver_release(project: Project) -> Release | None:
+    return get_semver_releases(project).first()
+
+
+def get_semver_releases(project: Project) -> Release:
+    return (
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter_to_semver()
+        .annotate_prerelease_column()
+        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
+    )
 
 
 def handle_is_subscribed(

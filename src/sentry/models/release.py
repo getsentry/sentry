@@ -32,7 +32,6 @@ from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.project import Project
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -807,27 +806,3 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
-
-
-def most_recent_release(project: Project, commit: str | None = None) -> Release | None:
-    queryset = Release.objects.filter(projects=project, organization_id=project.organization_id)
-    if commit:
-        queryset = queryset.filter(releasecommit__commit=commit)
-    return (
-        queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
-        .order_by("-sort")
-        .first()
-    )
-
-
-def greatest_semver_release(project: Project) -> Release | None:
-    return get_semver_releases(project).first()
-
-
-def get_semver_releases(project: Project) -> Release | None:
-    return (
-        Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()
-        .annotate_prerelease_column()
-        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
-    )
