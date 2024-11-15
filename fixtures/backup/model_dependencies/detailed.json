@@ -6505,7 +6505,7 @@
     ]
   },
   "workflow_engine.detector": {
-    "dangling": false,
+    "dangling": true,
     "foreign_keys": {
       "organization": {
         "kind": "FlexibleForeignKey",
