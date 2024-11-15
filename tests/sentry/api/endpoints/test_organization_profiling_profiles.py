@@ -121,6 +121,7 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
         self.ten_mins_ago = before_now(minutes=10)
+        self.hour_ago = before_now(hours=1).replace(minute=0, second=0, microsecond=0)
 
     def do_request(self, query, features=None, compat=True, **kwargs):
         if features is None:
@@ -404,22 +405,24 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
             assert profiles_snql_request.dataset == Dataset.Profiles.value
 
+    @patch("sentry.profiles.flamegraph.bulk_snuba_queries", wraps=bulk_snuba_queries)
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_profile_candidates_from_functions_with_data(
         self,
         mock_proxy_profiling_service,
         mock_raw_snql_query,
+        mock_bulk_snuba_queries,
     ):
-        data = load_data("transaction", timestamp=self.ten_mins_ago)
+        data = load_data("transaction", timestamp=self.hour_ago)
         data["transaction"] = "foo"
         profile_id = uuid4().hex
         data.setdefault("contexts", {}).setdefault("profile", {})["profile_id"] = profile_id
 
-        stored = self.store_functions(
+        stored_1 = self.store_functions(
             [
                 {
-                    "self_times_ns": [100],
+                    "self_times_ns": [100_000_000],
                     "package": "foo",
                     "function": "bar",
                     "in_app": True,
@@ -427,17 +430,40 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             ],
             project=self.project,
             transaction=data,
+            timestamp=self.hour_ago,
         )
+        stored_2 = self.store_functions_chunk(
+            [
+                {
+                    "self_times_ns": [100_000_000],
+                    "package": "foo",
+                    "function": "bar",
+                    "thread_id": "1",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+        )
+
+        chunk = {
+            "project_id": self.project.id,
+            "profiler_id": stored_2["profiler_id"],
+            "chunk_id": stored_2["chunk_id"],
+            "start_timestamp": self.hour_ago.isoformat(),
+            "end_timestamp": (self.hour_ago + timedelta(microseconds=100_000)).isoformat(),
+        }
+
+        mock_bulk_snuba_queries.return_value = [{"data": [chunk]}]
 
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
-        fingerprint = stored["functions"][0]["fingerprint"]
+        fingerprint = stored_1["functions"][0]["fingerprint"]
 
         response = self.do_request(
             {
                 "project": [self.project.id],
                 "dataSource": "functions",
-                "query": "transaction:foo",
                 "fingerprint": str(fingerprint),
             },
         )
@@ -457,7 +483,6 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             )
             in snql_request.query.where
         )
-        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
 
         mock_proxy_profiling_service.assert_called_once_with(
             method="POST",
@@ -469,7 +494,18 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
                         "profile_id": profile_id,
                     },
                 ],
-                "continuous": [],
+                "continuous": [
+                    {
+                        "project_id": self.project.id,
+                        "profiler_id": stored_2["profiler_id"],
+                        "chunk_id": stored_2["chunk_id"],
+                        "thread_id": "1",
+                        "start": str(int(self.hour_ago.timestamp() * 1e9)),
+                        "end": str(
+                            int((self.hour_ago + timedelta(microseconds=100_000)).timestamp() * 1e9)
+                        ),
+                    },
+                ],
             },
         )
 
