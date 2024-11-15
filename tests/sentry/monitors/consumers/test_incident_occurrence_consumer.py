@@ -45,10 +45,8 @@ def sned_incident_occurrence(
 
 
 class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
-    @mock.patch(
-        "sentry.monitors.consumers.incident_occurrences_consumer.create_incident_occurrence"
-    )
-    def test_simple(self, mock_create_incident_occurrence):
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
+    def test_simple(self, mock_send_incident_occurrence):
         ts = timezone.now().replace(second=0, microsecond=0)
 
         monitor = self.create_monitor()
@@ -89,8 +87,8 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
             },
         )
 
-        assert mock_create_incident_occurrence.call_count == 1
-        assert mock_create_incident_occurrence.mock_calls[0] == mock.call(
+        assert mock_send_incident_occurrence.call_count == 1
+        assert mock_send_incident_occurrence.mock_calls[0] == mock.call(
             failed_checkin,
             [failed_checkin],
             incident,
