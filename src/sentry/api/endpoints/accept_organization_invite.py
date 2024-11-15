@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
@@ -26,7 +27,6 @@ from sentry.organizations.services.organization import (
 )
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
-from sudo.forms import AnonymousUser
 
 logger = logging.getLogger(__name__)
 
