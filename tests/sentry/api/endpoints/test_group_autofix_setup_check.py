@@ -31,6 +31,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             source_root="sentry/",
         )
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.update_option("sentry:autofix_enabled", True)
 
     @patch(
         "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
@@ -80,6 +81,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 ],
             },
             "codebaseIndexing": {
+                "ok": True,
+            },
+            "autofixEnabled": {
                 "ok": True,
             },
         }
@@ -135,6 +139,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 ],
             },
             "codebaseIndexing": {
+                "ok": True,
+            },
+            "autofixEnabled": {
                 "ok": True,
             },
         }
