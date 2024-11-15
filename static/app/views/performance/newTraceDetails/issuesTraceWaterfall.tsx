@@ -10,15 +10,9 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import * as qs from 'query-string';
 
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import {
-  cancelAnimationTimeout,
-  requestAnimationTimeout,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -44,6 +38,7 @@ import {
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
 import type {TraceWaterfallProps} from './traceWaterfall';
+import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
@@ -86,9 +81,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const previouslyFocusedNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
     null
   );
-  const previouslyScrolledToNodeRef = useRef<TraceTreeNode<TraceTree.NodeValue> | null>(
-    null
-  );
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -120,56 +112,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       items: props.tree.list.length - 1,
     });
   }, [props.tree.list.length, traceDispatch]);
-
-  // We need to heavily debounce query string updates because the rest of the app is so slow
-  // to rerender that it causes the search to drop frames on every keystroke...
-  const QUERY_STRING_STATE_DEBOUNCE = 300;
-  const queryStringAnimationTimeoutRef = useRef<{id: number} | null>(null);
-
-  const setRowAsFocused = useCallback(
-    (
-      node: TraceTreeNode<TraceTree.NodeValue> | null,
-      _event: React.MouseEvent<HTMLElement> | null,
-      _resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>,
-      index: number | null,
-      debounce: number = QUERY_STRING_STATE_DEBOUNCE
-    ) => {
-      // sync query string with the clicked node
-      if (node) {
-        if (queryStringAnimationTimeoutRef.current) {
-          cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
-        }
-        queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
-          const currentQueryStringPath = qs.parse(location.search).node;
-          const nextNodePath = TraceTree.PathToNode(node);
-          // Updating the query string with the same path is problematic because it causes
-          // the entire sentry app to rerender, which is enough to cause jank and drop frames
-          if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
-            return;
-          }
-          const {eventId: _eventId, ...query} = qs.parse(location.search);
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {
-              ...query,
-              node: nextNodePath,
-            },
-          });
-          queryStringAnimationTimeoutRef.current = null;
-        }, debounce);
-
-        if (typeof index === 'number') {
-          traceDispatch({
-            type: 'set roving index',
-            node,
-            index,
-            action_source: 'click',
-          });
-        }
-      }
-    },
-    [traceDispatch]
-  );
 
   const onRowClick = useCallback(
     (
@@ -204,11 +146,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
-
-    const query = qs.parse(location.search);
-    if (query.fov && typeof query.fov === 'string') {
-      viewManager.maybeInitializeTraceViewFromQS(query.fov);
-    }
     if (traceStateRef.current.preferences.missing_instrumentation) {
       TraceTree.DetectMissingInstrumentation(props.tree.root);
     }
@@ -261,9 +198,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       return;
     }
 
-    // At load time, we want to scroll the row into view, but we need to wait for the view
-    // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
-    // to the row in the view if it is not in view yet. If its in the view, then scroll to it immediately.
+    // We dont want to focus the row at load time, because it will cause the page to scroll down to
+    // the trace section. Mark is as scrolled on load so nothing will happen.
+    previouslyFocusedNodeRef.current = node;
     traceScheduler.once('initialize virtualized list', () => {
       function onTargetRowMeasure() {
         if (!node || !viewManager.row_measurer.cache.has(node)) {
@@ -276,18 +213,16 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       }
       viewManager.scrollToRow(index, 'center');
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
-      previouslyScrolledToNodeRef.current = node;
 
-      setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
+      // setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
-        node: node,
-        index: index,
+        node,
+        index,
         action_source: 'load',
       });
     });
   }, [
-    setRowAsFocused,
     traceDispatch,
     viewManager,
     traceScheduler,
@@ -322,7 +257,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         traceSlug={props.traceSlug}
         organization={organization}
       />
-      <TraceGrid layout={traceState.preferences.layout}>
+      <IssuesTraceGrid layout={traceState.preferences.layout}>
         <Trace
           trace={props.tree}
           rerender={rerender}
@@ -343,18 +278,13 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         ) : props.tree.type === 'empty' ? (
           <TraceWaterfallState.Empty />
         ) : null}
-      </TraceGrid>
+      </IssuesTraceGrid>
     </Fragment>
   );
 }
 
-const TraceGrid = styled('div')<{
+const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  border: 1px solid ${p => p.theme.border};
-  flex: 1 1 100%;
-  display: grid;
-  border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
-  position: relative;
+  display: block;
 `;

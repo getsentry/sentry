@@ -844,7 +844,7 @@ const TraceToolbar = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceGrid = styled('div')<{
+export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
   --info: ${p => p.theme.purple400};
