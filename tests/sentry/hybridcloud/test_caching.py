@@ -30,7 +30,7 @@ def test_caching_function() -> None:
         return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
 
     users = [Factories.create_user() for _ in range(3)]
-    old: list[RpcUser] = []
+    old = []
 
     for u in users:
         next_user = get_user(u.id)
@@ -43,12 +43,12 @@ def test_caching_function() -> None:
             user.update(username=user.username + "moocow")
 
     # Does not include updates
-    for u in old:
-        next_user = get_user(u.id)
-        assert next_user == u
+    for old_u in old:
+        next_user = get_user(old_u.id)
+        assert next_user == old_u
 
         region_caching_service.clear_key(
-            region_name=get_local_region().name, key=get_user.key_from(u.id)
+            region_name=get_local_region().name, key=get_user.key_from(old_u.id)
         )
 
     cached_users = [get_user.get_one(u.id) for u in users]
@@ -194,10 +194,10 @@ def test_caching_many() -> None:
         )
 
     cached_users = get_users(user_ids)
-    for u, cached in zip(users, cached_users):
+    for user, cached in zip(users, cached_users):
         assert cached
         assert cached.username.endswith("moo")
-        assert cached.username == u.username
+        assert cached.username == user.username
 
 
 @django_db_all(transaction=True)
