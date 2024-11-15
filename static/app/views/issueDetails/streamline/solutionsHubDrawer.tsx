@@ -12,10 +12,15 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {
+  makeAutofixSetupQueryKey,
+  useAutofixSetup,
+} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDocs, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,8 +33,10 @@ import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
 } from 'sentry/utils/issueTypeConfig';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
@@ -88,6 +95,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
                   : 'Autofix: Start Fix Clicked'
               }
               analyticsParams={{group_id: groupId}}
+              aria-label="Start Autofix"
             >
               {t('Start Autofix')}
             </Button>
@@ -133,20 +141,42 @@ interface SolutionsHubDrawerProps {
   project: Project;
 }
 
+const AiSetupDataConsent = HookOrDefault({
+  hookName: 'component:ai-setup-data-consent',
+  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+});
+
+const useEnableAutofix = (groupId: string) => {
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+
+  const organization = useOrganization();
+  return useMutation({
+    mutationFn: () => {
+      return api.requestPromise(`/organizations/${organization.slug}/`, {
+        method: 'PUT',
+        data: {
+          autofixEnabled: true,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: makeAutofixSetupQueryKey(groupId)});
+    },
+  });
+};
+
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
-  const {autofixData, triggerAutofix, reset, isPolling} = useAiAutofix(group, event);
+  const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {
     data: summaryData,
     isError,
     isPending: isSummaryLoading,
   } = useGroupSummary(group.id, group.issueCategory);
-  const {
-    data: setupData,
-    isPending: isSetupLoading,
-    refetch: refetchSetup,
-  } = useAutofixSetup({
+  const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
     groupId: group.id,
   });
+  const enableAutofixMutation = useEnableAutofix(group.id);
 
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
@@ -154,11 +184,15 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
 
   const config = getConfigForIssueType(group, project);
 
-  const isSetupComplete = setupData?.integration.ok && setupData?.genAIConsent.ok;
-  const hasSummary = summaryData && !isError && setupData?.genAIConsent.ok;
+  const hasConsent = Boolean(setupData?.genAIConsent.ok);
+  const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
+  const autofixEnabled = setupData?.autofixEnabled.ok;
+
+  const hasSummary = summaryData && !isError && hasConsent;
 
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
+
   const displayAiAutofix =
     shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
@@ -234,35 +268,45 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {hasSummary && (
-          <StyledCard>
-            <GroupSummaryBody
-              data={summaryData}
-              isError={isError}
-              isPending={isSummaryLoading}
-            />
-          </StyledCard>
-        )}
-        {displayAiAutofix && (
+        {isSetupLoading || enableAutofixMutation.isPending ? (
+          <div data-test-id="ai-setup-loading-indicator">
+            <LoadingIndicator />
+          </div>
+        ) : !hasConsent ? (
+          <AiSetupDataConsent groupId={group.id} />
+        ) : (
           <Fragment>
-            {!isSetupLoading && !isSetupComplete ? (
-              <SetupContainer>
-                <AutofixSetupContent
-                  projectId={project.id}
-                  groupId={group.id}
-                  onComplete={refetchSetup}
+            {hasSummary && (
+              <StyledCard>
+                <GroupSummaryBody
+                  data={summaryData}
+                  isError={isError}
+                  isPending={isSummaryLoading}
                 />
-              </SetupContainer>
-            ) : !autofixData && isPolling ? (
-              <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
-            ) : autofixData ? (
-              <AutofixSteps
-                data={autofixData}
-                groupId={group.id}
-                runId={autofixData.run_id}
-                onRetry={reset}
-              />
-            ) : null}
+              </StyledCard>
+            )}
+            {displayAiAutofix && (
+              <Fragment>
+                {!isAutofixSetupComplete || !autofixEnabled ? (
+                  <AutofixSetupContent
+                    groupId={group.id}
+                    projectId={project.id}
+                    onComplete={() => {
+                      enableAutofixMutation.mutate();
+                    }}
+                  />
+                ) : !autofixData ? (
+                  <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
+                ) : (
+                  <AutofixSteps
+                    data={autofixData}
+                    groupId={group.id}
+                    runId={autofixData.run_id}
+                    onRetry={reset}
+                  />
+                )}
+              </Fragment>
+            )}
           </Fragment>
         )}
       </SolutionsDrawerBody>
@@ -390,16 +434,6 @@ const StarLarge3 = styled(StarLarge)`
   transform: rotate(20deg);
   width: 28px;
   height: 28px;
-`;
-
-const SetupContainer = styled('div')`
-  padding: ${space(2)};
-
-  /* Override some modal-specific styles */
-  h3 {
-    font-size: ${p => p.theme.fontSizeLarge};
-    margin-bottom: ${space(2)};
-  }
 `;
 
 const StyledCard = styled('div')`

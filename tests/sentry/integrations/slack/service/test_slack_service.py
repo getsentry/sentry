@@ -68,7 +68,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             }
         ]
         self.rule = self.create_project_rule(
-            project=self.project, action_match=self.notify_issue_owners_action
+            project=self.project, action_data=self.notify_issue_owners_action
         )
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -205,7 +205,7 @@ class TestHandleParentNotification(TestCase):
             "uuid": self.rule_action_uuid,
         }
         self.rule = self.create_project_rule(
-            project=self.project, action_match=self.notify_issue_owners_action
+            project=self.project, action_data=self.notify_issue_owners_action
         )
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -216,7 +216,7 @@ class TestHandleParentNotification(TestCase):
         )
 
         self.slack_rule = self.create_project_rule(
-            project=self.project, action_match=[self.slack_action]
+            project=self.project, action_data=[self.slack_action]
         )
         self.slack_rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -314,7 +314,7 @@ class TestHandleParentNotification(TestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_match=notify_issue_owners_action
+            project=self.project, action_data=notify_issue_owners_action
         )
         rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
