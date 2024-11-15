@@ -236,6 +236,9 @@ function EventNavigationLink({
       borderless
       size="xs"
       css={propCss}
+      analyticsEventName="Issue Details: Jump To Clicked"
+      analyticsEventKey="issue_details.jump_to_clicked"
+      analyticsParams={{section: config.key}}
     >
       {sectionLabels[config.key]}
     </LinkButton>

@@ -85,9 +85,11 @@ function GroupSummaryFeatureBadge() {
 export function GroupSummaryBody({
   data,
   isError,
+  isPending,
 }: {
   data: GroupSummaryData | undefined;
   isError: boolean;
+  isPending: boolean;
 }) {
   const insightCards = [
     {
@@ -113,24 +115,34 @@ export function GroupSummaryBody({
   return (
     <Body>
       {isError ? <div>{t('Error loading summary')}</div> : null}
-      {data && (
+      {isPending ? (
         <Content>
           <InsightGrid>
-            {insightCards.map(card => (
-              <InsightCard key={card.id}>
-                <CardTitle>
-                  <CardTitleIcon>{card.icon}</CardTitleIcon>
-                  <CardTitleText>{card.title}</CardTitleText>
-                </CardTitle>
-                <CardContent
-                  dangerouslySetInnerHTML={{
-                    __html: marked(card.insight ?? ''),
-                  }}
-                />
-              </InsightCard>
-            ))}
+            <InsightCard>
+              <Placeholder height="96px" />
+            </InsightCard>
           </InsightGrid>
         </Content>
+      ) : (
+        data && (
+          <Content>
+            <InsightGrid>
+              {insightCards.map(card => (
+                <InsightCard key={card.id}>
+                  <CardTitle>
+                    <CardTitleIcon>{card.icon}</CardTitleIcon>
+                    <CardTitleText>{card.title}</CardTitleText>
+                  </CardTitle>
+                  <CardContent
+                    dangerouslySetInnerHTML={{
+                      __html: marked(card.insight ?? ''),
+                    }}
+                  />
+                </InsightCard>
+              ))}
+            </InsightGrid>
+          </Content>
+        )
       )}
     </Body>
   );
@@ -193,7 +205,7 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
       </StyledTitleRow>
       {expanded && (
         <Fragment>
-          <GroupSummaryBody data={data} isError={isError} />
+          <GroupSummaryBody data={data} isError={isError} isPending={isPending} />
           {openForm && !isPending && (
             <ButtonContainer>
               <Button

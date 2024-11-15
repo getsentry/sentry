@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:26.823824Z'
+created: '2024-11-13T17:26:12.765496+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -11,9 +11,8 @@ app:
         frame* (frame considered in-app because no frame is in-app)
           module*
             "foo.bar.Baz"
-          function*
-            salt* (normalized lambda function name)
-              "<function>"
+          function* (normalized lambda function name)
+            "<function>"
 --------------------------------------------------------------------------
 system:
   hash: "aee9aaca552e7fd593d085ca5a2260cf"
@@ -23,6 +22,5 @@ system:
         frame*
           module*
             "foo.bar.Baz"
-          function*
-            salt* (normalized lambda function name)
-              "<function>"
+          function* (normalized lambda function name)
+            "<function>"

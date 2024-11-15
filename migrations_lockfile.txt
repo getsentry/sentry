@@ -10,7 +10,7 @@ hybridcloud: 0016_add_control_cacheversion
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0789_add_unique_constraint_to_rollbackorganization
+sentry: 0790_delete_dashboard_perms_col
 social_auth: 0002_default_auto_field
 uptime: 0017_unique_on_timeout
 workflow_engine: 0012_data_source_type_change

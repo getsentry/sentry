@@ -101,16 +101,6 @@ class CheckinItem:
         )
 
 
-class SimpleCheckIn(TypedDict):
-    """
-    A stripped down check in object
-    """
-
-    id: int
-    date_added: datetime
-    status: int
-
-
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]
 
 
