@@ -39,7 +39,7 @@ class TestInit(RuleTestCase):
             "channel": "test-notifications",
             "uuid": self.uuid,
         }
-        self.rule = self.create_project_rule(project=self.project, action_match=[self.action_data])
+        self.rule = self.create_project_rule(project=self.project, action_data=[self.action_data])
         self.notification_uuid = str(uuid4())
         self.event = self.store_event(
             data={

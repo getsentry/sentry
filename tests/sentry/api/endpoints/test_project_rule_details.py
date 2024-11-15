@@ -700,8 +700,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         """Test that you can edit an alert rule to have no conditions (aka fire on every event)"""
         rule = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=self.first_seen_condition,
+            action_data=self.notify_issue_owners_action,
+            condition_data=self.first_seen_condition,
             name="no conditions",
         )
         payload = {
@@ -729,8 +729,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         ]
         rule = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=conditions,
+            action_data=self.notify_issue_owners_action,
+            condition_data=conditions,
         )
         conditions.append(
             {
@@ -742,8 +742,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=conditions,
+            action_data=self.notify_issue_owners_action,
+            condition_data=conditions,
         )
         conditions.pop(1)
         payload = {
@@ -769,13 +769,13 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         that does have one set, we consider this when determining if it's a duplicate"""
         self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=self.first_seen_condition,
+            action_data=self.notify_issue_owners_action,
+            condition_data=self.first_seen_condition,
         )
         env_rule = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=self.first_seen_condition,
+            action_data=self.notify_issue_owners_action,
+            condition_data=self.first_seen_condition,
         )
         payload = {
             "name": "hello world",
@@ -812,15 +812,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         """
         rule = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=self.first_seen_condition,
+            action_data=self.notify_issue_owners_action,
+            condition_data=self.first_seen_condition,
             name="rule_with_env",
             environment_id=self.environment.id,
         )
         rule2 = self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=self.first_seen_condition,
+            action_data=self.notify_issue_owners_action,
+            condition_data=self.first_seen_condition,
             name="rule_wo_env",
         )
         payload = {
@@ -890,8 +890,8 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         ]
         self.create_project_rule(
             project=self.project,
-            action_match=self.notify_issue_owners_action,
-            condition_match=conditions,
+            action_data=self.notify_issue_owners_action,
+            condition_data=conditions,
         )
         conditions.append(
             {
