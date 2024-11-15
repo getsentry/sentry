@@ -402,6 +402,15 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
         pipeline.expire(decision_key, MONITOR_VOLUME_RETENTION)
         pipeline.execute()
 
+        logger.info(
+            "monitors.system_incidents.decision",
+            extra={
+                "reference_datetime": str(tick),
+                "decision": decision,
+                "transition": transition,
+            },
+        )
+
         return DecisionResult(decision, transition)
 
     def metrics_match(metric: Metric) -> Generator[bool]:
