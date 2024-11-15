@@ -75,6 +75,7 @@ export default function OnboardingIntegrationSection({
                 // postSecret(secret);
                 setTokenSaved(true);
               }}
+              disabled={secret === ''}
             >
               {t('Save')}
             </Button>
