@@ -296,7 +296,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.organization,
   ]);
 
-  useDividerResizeSync(traceScheduler);
   useTraceTimelineChangeSync({
     tree: props.tree,
     traceScheduler,
@@ -307,6 +306,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     viewManager,
     traceScheduler,
   });
+
+  useDividerResizeSync(traceScheduler);
 
   const onLoadScrollStatus = useTraceOnLoad({
     onTraceLoad,

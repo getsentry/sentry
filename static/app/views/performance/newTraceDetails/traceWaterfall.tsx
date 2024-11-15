@@ -669,7 +669,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // Memoized because it requires tree traversal
   const shape = useMemo(() => props.tree.shape, [props.tree]);
 
-  useDividerResizeSync(traceScheduler);
   useTraceTimelineChangeSync({
     tree: props.tree,
     traceScheduler,
@@ -680,6 +679,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     viewManager,
     traceScheduler,
   });
+
+  useDividerResizeSync(traceScheduler);
 
   const onLoadScrollStatus = useTraceOnLoad({
     onTraceLoad,
