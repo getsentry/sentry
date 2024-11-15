@@ -46,10 +46,6 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.RemoveConstraint(
-            model_name="uptimesubscription",
-            name="uptime_uptimesubscription_unique_subscription_check",
-        ),
         migrations.AddConstraint(
             model_name="uptimesubscription",
             constraint=models.UniqueConstraint(
@@ -62,7 +58,11 @@ class Migration(CheckedMigration):
                 django.db.models.functions.comparison.Coalesce(
                     django.db.models.functions.text.MD5("body"), models.Value("")
                 ),
-                name="uptime_uptimesubscription_unique_subscription_check",
+                name="uptime_uptimesubscription_unique_subscription_check_2",
             ),
+        ),
+        migrations.RemoveConstraint(
+            model_name="uptimesubscription",
+            name="uptime_uptimesubscription_unique_subscription_check",
         ),
     ]
