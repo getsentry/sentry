@@ -76,6 +76,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 "interval_seconds",
                 "timeout_ms",
                 "method",
+                "trace_sampling",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
                 name="uptime_uptimesubscription_unique_subscription_check",
