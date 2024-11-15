@@ -708,6 +708,7 @@ class Fixtures:
         headers=None,
         body=None,
         date_updated: None | datetime = None,
+        trace_sampling: bool = False,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -728,6 +729,7 @@ class Fixtures:
             method=method,
             headers=headers,
             body=body,
+            trace_sampling=trace_sampling,
         )
 
     def create_project_uptime_subscription(
