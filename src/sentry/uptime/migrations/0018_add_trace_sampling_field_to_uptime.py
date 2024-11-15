@@ -29,12 +29,12 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_uptimesubscription" ADD COLUMN "trace_sampling" boolean NOT NULL DEFAULT false;
+                    ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "trace_sampling" boolean NOT NULL DEFAULT false;
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_uptimesubscription" DROP COLUMN "trace_sampling";
+                    ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "trace_sampling";
                     """,
-                    hints={"tables": ["sentry_uptimesubscription"]},
+                    hints={"tables": ["uptime_uptimesubscription"]},
                 ),
             ],
             state_operations=[
