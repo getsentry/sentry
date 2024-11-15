@@ -6732,16 +6732,16 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         data = response.data["data"][0]
         assert data == {
             "id": event.event_id,
-            "events.transaction": "",
+            "transaction": "",
             "project.name": event.project.name.lower(),
-            "events.title": event.group.title,
+            "title": event.group.title,
             "release": event.release,
-            "events.environment": None,
+            "environment": None,
             "user.display": user_data["email"],
             "device": "Mac",
             "replayId": replay_id,
             "os": "",
-            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
 
     def test_opportunity_score(self):

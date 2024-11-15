@@ -106,6 +106,11 @@ class ErrorsQueryBuilderMixin:
             entity = Entity("group_attributes", alias="ga")
         else:
             entity = Entity(self.dataset.value, alias=self.dataset.value)
+
+            # Map the column with the entity name back to the original resolved name
+            # so we can transform the key back in the process_results function
+            self.alias_to_typed_tag_map[f"{entity.name}.{resolved_column}"] = resolved_column
+
         self.entities.add(entity)
         return Column(resolved_column, entity=entity)
 
