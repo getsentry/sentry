@@ -46,7 +46,7 @@ export function NewIssueExperienceButton() {
           enabled={hasStreamlinedUI}
           size={hasStreamlinedUI ? 'xs' : 'sm'}
           icon={
-            defined(user.options.prefersIssueDetailsStreamlinedUI) ? (
+            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
               <IconLab isSolid={hasStreamlinedUI} />
             ) : (
               <motion.div
