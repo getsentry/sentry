@@ -68,6 +68,16 @@ export function NewIssueExperienceButton() {
           onAction: handleToggle,
         },
         {
+          key: 'learn-more',
+          label: t('Learn more about the new UI'),
+          onAction: () => {
+            window.open(
+              'https://sentry.zendesk.com/hc/en-us/articles/30882241712795',
+              '_blank'
+            );
+          },
+        },
+        {
           key: 'give-feedback',
           label: t('Give feedback on new UI'),
           hidden: !openForm,
