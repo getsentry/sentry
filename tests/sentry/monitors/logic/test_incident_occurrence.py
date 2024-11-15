@@ -202,7 +202,7 @@ class IncidentOccurrenceTestCase(TestCase):
     @override_settings(
         KAFKA_TOPIC_OVERRIDES={"monitors-incident-occurrences": "monitors-test-topic"}
     )
-    @mock.patch("sentry.monitors.logic.incident_occurrence._incident_occurrence_produer")
+    @mock.patch("sentry.monitors.logic.incident_occurrence._incident_occurrence_producer")
     def test_queue_incident_occurrence(self, mock_producer):
         tick = timezone.now().replace(second=0, microsecond=0)
 
