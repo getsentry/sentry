@@ -55,7 +55,6 @@ export function NewIssueExperienceButton() {
                   rotate: [null, 6, -6, 12, -12, 6, -6, 0],
                 }}
                 transition={{
-                  ease: 'easeInOut',
                   duration: 1,
                   repeatDelay: 4,
                   repeat: Infinity,
