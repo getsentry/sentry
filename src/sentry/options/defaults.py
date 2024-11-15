@@ -2021,6 +2021,15 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables the the crons incident occurrence consumer to consider the clock-tick
+# decision made based on volume metrics to determine if a incident occurrence
+# should be processed, delayed, or dropped entirely.
+register(
+    "crons.system_incidents.use_decisions",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The threshold that the tick metric must surpass for a tick to be determined
 # as anomalous. This value should be negative, since we will only determine an
 # incident based on a decrease in volume.
