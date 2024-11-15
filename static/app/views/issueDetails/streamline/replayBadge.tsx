@@ -41,7 +41,9 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
         }}
         aria-label={t("View this issue's replays")}
       >
-        {tn('%s Replay', '%s Replays', replaysCount)}
+        {replaysCount > 50
+          ? t('50+ Replays')
+          : tn('%s Replay', '%s Replays', replaysCount)}
       </ReplayButton>
     </Fragment>
   );

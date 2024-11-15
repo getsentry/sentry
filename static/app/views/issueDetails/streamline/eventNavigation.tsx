@@ -220,7 +220,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               key: Tab.REPLAYS,
               label: (
                 <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
-                  {TabName[Tab.REPLAYS]} <ItemCount value={replaysCount} />
+                  {TabName[Tab.REPLAYS]}{' '}
+                  {replaysCount > 50 ? (
+                    <CustomItemCount>50+</CustomItemCount>
+                  ) : (
+                    <ItemCount value={replaysCount} />
+                  )}
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
