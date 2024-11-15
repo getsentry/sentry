@@ -1,18 +1,22 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
+  const user = useUser();
   const organization = useOrganization();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -37,14 +41,37 @@ export function NewIssueExperienceButton() {
       : t('Switch to the new issue experience');
 
     return (
-      <StyledButton
-        enabled={hasStreamlinedUI}
-        size={hasStreamlinedUI ? 'xs' : 'sm'}
-        icon={<IconLab isSolid={hasStreamlinedUI} />}
-        title={label}
-        aria-label={label}
-        onClick={handleToggle}
-      />
+      <ToggleButtonWrapper>
+        <ToggleButton
+          enabled={hasStreamlinedUI}
+          size={hasStreamlinedUI ? 'xs' : 'sm'}
+          icon={
+            defined(user?.options?.prefersIssueDetailsStreamlinedUI) ? (
+              <IconLab isSolid={hasStreamlinedUI} />
+            ) : (
+              <motion.div
+                style={{height: 14}}
+                animate={{
+                  rotate: [null, 6, -6, 12, -12, 6, -6, 0],
+                }}
+                transition={{
+                  duration: 1,
+                  repeatDelay: 4,
+                  repeat: Infinity,
+                }}
+              >
+                <IconLab isSolid={hasStreamlinedUI} />
+              </motion.div>
+            )
+          }
+          title={label}
+          aria-label={label}
+          borderless={!hasStreamlinedUI}
+          onClick={handleToggle}
+        >
+          <ToggleBorder />
+        </ToggleButton>
+      </ToggleButtonWrapper>
     );
   }
 
@@ -102,9 +129,46 @@ const StyledDropdownButton = styled(DropdownButton)<{enabled: boolean}>`
   }
 `;
 
-const StyledButton = styled(Button)<{enabled: boolean}>`
+const ToggleButtonWrapper = styled('div')`
+  overflow: hidden;
+  margin: 0 -1px;
+  border-radius: 7px;
+`;
+
+const ToggleButton = styled(Button)<{enabled: boolean}>`
+  position: relative;
   color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
   :hover {
     color: ${p => (p.enabled ? p.theme.button.primary.background : 'inherit')};
   }
+  &:after {
+    position: absolute;
+    content: '';
+    inset: 0;
+    background: ${p => p.theme.background};
+    border-radius: ${p => p.theme.borderRadius};
+  }
+  span {
+    z-index: 1;
+    margin: 0;
+  }
+`;
+
+const ToggleBorder = styled('div')`
+  @keyframes rotating {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  position: absolute;
+  content: '';
+  z-index: -1;
+  width: 46px;
+  height: 46px;
+  border-radius: 7px;
+  background: ${p => p.theme.badge.beta.background};
+  animation: rotating 10s linear infinite;
 `;
