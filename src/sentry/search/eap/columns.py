@@ -17,7 +17,7 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ResolvedAttribute:
     # The alias for this column
     public_alias: (
@@ -64,10 +64,10 @@ class ResolvedAttribute:
             return self.search_type
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ResolvedColumn(ResolvedAttribute):
     # The internal rpc alias for this column
-    internal_name: str = ""
+    internal_name: str
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -106,10 +106,10 @@ class FunctionDefinition:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class ResolvedFunction(ResolvedAttribute):
     # The internal rpc alias for this column
-    internal_name: Function.ValueType = Function.FUNCTION_UNSPECIFIED
+    internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
 
@@ -129,7 +129,10 @@ class ResolvedFunction(ResolvedAttribute):
 
     @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
-        """The rpc always returns functions as floats"""
+        """The rpc always returns functions as floats, especially count() even though it should be an integer
+
+        see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
+        """
         return constants.FLOAT
 
 
