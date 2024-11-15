@@ -9,7 +9,6 @@ from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
-from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
@@ -24,7 +23,9 @@ logger = logging.getLogger(__name__)
 class Detector(DefaultFieldsModel, OwnerModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization = BoundedIntegerField(null=True)
+    # TODO - Finish removing this field
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, null=True)
+
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=200)
 
