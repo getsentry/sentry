@@ -1,7 +1,16 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    CSPGroupingComponent,
+    ExpectCTGroupingComponent,
+    ExpectStapleGroupingComponent,
+    HostnameGroupingComponent,
+    HPKPGroupingComponent,
+    SaltGroupingComponent,
+    URIGroupingComponent,
+    ViolationGroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -17,11 +26,10 @@ def expect_ct_v1(
     interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return {
-        context["variant"]: BaseGroupingComponent(
-            id="expect-ct",
+        context["variant"]: ExpectCTGroupingComponent(
             values=[
-                BaseGroupingComponent(id="salt", values=["expect-ct"]),
-                BaseGroupingComponent(id="hostname", values=[interface.hostname]),
+                SaltGroupingComponent(values=["expect-ct"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
             ],
         )
     }
@@ -33,11 +41,10 @@ def expect_staple_v1(
     interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return {
-        context["variant"]: BaseGroupingComponent(
-            id="expect-staple",
+        context["variant"]: ExpectStapleGroupingComponent(
             values=[
-                BaseGroupingComponent(id="salt", values=["expect-staple"]),
-                BaseGroupingComponent(id="hostname", values=[interface.hostname]),
+                SaltGroupingComponent(values=["expect-staple"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
             ],
         )
     }
@@ -49,11 +56,10 @@ def hpkp_v1(
     interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return {
-        context["variant"]: BaseGroupingComponent(
-            id="hpkp",
+        context["variant"]: HPKPGroupingComponent(
             values=[
-                BaseGroupingComponent(id="salt", values=["hpkp"]),
-                BaseGroupingComponent(id="hostname", values=[interface.hostname]),
+                SaltGroupingComponent(values=["hpkp"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
             ],
         )
     }
@@ -62,8 +68,8 @@ def hpkp_v1(
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
-    violation_component = BaseGroupingComponent(id="violation")
-    uri_component = BaseGroupingComponent(id="uri")
+    violation_component = ViolationGroupingComponent()
+    uri_component = URIGroupingComponent()
 
     if interface.local_script_violation_type:
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
@@ -77,10 +83,9 @@ def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) 
         uri_component.update(values=[interface.normalized_blocked_uri])
 
     return {
-        context["variant"]: BaseGroupingComponent(
-            id="csp",
+        context["variant"]: CSPGroupingComponent(
             values=[
-                BaseGroupingComponent(id="salt", values=[interface.effective_directive]),
+                SaltGroupingComponent(values=[interface.effective_directive]),
                 violation_component,
                 uri_component,
             ],
