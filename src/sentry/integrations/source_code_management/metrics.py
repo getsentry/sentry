@@ -22,11 +22,8 @@ class SCMIntegrationInteractionType(Enum):
     GET_CODEOWNER_FILE = "GET_CODEOWNER_FILE"
     CHECK_FILE = "CHECK_FILE"
 
-    # SourceCodeIssueIntegration
+    # SourceCodeIssueIntegration (SCM only)
     GET_REPOSITORY_CHOICES = "GET_REPOSITORY_CHOICES"
-    CREATE_ISSUE = "CREATE_ISSUE"
-    SYNC_STATUS_OUTBOUND = "SYNC_STATUS_OUTBOUND"
-    SYNC_ASSIGNEE_OUTBOUND = "SYNC_ASSIGNEE_OUTBOUND"
 
     # CommitContextIntegration
     CREATE_COMMENT = "CREATE_COMMENT"
