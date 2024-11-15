@@ -258,6 +258,16 @@ def main(context: dict[str, str]) -> int:
     postgres_container_name = "sentry_postgres"
 
     if USE_NEW_DEVSERVICES:
+        # Ensure old sentry devservices is not being used, otherwise ports will conflict
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "down",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
         proc.run(
             (
                 f"{venv_dir}/bin/devservices",
