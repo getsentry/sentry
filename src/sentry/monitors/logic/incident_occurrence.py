@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -48,6 +49,38 @@ def _get_producer() -> KafkaProducer:
 
 
 _incident_occurrence_produer = SingletonProducer(_get_producer)
+
+
+def dispatch_incident_occurrence(
+    failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
+    incident: MonitorIncident,
+    received: datetime,
+    clock_tick: datetime | None,
+) -> None:
+    """
+    Determine how to route a incident occurrence.
+
+    - When failed check-in triggers mark_failed directly from the
+      monitor_consumer we will immediately dispatch the associated incident
+      occurrence.
+
+      This is indicated by the lack of a `clock_tick`.
+
+    - When a synthetic failed check-in (time-out or miss) triggers mark_failed
+      we will queue the incident occurrence to be processed later, allowing for
+      the occurrence to be delayed or dropped in the case a systems incident.
+
+      This is indicated by the presence of a `clock_tick`.
+    """
+    # XXX(epurkhiser): Dispatching via the consumer is behind a flag while we
+    # verify things are working well.
+    consumer_dispatch_enabled = options.get("crons.dispatch_incident_occurrences_to_consumer")
+
+    if clock_tick and consumer_dispatch_enabled:
+        queue_incident_occurrence(failed_checkin, previous_checkins, incident, received, clock_tick)
+    else:
+        send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
 
 
 def queue_incident_occurrence(
