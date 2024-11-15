@@ -81,7 +81,7 @@ RustExceptionData = dict[str, bytes | None]
 
 
 def make_rust_exception_data(
-    exception_data: dict[str, Any],
+    exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     e = exception_data or {}
     e = {
@@ -162,7 +162,13 @@ class Enhancements:
             if category is not None:
                 set_path(frame, "data", "category", value=category)
 
-    def assemble_stacktrace_component(self, components, frames, platform, exception_data=None):
+    def assemble_stacktrace_component(
+        self,
+        components: list[GroupingComponent],
+        frames: list[dict[str, Any]],
+        platform: str | None,
+        exception_data: dict[str, Any] | None = None,
+    ) -> tuple[GroupingComponent, bool]:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
