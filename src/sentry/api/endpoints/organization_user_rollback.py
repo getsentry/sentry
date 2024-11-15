@@ -53,12 +53,24 @@ class OrganizationRollbackUserEndpoint(OrganizationEndpoint):
                 user_id=request.user.id, organization=organization
             )
         except RollbackUser.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    "detail": "Not enough data for user.",
+                    "code": "insufficient_data",
+                },
+            )
 
         try:
             rollback_org = RollbackOrganization.objects.get(organization=organization)
         except RollbackOrganization.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                status=status.HTTP_404_NOT_FOUND,
+                data={
+                    "detail": "Not enough data for organization.",
+                    "code": "insufficient_data",
+                },
+            )
 
         return Response(
             status=status.HTTP_200_OK,
