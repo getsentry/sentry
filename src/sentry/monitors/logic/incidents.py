@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.monitors.logic.incident_occurrence import (
+    dispatch_incident_occurrence,
     resolve_incident_group,
-    send_incident_occurrence,
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
@@ -35,6 +35,7 @@ class SimpleCheckIn:
 def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
     received: datetime,
+    clock_tick: datetime | None = None,
 ) -> bool:
     """
     Determine if a monitor environment has reached it's incident threshold
@@ -115,7 +116,7 @@ def try_incident_threshold(
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
         for checkin in checkins:
-            send_incident_occurrence(checkin, checkins, incident, received)
+            dispatch_incident_occurrence(checkin, checkins, incident, received, clock_tick)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 

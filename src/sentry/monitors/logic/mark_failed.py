@@ -15,6 +15,7 @@ def mark_failed(
     failed_checkin: MonitorCheckIn,
     failed_at: datetime,
     received: datetime | None = None,
+    clock_tick: datetime | None = None,
 ) -> bool:
     """
     Given a failing check-in, mark the monitor environment as failed and trigger
@@ -76,4 +77,4 @@ def mark_failed(
     monitor_env.refresh_from_db()
 
     # Create incidents + issues
-    return try_incident_threshold(failed_checkin, received)
+    return try_incident_threshold(failed_checkin, received, clock_tick)

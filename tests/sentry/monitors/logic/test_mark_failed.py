@@ -22,8 +22,8 @@ from sentry.testutils.cases import TestCase
 
 
 class MarkFailedTestCase(TestCase):
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_default_params(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_default_params(self, mock_dispatch_incident_occurrence):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -61,16 +61,17 @@ class MarkFailedTestCase(TestCase):
         monitor_incidents = MonitorIncident.objects.filter(monitor_environment=monitor_environment)
         assert len(monitor_incidents) == 1
 
-        assert mock_send_incident_occurrence.call_count == 1
-        assert mock_send_incident_occurrence.call_args == mock.call(
+        assert mock_dispatch_incident_occurrence.call_count == 1
+        assert mock_dispatch_incident_occurrence.call_args == mock.call(
             checkin,
             [checkin],
             monitor_incidents[0],
             checkin.date_added,
+            None,
         )
 
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_muted(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_muted(self, mock_dispatch_incident_occurrence):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -103,11 +104,11 @@ class MarkFailedTestCase(TestCase):
         assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
-        assert mock_send_incident_occurrence.call_count == 0
+        assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_env_muted(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_env_muted(self, mock_dispatch_incident_occurrence):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -142,11 +143,11 @@ class MarkFailedTestCase(TestCase):
         assert not monitor.is_muted
         assert monitor_environment.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
-        assert mock_send_incident_occurrence.call_count == 0
+        assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_issue_threshold(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold(self, mock_dispatch_incident_occurrence):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -222,7 +223,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
-        assert mock_send_incident_occurrence.call_count == failure_issue_threshold
+        assert mock_dispatch_incident_occurrence.call_count == failure_issue_threshold
 
         # send another check-in to make sure the incident does not change
         status = next(failure_statuses)
@@ -242,7 +243,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
-        assert mock_send_incident_occurrence.call_count == failure_issue_threshold + 1
+        assert mock_dispatch_incident_occurrence.call_count == failure_issue_threshold + 1
 
         # Resolve the incident with an OK check-in
         ok_checkin = MonitorCheckIn.objects.create(
@@ -273,8 +274,8 @@ class MarkFailedTestCase(TestCase):
 
     # Test to make sure that timeout mark_failed (which occur in the past)
     # correctly create issues once passing the failure_issue_threshold
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_issue_threshold_timeout(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold_timeout(self, mock_dispatch_incident_occurrence):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -341,11 +342,11 @@ class MarkFailedTestCase(TestCase):
         assert monitor_incident.grouphash == monitor_environment.active_incident.grouphash
 
         # assert correct number of occurrences was sent
-        assert mock_send_incident_occurrence.call_count == failure_issue_threshold
+        assert mock_dispatch_incident_occurrence.call_count == failure_issue_threshold
 
     # we are duplicating this test as the code paths are different, for now
-    @mock.patch("sentry.monitors.logic.incidents.send_incident_occurrence")
-    def test_mark_failed_issue_threshold_disabled(self, mock_send_incident_occurrence):
+    @mock.patch("sentry.monitors.logic.incidents.dispatch_incident_occurrence")
+    def test_mark_failed_issue_threshold_disabled(self, mock_dispatch_incident_occurrence):
         failure_issue_threshold = 8
         monitor = Monitor.objects.create(
             name="test monitor",
@@ -381,7 +382,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor.is_muted
         assert monitor_environment.status == MonitorStatus.ERROR
 
-        assert mock_send_incident_occurrence.call_count == 0
+        assert mock_dispatch_incident_occurrence.call_count == 0
         assert monitor_environment.active_incident is not None
 
     def test_mark_failed_issue_assignment(self):
