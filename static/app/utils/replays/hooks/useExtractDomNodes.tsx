@@ -10,7 +10,9 @@ export default function useExtractDomNodes({
 }): UseQueryResult<Map<ReplayFrame, Extraction>> {
   return useQuery({
     queryKey: ['getDomNodes', replay],
-    queryFn: () => replay?.getExtractDomNodes(),
+    queryFn: () => {
+      return replay?.getExtractDomNodes();
+    },
     enabled: Boolean(replay),
     gcTime: Infinity,
   });
