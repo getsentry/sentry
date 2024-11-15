@@ -97,7 +97,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(token="abc", organization=self.organization, user=user)
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
-            assert resp.status_code == 401
+            assert resp.status_code == 400
 
     def test_invite_unapproved(self):
         om = Factories.create_member(

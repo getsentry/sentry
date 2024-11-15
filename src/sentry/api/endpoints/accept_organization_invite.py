@@ -26,12 +26,13 @@ from sentry.organizations.services.organization import (
 )
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
+from sudo.forms import AnonymousUser
 
 logger = logging.getLogger(__name__)
 
 
 def handle_empty_organization_id_or_slug(
-    member_id: int, user_id: int, request: HttpRequest
+    member_id: int, user_id: int | None, request: HttpRequest
 ) -> RpcUserInviteContext | None:
     member_mapping: OrganizationMemberMapping | None = None
     member_mappings: Mapping[int, OrganizationMemberMapping] = {
@@ -73,7 +74,7 @@ def handle_empty_organization_id_or_slug(
 def get_invite_state(
     member_id: int,
     organization_id_or_slug: int | str | None,
-    user_id: int,
+    user_id: int | None,
     request: HttpRequest,
 ) -> RpcUserInviteContext | None:
 
@@ -136,7 +137,7 @@ class AcceptOrganizationInvite(Endpoint):
         invite_context = get_invite_state(
             member_id=int(member_id),
             organization_id_or_slug=organization_id_or_slug,
-            user_id=request.user.id,
+            user_id=None,  # NOTE (mifu67): we want to get the invite context using the member ID only
             request=request,
         )
         if invite_context is None:
@@ -147,18 +148,20 @@ class AcceptOrganizationInvite(Endpoint):
         organization_member = invite_context.member
         organization = invite_context.organization
 
+        # NOTE (mifu67): we get the invite context without passing in the user_id, so the
+        # invite context is generated solely using the passed member_id. Then, compare the
+        # email of the current session user against the invite context member email. If
+        # they're different, raise a 401 Unauthorized error, which causes the frontend to
+        # render a view prompting the user to log out and try again.
+        if not isinstance(request.user, AnonymousUser):
+            if organization_member.email != request.user.email:
+                return self.respond_unauthorized(request.user.email)
+
         if (
             not helper.member_pending
             or not helper.valid_token
             or not organization_member.invite_approved
         ):
-            # XXX (mifu67): If organization_member.user_id is not None, then it means that there
-            # exists an active session. If the token is not expired, then while it is possible that
-            # other issues are causing the invite to be invalid, a probable cause is the session user
-            # not matching the invited user, and the token is definitely not expired (which is what the
-            # error message suggests). Prompt the user to sign out and try again.
-            if organization_member.user_id and not organization_member.token_expired:
-                return self.respond_unauthorized(organization_member.email)
             return self.respond_invalid()
 
         # Keep track of the invite details in the request session
