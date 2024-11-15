@@ -88,7 +88,10 @@ class ErrorsQueryBuilderMixin:
                 aliased_col, exp=self._apply_column_entity(aliased_col.exp.name)
             )
         elif isinstance(aliased_col, Column):
-            return self._apply_column_entity(aliased_col.name)
+            # Map the column with the entity name back to the original resolved name
+            return AliasedExpression(
+                self._apply_column_entity(aliased_col.name), alias=aliased_col.name
+            )
 
         raise NotImplementedError(f"{type(aliased_col)} not implemented in aliased_column")
 
@@ -106,11 +109,6 @@ class ErrorsQueryBuilderMixin:
             entity = Entity("group_attributes", alias="ga")
         else:
             entity = Entity(self.dataset.value, alias=self.dataset.value)
-
-            # Map the column with the entity name back to the original resolved name
-            # so we can transform the key back in the process_results function
-            self.alias_to_typed_tag_map[f"{entity.name}.{resolved_column}"] = resolved_column
-
         self.entities.add(entity)
         return Column(resolved_column, entity=entity)
 
