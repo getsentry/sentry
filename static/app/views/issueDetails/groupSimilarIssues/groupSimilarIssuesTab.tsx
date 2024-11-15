@@ -17,7 +17,7 @@ function GroupSimilarIssuesTab(props: GroupEventDetailsProps) {
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <GroupSimilarIssues {...props} />
+        <GroupSimilarIssues />
       </Layout.Main>
     </Layout.Body>
   );
