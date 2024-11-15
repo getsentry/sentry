@@ -44,7 +44,7 @@ class OAuth2CallbackViewTest(TestCase):
         (event_failures,) = (
             call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
         )
-        assert event_failures.args[1]["failure_reason"] == error_msg
+        assert event_failures.args[1] == error_msg
 
     @responses.activate
     def test_exchange_token_success(

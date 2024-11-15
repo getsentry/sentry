@@ -114,7 +114,7 @@ class EventLifecycle:
         self._extra[name] = value
 
     def record_event(
-        self, outcome: EventLifecycleOutcome, exc: BaseException | None = None
+        self, outcome: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
     ) -> None:
         """Record a starting or halting event.
 
@@ -128,28 +128,35 @@ class EventLifecycle:
         sample_rate = 1.0
         metrics.incr(key, tags=tags, sample_rate=sample_rate)
 
+        extra = dict(self._extra)
+        extra.update(tags)
+        log_params: dict[str, Any] = {
+            "extra": extra,
+        }
+
+        if isinstance(outcome_reason, BaseException):
+            log_params["exc_info"] = outcome_reason
+        elif isinstance(outcome_reason, str):
+            extra["outcome_reason"] = outcome_reason
+
         if outcome == EventLifecycleOutcome.FAILURE:
-            extra = dict(self._extra)
-            extra.update(tags)
-            logger.error(key, extra=self._extra, exc_info=exc)
+            logger.error(key, **log_params)
         elif outcome == EventLifecycleOutcome.HALTED:
-            extra = dict(self._extra)
-            extra.update(tags)
-            logger.warning(key, extra=self._extra, exc_info=exc)
+            logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
         logger.error("EventLifecycle flow error: %s", message)
 
     def _terminate(
-        self, new_state: EventLifecycleOutcome, exc: BaseException | None = None
+        self, new_state: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
     ) -> None:
         if self._state is None:
             self._report_flow_error("The lifecycle has not yet been entered")
         if self._state != EventLifecycleOutcome.STARTED:
             self._report_flow_error("The lifecycle has already been exited")
         self._state = new_state
-        self.record_event(new_state, exc)
+        self.record_event(new_state, outcome_reason)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.
@@ -162,7 +169,7 @@ class EventLifecycle:
         self._terminate(EventLifecycleOutcome.SUCCESS)
 
     def record_failure(
-        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+        self, failure_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in failure. Additional data may be passed
         to be logged.
@@ -179,10 +186,10 @@ class EventLifecycle:
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.FAILURE, exc)
+        self._terminate(EventLifecycleOutcome.FAILURE, failure_reason)
 
     def record_halt(
-        self, exc: BaseException | None = None, extra: dict[str, Any] | None = None
+        self, halt_reason: BaseException | str | None = None, extra: dict[str, Any] | None = None
     ) -> None:
         """Record that the event halted in an ambiguous state.
 
@@ -200,7 +207,7 @@ class EventLifecycle:
 
         if extra:
             self._extra.update(extra)
-        self._terminate(EventLifecycleOutcome.HALTED, exc)
+        self._terminate(EventLifecycleOutcome.HALTED, halt_reason)
 
     def __enter__(self) -> Self:
         if self._state is not None:
