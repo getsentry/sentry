@@ -13,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 GUILD_ID = "guild-id"
@@ -32,7 +33,7 @@ class DiscordUninstallTest(APITestCase):
     def create_discord_integration(
         self,
         organization: Organization,
-        user: RpcUser | None,
+        user: RpcUser | User | None,
         guild_id: str = GUILD_ID,
         **kwargs: Any,
     ):

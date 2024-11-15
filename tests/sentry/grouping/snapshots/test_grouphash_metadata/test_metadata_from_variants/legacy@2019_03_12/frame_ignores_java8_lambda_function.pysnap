@@ -1,5 +1,5 @@
 ---
-created: '2024-10-28T14:02:51.878887+00:00'
+created: '2024-11-13T17:36:33.087509+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -14,6 +14,5 @@ contributing variants:
           frame*
             module*
               "foo.bar.Baz"
-            function*
-              salt* (normalized lambda function name)
-                "<function>"
+            function* (normalized lambda function name)
+              "<function>"

@@ -11,13 +11,16 @@ from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
 
 from sentry.issues.grouptype import MonitorIncidentType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
 )
-from sentry.monitors.types import SimpleCheckIn
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -26,14 +29,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_incident_occurrence(
-    failed_checkins: Sequence[SimpleCheckIn],
     failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
     incident: MonitorIncident,
     received: datetime | None,
 ) -> None:
-    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-
     monitor_env = failed_checkin.monitor_environment
 
     if monitor_env is None:
@@ -59,7 +59,7 @@ def create_incident_occurrence(
         evidence_display=[
             IssueEvidence(
                 name="Failure reason",
-                value=str(get_failure_reason(failed_checkins)),
+                value=str(get_failure_reason(previous_checkins)),
                 important=True,
             ),
             IssueEvidence(
@@ -127,7 +127,7 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 }
 
 
-def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
+def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
     """
     Builds a human readable string from a list of failed check-ins.
 
@@ -169,3 +169,16 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
         "status": monitor_environment.get_status_display(),
         "type": monitor_environment.monitor.get_type_display(),
     }
+
+
+def resolve_incident_group(incident: MonitorIncident, project_id: int):
+    status_change = StatusChangeMessage(
+        fingerprint=[incident.grouphash],
+        project_id=project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
