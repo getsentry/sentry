@@ -70,11 +70,11 @@ def try_incident_threshold(
                     monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
                 )
                 .order_by("-date_added")
-                .values("id", "date_added", "status")
+                .values("id", "date_added", "status")[:failure_issue_threshold]
             ]
 
             # reverse the list after slicing in order to start with oldest check-in
-            previous_checkins = list(reversed(previous_checkins[:failure_issue_threshold]))
+            previous_checkins = list(reversed(previous_checkins))
 
             # If we have any successful check-ins within the threshold of
             # commits we have NOT reached an incident state
