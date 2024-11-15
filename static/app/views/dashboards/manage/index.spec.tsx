@@ -9,7 +9,7 @@ import selectEvent from 'sentry-test/selectEvent';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import localStorage from 'sentry/utils/localStorage';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import ManageDashboards from 'sentry/views/dashboards/manage';
+import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 jest.mock('sentry/utils/localStorage');
@@ -20,8 +20,6 @@ const FEATURES = [
   'dashboards-edit',
   'discover-query',
 ];
-
-const LAYOUT_KEY = 'dashboards-overview-layout';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),

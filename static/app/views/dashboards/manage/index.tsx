@@ -65,7 +65,10 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 ];
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
-const LAYOUT_KEY = 'dashboards-overview-layout';
+export const LAYOUT_KEY = 'dashboards-overview-layout';
+
+const GRID = 'grid';
+const LIST = 'list';
 
 type DashboardsLayout = 'grid' | 'list';
 
@@ -76,9 +79,7 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
-  return dashboardsLayout === 'grid' || dashboardsLayout === 'list'
-    ? dashboardsLayout
-    : 'grid';
+  return dashboardsLayout === GRID || dashboardsLayout === LIST ? dashboardsLayout : GRID;
 }
 
 function ManageDashboards() {
@@ -257,13 +258,21 @@ function ManageDashboards() {
             onChange={setDashboardsLayout}
             size="md"
             value={dashboardsLayout}
-            aria-label="Layout Control"
+            aria-label={t('Layout Control')}
           >
-            <SegmentedControl.Item key="grid" textValue="grid" aria-label="Grid">
+            <SegmentedControl.Item
+              key="grid"
+              textValue="grid"
+              aria-label={t('Grid View')}
+            >
               {/* TODO (nikkikapadia): replace this icon with correct one once made */}
               <IconDashboard />
             </SegmentedControl.Item>
-            <SegmentedControl.Item key="list" textValue="list" aria-label="List">
+            <SegmentedControl.Item
+              key="list"
+              textValue="list"
+              aria-label={t('List View')}
+            >
               <IconList />
             </SegmentedControl.Item>
           </SegmentedControl>
