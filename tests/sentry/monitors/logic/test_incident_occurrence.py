@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.issues.grouptype import MonitorIncidentType
-from sentry.monitors.logic.incident_occurrence import create_incident_occurrence, get_failure_reason
+from sentry.monitors.logic.incident_occurrence import get_failure_reason, send_incident_occurrence
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -21,7 +21,7 @@ from sentry.testutils.cases import TestCase
 
 class IncidentOccurrenceTestCase(TestCase):
     @patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
-    def test_simple_failure(self, mock_produce_occurrence_to_kafka):
+    def test_send_incident_occurrence(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -74,7 +74,7 @@ class IncidentOccurrenceTestCase(TestCase):
             grouphash="abcd",
         )
 
-        create_incident_occurrence(
+        send_incident_occurrence(
             failed_checkin,
             [timeout_checkin, failed_checkin],
             incident,

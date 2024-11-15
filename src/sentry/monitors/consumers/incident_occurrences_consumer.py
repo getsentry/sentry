@@ -14,7 +14,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.monitors.logic.incident_occurrence import create_incident_occurrence
+from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
 from sentry.monitors.models import MonitorCheckIn, MonitorIncident
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
 def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]):
     """
     Process a incident occurrence message. This will immediately dispatch an
-    issue occurrence via create_incident_occurrence.
+    issue occurrence via send_incident_occurrence.
     """
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
@@ -57,7 +57,7 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
 
     received = datetime.fromtimestamp(wrapper["received_ts"], UTC)
 
-    create_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+    send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
 
 
 class MonitorIncidentOccurenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
