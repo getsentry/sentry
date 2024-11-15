@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractDomNodes from 'sentry/utils/replays/extractHtml';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
