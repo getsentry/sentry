@@ -166,24 +166,24 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         if not integration or not org_integration:
             return Response(status=404)
 
-        if not self._has_issue_feature_on_integration(integration):
-            return Response(
-                {"detail": "This feature is not supported for this integration."}, status=400
-            )
-
-        installation = integration.get_installation(organization_id=organization_id)
-
         with ProjectManagementEvent(
             action_type=ProjectManagementActionType.LINK_EXTERNAL_ISSUE,
-            integration=installation.model,
+            integration=integration,
         ).capture() as lifecycle:
+            if not self._has_issue_feature_on_integration(integration):
+                return Response(
+                    {"detail": "This feature is not supported for this integration."}, status=400
+                )
+
+            installation = integration.get_installation(organization_id=organization_id)
+
             try:
                 data = installation.get_issue(external_issue_id, data=request.data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(exc.field_errors, status=400)
             except IntegrationError as e:
-                lifecycle.record_halt(e)
+                lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
 
             defaults = {

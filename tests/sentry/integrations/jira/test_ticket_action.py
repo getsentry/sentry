@@ -8,7 +8,7 @@ from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
 from sentry.testutils.cases import RuleTestCase

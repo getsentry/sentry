@@ -2,6 +2,7 @@ from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -178,7 +179,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
-    def test_simple_put(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple_put(self, mock_record_event):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -214,6 +216,8 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "label": "display name: APP-123",
                 "new": False,
             }
+
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
 
     def test_put_feature_disabled(self):
         self.login_as(user=self.user)

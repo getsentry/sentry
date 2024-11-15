@@ -9,6 +9,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.users.models import User, UserEmail
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
@@ -55,11 +56,10 @@ class TestSyncAssigneeInbound(TestCase):
         )
 
     def assign_default_group_to_user(self, user: User, group: Group | None = None):
-        if not group:
-            group = self.group
-        GroupAssignee.objects.assign(group, serialize_rpc_user(user))
-        group.refresh_from_db()
-        group_assignee = group.get_assignee()
+        group_to_update: Group = group or self.group
+        GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))
+        group_to_update.refresh_from_db()
+        group_assignee = group_to_update.get_assignee()
         assert group_assignee is not None and group_assignee.id == user.id
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -161,6 +161,7 @@ class TestSyncAssigneeInbound(TestCase):
         for group in groups_to_assign:
             assignee = group.get_assignee()
             assert assignee is not None
+            assert isinstance(assignee, RpcUser)
             assert assignee.id == self.test_user.id
             assert assignee.email == "test@example.com"
 
