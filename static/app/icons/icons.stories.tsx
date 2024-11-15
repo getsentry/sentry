@@ -1127,6 +1127,12 @@ const SECTIONS: TSection[] = [
         name: 'Table',
         defaultProps: {},
       },
+      {
+        id: 'grid',
+        name: 'Grid',
+        keywords: ['squares', 'layout'],
+        defaultProps: {},
+      },
     ],
   },
   {
