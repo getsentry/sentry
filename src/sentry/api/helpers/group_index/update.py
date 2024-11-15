@@ -122,9 +122,7 @@ def self_subscribe_and_assign_issue(
     return None
 
 
-def get_current_release_version_of_group(
-    group: Group, follows_semver: bool = False
-) -> Release | None:
+def get_current_release_version_of_group(group: Group, follows_semver: bool = False) -> str | None:
     """
     Function that returns the latest release version associated with a Group, and by latest we
     mean either most recent (date) or latest in semver versioning scheme
@@ -140,13 +138,12 @@ def get_current_release_version_of_group(
         try:
             # This sets current_release_version to the latest semver version associated with a group
             order_by_semver_desc = [f"-{col}" for col in Release.SEMVER_COLS]
+            associated_release_id = GroupRelease.objects.filter(
+                project_id=group.project.id, group_id=group.id
+            ).values_list("release_id")
             current_release_version = (
-                Release.objects.filter_to_semver()
-                .filter(
-                    id__in=GroupRelease.objects.filter(
-                        project_id=group.project.id, group_id=group.id
-                    ).values_list("release_id"),
-                )
+                Release.objects.filter_to_semver()  # Only releases that have major set
+                .filter(id__in=associated_release_id)
                 .annotate_prerelease_column()
                 .order_by(*order_by_semver_desc)
                 .values_list("version", flat=True)[:1]
@@ -419,9 +416,19 @@ def update_groups(
                             release_version=release.version,
                         )
 
-                        current_release_version = get_current_release_version_of_group(
-                            group=group, follows_semver=follows_semver
-                        )
+                        if (
+                            features.has(
+                                "organizations:releases-resolve-next-release-semver-fix",
+                                project.organization,
+                            )
+                            and follows_semver
+                        ):
+                            current_release_version = get_latest_release(projects[0]).version
+                        else:
+                            current_release_version = get_current_release_version_of_group(
+                                group=group, follows_semver=follows_semver
+                            )
+
                         if current_release_version:
                             resolution_params.update(
                                 {"current_release_version": current_release_version}
