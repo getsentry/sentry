@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -28,7 +28,6 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
-  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -38,7 +37,6 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
-  getNodeIds,
   IncrementalSource,
   isCLSFrame,
   isConsoleFrame,
@@ -148,24 +146,6 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
-
-const extractDomNodes = {
-  shouldVisitFrame: frame => {
-    const nodeIds = getNodeIds(frame);
-    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
-  },
-  onVisitFrame: (frame, collection, replayer) => {
-    const mirror = replayer.getMirror();
-    const nodeIds = getNodeIds(frame);
-    const {html, selectors} = extractHtmlandSelector((nodeIds ?? []) as number[], mirror);
-    collection.set(frame as ReplayFrame, {
-      frame,
-      html,
-      selectors,
-      timestamp: frame.timestampMs,
-    });
-  },
-};
 
 export default class ReplayReader {
   static factory({
