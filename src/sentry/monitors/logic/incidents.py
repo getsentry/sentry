@@ -1,25 +1,40 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.monitors.logic.incident_occurrence import (
-    create_incident_occurrence,
     resolve_incident_group,
+    send_incident_occurrence,
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
-from sentry.monitors.types import SimpleCheckIn
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class SimpleCheckIn:
+    """
+    A stripped down check in object
+    """
+
+    id: int
+    date_added: datetime
+    status: int
+
+    @classmethod
+    def from_checkin(cls, checkin: MonitorCheckIn) -> SimpleCheckIn:
+        return cls(checkin.id, checkin.date_added, checkin.status)
+
+
 def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
-    received: datetime | None,
+    received: datetime,
 ) -> bool:
     """
     Determine if a monitor environment has reached it's incident threshold
@@ -45,7 +60,7 @@ def try_incident_threshold(
     # check to see if we need to update the status
     if monitor_env.status in [MonitorStatus.OK, MonitorStatus.ACTIVE]:
         if failure_issue_threshold == 1:
-            previous_checkins: list[SimpleCheckIn] = [failed_checkin.as_simple_checkin()]
+            previous_checkins: list[SimpleCheckIn] = [SimpleCheckIn.from_checkin(failed_checkin)]
         else:
             previous_checkins = [
                 SimpleCheckIn(**row)
@@ -55,11 +70,11 @@ def try_incident_threshold(
                     monitor_environment=monitor_env, date_added__lte=failed_checkin.date_added
                 )
                 .order_by("-date_added")
-                .values("id", "date_added", "status")
+                .values("id", "date_added", "status")[:failure_issue_threshold]
             ]
 
             # reverse the list after slicing in order to start with oldest check-in
-            previous_checkins = list(reversed(previous_checkins[:failure_issue_threshold]))
+            previous_checkins = list(reversed(previous_checkins))
 
             # If we have any successful check-ins within the threshold of
             # commits we have NOT reached an incident state
@@ -86,7 +101,7 @@ def try_incident_threshold(
     elif monitor_env.status == MonitorStatus.ERROR:
         # if monitor environment has a failed status, use the failed
         # check-in and send occurrence
-        previous_checkins = [failed_checkin.as_simple_checkin()]
+        previous_checkins = [SimpleCheckIn.from_checkin(failed_checkin)]
 
         # get the active incident from the monitor environment
         incident = monitor_env.active_incident
@@ -98,14 +113,9 @@ def try_incident_threshold(
     # - We have an active incident and fingerprint
     # - The monitor and env are not muted
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
-        checkins = MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins])
+        checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
         for checkin in checkins:
-            create_incident_occurrence(
-                previous_checkins,
-                checkin,
-                incident,
-                received=received,
-            )
+            send_incident_occurrence(checkin, checkins, incident, received)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 

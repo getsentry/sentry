@@ -101,8 +101,11 @@ function SamplingModeSwitchModal({
                   }
                 )
               : tct(
-                  'Switching to manual mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. Dynamic sampling priorities continue to apply within the projects. [link:Learn more]',
+                  'Switching to manual mode disables automatic adjustments. After the switch, you can configure individual sample rates for each project. [prioritiesLink:Dynamic sampling priorities] continue to apply within the projects. [link:Learn more]',
                   {
+                    prioritiesLink: (
+                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                    ),
                     link: (
                       <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
                     ),

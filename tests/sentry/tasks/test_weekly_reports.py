@@ -38,7 +38,7 @@ from sentry.tasks.summaries.weekly_reports import (
 from sentry.testutils.cases import OutcomesSnubaTest, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
@@ -267,7 +267,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
-        min_ago = iso_format(self.now - timedelta(minutes=1))
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -314,7 +314,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_organization_project_issue_status(self):
         self.login_as(user=self.user)
         self.project.first_event = self.now - timedelta(days=3)
-        min_ago = iso_format(self.now - timedelta(minutes=1))
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,

@@ -7,9 +7,12 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import localStorage from 'sentry/utils/localStorage';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import ManageDashboards from 'sentry/views/dashboards/manage';
+import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+
+jest.mock('sentry/utils/localStorage');
 
 const FEATURES = [
   'global-views',
@@ -210,5 +213,25 @@ describe('Dashboards > Detail', function () {
     await userEvent.click(await screen.findByLabelText('Previous'));
 
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('toggles between grid and list view', async function () {
+    render(<ManageDashboards />, {
+      ...RouteComponentPropsFixture(),
+      organization: {
+        ...mockAuthorizedOrg,
+        features: [...FEATURES, 'dashboards-table-view'],
+      },
+    });
+
+    expect(await screen.findByTestId('list')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('list'));
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"list"');
+
+    expect(await screen.findByTestId('grid')).toBeInTheDocument();
+    await userEvent.click(await screen.findByTestId('grid'));
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
   });
 });

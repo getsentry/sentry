@@ -54,8 +54,6 @@ class Encryptor(ABC):
     A `IO[bytes]`-wrapper that contains relevant information and methods to encrypt some an in-memory JSON-ifiable dict.
     """
 
-    __fp: IO[bytes]
-
     @abstractmethod
     def get_public_key_pem(self) -> bytes:
         pass
@@ -67,10 +65,10 @@ class LocalFileEncryptor(Encryptor):
     """
 
     def __init__(self, fp: IO[bytes]):
-        self.__fp = fp
+        self.__key = fp.read()
 
     def get_public_key_pem(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
 
 class GCPKMSEncryptor(Encryptor):
@@ -82,7 +80,7 @@ class GCPKMSEncryptor(Encryptor):
     crypto_key_version: CryptoKeyVersion | None = None
 
     def __init__(self, fp: IO[bytes]):
-        self.__fp = fp
+        self.__key = fp.read()
 
     @classmethod
     def from_crypto_key_version(cls, crypto_key_version: CryptoKeyVersion) -> GCPKMSEncryptor:
@@ -93,7 +91,7 @@ class GCPKMSEncryptor(Encryptor):
     def get_public_key_pem(self) -> bytes:
         if self.crypto_key_version is None:
             # Read the user supplied configuration into the proper format.
-            gcp_kms_config_json = orjson.loads(self.__fp.read())
+            gcp_kms_config_json = orjson.loads(self.__key)
             try:
                 self.crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
             except TypeError:
@@ -217,8 +215,6 @@ class Decryptor(ABC):
     tarball.
     """
 
-    __fp: IO[bytes]
-
     @abstractmethod
     def read(self) -> bytes:
         pass
@@ -234,14 +230,14 @@ class LocalFileDecryptor(Decryptor):
     """
 
     def __init__(self, fp: IO[bytes]):
-        self.__fp = fp
+        self.__key = fp.read()
 
     @classmethod
     def from_bytes(cls, b: bytes) -> LocalFileDecryptor:
         return cls(io.BytesIO(b))
 
     def read(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
         """
@@ -249,7 +245,7 @@ class LocalFileDecryptor(Decryptor):
         """
 
         # Compare the public and private key, to ensure that they are a match.
-        private_key_pem = self.__fp.read()
+        private_key_pem = self.__key
         private_key = serialization.load_pem_private_key(
             private_key_pem,
             password=None,
@@ -286,17 +282,17 @@ class GCPKMSDecryptor(Decryptor):
     """
 
     def __init__(self, fp: IO[bytes]):
-        self.__fp = fp
+        self.__key = fp.read()
 
     @classmethod
     def from_bytes(cls, b: bytes) -> GCPKMSDecryptor:
         return cls(io.BytesIO(b))
 
     def read(self) -> bytes:
-        return self.__fp.read()
+        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
-        gcp_kms_config_bytes = self.__fp.read()
+        gcp_kms_config_bytes = self.__key
 
         # Read the user supplied configuration into the proper format.
         gcp_kms_config_json = orjson.loads(gcp_kms_config_bytes)
@@ -345,3 +341,13 @@ def decrypt_encrypted_tarball(tarball: IO[bytes], decryptor: Decryptor) -> bytes
     decrypted_dek = decryptor.decrypt_data_encryption_key(unwrapped)
     fernet = Fernet(decrypted_dek)
     return fernet.decrypt(unwrapped.encrypted_json_blob)
+
+
+class EncryptorDecryptorPair:
+    """
+    An Encryptor and Decryptor that use paired public and private keys, respectively.
+    """
+
+    def __init__(self, encryptor: Encryptor, decryptor: Decryptor):
+        self.encryptor = encryptor
+        self.decryptor = decryptor

@@ -21,7 +21,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
 )
-from sentry.monitors.types import SimpleCheckIn
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
@@ -29,12 +28,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def create_incident_occurrence(
-    failed_checkins: Sequence[SimpleCheckIn],
+def send_incident_occurrence(
     failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
     incident: MonitorIncident,
-    received: datetime | None,
+    received: datetime,
 ) -> None:
+    """
+    Construct and send an issue occurrence given an incident and the associated
+    failing check-ins which caused that incident.
+    """
     monitor_env = failed_checkin.monitor_environment
 
     if monitor_env is None:
@@ -60,7 +63,7 @@ def create_incident_occurrence(
         evidence_display=[
             IssueEvidence(
                 name="Failure reason",
-                value=str(get_failure_reason(failed_checkins)),
+                value=str(get_failure_reason(previous_checkins)),
                 important=True,
             ),
             IssueEvidence(
@@ -93,8 +96,10 @@ def create_incident_occurrence(
         "fingerprint": [incident.grouphash],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        # We set this to the time that the checkin that triggered the occurrence was written to relay if available
-        "received": (received if received else current_timestamp).isoformat(),
+        # This is typically the time that the checkin that triggered the
+        # occurrence was written to relay, otherwise it is when we detected a
+        # missed or timeout.
+        "received": received.isoformat(),
         "sdk": None,
         "tags": {
             "monitor.id": str(monitor_env.monitor.guid),
@@ -128,7 +133,7 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 }
 
 
-def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
+def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
     """
     Builds a human readable string from a list of failed check-ins.
 

@@ -131,7 +131,6 @@ export function ProjectsEditTable({
       }),
     [dataByProjectId, error, initialValue, projects, value]
   );
-  const [activeItems, inactiveItems] = partition(items, item => item.count > 0);
 
   const totalSpanCount = useMemo(
     () => items.reduce((acc, item) => acc + item.count, 0),
@@ -167,6 +166,11 @@ export function ProjectsEditTable({
         {} as Record<string, number>
       ),
     [value]
+  );
+
+  const [activeItems, inactiveItems] = useMemo(
+    () => partition(items, item => item.count > 0 || item.initialSampleRate !== '100'),
+    [items]
   );
 
   const isLoading = fetching || isLoadingProp;

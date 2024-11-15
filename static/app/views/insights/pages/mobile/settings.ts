@@ -9,6 +9,7 @@ export const OVERVIEW_PAGE_ALLOWED_OPS = [
   'ui.action.swipe',
   'ui.action.scroll',
   'ui.action.click',
+  'ui.action',
   'ui.load',
   'app.lifecycle',
   // navigation and pageload are seen in react-native

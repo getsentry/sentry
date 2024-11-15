@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const isSummaryEnabled = (
   hasGenAIConsent: boolean,
@@ -39,6 +40,7 @@ export default function SolutionsSection({
   const [isExpanded, setIsExpanded] = useState(false);
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const {openDrawer} = useDrawer();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const openSolutionsDrawer = () => {
     if (!event) {
@@ -130,7 +132,15 @@ export default function SolutionsSection({
         </ResourcesWrapper>
       )}
       {(hasSummary || aiNeedsSetup) && (
-        <StyledButton ref={openButtonRef} onClick={() => openSolutionsDrawer()}>
+        <StyledButton
+          ref={openButtonRef}
+          onClick={() => openSolutionsDrawer()}
+          analyticsEventKey="issue_details.solutions_hub_opened"
+          analyticsEventName="Issue Details: Solutions Hub Opened"
+          analyticsParams={{
+            has_streamlined_ui: hasStreamlinedUI,
+          }}
+        >
           {t('Open Solutions Hub')}
           <IconChevron direction="right" size="xs" />
         </StyledButton>
