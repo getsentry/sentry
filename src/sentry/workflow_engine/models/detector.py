@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel):
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     # TODO - Finish removing this field
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, null=True)
