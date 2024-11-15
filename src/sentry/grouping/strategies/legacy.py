@@ -457,7 +457,7 @@ def threads_legacy(
             )
         }
 
-    stacktrace = interface.values[0].get("stacktrace")
+    stacktrace: Stacktrace = interface.values[0].get("stacktrace")
     if not stacktrace:
         return {
             context["variant"]: GroupingComponent(
