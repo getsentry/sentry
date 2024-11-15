@@ -2127,20 +2127,13 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_detector(
         name: str | None = None,
-        owner_user_id: int | None = None,
-        owner_team: Team | None = None,
-        project: Project | None = None,
         **kwargs,
     ) -> Detector:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        if project is None:
-            project = Factories.create_project()
+
         return Detector.objects.create(
-            project=project,
             name=name,
-            owner_user_id=owner_user_id,
-            owner_team=owner_team,
             **kwargs,
         )
 
