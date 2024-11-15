@@ -31,8 +31,8 @@ import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetail
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-import {useEventApiQuery} from 'sentry/views/issueDetails/useEvent';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
@@ -55,7 +55,7 @@ function GroupEventDetails() {
     isPending: isLoadingEvent,
     isError: isEventError,
     refetch: refetchEvent,
-  } = useEventApiQuery({
+  } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
     environments,

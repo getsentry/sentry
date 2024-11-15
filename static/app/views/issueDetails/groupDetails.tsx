@@ -56,9 +56,9 @@ import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDeta
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
 import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
-import {useEventApiQuery} from 'sentry/views/issueDetails/useEvent';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -237,7 +237,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     isPending: loadingEvent,
     isError: isEventError,
     refetch: refetchEvent,
-  } = useEventApiQuery({
+  } = useGroupEvent({
     groupId,
     eventId: params.eventId,
     environments,

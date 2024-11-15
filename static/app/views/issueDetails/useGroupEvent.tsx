@@ -13,11 +13,7 @@ interface UseEventApiQueryOptions {
   eventId?: string;
 }
 
-export function useEventApiQuery({
-  groupId,
-  eventId,
-  environments,
-}: UseEventApiQueryOptions) {
+export function useGroupEvent({groupId, eventId, environments}: UseEventApiQueryOptions) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
