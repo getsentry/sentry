@@ -21,9 +21,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {type TraceResult, useTraces} from 'sentry/views/explore/hooks/useTraces';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -47,17 +49,39 @@ import {
 export function TracesTable() {
   const [dataset] = useDataset();
   const [query] = useUserQuery();
+  const [visualizes] = useVisualizes();
+  const organization = useOrganization();
 
   const location = useLocation();
   const cursor = decodeScalar(location.query.cursor);
 
-  const {data, isPending, isError, getResponseHeader} = useTraces({
+  const result = useTraces({
     dataset,
     query,
     limit: DEFAULT_PER_PAGE,
     sort: '-timestamp',
     cursor,
   });
+
+  useAnalytics({
+    resultLength: result.data?.data?.length,
+    resultMode: 'trace samples',
+    resultStatus: result.status,
+    resultMissingRoot: result.data?.data?.filter(trace => !defined(trace.name))?.length,
+    visualizes,
+    organization,
+    columns: [
+      'trace id',
+      'trace root',
+      'total spans',
+      'timeline',
+      'root duration',
+      'timestamp',
+    ],
+    userQuery: query,
+  });
+
+  const {data, isPending, isError, getResponseHeader} = result;
 
   const showErrorState = useMemo(() => {
     return !isPending && isError;
@@ -208,6 +232,7 @@ function TraceRow({
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
               expanded,
+              source: 'new explore',
             })
           }
         />
@@ -217,6 +242,7 @@ function TraceRow({
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace', {
               organization,
+              source: 'new explore',
             })
           }
           location={location}

@@ -7,9 +7,10 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
-    has_results: boolean;
     query_status: 'success' | 'error';
-    results_mode: 'sample' | 'aggregate';
+    result_length: number;
+    result_missing_root: number;
+    result_mode: 'trace samples' | 'span samples' | 'aggregates';
     user_queries: string;
     user_queries_count: number;
     visualizes: Visualize[];
@@ -83,8 +84,12 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': {};
   'trace_explorer.open_in_issues': {};
-  'trace_explorer.open_trace': {};
-  'trace_explorer.open_trace_span': {};
+  'trace_explorer.open_trace': {
+    source: 'trace explorer' | 'new explore';
+  };
+  'trace_explorer.open_trace_span': {
+    source: 'trace explorer' | 'new explore';
+  };
   'trace_explorer.remove_span_condition': {};
   'trace_explorer.search_failure': {
     error: string;
@@ -102,6 +107,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
+    source: 'trace explorer' | 'new explore';
   };
 };
 
