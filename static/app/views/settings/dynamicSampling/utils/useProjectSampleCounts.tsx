@@ -1,23 +1,10 @@
 import {useMemo} from 'react';
 
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {
-  type MetricsQueryApiQueryParams,
-  useMetricsQuery,
-} from 'sentry/utils/metrics/useMetricsQuery';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-const SPANS_COUNT_METRIC: MRI = `c:spans/count_per_root_project@none`;
-const metricsQuery: MetricsQueryApiQueryParams[] = [
-  {
-    mri: SPANS_COUNT_METRIC,
-    aggregation: 'sum',
-    name: 'spans',
-    groupBy: ['project', 'target_project_id'],
-    orderBy: 'desc',
-  },
-];
 
 export interface ProjectSampleCount {
   count: number;
@@ -29,23 +16,20 @@ export interface ProjectSampleCount {
 export type ProjectionSamplePeriod = '24h' | '30d';
 
 export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod}) {
+  const organization = useOrganization();
   const {projects, fetching} = useProjects();
 
-  const {data, isPending, isError, refetch} = useMetricsQuery(
-    metricsQuery,
-    {
-      datetime: {
-        start: null,
-        end: null,
-        utc: true,
-        period,
+  const {data, isPending, isError, refetch} = useApiQuery<MetricsQueryApiResponse>(
+    [
+      `/organizations/${organization.slug}/sampling/project-root-counts/`,
+      {
+        query: {
+          statsPeriod: period,
+        },
       },
-      environments: [],
-      projects: [],
-    },
+    ],
     {
-      includeSeries: false,
-      interval: period === '24h' ? '1h' : '1d',
+      staleTime: 0,
     }
   );
 
