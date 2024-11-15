@@ -255,8 +255,6 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    postgres_container_name = "sentry_postgres"
-
     if USE_NEW_DEVSERVICES:
         # Ensure old sentry devservices is not being used, otherwise ports will conflict
         proc.run(
@@ -290,6 +288,7 @@ def main(context: dict[str, str]) -> int:
             pathprepend=f"{reporoot}/.devenv/bin",
             exit=True,
         )
+        postgres_container_name = "sentry_postgres"
 
     if not run_procs(
         repo,
