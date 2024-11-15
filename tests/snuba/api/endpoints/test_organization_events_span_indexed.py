@@ -81,6 +81,38 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_spm(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "spm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "spm()": 1 / (90 * 24 * 60),
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
     def test_id_fields(self):
         self.store_spans(
             [
@@ -1189,3 +1221,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="extrapolation not implemented yet")
     def test_margin_of_error(self):
         super().test_margin_of_error()
+
+    @pytest.mark.xfail(reason="rate not implemented yet")
+    def test_spm(self):
+        super().test_spm()

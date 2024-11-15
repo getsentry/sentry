@@ -620,6 +620,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     snql_aggregate=lambda args, alias: function_aliases.resolve_epm(
                         args, alias, self.builder
                     ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
                 SnQLFunction(
