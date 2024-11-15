@@ -870,7 +870,7 @@ def handle_is_public(
     user_id = acting_user.id if acting_user else None
     share_id = None
     for group in group_list:
-        if GroupShare.objects.filter(group=group).delete():
+        if GroupShare.objects.filter(group=group).delete()[0] > 0:
             share_id = None
             Activity.objects.create(
                 project=project_lookup[group.project_id],
