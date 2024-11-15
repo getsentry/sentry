@@ -22,6 +22,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -69,7 +70,15 @@ function GroupEventDetails() {
 
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
   const prevEnvironment = usePrevious(environments);
-  const prevEvent = usePrevious(event);
+  const prevEvent = useMemoWithPrevious<typeof event | null>(
+    previousInstance => {
+      if (event) {
+        return event;
+      }
+      return previousInstance;
+    },
+    [event]
+  );
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // load the data
