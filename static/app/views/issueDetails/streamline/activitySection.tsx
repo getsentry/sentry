@@ -46,7 +46,7 @@ function TimelineItem({
   const {title, message} = getGroupActivityItem(
     item,
     organization,
-    group.project.id,
+    group.project,
     <strong>{authorName}</strong>,
     teams
   );

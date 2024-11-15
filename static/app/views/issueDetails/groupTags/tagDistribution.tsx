@@ -22,7 +22,9 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   return (
     <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <TagHeader>
-        <TagTitle>{tag.key}</TagTitle>
+        <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
+          <TagTitle>{tag.key}</TagTitle>
+        </Tooltip>
         <TagDetailsButton
           borderless
           size="zero"
@@ -100,6 +102,7 @@ const TagHeader = styled('div')`
 const TagTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TagDetailsButton = styled(LinkButton)<{isVisible: boolean}>`
