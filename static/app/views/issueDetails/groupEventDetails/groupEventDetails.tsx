@@ -133,8 +133,6 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const groupReprocessingStatus = getGroupReprocessingStatus(group);
-
   const renderGroupStatusBanner = () => {
     if (group.status === 'ignored') {
       return (
@@ -191,6 +189,7 @@ function GroupEventDetails() {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const LayoutBody = hasStreamlinedUI ? 'div' : StyledLayoutBody;
   const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
     <AnalyticsArea name="issue_details">
