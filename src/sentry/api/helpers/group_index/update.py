@@ -29,6 +29,7 @@ from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -137,15 +138,13 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     if follows_semver:
         try:
             # This sets current_release_version to the latest semver version associated with a group
-            order_by_semver_desc = [f"-{col}" for col in Release.SEMVER_COLS]
             associated_release_id = GroupRelease.objects.filter(
                 project_id=group.project.id, group_id=group.id
             ).values_list("release_id")
+
             current_release_version = (
-                Release.objects.filter_to_semver()  # Only releases that have major set
+                get_semver_releases(group.project)
                 .filter(id__in=associated_release_id)
-                .annotate_prerelease_column()
-                .order_by(*order_by_semver_desc)
                 .values_list("version", flat=True)[:1]
                 .get()
             )
@@ -269,7 +268,7 @@ def update_groups(
                     status=400,
                 )
             # may not be a release yet
-            release = status_details.get("inNextRelease") or get_latest_release(projects[0])
+            release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
 
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
@@ -294,14 +293,7 @@ def update_groups(
                     {"detail": "Cannot set resolved in upcoming release for multiple projects."},
                     status=400,
                 )
-            release = (
-                status_details.get("inUpcomingRelease")
-                or Release.objects.filter(
-                    projects=projects[0], organization_id=projects[0].organization_id
-                )
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
-            )
+            release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {"version": ""}
 
@@ -383,11 +375,7 @@ def update_groups(
             # we need to update this to find the release for each project (we shouldn't assume
             # it's the same)
             try:
-                release = (
-                    Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-                    .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                    .order_by("-sort")[0]
-                )
+                release = most_recent_release_matching_commit(projects, commit)
                 res_type = GroupResolution.Type.in_release
                 res_status = GroupResolution.Status.resolved
             except IndexError:
@@ -423,7 +411,7 @@ def update_groups(
                             )
                             and follows_semver
                         ):
-                            current_release_version = get_latest_release(projects[0]).version
+                            current_release_version = get_release_to_resolve_by(projects[0]).version
                         else:
                             current_release_version = get_current_release_version_of_group(
                                 group=group, follows_semver=follows_semver
@@ -712,9 +700,7 @@ def update_groups(
     return Response(result)
 
 
-def get_latest_release(project: Project) -> Release | None:
-    release = None
-
+def get_release_to_resolve_by(project: Project) -> Release | None:
     # XXX: Remove block once released
     follows_semver = False
     if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
@@ -722,21 +708,43 @@ def get_latest_release(project: Project) -> Release | None:
             org_id=project.organization_id, project_id=project.id
         )
 
-    releases = Release.objects.filter(projects=project, organization_id=project.organization_id)
     if follows_semver:
-        release = (
-            releases.filter_to_semver()
-            .annotate_prerelease_column()
-            .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
-            .first()
-        )
+        release = greatest_semver_release(project)
     else:
-        release = (
-            releases.extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .order_by("-sort")
-            .first()
-        )
+        release = most_recent_release(project)
     return release
+
+
+def most_recent_release(project: Project) -> Release | None:
+    return (
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")
+        .first()
+    )
+
+
+def most_recent_release_matching_commit(
+    projects: Sequence[Project], commit: Commit
+) -> Release | None:
+    return (
+        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")[0]
+    )
+
+
+def greatest_semver_release(project: Project) -> Release | None:
+    return get_semver_releases(project).first()
+
+
+def get_semver_releases(project: Project) -> Release:
+    return (
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter_to_semver()
+        .annotate_prerelease_column()
+        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
+    )
 
 
 def handle_is_subscribed(
