@@ -8,7 +8,6 @@ import {
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,11 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-const ConsentStep = HookOrDefault({
-  hookName: 'component:autofix-setup-step-consent',
-  defaultComponent: null,
-});
 
 function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
   if (autofixSetup.integration.ok) {
@@ -283,7 +277,6 @@ function AutofixSetupSteps({
 }) {
   return (
     <GuidedSteps>
-      <ConsentStep hasConsented={autofixSetup.genAIConsent.ok} />
       <GuidedSteps.Step
         stepKey="integration"
         title={t('Install the GitHub Integration')}
@@ -349,6 +342,7 @@ export function AutofixSetupContent({
 
   return (
     <Fragment>
+      <Divider />
       <Header>Set up Autofix</Header>
       <p>
         Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
@@ -400,4 +394,9 @@ const GithubLink = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const Divider = styled('div')`
+  margin: ${space(3)} 0;
+  border-bottom: 2px solid ${p => p.theme.gray100};
 `;
