@@ -256,7 +256,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
         try:
             batch_features = self.get_metrics_features(
-                self.context["organization"], self.context["user"]
+                self.context.get("organization"), self.context.get("user")
             )
             use_metrics = bool(
                 (
@@ -366,12 +366,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         # Update the context for the queries serializer because the display type is
         # required for validation of the queries
         queries_serializer = self.fields["queries"]
-        queries_serializer.context.update(
-            {
-                "display_type": data.get("display_type"),
-                "user": self.context["request"].user,
-            }
-        )
+        additional_context = {}
+
+        if data.get("display_type"):
+            additional_context["display_type"] = data.get("display_type")
+        if self.context.get("request") and self.context["request"].user:
+            additional_context["user"] = self.context["request"].user
+
+        queries_serializer.context.update(additional_context)
         return super().to_internal_value(data)
 
     def validate(self, data):
