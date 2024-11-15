@@ -56,8 +56,9 @@ export function NewIssueExperienceButton() {
                 }}
                 transition={{
                   duration: 1,
-                  repeatDelay: 4,
-                  repeat: Infinity,
+                  delay: 1,
+                  repeatDelay: 3,
+                  repeat: 3,
                 }}
               >
                 <IconLab isSolid={hasStreamlinedUI} />
