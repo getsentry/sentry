@@ -7,9 +7,14 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -21,11 +26,70 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
 )
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 logger = logging.getLogger(__name__)
+
+MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
+    Topic.MONITORS_INCIDENT_OCCURRENCES
+)
+
+
+def _get_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_incident_occurrence_produer = SingletonProducer(_get_producer)
+
+
+def queue_incident_occurrence(
+    failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
+    incident: MonitorIncident,
+    received: datetime,
+    clock_tick: datetime,
+) -> None:
+    """
+    Queue an issue occurrence for a monitor incident.
+
+    This incident occurrence will be processed by the
+    `incident_occurrence_consumer`. Queuing is used here to allow for issue
+    occurrences to be delayed in the scenario where Sentry may be experiencing
+    a systems incident (eg. Relay cannot process check-ins). In these scenarios
+    the consumer will delay consumption until we can determine there is no
+    systems incident. Or in the worst case, will drop incident occurrences
+    since we can no longer reliably guarantee the occurrences are accurate.
+    """
+    monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return
+
+    incident_occurrence: IncidentOccurrence = {
+        "incident_id": incident.id,
+        "failed_checkin_id": failed_checkin.id,
+        "previous_checkin_ids": [checkin.id for checkin in previous_checkins],
+        "received_ts": int(received.timestamp()),
+        "clock_tick_ts": int(clock_tick.timestamp()),
+    }
+
+    # The incident occurrence should be
+    payload = KafkaPayload(
+        str(monitor_env.id).encode(),
+        MONITORS_INCIDENT_OCCURRENCES.encode(incident_occurrence),
+        [],
+    )
+
+    topic = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["real_topic_name"]
+    _incident_occurrence_produer.produce(ArroyoTopic(topic), payload)
 
 
 def send_incident_occurrence(
