@@ -11,6 +11,13 @@ LABEL org.opencontainers.image.authors="oss@sentry.io"
 # add our user and group first to make sure their IDs get assigned consistently
 RUN groupadd -r sentry && useradd -r -m -g sentry sentry
 
+RUN : \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libexpat1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 ARG GOSU_VERSION=1.17
 ARG GOSU_SHA256=bbc4136d03ab138b1ad66fa4fc051bafc6cc7ffae632b069a53657279a450de3
 ARG TINI_VERSION=0.19.0
