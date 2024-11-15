@@ -69,7 +69,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
   return (
     <div {...props}>
       <Heading>
-        {t('Breakdown of stored spans')}
+        {t('Breakdown of stored spans originating in these projects')}
         <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
       </Heading>
       <Breakdown>
