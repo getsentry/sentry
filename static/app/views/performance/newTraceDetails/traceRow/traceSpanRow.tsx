@@ -17,7 +17,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }

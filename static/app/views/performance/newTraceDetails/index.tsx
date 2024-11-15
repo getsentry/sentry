@@ -80,7 +80,6 @@ export function TraceView() {
                 trace={trace}
                 meta={meta}
                 replay={null}
-                isEmbedded={false}
                 source="performance"
                 rootEvent={rootEvent}
                 traceSlug={traceSlug}

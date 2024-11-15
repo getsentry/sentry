@@ -122,7 +122,6 @@ function logTraceMetadata(
 }
 
 interface TraceWaterfallProps {
-  isEmbedded: boolean;
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
@@ -909,7 +908,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           manager={viewManager}
           scheduler={traceScheduler}
           forceRerender={forceRender}
-          isEmbedded={props.isEmbedded}
           isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
         />
 

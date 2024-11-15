@@ -100,7 +100,6 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
             meta={meta}
             source="issues"
             scrollToNode={scrollToNode}
-            isEmbedded
             replay={null}
           />
         </TraceViewWaterfallWrapper>

@@ -86,7 +86,6 @@ function computeNextIndexFromAction(
 
 interface TraceProps {
   forceRerender: number;
-  isEmbedded: boolean;
   isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
@@ -116,7 +115,6 @@ export function Trace({
   scheduler,
   forceRerender,
   trace_id,
-  isEmbedded,
   isLoading,
 }: TraceProps) {
   const theme = useTheme();
@@ -333,7 +331,6 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
-          isEmbedded={isEmbedded}
         />
       );
     },
@@ -462,7 +459,6 @@ export function Trace({
 
 function RenderTraceRow(props: {
   index: number;
-  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -591,7 +587,6 @@ function RenderTraceRow(props: {
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
-    isEmbedded: props.isEmbedded,
     onSpanArrowClick: onSpanRowArrowClick,
     manager: props.manager,
     index: props.index,

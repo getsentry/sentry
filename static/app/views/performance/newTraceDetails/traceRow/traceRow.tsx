@@ -23,7 +23,6 @@ export const TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME = [
 
 export interface TraceRowProps<T extends TraceTree.Node> {
   index: number;
-  isEmbedded: boolean;
   listColumnClassName: string;
   listColumnStyle: React.CSSProperties;
   manager: VirtualizedViewManager;
