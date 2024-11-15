@@ -7,6 +7,10 @@
   "flags.flagauditlogmodel": [
     "sentry.organization"
   ],
+  "flags.flagwebhooksigningsecretmodel": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "hybridcloud.apikeyreplica": [
     "sentry.apikey",
     "sentry.organization"

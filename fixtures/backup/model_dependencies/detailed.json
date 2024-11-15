@@ -49,6 +49,35 @@
     "table_name": "flags_audit_log",
     "uniques": []
   },
+  "flags.flagwebhooksigningsecretmodel": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "flags.flagwebhooksigningsecretmodel",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "flags_webhooksigningsecret",
+    "uniques": [
+      [
+        "organization",
+        "provider",
+        "secret"
+      ]
+    ]
+  },
   "hybridcloud.apikeyreplica": {
     "dangling": false,
     "foreign_keys": {

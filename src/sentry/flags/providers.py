@@ -1,9 +1,17 @@
 import datetime
+import hashlib
+import hmac
 from typing import Any, TypedDict
 
+from django.http.request import HttpHeaders
 from rest_framework import serializers
 
-from sentry.flags.models import ACTION_MAP, CREATED_BY_TYPE_MAP, FlagAuditLogModel
+from sentry.flags.models import (
+    ACTION_MAP,
+    CREATED_BY_TYPE_MAP,
+    FlagAuditLogModel,
+    FlagWebHookSigningSecretModel,
+)
 from sentry.silo.base import SiloLimit
 
 
@@ -62,6 +70,19 @@ def handle_provider_event(
             raise InvalidProvider(provider)
 
 
+def validate_provider_event(
+    provider: str,
+    request_data: bytes,
+    request_headers: HttpHeaders,
+    organization_id: int,
+) -> bool:
+    match provider:
+        case "launchdarkly":
+            return validate_launchdarkly_event(request_data, request_headers, organization_id)
+        case _:
+            raise InvalidProvider(provider)
+
+
 """LaunchDarkly provider."""
 
 
@@ -70,7 +91,7 @@ class LaunchDarklyItemSerializer(serializers.Serializer):
     date = serializers.IntegerField(required=True)
     member = serializers.DictField(required=True)
     name = serializers.CharField(max_length=100, required=True)
-    description = serializers.CharField(required=True)
+    description = serializers.CharField(allow_blank=True, required=True)
 
 
 SUPPORTED_LAUNCHDARKLY_ACTIONS = {
@@ -112,6 +133,10 @@ def handle_launchdarkly_event(
 
     result = serializer.validated_data
 
+    access = result["accesses"][0]
+    if access["action"] not in SUPPORTED_LAUNCHDARKLY_ACTIONS:
+        return []
+
     return [
         {
             "action": handle_launchdarkly_actions(access["action"]),
@@ -122,9 +147,31 @@ def handle_launchdarkly_event(
             "organization_id": organization_id,
             "tags": {"description": result["description"]},
         }
-        for access in result["accesses"]
-        if access["action"] in SUPPORTED_LAUNCHDARKLY_ACTIONS
     ]
+
+
+def validate_launchdarkly_event(
+    request_data: bytes,
+    request_headers: HttpHeaders,
+    organization_id: int,
+) -> bool:
+    """Return "true" if the launchdarkly payload is valid."""
+    signature = request_headers.get("X-LD-Signature")
+    if signature is None:
+        return False
+
+    models = FlagWebHookSigningSecretModel.objects.filter(
+        organization_id=organization_id,
+        provider="launchdarkly",
+    ).all()
+    for model in models:
+        if hmac_sha256_hex_digest(model.secret, request_data) == signature:
+            return True
+    return False
+
+
+def hmac_sha256_hex_digest(key: str, message: bytes):
+    return hmac.new(key.encode(), message, hashlib.sha256).hexdigest()
 
 
 """Internal flag-pole provider.
