@@ -624,7 +624,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="rate",
                 ),
                 SnQLFunction(
-                    "count",
+                    "count_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -638,14 +638,14 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "sum",
+                    "sum_sample",
                     required_args=[NumericColumn("column", spans=True)],
                     snql_aggregate=self._resolve_aggregate_if("sum"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 SnQLFunction(
-                    "avg",
+                    "avg_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -655,7 +655,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p50",
+                    "p50_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -665,7 +665,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p75",
+                    "p75_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -675,7 +675,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p90",
+                    "p90_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -685,7 +685,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p95",
+                    "p95_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -695,7 +695,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p99",
+                    "p99_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -705,7 +705,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p100",
+                    "p100_sample",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -731,7 +731,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "count_weighted",
+                    "count",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -739,20 +739,14 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="integer",
                 ),
                 SnQLFunction(
-                    "count_unique_weighted",
-                    required_args=[ColumnTagArg("column")],
-                    snql_aggregate=self._resolve_aggregate_if("uniq"),
-                    default_result_type="integer",
-                ),
-                SnQLFunction(
-                    "sum_weighted",
+                    "sum",
                     required_args=[NumericColumn("column", spans=True)],
                     result_type_fn=self.reflective_result_type(),
                     snql_aggregate=lambda args, alias: self._resolve_sum_weighted(args, alias),
                     default_result_type="duration",
                 ),
                 SnQLFunction(
-                    "avg_weighted",
+                    "avg",
                     required_args=[NumericColumn("column", spans=True)],
                     result_type_fn=self.reflective_result_type(),
                     snql_aggregate=lambda args, alias: Function(
@@ -766,7 +760,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     default_result_type="duration",
                 ),
                 SnQLFunction(
-                    "percentile_weighted",
+                    "percentile",
                     required_args=[
                         NumericColumn("column", spans=True),
                         NumberRange("percentile", 0, 1),
@@ -777,7 +771,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p50_weighted",
+                    "p50",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -789,7 +783,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p75_weighted",
+                    "p75",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -801,7 +795,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p90_weighted",
+                    "p90",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -813,7 +807,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p95_weighted",
+                    "p95",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -825,7 +819,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p99_weighted",
+                    "p99",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
@@ -837,30 +831,13 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
-                    "p100_weighted",
+                    "p100",
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
                         args, alias, 1.0
                     ),
-                    result_type_fn=self.reflective_result_type(),
-                    default_result_type="duration",
-                    redundant_grouping=True,
-                ),
-                # Min and Max are identical to their existing implementations
-                SnQLFunction(
-                    "min_weighted",
-                    required_args=[NumericColumn("column", spans=True)],
-                    snql_aggregate=self._resolve_aggregate_if("min"),
-                    result_type_fn=self.reflective_result_type(),
-                    default_result_type="duration",
-                    redundant_grouping=True,
-                ),
-                SnQLFunction(
-                    "max_weighted",
-                    required_args=[NumericColumn("column", spans=True)],
-                    snql_aggregate=self._resolve_aggregate_if("max"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -1060,14 +1037,14 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                 dataset=self.builder.dataset,
                 params={},
                 snuba_params=self.builder.params,
-                selected_columns=["count()", "count_weighted()"],
+                selected_columns=["count_sample()", "count()"],
             )
             total_results = total_query.run_query(Referrer.API_SPANS_TOTAL_COUNT_FIELD.value)
             results = total_query.process_results(total_results)
             if len(results["data"]) != 1:
                 raise Exception("Could not query population size")
-            self._cached_count = results["data"][0]["count"]
-            self._cached_count_weighted = results["data"][0]["count_weighted"]
+            self._cached_count = results["data"][0]["count_sample"]
+            self._cached_count_weighted = results["data"][0]["count"]
         return self._cached_count, self._cached_count_weighted
 
     @cached_property
