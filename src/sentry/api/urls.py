@@ -83,6 +83,7 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
+from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -2064,9 +2065,14 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
     # Replays
     re_path(

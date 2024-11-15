@@ -1,5 +1,5 @@
 ---
-created: '2024-11-06T23:32:46.290200+00:00'
+created: '2024-11-14T18:22:29.534257+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -15,6 +15,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization_id
   model_name: flags.flagauditlogmodel
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - created_by
+    - organization
+  model_name: flags.flagwebhooksigningsecretmodel
 - comparators:
   - class: ForeignKeyComparator
     fields:

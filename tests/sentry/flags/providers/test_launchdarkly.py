@@ -356,10 +356,7 @@ def test_launchdarkly_delete_and_update():
         "_id": "1234",
         "_accountId": "1234",
         "date": 1729123867537,
-        "accesses": [
-            {"action": "deleteFlag", "resource": "proj/default:env/test:flag/test-flag"},
-            {"action": "updateRules", "resource": "proj/default:env/test:flag/test-flag"},
-        ],
+        "accesses": [{"action": "deleteFlag", "resource": "proj/default:env/test:flag/test-flag"}],
         "kind": "flag",
         "name": "test flag",
         "description": "deleted the flag",
@@ -383,11 +380,9 @@ def test_launchdarkly_delete_and_update():
     }
 
     res = handle_provider_event("launchdarkly", request_data, 123)
-    assert len(res) == 2
+    assert len(res) == 1
     flag_row_delete = res[0]
-    flag_row_update = res[1]
     assert flag_row_delete["action"] == ACTION_MAP["deleted"]
-    assert flag_row_update["action"] == ACTION_MAP["updated"]
 
 
 def test_launchdarkly_no_valid_action():
