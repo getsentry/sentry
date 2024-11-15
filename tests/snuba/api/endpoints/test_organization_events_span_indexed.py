@@ -1221,3 +1221,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="extrapolation not implemented yet")
     def test_margin_of_error(self):
         super().test_margin_of_error()
+
+    @pytest.mark.xfail(reason="rate not implemented yet")
+    def test_spm(self):
+        super().test_spm()
