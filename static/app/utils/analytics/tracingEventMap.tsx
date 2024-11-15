@@ -4,17 +4,30 @@ export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {
     title: string;
   };
-  'trace.explorer.metadata': {
-    columns: string[];
-    columns_count: number;
-    has_results: boolean;
-    query_status: 'success' | 'error';
-    results_mode: 'sample' | 'aggregate';
-    user_queries: string;
-    user_queries_count: number;
-    visualizes: Visualize[];
-    visualizes_count: number;
-  };
+  'trace.explorer.metadata':
+    | {
+        columns: string[];
+        columns_count: number;
+        query_status: 'success' | 'error';
+        result_length: number;
+        result_mode: 'span samples' | 'aggregates';
+        user_queries: string;
+        user_queries_count: number;
+        visualizes: Visualize[];
+        visualizes_count: number;
+      }
+    | {
+        columns: string[];
+        columns_count: number;
+        query_status: 'success' | 'error';
+        result_length: number;
+        result_missing_root: number;
+        result_mode: 'trace samples';
+        user_queries: string;
+        user_queries_count: number;
+        visualizes: Visualize[];
+        visualizes_count: number;
+      };
   'trace.metadata': {
     num_nodes: number;
     num_root_children: number;
