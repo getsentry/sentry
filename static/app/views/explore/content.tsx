@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -80,9 +81,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
-                <Button onClick={switchToOldTraceExplorer} size="sm">
-                  {t('Switch to Old Trace Explore')}
-                </Button>
+                <Feature organization={organization} features="visibility-explore-admin">
+                  <Button onClick={switchToOldTraceExplorer} size="sm">
+                    {t('Switch to Old Trace Explore')}
+                  </Button>
+                </Feature>
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
