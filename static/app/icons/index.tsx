@@ -45,6 +45,7 @@ export {IconGitlab} from './iconGitlab';
 export {IconGoogle} from './iconGoogle';
 export {IconGrabbable} from './iconGrabbable';
 export {IconGraph} from './iconGraph';
+export {IconGrid} from './iconGrid';
 export {IconGroup} from './iconGroup';
 export {IconHappy} from './iconHappy';
 export {IconInfo} from './iconInfo';
