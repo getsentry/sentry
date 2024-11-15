@@ -107,6 +107,8 @@ def main(context: dict[str, str]) -> int:
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
 
+    USE_NEW_DEVSERVICES = os.environ.get("USE_NEW_DEVSERVICES") is not None
+
     from devenv.lib import node
 
     node.install(
@@ -253,18 +255,31 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    # TODO: check healthchecks for redis and postgres to short circuit this
-    proc.run(
-        (
-            f"{venv_dir}/bin/{repo}",
-            "devservices",
-            "up",
-            "redis",
-            "postgres",
-        ),
-        pathprepend=f"{reporoot}/.devenv/bin",
-        exit=True,
-    )
+    postgres_container_name = "sentry_postgres"
+
+    if USE_NEW_DEVSERVICES:
+        proc.run(
+            (
+                f"{venv_dir}/bin/devservices",
+                "start",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+        postgres_container_name = "sentry-postgres-1"
+    else:
+        # TODO: check healthchecks for redis and postgres to short circuit this
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "up",
+                "redis",
+                "postgres",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
 
     if not run_procs(
         repo,
@@ -286,7 +301,7 @@ def main(context: dict[str, str]) -> int:
         (
             "docker",
             "exec",
-            "sentry_postgres",
+            postgres_container_name,
             "psql",
             "sentry",
             "postgres",
