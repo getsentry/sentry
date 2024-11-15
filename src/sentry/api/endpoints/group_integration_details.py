@@ -217,7 +217,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 lifecycle.record_halt(exc)
                 return Response(exc.field_errors, status=400)
             except IntegrationError as e:
-                lifecycle.record_halt(e)
+                lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
 
             try:

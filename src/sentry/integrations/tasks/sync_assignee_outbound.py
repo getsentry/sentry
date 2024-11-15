@@ -54,7 +54,7 @@ def sync_assignee_outbound(
     installation = integration.get_installation(organization_id=external_issue.organization_id)
 
     with ProjectManagementEvent(
-        ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
+        action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
         if not (
             hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")

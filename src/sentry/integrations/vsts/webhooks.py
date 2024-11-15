@@ -135,7 +135,7 @@ def handle_status_change(
     project: str | None,
 ) -> None:
     with ProjectManagementEvent(
-        ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
+        action_type=ProjectManagementActionType.INBOUND_STATUS_SYNC, integration=integration
     ).capture() as lifecycle:
         if status_change is None:
             return

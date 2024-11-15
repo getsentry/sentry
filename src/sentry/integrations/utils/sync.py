@@ -82,7 +82,7 @@ def sync_group_assignee_inbound(
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(
-        ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
+        action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
         orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
         affected_groups = Group.objects.get_groups_by_external_issue(
