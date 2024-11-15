@@ -183,3 +183,139 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+
+# NOTE: In all of the classes below, the type(s) passed to `BaseGroupingComponent` represent
+# the type(s) which can appear in the `values` attribute
+
+
+# Error-related inner components
+
+
+class ContextLineGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "context-line"
+
+
+class ErrorTypeGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "type"
+
+
+class ErrorValueGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "value"
+
+
+class FilenameGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "filename"
+
+
+class FunctionGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "function"
+
+
+class LineNumberGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "lineno"
+
+
+class ModuleGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "module"
+
+
+class NSErrorGroupingComponent(BaseGroupingComponent[str | int]):
+    id: str = "ns-error"
+
+
+class SymbolGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "symbol"
+
+
+class FrameGroupingComponent(
+    BaseGroupingComponent[
+        ContextLineGroupingComponent
+        | FilenameGroupingComponent
+        | FunctionGroupingComponent
+        | LineNumberGroupingComponent  # only in legacy config
+        | ModuleGroupingComponent
+        | SymbolGroupingComponent  # only in legacy config
+    ]
+):
+    id: str = "frame"
+
+
+# Security-related inner components
+
+
+class HostnameGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "hostname"
+
+
+class SaltGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "salt"
+    hint: str = "a static salt"
+
+
+class ViolationGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "violation"
+
+
+class URIGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "uri"
+
+
+# Top-level components
+
+
+class MessageGroupingComponent(BaseGroupingComponent[str]):
+    id: str = "message"
+
+
+class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
+    id: str = "stacktrace"
+
+
+class ExceptionGroupingComponent(
+    BaseGroupingComponent[
+        ErrorTypeGroupingComponent
+        | ErrorValueGroupingComponent
+        | NSErrorGroupingComponent
+        | StacktraceGroupingComponent
+    ]
+):
+    id: str = "exception"
+
+
+class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
+    id: str = "chained-exception"
+
+
+class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
+    id: str = "threads"
+
+
+class CSPGroupingComponent(
+    BaseGroupingComponent[SaltGroupingComponent | ViolationGroupingComponent | URIGroupingComponent]
+):
+    id: str = "csp"
+
+
+class ExpectCTGroupingComponent(
+    BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
+):
+    id: str = "expect-ct"
+
+
+class ExpectStapleGroupingComponent(
+    BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
+):
+    id: str = "expect-staple"
+
+
+class HPKPGroupingComponent(
+    BaseGroupingComponent[HostnameGroupingComponent | SaltGroupingComponent]
+):
+    id: str = "hpkp"
+
+
+class TemplateGroupingComponent(
+    BaseGroupingComponent[ContextLineGroupingComponent | FilenameGroupingComponent]
+):
+    id: str = "template"
