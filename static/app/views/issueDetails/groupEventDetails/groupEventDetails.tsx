@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -68,6 +68,7 @@ function GroupEventDetails() {
     refetch: refetchGroup,
   } = useGroup({groupId: params.groupId});
 
+  const eventWithMeta = useMemo(() => withMeta(event), [event]);
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
   const prevEnvironment = usePrevious(environments);
   const prevEvent = useMemoWithPrevious<typeof event | null>(
@@ -187,7 +188,6 @@ function GroupEventDetails() {
     );
   };
 
-  const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
   const LayoutBody = hasStreamlinedUI ? 'div' : StyledLayoutBody;
   const MainLayoutComponent = hasStreamlinedUI ? 'div' : StyledLayoutMain;
