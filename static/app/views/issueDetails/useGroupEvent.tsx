@@ -7,13 +7,13 @@ import {
   useDefaultIssueEvent,
 } from 'sentry/views/issueDetails/utils';
 
-interface UseEventApiQueryOptions {
+interface UseGroupEventOptions {
   environments: string[];
   groupId: string;
   eventId?: string;
 }
 
-export function useGroupEvent({groupId, eventId, environments}: UseEventApiQueryOptions) {
+export function useGroupEvent({groupId, eventId, environments}: UseGroupEventOptions) {
   const organization = useOrganization();
   const location = useLocation<{query?: string}>();
   const defaultIssueEvent = useDefaultIssueEvent();
