@@ -9,8 +9,8 @@ import {
 
 interface UseGroupEventOptions {
   environments: string[];
+  eventId: string | undefined;
   groupId: string;
-  eventId?: string;
 }
 
 export function useGroupEvent({groupId, eventId, environments}: UseGroupEventOptions) {
