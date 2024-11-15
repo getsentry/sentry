@@ -48,7 +48,7 @@ def _get_producer() -> KafkaProducer:
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
-_incident_occurrence_produer = SingletonProducer(_get_producer)
+_incident_occurrence_producer = SingletonProducer(_get_producer)
 
 
 def dispatch_incident_occurrence(
@@ -122,7 +122,7 @@ def queue_incident_occurrence(
     )
 
     topic = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["real_topic_name"]
-    _incident_occurrence_produer.produce(ArroyoTopic(topic), payload)
+    _incident_occurrence_producer.produce(ArroyoTopic(topic), payload)
 
 
 def send_incident_occurrence(
