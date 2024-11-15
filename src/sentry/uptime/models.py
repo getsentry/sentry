@@ -79,7 +79,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 "trace_sampling",
                 MD5("headers"),
                 Coalesce(MD5("body"), Value("")),
-                name="uptime_uptimesubscription_unique_subscription_check",
+                name="uptime_uptimesubscription_unique_subscription_check_2",
             ),
         ]
 
