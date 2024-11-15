@@ -114,7 +114,8 @@ def queue_incident_occurrence(
         "clock_tick_ts": int(clock_tick.timestamp()),
     }
 
-    # The incident occurrence should be
+    # The incident occurrence is partitioned by monitor environment ID, just
+    # the same as the clock tasks. Ensures issue occurences are sent in order.
     payload = KafkaPayload(
         str(monitor_env.id).encode(),
         MONITORS_INCIDENT_OCCURRENCES.encode(incident_occurrence),
