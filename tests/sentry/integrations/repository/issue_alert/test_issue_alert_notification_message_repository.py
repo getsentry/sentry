@@ -23,7 +23,7 @@ class BaseIssueAlertNotificationMessageRepositoryTest(TestCase):
             }
         ]
         self.rule = self.create_project_rule(
-            project=self.project, action_match=self.notify_issue_owners_action
+            project=self.project, action_data=self.notify_issue_owners_action
         )
         self.event_id = 456
         self.notification_uuid = str(uuid4())

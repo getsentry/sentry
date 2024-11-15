@@ -315,7 +315,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         rule = self.create_project_rule(
             project=self.project,
-            action_match=[action_data],
+            action_data=[action_data],
             name="ja rule",
             environment_id=environment.id,
         )
