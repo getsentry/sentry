@@ -28,6 +28,7 @@ class Action(DefaultFieldsModel):
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
 
+    # TODO - finish removing this field
     required = models.BooleanField(default=False, null=True)
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
