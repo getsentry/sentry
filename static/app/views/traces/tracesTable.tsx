@@ -195,6 +195,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
               expanded,
+              source: 'trace explorer',
             })
           }
         />
@@ -204,6 +205,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace', {
               organization,
+              source: 'trace explorer',
             })
           }
           location={location}

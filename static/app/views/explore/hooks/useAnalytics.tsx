@@ -2,14 +2,17 @@ import {useEffect} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import type {Visualize} from './useVisualizes';
 
 export function useAnalytics({
-  result,
-  resultsMode,
+  resultLength,
+  resultMissingRoot,
+  resultMode,
+  resultStatus,
   visualizes,
   organization,
   columns,
@@ -17,36 +20,40 @@ export function useAnalytics({
 }: {
   columns: string[];
   organization: Organization;
-  result: ReturnType<typeof useSpansQuery>;
-  resultsMode: 'sample' | 'aggregate';
+  resultLength: number | undefined;
+  resultMode: 'span samples' | 'trace samples' | 'aggregates';
+  resultStatus: UseApiQueryResult<any, RequestError>['status'];
   userQuery: string;
   visualizes: Visualize[];
+  resultMissingRoot?: number;
 }) {
   useEffect(() => {
-    if (result.status === 'pending') {
+    if (resultStatus === 'pending') {
       return;
     }
 
     const search = new MutableSearch(userQuery);
     const params = {
-      query_status: result.status,
-      results_mode: resultsMode,
-      has_results: Array.isArray(result?.data) && result.data.length > 0,
+      organization,
+      columns,
+      columns_count: columns.filter(Boolean).length,
+      query_status: resultStatus,
+      result_length: resultLength || 0,
+      result_missing_root: resultMissingRoot || 0,
+      result_mode: resultMode,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
       visualizes,
       visualizes_count: visualizes.length,
-      organization,
-      columns,
-      columns_count: columns.filter(Boolean).length,
     };
 
     trackAnalytics('trace.explorer.metadata', params);
   }, [
-    result.status,
-    result.data,
     organization,
-    resultsMode,
+    resultLength,
+    resultMissingRoot,
+    resultMode,
+    resultStatus,
     visualizes,
     columns,
     userQuery,
