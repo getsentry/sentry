@@ -2424,8 +2424,6 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data["projects"]) == [project1.id, project2.id]
 
-    # de
-
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.DISCOVER

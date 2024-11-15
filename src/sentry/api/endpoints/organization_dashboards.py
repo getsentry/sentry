@@ -75,6 +75,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
                 if hasattr(obj, "permissions"):
                     return obj.permissions.has_edit_permissions(request.user.id)
 
+                # If no permissions are assigned, it is considered accessible to all users
                 return True
 
             return False
