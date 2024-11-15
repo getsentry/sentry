@@ -1,13 +1,18 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
+import type {User} from '@sentry/types';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
-import type {DashboardFilters, Widget} from './types';
+import type {DashboardFilters, DashboardPermissions, Widget} from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
@@ -22,7 +27,9 @@ type Props = {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
+  dashboardPermissions?: DashboardPermissions;
   isMobile?: boolean;
   isPreview?: boolean;
   windowWidth?: number;
@@ -43,12 +50,29 @@ function SortableWidget(props: Props) {
     index,
     dashboardFilters,
     widgetLegendState,
+    dashboardPermissions,
+    dashboardCreator,
   } = props;
+
+  const organization = useOrganization();
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    );
+  }
 
   const widgetProps: ComponentProps<typeof WidgetCard> = {
     widget,
     isEditingDashboard,
     widgetLimitReached,
+    hasEditAccess,
     onDelete,
     onEdit,
     onDuplicate,

@@ -434,6 +434,8 @@ class Dashboard extends Component<Props, State> {
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
           {...widgetProps}
+          dashboardPermissions={dashboard.permissions}
+          dashboardCreator={dashboard.createdBy}
           isMobile={isMobile}
           windowWidth={windowWidth}
           index={String(index)}
