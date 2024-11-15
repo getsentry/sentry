@@ -1,12 +1,19 @@
 import inspect
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar, overload
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    BaseGroupingComponent,
+    ExceptionGroupingComponent,
+    FrameGroupingComponent,
+    StacktraceGroupingComponent,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
+from sentry.interfaces.exception import SingleException
+from sentry.interfaces.stacktrace import Frame, Stacktrace
 
 STRATEGIES: dict[str, "Strategy[Any]"] = {}
 
@@ -24,7 +31,10 @@ ContextDict = dict[str, ContextValue]
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
-ReturnedVariants = dict[str, BaseGroupingComponent]
+# TODO: Hack to make `ReturnedVariants` (no pun intended) covariant. At some point we should
+# probably turn `ReturnedVariants` into a Mapping (immutable), since in practice it's read-only.
+GroupingComponent = TypeVar("GroupingComponent", bound=BaseGroupingComponent[Any])
+ReturnedVariants = dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -114,6 +124,21 @@ class GroupingContext:
         configured a fallback grouping component is returned.
         """
         return self._get_strategy_dict(interface, event=event, **kwargs)
+
+    @overload
+    def get_single_grouping_component(
+        self, interface: Frame, *, event: Event, **kwargs: Any
+    ) -> FrameGroupingComponent: ...
+
+    @overload
+    def get_single_grouping_component(
+        self, interface: SingleException, *, event: Event, **kwargs: Any
+    ) -> ExceptionGroupingComponent: ...
+
+    @overload
+    def get_single_grouping_component(
+        self, interface: Stacktrace, *, event: Event, **kwargs: Any
+    ) -> StacktraceGroupingComponent: ...
 
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
