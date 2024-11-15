@@ -34,7 +34,7 @@ class SimpleCheckIn:
 
 def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
-    received: datetime | None,
+    received: datetime,
 ) -> bool:
     """
     Determine if a monitor environment has reached it's incident threshold
@@ -115,12 +115,7 @@ def try_incident_threshold(
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
         for checkin in checkins:
-            create_incident_occurrence(
-                checkin,
-                checkins,
-                incident,
-                received=received,
-            )
+            create_incident_occurrence(checkin, checkins, incident, received)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 
