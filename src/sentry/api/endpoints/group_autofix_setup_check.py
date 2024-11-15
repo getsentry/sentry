@@ -109,7 +109,7 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         Checks if we are able to run Autofix on the given group.
         """
         org: Organization = request.organization
-        has_gen_ai_consent = org.get_option("sentry:gen_ai_consent", False)
+        has_gen_ai_consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
 
         is_codebase_indexing_disabled = features.has(
             "organizations:autofix-disable-codebase-indexing",
