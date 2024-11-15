@@ -23,7 +23,7 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
     def test_get_success(self):
         self.get_success_response(self.organization.slug)
 
-    @patch("sentry.models.notificationaction.ActionTrigger")
+    @patch("sentry.notifications.models.notificationaction.ActionTrigger")
     def test_get_dynamic_response(self, mock_action_trigger):
         """
         Note: This test assumes the ActionTrigger already contains reference to the trigger. Only
