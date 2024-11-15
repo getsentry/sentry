@@ -33,33 +33,19 @@ export function useAnalytics({
     }
 
     const search = new MutableSearch(userQuery);
-    const params =
-      resultMode === 'trace samples'
-        ? {
-            organization,
-            columns,
-            columns_count: columns.filter(Boolean).length,
-            query_status: resultStatus,
-            result_length: resultLength || 0,
-            result_missing_root: resultMissingRoot || 0,
-            result_mode: resultMode,
-            user_queries: search.formatString(),
-            user_queries_count: search.tokens.length,
-            visualizes,
-            visualizes_count: visualizes.length,
-          }
-        : {
-            organization,
-            columns,
-            columns_count: columns.filter(Boolean).length,
-            query_status: resultStatus,
-            result_length: resultLength || 0,
-            result_mode: resultMode,
-            user_queries: search.formatString(),
-            user_queries_count: search.tokens.length,
-            visualizes,
-            visualizes_count: visualizes.length,
-          };
+    const params = {
+      organization,
+      columns,
+      columns_count: columns.filter(Boolean).length,
+      query_status: resultStatus,
+      result_length: resultLength || 0,
+      result_missing_root: resultMissingRoot || 0,
+      result_mode: resultMode,
+      user_queries: search.formatString(),
+      user_queries_count: search.tokens.length,
+      visualizes,
+      visualizes_count: visualizes.length,
+    };
 
     trackAnalytics('trace.explorer.metadata', params);
   }, [
