@@ -223,6 +223,16 @@ class TickAnomalyDecision(StrEnum):
     either NORMAL or back into INCIDENT.
     """
 
+    def is_pending(self) -> bool:
+        """
+        Returns True when the decision is ABNORMAL or RECOVERING, indicating
+        that we are currently pending resolution of this decision.
+        """
+        return self in [TickAnomalyDecision.ABNORMAL, TickAnomalyDecision.RECOVERING]
+
+    def is_incident(self) -> bool:
+        return self == TickAnomalyDecision.INCIDENT
+
     @classmethod
     def from_str(cls, st: str) -> TickAnomalyDecision:
         return cls[st.upper()]
@@ -401,6 +411,15 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
         pipeline.set(decision_key, decision)
         pipeline.expire(decision_key, MONITOR_VOLUME_RETENTION)
         pipeline.execute()
+
+        logger.info(
+            "monitors.system_incidents.decision",
+            extra={
+                "reference_datetime": str(tick),
+                "decision": decision,
+                "transition": transition,
+            },
+        )
 
         return DecisionResult(decision, transition)
 

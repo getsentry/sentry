@@ -25,14 +25,13 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {useAnalytics} from '../hooks/useAnalytics';
-import {useVisualizes} from '../hooks/useVisualizes';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -88,12 +87,13 @@ export function SpansTable({}: SpansTableProps) {
   });
 
   useAnalytics({
-    result,
+    resultLength: result.data?.length,
+    resultMode: 'span samples',
+    resultStatus: result.status,
     visualizes,
     organization,
     columns: fields,
     userQuery: query,
-    resultsMode: 'sample',
   });
 
   const {tableStyles} = useTableStyles({

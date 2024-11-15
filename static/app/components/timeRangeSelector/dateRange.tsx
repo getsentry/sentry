@@ -189,7 +189,7 @@ class BaseDateRange extends Component<Props, State> {
     // Subtract additional day  because we force the end date to be inclusive,
     // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 2);
+    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 1);
 
     let maxDate = new Date();
 
