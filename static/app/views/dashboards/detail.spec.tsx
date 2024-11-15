@@ -1931,6 +1931,80 @@ describe('Dashboards > Detail', function () {
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
     });
 
+    it('disables widget edit, duplicate, and delete button when user does not have edit perms', async function () {
+      const widget = {
+        displayType: types.DisplayType.TABLE,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        widgetType: types.WidgetType.DISCOVER,
+      };
+      const mockDashboard = DashboardFixture([widget], {
+        id: '1',
+        title: 'Custom Errors',
+        createdBy: UserFixture({id: '238900'}),
+        permissions: {isEditableByEveryone: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: mockDashboard,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: mockDashboard,
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('menuitemradio', {name: 'Delete Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
     describe('discover split', function () {
       it('calls the dashboard callbacks with the correct widgetType for discover split', function () {
         const widget = {

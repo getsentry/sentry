@@ -150,10 +150,11 @@ function Controls({
   let hasEditAccess = true;
   if (organization.features.includes('dashboards-edit-access')) {
     hasEditAccess = checkUserHasEditAccess(
-      dashboard,
       currentUser,
       userTeams,
-      organization
+      organization,
+      dashboard.permissions,
+      dashboard.createdBy
     );
   }
 

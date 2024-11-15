@@ -67,6 +67,7 @@ type Props = WithRouterProps & {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
+  hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
   isMobile?: boolean;
@@ -219,6 +220,7 @@ function WidgetCard(props: Props) {
         widget,
         Boolean(isMetricsData),
         props.widgetLimitReached,
+        props.hasEditAccess,
         props.onDelete,
         props.onDuplicate,
         props.onEdit
