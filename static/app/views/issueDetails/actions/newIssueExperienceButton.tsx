@@ -114,6 +114,10 @@ export function NewIssueExperienceButton() {
               messagePlaceholder: t(
                 'Excluding bribes, what would make you excited to use the new UI?'
               ),
+              tags: {
+                ['feedback.source']: 'streamlined_issue_details',
+                ['feedback.owner']: 'issues',
+              },
             });
           },
         },
