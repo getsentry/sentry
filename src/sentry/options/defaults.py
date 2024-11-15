@@ -2010,8 +2010,11 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Enables system incident anomaly detection based on the volume of check-ins
-# being processed
+# Enables recording tick volume metrics and tick decisions based on those
+# metrics. Decisions are used to delay notifications in a system incident.
+#
+# TODO(epurkhiser): This should be renamed to something like
+#                   `crons.system_incidents.collect_metrics`
 register(
     "crons.tick_volume_anomaly_detection",
     default=False,
