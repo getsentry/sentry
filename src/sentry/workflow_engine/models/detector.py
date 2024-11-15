@@ -21,10 +21,9 @@ logger = logging.getLogger(__name__)
 
 @region_silo_model
 class Detector(DefaultFieldsModel, OwnerModel):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Excluded
 
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
