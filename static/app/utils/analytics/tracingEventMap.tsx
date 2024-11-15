@@ -84,8 +84,12 @@ export type TracingEventParameters = {
   };
   'trace_explorer.add_span_condition': {};
   'trace_explorer.open_in_issues': {};
-  'trace_explorer.open_trace': {};
-  'trace_explorer.open_trace_span': {};
+  'trace_explorer.open_trace': {
+    source: 'trace explorer' | 'new explore';
+  };
+  'trace_explorer.open_trace_span': {
+    source: 'trace explorer' | 'new explore';
+  };
   'trace_explorer.remove_span_condition': {};
   'trace_explorer.search_failure': {
     error: string;
@@ -103,6 +107,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
+    source: 'trace explorer' | 'new explore';
   };
 };
 

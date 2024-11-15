@@ -232,6 +232,7 @@ function TraceRow({
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
               expanded,
+              source: 'new explore',
             })
           }
         />
@@ -241,6 +242,7 @@ function TraceRow({
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace', {
               organization,
+              source: 'new explore',
             })
           }
           location={location}
