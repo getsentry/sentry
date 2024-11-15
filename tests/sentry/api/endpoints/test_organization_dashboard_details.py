@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
-from sentry import sentry_metrics
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard import Dashboard, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -27,7 +27,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 
-pytestmark = [requires_snuba, sentry_metrics]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):

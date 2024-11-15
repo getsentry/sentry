@@ -17,6 +17,8 @@ from sentry.discover.models import (
     TeamKeyTransaction,
 )
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.interfaces.user import User
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
@@ -255,7 +257,9 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
-    def get_metrics_features(self, organization, user):
+    def get_metrics_features(
+        self, organization: Organization | None, user: User | None
+    ) -> dict[str, bool]:
         feature_names = [
             "organizations:mep-rollout-flag",
             "organizations:dynamic-sampling",
@@ -330,7 +334,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                 )
             try:
                 batch_features = self.get_metrics_features(
-                    self.context["organization"], self.context["user"]
+                    self.context.get("organization"), self.context.get("user")
                 )
                 use_metrics = (
                     (

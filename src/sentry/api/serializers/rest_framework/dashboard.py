@@ -361,7 +361,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         queries_serializer = self.fields["queries"]
         queries_serializer.context.update(
             {
-                "display_type": data["display_type"],
+                "display_type": data.get("display_type"),
                 "user": self.context["request"].user,
             }
         )
