@@ -295,7 +295,7 @@ def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
     }
 )
 def test_tick_decision_anomaly_recovery():
-    start = timezone.now().replace(second=0, microsecond=0)
+    start = timezone.now().replace(minute=0, second=0, microsecond=0)
 
     test_metrics = [
         # fmt: off
@@ -316,24 +316,28 @@ def test_tick_decision_anomaly_recovery():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition is None
+        assert result.ts == ts
 
     # Transition into anomalous state (-6)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.ABNORMAL
         assert result.transition == AnomalyTransition.ABNORMALITY_STARTED
+        assert result.ts == ts
 
     # Next 5 ticks (-7, -4, -3, -3, -4) stay in abnormal state
     for _ in range(0, 5):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.ABNORMAL
         assert result.transition is None
+        assert result.ts == ts
 
     # Next tick recovers the abnormality after 5 ticks under the abnormality threshold
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition == AnomalyTransition.ABNORMALITY_RECOVERED
+        assert result.ts == ts
 
     # The last 6 ABNORMAL ticks transitioned to NORMAL
     for i in range(1, 7):
@@ -354,7 +358,7 @@ def test_tick_decisions_simple_incident():
     Tests incident detection for an incident that immediately starts and
     immediately stops.
     """
-    start = timezone.now().replace(second=0, microsecond=0)
+    start = timezone.now().replace(minute=0, second=0, microsecond=0)
 
     test_metrics = [
         # fmt: off
@@ -375,36 +379,43 @@ def test_tick_decisions_simple_incident():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition is None
+        assert result.ts == ts
 
     # Transition into incident (-35)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition == AnomalyTransition.INCIDENT_STARTED
+        assert result.ts == ts
 
     # Incident continues (-80, -100, -50)
     for _ in range(0, 3):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition is None
+        assert result.ts == ts
 
-    # Incident recovers (-3)
+    # Incident begins recovery (-3)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+        assert result.ts == ts
 
     # Incident continues recovery (-2, -4, -1)
     for _ in range(0, 3):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident recovers
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERED
+        # True recovery was 4 ticks ago
+        assert result.ts == ts - timedelta(minutes=4)
 
     # The last 4 RECOVERING ticks transitioned to NORMAL
     for i in range(1, 5):
@@ -424,7 +435,7 @@ def test_tick_decisions_variable_incident():
     """
     Tests an incident that slowly starts and slowly recovers.
     """
-    start = timezone.now().replace(second=0, microsecond=0)
+    start = timezone.now().replace(minute=0, second=0, microsecond=0)
 
     test_metrics = [
         # fmt: off
@@ -459,24 +470,29 @@ def test_tick_decisions_variable_incident():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition is None
+        assert result.ts == ts
 
     # Transition into anomalous state (-6)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.ABNORMAL
         assert result.transition == AnomalyTransition.ABNORMALITY_STARTED
+        assert result.ts == ts
 
     # Next 4 ticks (-7, -4, -3, -10) stay in anomaly
     for _ in range(0, 4):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.ABNORMAL
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident starts (-30)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition == AnomalyTransition.INCIDENT_STARTED
+        # True incident start was 5 ticks ago
+        assert result.ts == ts - timedelta(minutes=5)
 
     # The last 5 ABNORMAL ticks transitioned to INCIDENT
     for i in range(1, 6):
@@ -487,24 +503,28 @@ def test_tick_decisions_variable_incident():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident begins recovering (-4)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+        assert result.ts == ts
 
     # Incident continues to recover (-3)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident has anomalous tick again (-6), not fully recovered
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERY_FAILED
+        assert result.ts == ts
 
     # The last 2 RECOVERING ticks transitioned back to incident
     for i in range(1, 3):
@@ -515,18 +535,21 @@ def test_tick_decisions_variable_incident():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+        assert result.ts == ts
 
     # Incident continues to recover (-1)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident has incident tick again (-30), not fully recovered
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.INCIDENT
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERY_FAILED
+        assert result.ts == ts
 
     # The last 2 RECOVERING ticks transitioned back to incident
     for i in range(1, 3):
@@ -537,18 +560,22 @@ def test_tick_decisions_variable_incident():
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERING
+        assert result.ts == ts
 
     # Incident continues to recover for the next 3 normal ticks (-2, -4, -4)
     for _ in range(0, 3):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.RECOVERING
         assert result.transition is None
+        assert result.ts == ts
 
     # Incident recovers at the final 5th tick (-3)
     for _ in range(0, 1):
         result = make_clock_tick_decision(ts := ts + timedelta(minutes=1))
         assert result.decision == TickAnomalyDecision.NORMAL
         assert result.transition == AnomalyTransition.INCIDENT_RECOVERED
+        # True incident recovery was 4 ticks ago
+        assert result.ts == ts - timedelta(minutes=4)
 
     # The last 4 RECOVERING ticks transitioned to NORMAL
     for i in range(1, 5):
