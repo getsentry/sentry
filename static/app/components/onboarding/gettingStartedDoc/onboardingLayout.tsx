@@ -44,7 +44,9 @@ export type OnboardingLayoutProps = {
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
+  integration?: string;
   newOrg?: boolean;
+  provider?: string;
 };
 
 const EMPTY_ARRAY: never[] = [];

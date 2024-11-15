@@ -112,3 +112,24 @@ export const sortedFlags = ({
       return flags;
   }
 };
+
+export enum ProviderOptions {
+  LAUNCHDARKLY = 'LaunchDarkly',
+  OPENFEATURE = 'OpenFeature',
+}
+
+type Labels = {
+  pythonIntegration: string; // what's in the integrations array
+  pythonModule: string; // what's imported from sentry_sdk.integrations
+};
+
+export const PROVIDER_OPTION_TO_LABELS: Record<string, Labels> = {
+  [ProviderOptions.LAUNCHDARKLY]: {
+    pythonModule: 'launchdarkly',
+    pythonIntegration: 'LaunchDarklyIntegration',
+  },
+  [ProviderOptions.OPENFEATURE]: {
+    pythonModule: 'OpenFeature',
+    pythonIntegration: 'OpenFeatureIntegration',
+  },
+};

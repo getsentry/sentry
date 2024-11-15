@@ -67,6 +67,7 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
+  integration?: string;
   newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';
@@ -106,6 +107,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   onboarding: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
@@ -122,4 +124,5 @@ export type ConfigType =
   | 'crashReportOnboarding'
   | 'replayOnboarding'
   | 'replayOnboardingJsLoader'
-  | 'customMetricsOnboarding';
+  | 'customMetricsOnboarding'
+  | 'featureFlagOnboarding';
