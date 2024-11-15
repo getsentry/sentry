@@ -170,7 +170,7 @@ redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
 reportlab==4.0.7
-requests==2.31.0
+requests==2.32.3
 requests-file==2.1.0
 requests-oauthlib==1.2.0
 responses==0.23.1
@@ -226,7 +226,7 @@ types-python-dateutil==2.8.19
 types-pytz==2022.1.2
 types-pyyaml==6.0.11
 types-redis==3.5.18
-types-requests==2.31.0.20240406
+types-requests==2.32.0.20241016
 types-setuptools==69.0.0.0
 types-simplejson==3.17.7.2
 typing-extensions==4.12.0
