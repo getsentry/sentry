@@ -7,7 +7,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import _get_hash_basis
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import ComponentVariant
@@ -106,10 +106,10 @@ def test_unknown_hash_basis(
 
     unknown_variants = {
         "dogs": ComponentVariant(
-            GroupingComponent(
+            BaseGroupingComponent(
                 id="not_a_known_component_type",
                 contributes=True,
-                values=[GroupingComponent(id="dogs_are_great", contributes=True)],
+                values=[BaseGroupingComponent(id="dogs_are_great", contributes=True)],
             ),
             get_default_grouping_config_dict(),
         )

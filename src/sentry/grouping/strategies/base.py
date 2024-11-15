@@ -4,7 +4,7 @@ from typing import Any, Generic, Protocol, TypeVar
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
@@ -24,7 +24,7 @@ ContextDict = dict[str, ContextValue]
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
-ReturnedVariants = dict[str, GroupingComponent]
+ReturnedVariants = dict[str, BaseGroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -117,7 +117,7 @@ class GroupingContext:
 
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> GroupingComponent:
+    ) -> BaseGroupingComponent:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -193,7 +193,7 @@ class Strategy(Generic[ConcreteInterface]):
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: str | None = None
-    ) -> None | GroupingComponent | ReturnedVariants:
+    ) -> None | BaseGroupingComponent | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface)

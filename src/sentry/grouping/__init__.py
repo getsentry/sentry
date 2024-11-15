@@ -87,7 +87,7 @@ removes a component (and its children) entirely from the grouping output.
 Here an example of how components can be used::
 
     function_name = 'lambda$1234'
-    threads = GroupingComponent(
+    threads = BaseGroupingComponent(
         id="function",
         values=[function_name],
         contributes=False,
