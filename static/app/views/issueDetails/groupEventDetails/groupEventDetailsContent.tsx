@@ -23,7 +23,6 @@ import EventComparison from 'sentry/components/events/eventStatisticalDetector/e
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
-import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
@@ -331,25 +330,23 @@ export function EventDetailsContent({
       )}
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
-          <TransactionsDeltaProvider event={event} project={project}>
-            <ErrorBoundary mini>
-              <EventFunctionBreakpointChart event={event} />
-            </ErrorBoundary>
-            <ErrorBoundary mini>
-              <InterimSection
-                type={SectionKey.REGRESSION_FLAMEGRAPH}
-                title={t('Regression Flamegraph')}
-              >
-                <b>{t('Largest Changes in Call Stack Frequency')}</b>
-                <p>
-                  {t(`See which functions changed the most before and after the regression. The
-              frame with the largest increase in call stack population likely
-              contributed to the cause for the duration regression.`)}
-                </p>
-                <EventDifferentialFlamegraph event={event} />
-              </InterimSection>
-            </ErrorBoundary>
-          </TransactionsDeltaProvider>
+          <ErrorBoundary mini>
+            <EventFunctionBreakpointChart event={event} />
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            <InterimSection
+              type={SectionKey.REGRESSION_FLAMEGRAPH}
+              title={t('Regression Flamegraph')}
+            >
+              <b>{t('Largest Changes in Call Stack Frequency')}</b>
+              <p>
+                {t(`See which functions changed the most before and after the regression. The
+            frame with the largest increase in call stack population likely
+            contributed to the cause for the duration regression.`)}
+              </p>
+              <EventDifferentialFlamegraph event={event} />
+            </InterimSection>
+          </ErrorBoundary>
         </Fragment>
       )}
       <EventHydrationDiff event={event} group={group} />
