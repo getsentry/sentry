@@ -33,6 +33,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTOFIX_ENABLED_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -496,6 +497,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivateLastForGauges: bool
     requiresSso: bool
     rollbackEnabled: bool
+    autofixEnabled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -604,6 +606,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "hideAiFeatures": bool(
                     obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+                ),
+                "autofixEnabled": bool(
+                    obj.get_option("sentry:autofix_enabled", AUTOFIX_ENABLED_DEFAULT)
                 ),
                 "githubPRBot": bool(
                     obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)

@@ -312,6 +312,7 @@ class OrganizationExamples:
                 "codecovAccess": False,
                 "aiSuggestedSolution": True,
                 "hideAiFeatures": False,
+                "autofixEnabled": False,
                 "githubPRBot": True,
                 "githubOpenPRBot": True,
                 "githubNudgeInvite": True,
