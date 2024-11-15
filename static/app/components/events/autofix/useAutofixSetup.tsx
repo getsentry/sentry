@@ -11,6 +11,9 @@ export interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
 }
 
 export type AutofixSetupResponse = {
+  autofixEnabled: {
+    ok: boolean;
+  };
   genAIConsent: {
     ok: boolean;
   };

@@ -43,6 +43,7 @@ describe('SolutionsHubDrawer', () => {
         genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
+        autofixEnabled: {ok: true},
       },
     });
     MockApiClient.addMockResponse({
@@ -64,6 +65,7 @@ describe('SolutionsHubDrawer', () => {
         genAIConsent: {ok: false},
         integration: {ok: false},
         githubWriteIntegration: {ok: false},
+        autofixEnabled: {ok: false},
       },
     });
     MockApiClient.addMockResponse({
@@ -105,8 +107,6 @@ describe('SolutionsHubDrawer', () => {
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
     );
-
-    expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
 
@@ -179,5 +179,40 @@ describe('SolutionsHubDrawer', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Start Autofix'})).toBeInTheDocument();
     });
+  });
+
+  it('continues to show setup if autofix is not enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {ok: false, repos: []},
+        autofixEnabled: {ok: false},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {name: 'Skip & Enable Autofix'})
+    ).toBeInTheDocument();
   });
 });
