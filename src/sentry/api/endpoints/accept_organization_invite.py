@@ -111,10 +111,13 @@ class AcceptOrganizationInvite(Endpoint):
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
     @staticmethod
-    def respond_unauthorized() -> Response:
+    def respond_unauthorized(email: str) -> Response:
         return Response(
             status=status.HTTP_401_UNAUTHORIZED,
-            data={"details": "Active session account is not authorized to accept invite"},
+            data={
+                "details": "Active session account is not authorized to accept invite",
+                "user_email": email,
+            },
         )
 
     def get_helper(
@@ -155,7 +158,7 @@ class AcceptOrganizationInvite(Endpoint):
             # not matching the invited user, and the token is definitely not expired (which is what the
             # error message suggests). Prompt the user to sign out and try again.
             if organization_member.user_id and not organization_member.token_expired:
-                return self.respond_unauthorized()
+                return self.respond_unauthorized(organization_member.email)
             return self.respond_invalid()
 
         # Keep track of the invite details in the request session
