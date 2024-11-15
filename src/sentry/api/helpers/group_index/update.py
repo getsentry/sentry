@@ -380,7 +380,7 @@ def update_groups(
             # we need to update this to find the release for each project (we shouldn't assume
             # it's the same)
             try:
-                release = most_recent_release(projects[0])
+                release = most_recent_release(projects[0], commit)
                 res_type = GroupResolution.Type.in_release
                 res_status = GroupResolution.Status.resolved
             except IndexError:

@@ -809,10 +809,12 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     return follows_semver
 
 
-def most_recent_release(project: Project) -> Release | None:
+def most_recent_release(project: Project, commit: str | None = None) -> Release | None:
+    queryset = Release.objects.filter(projects=project, organization_id=project.organization_id)
+    if commit:
+        queryset = queryset.filter(releasecommit__commit=commit)
     return (
-        Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
         .order_by("-sort")
         .first()
     )
