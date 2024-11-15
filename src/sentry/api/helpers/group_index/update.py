@@ -375,7 +375,7 @@ def update_groups(
             # we need to update this to find the release for each project (we shouldn't assume
             # it's the same)
             try:
-                release = most_recent_release(projects[0], commit)
+                release = most_recent_release_matching_commit(projects, commit)
                 res_type = GroupResolution.Type.in_release
                 res_status = GroupResolution.Status.resolved
             except IndexError:
@@ -715,14 +715,22 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
     return release
 
 
-def most_recent_release(project: Project, commit: Commit | None = None) -> Release | None:
-    queryset = Release.objects.filter(projects=project, organization_id=project.organization_id)
-    if commit:
-        queryset = queryset.filter(releasecommit__commit=commit)
+def most_recent_release(project: Project) -> Release | None:
     return (
-        queryset.extra(select={"sort": "COALESCE(date_released, date_added)"})
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
         .order_by("-sort")
         .first()
+    )
+
+
+def most_recent_release_matching_commit(
+    projects: Sequence[Project], commit: Commit
+) -> Release | None:
+    return (
+        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")[0]
     )
 
 
