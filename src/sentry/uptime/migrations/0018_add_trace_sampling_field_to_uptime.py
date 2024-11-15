@@ -25,9 +25,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="uptimesubscription",
-            name="trace_sampling",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_uptimesubscription" ADD COLUMN "trace_sampling" boolean NOT NULL DEFAULT false;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_uptimesubscription" DROP COLUMN "trace_sampling";
+                    """,
+                    hints={"tables": ["sentry_uptimesubscription"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="uptimesubscription",
+                    name="trace_sampling",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
