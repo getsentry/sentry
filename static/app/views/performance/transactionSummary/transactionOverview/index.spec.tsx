@@ -4,6 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  findByLabelText,
   render,
   renderGlobalModal,
   screen,
@@ -471,6 +472,55 @@ describe('Performance > TransactionSummary', function () {
       ],
     });
 
+    // Flamegraph mock
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/profiling/flamegraph/',
+      body: {
+        activeProfileIndex: 0,
+        metadata: {
+          deviceClassification: '',
+          deviceLocale: '',
+          deviceManufacturer: '',
+          deviceModel: '',
+          deviceOSName: '',
+          deviceOSVersion: '',
+          durationNS: 0,
+          organizationID: 0,
+          platform: '',
+          profileID: '',
+          projectID: 0,
+          received: '0001-01-01T00:00:00Z',
+          sampled: false,
+          timestamp: '0001-01-01T00:00:00Z',
+          traceID: '',
+          transactionID: '',
+          transactionName: '',
+          version: '',
+        },
+        platform: '',
+        profiles: [
+          {
+            endValue: 0,
+            isMainThread: true,
+            name: '',
+            samples: [],
+            startValue: 0,
+            threadID: 0,
+            type: 'sampled',
+            unit: 'count',
+            weights: [],
+            sample_durations_ns: null,
+          },
+        ],
+        projectID: 0,
+        shared: {
+          frames: [],
+        },
+        transactionName: '',
+        metrics: [],
+      },
+    });
+
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.AUTO);
   });
 
@@ -877,10 +927,12 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Transaction Summary');
 
-      expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
+      const pagination = await screen.findByTestId('pagination');
+      expect(await findByLabelText(pagination, 'Previous')).toBeInTheDocument();
+      expect(await findByLabelText(pagination, 'Next')).toBeInTheDocument();
 
       // Click the 'next' button
-      await userEvent.click(screen.getByLabelText('Next'));
+      await userEvent.click(await findByLabelText(pagination, 'Next'));
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
