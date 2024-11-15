@@ -1,4 +1,5 @@
 from sentry.notifications.models.notificationaction import (
+    ActionRegistration,
     ActionService,
     ActionTarget,
     ActionTrigger,
@@ -12,4 +13,5 @@ __all__ = (
     "ActionService",
     "ActionTrigger",
     "ActionTarget",
+    "ActionRegistration",
 )
