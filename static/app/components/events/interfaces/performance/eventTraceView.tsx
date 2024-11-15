@@ -151,11 +151,7 @@ const TraceContentWrapper = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-<<<<<<< HEAD
-const MAX_HEIGHT = 400;
-=======
 const MAX_HEIGHT = 500;
->>>>>>> 1850b577422 (ref(trace) adjust height of container for trace view)
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 const HEADER_HEIGHT = 32;
 
