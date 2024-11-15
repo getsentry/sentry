@@ -163,7 +163,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         if not (
             features.has("projects:ai-autofix", group.project)
             or features.has("organizations:autofix", group.organization)
-            or group.organization.get_option("sentry:gen_ai_consent", False)
+            or group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
         ):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 

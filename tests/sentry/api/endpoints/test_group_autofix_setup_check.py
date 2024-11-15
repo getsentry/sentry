@@ -30,7 +30,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             stack_root="sentry/",
             source_root="sentry/",
         )
-        self.organization.update_option("sentry:gen_ai_consent", True)
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
     @patch(
         "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
@@ -143,7 +143,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 @apply_feature_flag_on_cls("organizations:autofix")
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_no_gen_ai_consent(self):
-        self.organization.update_option("sentry:gen_ai_consent", False)
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", False)
 
         group = self.create_group()
         self.login_as(user=self.user)
