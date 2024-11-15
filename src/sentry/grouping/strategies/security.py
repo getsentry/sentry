@@ -1,7 +1,7 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -15,11 +15,11 @@ def _security_v1(
     reported_id: str, obj: SecurityReport, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return {
-        context["variant"]: GroupingComponent(
+        context["variant"]: BaseGroupingComponent(
             id=reported_id,
             values=[
-                GroupingComponent(id="salt", values=[reported_id]),
-                GroupingComponent(id="hostname", values=[obj.hostname]),
+                BaseGroupingComponent(id="salt", values=[reported_id]),
+                BaseGroupingComponent(id="hostname", values=[obj.hostname]),
             ],
         )
     }
@@ -52,8 +52,8 @@ def hpkp_v1(
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
 def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
-    violation_component = GroupingComponent(id="violation")
-    uri_component = GroupingComponent(id="uri")
+    violation_component = BaseGroupingComponent(id="violation")
+    uri_component = BaseGroupingComponent(id="uri")
 
     if interface.local_script_violation_type:
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
@@ -67,10 +67,10 @@ def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) 
         uri_component.update(values=[interface.normalized_blocked_uri])
 
     return {
-        context["variant"]: GroupingComponent(
+        context["variant"]: BaseGroupingComponent(
             id="csp",
             values=[
-                GroupingComponent(id="salt", values=[interface.effective_directive]),
+                BaseGroupingComponent(id="salt", values=[interface.effective_directive]),
                 violation_component,
                 uri_component,
             ],

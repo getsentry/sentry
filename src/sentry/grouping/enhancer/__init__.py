@@ -15,7 +15,7 @@ from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
@@ -164,11 +164,11 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
-        components: list[GroupingComponent],
+        components: list[BaseGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[GroupingComponent, bool]:
+    ) -> tuple[BaseGroupingComponent, bool]:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -186,7 +186,7 @@ class Enhancements:
         for py_component, rust_component in zip(components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
 
-        component = GroupingComponent(
+        component = BaseGroupingComponent(
             id="stacktrace",
             values=components,
             hint=rust_results.hint,
