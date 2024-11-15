@@ -271,11 +271,17 @@ function GroupReplaysTable({
     <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
       <ReplayCountHeader>
         <IconUser size="sm" />
-        {t(
-          'There %s for this issue across %s.',
-          tn('is %s replay', 'are %s replays', replayCount ?? 0),
-          tn('%s event', '%s events', group.count)
-        )}
+        {replayCount ?? 0 > 50
+          ? tn(
+              'There are 50+ replays for this issue across %s event',
+              'There are 50+ replays for this issue across %s events',
+              group.count
+            )
+          : t(
+              'There %s for this issue across %s.',
+              tn('is %s replay', 'are %s replays', replayCount ?? 0),
+              tn('%s event', '%s events', group.count)
+            )}
       </ReplayCountHeader>
       {inner}
     </StyledLayoutPage>
