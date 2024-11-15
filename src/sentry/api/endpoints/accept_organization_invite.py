@@ -110,6 +110,13 @@ class AcceptOrganizationInvite(Endpoint):
     def respond_invalid() -> Response:
         return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid invite code"})
 
+    @staticmethod
+    def respond_unauthorized() -> Response:
+        return Response(
+            status=status.HTTP_401_UNAUTHORIZED,
+            data={"details": "Active session account is not authorized to accept invite"},
+        )
+
     def get_helper(
         self, request: Request, token: str, invite_context: RpcUserOrganizationContext
     ) -> ApiInviteHelper:
@@ -142,6 +149,13 @@ class AcceptOrganizationInvite(Endpoint):
             or not helper.valid_token
             or not organization_member.invite_approved
         ):
+            # XXX (mifu67): If organization_member.user_id is not None, then it means that there
+            # exists an active session. If the token is not expired, then while it is possible that
+            # other issues are causing the invite to be invalid, a probable cause is the session user
+            # not matching the invited user, and the token is definitely not expired (which is what the
+            # error message suggests). Prompt the user to sign out and try again.
+            if organization_member.user_id and not organization_member.token_expired:
+                return self.respond_unauthorized()
             return self.respond_invalid()
 
         # Keep track of the invite details in the request session
@@ -158,7 +172,7 @@ class AcceptOrganizationInvite(Endpoint):
             "needsSso": auth_provider is not None,
             "hasAuthProvider": auth_provider is not None,
             "requireSso": auth_provider is not None and not auth_provider.flags.allow_unlinked,
-            # If they're already a member of the organization its likely
+            # If they're already a member of the organization it's likely
             # they're using a shared account and either previewing this invite
             # or are incorrectly expecting this to create a new account.
             "existingMember": helper.member_already_exists,
