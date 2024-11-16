@@ -217,6 +217,6 @@ export default function useExtractDiffMutations({
     queryFn: () =>
       extractDiffMutations({replay, rangeStartTimestampMs, rangeEndTimestampMs}),
     enabled: true,
-    gcTime: 0, // Infinity,
+    gcTime: Infinity,
   });
 }

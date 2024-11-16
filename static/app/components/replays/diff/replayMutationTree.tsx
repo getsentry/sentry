@@ -19,8 +19,8 @@ export function ReplayMutationTree({replay, leftOffsetMs, rightOffsetMs}: Props)
   });
 
   const timeIndexedMutations = Array.from(data?.values() ?? []).reduce(
-    (mutation, acc) => {
-      for (const timestamp in Object.keys(mutation)) {
+    (acc, mutation) => {
+      for (const timestamp of Object.keys(mutation)) {
         acc[timestamp] = mutation[timestamp];
       }
       return acc;
