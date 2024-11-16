@@ -17,6 +17,7 @@ from sentry.monitors.system_incidents import (
     get_clock_tick_decision,
     get_clock_tick_volume_metric,
     make_clock_tick_decision,
+    prune_incident_check_in_volume,
     record_clock_tick_volume_metric,
     update_check_in_volume,
 )
@@ -283,6 +284,32 @@ def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
         sample_rate=1.0,
     )
     assert get_clock_tick_volume_metric(past_ts) == 0.0
+
+
+@override_options({"crons.tick_volume_anomaly_detection": True})
+def test_prune_incident_check_in_volume():
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    # Fill in some historic volume data
+    for offset in range(10):
+        update_check_in_volume([now + timedelta(minutes=offset)] * (offset + 1))
+
+    # Remove data in the middle
+    prune_incident_check_in_volume(
+        now + timedelta(minutes=2),
+        now + timedelta(minutes=6),
+    )
+
+    def make_key(offset: timedelta) -> str:
+        ts = now.replace(second=0, microsecond=0) + offset
+        return MONITOR_VOLUME_HISTORY.format(ts=int(ts.timestamp()))
+
+    volumes = [redis_client.get(make_key(timedelta(minutes=offset))) for offset in range(10)]
+
+    # Ensure we removed the correct keys. remmeber,
+    # prune_incident_check_in_volume recieves the timestamp of the incident
+    # tick decisions, but the volume data is recorded in the timestamp before
+    assert volumes == ["1", None, None, None, None, "6", "7", "8", "9", "10"]
 
 
 @django_db_all
