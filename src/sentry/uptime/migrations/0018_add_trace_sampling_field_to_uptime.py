@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "uptime_uptimesubscription" ADD COLUMN "trace_sampling" boolean NOT NULL DEFAULT false;
+                    ALTER TABLE "uptime_uptimesubscription" ADD COLUMN IF NOT EXISTS "trace_sampling" boolean NOT NULL DEFAULT false;
                     """,
                     reverse_sql="""
                     ALTER TABLE "uptime_uptimesubscription" DROP COLUMN "trace_sampling";
