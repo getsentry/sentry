@@ -103,6 +103,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
     )
     headers = serializers.JSONField(required=False)
+    trace_sampling = serializers.BooleanField(required=False, default=False)
     body = serializers.CharField(required=False, allow_null=True)
 
     def validate(self, attrs):
@@ -181,6 +182,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
                 name=validated_data["name"],
                 mode=validated_data.get("mode", ProjectUptimeSubscriptionMode.MANUAL),
                 owner=validated_data.get("owner"),
+                trace_sampling=validated_data.get("trace_sampling", False),
                 **method_headers_body,
             )
         except MaxManualUptimeSubscriptionsReached:
@@ -215,6 +217,11 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         body = data["body"] if "body" in data else instance.uptime_subscription.body
         name = data["name"] if "name" in data else instance.name
         owner = data["owner"] if "owner" in data else instance.owner
+        trace_sampling = (
+            data["trace_sampling"]
+            if "trace_sampling" in data
+            else instance.uptime_subscription.trace_sampling
+        )
 
         if "environment" in data:
             environment = Environment.get_or_create(
@@ -238,6 +245,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
             body=body,
             name=name,
             owner=owner,
+            trace_sampling=trace_sampling,
         )
         create_audit_entry(
             request=self.context["request"],

@@ -251,6 +251,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 body="a body",
                 name="New name",
                 owner=Actor.from_orm_user(self.user),
+                trace_sampling=False,
             )
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -293,6 +294,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 body=proj_sub.uptime_subscription.body,
                 name=proj_sub.name,
                 owner=proj_sub.owner,
+                trace_sampling=proj_sub.uptime_subscription.trace_sampling,
             )
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -337,6 +339,7 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 body=other_proj_sub.uptime_subscription.body,
                 name=other_proj_sub.name,
                 owner=other_proj_sub.owner,
+                trace_sampling=other_proj_sub.uptime_subscription.trace_sampling,
             )
 
         assert (

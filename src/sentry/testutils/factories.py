@@ -1961,6 +1961,7 @@ class Factories:
         headers,
         body,
         date_updated: datetime,
+        trace_sampling: bool = False,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1976,6 +1977,7 @@ class Factories:
             method=method,
             headers=headers,
             body=body,
+            trace_sampling=trace_sampling,
         )
 
     @staticmethod
