@@ -138,8 +138,16 @@ class ResolvedFunction(ResolvedAttribute):
 
 def simple_sentry_field(field) -> ResolvedColumn:
     """For a good number of fields, the public alias matches the internal alias
-    This helper functions makes defining them easier"""
+    without the `sentry.` suffix. This helper functions makes defining them easier"""
     return ResolvedColumn(public_alias=field, internal_name=f"sentry.{field}", search_type="string")
+
+
+def simple_measurements_field(field) -> ResolvedColumn:
+    """For a good number of fields, the public alias matches the internal alias
+    with the `measurements.` prefix. This helper functions makes defining them easier"""
+    return ResolvedColumn(
+        public_alias=f"measurements.{field}", internal_name=field, search_type="number"
+    )
 
 
 SPAN_COLUMN_DEFINITIONS = {
@@ -278,6 +286,47 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_measurements_field("app_start_cold"),
+        simple_measurements_field("app_start_warm"),
+        simple_measurements_field("frames_frozen"),
+        simple_measurements_field("frames_frozen_rate"),
+        simple_measurements_field("frames_slow"),
+        simple_measurements_field("frames_slow_rate"),
+        simple_measurements_field("frames_total"),
+        simple_measurements_field("time_to_initial_display"),
+        simple_measurements_field("time_to_full_display"),
+        simple_measurements_field("stall_count"),
+        simple_measurements_field("stall_percentage"),
+        simple_measurements_field("stall_stall_longest_time"),
+        simple_measurements_field("stall_stall_total_time"),
+        simple_measurements_field("cls"),
+        simple_measurements_field("fcp"),
+        simple_measurements_field("fid"),
+        simple_measurements_field("fp"),
+        simple_measurements_field("inp"),
+        simple_measurements_field("lcp"),
+        simple_measurements_field("ttfb"),
+        simple_measurements_field("ttfb.requesttime"),
+        simple_measurements_field("score.cls"),
+        simple_measurements_field("score.fcp"),
+        simple_measurements_field("score.fid"),
+        simple_measurements_field("score.fp"),
+        simple_measurements_field("score.inp"),
+        simple_measurements_field("score.lcp"),
+        simple_measurements_field("score.ttfb"),
+        simple_measurements_field("score.total"),
+        simple_measurements_field("score.weight.cls"),
+        simple_measurements_field("score.weight.fcp"),
+        simple_measurements_field("score.weight.fid"),
+        simple_measurements_field("score.weight.fp"),
+        simple_measurements_field("score.weight.inp"),
+        simple_measurements_field("score.weight.lcp"),
+        simple_measurements_field("score.weight.ttfb"),
+        simple_measurements_field("cache.item_size"),
+        simple_measurements_field("messaging.message.body.size"),
+        simple_measurements_field("messaging.message.receive.latency"),
+        simple_measurements_field("messaging.message.retry.count"),
+        simple_measurements_field("http.response_content_length"),
     ]
 }
 

@@ -409,8 +409,9 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
     def resolve_attribute_key(self, key: str, snuba_params: SnubaParams) -> AttributeKey | None:
         resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
         resolved, _ = resolver.resolve_attribute(key)
-        proto = resolved.proto_definition
-        return proto
+        if resolved.search_type != "string":
+            return None
+        return resolved.proto_definition
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:
