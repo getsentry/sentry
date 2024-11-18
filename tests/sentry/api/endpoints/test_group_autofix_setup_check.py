@@ -1,16 +1,15 @@
 from unittest.mock import patch
 
 from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
-from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import assume_test_silo_mode
 
 
-@apply_feature_flag_on_cls("organizations:autofix")
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -45,11 +44,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
-        return_value=AutofixCodebaseIndexingStatus.UP_TO_DATE,
-    )
-    def test_successful_setup(self, mock_update_codebase_index, mock_get_repos_and_access):
+    def test_successful_setup(self, mock_get_repos_and_access):
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -80,12 +75,8 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                     }
                 ],
             },
-            "codebaseIndexing": {
-                "ok": True,
-            },
         }
 
-    @with_feature("organizations:autofix-disable-codebase-indexing")
     @patch(
         "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
         return_value=[
@@ -98,13 +89,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
-        return_value=AutofixCodebaseIndexingStatus.NOT_INDEXED,
-    )
-    def test_successful_with_codebase_indexing_disabled_flag(
-        self, mock_update_codebase_index, mock_get_repos_and_access
-    ):
+    def test_successful_with_codebase_indexing_disabled_flag(self, mock_get_repos_and_access):
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -134,9 +119,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                         "ok": True,
                     }
                 ],
-            },
-            "codebaseIndexing": {
-                "ok": True,
             },
         }
 
@@ -248,21 +230,6 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["githubWriteIntegration"] == {
             "ok": False,
             "repos": [],
-        }
-
-    @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
-        return_value=AutofixCodebaseIndexingStatus.NOT_INDEXED,
-    )
-    def test_codebase_indexing_not_done(self, mock_get_project_codebase_indexing_status):
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["codebaseIndexing"] == {
-            "ok": False,
         }
 
     @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
