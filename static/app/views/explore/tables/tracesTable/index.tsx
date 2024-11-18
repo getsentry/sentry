@@ -9,6 +9,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_PER_PAGE, SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -249,24 +250,26 @@ function TraceRow({
         />
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
-        <Description>
-          <ProjectBadgeWrapper>
-            <ProjectsRenderer
-              projectSlugs={
-                traceProjects.length > 0
-                  ? traceProjects
-                  : trace.project
-                    ? [trace.project]
-                    : []
-              }
-            />
-          </ProjectBadgeWrapper>
-          {trace.name ? (
-            <WrappingText>{trace.name}</WrappingText>
-          ) : (
-            <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
-          )}
-        </Description>
+        <Tooltip title={trace.name} containerDisplayMode="block" showOnlyOnOverflow>
+          <Description>
+            <ProjectBadgeWrapper>
+              <ProjectsRenderer
+                projectSlugs={
+                  traceProjects.length > 0
+                    ? traceProjects
+                    : trace.project
+                      ? [trace.project]
+                      : []
+                }
+              />
+            </ProjectBadgeWrapper>
+            {trace.name ? (
+              <WrappingText>{trace.name}</WrappingText>
+            ) : (
+              <EmptyValueContainer>{t('Missing Trace Root')}</EmptyValueContainer>
+            )}
+          </Description>
+        </Tooltip>
       </StyledPanelItem>
       <StyledPanelItem align="right">
         {query ? (
