@@ -4,8 +4,8 @@ from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
