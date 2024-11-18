@@ -169,11 +169,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                               avatarSize={12}
                             />
                           }
-                          to={
-                            USING_CUSTOMER_DOMAIN
-                              ? `/issues/${id}`
-                              : `/organizations/${organization.slug}/issues/${id}`
-                          }
+                          to={`/organizations/${organization.slug}/issues/${id}/`}
                         />
                       </QuickContextHovercard>
                     ))}
