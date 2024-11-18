@@ -1,9 +1,13 @@
 ---
-created: '2024-10-28T14:02:54.108482+00:00'
+created: '2024-11-08T19:20:32.690112+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "example.com",
+  "security_report_type": "hpkp"
+}
 ---
 contributing variants:
   default*

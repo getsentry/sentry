@@ -1,9 +1,14 @@
 ---
-created: '2024-10-28T14:02:49.449901+00:00'
+created: '2024-11-08T19:20:24.404194+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "self",
+  "csp_directive": "script-src",
+  "security_report_type": "csp"
+}
 ---
 contributing variants:
   default*

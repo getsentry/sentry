@@ -8,7 +8,7 @@ import pytest
 from sentry.eventstore.models import Event
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import BaseGroupingComponent
-from sentry.grouping.ingest.grouphash_metadata import _get_hash_basis
+from sentry.grouping.ingest.grouphash_metadata import get_hash_basis_and_metadata
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.project import Project
@@ -19,6 +19,7 @@ from tests.sentry.grouping import (
     GroupingInput,
     dump_variant,
     get_snapshot_path,
+    to_json,
     with_grouping_inputs,
 )
 
@@ -130,8 +131,9 @@ def _assert_and_snapshot_results(
     lines: list[str] = []
     variants = event.get_grouping_variants()
 
-    hash_basis = _get_hash_basis(event, project, variants)
+    hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
     lines.append("hash_basis: %s" % hash_basis)
+    lines.append("hashing_metadata: %s" % to_json(hashing_metadata, pretty_print=True))
     lines.append("-" * 3)
 
     lines.append("contributing variants:")

@@ -1,9 +1,14 @@
 ---
-created: '2024-10-28T14:02:29.706271+00:00'
+created: '2024-11-08T19:20:52.899821+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "ftp://example.com",
+  "csp_directive": "img-src",
+  "security_report_type": "csp"
+}
 ---
 contributing variants:
   default*
