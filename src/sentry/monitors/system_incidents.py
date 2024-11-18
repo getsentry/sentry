@@ -13,7 +13,7 @@ import statistics
 from collections import Counter
 from collections.abc import Generator, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from itertools import batched, chain
 
@@ -30,8 +30,11 @@ MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{ts}"
 # This key is used to record the metric volume metric for the tick.
 MONITOR_TICK_METRIC = "sentry.monitors.volume_metric:{ts}"
 
-# This key is used to record the anomaly decision for a tick
+# This key is used to record the anomaly decision for a tick.
 MONITOR_TICK_DECISION = "sentry.monitors.tick_decision:{ts}"
+
+# Tracks the timestamp of the first clock tick of a system incident.
+MONITR_LAST_SYSTEM_INCIDENT_TS = "sentry.monitors.last_system_incident_ts"
 
 # When fetching historic volume data to make a decision whether we have lost
 # data this value will determine how many historic volume data-points we fetch
@@ -78,10 +81,68 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
         pipeline.execute()
 
 
+def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
+    """
+    Encapsulates logic specific to determining if we are in a system incident
+    during each clock tick.
+    """
+    record_clock_tick_volume_metric(tick)
+    result = make_clock_tick_decision(tick)
+
+    logger.info(
+        "monitors.system_incidents.process_clock_tick",
+        extra={"decision": result.decision, "transition": result.transition},
+    )
+
+    # Record metrics for each tick decision
+    metrics.incr(
+        "monitors.tasks.clock_tick.tick_decision",
+        tags={"decision": result.decision},
+        sample_rate=1.0,
+    )
+    if result.transition:
+        metrics.incr(
+            "monitors.tasks.clock_tick.tick_transition",
+            tags={"transition": result.transition},
+            sample_rate=1.0,
+        )
+
+    # When entering an incident record the starting tiemstamp of the incident
+    if result.transition == AnomalyTransition.INCIDENT_STARTED:
+        record_last_incidnet_ts(result.ts)
+
+    # When exiting an incident prune check-in volume during that incident
+    if result.transition == AnomalyTransition.INCIDENT_RECOVERED:
+        if start := get_last_incident_ts():
+            prune_incident_check_in_volume(start, result.ts)
+        else:
+            logger.error("monitors.system_incidents.recovered_without_start_ts")
+
+    return result
+
+
+def record_last_incidnet_ts(ts: datetime) -> None:
+    """
+    Records the timestamp of the most recent
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    redis_client.set(MONITR_LAST_SYSTEM_INCIDENT_TS, int(ts.timestamp()))
+
+
+def get_last_incident_ts() -> datetime | None:
+    """
+    Retrieves the timestamp of the last system incident
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    value = _int_or_none(redis_client.get(MONITR_LAST_SYSTEM_INCIDENT_TS))
+    return datetime.fromtimestamp(value, UTC) if value else None
+
+
 def prune_incident_check_in_volume(start: datetime, end: datetime) -> None:
     """
-    After recovering from a system incident the volume and metric data must be
-    discarded to avoid skewing future computations. This function does this
+    After recovering from a system incident the volume data must be discarded
+    to avoid skewing future computations. Note that the start time is inclusive
+    and the end time is exclusive.
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
