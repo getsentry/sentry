@@ -116,7 +116,7 @@ redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
 reportlab==4.0.7
-requests==2.31.0
+requests==2.32.3
 requests-file==2.1.0
 requests-oauthlib==1.2.0
 rfc3339-validator==0.1.2

@@ -60,7 +60,7 @@ rb>=1.9.0
 redis-py-cluster>=2.1.0
 redis>=3.4.1
 requests-oauthlib>=1.2.0
-requests>=2.25.1
+requests>=2.32.3
 # [start] jsonschema format validators
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
