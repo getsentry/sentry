@@ -45,6 +45,7 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    AUTOFIX_ENABLED_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
@@ -193,6 +194,12 @@ ORG_OPTIONS = (
         HIDE_AI_FEATURES_DEFAULT,
     ),
     (
+        "autofixEnabled",
+        "sentry:autofix_enabled",
+        bool,
+        AUTOFIX_ENABLED_DEFAULT,
+    ),
+    (
         "githubPRBot",
         "sentry:github_pr_bot",
         bool,
@@ -284,6 +291,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
+    autofixEnabled = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
@@ -671,6 +679,10 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     hideAiFeatures = serializers.BooleanField(
         help_text="Specify `true` to hide AI features from the organization.",
+        required=False,
+    )
+    autofixEnabled = serializers.BooleanField(
+        help_text="Specify `true` to enable Autofix for the organization.",
         required=False,
     )
     codecovAccess = serializers.BooleanField(

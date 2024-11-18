@@ -24,11 +24,12 @@ from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.issues.merge import handle_merge
+from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -135,22 +136,25 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        try:
-            # This sets current_release_version to the latest semver version associated with a group
-            order_by_semver_desc = [f"-{col}" for col in Release.SEMVER_COLS]
-            associated_release_id = GroupRelease.objects.filter(
-                project_id=group.project.id, group_id=group.id
-            ).values_list("release_id")
-            current_release_version = (
-                Release.objects.filter_to_semver()  # Only releases that have major set
-                .filter(id__in=associated_release_id)
-                .annotate_prerelease_column()
-                .order_by(*order_by_semver_desc)
-                .values_list("version", flat=True)[:1]
-                .get()
-            )
-        except Release.DoesNotExist:
-            pass
+        if not features.has(
+            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
+        ):
+            try:
+                # This sets current_release_version to the latest semver version associated with a group
+                associated_release_id = GroupRelease.objects.filter(
+                    project_id=group.project.id, group_id=group.id
+                ).values_list("release_id")
+                current_release_version = (
+                    get_semver_releases(group.project)
+                    .filter(id__in=associated_release_id)
+                    .values_list("version", flat=True)[:1]
+                    .get()
+                )
+            except Release.DoesNotExist:
+                pass
+        else:
+            current_release_version = greatest_semver_release(group.project).version
+
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -269,7 +273,7 @@ def update_groups(
                     status=400,
                 )
             # may not be a release yet
-            release = status_details.get("inNextRelease") or get_latest_release(projects[0])
+            release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
 
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
@@ -294,14 +298,7 @@ def update_groups(
                     {"detail": "Cannot set resolved in upcoming release for multiple projects."},
                     status=400,
                 )
-            release = (
-                status_details.get("inUpcomingRelease")
-                or Release.objects.filter(
-                    projects=projects[0], organization_id=projects[0].organization_id
-                )
-                .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                .order_by("-sort")[0]
-            )
+            release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {"version": ""}
 
@@ -383,11 +380,7 @@ def update_groups(
             # we need to update this to find the release for each project (we shouldn't assume
             # it's the same)
             try:
-                release = (
-                    Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-                    .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                    .order_by("-sort")[0]
-                )
+                release = most_recent_release_matching_commit(projects, commit)
                 res_type = GroupResolution.Type.in_release
                 res_status = GroupResolution.Status.resolved
             except IndexError:
@@ -416,18 +409,9 @@ def update_groups(
                             release_version=release.version,
                         )
 
-                        if (
-                            features.has(
-                                "organizations:releases-resolve-next-release-semver-fix",
-                                project.organization,
-                            )
-                            and follows_semver
-                        ):
-                            current_release_version = get_latest_release(projects[0]).version
-                        else:
-                            current_release_version = get_current_release_version_of_group(
-                                group=group, follows_semver=follows_semver
-                            )
+                        current_release_version = get_current_release_version_of_group(
+                            group, follows_semver
+                        )
 
                         if current_release_version:
                             resolution_params.update(
@@ -619,6 +603,77 @@ def update_groups(
                 sender=update_groups,
             )
 
+    result = update_results(
+        result, group_list, group_ids, project_lookup, projects, acting_user, data, res_type
+    )
+
+    # TODO: Create new endpoint for this
+    if result.get("merge") and len(group_list) > 1:
+        # don't allow merging cross project
+        if len(project_lookup) > 1:
+            return Response({"detail": "Merging across multiple projects is not supported"})
+        result["merge"] = merge_groups(
+            group_list,
+            project_lookup,
+            acting_user,
+            urlparse(request.META.get("HTTP_REFERER", "")).path,
+        )
+
+    inbox = result.get("inbox", None)
+    if inbox is not None:
+        result["inbox"] = update_inbox(
+            inbox,
+            group_list,
+            project_lookup,
+            acting_user,
+            http_referrer=request.META.get("HTTP_REFERER"),
+            sender=update_groups,
+        )
+
+    return Response(result)
+
+
+def merge_groups(
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user: User,
+    referer: str,
+) -> MergedGroup:
+    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+    metrics.incr(
+        "grouping.merge_issues",
+        sample_rate=1.0,
+        tags={
+            # We assume that if someone's merging groups, they're from the same platform
+            "platform": group_list[0].platform or "unknown",
+            "sdk": group_list[0].sdk or "unknown",
+            # TODO: It's probably cleaner to just send this value from the front end
+            "referer": (
+                "issue stream"
+                if re.search(issue_stream_regex, referer)
+                else (
+                    "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                )
+            ),
+        },
+    )
+    return handle_merge(group_list, project_lookup, acting_user)
+
+
+def update_results(
+    result: dict[str, Any],
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    projects: Sequence[Project],
+    acting_user: User,
+    data: Mapping[str, Any],
+    res_type: GroupResolution.Type | None,
+) -> dict[str, Any]:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
     try:
@@ -666,55 +721,10 @@ def update_groups(
             result["isPublic"], group_list, project_lookup, acting_user
         )
 
-    # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
-    if result.get("merge") and len(group_list) > 1:
-        # don't allow merging cross project
-        if len(projects) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
-
-        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
-        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
-
-        metrics.incr(
-            "grouping.merge_issues",
-            sample_rate=1.0,
-            tags={
-                # We assume that if someone's merging groups, they're from the same platform
-                "platform": group_list[0].platform or "unknown",
-                "sdk": group_list[0].sdk or "unknown",
-                # TODO: It's probably cleaner to just send this value from the front end
-                "referer": (
-                    "issue stream"
-                    if re.search(issue_stream_regex, referer)
-                    else (
-                        "similar issues tab"
-                        if re.search(similar_issues_tab_regex, referer)
-                        else "unknown"
-                    )
-                ),
-            },
-        )
-
-        result["merge"] = handle_merge(group_list, project_lookup, acting_user)
-
-    inbox = result.get("inbox", None)
-    if inbox is not None:
-        result["inbox"] = update_inbox(
-            inbox,
-            group_list,
-            project_lookup,
-            acting_user,
-            http_referrer=request.META.get("HTTP_REFERER"),
-            sender=update_groups,
-        )
-
-    return Response(result)
+    return result
 
 
-def get_latest_release(project: Project) -> Release | None:
-    release = None
-
+def get_release_to_resolve_by(project: Project) -> Release | None:
     # XXX: Remove block once released
     follows_semver = False
     if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
@@ -722,21 +732,43 @@ def get_latest_release(project: Project) -> Release | None:
             org_id=project.organization_id, project_id=project.id
         )
 
-    releases = Release.objects.filter(projects=project, organization_id=project.organization_id)
     if follows_semver:
-        release = (
-            releases.filter_to_semver()
-            .annotate_prerelease_column()
-            .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
-            .first()
-        )
+        release = greatest_semver_release(project)
     else:
-        release = (
-            releases.extra(select={"sort": "COALESCE(date_released, date_added)"})
-            .order_by("-sort")
-            .first()
-        )
+        release = most_recent_release(project)
     return release
+
+
+def most_recent_release(project: Project) -> Release | None:
+    return (
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")
+        .first()
+    )
+
+
+def most_recent_release_matching_commit(
+    projects: Sequence[Project], commit: Commit
+) -> Release | None:
+    return (
+        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+        .order_by("-sort")[0]
+    )
+
+
+def greatest_semver_release(project: Project) -> Release | None:
+    return get_semver_releases(project).first()
+
+
+def get_semver_releases(project: Project) -> Release:
+    return (
+        Release.objects.filter(projects=project, organization_id=project.organization_id)
+        .filter_to_semver()
+        .annotate_prerelease_column()
+        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
+    )
 
 
 def handle_is_subscribed(
@@ -862,7 +894,7 @@ def handle_is_public(
     user_id = acting_user.id if acting_user else None
     share_id = None
     for group in group_list:
-        if GroupShare.objects.filter(group=group).delete():
+        if GroupShare.objects.filter(group=group).delete()[0] > 0:
             share_id = None
             Activity.objects.create(
                 project=project_lookup[group.project_id],
