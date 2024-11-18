@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
 from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -270,3 +271,69 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["codebaseIndexing"] == {
             "ok": False,
         }
+
+    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+            }
+        ],
+    )
+    def test_non_github_provider(self, mock_get_repos, mock_post):
+        # Mock the response from the Seer service
+        mock_response = mock_post.return_value
+        mock_response.json.return_value = {"has_access": True}
+
+        result = get_repos_and_access(self.project)
+
+        # Verify the result
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": True,
+            }
+        ]
+
+        # Verify the API call was made correctly
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args.kwargs
+        assert "data" in call_kwargs
+        assert "headers" in call_kwargs
+        assert "content-type" in call_kwargs["headers"]
+
+    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+            }
+        ],
+    )
+    def test_repo_without_access(self, mock_get_repos, mock_post):
+        # Mock the response to indicate no access
+        mock_response = mock_post.return_value
+        mock_response.json.return_value = {"has_access": False}
+
+        result = get_repos_and_access(self.project)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": False,
+            }
+        ]
