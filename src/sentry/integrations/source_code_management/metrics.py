@@ -25,6 +25,11 @@ class SCMIntegrationInteractionType(Enum):
     # SourceCodeIssueIntegration (SCM only)
     GET_REPOSITORY_CHOICES = "GET_REPOSITORY_CHOICES"
 
+    # SourceCodeSearchEndpoint
+    HANDLE_SEARCH_ISSUES = "HANDLE_SEARCH_ISSUES"
+    HANDLE_SEARCH_REPOSITORIES = "HANDLE_SEARCH_REPOSITORIES"
+    GET = "GET"
+
     # CommitContextIntegration
     CREATE_COMMENT = "CREATE_COMMENT"
     UPDATE_COMMENT = "UPDATE_COMMENT"
