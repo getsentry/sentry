@@ -1372,3 +1372,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):
         super().test_spm()
+
+    @pytest.mark.xfail(reason="units not implemented yet")
+    def test_simple_measurements(self):
+        super().test_simple_measurements()
