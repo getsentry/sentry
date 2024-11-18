@@ -709,6 +709,54 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
+    def test_measurements_autocomplete(self):
+        keys = [
+            "measurements.app_start_cold",
+            "measurements.app_start_warm",
+            "measurements.frames_frozen",
+            "measurements.frames_frozen_rate",
+            "measurements.frames_slow",
+            "measurements.frames_slow_rate",
+            "measurements.frames_total",
+            "measurements.time_to_initial_display",
+            "measurements.time_to_full_display",
+            "measurements.stall_count",
+            "measurements.stall_percentage",
+            "measurements.stall_stall_longest_time",
+            "measurements.stall_stall_total_time",
+            "measurements.cls",
+            "measurements.fcp",
+            "measurements.fid",
+            "measurements.fp",
+            "measurements.inp",
+            "measurements.lcp",
+            "measurements.ttfb",
+            "measurements.ttfb.requesttime",
+            "measurements.score.cls",
+            "measurements.score.fcp",
+            "measurements.score.fid",
+            "measurements.score.inp",
+            "measurements.score.lcp",
+            "measurements.score.ttfb",
+            "measurements.score.total",
+            "measurements.score.weight.cls",
+            "measurements.score.weight.fcp",
+            "measurements.score.weight.fid",
+            "measurements.score.weight.inp",
+            "measurements.score.weight.lcp",
+            "measurements.score.weight.ttfb",
+            "measurements.cache.item_size",
+            "measurements.messaging.message.body.size",
+            "measurements.messaging.message.receive.latency",
+            "measurements.messaging.message.retry.count",
+            "measurements.http.response_content_length",
+        ]
+        self.project
+        for key in keys:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == []
+
 
 class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValuesEndpointTest):
     is_eap = True

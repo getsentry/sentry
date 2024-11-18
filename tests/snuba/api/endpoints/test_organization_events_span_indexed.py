@@ -1,4 +1,5 @@
 import uuid
+from unittest import mock
 
 import pytest
 
@@ -560,6 +561,83 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         )
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
+
+    def test_simple_measurements(self):
+        keys = [
+            "app_start_cold",
+            "app_start_warm",
+            "frames_frozen",
+            "frames_frozen_rate",
+            "frames_slow",
+            "frames_slow_rate",
+            "frames_total",
+            "time_to_initial_display",
+            "time_to_full_display",
+            "stall_count",
+            "stall_percentage",
+            "stall_stall_longest_time",
+            "stall_stall_total_time",
+            "cls",
+            "fcp",
+            "fid",
+            "fp",
+            "inp",
+            "lcp",
+            "ttfb",
+            "ttfb.requesttime",
+            "score.cls",
+            "score.fcp",
+            "score.fid",
+            "score.inp",
+            "score.lcp",
+            "score.ttfb",
+            "score.total",
+            "score.weight.cls",
+            "score.weight.fcp",
+            "score.weight.fid",
+            "score.weight.inp",
+            "score.weight.lcp",
+            "score.weight.ttfb",
+            "cache.item_size",
+            "messaging.message.body.size",
+            "messaging.message.receive.latency",
+            "messaging.message.retry.count",
+            "http.response_content_length",
+        ]
+
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"bar": "bar2"},
+                    },
+                    measurements={k: {"value": i + 1} for i, k in enumerate(keys)},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for i, k in enumerate(keys):
+            key = f"measurements.{k}"
+            response = self.do_request(
+                {
+                    "field": [key],
+                    "query": "description:foo",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [
+                {
+                    key: i + 1,
+                    "id": mock.ANY,
+                    "project.name": self.project.slug,
+                }
+            ]
 
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
