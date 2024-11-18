@@ -47,7 +47,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         DELETE = "DELETE", "DELETE"
         PATCH = "PATCH", "PATCH"
         OPTIONS = "OPTIONS", "OPTIONS"
-        
+
     class IntervalSeconds(models.IntegerChoices):
         ONE_MINUTE = 60, "1 minute"
         FIVE_MINUTES = 300, "5 minutes"
