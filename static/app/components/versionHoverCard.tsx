@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import type {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -14,48 +13,47 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {Deploy, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import withApi from 'sentry/utils/withApi';
-import withRelease from 'sentry/utils/withRelease';
-import withRepositories from 'sentry/utils/withRepositories';
+import {useDeploys} from 'sentry/utils/useDeploys';
+import {useRelease} from 'sentry/utils/useRelease';
+import {useRepositories} from 'sentry/utils/useRepositories';
 
 interface Props extends React.ComponentProps<typeof Hovercard> {
-  api: Client;
   organization: Organization;
   projectSlug: string;
-
   releaseVersion: string;
-  deploys?: Array<Deploy>;
-  deploysError?: Error;
-  deploysLoading?: boolean;
-  release?: Release;
-  releaseError?: Error;
-  releaseLoading?: boolean;
-  repositories?: Array<Repository>;
-  repositoriesError?: Error;
-  repositoriesLoading?: boolean;
 }
 
 function VersionHoverCard({
-  api: _api,
-  projectSlug: _projectSlug,
-  deploysLoading,
-  deploysError,
-  release,
-  releaseLoading,
-  releaseError,
-  repositories,
-  repositoriesLoading,
-  repositoriesError,
   organization,
-  deploys,
+  projectSlug,
   releaseVersion,
-  children,
   ...hovercardProps
 }: Props) {
+  const {
+    data: repositories,
+    isPending: isRepositoriesLoading,
+    isError: isRepositoriesError,
+  } = useRepositories({orgSlug: organization.slug});
+  const {
+    data: release,
+    isPending: isReleaseLoading,
+    isError: isReleaseError,
+  } = useRelease({
+    orgSlug: organization.slug,
+    projectSlug,
+    releaseVersion,
+  });
+  const {
+    data: deploys,
+    isPending: isDeploysLoading,
+    isError: isDeploysError,
+  } = useDeploys({
+    orgSlug: organization.slug,
+    releaseVersion,
+  });
+
   function getRepoLink() {
     const orgSlug = organization.slug;
     return {
@@ -143,8 +141,8 @@ function VersionHoverCard({
   let header: React.ReactNode = null;
   let body: React.ReactNode = null;
 
-  const loading = !!(deploysLoading || releaseLoading || repositoriesLoading);
-  const error = deploysError ?? releaseError ?? repositoriesError;
+  const loading = !!(isDeploysLoading || isReleaseLoading || isRepositoriesLoading);
+  const error = isDeploysError ?? isReleaseError ?? isRepositoriesError;
   const hasRepos = repositories && repositories.length > 0;
 
   if (loading) {
@@ -158,11 +156,7 @@ function VersionHoverCard({
     body = renderObj.body;
   }
 
-  return (
-    <Hovercard {...hovercardProps} header={header} body={body}>
-      {children}
-    </Hovercard>
-  );
+  return <Hovercard {...hovercardProps} header={header} body={body} />;
 }
 
 interface VersionHoverHeaderProps {
@@ -186,7 +180,7 @@ function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
   );
 }
 
-export default withApi(withRelease(withRepositories(VersionHoverCard)));
+export default VersionHoverCard;
 
 const ConnectRepo = styled('div')`
   padding: ${space(2)};
