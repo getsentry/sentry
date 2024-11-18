@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from datetime import timedelta
 
 import jsonschema
 from drf_spectacular.utils import extend_schema_serializer
@@ -12,7 +11,11 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.environment import Environment
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -36,15 +39,6 @@ public suffix list (PSL). See `extract_domain_parts` fo more details
 SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
-# This matches the jsonschema for the check config
-VALID_INTERVALS = [
-    timedelta(minutes=1),
-    timedelta(minutes=5),
-    timedelta(minutes=10),
-    timedelta(minutes=20),
-    timedelta(minutes=30),
-    timedelta(minutes=60),
-]
 
 HEADERS_LIST_SCHEMA = {
     "type": "array",
@@ -91,7 +85,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
-        required=True, choices=[int(i.total_seconds()) for i in VALID_INTERVALS]
+        required=True, choices=UptimeSubscription.IntervalSeconds.choices
     )
     timeout_ms = serializers.IntegerField(
         required=True,
