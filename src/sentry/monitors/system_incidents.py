@@ -178,7 +178,7 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
     NOTE that this records a metric for the tick timestamp that we just ticked
     over. So when ticking at 12:01 the metric is recorded for 12:00.
     """
-    if not options.get("crons.tick_volume_anomaly_detection"):
+    if not options.get("crons.system_incidents.collect_metrics"):
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -461,7 +461,7 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
     # Alias TickAnomalyDecision to improve code readability
     Decision = TickAnomalyDecision
 
-    if not options.get("crons.tick_volume_anomaly_detection"):
+    if not options.get("crons.system_incidents.collect_metrics"):
         return DecisionResult(tick, Decision.NORMAL)
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
