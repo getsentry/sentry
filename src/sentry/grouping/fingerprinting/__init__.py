@@ -138,6 +138,7 @@ class FingerprintRuleJSON(TypedDict):
     is_builtin: NotRequired[bool]
 
 
+# TODO: What is the point of this? Maybe rename to EventDataAccessor or something?
 class EventAccess:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
@@ -368,7 +369,12 @@ MATCHERS = {
 
 
 class FingerprintMatch:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or not, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
@@ -415,12 +421,14 @@ class FingerprintMatch:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+        # `path` is special in that it tests against two values (`abs_path` and `filename`)
         if self.key == "path":
             value = values.get("abs_path")
             if self._positive_path_match(value):
                 return True
             alt_value = values.get("filename")
+            # TODO: Make sure it works to replace the four lines below with
+            # return alt_value != value and self._positive_path_match(value)
             if alt_value != value:
                 if self._positive_path_match(value):
                     return True
@@ -437,19 +445,12 @@ class FingerprintMatch:
         value = values.get(self.key)
         if value is None:
             return False
-        elif self.key == "package":
+        elif self.key in ["package", "release"]:
             if self._positive_path_match(value):
                 return True
-        elif self.key == "family":
+        elif self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
-                return True
-        elif self.key == "sdk":
-            flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "release":
-            if self._positive_path_match(value):
                 return True
         elif self.key == "app":
             ref_val = get_rule_bool(self.pattern)
@@ -465,6 +466,9 @@ class FingerprintMatch:
             key = "!" + key
         return [key, self.pattern]
 
+    # TODO: s/`obj`/`matcher`
+    # TODO: unpack in first line into `key, pattern`
+    # TODO: make negated = key.startswith("!"), then do if negated: key = key.lstrip("!")
     @classmethod
     def _from_config_structure(cls, obj: FingerprintMatchConfig) -> Self:
         key = obj[0]
@@ -526,6 +530,7 @@ class FingerprintRule:
             config_structure["is_builtin"] = True
         return config_structure
 
+    # TODO: s/`obj`/`rule_info`
     @classmethod
     def _from_config_structure(cls, obj: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls(
@@ -576,7 +581,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         in_header = True
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
@@ -617,6 +622,8 @@ class FingerprintingVisitor(NodeVisitorBase):
         self, _: object, children: tuple[object, list[str], str, object, str]
     ) -> FingerprintMatch:
         _, negation, ty, _, argument = children
+        # TODO: s/`ty`/`key`
+        # TODO: s/`argument`/`pattern`
         return FingerprintMatch(ty, argument, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:

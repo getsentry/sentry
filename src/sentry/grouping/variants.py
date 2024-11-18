@@ -122,9 +122,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 
 class ComponentVariant(BaseVariant):
-    """A component variant is a variant that produces a hash from the
-    `BaseGroupingComponent` it encloses.
-    """
+    """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
     type = "component"
 
@@ -135,6 +133,7 @@ class ComponentVariant(BaseVariant):
     ):
         self.component = component
         self.config = config
+        # TODO: s/`config`/`strategy_config`
 
     @property
     def description(self):
@@ -219,6 +218,11 @@ class SaltedComponentVariant(ComponentVariant):
         ComponentVariant.__init__(self, component, config)
         self.values = fingerprint
         self.info = fingerprint_info
+        # TODO: use super above
+        # TODO: rename incoming `values` to `fingerprint`
+        # TODO: s/`config`/`strategy_config`
+        # TODO: s/`info`/`fingerprint_info`
+        # TODO: s/`values`/`fingerprint` (if possible - it might not be because it might need to match ComponentVariant)
 
     @property
     def description(self):
