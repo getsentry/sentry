@@ -35,7 +35,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
     into components to make a hash for grouping purposes.
     """
 
-    id: str = "default"
+    id: str
     hint: str | None = None
     contributes: bool = False
     values: Sequence[ValuesType]
