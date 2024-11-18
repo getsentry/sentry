@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -19,6 +18,7 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.tasks.detect_broken_monitor_envs import detect_broken_monitor_envs
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
