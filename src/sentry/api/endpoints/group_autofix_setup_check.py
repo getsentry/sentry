@@ -71,6 +71,11 @@ def get_repos_and_access(project: Project) -> list[dict]:
     repos_and_access: list[dict] = []
     path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
+        # We only support github for now.
+        provider = repo.get("provider")
+        if provider != "integrations:github" and provider != "github":
+            continue
+
         body = orjson.dumps(
             {
                 "repo": repo,
@@ -152,9 +157,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 },
                 "codebaseIndexing": {
                     "ok": codebase_indexing_ok,
-                },
-                "autofixEnabled": {
-                    "ok": org.get_option("sentry:autofix_enabled", False),
                 },
             }
         )

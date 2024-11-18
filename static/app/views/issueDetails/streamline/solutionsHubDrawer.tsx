@@ -12,10 +12,7 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {
-  makeAutofixSetupQueryKey,
-  useAutofixSetup,
-} from 'sentry/components/events/autofix/useAutofixSetup';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -33,10 +30,8 @@ import {
   getConfigForIssueType,
   shouldShowCustomErrorResourceConfig,
 } from 'sentry/utils/issueTypeConfig';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
@@ -146,26 +141,6 @@ const AiSetupDataConsent = HookOrDefault({
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
 
-const useEnableAutofix = (groupId: string) => {
-  const api = useApi({persistInFlight: true});
-  const queryClient = useQueryClient();
-
-  const organization = useOrganization();
-  return useMutation({
-    mutationFn: () => {
-      return api.requestPromise(`/organizations/${organization.slug}/`, {
-        method: 'PUT',
-        data: {
-          autofixEnabled: true,
-        },
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: makeAutofixSetupQueryKey(groupId)});
-    },
-  });
-};
-
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const {
@@ -176,7 +151,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
     groupId: group.id,
   });
-  const enableAutofixMutation = useEnableAutofix(group.id);
 
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
@@ -186,7 +160,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
 
   const hasConsent = Boolean(setupData?.genAIConsent.ok);
   const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
-  const autofixEnabled = setupData?.autofixEnabled.ok;
 
   const hasSummary = summaryData && !isError && hasConsent;
 
@@ -268,7 +241,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {isSetupLoading || enableAutofixMutation.isPending ? (
+        {isSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
           </div>
@@ -287,14 +260,8 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
             {displayAiAutofix && (
               <Fragment>
-                {!isAutofixSetupComplete || !autofixEnabled ? (
-                  <AutofixSetupContent
-                    groupId={group.id}
-                    projectId={project.id}
-                    onComplete={() => {
-                      enableAutofixMutation.mutate();
-                    }}
-                  />
+                {!isAutofixSetupComplete ? (
+                  <AutofixSetupContent groupId={group.id} projectId={project.id} />
                 ) : !autofixData ? (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
                 ) : (

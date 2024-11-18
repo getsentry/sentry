@@ -72,12 +72,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
   }, [location, navigate]);
 
   return (
-    <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Explore')}</Layout.Title>
+              <Layout.Title>{t('Traces')}</Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
@@ -97,11 +97,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter
                   maxPickableDays={7}
-                  relativeOptions={{
+                  relativeOptions={({arbitraryOptions}) => ({
+                    ...arbitraryOptions,
                     '1h': t('Last 1 hour'),
                     '24h': t('Last 24 hours'),
                     '7d': t('Last 7 days'),
-                  }}
+                  })}
                 />
               </StyledPageFilterBar>
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
