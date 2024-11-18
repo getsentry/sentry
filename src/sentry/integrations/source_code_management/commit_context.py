@@ -13,6 +13,10 @@ from django.utils import timezone as django_timezone
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -26,6 +30,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -86,6 +91,12 @@ class CommitContextIntegration(ABC):
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
 
+    def record_event(self, event: SCMIntegrationInteractionType):
+        return SCMIntegrationInteractionEvent(
+            interaction_type=event,
+            provider_key=self.integration_name,
+        )
+
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:
@@ -94,16 +105,25 @@ class CommitContextIntegration(ABC):
 
         files: list of FileBlameInfo objects
         """
-        try:
-            client = self.get_client()
-        except Identity.DoesNotExist:
-            return []
-        try:
-            response = client.get_blame_for_files(files, extra)
-        except IdentityNotValid:
-            return []
-
-        return response
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_BLAME_FOR_FILES
+        ).capture() as lifecycle:
+            try:
+                client = self.get_client()
+            except Identity.DoesNotExist:
+                sentry_sdk.capture_exception()
+                return []
+            try:
+                response = client.get_blame_for_files(files, extra)
+            except IdentityNotValid:
+                sentry_sdk.capture_exception()
+                return []
+            # Swallow rate limited errors so we don't log them as exceptions
+            except ApiRateLimitedError as e:
+                sentry_sdk.capture_exception(e)
+                lifecycle.record_halt(e)
+                return []
+            return response
 
     def get_commit_context_all_frames(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
