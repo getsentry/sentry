@@ -33,6 +33,12 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         duration,
         **kwargs,
     ):
+        kwargs.setdefault("measurements", {})
+        if "lcp" not in kwargs["measurements"]:
+            kwargs["measurements"]["lcp"] = duration
+        if "client_sample_rate" not in kwargs["measurements"]:
+            kwargs["measurements"]["client_sample_rate"] = 0.1
+
         # first write to the transactions dataset
         end_timestamp = timestamp + timedelta(microseconds=duration * 1000)
         data = load_data(
@@ -44,7 +50,10 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             spans=[],
             event_id=transaction_id,
         )
-        data["measurements"] = {"lcp": {"value": duration}}
+
+        for measurement, value in kwargs.get("measurements", {}).items():
+            data["measurements"][measurement] = {"value": value}
+
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
 
@@ -1231,7 +1240,11 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
 
-        assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
+        if self.is_eap:
+            # When using EAP, this is extrapolated
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
+        else:
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
