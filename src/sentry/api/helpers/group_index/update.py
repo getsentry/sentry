@@ -24,7 +24,7 @@ from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.issues.merge import handle_merge
+from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
@@ -650,37 +650,14 @@ def update_groups(
             result["isPublic"], group_list, project_lookup, acting_user
         )
 
-    # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
+    # TODO: Create new endpoint for this
     if result.get("merge") and len(group_list) > 1:
-        # don't allow merging cross project
-        if len(projects) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
-
-        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
-        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
-
-        metrics.incr(
-            "grouping.merge_issues",
-            sample_rate=1.0,
-            tags={
-                # We assume that if someone's merging groups, they're from the same platform
-                "platform": group_list[0].platform or "unknown",
-                "sdk": group_list[0].sdk or "unknown",
-                # TODO: It's probably cleaner to just send this value from the front end
-                "referer": (
-                    "issue stream"
-                    if re.search(issue_stream_regex, referer)
-                    else (
-                        "similar issues tab"
-                        if re.search(similar_issues_tab_regex, referer)
-                        else "unknown"
-                    )
-                ),
-            },
+        result["merge"] = merge_groups(
+            group_list,
+            project_lookup,
+            acting_user,
+            urlparse(request.META.get("HTTP_REFERER", "")).path,
         )
-
-        result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
     inbox = result.get("inbox", None)
     if inbox is not None:
@@ -694,6 +671,41 @@ def update_groups(
         )
 
     return Response(result)
+
+
+def merge_groups(
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user: User,
+    referer: str,
+) -> MergedGroup:
+    # don't allow merging cross project
+    if len(project_lookup) > 1:
+        return Response({"detail": "Merging across multiple projects is not supported"})
+
+    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+    metrics.incr(
+        "grouping.merge_issues",
+        sample_rate=1.0,
+        tags={
+            # We assume that if someone's merging groups, they're from the same platform
+            "platform": group_list[0].platform or "unknown",
+            "sdk": group_list[0].sdk or "unknown",
+            # TODO: It's probably cleaner to just send this value from the front end
+            "referer": (
+                "issue stream"
+                if re.search(issue_stream_regex, referer)
+                else (
+                    "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                )
+            ),
+        },
+    )
+    return handle_merge(group_list, project_lookup, acting_user)
 
 
 def get_release_to_resolve_by(project: Project) -> Release | None:
