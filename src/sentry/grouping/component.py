@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from collections.abc import Generator, Iterator, Sequence
 from typing import Any, Self
 
@@ -30,7 +31,7 @@ def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
     return False
 
 
-class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
+class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](ABC):
     """A grouping component is a recursive structure that is flattened
     into components to make a hash for grouping purposes.
     """
