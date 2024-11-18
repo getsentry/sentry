@@ -36,7 +36,6 @@ for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
 Importantly domains like `vercel.dev` are considered TLDs as defined by the
 public suffix list (PSL). See `extract_domain_parts` fo more details
 """
-SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
 
@@ -94,7 +93,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
-        required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
+        required=False, choices=UptimeSubscription.SupportedHTTPMethods.choices
     )
     headers = serializers.JSONField(required=False)
     trace_sampling = serializers.BooleanField(required=False, default=False)
