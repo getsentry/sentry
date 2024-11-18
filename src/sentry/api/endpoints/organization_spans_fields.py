@@ -414,8 +414,6 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
         resolved, _ = resolver.resolve_attribute(key)
         proto = resolved.proto_definition
-        if not isinstance(proto, AttributeKey):
-            return None
         return proto
 
     def execute(self) -> list[TagValue]:

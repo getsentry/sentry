@@ -1155,7 +1155,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_aggregate_numeric_attr_weighted(self):
         super().test_aggregate_numeric_attr_weighted()
 
-    @pytest.mark.xfail(reason="count isn't taking the param into account")
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
