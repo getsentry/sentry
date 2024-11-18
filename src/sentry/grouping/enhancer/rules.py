@@ -6,7 +6,7 @@ from .actions import Action
 from .matchers import EnhancementMatch, ExceptionFieldMatch
 
 
-class Rule:
+class EnhancementRule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
 
@@ -29,17 +29,17 @@ class Rule:
             rv = f"{rv} {action}"
         return rv
 
-    def _as_modifier_rule(self) -> Rule | None:
+    def _as_modifier_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_modifier]
         if actions:
-            return Rule(self.matchers, actions)
+            return EnhancementRule(self.matchers, actions)
         else:
             return None
 
-    def _as_updater_rule(self) -> Rule | None:
+    def _as_updater_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_updater]
         if actions:
-            return Rule(self.matchers, actions)
+            return EnhancementRule(self.matchers, actions)
         else:
             return None
 
@@ -87,7 +87,7 @@ class Rule:
 
     @classmethod
     def _from_config_structure(cls, tuple, version):
-        return Rule(
+        return EnhancementRule(
             [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
             [Action._from_config_structure(x, version) for x in tuple[1]],
         )
