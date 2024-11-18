@@ -355,7 +355,7 @@ def get_events_from_nodestore(
         event._project_cache = project
         if event and event.data and event_content_has_stacktrace(event):
             grouping_info = get_grouping_info(None, project=project, event=event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
+            stacktrace_string = get_stacktrace_string(grouping_info, event.platform)
             if stacktrace_string == "":
                 invalid_event_group_ids.append(group_id)
                 continue

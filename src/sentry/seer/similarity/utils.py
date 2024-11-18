@@ -155,7 +155,7 @@ def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
-def get_stacktrace_string(data: dict[str, Any]) -> str:
+def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -177,6 +177,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
+    is_frames_truncated = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -185,12 +186,15 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
         nonlocal frame_count
         nonlocal html_frame_count
+        nonlocal is_frames_truncated
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
         ]
+        if len(contributing_frames) > 30:
+            is_frames_truncated = True
         contributing_frames = _discard_excess_frames(
             contributing_frames, MAX_FRAME_COUNT, frame_count
         )
@@ -259,6 +263,13 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
+        if is_frames_truncated and not app_hash:
+            metrics.incr(
+                "grouping.similarity.over_30_only_system_frames",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": platform if platform else "unkown"},
+            )
+            return ""
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""

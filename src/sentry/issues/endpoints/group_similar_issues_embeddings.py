@@ -82,7 +82,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         stacktrace_string = ""
         if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
+            stacktrace_string = get_stacktrace_string(grouping_info, latest_event.platform)
 
         if stacktrace_string == "" or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
