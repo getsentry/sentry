@@ -15,7 +15,7 @@ type Props = {
 // This alert makes the user aware that one or more projects have been selected for the Low Priority Queue
 function GlobalEventProcessingAlert({className, projects}: Props) {
   const projectsInTheLowPriorityQueue = projects.filter(
-    project => project.eventProcessing.symbolicationDegraded
+    project => project?.eventProcessing?.symbolicationDegraded
   );
 
   if (!projectsInTheLowPriorityQueue.length) {
