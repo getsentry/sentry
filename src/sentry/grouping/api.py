@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 import sentry_sdk
 
@@ -33,11 +33,16 @@ from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import Fingerprint, FingerprintingRules, FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+class FingerprintInfo(TypedDict):
+    client_fingerprint: NotRequired[Fingerprint]
+    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass

@@ -6,6 +6,7 @@ from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
+    from sentry.grouping.api import FingerprintInfo
     from sentry.grouping.fingerprinting import Fingerprint
 
 
@@ -137,7 +138,7 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(fingerprint: Fingerprint, fingerprint_info):
+def expose_fingerprint_dict(fingerprint: Fingerprint, fingerprint_info: FingerprintInfo):
     rv = {
         "values": fingerprint,
     }
@@ -160,7 +161,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, fingerprint: Fingerprint, fingerprint_info):
+    def __init__(self, fingerprint: Fingerprint, fingerprint_info: FingerprintInfo):
         self.values = fingerprint
         self.info = fingerprint_info
 
@@ -190,7 +191,9 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, fingerprint: Fingerprint, component, config, fingerprint_info):
+    def __init__(
+        self, fingerprint: Fingerprint, component, config, fingerprint_info: FingerprintInfo
+    ):
         ComponentVariant.__init__(self, component, config)
         self.values = fingerprint
         self.info = fingerprint_info
