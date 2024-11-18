@@ -20,6 +20,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     killswitch_enabled,
+    record_did_call_seer_metric,
 )
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
@@ -90,22 +91,14 @@ def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) 
 
         # Hybrid fingerprinting ({{ default }} + some other value(s))
         else:
-            metrics.incr(
-                "grouping.similarity.did_call_seer",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"call_made": False, "blocker": "hybrid-fingerprint"},
-            )
+            record_did_call_seer_metric(event, called=False, blocker="hybrid-fingerprint")
             return True
 
     # Fully customized fingerprint (from either us or the user)
     fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
 
     if fingerprint_variant:
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": fingerprint_variant.type},
-        )
+        record_did_call_seer_metric(event, called=False, blocker=fingerprint_variant.type)
         return True
 
     return False
@@ -128,11 +121,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger_extra["limit_per_sec"] = global_limit_per_sec
         logger.warning("should_call_seer_for_grouping.global_ratelimit_hit", extra=logger_extra)
 
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-rate-limit"},
-        )
+        record_did_call_seer_metric(event, called=False, blocker="global-rate-limit")
 
         return True
 
@@ -142,11 +131,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         logger_extra["limit_per_sec"] = project_limit_per_sec
         logger.warning("should_call_seer_for_grouping.project_ratelimit_hit", extra=logger_extra)
 
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-rate-limit"},
-        )
+        record_did_call_seer_metric(event, called=False, blocker="project-rate-limit")
 
         return True
 
@@ -167,11 +152,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
                 **breaker_config,
             },
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "circuit-breaker"},
-        )
+        record_did_call_seer_metric(event, called=False, blocker="circuit-breaker")
 
     return circuit_broken
 
@@ -236,11 +217,7 @@ def maybe_check_seer_for_matching_grouphash(
     seer_matched_grouphash = None
 
     if should_call_seer_for_grouping(event, variants):
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": True, "blocker": "none"},
-        )
+        record_did_call_seer_metric(event, called=True, blocker="none")
 
         try:
             # If no matching group is found in Seer, we'll still get back result

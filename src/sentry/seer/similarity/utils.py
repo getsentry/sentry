@@ -345,11 +345,11 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_global_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
+        # `event` will be defined when we're calling this from ingest, which is really what the
+        # `did_call_seer` is meant to track
+        if event:
+            record_did_call_seer_metric(event, called=False, blocker="global-killswitch")
+
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
@@ -357,11 +357,8 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
-        )
+        if event:
+            record_did_call_seer_metric(event, called=False, blocker="similarity-killswitch")
         return True
 
     if killswitch_matches_context(
@@ -371,11 +368,8 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-killswitch"},
-        )
+        if event:
+            record_did_call_seer_metric(event, called=False, blocker="project-killswitch")
         return True
 
     return False
