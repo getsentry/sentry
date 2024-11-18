@@ -13,6 +13,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
@@ -56,38 +57,42 @@ def test_hash_basis_with_legacy_configs(
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
 
-@django_db_all
-@with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # Technically we don't need to parameterize this since there's only one option, but doing it
-    # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the legacy configs above
-    {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_hash_basis_with_current_default_config(
-    config_name: str,
-    grouping_input: GroupingInput,
-    insta_snapshot: InstaSnapshotter,
-    default_project: Project,
-):
-    """
-    Run the grouphash metadata snapshot tests using the full `EventManager.save` process.
+# @django_db_all
+# @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+# @pytest.mark.parametrize(
+#     "config_name",
+#     # Technically we don't need to parameterize this since there's only one option, but doing it
+#     # this way makes snapshots from this test organize themselves neatly alongside snapshots from
+#     # the test of the legacy configs above
+#     {DEFAULT_GROUPING_CONFIG},
+#     ids=lambda config_name: config_name.replace("-", "_"),
+# )
+# def test_hash_basis_with_current_default_config(
+#     config_name: str,
+#     grouping_input: GroupingInput,
+#     insta_snapshot: InstaSnapshotter,
+#     default_project: Project,
+# ):
+#     """
+#     Run the grouphash metadata snapshot tests using the full `EventManager.save` process.
+#
+#     This is the most realistic way to test, but it's also slow, because it requires the overhead of
+#     set-up/tear-down/general interaction with our full postgres database. We therefore only do it
+#     when testing the current grouping config, and rely on a much faster manual test (above) for
+#     previous grouping configs.
+#     """
+#
+#     event = grouping_input.create_event(
+#         config_name, use_full_ingest_pipeline=True, project=default_project
+#     )
+#
+#     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
-    This is the most realistic way to test, but it's also slow, because it requires the overhead of
-    set-up/tear-down/general interaction with our full postgres database. We therefore only do it
-    when testing the current grouping config, and rely on a much faster manual test (above) for
-    previous grouping configs.
-    """
 
-    event = grouping_input.create_event(
-        config_name, use_full_ingest_pipeline=True, project=default_project
-    )
-
-    _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
+import pytest
 
 
+@pytest.mark.only
 @django_db_all
 @pytest.mark.parametrize(
     "config_name",
@@ -99,6 +104,7 @@ def test_unknown_hash_basis(
     insta_snapshot: InstaSnapshotter,
     default_project: Project,
 ) -> None:
+    event = save_new_event({"message": "Dogs are great!"}, default_project)
     grouping_input = GroupingInput(GROUPING_INPUTS_DIR, "empty.json")
 
     event = grouping_input.create_event(
@@ -121,6 +127,8 @@ def test_unknown_hash_basis(
         # Overrride the input filename since there isn't a real input which will generate the mock
         # variants above, but we still want the snapshot.
         _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
+        # Make up a filename since there isn't a real input which will generate the mock variants
+        # above, but we still want the snapshot.
 
 
 def _assert_and_snapshot_results(

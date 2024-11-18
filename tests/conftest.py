@@ -1,4 +1,6 @@
+import os
 from collections.abc import MutableMapping
+from typing import Any
 
 import psutil
 import pytest
@@ -123,3 +125,29 @@ def check_leaked_responses_mocks():
             f"`responses` were leaked outside of the test context:\n{leaked_s}"
             f"(make sure to use `@responses.activate` or `with responses.mock:`)"
         )
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session, config: Any, items: list[pytest.Item]
+) -> None:
+    """
+    Enable the use of `@pytest.mark.only` for running just the tests with this decorator. Works
+    best when running tests in a single file.
+
+    Note: Should only be used in development!
+
+    Inspired by https://stackoverflow.com/a/70607961
+    """
+
+    # There's a lint rule in place to keep people from committing a `@pytest.mark.only`
+    # decorator (and to keep CI from passing if it finds one), but just in case...
+    if os.environ.get("GITHUB_ACTIONS"):
+        return
+
+    tests_with_only_marker = [i for i in items if i.get_closest_marker("only")]
+
+    if tests_with_only_marker:
+        print(  # noqa: S002
+            f"\nFound `pytest.mark.only`. Running {len(tests_with_only_marker)} of {len(items)} tests."
+        )
+        items[:] = tests_with_only_marker

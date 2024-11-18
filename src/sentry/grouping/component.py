@@ -6,8 +6,6 @@ from typing import Any, Self
 
 from sentry.grouping.utils import hash_from_values
 
-DEFAULT_HINTS = {"salt": "a static salt"}
-
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
 # the UI.
@@ -51,7 +49,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         self.variant_provider = variant_provider
 
         self.update(
-            hint=hint or DEFAULT_HINTS.get(self.id),
+            hint=hint,
             contributes=contributes,
             values=values or [],
         )

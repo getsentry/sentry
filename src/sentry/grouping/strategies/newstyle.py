@@ -504,6 +504,7 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
+    # breakpoint()
     type_component = ErrorTypeGroupingComponent(
         values=[interface.type] if interface.type else [],
     )
@@ -513,15 +514,9 @@ def single_exception(
 
     if interface.mechanism:
         if interface.mechanism.synthetic:
-            # Ignore synthetic exceptions as they are produced from platform
-            # specific error codes.
-            #
-            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-            #
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
+            # Ignore the error type for synthetic exceptions as it can vary by platform and doesn't
+            # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
+            # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
             system_type_component.update(
                 contributes=False, hint="ignored because exception is synthetic"
@@ -692,8 +687,8 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions", and is used below.
-    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # This recursive generator gets the "top-level exceptions," and is used below.
+    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
     # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
@@ -727,7 +722,13 @@ def filter_exceptions_for_exception_groups(
         next(group)
         for _, group in itertools.groupby(
             top_level_exceptions,
-            key=lambda exception: hash_from_values(exception_components[id(exception)].values())
+            key=lambda exception: hash_from_values(
+                # Temporarily throw the app and system versions of the exception component into a
+                # wrapper component in order to end up with a single, combined list of values for both
+                ChainedExceptionGroupingComponent(
+                    values=exception_components[id(exception)].values()
+                ).iter_values()
+            )
             or "",
         )
     ]
@@ -735,8 +736,8 @@ def filter_exceptions_for_exception_groups(
     # If there's only one distinct top-level exception in the group,
     # use it and its first-path children, but throw out the exception group and any copies.
     # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
-    # We'll also set the main_exception_id, which is used in the extract_metadata function
-    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # We'll also set `main_exception_id`, which is used in the `extract_metadata` function
+    # in `src/sentry/eventtypes/error.py`, in order to ensure the issue is titled by this
     # item rather than the exception group.
     if len(distinct_top_level_exceptions) == 1:
         main_exception = distinct_top_level_exceptions[0]
@@ -764,15 +765,13 @@ def chained_exception_variant_processor(
 def threads(
     interface: Threads, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("crashed")], event, context, meta
-    )
+    crashed_threads = [thread for thread in interface.values if thread.get("crashed")]
+    thread_variants = _filtered_threads(crashed_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
-    thread_variants = _filtered_threads(
-        [thread for thread in interface.values if thread.get("current")], event, context, meta
-    )
+    current_threads = [thread for thread in interface.values if thread.get("current")]
+    thread_variants = _filtered_threads(current_threads, event, context, meta)
     if thread_variants is not None:
         return thread_variants
 
@@ -784,9 +783,10 @@ def threads(
         "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
-                "ignored because does not contain exactly one crashing, "
-                "one current or just one thread, instead contains %s threads"
-                % len(interface.values)
+                "ignored because it contains neither a single thread nor multiple threads with "
+                "exactly one crashing or current thread; instead contains %s crashing, %s current, "
+                "and %s total threads"
+                % (len(crashed_threads), len(current_threads), len(interface.values))
             ),
         )
     }
@@ -795,6 +795,7 @@ def threads(
 def _filtered_threads(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> ReturnedVariants | None:
+    # breakpoint()
     if len(threads) != 1:
         return None
 
@@ -807,6 +808,7 @@ def _filtered_threads(
     for name, stacktrace_component in context.get_grouping_component(
         stacktrace, event=event, **meta
     ).items():
+        # breakpoint()
         rv[name] = ThreadsGroupingComponent(values=[stacktrace_component])
 
     return rv

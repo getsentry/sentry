@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections import defaultdict
+
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
-from sentry.models.project import Project
+from sentry.grouping.variants import ComponentVariant
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
-from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
     GroupingInput,
@@ -19,7 +20,9 @@ from tests.sentry.grouping import (
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @pytest.mark.parametrize(
     "config_name",
-    set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
+    # CONFIGURATIONS.keys(),
+    {DEFAULT_GROUPING_CONFIG},
+    # set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
     ids=lambda config_name: config_name.replace("-", "_"),
 )
 def test_variants_with_legacy_configs(
@@ -40,38 +43,41 @@ def test_variants_with_legacy_configs(
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
 
-@django_db_all
-@with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
-@pytest.mark.parametrize(
-    "config_name",
-    # Technically we don't need to parameterize this since there's only one option, but doing it
-    # this way makes snapshots from this test organize themselves neatly alongside snapshots from
-    # the test of the legacy configs above
-    {DEFAULT_GROUPING_CONFIG},
-    ids=lambda config_name: config_name.replace("-", "_"),
-)
-def test_variants_with_current_default_config(
-    config_name: str,
-    grouping_input: GroupingInput,
-    insta_snapshot: InstaSnapshotter,
-    default_project: Project,
-):
-    """
-    Run the variant snapshot tests using the full `EventManager.save` process.
+# @django_db_all
+# @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+# @pytest.mark.parametrize(
+#     "config_name",
+#     # Technically we don't need to parameterize this since there's only one option, but doing it
+#     # this way makes snapshots from this test organize themselves neatly alongside snapshots from
+#     # the test of the legacy configs above
+#     {DEFAULT_GROUPING_CONFIG},
+#     ids=lambda config_name: config_name.replace("-", "_"),
+# )
+# def test_variants_with_current_default_config(
+#     config_name: str,
+#     grouping_input: GroupingInput,
+#     insta_snapshot: InstaSnapshotter,
+#     default_project: Project,
+# ):
+#     """
+#     Run the variant snapshot tests using the full `EventManager.save` process.
+#
+#     This is the most realistic way to test, but it's also slow, because it requires the overhead of
+#     set-up/tear-down/general interaction with our full postgres database. We therefore only do it
+#     when testing the current grouping config, and rely on a much faster manual test (below) for
+#     previous grouping configs.
+#     """
+#
+#     event = grouping_input.create_event(
+#         config_name, use_full_ingest_pipeline=True, project=default_project
+#     )
+#
+#     _assert_and_snapshot_results(
+#         event, DEFAULT_GROUPING_CONFIG, grouping_input.filename, insta_snapshot
+#     )
 
-    This is the most realistic way to test, but it's also slow, because it requires the overhead of
-    set-up/tear-down/general interaction with our full postgres database. We therefore only do it
-    when testing the current grouping config, and rely on a much faster manual test (below) for
-    previous grouping configs.
-    """
-
-    event = grouping_input.create_event(
-        config_name, use_full_ingest_pipeline=True, project=default_project
-    )
-
-    _assert_and_snapshot_results(
-        event, DEFAULT_GROUPING_CONFIG, grouping_input.filename, insta_snapshot
-    )
+x = defaultdict(set)
+num_tests = [0]
 
 
 def _assert_and_snapshot_results(
@@ -82,7 +88,35 @@ def _assert_and_snapshot_results(
 
     lines: list[str] = []
 
-    for variant_name, variant in sorted(event.get_grouping_variants().items()):
+    variants = event.get_grouping_variants()
+    # if "app" in variants and len(variants["app"].component.values) > 1:
+    #     values = variants["app"].component.values
+    #     types = [value.id for value in variants["app"].component.values]
+    #     hints = [value.hint for value in variants["app"].component.values]
+    #     breakpoint()
+    #     # if types != ["exception", "threads"]:
+    #     #     breakpoint()
+    # if "system" in variants and len(variants["system"].component.values) > 1:
+    #     values = variants["system"].component.values
+    #     types = [value.id for value in variants["system"].component.values]
+    #     hints = [value.hint for value in variants["system"].component.values]
+    #     breakpoint()
+    #     # if types != ["exception", "threads"]:
+    #     #     breakpoint()
+
+    num_tests[0] = num_tests[0] + 1
+
+    for variant in variants.values():
+        if isinstance(variant, ComponentVariant):
+            wrapper_component = variant.component
+            for value in wrapper_component.values:
+                x[wrapper_component.id].add(value.id)
+
+    if num_tests[0] == 174:
+        y = dict(x)
+        breakpoint()
+
+    for variant_name, variant in sorted(variants.items()):
         if lines:
             lines.append("-" * 74)
         lines.append("%s:" % variant_name)

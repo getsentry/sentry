@@ -33,6 +33,10 @@ S010_msg = "S010 Except handler does nothing and should be removed"
 
 S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
 
+S012_msg = (
+    "S012 Remember to remove all instances of `pytest.mark.only` before pushing to production."
+)
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -143,6 +147,18 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        for decorator in node.decorator_list:
+            if (
+                isinstance(decorator, ast.Attribute)
+                and decorator.attr == "only"
+                and isinstance(decorator.value, ast.Attribute)
+                and decorator.value.attr == "mark"
+                and isinstance(decorator.value.value, ast.Name)
+                and decorator.value.value.id == "pytest"
+            ):
+                self.errors.append((node.lineno, node.col_offset, S012_msg))
 
         self.generic_visit(node)
 

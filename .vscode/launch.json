@@ -13,21 +13,17 @@
     },
     {
       "name": "sentry backend",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "stopOnEntry": true,
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver"],
       "cwd": "${workspaceRoot}",
-      "debugOptions": [
-        "WaitOnAbnormalExit",
-        "WaitOnNormalExit",
-        "RedirectOutput"
-      ]
+      "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
     },
     {
       "name": "sentry backend debug",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver", "--debug-server", "--no-pretty"],
@@ -56,10 +52,10 @@
     },
     {
       "name": "pytest - current file",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "pytest",
-      "args": ["--verbosity", "2", "${file}", "--reuse-db"],
+      "args": ["--verbosity", "2", "--reuse-db", "${file}"],
       "django": true,
       "env": {
         "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"

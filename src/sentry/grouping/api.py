@@ -279,6 +279,9 @@ def _get_calculated_grouping_variants_for_event(
     precedence_hint: str | None = None
     per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
 
+    # strategies are
+    # ['chained-exception:v1', 'threads:v1', 'stacktrace:v1', 'template:v1', 'csp:v1', 'hpkp:v1',
+    # 'expect-staple:v1', 'expect-ct:v1', 'message:v1']
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
         rv = strategy.get_grouping_component_variants(event, context=context)
