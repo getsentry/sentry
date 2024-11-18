@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .actions import Action
-from .matchers import ExceptionFieldMatch, Match
+from .actions import EnhancementAction
+from .matchers import EnhancementMatch, ExceptionFieldMatch
 
 
-class Rule:
+class EnhancementRule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
 
@@ -29,17 +29,17 @@ class Rule:
             rv = f"{rv} {action}"
         return rv
 
-    def _as_modifier_rule(self) -> Rule | None:
+    def _as_modifier_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_modifier]
         if actions:
-            return Rule(self.matchers, actions)
+            return EnhancementRule(self.matchers, actions)
         else:
             return None
 
-    def _as_updater_rule(self) -> Rule | None:
+    def _as_updater_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_updater]
         if actions:
-            return Rule(self.matchers, actions)
+            return EnhancementRule(self.matchers, actions)
         else:
             return None
 
@@ -54,7 +54,7 @@ class Rule:
         match_frames: list[dict[str, Any]],
         exception_data: dict[str, Any],
         in_memory_cache: dict[str, str],
-    ) -> list[tuple[int, Action]]:
+    ) -> list[tuple[int, EnhancementAction]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -87,7 +87,7 @@ class Rule:
 
     @classmethod
     def _from_config_structure(cls, tuple, version):
-        return Rule(
-            [Match._from_config_structure(x, version) for x in tuple[0]],
-            [Action._from_config_structure(x, version) for x in tuple[1]],
+        return EnhancementRule(
+            [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
+            [EnhancementAction._from_config_structure(x, version) for x in tuple[1]],
         )
