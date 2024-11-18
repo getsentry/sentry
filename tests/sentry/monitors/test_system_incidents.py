@@ -12,11 +12,14 @@ from sentry.monitors.system_incidents import (
     MONITOR_VOLUME_HISTORY,
     MONITOR_VOLUME_RETENTION,
     AnomalyTransition,
+    DecisionResult,
     TickAnomalyDecision,
     _make_reference_ts,
     get_clock_tick_decision,
     get_clock_tick_volume_metric,
+    get_last_incident_ts,
     make_clock_tick_decision,
+    process_clock_tick_for_system_incidents,
     prune_incident_check_in_volume,
     record_clock_tick_volume_metric,
     update_check_in_volume,
@@ -102,6 +105,71 @@ def test_update_check_in_volume():
     assert minute_1 == "1"
     assert minute_2 is None
     assert minute_3 == "1"
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+@mock.patch("sentry.monitors.system_incidents.metrics")
+@mock.patch("sentry.monitors.system_incidents.record_clock_tick_volume_metric")
+@mock.patch("sentry.monitors.system_incidents.make_clock_tick_decision")
+@mock.patch("sentry.monitors.system_incidents.prune_incident_check_in_volume")
+def test_process_clock_tick_for_system_incident(
+    mock_prune_incident_check_in_volume,
+    mock_make_clock_tick_decision,
+    mock_record_clock_tick_volume_metric,
+    mock_metrics,
+    mock_logger,
+):
+    ts = timezone.now().replace(second=0, microsecond=0)
+
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts,
+        decision=TickAnomalyDecision.ABNORMAL,
+        transition=AnomalyTransition.ABNORMALITY_STARTED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+
+    assert mock_record_clock_tick_volume_metric.call_count == 1
+    assert mock_make_clock_tick_decision.call_count == 1
+
+    # Metrics and logs are recorded
+    assert mock_logger.info.call_args_list[0] == mock.call(
+        "monitors.system_incidents.process_clock_tick",
+        extra={
+            "decision": TickAnomalyDecision.ABNORMAL,
+            "transition": AnomalyTransition.ABNORMALITY_STARTED,
+        },
+    )
+    assert mock_metrics.incr.call_args_list[0] == mock.call(
+        "monitors.tasks.clock_tick.tick_decision",
+        tags={"decision": TickAnomalyDecision.ABNORMAL},
+        sample_rate=1.0,
+    )
+    assert mock_metrics.incr.call_args_list[1] == mock.call(
+        "monitors.tasks.clock_tick.tick_transition",
+        tags={"transition": AnomalyTransition.ABNORMALITY_STARTED},
+        sample_rate=1.0,
+    )
+
+    # Transition into an incident records the start timestamp
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts,
+        decision=TickAnomalyDecision.INCIDENT,
+        transition=AnomalyTransition.INCIDENT_STARTED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+    assert get_last_incident_ts() == ts
+
+    # Transitioning out of an incident prunes volume during the incident
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts + timedelta(minutes=5),
+        decision=TickAnomalyDecision.NORMAL,
+        transition=AnomalyTransition.INCIDENT_RECOVERED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+    assert mock_prune_incident_check_in_volume.call_args_list[0] == mock.call(
+        ts,
+        ts + timedelta(minutes=5),
+    )
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
