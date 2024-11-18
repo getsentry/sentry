@@ -314,6 +314,8 @@ const SettingsButton = styled(LinkButton)`
   margin-top: -${space(0.5)};
   padding: 3px;
   border-radius: 50%;
+  width: 24px;
+  height: 24px;
 `;
 
 const StyledBookmarkStar = styled(BookmarkStar)`
