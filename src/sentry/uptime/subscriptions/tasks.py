@@ -93,7 +93,7 @@ def uptime_subscription_to_check_config(
         "url": subscription.url,
         "interval_seconds": subscription.interval_seconds,
         "timeout_ms": subscription.timeout_ms,
-        "request_method": subscription.method,  # type: ignore[typeddict-item]
+        "request_method": subscription.method,
         "request_headers": headers,
     }
     if subscription.body is not None:
