@@ -1,3 +1,7 @@
+from sentry.notifications.models.notificationsettingprovider import (  # NOQA
+    NotificationSettingProvider,
+)
+
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
