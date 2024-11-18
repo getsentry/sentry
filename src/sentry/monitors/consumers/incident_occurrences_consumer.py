@@ -96,7 +96,10 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
         # as unknown.
         pass
 
-    send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+    try:
+        send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+    except Exception:
+        logger.exception("failed_send_incident_occurrence")
 
 
 class MonitorIncidentOccurenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
