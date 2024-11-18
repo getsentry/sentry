@@ -22,7 +22,7 @@ from sentry.utils.safe import get_path, set_path
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import Rule
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +225,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
