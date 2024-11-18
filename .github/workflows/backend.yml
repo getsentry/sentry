@@ -340,6 +340,7 @@ jobs:
           ! grep 'Unpacking a string is disallowed' .artifacts/mypy-all
           ! grep 'base class .* defined the type as.*Permission' .artifacts/mypy-all
           ! grep 'does not explicitly export attribute' .artifacts/mypy-all
+          ! grep 'gets multiple values for' .artifacts/mypy-all
 
       - name: apply blocklist changes
         if: |
