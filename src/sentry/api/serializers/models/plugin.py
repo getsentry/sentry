@@ -6,8 +6,6 @@ from sentry import features
 from sentry.api.serializers import Serializer
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.utils.assets import get_asset_url
-from sentry.utils.http import absolute_uri
 
 # Dict with the plugin_name as the key, and enabling_feature_name as the value
 SHADOW_DEPRECATED_PLUGINS = {
@@ -70,10 +68,6 @@ class PluginSerializer(Serializer):
             "metadata": obj.get_metadata(),
             "contexts": contexts,
             "status": obj.get_status(),
-            "assets": [
-                {"url": absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset))}
-                for asset in obj.get_assets()
-            ],
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),
             "deprecationDate": (
