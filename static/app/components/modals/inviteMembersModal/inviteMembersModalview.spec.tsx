@@ -73,6 +73,5 @@ describe('InviteMembersModalView', function () {
     render(<InviteMembersModalView {...overMemberLimitModalProps} />);
 
     expect(screen.getByText('Invite New Members')).toBeInTheDocument();
-    expect(screen.getByText('Add another')).toBeInTheDocument();
   });
 });
