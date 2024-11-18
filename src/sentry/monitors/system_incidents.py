@@ -107,9 +107,9 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
             sample_rate=1.0,
         )
 
-    # When entering an incident record the starting tiemstamp of the incident
+    # When entering an incident record the starting timestamp of the incident
     if result.transition == AnomalyTransition.INCIDENT_STARTED:
-        record_last_incidnet_ts(result.ts)
+        record_last_incident_ts(result.ts)
 
     # When exiting an incident prune check-in volume during that incident
     if result.transition == AnomalyTransition.INCIDENT_RECOVERED:
@@ -121,7 +121,7 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
     return result
 
 
-def record_last_incidnet_ts(ts: datetime) -> None:
+def record_last_incident_ts(ts: datetime) -> None:
     """
     Records the timestamp of the most recent
     """
