@@ -1,9 +1,12 @@
 ---
-created: '2024-10-28T13:57:09.950377+00:00'
+created: '2024-11-11T18:00:43.625457+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: fallback
+hashing_metadata: {
+  "fallback_reason": "other"
+}
 ---
 contributing variants:
   fallback*

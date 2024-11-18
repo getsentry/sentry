@@ -1,9 +1,17 @@
 ---
-created: '2024-10-28T14:02:44.764340+00:00'
+created: '2024-11-08T19:20:46.671928+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: message
+hashing_metadata: {
+  "client_fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint": "['{{ default }}', 'dogs are great']",
+  "fingerprint_source": "client",
+  "is_hybrid_fingerprint": true,
+  "message_parameterized": false,
+  "message_source": "exception"
+}
 ---
 contributing variants:
   app*

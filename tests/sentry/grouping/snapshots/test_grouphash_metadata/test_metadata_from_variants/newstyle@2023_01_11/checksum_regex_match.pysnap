@@ -1,9 +1,12 @@
 ---
-created: '2024-10-28T13:56:45.849856+00:00'
+created: '2024-11-08T19:21:07.668540+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: checksum
+hashing_metadata: {
+  "checksum": "11212012123120120415201309082013"
+}
 ---
 contributing variants:
   checksum*

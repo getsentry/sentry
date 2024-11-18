@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
@@ -213,3 +215,14 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
+
+
+class VariantsByDescriptor(TypedDict, total=False):
+    system: ComponentVariant
+    app: ComponentVariant
+    custom_fingerprint: CustomFingerprintVariant
+    built_in_fingerprint: BuiltInFingerprintVariant
+    checksum: ChecksumVariant
+    hashed_checksum: HashedChecksumVariant
+    default: ComponentVariant
+    fallback: FallbackVariant
