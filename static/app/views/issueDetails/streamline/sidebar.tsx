@@ -51,7 +51,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         <FirstLastSeenSection group={group} />
       </GuideAnchor>
       <StyledBreak />
-      {((organization.features.includes('ai-summary') &&
+      {((organization.features.includes('gen-ai-features') &&
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (

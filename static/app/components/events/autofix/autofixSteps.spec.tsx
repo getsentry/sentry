@@ -149,7 +149,6 @@ describe('AutofixSteps', () => {
       url: '/issues/group1/autofix/setup/',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [],

@@ -206,7 +206,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
@@ -230,7 +229,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
@@ -287,7 +285,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [

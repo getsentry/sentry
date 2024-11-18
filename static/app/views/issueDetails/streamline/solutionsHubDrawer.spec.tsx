@@ -19,7 +19,11 @@ import {EntryType} from 'sentry/types/event';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
 describe('SolutionsHubDrawer', () => {
-  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
+  const organization = OrganizationFixture({
+    genAIConsent: true,
+    hideAiFeatures: false,
+    features: ['gen-ai-features'],
+  });
 
   const mockEvent = EventFixture({
     entries: [
