@@ -101,9 +101,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
         max_span_tags = options.get("performance.spans-tags-key.max")
 
-        if serialized["dataset"] == "spans" and features.has(
-            "organizations:visibility-explore-dataset", organization, actor=request.user
-        ):
+        if serialized["dataset"] == "spans":
             start_timestamp = Timestamp()
             start_timestamp.FromDatetime(
                 snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -217,9 +215,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
 
         executor: BaseSpanFieldValuesAutocompletionExecutor
 
-        if serialized["dataset"] == "spans" and features.has(
-            "organizations:visibility-explore-dataset", organization, actor=request.user
-        ):
+        if serialized["dataset"] == "spans":
             executor = EAPSpanFieldValuesAutocompletionExecutor(
                 organization=organization,
                 snuba_params=snuba_params,
@@ -413,10 +409,9 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
     def resolve_attribute_key(self, key: str, snuba_params: SnubaParams) -> AttributeKey | None:
         resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
         resolved, _ = resolver.resolve_attribute(key)
-        proto = resolved.proto_definition
-        if not isinstance(proto, AttributeKey):
+        if resolved.search_type != "string":
             return None
-        return proto
+        return resolved.proto_definition
 
     def execute(self) -> list[TagValue]:
         if self.key in self.PROJECT_ID_KEYS:

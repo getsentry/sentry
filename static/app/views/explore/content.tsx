@@ -72,12 +72,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
   }, [location, navigate]);
 
   return (
-    <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Explore')}</Layout.Title>
+              <Layout.Title>{t('Traces')}</Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>

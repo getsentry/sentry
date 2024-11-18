@@ -5,6 +5,7 @@ from typing import Any
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
+    ExtrapolationMode,
     Function,
     VirtualColumnContext,
 )
@@ -16,14 +17,12 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
 
 
-@dataclass(frozen=True)
-class ResolvedColumn:
+@dataclass(frozen=True, kw_only=True)
+class ResolvedAttribute:
     # The alias for this column
     public_alias: (
         str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
     )
-    # The internal rpc alias for this column
-    internal_name: str | Function.ValueType
     # The public type for this column
     search_type: str
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
@@ -47,21 +46,6 @@ class ResolvedColumn:
                 raise InvalidSearchQuery(f"{value} is an invalid value for {self.public_alias}")
 
     @property
-    def proto_definition(self) -> AttributeAggregation | AttributeKey:
-        """The definition of this function as needed by the RPC"""
-        if isinstance(self.internal_name, Function.ValueType):
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.argument,
-                label=self.public_alias,
-            )
-        else:
-            return AttributeKey(
-                name=self.internal_name,
-                type=self.proto_type,
-            )
-
-    @property
     def proto_type(self) -> AttributeKey.Type.ValueType:
         """The proto's AttributeKey type for this column"""
         if self.internal_type is not None:
@@ -78,6 +62,20 @@ class ResolvedColumn:
             return "integer"
         else:
             return self.search_type
+
+
+@dataclass(frozen=True, kw_only=True)
+class ResolvedColumn(ResolvedAttribute):
+    # The internal rpc alias for this column
+    internal_name: str
+
+    @property
+    def proto_definition(self) -> AttributeKey:
+        """The definition of this function as needed by the RPC"""
+        return AttributeKey(
+            name=self.internal_name,
+            type=self.proto_type,
+        )
 
 
 @dataclass
@@ -100,16 +98,56 @@ class FunctionDefinition:
     internal_type: AttributeKey.Type.ValueType | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # Whether to request extrapolation or not, should be true for all functions except for _sample functions for debugging
+    extrapolation: bool = True
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedFunction(ResolvedAttribute):
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
+
+    @property
+    def proto_definition(self) -> AttributeAggregation:
+        """The definition of this function as needed by the RPC"""
+        return AttributeAggregation(
+            aggregate=self.internal_name,
+            key=self.argument,
+            label=self.public_alias,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+        )
+
+    @property
+    def proto_type(self) -> AttributeKey.Type.ValueType:
+        """The rpc always returns functions as floats, especially count() even though it should be an integer
+
+        see: https://www.notion.so/sentry/Should-count-return-an-int-in-the-v1-RPC-API-1348b10e4b5d80498bfdead194cc304e
+        """
+        return constants.FLOAT
+
+
 def simple_sentry_field(field) -> ResolvedColumn:
     """For a good number of fields, the public alias matches the internal alias
-    This helper functions makes defining them easier"""
-    return ResolvedColumn(field, f"sentry.{field}", "string")
+    without the `sentry.` suffix. This helper functions makes defining them easier"""
+    return ResolvedColumn(public_alias=field, internal_name=f"sentry.{field}", search_type="string")
+
+
+def simple_measurements_field(field) -> ResolvedColumn:
+    """For a good number of fields, the public alias matches the internal alias
+    with the `measurements.` prefix. This helper functions makes defining them easier"""
+    return ResolvedColumn(
+        public_alias=f"measurements.{field}", internal_name=field, search_type="number"
+    )
 
 
 SPAN_COLUMN_DEFINITIONS = {
@@ -248,6 +286,47 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("user.id"),
         simple_sentry_field("user.ip"),
         simple_sentry_field("user.username"),
+        simple_measurements_field("app_start_cold"),
+        simple_measurements_field("app_start_warm"),
+        simple_measurements_field("frames_frozen"),
+        simple_measurements_field("frames_frozen_rate"),
+        simple_measurements_field("frames_slow"),
+        simple_measurements_field("frames_slow_rate"),
+        simple_measurements_field("frames_total"),
+        simple_measurements_field("time_to_initial_display"),
+        simple_measurements_field("time_to_full_display"),
+        simple_measurements_field("stall_count"),
+        simple_measurements_field("stall_percentage"),
+        simple_measurements_field("stall_stall_longest_time"),
+        simple_measurements_field("stall_stall_total_time"),
+        simple_measurements_field("cls"),
+        simple_measurements_field("fcp"),
+        simple_measurements_field("fid"),
+        simple_measurements_field("fp"),
+        simple_measurements_field("inp"),
+        simple_measurements_field("lcp"),
+        simple_measurements_field("ttfb"),
+        simple_measurements_field("ttfb.requesttime"),
+        simple_measurements_field("score.cls"),
+        simple_measurements_field("score.fcp"),
+        simple_measurements_field("score.fid"),
+        simple_measurements_field("score.fp"),
+        simple_measurements_field("score.inp"),
+        simple_measurements_field("score.lcp"),
+        simple_measurements_field("score.ttfb"),
+        simple_measurements_field("score.total"),
+        simple_measurements_field("score.weight.cls"),
+        simple_measurements_field("score.weight.fcp"),
+        simple_measurements_field("score.weight.fid"),
+        simple_measurements_field("score.weight.fp"),
+        simple_measurements_field("score.weight.inp"),
+        simple_measurements_field("score.weight.lcp"),
+        simple_measurements_field("score.weight.ttfb"),
+        simple_measurements_field("cache.item_size"),
+        simple_measurements_field("messaging.message.body.size"),
+        simple_measurements_field("messaging.message.receive.latency"),
+        simple_measurements_field("messaging.message.retry.count"),
+        simple_measurements_field("http.response_content_length"),
     ]
 }
 
@@ -302,6 +381,14 @@ SPAN_FUNCTION_DEFINITIONS = {
             ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
         ],
     ),
+    "avg_sample": FunctionDefinition(
+        internal_function=Function.FUNCTION_AVERAGE,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
+        extrapolation=False,
+    ),
     "count": FunctionDefinition(
         internal_function=Function.FUNCTION_COUNT,
         search_type="number",
@@ -309,12 +396,28 @@ SPAN_FUNCTION_DEFINITIONS = {
             ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
         ],
     ),
+    "count_sample": FunctionDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        search_type="number",
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
+        extrapolation=False,
+    ),
     "p50": FunctionDefinition(
         internal_function=Function.FUNCTION_P50,
         search_type="duration",
         arguments=[
             ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
         ],
+    ),
+    "p50_sample": FunctionDefinition(
+        internal_function=Function.FUNCTION_P50,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
+        extrapolation=False,
     ),
     "p90": FunctionDefinition(
         internal_function=Function.FUNCTION_P90,
