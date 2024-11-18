@@ -139,6 +139,7 @@ class ProjectCard extends Component<Props> {
                 borderless
                 size="zero"
                 icon={<IconSettings color="subText" />}
+                title={t('Settings')}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${slug}/`}
               />
