@@ -399,12 +399,15 @@ class SubscriptionProcessor:
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
         ):
-            potential_anomalies = get_anomaly_data_from_seer(
-                alert_rule=self.alert_rule,
-                subscription=self.subscription,
-                last_update=self.last_update.timestamp(),
-                aggregation_value=aggregation_value,
-            )
+            with metrics.timer(
+                "incidents.subscription_processor.process_update.get_anomaly_data_from_seer"
+            ):
+                potential_anomalies = get_anomaly_data_from_seer(
+                    alert_rule=self.alert_rule,
+                    subscription=self.subscription,
+                    last_update=self.last_update.timestamp(),
+                    aggregation_value=aggregation_value,
+                )
             if potential_anomalies is None:
                 logger.info(
                     "No potential anomalies found",
