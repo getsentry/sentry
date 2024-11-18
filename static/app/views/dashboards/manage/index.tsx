@@ -38,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
+import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
@@ -45,12 +46,13 @@ import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
-import DashboardList from './dashboardList';
+import DashboardGrid from './dashboardGrid';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+  DASHBOARD_TABLE_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import TemplateCard from './templateCard';
@@ -116,7 +118,8 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
-          per_page: rowCount * columnCount,
+          per_page:
+            dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
       },
     ],
@@ -297,8 +300,19 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
-    return (
-      <DashboardList
+    return dashboardsLayout === GRID ? (
+      <DashboardGrid
+        api={api}
+        dashboards={dashboards}
+        organization={organization}
+        location={location}
+        onDashboardsChange={() => refetchDashboards()}
+        isLoading={isLoading}
+        rowCount={rowCount}
+        columnCount={columnCount}
+      />
+    ) : (
+      <DashboardTable
         api={api}
         dashboards={dashboards}
         organization={organization}

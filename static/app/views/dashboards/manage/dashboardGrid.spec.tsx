@@ -13,7 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
+import DashboardGrid from 'sentry/views/dashboards/manage/dashboardGrid';
 import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardList', function () {
@@ -102,7 +102,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('renders an empty list', function () {
     render(
-      <DashboardList
+      <DashboardGrid
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
@@ -117,7 +117,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('renders dashboard list', function () {
     render(
-      <DashboardList
+      <DashboardGrid
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
@@ -133,7 +133,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('returns landing page url for dashboards', function () {
     render(
-      <DashboardList
+      <DashboardGrid
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
@@ -156,7 +156,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('persists global selection headers', function () {
     render(
-      <DashboardList
+      <DashboardGrid
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
@@ -175,7 +175,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('can delete dashboards', async function () {
     render(
-      <DashboardList
+      <DashboardGrid
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
@@ -213,7 +213,7 @@ describe('Dashboards - DashboardList', function () {
       }),
     ];
     render(
-      <DashboardList
+      <DashboardGrid
         organization={organization}
         dashboards={singleDashboard}
         location={LocationFixture()}
@@ -232,7 +232,7 @@ describe('Dashboards - DashboardList', function () {
 
   it('can duplicate dashboards', async function () {
     render(
-      <DashboardList
+      <DashboardGrid
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
@@ -259,7 +259,7 @@ describe('Dashboards - DashboardList', function () {
     });
 
     render(
-      <DashboardList
+      <DashboardGrid
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
