@@ -1,6 +1,6 @@
 import enum
 from datetime import timedelta
-from typing import ClassVar, Self
+from typing import ClassVar, Literal, Self
 
 from django.conf import settings
 from django.db import models
@@ -29,12 +29,23 @@ headers_json_encoder = JSONEncoder(
     sort_keys=True,
 ).encode
 
+SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
+
 
 @region_silo_model
 class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
+
+    class SupportedHTTPMethods(models.TextChoices):
+        GET = "GET", "GET"
+        POST = "POST", "POST"
+        HEAD = "HEAD", "HEAD"
+        PUT = "PUT", "PUT"
+        DELETE = "DELETE", "DELETE"
+        PATCH = "PATCH", "PATCH"
+        OPTIONS = "OPTIONS", "OPTIONS"
 
     # The url to check
     url = models.CharField(max_length=255)
@@ -52,7 +63,11 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How long to wait for a response from the url before we assume a timeout
     timeout_ms = models.IntegerField()
     # HTTP method to perform the check with
-    method = models.CharField(max_length=20, db_default="GET")
+    method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
+        models.CharField(
+            max_length=20, choices=SupportedHTTPMethods, default=SupportedHTTPMethods.GET
+        )
+    )
     # HTTP headers to send when performing the check
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
     # HTTP body to send when performing the check

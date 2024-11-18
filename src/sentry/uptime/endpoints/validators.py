@@ -12,7 +12,11 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.environment import Environment
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     MAX_MANUAL_SUBSCRIPTIONS_PER_ORG,
     MaxManualUptimeSubscriptionsReached,
@@ -33,7 +37,6 @@ for the domain `sentry.io` both the hosts `subdomain-one.sentry.io` and
 Importantly domains like `vercel.dev` are considered TLDs as defined by the
 public suffix list (PSL). See `extract_domain_parts` fo more details
 """
-SUPPORTED_HTTP_METHODS = ["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
 MAX_REQUEST_SIZE_BYTES = 1000
 
 # This matches the jsonschema for the check config
@@ -100,7 +103,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
-        required=False, choices=list(zip(SUPPORTED_HTTP_METHODS, SUPPORTED_HTTP_METHODS))
+        required=False, choices=UptimeSubscription.SupportedHTTPMethods.choices
     )
     headers = serializers.JSONField(required=False)
     trace_sampling = serializers.BooleanField(required=False, default=False)
