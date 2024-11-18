@@ -26,7 +26,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID

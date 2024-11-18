@@ -8,7 +8,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.serializers import NotificationSettingsOptionSerializer
 from sentry.notifications.validators import UserNotificationSettingOptionWithValueSerializer
 from sentry.users.api.bases.user import UserEndpoint

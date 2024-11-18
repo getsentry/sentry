@@ -1,6 +1,6 @@
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
