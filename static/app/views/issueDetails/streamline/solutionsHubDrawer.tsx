@@ -174,7 +174,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     !isSampleError;
 
   return (
-    <SolutionsDrawerContainer>
+    <SolutionsDrawerContainer className="solutions-drawer-container">
       <SolutionsDrawerHeader>
         <NavigationCrumbs
           crumbs={[
@@ -311,6 +311,7 @@ const SolutionsDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
+  position: relative;
 `;
 
 const SolutionsDrawerHeader = styled(DrawerHeader)`
