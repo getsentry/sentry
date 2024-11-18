@@ -44,10 +44,19 @@ sentry_sdk.init(
   params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
 
+def slow_function():
+    import time
+    time.sleep(2)  # sleep for 2 seconds
+    return "done"
+
+def fast_function():
+    return "done"
+
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
 sentry_sdk.profiler.start_profiler()
-# this code will be profiled
+slow_function()
+fast_function()
 #
 # Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
 # your application until the process exits or stop_profiler is called.
