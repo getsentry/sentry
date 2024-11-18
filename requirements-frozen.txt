@@ -57,8 +57,8 @@ google-resumable-media==2.7.0
 googleapis-common-protos==1.63.2
 grpc-google-iam-v1==0.13.1
 grpc-stubs==1.53.0.5
-grpcio==1.60.1
-grpcio-status==1.60.1
+grpcio==1.66.1
+grpcio-status==1.66.1
 h11==0.14.0
 h2==4.1.0
 hiredis==2.3.2
@@ -116,7 +116,7 @@ redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
 reportlab==4.0.7
-requests==2.31.0
+requests==2.32.3
 requests-file==2.1.0
 requests-oauthlib==1.2.0
 rfc3339-validator==0.1.2

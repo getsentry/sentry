@@ -564,45 +564,45 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
 
     def test_simple_measurements(self):
         keys = [
-            "app_start_cold",
-            "app_start_warm",
-            "frames_frozen",
-            "frames_frozen_rate",
-            "frames_slow",
-            "frames_slow_rate",
-            "frames_total",
-            "time_to_initial_display",
-            "time_to_full_display",
-            "stall_count",
-            "stall_percentage",
-            "stall_stall_longest_time",
-            "stall_stall_total_time",
-            "cls",
-            "fcp",
-            "fid",
-            "fp",
-            "inp",
-            "lcp",
-            "ttfb",
-            "ttfb.requesttime",
-            "score.cls",
-            "score.fcp",
-            "score.fid",
-            "score.inp",
-            "score.lcp",
-            "score.ttfb",
-            "score.total",
-            "score.weight.cls",
-            "score.weight.fcp",
-            "score.weight.fid",
-            "score.weight.inp",
-            "score.weight.lcp",
-            "score.weight.ttfb",
-            "cache.item_size",
-            "messaging.message.body.size",
-            "messaging.message.receive.latency",
-            "messaging.message.retry.count",
-            "http.response_content_length",
+            ("app_start_cold", "duration", "millisecond"),
+            ("app_start_warm", "duration", "millisecond"),
+            ("frames_frozen", "number", None),
+            ("frames_frozen_rate", "percentage", None),
+            ("frames_slow", "number", None),
+            ("frames_slow_rate", "percentage", None),
+            ("frames_total", "number", None),
+            ("time_to_initial_display", "duration", "millisecond"),
+            ("time_to_full_display", "duration", "millisecond"),
+            ("stall_count", "number", None),
+            ("stall_percentage", "percentage", None),
+            ("stall_stall_longest_time", "number", None),
+            ("stall_stall_total_time", "number", None),
+            ("cls", "number", None),
+            ("fcp", "duration", "millisecond"),
+            ("fid", "duration", "millisecond"),
+            ("fp", "duration", "millisecond"),
+            ("inp", "duration", "millisecond"),
+            ("lcp", "duration", "millisecond"),
+            ("ttfb", "duration", "millisecond"),
+            ("ttfb.requesttime", "duration", "millisecond"),
+            ("score.cls", "number", None),
+            ("score.fcp", "number", None),
+            ("score.fid", "number", None),
+            ("score.inp", "number", None),
+            ("score.lcp", "number", None),
+            ("score.ttfb", "number", None),
+            ("score.total", "number", None),
+            ("score.weight.cls", "number", None),
+            ("score.weight.fcp", "number", None),
+            ("score.weight.fid", "number", None),
+            ("score.weight.inp", "number", None),
+            ("score.weight.lcp", "number", None),
+            ("score.weight.ttfb", "number", None),
+            ("cache.item_size", "number", None),
+            ("messaging.message.body.size", "number", None),
+            ("messaging.message.receive.latency", "number", None),
+            ("messaging.message.retry.count", "number", None),
+            ("http.response_content_length", "number", None),
         ]
 
         self.store_spans(
@@ -613,14 +613,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                         "sentry_tags": {"status": "success"},
                         "tags": {"bar": "bar2"},
                     },
-                    measurements={k: {"value": i + 1} for i, k in enumerate(keys)},
+                    measurements={k: {"value": i + 1} for i, (k, _, _) in enumerate(keys)},
                     start_ts=self.ten_mins_ago,
                 ),
             ],
             is_eap=self.is_eap,
         )
 
-        for i, k in enumerate(keys):
+        for i, (k, type, unit) in enumerate(keys):
             key = f"measurements.{k}"
             response = self.do_request(
                 {
@@ -631,6 +631,23 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 }
             )
             assert response.status_code == 200, response.content
+            assert response.data["meta"] == {
+                "dataset": mock.ANY,
+                "datasetReason": "unchanged",
+                "fields": {
+                    key: type,
+                    "id": "string",
+                    "project.name": "string",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    key: unit,
+                    "id": None,
+                    "project.name": None,
+                },
+            }
             assert response.data["data"] == [
                 {
                     key: i + 1,
@@ -1355,3 +1372,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):
         super().test_spm()
+
+    @pytest.mark.xfail(reason="units not implemented yet")
+    def test_simple_measurements(self):
+        super().test_simple_measurements()
