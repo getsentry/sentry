@@ -282,7 +282,6 @@ module = [
     "sentry.receivers.releases",
     "sentry.release_health.metrics_sessions_v2",
     "sentry.replays.endpoints.project_replay_clicks_index",
-    "sentry.replays.lib.query",
     "sentry.rules.actions.integrations.base",
     "sentry.rules.actions.integrations.create_ticket.form",
     "sentry.rules.actions.integrations.create_ticket.utils",
