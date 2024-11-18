@@ -100,8 +100,8 @@ def try_incident_threshold(
         )
 
     elif monitor_env.status == MonitorStatus.ERROR:
-        # if monitor environment has a failed status, use the failed
-        # check-in and send occurrence
+        # If the monitor was already in an incident there are no previous
+        # check-ins to pass long when creating the occurrence
         previous_checkins = [SimpleCheckIn.from_checkin(failed_checkin)]
 
         # get the active incident from the monitor environment
