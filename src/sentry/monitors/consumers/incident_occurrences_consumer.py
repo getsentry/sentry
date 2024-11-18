@@ -18,7 +18,7 @@ from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import I
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
-from sentry.monitors.models import MonitorCheckIn, MonitorIncident
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident
 from sentry.monitors.system_incidents import TickAnomalyDecision, get_clock_tick_decision
 
 logger = logging.getLogger(__name__)
@@ -88,13 +88,26 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
     received = datetime.fromtimestamp(wrapper["received_ts"], UTC)
 
     if use_decision and tick_decision and tick_decision.is_incident():
-        # TODO(epurkhiser): We are in a system incident. Mark the check-in
-        # which triggerd this incident occurrence as unknown
+        # Update the failed check-in as unknown and drop the occurrence.
         #
-        # We may need some additional logic do determine if one of the
-        # previous_checkins was part of the incident to decide if we can mark that
-        # as unknown.
-        pass
+        # Only consider synthetic check-ins (timeout and miss) since failed
+        # check-ins must have been correctly ingested and cannot have been
+        # produced during a system incident.
+        #
+        # XXX(epurkhiser): There is an edge case here where we'll want to
+        # determine if the check-in is within the system incident timeframe,
+        # since we dispatch occurrences for all check-ins that met a failure
+        # threshold. Imagine a monitor that checks-in once a day with a failure
+        # threshold of 5. If the last check-in happens to be a miss that is
+        # detected during a system-incident, then all 5 previous check-ins
+        # would also be marked as unknown, which is incorrect.
+        MonitorCheckIn.objects.filter(
+            id=failed_checkin.id,
+            status__in=CheckInStatus.SYNTHETIC_TERMINAL_VALUES,
+        ).update(status=CheckInStatus.UNKNOWN)
+
+        # Do NOT send the occurrence
+        return
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
