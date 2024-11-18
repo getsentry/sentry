@@ -139,11 +139,11 @@ def expose_fingerprint_dict(fingerprint, fingerprint_info):
         "values": fingerprint,
     }
 
-    client_values = fingerprint_info.get("client_fingerprint")
-    if client_values and (
-        len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
+    client_fingerprint = fingerprint_info.get("client_fingerprint")
+    if client_fingerprint and (
+        len(client_fingerprint) != 1 or not is_default_fingerprint_var(client_fingerprint[0])
     ):
-        rv["client_values"] = client_values
+        rv["client_values"] = client_fingerprint
 
     matched_rule = fingerprint_info.get("matched_rule")
     if matched_rule:
