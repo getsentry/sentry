@@ -1287,8 +1287,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                     "sum(tags[foo,number])",
                     "avg(tags[foo,number])",
                     "p50(tags[foo,number])",
-                    # TODO: bring p75 back once its added to the rpc
-                    # "p75(tags[foo,number])",
+                    "p75(tags[foo,number])",
                     "p95(tags[foo,number])",
                     "p99(tags[foo,number])",
                     "p100(tags[foo,number])",
@@ -1316,8 +1315,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             "sum(tags[foo,number])": 5.0,
             "avg(tags[foo,number])": 5.0,
             "p50(tags[foo,number])": 5.0,
-            # TODO: bring p75 back once its added to the rpc
-            # "p75(tags[foo,number])": 5.0,
+            "p75(tags[foo,number])": 5.0,
             "p95(tags[foo,number])": 5.0,
             "p99(tags[foo,number])": 5.0,
             "p100(tags[foo,number])": 5.0,
@@ -1365,9 +1363,37 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_span_op_casing(self):
         super().test_span_op_casing()
 
-    @pytest.mark.xfail(reason="wip: not implemented yet")
     def test_tag_wildcards(self):
-        super().test_tag_wildcards()
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "tags": {"foo": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "qux"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        for query in [
+            "foo:b*",
+            "foo:*r",
+            "foo:*a*",
+            "foo:b*r",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["foo", "count()"],
+                    "query": query,
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):

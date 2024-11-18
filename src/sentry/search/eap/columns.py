@@ -419,6 +419,13 @@ SPAN_FUNCTION_DEFINITIONS = {
         ],
         extrapolation=False,
     ),
+    "p75": FunctionDefinition(
+        internal_function=Function.FUNCTION_P75,
+        search_type="duration",
+        arguments=[
+            ArgumentDefinition(argument_types=["duration", "number"], default_arg="span.duration")
+        ],
+    ),
     "p90": FunctionDefinition(
         internal_function=Function.FUNCTION_P90,
         search_type="duration",
