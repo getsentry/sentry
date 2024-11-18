@@ -139,8 +139,6 @@ def expose_fingerprint_dict(values, info):
         "values": values,
     }
 
-    from sentry.grouping.fingerprinting import FingerprintRule
-
     client_values = info.get("client_fingerprint")
     if client_values and (
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
@@ -149,8 +147,7 @@ def expose_fingerprint_dict(values, info):
 
     matched_rule = info.get("matched_rule")
     if matched_rule:
-        rule = FingerprintRule.from_json(matched_rule)
-        rv["matched_rule"] = rule.text
+        rv["matched_rule"] = matched_rule["text"]
 
     return rv
 
