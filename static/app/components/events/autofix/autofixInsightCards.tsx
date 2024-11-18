@@ -409,12 +409,18 @@ function ChainLink({
   const {mutate: send} = useUpdateInsightCard({groupId, runId});
 
   const {styles, attributes} = usePopper(referenceElement, popperElement, {
-    placement: insightCardAboveIndex === null ? 'right-start' : 'right-start',
+    placement: 'left-start',
     modifiers: [
       {
         name: 'offset',
         options: {
-          offset: [-16, 4],
+          offset: [-16, 8],
+        },
+      },
+      {
+        name: 'flip',
+        options: {
+          fallbackPlacements: ['right-start', 'bottom-start'],
         },
       },
     ],
@@ -501,7 +507,7 @@ function ChainLink({
               />
             </form>
           </RethinkInput>,
-          document.body
+          document.querySelector('.solutions-drawer-container') ?? document.body
         )}
     </ArrowContainer>
   );
@@ -608,9 +614,10 @@ const RethinkButton = styled(Button)`
 `;
 
 const RethinkInput = styled('div')`
+  position: fixed;
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  width: 45%;
+  width: 90%;
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
