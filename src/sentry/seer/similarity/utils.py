@@ -421,3 +421,11 @@ def project_is_seer_eligible(project: Project) -> bool:
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
+
+
+def record_did_call_seer_metric(event: Event, called: bool, blocker: str) -> None:
+    metrics.incr(
+        "grouping.similarity.did_call_seer",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"call_made": called, "blocker": blocker, "platform": event.platform},
+    )
