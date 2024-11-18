@@ -3,6 +3,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     IntArray,
     StrArray,
@@ -288,6 +289,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum(span.self_time)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -297,6 +299,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -306,6 +309,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="test",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -315,6 +319,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
@@ -322,6 +327,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count(span.duration)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -331,6 +337,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_P50,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="p50()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -340,5 +347,6 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_UNIQ,
             key=AttributeKey(name="sentry.action", type=AttributeKey.Type.TYPE_STRING),
             label="count_unique(span.action)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
