@@ -69,7 +69,7 @@ function InviteRowControl({
     },
     [roleOptions]
   );
-  const isTeamRolesAllowed = isOverMemberLimit ? false : isTeamRolesAllowedForRole(role);
+  const isTeamRolesAllowed = isTeamRolesAllowedForRole(role);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     switch (event.key) {
@@ -84,18 +84,6 @@ function InviteRowControl({
       // do nothing.
     }
   };
-
-  const billingRole = 'billing';
-  const billingRoleOptions = [
-    {
-      id: 'billing',
-      name: 'Billing',
-      isAllowed: true,
-      desc: 'Can manage subscription and billing details.',
-      minimumTeamRole: 'admin',
-      isTeamRolesAllowed: false,
-    },
-  ];
 
   return (
     <li className={className}>
@@ -132,9 +120,9 @@ function InviteRowControl({
       <RoleSelectControl
         aria-label={t('Role')}
         data-test-id="select-role"
-        disabled={disabled}
-        value={isOverMemberLimit ? billingRole : role}
-        roles={isOverMemberLimit ? billingRoleOptions : roleOptions}
+        disabled={isOverMemberLimit ? true : disabled}
+        value={role}
+        roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}
         onChange={roleOption => {
           onChangeRole(roleOption);

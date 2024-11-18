@@ -1,5 +1,4 @@
-import type {ReactNode} from 'react';
-import {Fragment} from 'react';
+import {Fragment, type ReactNode, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -78,6 +77,16 @@ export default function InviteMembersModalView({
     </Alert>
   ) : null;
 
+  const canSendRef = useRef(canSend);
+
+  useEffect(() => {
+    if (isOverMemberLimit) {
+      setRole('billing', 0);
+      setTeams([], 0);
+      canSendRef.current = true;
+    }
+  });
+
   return (
     <Fragment>
       {errorAlert}
@@ -121,17 +130,17 @@ export default function InviteMembersModalView({
           />
         ))}
       </Rows>
-
-      <AddButton
-        disabled={disableInputs}
-        size="sm"
-        borderless
-        onClick={addInviteRow}
-        icon={<IconAdd isCircled />}
-      >
-        {t('Add another')}
-      </AddButton>
-
+      {!isOverMemberLimit && (
+        <AddButton
+          disabled={disableInputs}
+          size="sm"
+          borderless
+          onClick={addInviteRow}
+          icon={<IconAdd isCircled />}
+        >
+          {t('Add another')}
+        </AddButton>
+      )}
       <Footer>
         <FooterContent>
           <div>
@@ -147,9 +156,11 @@ export default function InviteMembersModalView({
           <ButtonBar gap={1}>
             {complete ? (
               <Fragment>
-                <Button data-test-id="send-more" size="sm" onClick={reset}>
-                  {t('Send more invites')}
-                </Button>
+                {!isOverMemberLimit && (
+                  <Button data-test-id="send-more" size="sm" onClick={reset}>
+                    {t('Send more invites')}
+                  </Button>
+                )}
                 <Button
                   data-test-id="close"
                   priority="primary"
@@ -175,11 +186,7 @@ export default function InviteMembersModalView({
                   size="sm"
                   data-test-id="send-invites"
                   priority="primary"
-                  disabled={
-                    isOverMemberLimit
-                      ? false
-                      : !canSend || !isValidInvites || disableInputs
-                  }
+                  disabled={!canSendRef.current || !isValidInvites || disableInputs}
                   onClick={sendInvites}
                 />
               </Fragment>
