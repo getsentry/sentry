@@ -32,7 +32,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       });
     },
     onMutate: () => {
-      onToggle?.(project.isBookmarked);
+      onToggle?.(isBookmarked);
       setIsBookmarked(current => !current);
     },
     onError: () => {
