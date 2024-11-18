@@ -48,7 +48,8 @@ def process_clock_tick(message: Message[KafkaPayload | FilteredPayload]):
 
     # During a systems incident we do NOT mark timeouts since it's possible
     # we'll have lost the completing check-in. Instead we mark ALL in-progress
-    # check-ins as UNKNOWN. Should these check-ins complete
+    # check-ins as UNKNOWN. Should these check-ins recieve completing check-ins
+    # they will be properly updated, even after being marked as UNKNOWN.
     if use_decision and incident_result and incident_result.decision.is_incident():
         dispatch_mark_unknown(ts)
     else:
