@@ -155,6 +155,7 @@ from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
+    IntervalSecondsLiteral,
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
@@ -1955,12 +1956,13 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
-        interval_seconds: int,
+        interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
         headers,
         body,
         date_updated: datetime,
+        trace_sampling: bool = False,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1976,6 +1978,7 @@ class Factories:
             method=method,
             headers=headers,
             body=body,
+            trace_sampling=trace_sampling,
         )
 
     @staticmethod

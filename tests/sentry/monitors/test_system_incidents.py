@@ -12,11 +12,15 @@ from sentry.monitors.system_incidents import (
     MONITOR_VOLUME_HISTORY,
     MONITOR_VOLUME_RETENTION,
     AnomalyTransition,
+    DecisionResult,
     TickAnomalyDecision,
     _make_reference_ts,
     get_clock_tick_decision,
     get_clock_tick_volume_metric,
+    get_last_incident_ts,
     make_clock_tick_decision,
+    process_clock_tick_for_system_incidents,
+    prune_incident_check_in_volume,
     record_clock_tick_volume_metric,
     update_check_in_volume,
 )
@@ -105,8 +109,73 @@ def test_update_check_in_volume():
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
+@mock.patch("sentry.monitors.system_incidents.record_clock_tick_volume_metric")
+@mock.patch("sentry.monitors.system_incidents.make_clock_tick_decision")
+@mock.patch("sentry.monitors.system_incidents.prune_incident_check_in_volume")
+def test_process_clock_tick_for_system_incident(
+    mock_prune_incident_check_in_volume,
+    mock_make_clock_tick_decision,
+    mock_record_clock_tick_volume_metric,
+    mock_metrics,
+    mock_logger,
+):
+    ts = timezone.now().replace(second=0, microsecond=0)
+
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts,
+        decision=TickAnomalyDecision.ABNORMAL,
+        transition=AnomalyTransition.ABNORMALITY_STARTED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+
+    assert mock_record_clock_tick_volume_metric.call_count == 1
+    assert mock_make_clock_tick_decision.call_count == 1
+
+    # Metrics and logs are recorded
+    assert mock_logger.info.call_args_list[0] == mock.call(
+        "monitors.system_incidents.process_clock_tick",
+        extra={
+            "decision": TickAnomalyDecision.ABNORMAL,
+            "transition": AnomalyTransition.ABNORMALITY_STARTED,
+        },
+    )
+    assert mock_metrics.incr.call_args_list[0] == mock.call(
+        "monitors.tasks.clock_tick.tick_decision",
+        tags={"decision": TickAnomalyDecision.ABNORMAL},
+        sample_rate=1.0,
+    )
+    assert mock_metrics.incr.call_args_list[1] == mock.call(
+        "monitors.tasks.clock_tick.tick_transition",
+        tags={"transition": AnomalyTransition.ABNORMALITY_STARTED},
+        sample_rate=1.0,
+    )
+
+    # Transition into an incident records the start timestamp
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts,
+        decision=TickAnomalyDecision.INCIDENT,
+        transition=AnomalyTransition.INCIDENT_STARTED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+    assert get_last_incident_ts() == ts
+
+    # Transitioning out of an incident prunes volume during the incident
+    mock_make_clock_tick_decision.return_value = DecisionResult(
+        ts=ts + timedelta(minutes=5),
+        decision=TickAnomalyDecision.NORMAL,
+        transition=AnomalyTransition.INCIDENT_RECOVERED,
+    )
+    process_clock_tick_for_system_incidents(ts)
+    assert mock_prune_incident_check_in_volume.call_args_list[0] == mock.call(
+        ts,
+        ts + timedelta(minutes=5),
+    )
+
+
+@mock.patch("sentry.monitors.system_incidents.logger")
+@mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_simple(metrics, logger):
+def test_record_clock_tick_volume_metric_simple(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -159,7 +228,7 @@ def test_record_clock_tiock_volume_metric_simple(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_volume_drop(metrics, logger):
+def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -213,7 +282,7 @@ def test_record_clock_tiock_volume_metric_volume_drop(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_low_history(metrics, logger):
+def test_record_clock_tick_volume_metric_low_history(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -235,7 +304,7 @@ def test_record_clock_tiock_volume_metric_low_history(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
+def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -283,6 +352,32 @@ def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
         sample_rate=1.0,
     )
     assert get_clock_tick_volume_metric(past_ts) == 0.0
+
+
+@override_options({"crons.tick_volume_anomaly_detection": True})
+def test_prune_incident_check_in_volume():
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    # Fill in some historic volume data
+    for offset in range(10):
+        update_check_in_volume([now + timedelta(minutes=offset)] * (offset + 1))
+
+    # Remove data in the middle
+    prune_incident_check_in_volume(
+        now + timedelta(minutes=2),
+        now + timedelta(minutes=6),
+    )
+
+    def make_key(offset: timedelta) -> str:
+        ts = now.replace(second=0, microsecond=0) + offset
+        return MONITOR_VOLUME_HISTORY.format(ts=int(ts.timestamp()))
+
+    volumes = [redis_client.get(make_key(timedelta(minutes=offset))) for offset in range(10)]
+
+    # Ensure we removed the correct keys. remmeber,
+    # prune_incident_check_in_volume recieves the timestamp of the incident
+    # tick decisions, but the volume data is recorded in the timestamp before
+    assert volumes == ["1", None, None, None, None, "6", "7", "8", "9", "10"]
 
 
 @django_db_all
