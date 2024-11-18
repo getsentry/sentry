@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .actions import Action
-from .matchers import ExceptionFieldMatch, Match
+from .matchers import EnhancementMatch, ExceptionFieldMatch
 
 
 class Rule:
@@ -88,6 +88,6 @@ class Rule:
     @classmethod
     def _from_config_structure(cls, tuple, version):
         return Rule(
-            [Match._from_config_structure(x, version) for x in tuple[0]],
+            [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
             [Action._from_config_structure(x, version) for x in tuple[1]],
         )
