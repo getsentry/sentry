@@ -64,9 +64,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     timeout_ms = models.IntegerField()
     # HTTP method to perform the check with
     method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
-        models.CharField(
-            max_length=20, choices=SupportedHTTPMethods, default=SupportedHTTPMethods.GET
-        )
+        models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
     )
     # HTTP headers to send when performing the check
     headers = JSONField(json_dumps=headers_json_encoder, db_default=[])
