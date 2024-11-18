@@ -5,16 +5,32 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
+from io import BytesIO
 from string import Template
 from typing import Any
 from uuid import UUID
 
+from django.core.files.storage import Storage
 from django.utils import timezone
+from orjson import JSONDecodeError
 
 from sentry import options
-from sentry.backup.dependencies import dependencies, get_model_name, sorted_dependencies
+from sentry.backup.crypto import (
+    DecryptionError,
+    EncryptorDecryptorPair,
+    create_encrypted_export_tarball,
+    decrypt_encrypted_tarball,
+)
+from sentry.backup.dependencies import (
+    NormalizedModelName,
+    dependencies,
+    get_model_name,
+    sorted_dependencies,
+)
+from sentry.backup.exports import ExportCheckpointer, ExportCheckpointerError
 from sentry.backup.helpers import Printer
 from sentry.backup.scopes import RelocationScope
+from sentry.backup.services.import_export.model import RpcExportOk
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.relocation import Relocation, RelocationFile
@@ -308,9 +324,80 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
 )
 
 
-# A custom logger that roughly matches the parts of the `click.echo` interface that the
-# `import_*` methods rely on.
+class StorageBackedCheckpointExporter(ExportCheckpointer):
+    """
+    An export checkpointer that uses GCP cloud storage to store encrypted checkpoints for every
+    model we export for a SAAS_TO_SAAS relocation.
+    """
+
+    def __init__(
+        self,
+        *,
+        crypto: EncryptorDecryptorPair,
+        uuid: UUID,
+        storage: Storage,
+    ):
+        self.__crypto = crypto
+        self.__uuid = uuid
+        self.__storage = storage
+
+    def _get_path_name(self, model_name: NormalizedModelName) -> str:
+        return f"runs/{self.__uuid}/saas_to_saas_export/_checkpoints/{str(model_name)}.enc.tar"
+
+    def get(self, model_name: NormalizedModelName) -> RpcExportOk | None:
+        logger_data: dict[str, Any] = {"uuid": str(self.__uuid), "model": str(model_name)}
+        path_name = self._get_path_name(model_name)
+        try:
+            with self.__storage.open(path_name, "rb") as fp:
+                logger_data["encrypted_contents_size"] = fp.tell()
+                json_data = decrypt_encrypted_tarball(fp, self.__crypto.decryptor)
+                parsed_json = self._parse_cached_json(json_data)
+                if parsed_json is None:
+                    logger.info(
+                        "Export checkpointer: miss",
+                        extra=logger_data,
+                    )
+                else:
+                    logger_data["max_pk"] = parsed_json.max_pk
+                    logger.info(
+                        "Export checkpointer: read",
+                        extra=logger_data,
+                    )
+
+                return parsed_json
+        except (FileNotFoundError, DecryptionError, JSONDecodeError, ExportCheckpointerError):
+            logger.info(
+                "Export checkpointer: miss",
+                extra=logger_data,
+            )
+            return None
+
+    def add(self, model_name: NormalizedModelName, json_export: Any) -> None:
+        logger_data: dict[str, Any] = {"uuid": str(self.__uuid), "model": str(model_name)}
+        path_name = self._get_path_name(model_name)
+        if not isinstance(json_export, list):
+            return None
+
+        out_bytes = create_encrypted_export_tarball(json_export, self.__crypto.encryptor).getvalue()
+        fp = BytesIO()
+        fp.write(out_bytes)
+        fp.seek(0)
+        self.__storage.save(path_name, fp)
+
+        logger_data["encrypted_contents_size"] = fp.tell()
+        logger_data["model_count"] = len(json_export)
+        logger.info(
+            "Export checkpointer: write",
+            extra=logger_data,
+        )
+
+
 class LoggingPrinter(Printer):
+    """
+    A custom logger that roughly matches the parts of the `click.echo` interface that the `import_*`
+    and `export_*` backup methods rely on.
+    """
+
     def __init__(self, uuid: UUID):
         self.uuid = uuid
         super().__init__()
