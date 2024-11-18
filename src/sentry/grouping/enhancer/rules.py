@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .actions import Action
+from .actions import EnhancementAction
 from .matchers import EnhancementMatch, ExceptionFieldMatch
 
 
@@ -54,7 +54,7 @@ class EnhancementRule:
         match_frames: list[dict[str, Any]],
         exception_data: dict[str, Any],
         in_memory_cache: dict[str, str],
-    ) -> list[tuple[int, Action]]:
+    ) -> list[tuple[int, EnhancementAction]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
         """
@@ -89,5 +89,5 @@ class EnhancementRule:
     def _from_config_structure(cls, tuple, version):
         return EnhancementRule(
             [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
-            [Action._from_config_structure(x, version) for x in tuple[1]],
+            [EnhancementAction._from_config_structure(x, version) for x in tuple[1]],
         )
