@@ -260,7 +260,7 @@ function OnboardingContent({
                     ),
                   })}
                   {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
+                    tct('[optionSelect]', {
                       optionSelect: (
                         <PlatformOptionDropdown
                           platformOptions={jsFrameworkDocs?.platformOptions}
