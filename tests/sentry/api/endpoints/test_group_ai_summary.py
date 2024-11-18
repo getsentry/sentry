@@ -13,7 +13,7 @@ from sentry.utils.cache import cache
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:ai-summary")
+@apply_feature_flag_on_cls("organizations:gen-ai-features")
 class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
