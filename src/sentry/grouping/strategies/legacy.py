@@ -446,7 +446,7 @@ def stacktrace_legacy(
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv, _ = context.config.enhancements.assemble_stacktrace_component(
+    rv = context.config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, event.platform
     )
     rv.update(contributes=contributes, hint=hint)

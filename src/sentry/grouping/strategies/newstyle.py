@@ -460,7 +460,7 @@ def _single_stacktrace_variant(
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    main_variant, _ = context.config.enhancements.assemble_stacktrace_component(
+    main_variant = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         event.platform,
