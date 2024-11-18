@@ -107,7 +107,7 @@ def test_update_check_in_volume():
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_simple(metrics, logger):
+def test_record_clock_tick_volume_metric_simple(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -160,7 +160,7 @@ def test_record_clock_tiock_volume_metric_simple(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_volume_drop(metrics, logger):
+def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -214,7 +214,7 @@ def test_record_clock_tiock_volume_metric_volume_drop(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_low_history(metrics, logger):
+def test_record_clock_tick_volume_metric_low_history(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
@@ -236,7 +236,7 @@ def test_record_clock_tiock_volume_metric_low_history(metrics, logger):
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
 @override_options({"crons.tick_volume_anomaly_detection": True})
-def test_record_clock_tiock_volume_metric_uniform(metrics, logger):
+def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
     # This is the timestamp we're looking at just before the tick
