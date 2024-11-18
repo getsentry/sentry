@@ -43,7 +43,6 @@ describe('SolutionsHubDrawer', () => {
         genAIConsent: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {ok: true},
-        autofixEnabled: {ok: true},
       },
     });
     MockApiClient.addMockResponse({
@@ -65,7 +64,6 @@ describe('SolutionsHubDrawer', () => {
         genAIConsent: {ok: false},
         integration: {ok: false},
         githubWriteIntegration: {ok: false},
-        autofixEnabled: {ok: false},
       },
     });
     MockApiClient.addMockResponse({
@@ -181,14 +179,13 @@ describe('SolutionsHubDrawer', () => {
     });
   });
 
-  it('continues to show setup if autofix is not enabled', async () => {
+  it('shows setup if not complete', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/setup/`,
       body: {
         genAIConsent: {ok: true},
-        integration: {ok: true},
+        integration: {ok: false},
         githubWriteIntegration: {ok: false, repos: []},
-        autofixEnabled: {ok: false},
       },
     });
     MockApiClient.addMockResponse({
@@ -211,8 +208,6 @@ describe('SolutionsHubDrawer', () => {
 
     expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: 'Skip & Enable Autofix'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
   });
 });

@@ -19,7 +19,6 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   aiSuggestedSolution: boolean;
-  autofixEnabled: boolean;
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;

@@ -1,13 +1,11 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
   type AutofixSetupResponse,
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,7 +22,6 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
         {tct('The GitHub integration is already installed, [link: view in settings].', {
           link: <ExternalLink href={`/settings/integrations/github/`} />,
         })}
-        <GuidedSteps.StepButtons />
       </Fragment>
     );
   }
@@ -50,7 +47,6 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
             }
           )}
         </p>
-        <GuidedSteps.StepButtons />
       </Fragment>
     );
   }
@@ -76,7 +72,6 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
             }
           )}
         </p>
-        <GuidedSteps.StepButtons />
       </Fragment>
     );
   }
@@ -101,7 +96,6 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
           }
         )}
       </p>
-      <GuidedSteps.StepButtons />
     </Fragment>
   );
 }
@@ -128,194 +122,46 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
   );
 }
 
-function AutofixGithubIntegrationStep({
-  autofixSetup,
-  canStartAutofix,
-  onComplete,
-  isLastStep,
+function SetupStep({
+  title,
+  isCompleted,
+  children,
 }: {
-  autofixSetup: AutofixSetupResponse;
-  canStartAutofix: boolean;
-  isLastStep?: boolean;
-  onComplete?: () => void;
+  children: React.ReactNode;
+  isCompleted: boolean;
+  title: string;
 }) {
-  const handleClose = () => {
-    onComplete?.();
-  };
-
-  const sortedRepos = useMemo(
-    () =>
-      autofixSetup.githubWriteIntegration.repos.toSorted((a, b) => {
-        if (a.ok === b.ok) {
-          return `${a.owner}/${a.name}`.localeCompare(`${b.owner}/${b.name}`);
-        }
-        return a.ok ? -1 : 1;
-      }),
-    [autofixSetup.githubWriteIntegration.repos]
-  );
-
-  if (autofixSetup.githubWriteIntegration.ok) {
-    return (
-      <Fragment>
-        <p>
-          {tct(
-            'The [link:Sentry Autofix GitHub App] has been installed on all required repositories:',
-            {
-              link: (
-                <ExternalLink href="https://github.com/apps/sentry-autofix-experimental" />
-              ),
-            }
-          )}
-        </p>
-        <RepoLinkUl>
-          {sortedRepos.map(repo => (
-            <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
-          ))}
-        </RepoLinkUl>
-        <GuidedSteps.StepButtons>
-          {isLastStep && (
-            <Button
-              priority="primary"
-              size="sm"
-              disabled={!canStartAutofix}
-              onClick={handleClose}
-              analyticsEventName="Autofix Setup Enable Autofix"
-              analyticsEventKey="autofix.setup_enable_autofix"
-            >
-              {t('Enable Autofix')}
-            </Button>
-          )}
-        </GuidedSteps.StepButtons>
-      </Fragment>
-    );
-  }
-
-  if (autofixSetup.githubWriteIntegration.repos.length > 0) {
-    return (
-      <Fragment>
-        <p>
-          {tct(
-            'Install and grant write access to the [link:Sentry Autofix Github App] for the following repositories:',
-            {
-              link: (
-                <ExternalLink
-                  href={`https://github.com/apps/sentry-autofix/installations/new`}
-                />
-              ),
-            }
-          )}
-        </p>
-        <RepoLinkUl>
-          {sortedRepos.map(repo => (
-            <GitRepoLink key={`${repo.owner}/${repo.name}`} repo={repo} />
-          ))}
-        </RepoLinkUl>
-        <p>
-          {t(
-            'Without this, Autofix can still provide root analysis and suggested code changes.'
-          )}
-        </p>
-        <GuidedSteps.StepButtons>
-          {isLastStep && (
-            <Button
-              priority="primary"
-              size="sm"
-              disabled={!canStartAutofix}
-              onClick={handleClose}
-            >
-              {t('Skip & Enable Autofix')}
-            </Button>
-          )}
-        </GuidedSteps.StepButtons>
-      </Fragment>
-    );
-  }
-
   return (
-    <Fragment>
-      <p>
-        {tct(
-          'Install and grant write access to the [link:Sentry Autofix Github App] for the relevant repositories.',
-          {
-            link: (
-              <ExternalLink
-                href={`https://github.com/apps/sentry-autofix/installations/new`}
-              />
-            ),
-          }
-        )}
-      </p>
-      <p>
-        {t(
-          'Without this, Autofix can still provide root analysis and suggested code changes.'
-        )}
-      </p>
-      <GuidedSteps.StepButtons>
-        {isLastStep && (
-          <Button
-            priority="primary"
-            size="sm"
-            disabled={!canStartAutofix}
-            onClick={handleClose}
-            analyticsEventName="Autofix Setup Skip & Enable Autofix"
-            analyticsEventKey="autofix.setup_skip_enable_autofix"
-          >
-            {t('Skip & Enable Autofix')}
-          </Button>
-        )}
-      </GuidedSteps.StepButtons>
-    </Fragment>
+    <StepWrapper>
+      <StepHeader>
+        <StepTitle>{title}</StepTitle>
+        {isCompleted && <IconCheckmark color="success" size="sm" />}
+      </StepHeader>
+      <div>{children}</div>
+    </StepWrapper>
   );
 }
 
-function AutofixSetupSteps({
-  autofixSetup,
-  canStartAutofix,
-  onComplete,
-}: {
-  autofixSetup: AutofixSetupResponse;
-  canStartAutofix: boolean;
-  groupId: string;
-  projectId: string;
-  onComplete?: () => void;
-}) {
+function AutofixSetupSteps({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
   return (
-    <GuidedSteps>
-      <GuidedSteps.Step
-        stepKey="integration"
-        title={t('Install the GitHub Integration')}
-        isCompleted={autofixSetup.integration.ok}
-      >
-        <AutofixIntegrationStep autofixSetup={autofixSetup} />
-      </GuidedSteps.Step>
-      <GuidedSteps.Step
-        stepKey="repoWriteAccess"
-        title={t('Allow Autofix to Make Pull Requests')}
-        isCompleted={autofixSetup.githubWriteIntegration.ok}
-        optional
-      >
-        <AutofixGithubIntegrationStep
-          autofixSetup={autofixSetup}
-          canStartAutofix={canStartAutofix}
-          isLastStep
-          onComplete={onComplete}
-        />
-      </GuidedSteps.Step>
-    </GuidedSteps>
+    <SetupStep
+      title={t('Install the GitHub Integration')}
+      isCompleted={autofixSetup.integration.ok}
+    >
+      <AutofixIntegrationStep autofixSetup={autofixSetup} />
+    </SetupStep>
   );
 }
 
 export function AutofixSetupContent({
   projectId,
   groupId,
-  onComplete,
 }: {
   groupId: string;
   projectId: string;
-  onComplete?: () => void;
 }) {
   const organization = useOrganization();
-  const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
+  const {data, isPending, isError} = useAutofixSetup(
     {groupId},
     // Want to check setup status whenever the user comes back to the tab
     {refetchOnWindowFocus: true}
@@ -352,14 +198,8 @@ export function AutofixSetupContent({
         Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
         to work with you to find the root cause and create a fix.
       </p>
-      <p>A few additional steps are needed before you can use Autofix.</p>
-      <AutofixSetupSteps
-        groupId={groupId}
-        projectId={projectId}
-        autofixSetup={data}
-        canStartAutofix={canStartAutofix}
-        onComplete={onComplete}
-      />
+      <p>To use Autofix, please follow the instructions below.</p>
+      <AutofixSetupSteps autofixSetup={data} />
     </Fragment>
   );
 }
@@ -381,13 +221,6 @@ const Header = styled('p')`
   margin-top: ${space(2)};
 `;
 
-const RepoLinkUl = styled('ul')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(0.5)};
-  padding: 0;
-`;
-
 const RepoLinkItem = styled('li')`
   display: flex;
   align-items: center;
@@ -403,4 +236,23 @@ const GithubLink = styled('div')`
 const Divider = styled('div')`
   margin: ${space(3)} 0;
   border-bottom: 2px solid ${p => p.theme.gray100};
+`;
+
+const StepWrapper = styled('div')`
+  margin-top: ${space(3)};
+  padding-left: ${space(2)};
+  border-left: 2px solid ${p => p.theme.border};
+`;
+
+const StepHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const StepTitle = styled('p')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: 600;
+  margin: 0;
 `;
