@@ -40,6 +40,35 @@ class ProjectUptimeAlertIndexPostEndpointTest(ProjectUptimeAlertIndexBaseEndpoin
         assert uptime_subscription.interval_seconds == 60
         assert uptime_subscription.timeout_ms == 1500
         assert uptime_subscription.body is None
+        assert uptime_subscription.trace_sampling is False
+
+    def test_set_trace_sampling(self):
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            environment="uptime-prod",
+            owner=f"user:{self.user.id}",
+            url="http://sentry.io",
+            interval_seconds=60,
+            timeout_ms=1500,
+            body=None,
+            trace_sampling=True,
+        )
+        uptime_monitor = ProjectUptimeSubscription.objects.get(id=resp.data["id"])
+        uptime_subscription = uptime_monitor.uptime_subscription
+        assert uptime_monitor.name == "test"
+        assert uptime_monitor.environment == Environment.get_or_create(
+            project=self.project, name="uptime-prod"
+        )
+        assert uptime_monitor.owner_user_id == self.user.id
+        assert uptime_monitor.owner_team_id is None
+        assert uptime_monitor.mode == ProjectUptimeSubscriptionMode.MANUAL
+        assert uptime_subscription.url == "http://sentry.io"
+        assert uptime_subscription.interval_seconds == 60
+        assert uptime_subscription.timeout_ms == 1500
+        assert uptime_subscription.body is None
+        assert uptime_subscription.trace_sampling is True
 
     def test_no_environment(self):
         resp = self.get_success_response(
