@@ -33,23 +33,17 @@ SPAN_ID_FIELDS = {
     "segment_id",
 }
 
-
-class SpansIndexedQueryBuilderMixin:
-    meta_resolver_map: dict[str, str]
-
-    def get_field_type(self, field: str) -> str | None:
-        if field in self.meta_resolver_map:
-            return self.meta_resolver_map[field]
-        if field in ["span.duration", "span.self_time"]:
-            return "duration"
-
-        return None
+DURATION_FIELDS = {
+    "span.duration",
+    "span.self_time",
+}
 
 
-class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
+class SpansIndexedQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = False
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
     config_class = SpansIndexedDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -59,10 +53,11 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         )
 
 
-class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
+class SpansEAPQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
     config_class = SpansEAPDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -106,10 +101,11 @@ class SpansEAPQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
         return field_col
 
 
-class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
+class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
 
     @property
     def time_column(self) -> SelectType:
@@ -122,10 +118,11 @@ class TimeseriesSpanEAPIndexedQueryBuilder(SpansEAPQueryBuilder, TimeseriesQuery
     pass
 
 
-class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
+class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
     config_class = SpansIndexedDatasetConfig
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
+    duration_fields = DURATION_FIELDS
 
     @property
     def time_column(self) -> SelectType:
