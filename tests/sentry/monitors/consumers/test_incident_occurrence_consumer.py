@@ -59,7 +59,7 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
             monitor=self.monitor,
             monitor_environment=self.monitor_environment,
             project_id=self.project.id,
-            status=CheckInStatus.ERROR,
+            status=CheckInStatus.MISSED,
             date_added=timezone.now(),
         )
         self.incident = MonitorIncident.objects.create(
@@ -179,3 +179,37 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         mock_memoized_tick_decision.return_value = TickAnomalyDecision.NORMAL
         send_incident_occurrence(consumer, ts, message)
         assert mock_send_incident_occurrence.call_count == 1
+
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.send_incident_occurrence")
+    @mock.patch("sentry.monitors.consumers.incident_occurrences_consumer.memoized_tick_decision")
+    @override_options({"crons.system_incidents.use_decisions": True})
+    def test_incident_decision_dispatch(
+        self,
+        mock_memoized_tick_decision,
+        mock_send_incident_occurrence,
+    ):
+        """
+        Tests that the cosnumer does NOT send an incident occurrence when the
+        clock decision is INCIDENT, in which case we should update the failed
+        check-in with an UNKNOWN status.
+        """
+        mock_memoized_tick_decision.return_value = TickAnomalyDecision.INCIDENT
+
+        ts = timezone.now().replace(second=0, microsecond=0)
+
+        consumer = create_consumer()
+
+        message: IncidentOccurrence = {
+            "clock_tick_ts": int(ts.timestamp()),
+            "received_ts": int(self.failed_checkin.date_added.timestamp()),
+            "incident_id": self.incident.id,
+            "failed_checkin_id": self.failed_checkin.id,
+            "previous_checkin_ids": [self.failed_checkin.id],
+        }
+
+        send_incident_occurrence(consumer, ts, message)
+        assert mock_send_incident_occurrence.call_count == 0
+
+        # The failed check-in is updated as UNKNOWN
+        self.failed_checkin.refresh_from_db()
+        assert self.failed_checkin.status == CheckInStatus.UNKNOWN
