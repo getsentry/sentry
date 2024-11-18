@@ -20,9 +20,6 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
-  eventProcessing: {
-    symbolicationDegraded: boolean;
-  };
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -67,6 +64,9 @@ export type Project = {
   verifySSL: boolean;
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
+  eventProcessing?: {
+    symbolicationDegraded?: boolean;
+  };
   hasUserReports?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
