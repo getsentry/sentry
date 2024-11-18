@@ -422,7 +422,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             if use_rpc and dataset == spans_eap:
-                spans_rpc.run_table_query(
+                return spans_rpc.run_table_query(
                     params=snuba_params,
                     query_string=query,
                     selected_columns=self.get_field_list(organization, request),

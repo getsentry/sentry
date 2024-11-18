@@ -29,6 +29,7 @@ from sentry.search.eap.columns import (
     SPAN_FUNCTION_DEFINITIONS,
     VIRTUAL_CONTEXTS,
     ResolvedColumn,
+    ResolvedFunction,
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
@@ -273,7 +274,7 @@ class SearchResolver:
 
     def resolve_columns(
         self, selected_columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
+    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
         """Given a list of columns resolve them and get their context if applicable
 
         This function will also dedupe the virtual column contexts if necessary
@@ -305,7 +306,7 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedColumn | ResolvedFunction, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -380,7 +381,7 @@ class SearchResolver:
 
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
+    ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -391,7 +392,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedFunction, VirtualColumnContext | None]:
         # Check if this is a valid function, parse the function name and args out
         if match is None:
             match = fields.is_function(column)
@@ -451,12 +452,13 @@ class SearchResolver:
             resolved_argument = None
 
         return (
-            ResolvedColumn(
+            ResolvedFunction(
                 public_alias=alias,
                 internal_name=function_definition.internal_function,
                 search_type=function_definition.search_type,
                 internal_type=function_definition.internal_type,
                 processor=function_definition.processor,
+                extrapolation=function_definition.extrapolation,
                 argument=resolved_argument,
             ),
             None,
