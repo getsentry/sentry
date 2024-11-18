@@ -201,6 +201,8 @@ class SaltedComponentVariant(ComponentVariant):
             return None
         final_values = []
         for value in self.values:
+            # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
+            # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:
