@@ -22,7 +22,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd, IconDashboard, IconList} from 'sentry/icons';
+import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -267,17 +267,14 @@ function ManageDashboards() {
               key="grid"
               textValue="grid"
               aria-label={t('Grid View')}
-            >
-              {/* TODO (nikkikapadia): replace this icon with correct one once made */}
-              <IconDashboard />
-            </SegmentedControl.Item>
+              icon={<IconGrid />}
+            />
             <SegmentedControl.Item
               key="list"
               textValue="list"
               aria-label={t('List View')}
-            >
-              <IconList />
-            </SegmentedControl.Item>
+              icon={<IconList />}
+            />
           </SegmentedControl>
         </Feature>
         <CompactSelect
