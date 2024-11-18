@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
+import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -168,7 +169,11 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                               avatarSize={12}
                             />
                           }
-                          to={`/issues/${id}`}
+                          to={
+                            USING_CUSTOMER_DOMAIN
+                              ? `/issues/${id}`
+                              : `/organizations/${organization.slug}/issues/${id}`
+                          }
                         />
                       </QuickContextHovercard>
                     ))}
