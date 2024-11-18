@@ -245,7 +245,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               previousStep?.insights.length === 0) &&
             step.type !== AutofixStepType.DEFAULT;
           const stepBelowProcessingAndEmpty =
-            nextStep &&
             nextStep?.type === AutofixStepType.DEFAULT &&
             nextStep?.status === 'PROCESSING' &&
             nextStep?.insights?.length === 0;
