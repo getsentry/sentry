@@ -30,6 +30,7 @@ headers_json_encoder = JSONEncoder(
 ).encode
 
 SupportedHTTPMethodsLiteral = Literal["GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"]
+IntervalSecondsLiteral = Literal[60, 300, 600, 1200, 1800, 3600]
 
 
 @region_silo_model
@@ -46,6 +47,14 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         DELETE = "DELETE", "DELETE"
         PATCH = "PATCH", "PATCH"
         OPTIONS = "OPTIONS", "OPTIONS"
+        
+    class IntervalSeconds(models.IntegerChoices):
+        ONE_MINUTE = 60, "1 minute"
+        FIVE_MINUTES = 300, "5 minutes"
+        TEN_MINUTES = 600, "10 minutes"
+        TWENTY_MINUTES = 1200, "20 minutes"
+        THIRTY_MINUTES = 1800, "30 minutes"
+        ONE_HOUR = 3600, "1 hour"
 
     # The url to check
     url = models.CharField(max_length=255)
@@ -59,7 +68,9 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # The name of the provider hosting this domain
     host_provider_name = models.CharField(max_length=255, db_index=True, null=True)
     # How frequently to run the check in seconds
-    interval_seconds = models.IntegerField()
+    interval_seconds: models.IntegerField[IntervalSecondsLiteral, IntervalSecondsLiteral] = (
+        models.IntegerField(choices=IntervalSeconds)
+    )
     # How long to wait for a response from the url before we assume a timeout
     timeout_ms = models.IntegerField()
     # HTTP method to perform the check with
@@ -114,6 +125,7 @@ class UptimeStatus(enum.IntEnum):
 class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
+
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")

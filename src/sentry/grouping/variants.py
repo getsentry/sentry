@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
@@ -139,7 +141,7 @@ def expose_fingerprint_dict(values, info=None):
     if not info:
         return rv
 
-    from sentry.grouping.fingerprinting import Rule
+    from sentry.grouping.fingerprinting import FingerprintRule
 
     client_values = info.get("client_fingerprint")
     if client_values and (
@@ -148,7 +150,7 @@ def expose_fingerprint_dict(values, info=None):
         rv["client_values"] = client_values
     matched_rule = info.get("matched_rule")
     if matched_rule:
-        rule = Rule.from_json(matched_rule)
+        rule = FingerprintRule.from_json(matched_rule)
         rv["matched_rule"] = rule.text
 
     return rv
@@ -213,3 +215,14 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
+
+
+class VariantsByDescriptor(TypedDict, total=False):
+    system: ComponentVariant
+    app: ComponentVariant
+    custom_fingerprint: CustomFingerprintVariant
+    built_in_fingerprint: BuiltInFingerprintVariant
+    checksum: ChecksumVariant
+    hashed_checksum: HashedChecksumVariant
+    default: ComponentVariant
+    fallback: FallbackVariant

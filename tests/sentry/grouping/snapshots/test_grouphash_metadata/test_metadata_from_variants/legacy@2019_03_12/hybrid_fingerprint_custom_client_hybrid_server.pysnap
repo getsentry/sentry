@@ -1,9 +1,19 @@
 ---
-created: '2024-10-28T14:02:54.203549+00:00'
+created: '2024-11-08T19:20:32.826875+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: stacktrace
+hashing_metadata: {
+  "client_fingerprint": "['celery', 'SoftTimeLimitExceeded', 'sentry.tasks.store.process_event']",
+  "fingerprint": "['{{ default }}', 'soft-timelimit-exceeded']",
+  "fingerprint_source": "server_custom_rule",
+  "is_hybrid_fingerprint": true,
+  "matched_fingerprinting_rule": "type:\"SoftTimeLimitExceeded\" -> \"{{ default }}soft-timelimit-exceeded\"",
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
 ---
 contributing variants:
   app*
