@@ -1240,8 +1240,11 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
 
-        # This is extrapolated
-        assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
+        if self.is_eap:
+            # When using EAP, this is extrapolated
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
+        else:
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
