@@ -747,6 +747,11 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             "measurements.score.weight.inp",
             "measurements.score.weight.lcp",
             "measurements.score.weight.ttfb",
+            "measurements.cache.item_size",
+            "measurements.messaging.message.body.size",
+            "measurements.messaging.message.receive.latency",
+            "measurements.messaging.message.retry.count",
+            "measurements.http.response_content_length",
         ]
         self.project
         for key in keys:

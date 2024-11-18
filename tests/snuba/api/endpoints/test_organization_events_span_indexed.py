@@ -598,6 +598,11 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             "score.weight.inp",
             "score.weight.lcp",
             "score.weight.ttfb",
+            "cache.item_size",
+            "messaging.message.body.size",
+            "messaging.message.receive.latency",
+            "messaging.message.retry.count",
+            "http.response_content_length",
         ]
 
         self.store_spans(

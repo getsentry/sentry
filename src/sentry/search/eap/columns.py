@@ -290,6 +290,11 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_measurements_field("score.weight.inp"),
         simple_measurements_field("score.weight.lcp"),
         simple_measurements_field("score.weight.ttfb"),
+        simple_measurements_field("cache.item_size"),
+        simple_measurements_field("messaging.message.body.size"),
+        simple_measurements_field("messaging.message.receive.latency"),
+        simple_measurements_field("messaging.message.retry.count"),
+        simple_measurements_field("http.response_content_length"),
     ]
 }
 
