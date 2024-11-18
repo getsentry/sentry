@@ -947,7 +947,8 @@ class TracesExecutor:
                 "numErrors": traces_errors.get(row["trace"], 0),
                 "numOccurrences": traces_occurrences.get(row["trace"], 0),
                 "matchingSpans": row[MATCHING_COUNT_ALIAS],
-                "numSpans": row["count()"],
+                # In EAP mode, we have to use `count_sample()` to avoid extrapolation
+                "numSpans": row.get("count()") or row.get("count_sample()") or 0,
                 "project": info[0],
                 "name": info[1],
                 "rootDuration": info[2],
@@ -1066,7 +1067,7 @@ class TracesExecutor:
             query=None,
             selected_columns=[
                 "trace",
-                "count()",
+                "count_sample()",
                 "first_seen()",
                 "last_seen()",
             ],
