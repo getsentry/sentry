@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useState} from 'react';
-import type {Location} from 'history';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,24 +19,23 @@ import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface Props {
+  excludedTags: string[];
   group: Group;
-  issueId: string;
-  location: Location;
   organization: Organization;
-  excludedTags?: string[];
 }
 
 const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
   return `/issues/${groupId}/events/latest/`;
 };
 
-function AllEventsTable(props: Props) {
-  const {location, organization, issueId, excludedTags, group} = props;
-  const config = getConfigForIssueType(props.group, group.project);
+function AllEventsTable({organization, excludedTags, group}: Props) {
+  const location = useLocation();
+  const config = getConfigForIssueType(group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = useEventColumns(group, organization);
@@ -58,7 +56,7 @@ function AllEventsTable(props: Props) {
   // Once migration to the issue platform is complete a call to /latest should be removed
   const groupIsOccurrenceBacked = !!data?.occurrence;
 
-  const eventView: EventView = EventView.fromLocation(props.location);
+  const eventView: EventView = EventView.fromLocation(location);
   if (config.usesIssuePlatform) {
     eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
   }
@@ -82,9 +80,9 @@ function AllEventsTable(props: Props) {
     group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
     group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
-  let idQuery = `issue.id:${issueId}`;
+  let idQuery = `issue.id:${group.id}`;
   if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
-    idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
+    idQuery = `performance.issue_ids:${group.id} event.type:transaction`;
   } else if (isRegressionIssue && groupIsOccurrenceBacked) {
     const {transaction, aggregateRange2, breakpoint} =
       data?.occurrence?.evidenceData ?? {};
@@ -102,7 +100,7 @@ function AllEventsTable(props: Props) {
     eventView.statsPeriod = undefined;
   }
   eventView.project = [parseInt(group.project.id, 10)];
-  eventView.query = `${idQuery} ${props.location.query.query || ''}`;
+  eventView.query = `${idQuery} ${location.query.query || ''}`;
 
   if (error || isLoadingError) {
     return (
@@ -114,7 +112,7 @@ function AllEventsTable(props: Props) {
     <EventsTable
       eventView={eventView}
       location={location}
-      issueId={issueId}
+      issueId={group.id}
       isRegressionIssue={isRegressionIssue}
       organization={organization}
       routes={routes}

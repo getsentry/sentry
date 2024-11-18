@@ -311,6 +311,8 @@ class OrganizationExamples:
                 "relayPiiConfig": None,
                 "codecovAccess": False,
                 "aiSuggestedSolution": True,
+                "hideAiFeatures": False,
+                "autofixEnabled": False,
                 "githubPRBot": True,
                 "githubOpenPRBot": True,
                 "githubNudgeInvite": True,

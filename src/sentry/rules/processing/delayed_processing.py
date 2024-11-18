@@ -207,17 +207,17 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 
 def parse_rulegroup_to_event_data(
     rulegroup_to_event_data: dict[str, str]
-) -> dict[tuple[str, str], dict[str, str]]:
+) -> dict[tuple[int, int], dict[str, str]]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
         event_data = json.loads(instance_data)
         rule_id, group_id = rule_group.split(":")
-        parsed_rulegroup_to_event_data[(rule_id, group_id)] = event_data
+        parsed_rulegroup_to_event_data[(int(rule_id), int(group_id))] = event_data
     return parsed_rulegroup_to_event_data
 
 
 def build_group_to_groupevent(
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
@@ -258,7 +258,7 @@ def build_group_to_groupevent(
 
 
 def get_group_to_groupevent(
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     project_id: int,
     group_ids: set[int],
 ) -> dict[Group, GroupEvent]:
@@ -413,7 +413,7 @@ def get_rules_to_fire(
 
 def fire_rules(
     rules_to_fire: DefaultDict[Rule, set[int]],
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     alert_rules: list[Rule],
     project: Project,
 ) -> None:

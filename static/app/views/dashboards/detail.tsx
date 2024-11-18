@@ -9,6 +9,7 @@ import {
   createDashboard,
   deleteDashboard,
   updateDashboard,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -28,7 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -171,19 +172,25 @@ export function handleUpdateDashboardSplit({
 
 /* Checks if current user has permissions to edit dashboard */
 export function checkUserHasEditAccess(
-  dashboard: DashboardDetails,
   currentUser: User,
-  organization: Organization
+  userTeams: Team[],
+  organization: Organization,
+  dashboardPermissions?: DashboardPermissions,
+  dashboardCreator?: User
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
-    !dashboard.permissions
+    !dashboardPermissions ||
+    dashboardPermissions.isEditableByEveryone ||
+    dashboardCreator?.id === currentUser.id
   ) {
     return true;
   }
-  return dashboard.permissions.isCreatorOnlyEditable
-    ? dashboard.createdBy?.id === currentUser.id
-    : !dashboard.permissions.isCreatorOnlyEditable;
+  if (dashboardPermissions.teamsWithEditAccess?.length) {
+    const userTeamIds = userTeams.map(team => Number(team.id));
+    dashboardPermissions.teamsWithEditAccess.some(teamId => userTeamIds.includes(teamId));
+  }
+  return false;
 }
 
 class DashboardDetail extends Component<Props, State> {
@@ -265,6 +272,8 @@ class DashboardDetail extends Component<Props, State> {
           totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardPermissions: dashboard.permissions,
+          dashboardCreator: dashboard.createdBy,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
 
@@ -622,7 +631,7 @@ class DashboardDetail extends Component<Props, State> {
     const dashboardCopy = cloneDashboard(dashboard);
     dashboardCopy.permissions = newDashboardPermissions;
 
-    updateDashboard(api, organization.slug, dashboardCopy).then(
+    updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
       (newDashboard: DashboardDetails) => {
         addSuccessMessage(t('Dashboard Edit Access updated.'));
         this.props.onDashboardUpdate?.(newDashboard);
@@ -837,6 +846,8 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboardPermissions={dashboard.permissions}
+                  dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
@@ -1010,6 +1021,8 @@ class DashboardDetail extends Component<Props, State> {
                               ) : null}
                               <FiltersBar
                                 filters={(modifiedDashboard ?? dashboard).filters}
+                                dashboardPermissions={dashboard.permissions}
+                                dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={hasUnsavedFilters}
                                 isEditingDashboard={

@@ -21,6 +21,9 @@ from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsE
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_project_span_counts import (
+    OrganizationSamplingProjectSpanCountsEndpoint,
+)
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
@@ -80,6 +83,7 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
+from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -1418,6 +1422,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sampling-project-rates",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-root-counts/$",
+        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-root-counts",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
         OrganizationSdkUpdatesEndpoint.as_view(),
         name="sentry-api-0-organization-sdk-updates",
@@ -2056,9 +2065,14 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
     # Replays
     re_path(

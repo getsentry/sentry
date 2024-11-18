@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -12,20 +11,16 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
 
-type RouteParams = {
-  groupId: string;
-  orgId: string;
-};
-
-type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params' | 'location'> & {
-  location: Location;
+type Props = {
   project: Project;
 };
 
@@ -39,8 +34,10 @@ const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',
   defaultComponent: null,
 });
-function SimilarStackTrace({params, location, project}: Props) {
-  const {orgId, groupId} = params;
+function SimilarStackTrace({project}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const params = useParams<{groupId: string; orgId: string}>();
 
   const [items, setItems] = useState<ItemState>({
     similar: [],
@@ -67,7 +64,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     if (hasSimilarityEmbeddingsFeature) {
       reqs.push({
-        endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
+        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar-issues-embeddings/?${qs.stringify(
           {
             k: 10,
             threshold: 0.01,
@@ -78,10 +75,12 @@ function SimilarStackTrace({params, location, project}: Props) {
       });
     } else if (hasSimilarityFeature) {
       reqs.push({
-        endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
-          ...location.query,
-          limit: 50,
-        })}`,
+        endpoint: `/organizations/${organization.slug}/issues/${params.groupId}/similar/?${qs.stringify(
+          {
+            ...location.query,
+            limit: 50,
+          }
+        )}`,
         dataKey: 'similar',
       });
     }
@@ -89,8 +88,8 @@ function SimilarStackTrace({params, location, project}: Props) {
     GroupingStore.onFetch(reqs);
   }, [
     location.query,
-    groupId,
-    orgId,
+    params.groupId,
+    organization.slug,
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
     useReranking,
@@ -115,12 +114,12 @@ function SimilarStackTrace({params, location, project}: Props) {
         return;
       }
 
-      if (mergedParent && mergedParent !== groupId) {
+      if (mergedParent && mergedParent !== params.groupId) {
         // Merge success, since we can't specify target, we need to redirect to new parent
-        navigate(`/organizations/${orgId}/issues/${mergedParent}/similar/`);
+        navigate(`/organizations/${organization.slug}/issues/${mergedParent}/similar/`);
       }
     },
-    [navigate, groupId, orgId]
+    [navigate, params.groupId, organization.slug]
   );
 
   useEffect(() => {
@@ -155,7 +154,7 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     GroupingStore.onMerge({
       params,
-      query: location.query,
+      query: location.query.query as string,
       projectId: firstIssue.issue.project.slug,
     });
   }, [params, location.query, items]);
@@ -204,9 +203,9 @@ function SimilarStackTrace({params, location, project}: Props) {
           items={items.similar}
           filteredItems={items.filtered}
           onMerge={handleMerge}
-          orgId={orgId}
+          orgId={organization.slug}
           project={project}
-          groupId={groupId}
+          groupId={params.groupId}
           pageLinks={items.pageLinks}
           location={location}
         />
@@ -216,9 +215,9 @@ function SimilarStackTrace({params, location, project}: Props) {
           items={items.similar.concat(items.filtered)}
           filteredItems={[]}
           onMerge={handleMerge}
-          orgId={orgId}
+          orgId={organization.slug}
           project={project}
-          groupId={groupId}
+          groupId={params.groupId}
           pageLinks={items.pageLinks}
           location={location}
         />

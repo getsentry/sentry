@@ -1,6 +1,8 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
+import type {FormPanelProps} from 'sentry/components/forms/formPanel';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {
   ProductSelectionProps,
   ProductSolution,
@@ -70,6 +72,9 @@ export type RouteHooks = {
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
+type AiSetupDataConsentProps = {
+  groupId: string;
+};
 type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
@@ -170,10 +175,19 @@ export type PartnershipAgreementProps = {
   organizationSlug?: string;
 };
 
+export type MembershipSettingsProps = {
+  forms: JsonFormObject[];
+  jsonFormSettings: Omit<
+    FormPanelProps,
+    'highlighted' | 'fields' | 'additionalFieldProps'
+  >;
+};
+
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
@@ -198,6 +212,7 @@ export type ComponentHooks = {
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;

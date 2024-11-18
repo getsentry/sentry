@@ -4,7 +4,7 @@ from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLA
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 
 WEBHOOK_URL = "/extensions/discord/interactions/"

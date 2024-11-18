@@ -1,9 +1,13 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
+import type {DateString} from 'sentry/types/core';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import type {TimeseriesData} from '../common/types';
 
@@ -36,6 +40,28 @@ export default storyBook(LineChartWidget, story => {
   });
 
   story('Visualization', () => {
+    const {selection} = usePageFilters();
+    const {datetime} = selection;
+    const {start, end} = datetime;
+
+    const throughputTimeSeries = toTimeSeriesSelection(
+      sampleThroughputTimeSeries as unknown as TimeseriesData,
+      start,
+      end
+    );
+
+    const durationTimeSeries1 = toTimeSeriesSelection(
+      sampleDurationTimeSeries as unknown as TimeseriesData,
+      start,
+      end
+    );
+
+    const durationTimeSeries2 = toTimeSeriesSelection(
+      sampleDurationTimeSeries2,
+      start,
+      end
+    );
+
     return (
       <Fragment>
         <p>
@@ -43,12 +69,17 @@ export default storyBook(LineChartWidget, story => {
           some bells and whistles including automatic axes labels, and a hover tooltip.
         </p>
 
+        <p>
+          The <code>utc</code> prop controls whether the X Axis timestamps are shown in
+          UTC or not
+        </p>
+
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
               title="eps()"
               description="Number of events per second"
-              timeseries={[sampleThroughputTimeSeries as unknown as TimeseriesData]}
+              timeseries={[throughputTimeSeries]}
               meta={{
                 fields: {
                   'eps()': 'rate',
@@ -63,10 +94,8 @@ export default storyBook(LineChartWidget, story => {
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
-              timeseries={[
-                sampleDurationTimeSeries as unknown as TimeseriesData,
-                sampleDurationTimeSeries2 as unknown as TimeseriesData,
-              ]}
+              timeseries={[durationTimeSeries1, durationTimeSeries2]}
+              utc
               meta={{
                 fields: {
                   'p99(span.duration)': 'duration',
@@ -83,8 +112,64 @@ export default storyBook(LineChartWidget, story => {
       </Fragment>
     );
   });
+
+  story('Colors', () => {
+    const theme = useTheme();
+
+    return (
+      <Fragment>
+        <p>
+          You can control the color of each timeseries by setting the <code>color</code>{' '}
+          attribute to a string that contains a valid hex color code.
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="error_rate()"
+            description="Rate of Errors"
+            timeseries={[
+              {
+                ...sampleThroughputTimeSeries,
+                field: 'error_rate()',
+                color: theme.error,
+              } as unknown as TimeseriesData,
+            ]}
+            meta={{
+              fields: {
+                'error_rate()': 'rate',
+              },
+              units: {
+                'error_rate()': '1/second',
+              },
+            }}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
 });
 
 const MediumWidget = styled('div')`
   width: 420px;
 `;
+
+function toTimeSeriesSelection(
+  timeSeries: TimeseriesData,
+  start: DateString | null,
+  end: DateString | null
+): TimeseriesData {
+  return {
+    ...timeSeries,
+    data: timeSeries.data.filter(datum => {
+      if (start && moment(datum.timestamp).isBefore(moment.utc(start))) {
+        return false;
+      }
+
+      if (end && moment(datum.timestamp).isAfter(moment.utc(end))) {
+        return false;
+      }
+
+      return true;
+    }),
+  };
+}
