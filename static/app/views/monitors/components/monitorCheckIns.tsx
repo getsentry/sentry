@@ -17,7 +17,6 @@ import {
 } from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
-import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
