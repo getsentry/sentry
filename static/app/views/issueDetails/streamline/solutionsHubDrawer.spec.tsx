@@ -208,8 +208,6 @@ describe('SolutionsHubDrawer', () => {
 
     expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
 
-    expect(
-      screen.getByRole('heading', {name: 'Install the GitHub Integration'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
   });
 });
