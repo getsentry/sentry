@@ -102,10 +102,6 @@ export function mapSeriesToChart({
 
         const label = startCase(reason.replace(/-|_/g, ' '));
 
-        // Combine rate limited counts
-        count[Outcome.RATE_LIMITED] +=
-          count[Outcome.ABUSE] + count[Outcome.CARDINALITY_LIMITED];
-
         // Function to handle chart sub-label updates
         const updateChartSubLabels = (parentLabel: SeriesTypes) => {
           const existingSubLabel = chartSubLabels.find(
@@ -157,6 +153,10 @@ export function mapSeriesToChart({
         }
       });
     });
+
+    // Combine rate limited counts
+    count[Outcome.RATE_LIMITED] +=
+      count[Outcome.ABUSE] + count[Outcome.CARDINALITY_LIMITED];
 
     usageStats.forEach(stat => {
       stat.total = [
