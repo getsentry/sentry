@@ -97,11 +97,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter
                   maxPickableDays={7}
-                  relativeOptions={{
+                  relativeOptions={({arbitraryOptions}) => ({
+                    ...arbitraryOptions,
                     '1h': t('Last 1 hour'),
                     '24h': t('Last 24 hours'),
                     '7d': t('Last 7 days'),
-                  }}
+                  })}
                 />
               </StyledPageFilterBar>
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
