@@ -103,9 +103,8 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
 
 const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
   return (
-    ((organization.features.includes('autofix') &&
-      organization.features.includes('issue-details-autofix-ui')) ||
-      organization.genAIConsent) &&
+    organization.features.includes('gen-ai-features') &&
+    organization.genAIConsent &&
     !organization.hideAiFeatures &&
     getRegionDataFromOrganization(organization)?.name !== 'de'
   );

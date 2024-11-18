@@ -259,7 +259,7 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      {((organization.features.includes('ai-summary') &&
+      {((organization.features.includes('gen-ai-features') &&
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
