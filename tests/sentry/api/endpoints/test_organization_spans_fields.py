@@ -72,8 +72,6 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
 
-        features.append("organizations:visibility-explore-dataset")
-
         if query is None:
             query = {}
         query["dataset"] = "spans"
@@ -718,8 +716,6 @@ class OrganizationEAPSpansTagKeyValuesEndpointTest(OrganizationSpansTagKeyValues
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
-
-        features.append("organizations:visibility-explore-dataset")
 
         if query is None:
             query = {}
