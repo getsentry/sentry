@@ -211,7 +211,7 @@ class EventAccess:
 class FingerprintingRules:
     def __init__(
         self,
-        rules: Sequence[Rule],
+        rules: Sequence[FingerprintRule],
         changelog: Sequence[object] | None = None,
         version: int | None = None,
         bases: Sequence[str] | None = None,
@@ -223,7 +223,7 @@ class FingerprintingRules:
         self.changelog = changelog
         self.bases = bases or []
 
-    def iter_rules(self, include_builtin: bool = True) -> Generator[Rule]:
+    def iter_rules(self, include_builtin: bool = True) -> Generator[FingerprintRule]:
         if self.rules:
             yield from self.rules
         if include_builtin:
@@ -249,7 +249,7 @@ class FingerprintingRules:
         if version != VERSION:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x) for x in data["rules"]],
+            rules=[FingerprintRule._from_config_structure(x) for x in data["rules"]],
             version=version,
             bases=bases,
         )
@@ -337,7 +337,7 @@ MATCHERS = {
 }
 
 
-class Match:
+class FingerprintMatch:
     def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
         if key.startswith("tags."):
             self.key = key
@@ -454,10 +454,10 @@ class Match:
         )
 
 
-class Rule:
+class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[Match],
+        matchers: Sequence[FingerprintMatch],
         fingerprint: list[str],
         attributes: dict[str, Any],
         is_builtin: bool = False,
@@ -470,7 +470,7 @@ class Rule:
     def get_fingerprint_values_for_event_access(
         self, event_access: EventAccess
     ) -> None | tuple[list[str], dict[str, Any]]:
-        by_match_group: dict[str, list[Match]] = {}
+        by_match_group: dict[str, list[FingerprintMatch]] = {}
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
 
@@ -499,7 +499,7 @@ class Rule:
     @classmethod
     def _from_config_structure(cls, obj: dict[str, Any]) -> Self:
         return cls(
-            [Match._from_config_structure(x) for x in obj["matchers"]],
+            [FingerprintMatch._from_config_structure(x) for x in obj["matchers"]],
             obj["fingerprint"],
             obj.get("attributes") or {},
             obj.get("is_builtin") or False,
@@ -539,7 +539,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         return node.text
 
     def visit_fingerprinting_rules(
-        self, _: object, children: list[str | Rule | None]
+        self, _: object, children: list[str | FingerprintRule | None]
     ) -> FingerprintingRules:
         changelog = []
         rules = []
@@ -560,8 +560,8 @@ class FingerprintingVisitor(NodeVisitorBase):
         )
 
     def visit_line(
-        self, _: object, children: tuple[object, list[Rule | str | None], object]
-    ) -> Rule | str | None:
+        self, _: object, children: tuple[object, list[FingerprintRule | str | None], object]
+    ) -> FingerprintRule | str | None:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
@@ -572,17 +572,17 @@ class FingerprintingVisitor(NodeVisitorBase):
         self,
         _: object,
         children: tuple[
-            object, list[Match], object, object, object, tuple[list[str], dict[str, Any]]
+            object, list[FingerprintMatch], object, object, object, tuple[list[str], dict[str, Any]]
         ],
-    ) -> Rule:
+    ) -> FingerprintRule:
         _, matcher, _, _, _, (fingerprint, attributes) = children
-        return Rule(matcher, fingerprint, attributes)
+        return FingerprintRule(matcher, fingerprint, attributes)
 
     def visit_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
-    ) -> Match:
+    ) -> FingerprintMatch:
         _, negation, ty, _, argument = children
-        return Match(ty, argument, bool(negation))
+        return FingerprintMatch(ty, argument, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:
         return children[0]
@@ -634,7 +634,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         return node.match.groups()[0].lstrip("!")
 
 
-def _load_configs() -> dict[str, list[Rule]]:
+def _load_configs() -> dict[str, list[FingerprintRule]]:
     if not CONFIGS_DIR.exists():
         logger.error(
             "Failed to load Fingerprinting Configs, invalid _config_dir: %s",
@@ -645,7 +645,7 @@ def _load_configs() -> dict[str, list[Rule]]:
                 f"Failed to load Fingerprinting Configs, invalid _config_dir: '{CONFIGS_DIR}'"
             )
 
-    configs: dict[str, list[Rule]] = {}
+    configs: dict[str, list[FingerprintRule]] = {}
 
     for config_file_path in sorted(CONFIGS_DIR.glob("**/*.txt")):
         config_name = config_file_path.parent.name
