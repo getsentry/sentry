@@ -80,7 +80,7 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
 
 def prune_incident_check_in_volume(start: datetime, end: datetime) -> None:
     """
-    After recovering from a system incdent the volume and metric data must be
+    After recovering from a system incident the volume and metric data must be
     discarded to avoid skewing future computations. This function does this
     """
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
