@@ -38,8 +38,8 @@ function VersionHoverCard({
   } = useRepositories({orgSlug: organization.slug});
   const {
     data: release,
-    isPending: releaseLoading,
-    isError: releaseError,
+    isPending: isReleaseLoading,
+    isError: isReleaseError,
   } = useRelease({
     orgSlug: organization.slug,
     projectSlug,
@@ -47,8 +47,8 @@ function VersionHoverCard({
   });
   const {
     data: deploys,
-    isPending: deploysLoading,
-    isError: deploysError,
+    isPending: isDeploysLoading,
+    isError: isDeploysError,
   } = useDeploys({
     orgSlug: organization.slug,
     releaseVersion,
@@ -141,8 +141,8 @@ function VersionHoverCard({
   let header: React.ReactNode = null;
   let body: React.ReactNode = null;
 
-  const loading = !!(deploysLoading || releaseLoading || isRepositoriesLoading);
-  const error = deploysError ?? releaseError ?? isRepositoriesError;
+  const loading = !!(isDeploysLoading || isReleaseLoading || isRepositoriesLoading);
+  const error = isDeploysError ?? isReleaseError ?? isRepositoriesError;
   const hasRepos = repositories && repositories.length > 0;
 
   if (loading) {
