@@ -22,7 +22,7 @@ describe('StreamlinedSidebar', function () {
   const issueTrackingKey = 'issue-key';
 
   const organization = OrganizationFixture({
-    features: ['ai-summary'],
+    features: ['gen-ai-features'],
   });
   const project = ProjectFixture();
   const group = GroupFixture({
