@@ -80,7 +80,7 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
     def has_all(checkins: list[MonitorCheckIn | None]) -> TypeGuard[list[MonitorCheckIn]]:
         return None not in checkins
 
-    # Unlikely, but if we can't find all the check-ins we can't produce an occurence
+    # Unlikely, but if we can't find all the check-ins we can't produce an occurrence
     if failed_checkin is None or not has_all(previous_checkins):
         logger.error("missing_check_ins")
         return
