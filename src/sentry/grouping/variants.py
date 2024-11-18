@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
+
+if TYPE_CHECKING:
+    from sentry.grouping.fingerprinting import Fingerprint
 
 
 class BaseVariant:
@@ -134,7 +137,7 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(fingerprint, fingerprint_info):
+def expose_fingerprint_dict(fingerprint: Fingerprint, fingerprint_info):
     rv = {
         "values": fingerprint,
     }
@@ -157,7 +160,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, fingerprint, fingerprint_info):
+    def __init__(self, fingerprint: Fingerprint, fingerprint_info):
         self.values = fingerprint
         self.info = fingerprint_info
 
@@ -187,7 +190,7 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, fingerprint, component, config, fingerprint_info):
+    def __init__(self, fingerprint: Fingerprint, component, config, fingerprint_info):
         ComponentVariant.__init__(self, component, config)
         self.values = fingerprint
         self.info = fingerprint_info
