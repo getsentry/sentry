@@ -157,13 +157,16 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "timeout_ms": sub.timeout_ms,
             "request_method": "GET",
             "request_headers": [],
+            "trace_sampling": False,
         }
 
     def test_request_fields(self):
         headers = [["hi", "bye"]]
         body = "some request body"
         method = "POST"
-        sub = self.create_uptime_subscription(method=method, headers=headers, body=body)
+        sub = self.create_uptime_subscription(
+            method=method, headers=headers, body=body, trace_sampling=True
+        )
         sub.refresh_from_db()
         subscription_id = uuid4().hex
         assert uptime_subscription_to_check_config(sub, subscription_id) == {
@@ -174,6 +177,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_method": method,
             "request_headers": headers,
             "request_body": body,
+            "trace_sampling": True,
         }
 
     def test_header_translation(self):
@@ -188,6 +192,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "timeout_ms": sub.timeout_ms,
             "request_method": "GET",
             "request_headers": [["hi", "bye"]],
+            "trace_sampling": False,
         }
 
 
