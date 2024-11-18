@@ -603,52 +603,9 @@ def update_groups(
                 sender=update_groups,
             )
 
-    # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
-    # what performance impact this might have & this possibly should be moved else where
-    try:
-        if len(group_list) == 1:
-            if res_type in (
-                GroupResolution.Type.in_next_release,
-                GroupResolution.Type.in_release,
-                GroupResolution.Type.in_upcoming_release,
-            ):
-                result["activity"] = serialize(
-                    Activity.objects.get_activities_for_group(
-                        group=group_list[0], num=ACTIVITIES_COUNT
-                    ),
-                    acting_user,
-                )
-    except UnboundLocalError:
-        pass
-
-    if "assignedTo" in result:
-        result["assignedTo"] = handle_assigned_to(
-            result["assignedTo"],
-            data.get("assignedBy"),
-            data.get("integration"),
-            group_list,
-            project_lookup,
-            acting_user,
-        )
-
-    handle_has_seen(
-        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
+    result = update_results(
+        result, group_list, group_ids, project_lookup, projects, acting_user, data, res_type
     )
-
-    if "isBookmarked" in result:
-        handle_is_bookmarked(
-            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
-        )
-
-    if result.get("isSubscribed") in (True, False):
-        result["subscriptionDetails"] = handle_is_subscribed(
-            result["isSubscribed"], group_list, project_lookup, acting_user
-        )
-
-    if "isPublic" in result:
-        result["shareId"] = handle_is_public(
-            result["isPublic"], group_list, project_lookup, acting_user
-        )
 
     # TODO: Create new endpoint for this
     if result.get("merge") and len(group_list) > 1:
@@ -705,6 +662,66 @@ def merge_groups(
         },
     )
     return handle_merge(group_list, project_lookup, acting_user)
+
+
+def update_results(
+    result: dict[str, Any],
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    projects: Sequence[Project],
+    acting_user: User,
+    data: Mapping[str, Any],
+    res_type: GroupResolution.Type | None,
+) -> dict[str, Any]:
+    # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
+    # what performance impact this might have & this possibly should be moved else where
+    try:
+        if len(group_list) == 1:
+            if res_type in (
+                GroupResolution.Type.in_next_release,
+                GroupResolution.Type.in_release,
+                GroupResolution.Type.in_upcoming_release,
+            ):
+                result["activity"] = serialize(
+                    Activity.objects.get_activities_for_group(
+                        group=group_list[0], num=ACTIVITIES_COUNT
+                    ),
+                    acting_user,
+                )
+    except UnboundLocalError:
+        pass
+
+    if "assignedTo" in result:
+        result["assignedTo"] = handle_assigned_to(
+            result["assignedTo"],
+            data.get("assignedBy"),
+            data.get("integration"),
+            group_list,
+            project_lookup,
+            acting_user,
+        )
+
+    handle_has_seen(
+        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
+    )
+
+    if "isBookmarked" in result:
+        handle_is_bookmarked(
+            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
+        )
+
+    if result.get("isSubscribed") in (True, False):
+        result["subscriptionDetails"] = handle_is_subscribed(
+            result["isSubscribed"], group_list, project_lookup, acting_user
+        )
+
+    if "isPublic" in result:
+        result["shareId"] = handle_is_public(
+            result["isPublic"], group_list, project_lookup, acting_user
+        )
+
+    return result
 
 
 def get_release_to_resolve_by(project: Project) -> Release | None:
