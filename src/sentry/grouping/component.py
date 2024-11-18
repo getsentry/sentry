@@ -144,7 +144,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | int | BaseGroupingComponent[Any]]:
+    def iter_values(self) -> Generator[str | int]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
