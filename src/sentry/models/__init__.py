@@ -1,7 +1,3 @@
-from sentry.notifications.models.notificationsettingprovider import (  # NOQA
-    NotificationSettingProvider,
-)
-
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -66,6 +62,7 @@ from .importchunk import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
+from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
