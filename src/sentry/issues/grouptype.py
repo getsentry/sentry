@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.users.models.user import User
     from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 
 import logging
 
@@ -172,6 +173,7 @@ class GroupType:
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
+    detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -619,6 +621,17 @@ class UptimeDomainCheckFailure(GroupType):
     description = "Uptime Domain Monitor Failure"
     category = GroupCategory.UPTIME.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class MetricIssuePOC(GroupType):
+    type_id = 8002
+    slug = "metric_issue_poc"
+    description = "Metric Issue POC"
+    category = GroupCategory.METRIC_ALERT.value
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False

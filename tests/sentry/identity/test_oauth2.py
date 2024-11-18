@@ -11,7 +11,7 @@ import sentry.identity
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -44,7 +44,7 @@ class OAuth2CallbackViewTest(TestCase):
         (event_failures,) = (
             call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
         )
-        assert event_failures.args[1]["failure_reason"] == error_msg
+        assert event_failures.args[1] == error_msg
 
     @responses.activate
     def test_exchange_token_success(

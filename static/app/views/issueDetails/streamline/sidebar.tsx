@@ -47,18 +47,19 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
+      <GuideAnchor target="issue_sidebar_releases" position="left">
+        <FirstLastSeenSection group={group} />
+      </GuideAnchor>
+      <StyledBreak />
       {((organization.features.includes('ai-summary') &&
-        issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.issueSummary.enabled &&
+        !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
         <Fragment>
           <SolutionsSection group={group} project={project} event={event} />
           <StyledBreak />
         </Fragment>
       )}
-      <GuideAnchor target="issue_sidebar_releases" position="left">
-        <FirstLastSeenSection group={group} />
-      </GuideAnchor>
-      <StyledBreak />
       {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

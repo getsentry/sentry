@@ -15,14 +15,14 @@ from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import Rule
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ RustExceptionData = dict[str, bytes | None]
 
 
 def make_rust_exception_data(
-    exception_data: dict[str, Any],
+    exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     e = exception_data or {}
     e = {
@@ -112,6 +112,7 @@ def keep_profiling_rules(config: str) -> str:
     if config is None or config == "":
         return ""
     for rule in config.splitlines():
+        rule = rule.strip()
         if rule == "" or rule.startswith("#"):  # ignore comment lines
             continue
         *matchers, action = rule.split()
@@ -161,7 +162,13 @@ class Enhancements:
             if category is not None:
                 set_path(frame, "data", "category", value=category)
 
-    def assemble_stacktrace_component(self, components, frames, platform, exception_data=None):
+    def assemble_stacktrace_component(
+        self,
+        components: list[FrameGroupingComponent],
+        frames: list[dict[str, Any]],
+        platform: str | None,
+        exception_data: dict[str, Any] | None = None,
+    ) -> tuple[StacktraceGroupingComponent, bool]:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -179,8 +186,7 @@ class Enhancements:
         for py_component, rust_component in zip(components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
 
-        component = GroupingComponent(
-            id="stacktrace",
+        component = StacktraceGroupingComponent(
             values=components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
@@ -219,7 +225,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,

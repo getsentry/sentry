@@ -196,7 +196,7 @@ describe('ProfileEventsTable', function () {
     expect(screen.getByRole('cell', {name: 'aaaaaaaa'})).toBeInTheDocument();
 
     // project
-    expect(screen.getByRole('cell', {name: 'foo'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
 
     // the transaction is both a cell and a link
     expect(screen.getByRole('link', {name: 'bar'})).toBeInTheDocument();

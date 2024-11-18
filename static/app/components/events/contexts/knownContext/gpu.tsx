@@ -1,5 +1,6 @@
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
+import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 // https://github.com/getsentry/relay/blob/24.10.0/relay-event-schema/src/protocol/contexts/gpu.rs#L21
@@ -21,7 +22,7 @@ enum GPUContextKeys {
   SUPPORTS_GEOMETRY_SHADERS = 'supports_geometry_shaders',
 }
 
-export type GPUContext = {
+export interface GPUContext {
   // Any custom keys users may set
   [key: string]: any;
   [GPUContextKeys.ID]: number;
@@ -39,7 +40,7 @@ export type GPUContext = {
   [GPUContextKeys.SUPPORTS_RAY_TRACING]?: boolean;
   [GPUContextKeys.SUPPORTS_COMPUTE_SHADERS]?: boolean;
   [GPUContextKeys.SUPPORTS_GEOMETRY_SHADERS]?: boolean;
-};
+}
 
 const MEGABYTE_IN_BYTES = 1048576;
 
@@ -58,8 +59,8 @@ export function getGPUContextData({
 }: {
   data: GPUContext;
   meta?: Record<keyof GPUContext, any>;
-}) {
-  return getContextKeys(data).map(ctxKey => {
+}): KeyValueListData {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case GPUContextKeys.NAME:
         return {

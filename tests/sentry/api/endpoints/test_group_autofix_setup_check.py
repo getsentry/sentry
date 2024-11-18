@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from sentry.api.endpoints.group_autofix_setup_check import get_repos_and_access
 from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
@@ -30,7 +31,8 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             stack_root="sentry/",
             source_root="sentry/",
         )
-        self.organization.update_option("sentry:gen_ai_consent", True)
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
+        self.organization.update_option("sentry:autofix_enabled", True)
 
     @patch(
         "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
@@ -80,6 +82,9 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 ],
             },
             "codebaseIndexing": {
+                "ok": True,
+            },
+            "autofixEnabled": {
                 "ok": True,
             },
         }
@@ -137,13 +142,16 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "codebaseIndexing": {
                 "ok": True,
             },
+            "autofixEnabled": {
+                "ok": True,
+            },
         }
 
 
 @apply_feature_flag_on_cls("organizations:autofix")
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_no_gen_ai_consent(self):
-        self.organization.update_option("sentry:gen_ai_consent", False)
+        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", False)
 
         group = self.create_group()
         self.login_as(user=self.user)
@@ -263,3 +271,69 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["codebaseIndexing"] == {
             "ok": False,
         }
+
+    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+            }
+        ],
+    )
+    def test_non_github_provider(self, mock_get_repos, mock_post):
+        # Mock the response from the Seer service
+        mock_response = mock_post.return_value
+        mock_response.json.return_value = {"has_access": True}
+
+        result = get_repos_and_access(self.project)
+
+        # Verify the result
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": True,
+            }
+        ]
+
+        # Verify the API call was made correctly
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args.kwargs
+        assert "data" in call_kwargs
+        assert "headers" in call_kwargs
+        assert "content-type" in call_kwargs["headers"]
+
+    @patch("sentry.api.endpoints.group_autofix_setup_check.requests.post")
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_autofix_repos_from_project_code_mappings",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+            }
+        ],
+    )
+    def test_repo_without_access(self, mock_get_repos, mock_post):
+        # Mock the response to indicate no access
+        mock_response = mock_post.return_value
+        mock_response.json.return_value = {"has_access": False}
+
+        result = get_repos_and_access(self.project)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": False,
+            }
+        ]

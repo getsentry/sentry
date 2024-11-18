@@ -46,7 +46,7 @@ export function EventDetailsHeader({
 
   return (
     <PageErrorBoundary mini message={t('There was an error loading the event filters')}>
-      <FilterContainer>
+      <FilterContainer role="group" aria-description={t('Event filtering controls')}>
         <EnvironmentFilter
           triggerProps={{
             borderless: true,
@@ -81,12 +81,14 @@ export function EventDetailsHeader({
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
           <IssueTagsButton
-            aria-label={t('View Issue Tags')}
+            aria-label={t('View issue tag distributions')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
               query: location.query,
               replace: true,
             }}
+            analyticsEventKey="issue_details.issue_tags_clicked"
+            analyticsEventName="Issue Details: Issue Tags Clicked"
           >
             {t('Issue Tags')}
           </IssueTagsButton>
@@ -122,7 +124,7 @@ const EnvironmentFilter = styled(EnvironmentPageFilter)`
 `;
 
 const SearchFilter = styled(EventSearch)`
-  border: 0;
+  border-color: transparent;
   border-radius: 0;
   box-shadow: none;
 `;

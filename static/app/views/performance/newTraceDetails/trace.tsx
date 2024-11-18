@@ -731,17 +731,6 @@ const TraceStylingWrapper = styled('div')`
   grid-area: trace;
   padding-top: 26px;
 
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --debug: ${p => p.theme.blue300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
-
   &.WithIndicators {
     padding-top: 44px;
 

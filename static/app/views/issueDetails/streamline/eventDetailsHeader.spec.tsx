@@ -69,7 +69,7 @@ describe('EventDetailsHeader', () => {
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '14D'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Filter events...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
     expect(
       screen.getByRole('button', {
         name: 'Toggle graph series - Events',
@@ -79,7 +79,7 @@ describe('EventDetailsHeader', () => {
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
     ).toBeInTheDocument();
     expect(screen.getByRole('figure')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Close Sidebar'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
   it('updates the query params with search tokens', async function () {
@@ -105,7 +105,7 @@ describe('EventDetailsHeader', () => {
     render(<EventDetailsHeader {...defaultProps} />, {organization, router});
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
-    const search = screen.getByPlaceholderText('Filter events...');
+    const search = screen.getByPlaceholderText('Filter events\u2026');
     await userEvent.type(search, `${tagKey}:`);
     await userEvent.keyboard(`${tagValue}{enter}{enter}`);
     expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {

@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
@@ -9,7 +8,6 @@ import {
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,16 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-interface AutofixSetupModalProps extends ModalRenderProps {
-  groupId: string;
-  projectId: string;
-}
-
-const ConsentStep = HookOrDefault({
-  hookName: 'component:autofix-setup-step-consent',
-  defaultComponent: null,
-});
 
 function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
   if (autofixSetup.integration.ok) {
@@ -143,14 +131,18 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
 function AutofixGithubIntegrationStep({
   autofixSetup,
   canStartAutofix,
-  closeModal,
+  onComplete,
   isLastStep,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   isLastStep?: boolean;
+  onComplete?: () => void;
 }) {
+  const handleClose = () => {
+    onComplete?.();
+  };
+
   const sortedRepos = useMemo(
     () =>
       autofixSetup.githubWriteIntegration.repos.toSorted((a, b) => {
@@ -186,9 +178,11 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
+              analyticsEventName="Autofix Setup Enable Autofix"
+              analyticsEventKey="autofix.setup_enable_autofix"
             >
-              {t("Let's Go!")}
+              {t('Enable Autofix')}
             </Button>
           )}
         </GuidedSteps.StepButtons>
@@ -227,7 +221,7 @@ function AutofixGithubIntegrationStep({
               priority="primary"
               size="sm"
               disabled={!canStartAutofix}
-              onClick={closeModal}
+              onClick={handleClose}
             >
               {t('Skip & Enable Autofix')}
             </Button>
@@ -262,7 +256,9 @@ function AutofixGithubIntegrationStep({
             priority="primary"
             size="sm"
             disabled={!canStartAutofix}
-            onClick={closeModal}
+            onClick={handleClose}
+            analyticsEventName="Autofix Setup Skip & Enable Autofix"
+            analyticsEventKey="autofix.setup_skip_enable_autofix"
           >
             {t('Skip & Enable Autofix')}
           </Button>
@@ -274,18 +270,17 @@ function AutofixGithubIntegrationStep({
 
 function AutofixSetupSteps({
   autofixSetup,
-  closeModal,
   canStartAutofix,
+  onComplete,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   groupId: string;
   projectId: string;
+  onComplete?: () => void;
 }) {
   return (
     <GuidedSteps>
-      <ConsentStep hasConsented={autofixSetup.genAIConsent.ok} />
       <GuidedSteps.Step
         stepKey="integration"
         title={t('Install the GitHub Integration')}
@@ -302,22 +297,22 @@ function AutofixSetupSteps({
         <AutofixGithubIntegrationStep
           autofixSetup={autofixSetup}
           canStartAutofix={canStartAutofix}
-          closeModal={closeModal}
           isLastStep
+          onComplete={onComplete}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
   );
 }
 
-function AutofixSetupContent({
+export function AutofixSetupContent({
   projectId,
   groupId,
-  closeModal,
+  onComplete,
 }: {
-  closeModal: () => void;
   groupId: string;
   projectId: string;
+  onComplete?: () => void;
 }) {
   const organization = useOrganization();
   const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
@@ -350,35 +345,21 @@ function AutofixSetupContent({
   }
 
   return (
-    <AutofixSetupSteps
-      groupId={groupId}
-      projectId={projectId}
-      autofixSetup={data}
-      canStartAutofix={canStartAutofix}
-      closeModal={closeModal}
-    />
-  );
-}
-
-export function AutofixSetupModal({
-  Header,
-  Body,
-  groupId,
-  projectId,
-  closeModal,
-}: AutofixSetupModalProps) {
-  return (
     <Fragment>
-      <Header closeButton>
-        <h3>{t('Configure Autofix')}</h3>
-      </Header>
-      <Body>
-        <AutofixSetupContent
-          projectId={projectId}
-          groupId={groupId}
-          closeModal={closeModal}
-        />
-      </Body>
+      <Divider />
+      <Header>Set up Autofix</Header>
+      <p>
+        Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
+        to work with you to find the root cause and create a fix.
+      </p>
+      <p>A few additional steps are needed before you can use Autofix.</p>
+      <AutofixSetupSteps
+        groupId={groupId}
+        projectId={projectId}
+        autofixSetup={data}
+        canStartAutofix={canStartAutofix}
+        onComplete={onComplete}
+      />
     </Fragment>
   );
 }
@@ -391,6 +372,13 @@ export const AutofixSetupDone = styled('div')`
   flex-direction: column;
   padding: 40px;
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const Header = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  margin-bottom: ${space(2)};
+  margin-top: ${space(2)};
 `;
 
 const RepoLinkUl = styled('ul')`
@@ -410,4 +398,9 @@ const GithubLink = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const Divider = styled('div')`
+  margin: ${space(3)} 0;
+  border-bottom: 2px solid ${p => p.theme.gray100};
 `;

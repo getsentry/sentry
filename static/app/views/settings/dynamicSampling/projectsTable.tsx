@@ -14,6 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 
 interface ProjectItem {
   count: number;
@@ -27,8 +28,10 @@ interface ProjectItem {
 
 interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'headers'> {
   items: ProjectItem[];
+  rateHeader: React.ReactNode;
   canEdit?: boolean;
   inactiveItems?: ProjectItem[];
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }
 
@@ -37,7 +40,9 @@ const COLUMN_COUNT = 4;
 export function ProjectsTable({
   items,
   inactiveItems = [],
+  inputTooltip,
   canEdit,
+  rateHeader,
   onChange,
   ...props
 }: Props) {
@@ -63,7 +68,7 @@ export function ProjectsTable({
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
         t('Stored Spans'),
-        canEdit ? t('Target Rate') : t('Projected Rate'),
+        rateHeader,
       ]}
     >
       {mainItems
@@ -81,6 +86,7 @@ export function ProjectsTable({
             key={item.project.id}
             canEdit={canEdit}
             onChange={onChange}
+            inputTooltip={inputTooltip}
             {...item}
           />
         ))}
@@ -158,7 +164,7 @@ function getSubProjectContent(
   isExpanded: boolean
 ) {
   let subProjectContent: React.ReactNode = t('No distributed traces');
-  if (subProjects.length > 1) {
+  if (subProjects.length > 0) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
     const overflowCount = subProjects.length - MAX_PROJECTS_COLLAPSED;
     const moreTranslation = t('+%d more', overflowCount);
@@ -188,7 +194,7 @@ function getSubSpansContent(
   isExpanded: boolean
 ) {
   let subSpansContent: React.ReactNode = '';
-  if (subProjects.length > 1) {
+  if (subProjects.length > 0) {
     const subProjectSum = subProjects.reduce(
       (acc, subProject) => acc + subProject.count,
       0
@@ -209,6 +215,36 @@ function getSubSpansContent(
   return subSpansContent;
 }
 
+function getStoredSpansContent(
+  ownCount: number,
+  subProjects: SubProject[],
+  sampleRate: number,
+  isExpanded: boolean
+) {
+  let subSpansContent: React.ReactNode = '';
+  if (subProjects.length > 0) {
+    const subProjectSum = subProjects.reduce(
+      (acc, subProject) => acc + Math.floor(subProject.count * sampleRate),
+      0
+    );
+
+    subSpansContent = isExpanded ? (
+      <Fragment>
+        <div>{formatAbbreviatedNumber(Math.floor(ownCount * sampleRate), 2)}</div>
+        {subProjects.map(subProject => (
+          <div key={subProject.slug}>
+            {formatAbbreviatedNumber(Math.floor(subProject.count * sampleRate))}
+          </div>
+        ))}
+      </Fragment>
+    ) : (
+      formatAbbreviatedNumber(subProjectSum)
+    );
+  }
+
+  return subSpansContent;
+}
+
 const MAX_PROJECTS_COLLAPSED = 3;
 const TableRow = memo(function TableRow({
   project,
@@ -219,6 +255,7 @@ const TableRow = memo(function TableRow({
   initialSampleRate,
   subProjects,
   error,
+  inputTooltip,
   onChange,
 }: {
   count: number;
@@ -229,6 +266,7 @@ const TableRow = memo(function TableRow({
   subProjects: SubProject[];
   canEdit?: boolean;
   error?: string;
+  inputTooltip?: string;
   onChange?: (projectId: string, value: string) => void;
 }) {
   const organization = useOrganization();
@@ -247,12 +285,7 @@ const TableRow = memo(function TableRow({
     [onChange, project.id]
   );
 
-  const getStoredSpans = (rate: number) => {
-    return Math.floor((count * rate) / 100);
-  };
-  const storedSpans = getStoredSpans(Number(sampleRate));
-  const initialStoredSpans = getStoredSpans(Number(initialSampleRate));
-
+  const storedSpans = Math.floor(count * parsePercent(sampleRate));
   return (
     <Fragment key={project.slug}>
       <Cell>
@@ -279,30 +312,28 @@ const TableRow = memo(function TableRow({
             />
           )}
         </FirstCellLine>
-        <SubProjects>{subProjectContent}</SubProjects>
+        <SubProjects data-is-first-column>{subProjectContent}</SubProjects>
       </Cell>
       <Cell>
         <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
-        <SubSpans>{subSpansContent}</SubSpans>
+        <SubContent>{subSpansContent}</SubContent>
       </Cell>
       <Cell>
         <FirstCellLine data-align="right">
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
-        <SubSpans>
-          {sampleRate !== initialSampleRate ? (
-            <SmallPrint>
-              {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
-            </SmallPrint>
-          ) : null}
-        </SubSpans>
+        <SubContent data-is-last-column>
+          {getStoredSpansContent(
+            ownCount,
+            subProjects,
+            parsePercent(sampleRate),
+            isExpanded
+          )}
+        </SubContent>
       </Cell>
       <Cell>
         <FirstCellLine>
-          <Tooltip
-            disabled={canEdit}
-            title={t('To edit project sample rates, switch to manual sampling mode.')}
-          >
+          <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
               disabled={!canEdit}
@@ -381,40 +412,40 @@ const FirstCellLine = styled('div')`
   }
 `;
 
-const SubProjects = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(2)};
-  & > div {
-    line-height: 2;
-    margin-right: -${space(2)};
-    padding-right: ${space(2)};
-    margin-left: -${space(1)};
-    padding-left: ${space(1)};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
-    }
-  }
-`;
-
-const SubSpans = styled('div')`
+const SubContent = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: right;
+
   & > div {
     line-height: 2;
     margin-left: -${space(2)};
     padding-left: ${space(2)};
-    margin-right: -${space(1)};
-    padding-right: ${space(1)};
-    border-top-right-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    margin-right: -${space(2)};
+    padding-right: ${space(2)};
     &:nth-child(odd) {
       background: ${p => p.theme.backgroundSecondary};
     }
   }
+
+  &[data-is-first-column] > div {
+    margin-left: -${space(1)};
+    padding-left: ${space(1)};
+    border-top-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+
+  &[data-is-last-column] > div {
+    margin-right: -${space(1)};
+    padding-right: ${space(1)};
+    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const SubProjects = styled(SubContent)`
+  text-align: left;
+  margin-left: ${space(2)};
 `;
 
 const HiddenButton = styled('button')`

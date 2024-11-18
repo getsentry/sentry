@@ -172,24 +172,23 @@ export function handleUpdateDashboardSplit({
 
 /* Checks if current user has permissions to edit dashboard */
 export function checkUserHasEditAccess(
-  dashboard: DashboardDetails,
   currentUser: User,
   userTeams: Team[],
-  organization: Organization
+  organization: Organization,
+  dashboardPermissions?: DashboardPermissions,
+  dashboardCreator?: User
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
-    !dashboard.permissions ||
-    dashboard.permissions.isEditableByEveryone ||
-    dashboard.createdBy?.id === currentUser.id
+    !dashboardPermissions ||
+    dashboardPermissions.isEditableByEveryone ||
+    dashboardCreator?.id === currentUser.id
   ) {
     return true;
   }
-  if (dashboard.permissions.teamsWithEditAccess?.length) {
+  if (dashboardPermissions.teamsWithEditAccess?.length) {
     const userTeamIds = userTeams.map(team => Number(team.id));
-    dashboard.permissions.teamsWithEditAccess.some(teamId =>
-      userTeamIds.includes(teamId)
-    );
+    dashboardPermissions.teamsWithEditAccess.some(teamId => userTeamIds.includes(teamId));
   }
   return false;
 }
@@ -273,6 +272,8 @@ class DashboardDetail extends Component<Props, State> {
           totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardPermissions: dashboard.permissions,
+          dashboardCreator: dashboard.createdBy,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
 
@@ -845,6 +846,8 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboardPermissions={dashboard.permissions}
+                  dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
@@ -1018,6 +1021,8 @@ class DashboardDetail extends Component<Props, State> {
                               ) : null}
                               <FiltersBar
                                 filters={(modifiedDashboard ?? dashboard).filters}
+                                dashboardPermissions={dashboard.permissions}
+                                dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={hasUnsavedFilters}
                                 isEditingDashboard={

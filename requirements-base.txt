@@ -44,12 +44,12 @@ phonenumberslite>=8.12.32
 Pillow>=10.4.0
 progressbar2>=3.41.0
 protobuf>=5.27.3
-proto-plus>=1.24.0
+proto-plus>=1.25.0
 python-rapidjson>=1.4
 psutil>=5.9.2
 psycopg2-binary>=2.9.10
 PyJWT>=2.4.0
-pydantic>=1.10.17,<2
+pydantic>=1.10.18,<2
 python-dateutil>=2.9.0
 pymemcache
 python-u2flib-server>=5.0.0
@@ -60,13 +60,13 @@ rb>=1.9.0
 redis-py-cluster>=2.1.0
 redis>=3.4.1
 requests-oauthlib>=1.2.0
-requests>=2.25.1
+requests>=2.32.3
 # [start] jsonschema format validators
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
 sentry-arroyo>=2.16.5
-sentry-kafka-schemas>=0.1.118
+sentry-kafka-schemas>=0.1.119
 sentry-ophio==1.0.0
 sentry-protos>=0.1.34
 sentry-redis-tools>=0.1.7
@@ -94,7 +94,10 @@ orjson>=3.10.10
 msgpack>=1.1
 cryptography>=38.0.3
 
-grpcio>=1.65.4
+# Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
+# See https://github.com/grpc/grpc/issues/23796 and
+# https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
+grpcio>=1.66.1
 
 # not directly used, but provides a speedup for redis
 hiredis>=2.3.2
