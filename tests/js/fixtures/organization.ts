@@ -64,7 +64,6 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     githubOpenPRBot: false,
     githubPRBot: false,
     hideAiFeatures: false,
-    autofixEnabled: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,
