@@ -136,20 +136,25 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        try:
-            # This sets current_release_version to the latest semver version associated with a group
-            associated_release_id = GroupRelease.objects.filter(
-                project_id=group.project.id, group_id=group.id
-            ).values_list("release_id")
+        if not features.has(
+            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
+        ):
+            try:
+                # This sets current_release_version to the latest semver version associated with a group
+                associated_release_id = GroupRelease.objects.filter(
+                    project_id=group.project.id, group_id=group.id
+                ).values_list("release_id")
+                current_release_version = (
+                    get_semver_releases(group.project)
+                    .filter(id__in=associated_release_id)
+                    .values_list("version", flat=True)[:1]
+                    .get()
+                )
+            except Release.DoesNotExist:
+                pass
+        else:
+            current_release_version = greatest_semver_release(group.project).version
 
-            current_release_version = (
-                get_semver_releases(group.project)
-                .filter(id__in=associated_release_id)
-                .values_list("version", flat=True)[:1]
-                .get()
-            )
-        except Release.DoesNotExist:
-            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -404,18 +409,9 @@ def update_groups(
                             release_version=release.version,
                         )
 
-                        if (
-                            features.has(
-                                "organizations:releases-resolve-next-release-semver-fix",
-                                project.organization,
-                            )
-                            and follows_semver
-                        ):
-                            current_release_version = get_release_to_resolve_by(projects[0]).version
-                        else:
-                            current_release_version = get_current_release_version_of_group(
-                                group=group, follows_semver=follows_semver
-                            )
+                        current_release_version = get_current_release_version_of_group(
+                            group, follows_semver
+                        )
 
                         if current_release_version:
                             resolution_params.update(
