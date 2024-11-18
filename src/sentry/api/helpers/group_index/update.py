@@ -652,6 +652,9 @@ def update_groups(
 
     # TODO: Create new endpoint for this
     if result.get("merge") and len(group_list) > 1:
+        # don't allow merging cross project
+        if len(project_lookup) > 1:
+            return Response({"detail": "Merging across multiple projects is not supported"})
         result["merge"] = merge_groups(
             group_list,
             project_lookup,
@@ -679,10 +682,6 @@ def merge_groups(
     acting_user: User,
     referer: str,
 ) -> MergedGroup:
-    # don't allow merging cross project
-    if len(project_lookup) > 1:
-        return Response({"detail": "Merging across multiple projects is not supported"})
-
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
     similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
 
