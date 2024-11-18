@@ -99,6 +99,9 @@ export function NewIssueExperienceButton() {
           key: 'learn-more',
           label: t('Learn more about the new UI'),
           onAction: () => {
+            trackAnalytics('issue_details.streamline_ui_learn_more', {
+              organization,
+            });
             window.open(
               'https://sentry.zendesk.com/hc/en-us/articles/30882241712795',
               '_blank'
@@ -114,6 +117,10 @@ export function NewIssueExperienceButton() {
               messagePlaceholder: t(
                 'Excluding bribes, what would make you excited to use the new UI?'
               ),
+              tags: {
+                ['feedback.source']: 'streamlined_issue_details',
+                ['feedback.owner']: 'issues',
+              },
             });
           },
         },
