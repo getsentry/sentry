@@ -78,6 +78,32 @@ def update_check_in_volume(ts_list: Sequence[datetime]):
         pipeline.execute()
 
 
+def prune_incident_check_in_volume(start: datetime, end: datetime) -> None:
+    """
+    After recovering from a system incdent the volume and metric data must be
+    discarded to avoid skewing future computations. This function does this
+    """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    # Length of the incident in minutes
+    length = int((end - start).total_seconds()) // 60
+
+    # XXX(epurkhiser): Because we make clock tick decisions at the timestamp of
+    # the clock ticking, we are storing the decision at the tick timestamp
+    # AFTER the tick timestamp where the volume and metric values are stored.
+    #
+    # Adjust for this by moving the start back a minute.
+    start = start - timedelta(minutes=1)
+    dates = (start + timedelta(minutes=offset) for offset in range(length))
+
+    # Batch deletes
+    for timestamp_batch in batched(dates, 30):
+        pipeline = redis_client.pipeline()
+        for ts in timestamp_batch:
+            pipeline.delete(MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)))
+        pipeline.execute()
+
+
 def record_clock_tick_volume_metric(tick: datetime) -> None:
     """
     Look at the historic volume of check-ins for this tick over the last
