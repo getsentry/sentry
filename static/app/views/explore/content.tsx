@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -19,6 +20,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,6 +35,8 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
+import {useResultMode} from './hooks/useResultsMode';
+
 interface ExploreContentProps {
   location: Location;
 }
@@ -43,6 +47,10 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [dataset] = useDataset();
+
+  const [resultMode] = useResultMode();
+  const supportedAggregates =
+    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -64,18 +72,20 @@ function ExploreContentImpl({}: ExploreContentProps) {
   }, [location, navigate]);
 
   return (
-    <SentryDocumentTitle title={t('Explore')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Explore')}</Layout.Title>
+              <Layout.Title>{t('Traces')}</Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
-                <Button onClick={switchToOldTraceExplorer} size="sm">
-                  {t('Switch to Old Trace Explore')}
-                </Button>
+                <Feature organization={organization} features="visibility-explore-admin">
+                  <Button onClick={switchToOldTraceExplorer} size="sm">
+                    {t('Switch to Old Trace Explore')}
+                  </Button>
+                </Feature>
                 <FeedbackWidgetButton />
               </ButtonBar>
             </Layout.HeaderActions>
@@ -85,7 +95,15 @@ function ExploreContentImpl({}: ExploreContentProps) {
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
-                <DatePageFilter />
+                <DatePageFilter
+                  maxPickableDays={7}
+                  relativeOptions={({arbitraryOptions}) => ({
+                    ...arbitraryOptions,
+                    '1h': t('Last 1 hour'),
+                    '24h': t('Last 24 hours'),
+                    '7d': t('Last 7 days'),
+                  })}
+                />
               </StyledPageFilterBar>
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
                 <SpanSearchQueryBuilder
@@ -100,6 +118,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
                   searchSource="explore"
+                  supportedAggregates={supportedAggregates}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />

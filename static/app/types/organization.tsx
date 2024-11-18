@@ -19,6 +19,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   aiSuggestedSolution: boolean;
+  autofixEnabled: boolean;
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
@@ -26,6 +27,7 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;

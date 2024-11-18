@@ -45,8 +45,8 @@ from sentry.tasks.base import instrumented_task
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2hours
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=1 * 60,  # 1 minute
+    time_limit=1 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -85,8 +85,8 @@ def recalibrate_orgs(context: TaskContext) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=6 * 60,  # 6 minutes
+    time_limit=6 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task
@@ -164,7 +164,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
+    soft_time_limit=2 * 60,
     time_limit=2 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )

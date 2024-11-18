@@ -28,7 +28,7 @@ class UpdateAutoDetectedActiveIntervalSecondsTest(TestMigrations):
         )
 
         self.uptime_subscription_unchanged_2 = self.create_uptime_subscription(
-            url="http://sontry.io", interval_seconds=120
+            url="http://sontry.io", interval_seconds=300
         )
         self.create_project_uptime_subscription(
             uptime_subscription=self.uptime_subscription_unchanged_2,
@@ -43,5 +43,5 @@ class UpdateAutoDetectedActiveIntervalSecondsTest(TestMigrations):
         assert self.uptime_subscription_unchanged.interval_seconds == 300
         assert self.uptime_subscription_unchanged.status == UptimeSubscription.Status.ACTIVE.value
         self.uptime_subscription_unchanged_2.refresh_from_db()
-        assert self.uptime_subscription_unchanged_2.interval_seconds == 120
+        assert self.uptime_subscription_unchanged_2.interval_seconds == 300
         assert self.uptime_subscription_unchanged_2.status == UptimeSubscription.Status.ACTIVE.value

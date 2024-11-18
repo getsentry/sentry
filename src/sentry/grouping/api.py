@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, TypedDict
 import sentry_sdk
 
 from sentry import options
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
@@ -136,7 +136,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -264,10 +264,10 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 def _get_calculated_grouping_variants_for_event(
     event: Event, context: GroupingContext
-) -> dict[str, GroupingComponent]:
+) -> dict[str, BaseGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    per_variant_components: dict[str, list[GroupingComponent]] = {}
+    per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
@@ -292,7 +292,7 @@ def _get_calculated_grouping_variants_for_event(
 
     rv = {}
     for variant, components in per_variant_components.items():
-        component = GroupingComponent(id=variant, values=components)
+        component = BaseGroupingComponent(id=variant, values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
         rv[variant] = component
@@ -321,7 +321,7 @@ def get_grouping_variants_for_event(
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
@@ -360,9 +360,9 @@ def get_grouping_variants_for_event(
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
-            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+            rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
-            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+            rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:

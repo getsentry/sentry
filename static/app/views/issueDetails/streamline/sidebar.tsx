@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -46,16 +47,19 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   return (
     <Side>
+      <GuideAnchor target="issue_sidebar_releases" position="left">
+        <FirstLastSeenSection group={group} />
+      </GuideAnchor>
+      <StyledBreak />
       {((organization.features.includes('ai-summary') &&
-        issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.issueSummary.enabled &&
+        !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
         <Fragment>
           <SolutionsSection group={group} project={project} event={event} />
           <StyledBreak />
         </Fragment>
       )}
-      <FirstLastSeenSection group={group} />
-      <StyledBreak />
       {event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />

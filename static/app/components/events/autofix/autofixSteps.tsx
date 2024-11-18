@@ -244,13 +244,22 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             (previousStep?.type !== AutofixStepType.DEFAULT ||
               previousStep?.insights.length === 0) &&
             step.type !== AutofixStepType.DEFAULT;
+          const stepBelowProcessingAndEmpty =
+            nextStep?.type === AutofixStepType.DEFAULT &&
+            nextStep?.status === 'PROCESSING' &&
+            nextStep?.insights?.length === 0;
+
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
               {twoNonDefaultStepsInARow && <br />}
               <Step
                 step={step}
-                hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
-                hasStepAbove={index > 0}
+                hasStepBelow={
+                  index + 1 < steps.length &&
+                  !twoInsightStepsInARow &&
+                  !stepBelowProcessingAndEmpty
+                }
+                hasStepAbove
                 groupId={groupId}
                 runId={runId}
                 repos={repos}

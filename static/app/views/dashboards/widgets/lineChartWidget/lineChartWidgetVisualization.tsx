@@ -9,6 +9,7 @@ import {formatChartValue} from './formatChartValue';
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   meta?: Meta;
+  utc?: boolean;
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
@@ -35,6 +36,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           }),
         });
       })}
+      utc={props.utc}
       legend={{
         top: 0,
         left: 0,

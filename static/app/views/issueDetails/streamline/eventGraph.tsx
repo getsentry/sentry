@@ -195,7 +195,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     'issue-details-graph-legend',
     {
       ['Feature Flags']: true,
-      ['Releases']: true,
+      ['Releases']: false,
     }
   );
 
@@ -209,6 +209,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
+    inactiveColor: theme.gray200,
   });
 
   const onLegendSelectChanged = useMemo(

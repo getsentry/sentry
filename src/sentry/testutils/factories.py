@@ -147,7 +147,7 @@ from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -155,6 +155,7 @@ from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
+    IntervalSecondsLiteral,
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
@@ -183,6 +184,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
 
@@ -860,7 +862,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
+    def create_user(
+        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+    ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
 
@@ -1798,7 +1802,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity(
-        user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: User | RpcUser, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,
@@ -1952,12 +1956,13 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
-        interval_seconds: int,
+        interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
         headers,
         body,
         date_updated: datetime,
+        trace_sampling: bool = False,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1973,6 +1978,7 @@ class Factories:
             method=method,
             headers=headers,
             body=body,
+            trace_sampling=trace_sampling,
         )
 
     @staticmethod
@@ -2106,7 +2112,7 @@ class Factories:
     def create_data_source(
         organization: Organization | None = None,
         query_id: int | None = None,
-        type: DataSource.Type | None = None,
+        type: str | None = None,
         **kwargs,
     ) -> DataSource:
         if organization is None:
@@ -2114,7 +2120,7 @@ class Factories:
         if query_id is None:
             query_id = random.randint(1, 10000)
         if type is None:
-            type = DataSource.Type.SNUBA_QUERY_SUBSCRIPTION
+            type = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
         return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
 
     @staticmethod
