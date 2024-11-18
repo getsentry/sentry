@@ -158,8 +158,5 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 "codebaseIndexing": {
                     "ok": codebase_indexing_ok,
                 },
-                "autofixEnabled": {
-                    "ok": org.get_option("sentry:autofix_enabled", False),
-                },
             }
         )
