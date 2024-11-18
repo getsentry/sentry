@@ -316,8 +316,6 @@ function ManageDashboards() {
         location={location}
         onDashboardsChange={() => refetchDashboards()}
         isLoading={isLoading}
-        rowCount={rowCount}
-        columnCount={columnCount}
       />
     );
   }

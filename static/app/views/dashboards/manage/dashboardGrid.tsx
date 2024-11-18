@@ -203,7 +203,11 @@ function DashboardGrid({
       : dashboards?.length ?? 0;
 
     return (
-      <DashboardGridContainer rows={rowCount} columns={columnCount}>
+      <DashboardGridContainer
+        rows={rowCount}
+        columns={columnCount}
+        data-test-id={'dashboard-grid'}
+      >
         {renderMiniDashboards()}
         {isLoading &&
           rowCount * columnCount > numDashboards &&

@@ -11,6 +11,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -30,12 +31,10 @@ import {cloneDashboard} from '../utils';
 
 type Props = {
   api: Client;
-  columnCount: number;
   dashboards: DashboardListItem[] | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
-  rowCount: number;
   isLoading?: boolean;
 };
 
@@ -149,17 +148,24 @@ function DashboardTable({
                 handleDuplicate(dataRow);
               }}
               aria-label={t('Duplicate Dashboard')}
+              data-test-id={'dashboard-duplicate'}
               icon={<IconCopy />}
               size="sm"
             />
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
-                handleDelete(dataRow);
+                openConfirmModal({
+                  message: t('Are you sure you want to delete this dashboard?'),
+                  priority: 'danger',
+                  onConfirm: () => handleDelete(dataRow),
+                });
               }}
               aria-label={t('Delete Dashboard')}
+              data-test-id={'dashboard-delete'}
               icon={<IconDelete />}
               size="sm"
+              disabled={dashboards && dashboards.length <= 1}
             />
           </ActionsIconWrapper>
         </DateActionsContainer>
