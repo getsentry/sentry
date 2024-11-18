@@ -95,7 +95,7 @@ class AuthLoginView(BaseView):
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
-        return super().handle(request=request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
