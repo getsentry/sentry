@@ -227,7 +227,7 @@ class SaltedComponentVariant(ComponentVariant):
     def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
-        final_values = []
+        final_values: list[str | int] = []
         for value in self.values:
             # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
             # original grouping method (message, stacktrace, etc.)
