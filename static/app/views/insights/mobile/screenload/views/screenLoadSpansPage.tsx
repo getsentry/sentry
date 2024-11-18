@@ -7,9 +7,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -19,6 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -135,10 +133,7 @@ export function ScreenLoadSpansContent() {
       <HeaderContainer>
         <ToolRibbon>
           <FilterContainer>
-            <PageFilterBar condensed>
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
+            <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
             <ReleaseComparisonSelector />
           </FilterContainer>
         </ToolRibbon>

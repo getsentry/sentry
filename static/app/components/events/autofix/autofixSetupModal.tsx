@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
@@ -9,7 +8,6 @@ import {
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -18,16 +16,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
-
-interface AutofixSetupModalProps extends ModalRenderProps {
-  groupId: string;
-  projectId: string;
-}
-
-const ConsentStep = HookOrDefault({
-  hookName: 'component:autofix-setup-step-consent',
-  defaultComponent: null,
-});
 
 function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
   if (autofixSetup.integration.ok) {
@@ -143,19 +131,16 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
 function AutofixGithubIntegrationStep({
   autofixSetup,
   canStartAutofix,
-  closeModal,
+  onComplete,
   isLastStep,
-  refetchSetup,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   isLastStep?: boolean;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   const handleClose = () => {
-    refetchSetup?.();
-    closeModal();
+    onComplete?.();
   };
 
   const sortedRepos = useMemo(
@@ -194,8 +179,10 @@ function AutofixGithubIntegrationStep({
               size="sm"
               disabled={!canStartAutofix}
               onClick={handleClose}
+              analyticsEventName="Autofix Setup Enable Autofix"
+              analyticsEventKey="autofix.setup_enable_autofix"
             >
-              {t("Let's Go!")}
+              {t('Enable Autofix')}
             </Button>
           )}
         </GuidedSteps.StepButtons>
@@ -270,6 +257,8 @@ function AutofixGithubIntegrationStep({
             size="sm"
             disabled={!canStartAutofix}
             onClick={handleClose}
+            analyticsEventName="Autofix Setup Skip & Enable Autofix"
+            analyticsEventKey="autofix.setup_skip_enable_autofix"
           >
             {t('Skip & Enable Autofix')}
           </Button>
@@ -281,20 +270,17 @@ function AutofixGithubIntegrationStep({
 
 function AutofixSetupSteps({
   autofixSetup,
-  closeModal,
   canStartAutofix,
-  refetchSetup,
+  onComplete,
 }: {
   autofixSetup: AutofixSetupResponse;
   canStartAutofix: boolean;
-  closeModal: () => void;
   groupId: string;
   projectId: string;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   return (
     <GuidedSteps>
-      <ConsentStep hasConsented={autofixSetup.genAIConsent.ok} />
       <GuidedSteps.Step
         stepKey="integration"
         title={t('Install the GitHub Integration')}
@@ -311,9 +297,8 @@ function AutofixSetupSteps({
         <AutofixGithubIntegrationStep
           autofixSetup={autofixSetup}
           canStartAutofix={canStartAutofix}
-          closeModal={closeModal}
           isLastStep
-          refetchSetup={refetchSetup}
+          onComplete={onComplete}
         />
       </GuidedSteps.Step>
     </GuidedSteps>
@@ -323,13 +308,11 @@ function AutofixSetupSteps({
 export function AutofixSetupContent({
   projectId,
   groupId,
-  closeModal,
-  refetchSetup,
+  onComplete,
 }: {
-  closeModal: () => void;
   groupId: string;
   projectId: string;
-  refetchSetup?: () => void;
+  onComplete?: () => void;
 }) {
   const organization = useOrganization();
   const {data, canStartAutofix, isPending, isError} = useAutofixSetup(
@@ -363,6 +346,7 @@ export function AutofixSetupContent({
 
   return (
     <Fragment>
+      <Divider />
       <Header>Set up Autofix</Header>
       <p>
         Sentry's AI-enabled Autofix uses all of the contextual data surrounding this error
@@ -374,32 +358,8 @@ export function AutofixSetupContent({
         projectId={projectId}
         autofixSetup={data}
         canStartAutofix={canStartAutofix}
-        closeModal={closeModal}
-        refetchSetup={refetchSetup}
+        onComplete={onComplete}
       />
-    </Fragment>
-  );
-}
-
-export function AutofixSetupModal({
-  Header,
-  Body,
-  groupId,
-  projectId,
-  closeModal,
-}: AutofixSetupModalProps) {
-  return (
-    <Fragment>
-      <Header closeButton>
-        <h3>{t('Configure Autofix')}</h3>
-      </Header>
-      <Body>
-        <AutofixSetupContent
-          projectId={projectId}
-          groupId={groupId}
-          closeModal={closeModal}
-        />
-      </Body>
     </Fragment>
   );
 }
@@ -438,4 +398,9 @@ const GithubLink = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const Divider = styled('div')`
+  margin: ${space(3)} 0;
+  border-bottom: 2px solid ${p => p.theme.gray100};
 `;

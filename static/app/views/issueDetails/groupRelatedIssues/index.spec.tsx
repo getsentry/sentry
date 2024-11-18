@@ -1,4 +1,6 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,14 +12,17 @@ describe('Related Issues View', function () {
   let issuesMock: jest.Mock;
 
   const organization = OrganizationFixture();
-  const orgSlug = organization.slug;
   const groupId = '12345678';
+  const group = GroupFixture({id: groupId});
+  const router = RouterFixture({
+    params: {groupId: group.id},
+  });
+  const orgSlug = organization.slug;
   const group1 = '15';
   const group2 = '20';
   // query=issue.id:[15,20] -> query=issue.id%3A%5B15%2C20%5D
   const orgIssuesEndpoint = `/organizations/${orgSlug}/issues/?query=issue.id%3A%5B${group1}%2C${group2}%5D`;
 
-  const params = {groupId: groupId};
   const errorType = 'RuntimeError';
   const onlySameRootData = {
     type: 'same_root_cause',
@@ -62,6 +67,10 @@ describe('Related Issues View', function () {
       url: `/organizations/${orgSlug}/users/`,
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
   });
 
   afterEach(() => {
@@ -83,7 +92,7 @@ describe('Related Issues View', function () {
       body: issuesData,
     });
 
-    render(<GroupRelatedIssues params={params} />);
+    render(<GroupRelatedIssues />, {router, organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -112,7 +121,7 @@ describe('Related Issues View', function () {
       url: orgIssuesEndpoint,
       body: issuesData,
     });
-    render(<GroupRelatedIssues params={params} />);
+    render(<GroupRelatedIssues />, {router, organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();

@@ -4,7 +4,7 @@ import orjson
 import pytest
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegratedApiTestCase
 from sentry.testutils.helpers import get_response_text

@@ -1,3 +1,5 @@
+import {clampPercentRate} from 'sentry/views/settings/dynamicSampling/utils/clampNumer';
+
 interface ScalingItem {
   count: number;
   sampleRate: number;
@@ -50,7 +52,7 @@ export function scaleSampleRates<T extends ScalingItem>({
 
   const scaledItems: T[] = [];
   for (const item of sortedItems) {
-    const newProjectRate = Math.min(1, Math.max(0, item.sampleRate * factor));
+    const newProjectRate = clampPercentRate(item.sampleRate * factor);
     const newProjectSampleCount = item.count * newProjectRate;
 
     remainingTotal -= item.count;

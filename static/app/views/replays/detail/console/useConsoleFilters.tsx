@@ -5,7 +5,11 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import {
+  type BreadcrumbFrame,
+  type ConsoleFrame,
+  isConsoleFrame,
+} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ConsoleSelectOption extends SelectOption<string> {
@@ -32,7 +36,7 @@ type Return = {
 };
 
 function getFilterableField(frame: BreadcrumbFrame) {
-  if (frame.category === 'console') {
+  if (isConsoleFrame(frame)) {
     const consoleFrame = frame as ConsoleFrame;
     return consoleFrame.level;
   }

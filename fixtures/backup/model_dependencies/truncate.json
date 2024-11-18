@@ -116,6 +116,7 @@
   "hybridcloud_organizationslugreservationreplica",
   "hybridcloud_externalactorreplica",
   "hybridcloud_apikeyreplica",
+  "flags_webhooksigningsecret",
   "flags_audit_log",
   "feedback_feedback",
   "uptime_projectuptimesubscription",
