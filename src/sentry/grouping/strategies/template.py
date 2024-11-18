@@ -1,7 +1,11 @@
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    ContextLineGroupingComponent,
+    FilenameGroupingComponent,
+    TemplateGroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -16,16 +20,16 @@ from sentry.interfaces.template import Template
 def template_v1(
     interface: Template, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    filename_component = BaseGroupingComponent(id="filename")
+    filename_component = FilenameGroupingComponent()
     if interface.filename is not None:
         filename_component.update(values=[interface.filename])
 
-    context_line_component = BaseGroupingComponent(id="context-line")
+    context_line_component = ContextLineGroupingComponent()
     if interface.context_line is not None:
         context_line_component.update(values=[interface.context_line])
 
     return {
-        context["variant"]: BaseGroupingComponent(
-            id="template", values=[filename_component, context_line_component]
+        context["variant"]: TemplateGroupingComponent(
+            values=[filename_component, context_line_component]
         )
     }

@@ -32,15 +32,14 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
+import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {useAnalytics} from '../hooks/useAnalytics';
-import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
 import {FieldRenderer} from './fieldRenderer';
 
@@ -96,12 +95,13 @@ export function AggregatesTable({}: AggregatesTableProps) {
   });
 
   useAnalytics({
-    result,
+    resultLength: result.data?.length,
+    resultMode: 'aggregates',
+    resultStatus: result.status,
     visualizes,
     organization,
     columns: groupBys,
     userQuery: query,
-    resultsMode: 'aggregate',
   });
 
   const {tableStyles} = useTableStyles({

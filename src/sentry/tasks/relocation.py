@@ -306,12 +306,12 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
     max_retries=4,
     retry_backoff=30,
     retry_backoff_jitter=True,
-    # Setting `acks_late` + `task_reject_on_worker_lost` here allows us to retry the potentially
+    # Setting `acks_late` + `reject_on_worker_lost` here allows us to retry the potentially
     # long-lived task if the k8s pod of the worker received SIGKILL/TERM/QUIT (or we ran out of some
     # other resource, leading to the same outcome). We have a timeout check at the very start of the
     # task itself to make sure it does not loop indefinitely.
     acks_late=True,
-    task_reject_on_worker_lost=True,
+    reject_on_worker_lost=True,
     # 10 minutes per try.
     soft_time_limit=60 * 10,
     silo_mode=SiloMode.REGION,
