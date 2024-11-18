@@ -42,13 +42,11 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
 
     def __init__(
         self,
-        id: str | None = None,
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[ValuesType] | None = None,
         variant_provider: bool = False,
     ):
-        self.id = id or self.id
         self.variant_provider = variant_provider
 
         self.update(
