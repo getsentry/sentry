@@ -2029,6 +2029,11 @@ register(
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "crons.system_incidents.collect_metrics",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Enables the the crons incident occurrence consumer to consider the clock-tick
 # decision made based on volume metrics to determine if a incident occurrence
