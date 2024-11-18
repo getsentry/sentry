@@ -134,18 +134,18 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(fingerprint, info):
+def expose_fingerprint_dict(fingerprint, fingerprint_info):
     rv = {
         "values": fingerprint,
     }
 
-    client_values = info.get("client_fingerprint")
+    client_values = fingerprint_info.get("client_fingerprint")
     if client_values and (
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
     ):
         rv["client_values"] = client_values
 
-    matched_rule = info.get("matched_rule")
+    matched_rule = fingerprint_info.get("matched_rule")
     if matched_rule:
         rv["matched_rule"] = matched_rule["text"]
 
