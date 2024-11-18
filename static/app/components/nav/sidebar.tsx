@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -7,19 +7,15 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {linkStyles} from 'sentry/components/links/styles';
 import {useNavContext} from 'sentry/components/nav/context';
-import Submenu from 'sentry/components/nav/submenu';
+import ActiveSubmenu from 'sentry/components/nav/submenus/index';
 import {
-  isNavItemActive,
   isNonEmptyArray,
-  isSubmenuItemActive,
   makeLinkPropsFromTo,
   type NavSidebarItem,
-  resolveNavItemTo,
 } from 'sentry/components/nav/utils';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
-import {useLocation} from 'sentry/utils/useLocation';
 
 function Sidebar() {
   return (
@@ -30,7 +26,7 @@ function Sidebar() {
         </SidebarHeader>
         <SidebarItems />
       </SidebarWrapper>
-      <Submenu />
+      <ActiveSubmenu />
     </Fragment>
   );
 }
@@ -96,15 +92,19 @@ interface SidebarItemProps {
 }
 
 function SidebarItem({item}: SidebarItemProps) {
-  const to = resolveNavItemTo(item);
-  const SidebarChild = to ? SidebarLink : SidebarMenu;
+  const {setActiveMenuId} = useNavContext();
+  const SidebarChild = item.to ? SidebarLink : SidebarMenu;
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
+  const handleClick = useCallback(
+    () => setActiveMenuId(item.id),
+    [item, setActiveMenuId]
+  );
 
   return (
     <FeatureGuard {...featureGuardProps}>
-      <SidebarItemWrapper>
+      <SidebarItemWrapper onClick={handleClick}>
         <SidebarChild item={item} key={item.label}>
           {item.icon}
           <span>{item.label}</span>
@@ -128,30 +128,38 @@ const NavButton = styled('button')`
 `;
 
 function SidebarLink({children, item}: SidebarItemProps & {children: React.ReactNode}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
-  const to = resolveNavItemTo(item);
+  const {activeMenuId, setActiveMenuId} = useNavContext();
+  const isActive = useMemo(() => activeMenuId === item.id, [activeMenuId, item]);
+  const to = item.to;
   if (!to) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
     );
   }
   const linkProps = makeLinkPropsFromTo(to);
+  const handleClick = useCallback(() => {
+    setActiveMenuId(item.id);
+  }, [setActiveMenuId, item.id]);
 
   return (
     <NavLink
       {...linkProps}
-      className={isActive || isSubmenuActive ? 'active' : undefined}
+      className={isActive ? 'active' : undefined}
       aria-current={isActive ? 'page' : undefined}
+      onClick={handleClick}
     >
-      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      <InteractionStateLayer isPressed={isActive} />
       {children}
     </NavLink>
   );
 }
 
 function SidebarMenu({item, children}: SidebarItemProps & {children: React.ReactNode}) {
+  const {setActiveMenuId} = useNavContext();
+  const handleClick = useCallback(() => {
+    setActiveMenuId(item.id);
+  }, [setActiveMenuId, item.id]);
+
   if (!item.dropdown) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
@@ -162,7 +170,13 @@ function SidebarMenu({item, children}: SidebarItemProps & {children: React.React
       position="right-end"
       trigger={(props, isOpen) => {
         return (
-          <NavButton {...props}>
+          <NavButton
+            {...props}
+            onClick={event => {
+              handleClick();
+              props.onClick?.(event);
+            }}
+          >
             <InteractionStateLayer hasSelectedBackground={isOpen} />
             {children}
           </NavButton>
@@ -174,6 +188,8 @@ function SidebarMenu({item, children}: SidebarItemProps & {children: React.React
 }
 
 const SidebarItemWrapper = styled('li')`
+  display: flex;
+
   svg {
     --size: 14px;
     width: var(--size);
@@ -187,11 +203,12 @@ const SidebarItemWrapper = styled('li')`
   > a,
   button {
     display: flex;
+    flex-grow: 1;
     flex-direction: row;
     height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: auto ${space(1.5)};
+    padding: 0 ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};

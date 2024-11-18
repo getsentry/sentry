@@ -1,39 +1,16 @@
-import {Fragment} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
-import type {NavSubmenuItem} from 'sentry/components/nav/utils';
-import {
-  isNavItemActive,
-  isNonEmptyArray,
-  makeLinkPropsFromTo,
-} from 'sentry/components/nav/utils';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
 
-function Submenu() {
-  const nav = useNavContext();
-  if (!nav.submenu) {
-    return null;
-  }
-
+function Submenu({children}) {
   return (
     <SubmenuWrapper role="navigation" aria-label="Secondary Navigation">
-      <SubmenuBody>
-        {nav.submenu.main.map(item => (
-          <SubmenuItem key={item.label} item={item} />
-        ))}
-      </SubmenuBody>
-      {isNonEmptyArray(nav.submenu.footer) && (
-        <SubmenuFooter>
-          {nav.submenu.footer.map(item => (
-            <SubmenuItem key={item.label} item={item} />
-          ))}
-        </SubmenuFooter>
-      )}
+      {children}
     </SubmenuWrapper>
   );
 }
@@ -48,31 +25,38 @@ const SubmenuWrapper = styled('div')`
   align-items: stretch;
   justify-content: space-between;
   flex-direction: column;
-  width: 150px;
+  min-width: 150px;
+  width: max-content;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
 `;
 
-function SubmenuItem({item}: {item: NavSubmenuItem}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const linkProps = makeLinkPropsFromTo(item.to);
-
-  const FeatureGuard = item.feature ? Feature : Fragment;
-  const featureGuardProps: any = item.feature ?? {};
+export interface SubmenuItemProps {
+  children: string | React.ReactElement<any, string | React.JSXElementConstructor<any>>;
+  id: string;
+  to: LocationDescriptor;
+}
+export function SubmenuItem({id, to, children}: SubmenuItemProps) {
+  if (!id) {
+    throw new Error(`SubmenuItem expected a unique \`id\` prop, but recieved \`${id}\``);
+  }
+  const {activeSubmenuId, setActiveSubmenuId} = useNavContext();
+  const handleClick = useCallback(() => {
+    setActiveSubmenuId(id);
+  }, [setActiveSubmenuId, id]);
+  const isActive = useMemo(() => activeSubmenuId === id, [activeSubmenuId, id]);
 
   return (
-    <FeatureGuard {...featureGuardProps}>
-      <SubmenuItemWrapper>
-        <SubmenuLink
-          {...linkProps}
-          aria-current={isActive ? 'page' : undefined}
-          aria-selected={isActive}
-        >
-          <InteractionStateLayer hasSelectedBackground={isActive} />
-          {item.label}
-        </SubmenuLink>
-      </SubmenuItemWrapper>
-    </FeatureGuard>
+    <SubmenuItemWrapper>
+      <SubmenuLink
+        to={to}
+        aria-current={isActive ? 'page' : undefined}
+        aria-selected={isActive}
+        onClick={handleClick}
+      >
+        <InteractionStateLayer hasSelectedBackground={isActive} />
+        {children}
+      </SubmenuLink>
+    </SubmenuItemWrapper>
   );
 }
 
@@ -132,11 +116,11 @@ const SubmenuFooterWrapper = styled('div')`
   padding-block: ${space(1)};
 `;
 
-function SubmenuBody({children}) {
+export function SubmenuBody({children}) {
   return <SubmenuItemList>{children}</SubmenuItemList>;
 }
 
-function SubmenuFooter({children}) {
+export function SubmenuFooter({children}) {
   return (
     <SubmenuFooterWrapper>
       <SubmenuItemList>{children}</SubmenuItemList>
