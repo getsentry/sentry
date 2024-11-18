@@ -45,7 +45,7 @@ def test_os_normalization(make_ctx_snapshot):
     make_ctx_snapshot({"os": {"raw_description": "Microsoft Windows 6.1.7601 S"}})
 
 
-def test_runtime(make_ctx_snapshot, insta_snapshot):
+def test_runtime(make_ctx_snapshot):
     make_ctx_snapshot(
         {"runtime": {"runtime": "Java 1.2.3", "name": "Java", "version": "1.2.3", "build": "BLAH"}}
     )
@@ -57,7 +57,7 @@ def test_runtime_normalization(make_ctx_snapshot):
     )
 
 
-def test_browser(make_ctx_snapshot, insta_snapshot):
+def test_browser(make_ctx_snapshot):
     make_ctx_snapshot(
         {"browser": {"browser": "Chrome 132.0.6834.0", "name": "Chrome", "version": "132.0.6834.0"}}
     )
