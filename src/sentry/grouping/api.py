@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict
 import sentry_sdk
 
 from sentry import options
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    AppGroupingComponent,
+    BaseGroupingComponent,
+    DefaultGroupingComponent,
+    SystemGroupingComponent,
+)
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
@@ -269,7 +274,7 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 def _get_calculated_grouping_variants_for_event(
     event: Event, context: GroupingContext
-) -> dict[str, BaseGroupingComponent]:
+) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
     per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
@@ -297,7 +302,12 @@ def _get_calculated_grouping_variants_for_event(
 
     rv = {}
     for variant, components in per_variant_components.items():
-        component = BaseGroupingComponent(id=variant, values=components)
+        component_class_by_variant = {
+            "app": AppGroupingComponent,
+            "default": DefaultGroupingComponent,
+            "system": SystemGroupingComponent,
+        }
+        component = component_class_by_variant[variant](values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
         rv[variant] = component
