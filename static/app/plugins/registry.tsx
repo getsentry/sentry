@@ -22,57 +22,18 @@ export default class Registry {
     data: Plugin,
     callback: (instance: DefaultIssuePlugin | DefaultPlugin | SessionStackPlugin) => void
   ) {
-    let remainingAssets = data.assets.length;
     // TODO(dcramer): we should probably register all valid plugins
-    const finishLoad = () => {
-      if (!defined(this.plugins[data.id])) {
-        if (data.type === 'issue-tracking') {
-          this.plugins[data.id] = DefaultIssuePlugin;
-        } else {
-          this.plugins[data.id] = DefaultPlugin;
-        }
-      }
-      console.info(
-        '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}'
-      );
-      callback(this.get(data));
-    };
-
-    if (remainingAssets === 0) {
-      finishLoad();
-      return;
-    }
-
-    const onAssetLoaded = function () {
-      remainingAssets--;
-      if (remainingAssets === 0) {
-        finishLoad();
-      }
-    };
-
-    const onAssetFailed = function (asset: {url: string}) {
-      remainingAssets--;
-      console.error('[plugins] Failed to load asset ' + asset.url);
-      if (remainingAssets === 0) {
-        finishLoad();
-      }
-    };
-
-    // TODO(dcramer): what do we do on failed asset loading?
-    data.assets.forEach(asset => {
-      if (!defined(this.assetCache[asset.url])) {
-        console.info('[plugins] Loading asset for ' + data.id + ': ' + asset.url);
-        const s = document.createElement('script');
-        s.src = asset.url;
-        s.onload = onAssetLoaded.bind(this);
-        s.onerror = onAssetFailed.bind(this, asset);
-        s.async = true;
-        document.body.appendChild(s);
-        this.assetCache[asset.url] = s;
+    if (!defined(this.plugins[data.id])) {
+      if (data.type === 'issue-tracking') {
+        this.plugins[data.id] = DefaultIssuePlugin;
       } else {
-        onAssetLoaded();
+        this.plugins[data.id] = DefaultPlugin;
       }
-    });
+    }
+    console.info(
+      '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}'
+    );
+    callback(this.get(data));
   }
 
   get(data: Plugin) {
