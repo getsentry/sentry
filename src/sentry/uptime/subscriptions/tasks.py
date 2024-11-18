@@ -91,7 +91,7 @@ def uptime_subscription_to_check_config(
     config: CheckConfig = {
         "subscription_id": subscription_id,
         "url": subscription.url,
-        "interval_seconds": subscription.interval_seconds,  # type: ignore[typeddict-item]
+        "interval_seconds": subscription.interval_seconds,
         "timeout_ms": subscription.timeout_ms,
         "request_method": subscription.method,  # type: ignore[typeddict-item]
         "request_headers": headers,
