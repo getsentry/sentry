@@ -12,7 +12,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
 
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from sentry.api.serializers.rest_framework.notification_action import (
         NotificationActionInputData,
     )
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 class FlexibleIntEnum(IntEnum):
