@@ -14,6 +14,10 @@ interface Options {
 
 export type ResultMode = 'samples' | 'aggregate';
 
+export function isValidResultMode(mode: string): mode is ResultMode {
+  return mode === 'samples' || mode === 'aggregate';
+}
+
 export function useResultMode(): [ResultMode, (newMode: ResultMode) => void] {
   const location = useLocation();
   const navigate = useNavigate();
