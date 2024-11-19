@@ -1,11 +1,4 @@
-import {
-  cloneElement,
-  Fragment,
-  isValidElement,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -39,7 +32,7 @@ import {
 } from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -65,8 +58,8 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSi
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
-  getGroupEventQueryKey,
   getGroupReprocessingStatus,
   markEventSeen,
   ReprocessingStatus,
@@ -89,9 +82,7 @@ type FetchGroupDetailsState = {
   error: boolean;
   errorType: Error;
   event: Event | null;
-  eventError: boolean;
   group: Group | null;
-  loadingEvent: boolean;
   loadingGroup: boolean;
   refetchData: () => void;
   refetchGroup: () => void;
@@ -191,61 +182,6 @@ function useRefetchGroupForReprocessing({
   }, [refetchGroup]);
 }
 
-function useEventApiQuery({
-  groupId,
-  eventId,
-  environments,
-}: {
-  environments: string[];
-  groupId: string;
-  eventId?: string;
-}) {
-  const organization = useOrganization();
-  const location = useLocation<{query?: string}>();
-  const navigate = useNavigate();
-  const defaultIssueEvent = useDefaultIssueEvent();
-  const eventIdUrl = eventId ?? defaultIssueEvent;
-  const recommendedEventQuery =
-    typeof location.query.query === 'string' ? location.query.query : undefined;
-
-  const isLatestOrRecommendedEvent =
-    eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-
-  const queryKey = getGroupEventQueryKey({
-    orgSlug: organization.slug,
-    groupId,
-    eventId: eventIdUrl,
-    environments,
-    recommendedEventQuery: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
-  });
-
-  const eventQuery = useApiQuery<Event>(queryKey, {
-    // Latest/recommended event will change over time, so only cache for 30 seconds
-    // Oldest/specific events will never change
-    staleTime: isLatestOrRecommendedEvent ? 30000 : Infinity,
-    retry: false,
-  });
-
-  useEffect(() => {
-    if (isLatestOrRecommendedEvent && eventQuery.isError && location.query.query) {
-      // If we get an error from the helpful event endpoint, it probably means
-      // the query failed validation. We should remove the query to try again.
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            query: undefined,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }, [isLatestOrRecommendedEvent, eventQuery.isError, navigate, location]);
-
-  return eventQuery;
-}
-
 /**
  * This is a temporary measure to ensure that the GroupStore and query cache
  * are both up to date while we are still using both in the issue details page.
@@ -286,6 +222,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
+  const navigate = useNavigate();
+  const defaultIssueEvent = useDefaultIssueEvent();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -297,9 +235,9 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const {
     data: event,
     isPending: loadingEvent,
-    isError,
+    isError: isEventError,
     refetch: refetchEvent,
-  } = useEventApiQuery({
+  } = useGroupEvent({
     groupId,
     eventId: params.eventId,
     environments,
@@ -312,6 +250,27 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
+
+  useEffect(() => {
+    const eventIdUrl = params.eventId ?? defaultIssueEvent;
+    const isLatestOrRecommendedEvent =
+      eventIdUrl === 'latest' || eventIdUrl === 'recommended';
+
+    if (isLatestOrRecommendedEvent && isEventError && router.location.query.query) {
+      // If we get an error from the helpful event endpoint, it probably means
+      // the query failed validation. We should remove the query to try again.
+      navigate(
+        {
+          ...router.location,
+          query: {
+            ...router.location.query,
+            query: undefined,
+          },
+        },
+        {replace: true}
+      );
+    }
+  }, [defaultIssueEvent, isEventError, navigate, router.location, params.eventId]);
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
@@ -447,13 +406,11 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   return {
     loadingGroup,
-    loadingEvent,
     group,
     // Allow previous event to be displayed while new event is loading
     event: (loadingEvent ? event ?? previousEvent : event) ?? null,
     errorType,
     error: isGroupError,
-    eventError: isError,
     refetchData,
     refetchGroup,
   };
@@ -607,21 +564,15 @@ function GroupDetailsContent({
   children,
   group,
   project,
-  loadingEvent,
-  eventError,
   event,
-  refetchData,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
   const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
-  const router = useRouter();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
-  const groupReprocessingStatus = getGroupReprocessingStatus(group);
-  const environments = useEnvironmentsFromUrl();
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
@@ -648,18 +599,6 @@ function GroupDetailsContent({
 
   useTrackView({group, event, project, tab: currentTab});
 
-  const childProps = {
-    environments,
-    group,
-    project,
-    event,
-    loadingEvent,
-    eventError,
-    groupReprocessingStatus,
-    onRetry: refetchData,
-    baseUrl,
-  };
-
   const isDisplayingEventDetails = [
     Tab.DETAILS,
     Tab.TAGS,
@@ -668,27 +607,11 @@ function GroupDetailsContent({
   ].includes(currentTab);
 
   return hasStreamlinedUI ? (
-    <GroupDetailsLayout
-      group={group}
-      event={event ?? undefined}
-      project={project}
-      groupReprocessingStatus={groupReprocessingStatus}
-    >
+    <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
       {isDisplayingEventDetails ? (
         // The router displays a loading indicator when switching to any of these tabs
         // Avoid lazy loading spinner by force rendering the GroupEventDetails component
-        <GroupEventDetails
-          {...childProps}
-          event={event ?? undefined}
-          location={router.location}
-          route={router.routes.at(-1)!}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          params={router.params}
-        />
-      ) : isValidElement(children) ? (
-        cloneElement(children, childProps)
+        <GroupEventDetails />
       ) : (
         children
       )}
@@ -700,16 +623,13 @@ function GroupDetailsContent({
     >
       <GroupHeader
         organization={organization}
-        groupReprocessingStatus={groupReprocessingStatus}
         event={event}
         group={group}
         baseUrl={baseUrl}
         project={project as Project}
       />
       <GroupTabPanels>
-        <TabPanels.Item key={currentTab}>
-          {isValidElement(children) ? cloneElement(children, childProps) : children}
-        </TabPanels.Item>
+        <TabPanels.Item key={currentTab}>{children}</TabPanels.Item>
       </GroupTabPanels>
     </Tabs>
   );
