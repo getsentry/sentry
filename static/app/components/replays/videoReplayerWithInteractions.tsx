@@ -5,20 +5,13 @@ import {Replayer} from '@sentry-internal/rrweb';
 import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer';
 import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
 import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
-import {
-  EventType,
-  isMetaFrame,
-  isTouchEndFrame,
-  isTouchStartFrame,
-  NodeType,
-} from 'sentry/utils/replays/types';
 
 type RootElem = HTMLDivElement | null;
 
 interface VideoReplayerWithInteractionsOptions {
   context: {sdkName: string | undefined | null; sdkVersion: string | undefined | null};
   durationMs: number;
-  events: RecordingFrame[];
+  eventsWithSnapshots: RecordingFrame[];
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
@@ -26,6 +19,7 @@ interface VideoReplayerWithInteractionsOptions {
   speed: number;
   start: number;
   theme: Theme;
+  touchEvents: RecordingFrame[];
   videoApiPrefix: string;
   videoEvents: VideoEvent[];
   clipWindow?: ClipWindow;
@@ -42,7 +36,8 @@ export class VideoReplayerWithInteractions {
 
   constructor({
     videoEvents,
-    events,
+    eventsWithSnapshots,
+    touchEvents,
     root,
     start,
     videoApiPrefix,
@@ -74,62 +69,6 @@ export class VideoReplayerWithInteractions {
 
     root?.classList.add('video-replayer');
 
-    const eventsWithSnapshots: RecordingFrame[] = [];
-    events.forEach((e, index) => {
-      // For taps, sometimes the timestamp difference between TouchStart
-      // and TouchEnd is too small. This clamps the tap to a min time
-      // if the difference is less, so that the rrweb tap is visible and obvious.
-      if (isTouchStartFrame(e) && index < events.length - 2) {
-        const nextEvent = events[index + 1];
-        if (isTouchEndFrame(nextEvent)) {
-          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
-        }
-      }
-      eventsWithSnapshots.push(e);
-      if (isMetaFrame(e)) {
-        // Create a mock full snapshot event, in order to render rrweb gestures properly
-        // Need to add one for every meta event we see
-        // The hardcoded data.node.id here should match the ID of the data being sent
-        // in the `positions` arrays
-        eventsWithSnapshots.push({
-          type: EventType.FullSnapshot,
-          data: {
-            node: {
-              type: NodeType.Document,
-              childNodes: [
-                {
-                  type: NodeType.DocumentType,
-                  id: 1,
-                  name: 'html',
-                  publicId: '',
-                  systemId: '',
-                },
-                {
-                  type: NodeType.Element,
-                  id: 2,
-                  tagName: 'html',
-                  attributes: {
-                    lang: 'en',
-                  },
-                  childNodes: [],
-                },
-              ],
-              id: 0,
-            },
-            initialOffset: {
-              top: 0,
-              left: 0,
-            },
-          },
-          timestamp: e.timestamp,
-        });
-      }
-    });
-
-    // log instances where we have a pointer touchStart without a touchEnd
-    const touchEvents = eventsWithSnapshots.filter(
-      e => isTouchEndFrame(e) || isTouchStartFrame(e)
-    );
     const grouped = Object.groupBy(touchEvents, (t: any) => t.data.pointerId);
     Object.values(grouped).forEach(t => {
       if (t?.length !== 2) {
