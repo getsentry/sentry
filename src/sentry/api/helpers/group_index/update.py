@@ -675,18 +675,18 @@ def handle_other_status_updates(
         else:
             result["statusDetails"] = {}
 
-        if group_list and status_updated:
-            activity_type, activity_data = handle_status_update(
-                group_list=group_list,
-                projects=projects,
-                project_lookup=project_lookup,
-                new_status=new_status,
-                new_substatus=new_substatus,
-                is_bulk=len(group_ids) > 1,
-                acting_user=acting_user,
-                status_details=result.get("statusDetails", {}),
-                sender=update_groups,
-            )
+    if group_list and status_updated:
+        activity_type, activity_data = handle_status_update(
+            group_list=group_list,
+            projects=projects,
+            project_lookup=project_lookup,
+            new_status=new_status,
+            new_substatus=new_substatus,
+            is_bulk=len(group_ids) > 1,
+            acting_user=acting_user,
+            status_details=result.get("statusDetails", {}),
+            sender=update_groups,
+        )
     return activity_type, activity_data, result
 
 
