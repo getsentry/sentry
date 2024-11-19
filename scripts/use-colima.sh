@@ -1,5 +1,11 @@
 #!/bin/bash
 
+POSTGRES_CONTAINER="sentry_postgres"
+USE_NEW_DEVSERVICES=${USE_NEW_DEVSERVICES:-"0"}
+if [ "$USE_NEW_DEVSERVICES" == "1" ]; then
+    POSTGRES_CONTAINER="sentry-postgres-1"
+fi
+
 if ! [[ -x ~/.local/share/sentry-devenv/bin/colima ]]; then
     echo "You need to install devenv! https://github.com/getsentry/devenv/#install"
     exit 1
@@ -18,7 +24,7 @@ fi
 echo "Copying your postgres volume for use with colima. Will take a few minutes."
 tmpdir=$(mktemp -d)
 docker context use desktop-linux
-docker run --rm -v sentry_postgres:/from -v "${tmpdir}:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
+docker run --rm -v $POSTGRES_CONTAINER:/from -v "${tmpdir}:/to" alpine ash -c "cd /from ; cp -a . /to" || { echo "You need to start Docker Desktop."; exit 1; }
 
 echo "Stopping Docker.app. If a 'process terminated unexpectedly' dialog appears, dismiss it."
 osascript - <<'EOF' || exit
@@ -58,8 +64,8 @@ echo "Starting colima."
 devenv colima start
 
 echo "Recreating your postgres volume for use with colima. May take a few minutes."
-docker volume create --name sentry_postgres
-docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"
+docker volume create --name $POSTGRES_CONTAINER
+docker run --rm -v "${tmpdir}:/from" -v $POSTGRES_CONTAINER:/to alpine ash -c "cd /from ; cp -a . /to"
 rm -rf "$tmpdir"
 
 echo "-----------------------------------------------"
