@@ -386,7 +386,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
     event_platform: event?.platform,
-    event_runtime: event?.tags?.find(tag => tag.key === 'runtime')?.value,
+    event_runtime: event?.tags?.find(tag => tag.key === 'runtime.name')?.value,
     event_type: event?.type,
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
