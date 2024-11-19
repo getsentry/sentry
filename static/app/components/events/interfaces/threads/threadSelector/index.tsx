@@ -51,10 +51,8 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
         textValue: `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`,
         label: (
           <Option
-            id={thread.id}
+            thread={thread}
             details={threadInfo}
-            name={thread.name}
-            crashed={thread.crashed}
             crashedInfo={threadInfo.crashedInfo}
             hasThreadStates={hasThreadStates}
           />

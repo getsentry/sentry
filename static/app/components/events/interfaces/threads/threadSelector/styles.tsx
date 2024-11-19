@@ -7,7 +7,7 @@ const Grid = styled('div')<{hasThreadStates: boolean}>`
   display: grid;
   gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 16px 0.75fr repeat(${p => (p.hasThreadStates ? '2' : '1')}, 1fr) 1fr;
+  grid-template-columns: 16px 0.5fr repeat(${p => (p.hasThreadStates ? '2' : '1')}, 1fr) 1fr;
 `;
 
 const GridCell = styled('div')`

@@ -23,11 +23,10 @@ function Header({hasThreadStates}: Props) {
 export default Header;
 
 const StyledGrid = styled(Grid)`
-  padding-left: 32px;
-  padding-right: 32px;
+  padding-left: 40px;
+  padding-right: 16px;
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
-  background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: 2px;
 `;
