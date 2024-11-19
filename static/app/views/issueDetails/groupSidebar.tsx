@@ -259,8 +259,9 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      {((organization.features.includes('ai-summary') &&
-        issueTypeConfig.issueSummary.enabled) ||
+      {((organization.features.includes('gen-ai-features') &&
+        issueTypeConfig.issueSummary.enabled &&
+        !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
         <SolutionsSectionContainer>
           <SolutionsSection group={group} project={project} event={event} />

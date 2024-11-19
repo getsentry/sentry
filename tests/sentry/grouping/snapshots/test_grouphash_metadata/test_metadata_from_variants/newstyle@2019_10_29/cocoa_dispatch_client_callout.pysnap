@@ -1,9 +1,14 @@
 ---
-created: '2024-10-28T14:02:29.609891+00:00'
+created: '2024-11-08T19:20:52.784578+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "thread",
+  "stacktrace_type": "in_app"
+}
 ---
 contributing variants:
   app*
