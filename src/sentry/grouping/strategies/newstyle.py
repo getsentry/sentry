@@ -7,7 +7,20 @@ from collections.abc import Generator
 from typing import Any
 
 from sentry.eventstore.models import Event
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    ChainedExceptionGroupingComponent,
+    ContextLineGroupingComponent,
+    ErrorTypeGroupingComponent,
+    ErrorValueGroupingComponent,
+    ExceptionGroupingComponent,
+    FilenameGroupingComponent,
+    FrameGroupingComponent,
+    FunctionGroupingComponent,
+    ModuleGroupingComponent,
+    NSErrorGroupingComponent,
+    StacktraceGroupingComponent,
+    ThreadsGroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
@@ -116,20 +129,17 @@ def get_filename_component(
     filename: str | None,
     platform: str | None,
     allow_file_origin: bool = False,
-) -> BaseGroupingComponent:
+) -> FilenameGroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
     """
     if filename is None:
-        return BaseGroupingComponent(id="filename")
+        return FilenameGroupingComponent()
 
     # Only use the platform independent basename for grouping and
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
-    filename_component = BaseGroupingComponent(
-        id="filename",
-        values=[filename],
-    )
+    filename_component = FilenameGroupingComponent(values=[filename])
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
         filename_component.update(contributes=False, hint="ignored because frame points to a URL")
@@ -151,17 +161,14 @@ def get_module_component(
     module: str | None,
     platform: str | None,
     context: GroupingContext,
-) -> BaseGroupingComponent:
+) -> ModuleGroupingComponent:
     """Given an absolute path, module and platform returns the module component
     with some necessary cleaning performed.
     """
     if module is None:
-        return BaseGroupingComponent(id="module")
+        return ModuleGroupingComponent()
 
-    module_component = BaseGroupingComponent(
-        id="module",
-        values=[module],
-    )
+    module_component = ModuleGroupingComponent(values=[module])
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
         module_component.update(contributes=False, hint="ignored bad javascript module")
@@ -200,7 +207,7 @@ def get_function_component(
     platform: str | None,
     sourcemap_used: bool = False,
     context_line_available: bool = False,
-) -> BaseGroupingComponent:
+) -> FunctionGroupingComponent:
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -230,12 +237,9 @@ def get_function_component(
             func = trim_function_name(func, platform)
 
     if not func:
-        return BaseGroupingComponent(id="function")
+        return FunctionGroupingComponent()
 
-    function_component = BaseGroupingComponent(
-        id="function",
-        values=[func],
-    )
+    function_component = FunctionGroupingComponent(values=[func])
 
     if platform == "ruby":
         if func.startswith("block "):
@@ -328,11 +332,16 @@ def frame(
         context_line_available=context_line_available,
     )
 
-    values = [module_component, filename_component, function_component]
+    values: list[
+        ContextLineGroupingComponent
+        | FilenameGroupingComponent
+        | FunctionGroupingComponent
+        | ModuleGroupingComponent
+    ] = [module_component, filename_component, function_component]
     if context_line_component is not None:
         values.append(context_line_component)
 
-    rv = BaseGroupingComponent(id="frame", values=values)
+    rv = FrameGroupingComponent(values=values)
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together
@@ -368,7 +377,7 @@ def frame(
 
 def get_contextline_component(
     frame: Frame, platform: str | None, function: str, context: GroupingContext
-) -> BaseGroupingComponent:
+) -> ContextLineGroupingComponent:
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
     quality of the sourcecode.  It does however protect against some bad
@@ -376,12 +385,9 @@ def get_contextline_component(
     """
     line = " ".join((frame.context_line or "").expandtabs(2).split())
     if not line:
-        return BaseGroupingComponent(id="context-line")
+        return ContextLineGroupingComponent()
 
-    component = BaseGroupingComponent(
-        id="context-line",
-        values=[line],
-    )
+    component = ContextLineGroupingComponent(values=[line])
     if line:
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long", contributes=False)
@@ -498,8 +504,7 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    type_component = BaseGroupingComponent(
-        id="type",
+    type_component = ErrorTypeGroupingComponent(
         values=[interface.type] if interface.type else [],
     )
     system_type_component = type_component.shallow_copy()
@@ -522,8 +527,7 @@ def single_exception(
                 contributes=False, hint="ignored because exception is synthetic"
             )
         if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
-            ns_error_component = BaseGroupingComponent(
-                id="ns-error",
+            ns_error_component = NSErrorGroupingComponent(
                 values=[
                     interface.mechanism.meta["ns_error"].get("domain"),
                     interface.mechanism.meta["ns_error"].get("code"),
@@ -533,18 +537,23 @@ def single_exception(
     if interface.stacktrace is not None:
         with context:
             context["exception_data"] = interface.to_json()
-            stacktrace_variants = context.get_grouping_component(
-                interface.stacktrace, event=event, **meta
+            stacktrace_variants: dict[str, StacktraceGroupingComponent] = (
+                context.get_grouping_component(interface.stacktrace, event=event, **meta)
             )
     else:
         stacktrace_variants = {
-            "app": BaseGroupingComponent(id="stacktrace"),
+            "app": StacktraceGroupingComponent(),
         }
 
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [
+        values: list[
+            ErrorTypeGroupingComponent
+            | ErrorValueGroupingComponent
+            | NSErrorGroupingComponent
+            | StacktraceGroupingComponent
+        ] = [
             stacktrace_component,
             system_type_component if variant == "system" else type_component,
         ]
@@ -553,9 +562,7 @@ def single_exception(
             values.append(ns_error_component)
 
         if context["with_exception_value_fallback"]:
-            value_component = BaseGroupingComponent(
-                id="value",
-            )
+            value_component = ErrorValueGroupingComponent()
 
             raw = interface.value
             if raw is not None:
@@ -587,7 +594,7 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant] = BaseGroupingComponent(id="exception", values=values)
+        rv[variant] = ExceptionGroupingComponent(values=values)
 
     return rv
 
@@ -628,7 +635,7 @@ def chained_exception(
         return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
-    by_name: dict[str, list[BaseGroupingComponent]] = {}
+    by_name: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
         for name, component in exception_components[id(exception)].items():
@@ -637,10 +644,7 @@ def chained_exception(
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = BaseGroupingComponent(
-            id="chained-exception",
-            values=component_list,
-        )
+        rv[name] = ChainedExceptionGroupingComponent(values=component_list)
 
     return rv
 
@@ -777,8 +781,7 @@ def threads(
         return thread_variants
 
     return {
-        "app": BaseGroupingComponent(
-            id="threads",
+        "app": ThreadsGroupingComponent(
             contributes=False,
             hint=(
                 "ignored because does not contain exactly one crashing, "
@@ -797,18 +800,14 @@ def _filtered_threads(
 
     stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
-        return {
-            "app": BaseGroupingComponent(
-                id="threads", contributes=False, hint="thread has no stacktrace"
-            )
-        }
+        return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
 
     rv = {}
 
     for name, stacktrace_component in context.get_grouping_component(
         stacktrace, event=event, **meta
     ).items():
-        rv[name] = BaseGroupingComponent(id="threads", values=[stacktrace_component])
+        rv[name] = ThreadsGroupingComponent(values=[stacktrace_component])
 
     return rv
 

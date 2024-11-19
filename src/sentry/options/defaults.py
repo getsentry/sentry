@@ -2010,13 +2010,28 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
+
+# Temporary killswitch to enable dispatching incident occurrences into the
+# incident_occurrence_consumer
+register(
+    "crons.dispatch_incident_occurrences_to_consumer",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables recording tick volume metrics and tick decisions based on those
 # metrics. Decisions are used to delay notifications in a system incident.
-#
-# TODO(epurkhiser): This should be renamed to something like
-#                   `crons.system_incidents.collect_metrics`
 register(
-    "crons.tick_volume_anomaly_detection",
+    "crons.system_incidents.collect_metrics",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables the the crons incident occurrence consumer to consider the clock-tick
+# decision made based on volume metrics to determine if a incident occurrence
+# should be processed, delayed, or dropped entirely.
+register(
+    "crons.system_incidents.use_decisions",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

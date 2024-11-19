@@ -1,9 +1,15 @@
 ---
-created: '2024-11-08T19:39:50.761360+00:00'
+created: '2024-11-08T19:21:07.341926+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: fingerprint
+hashing_metadata: {
+  "fingerprint": "['chunkloaderror']",
+  "fingerprint_source": "server_builtin_rule",
+  "is_hybrid_fingerprint": false,
+  "matched_fingerprinting_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""
+}
 ---
 contributing variants:
   built_in_fingerprint*
