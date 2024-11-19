@@ -317,17 +317,22 @@ def get_stacktrace_string_handle_system_frame_exception(
     try:
         stacktrace_string = get_stacktrace_string(data)
     except TooManyOnlySystemFramesException:
+        platform = platform if platform else "unknown"
         if referrer != ReferrerOptions.UI:
             metrics.incr(
                 "grouping.similarity.over_threshold_only_system_frames",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": platform if platform else "unknown", "referrer": referrer.value},
+                tags={"platform": platform, "referrer": referrer.value},
             )
         if referrer == ReferrerOptions.INGEST:
             metrics.incr(
                 "grouping.similarity.did_call_seer",
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+                tags={
+                    "call_made": False,
+                    "platform": platform,
+                    "blocker": "over-threshold-only-system-frames",
+                },
             )
         stacktrace_string = ""
     return stacktrace_string

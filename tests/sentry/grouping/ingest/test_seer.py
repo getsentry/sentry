@@ -306,7 +306,11 @@ class GetSeerSimilarIssuesTest(TestCase):
             call(
                 "grouping.similarity.did_call_seer",
                 sample_rate=1.0,
-                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+                tags={
+                    "call_made": False,
+                    "platform": "python",
+                    "blocker": "over-threshold-only-system-frames",
+                },
             ),
         ]
         assert mock_metrics.incr.call_args_list == expected_metrics_calls
