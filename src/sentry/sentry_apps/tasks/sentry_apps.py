@@ -127,7 +127,6 @@ def send_alert_event(
     assert group, "Group must exist to get related attributes"
     project = Project.objects.get_from_cache(id=group.project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
-
     extra = {
         "sentry_app_id": sentry_app_id,
         "project_slug": project.slug,
@@ -460,7 +459,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: GroupEvent | Event, futures: list[RuleFuture]):
+def notify_sentry_app(event: GroupEvent, futures: list[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
@@ -479,7 +478,6 @@ def notify_sentry_app(event: GroupEvent | Event, futures: list[RuleFuture]):
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,
             }
-
         send_alert_event.delay(
             instance_id=event.event_id,
             group_id=event.group_id,

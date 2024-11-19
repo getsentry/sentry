@@ -107,10 +107,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def test_no_sentry_app(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
-        groupevent = GroupEvent.from_event(event, event.group)
+        group_event = GroupEvent.from_event(event, event.group)
         send_alert_event(
-            instance_id=groupevent.event_id,
-            group_id=groupevent.group_id,
+            instance_id=group_event.event_id,
+            group_id=group_event.group_id,
             occurrence_id=None,
             rule=self.rule,
             sentry_app_id=9999,
@@ -122,11 +122,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def test_no_sentry_app_in_future(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
-        groupevent = GroupEvent.from_event(event, event.group)
+        group_event = GroupEvent.from_event(event, event.group)
         rule_future = RuleFuture(rule=self.rule, kwargs={})
 
         with self.tasks():
-            notify_sentry_app(groupevent, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         assert not safe_urlopen.called
 
@@ -135,11 +135,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         sentry_app = self.create_sentry_app(organization=self.organization)
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
-        groupevent = GroupEvent.from_event(event, event.group)
+        group_event = GroupEvent.from_event(event, event.group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
 
         with self.tasks():
-            notify_sentry_app(groupevent, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         assert not safe_urlopen.called
 
@@ -148,11 +148,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group = event.group
-        groupevent = GroupEvent.from_event(event, group)
+        group_event = GroupEvent.from_event(event, group)
         rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
 
         with self.tasks():
-            notify_sentry_app(event, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         data = json.loads(kwargs["data"])
@@ -166,17 +166,17 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
         assert data["data"]["event"]["project"] == self.project.id
-        assert data["data"]["event"]["event_id"] == groupevent.event_id
+        assert data["data"]["event"]["event_id"] == group_event.event_id
         assert data["data"]["event"]["url"] == absolute_uri(
             reverse(
                 "sentry-api-0-project-event-details",
-                args=[self.organization.slug, self.project.slug, groupevent.event_id],
+                args=[self.organization.slug, self.project.slug, group_event.event_id],
             )
         )
         assert data["data"]["event"]["web_url"] == absolute_uri(
             reverse(
                 "sentry-organization-event-detail",
-                args=[self.organization.slug, group.id, groupevent.event_id],
+                args=[self.organization.slug, group.id, group_event.event_id],
             )
         )
         assert data["data"]["event"]["issue_url"] == absolute_uri(f"/api/0/issues/{group.id}/")
@@ -202,7 +202,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
-        groupevent = GroupEvent.from_event(event, event.group)
+        group_event = GroupEvent.from_event(event, event.group)
         settings = [
             {"name": "alert_prefix", "value": "[Not Good]"},
             {"name": "channel", "value": "#ignored-errors"},
@@ -217,7 +217,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
 
         with self.tasks():
-            notify_sentry_app(groupevent, [rule_future])
+            notify_sentry_app(group_event, [rule_future])
 
         ((args, kwargs),) = safe_urlopen.call_args_list
         payload = json.loads(kwargs["data"])
@@ -265,6 +265,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             },
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
+        assert data["data"]["event"]["project"] == self.project.id
         assert data["data"]["event"]["event_id"] == group_event.event_id
         assert data["data"]["event"]["url"] == absolute_uri(
             reverse(
@@ -275,11 +276,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert data["data"]["event"]["web_url"] == absolute_uri(
             reverse(
                 "sentry-organization-event-detail",
-                args=[self.organization.slug, event.group.id, group_event.event_id],
+                args=[self.organization.slug, group_event.group.id, group_event.event_id],
             )
         )
         assert data["data"]["event"]["issue_url"] == absolute_uri(
-            f"/api/0/issues/{event.group.id}/"
+            f"/api/0/issues/{group_event.group.id}/"
         )
         assert data["data"]["event"]["issue_id"] == str(group_event.group.id)
 
