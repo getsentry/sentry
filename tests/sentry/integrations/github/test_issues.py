@@ -1,11 +1,9 @@
 import datetime
 from functools import cached_property
 from typing import cast
-from unittest import mock
 from unittest.mock import patch
 
 import orjson
-import pytest
 import responses
 from django.test import RequestFactory
 from django.utils import timezone
@@ -15,9 +13,7 @@ from sentry.integrations.github import client
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import FeedbackGroup
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -195,8 +191,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             self._check_proxying()
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue(self, mock_record):
+    def test_create_issue(self):
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues",
@@ -221,10 +216,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "url": "https://github.com/getsentry/sentry/issues/231",
             "repo": "getsentry/sentry",
         }
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
         if self.should_call_api_without_proxying():
             assert len(responses.calls) == 2
@@ -243,25 +234,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             }
         else:
             self._check_proxying()
-
-    @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue_failure(self, mock_record):
-        """
-        Test that metrics are being correctly emitted on failure.
-        """
-        form_data = {
-            "title": "rip",
-            "description": "Goodnight, sweet prince",
-        }
-
-        with pytest.raises(IntegrationError):
-            self.install.create_issue(form_data)
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     def test_performance_issues_content(self):
         """Test that a GitHub issue created from a performance issue has the expected title and description"""

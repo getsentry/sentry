@@ -11,9 +11,6 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
@@ -173,34 +170,33 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
-            client = self.get_client()
+        client = self.get_client()
 
-            repo = data.get("repo")
+        repo = data.get("repo")
 
-            if not repo:
-                raise IntegrationError("repo kwarg must be provided")
+        if not repo:
+            raise IntegrationError("repo kwarg must be provided")
 
-            try:
-                issue = client.create_issue(
-                    repo=repo,
-                    data={
-                        "title": data["title"],
-                        "body": data["description"],
-                        "assignee": data.get("assignee"),
-                        "labels": data.get("labels"),
-                    },
-                )
-            except ApiError as e:
-                raise IntegrationError(self.message_from_error(e))
+        try:
+            issue = client.create_issue(
+                repo=repo,
+                data={
+                    "title": data["title"],
+                    "body": data["description"],
+                    "assignee": data.get("assignee"),
+                    "labels": data.get("labels"),
+                },
+            )
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
 
-            return {
-                "key": issue["number"],
-                "title": issue["title"],
-                "description": issue["body"],
-                "url": issue["html_url"],
-                "repo": repo,
-            }
+        return {
+            "key": issue["number"],
+            "title": issue["title"],
+            "description": issue["body"],
+            "url": issue["html_url"],
+            "repo": repo,
+        }
 
     def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})

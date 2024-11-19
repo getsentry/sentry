@@ -1,14 +1,9 @@
-from unittest import mock
-
 import orjson
-import pytest
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -282,8 +277,7 @@ class BitbucketIssueTest(APITestCase):
         ]
 
     @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue(self, mock_record):
+    def test_create_issue(self):
         repo = "myaccount/repo1"
         id = "112"
         title = "hello"
@@ -299,28 +293,3 @@ class BitbucketIssueTest(APITestCase):
             {"id": id, "title": title, "description": content, "repo": repo}
         )
         assert result == {"key": id, "title": title, "description": content, "repo": repo}
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
-
-    @responses.activate
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue_failure(self, mock_record):
-        """
-        This test is primarily used to verify that we omit failure metrics.
-        """
-        id = "112"
-        title = "hello"
-        content = {"html": "This is the description"}
-
-        installation = self.integration.get_installation(self.organization.id)
-        with pytest.raises(IntegrationFormError):
-            installation.create_issue(
-                {"id": id, "title": title, "description": content}  # omit repo
-            )
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.FAILURE
