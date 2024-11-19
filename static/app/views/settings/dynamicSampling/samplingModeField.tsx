@@ -4,6 +4,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -30,52 +31,64 @@ export function SamplingModeField({initialTargetRate}: Props) {
 
   return (
     <FieldGroup
+      disabledReason={t('You do not have permission to change this setting.')}
       disabled={!hasAccess}
       label={t('Sampling Mode')}
       help={t('The current operating mode for dynamic sampling.')}
     >
       <ControlWrapper>
-        <SegmentedControl
-          disabled={!hasAccess}
-          label={t('Sampling mode')}
-          value={samplingMode}
-          onChange={handleSwitchMode}
+        <Tooltip
+          disabled={hasAccess}
+          title={t('You do not have permission to change this setting.')}
         >
-          <SegmentedControl.Item key="organization" textValue={t('Automatic')}>
-            <LabelWrapper>
-              {t('Automatic')}
-              <QuestionTooltip
-                isHoverable
-                size="sm"
-                title={tct(
-                  'Automatic mode allows you to set a target sample rate for your organization. Sentry automatically adjusts individual project rates to boost small projects and ensure equal visibility. [link:Learn more]',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
-                    ),
+          <SegmentedControl
+            disabled={!hasAccess}
+            label={t('Sampling mode')}
+            value={samplingMode}
+            onChange={handleSwitchMode}
+          >
+            <SegmentedControl.Item key="organization" textValue={t('Automatic')}>
+              <LabelWrapper>
+                {t('Automatic')}
+                <QuestionTooltip
+                  isHoverable
+                  size="sm"
+                  title={
+                    hasAccess &&
+                    tct(
+                      'Automatic mode allows you to set a target sample rate for your organization. Sentry automatically adjusts individual project rates to boost small projects and ensure equal visibility. [link:Learn more]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                        ),
+                      }
+                    )
                   }
-                )}
-              />
-            </LabelWrapper>
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="project" textValue={t('Manual')}>
-            <LabelWrapper>
-              {t('Manual')}
-              <QuestionTooltip
-                isHoverable
-                size="sm"
-                title={tct(
-                  'Manual mode allows you to set fixed sample rates for each project. [link:Learn more]',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
-                    ),
+                />
+              </LabelWrapper>
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="project" textValue={t('Manual')}>
+              <LabelWrapper>
+                {t('Manual')}
+                <QuestionTooltip
+                  isHoverable
+                  size="sm"
+                  title={
+                    hasAccess &&
+                    tct(
+                      'Manual mode allows you to set fixed sample rates for each project. [link:Learn more]',
+                      {
+                        link: (
+                          <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/" />
+                        ),
+                      }
+                    )
                   }
-                )}
-              />
-            </LabelWrapper>
-          </SegmentedControl.Item>
-        </SegmentedControl>
+                />
+              </LabelWrapper>
+            </SegmentedControl.Item>
+          </SegmentedControl>
+        </Tooltip>
       </ControlWrapper>
     </FieldGroup>
   );
