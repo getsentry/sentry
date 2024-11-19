@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any, TypedDict, cast
 
@@ -586,8 +586,7 @@ SimpleEventSerializerResponse = TypedDict(
         "platform": str,
         "dateCreated": datetime,
         "crashFile": str | None,
-        "type": str,
-        "metadata": Mapping[str, Any],
+        "metadata": dict[str, Any] | None,
     },
 )
 
@@ -644,7 +643,6 @@ class SimpleEventSerializer(EventSerializer):
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
-            "type": str(obj.get_event_type()),
             "metadata": obj.get_event_metadata(),
         }
 
