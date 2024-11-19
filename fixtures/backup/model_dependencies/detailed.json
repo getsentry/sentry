@@ -670,6 +670,11 @@
     "uniques": [
       [
         "application",
+        "organization_id",
+        "user"
+      ],
+      [
+        "application",
         "user"
       ]
     ]
