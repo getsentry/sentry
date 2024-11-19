@@ -6,11 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  formatParsedFunction,
-  isValidSortKind,
-  parseFunction,
-} from 'sentry/utils/discover/fields';
+import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
@@ -91,11 +87,11 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
 
   const setSortKind = useCallback(
     (i: number, {value}: SelectOption<SelectKey>) => {
-      if (sorts[i] && typeof value === 'string' && isValidSortKind(value)) {
+      if (sorts[i]) {
         setSorts([
           {
             field: sorts[i].field,
-            kind: value,
+            kind: value as Sort['kind'],
           },
         ]);
       }

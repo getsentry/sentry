@@ -34,10 +34,6 @@ export type Sort = {
   kind: 'asc' | 'desc';
 };
 
-export function isValidSortKind(kind: string): kind is Sort['kind'] {
-  return kind === 'asc' || kind === 'desc';
-}
-
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()
 export type Field = {
