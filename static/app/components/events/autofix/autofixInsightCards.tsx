@@ -29,7 +29,6 @@ import {
   IconArrow,
   IconChevron,
   IconCode,
-  IconEdit,
   IconFire,
   IconRefresh,
   IconSpan,
@@ -455,7 +454,7 @@ function ChainLink({
       <IconArrow direction={'down'} className="arrow-icon" />
       <RethinkButton
         ref={setReferenceElement}
-        icon={<IconEdit size="xs" />}
+        icon={<IconRefresh size="xs" />}
         size="zero"
         className="rethink-button"
         title={t('Rethink from here')}
