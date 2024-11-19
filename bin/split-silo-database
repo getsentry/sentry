@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os
+
 import click
 from django.apps import apps
 
@@ -30,7 +32,12 @@ def split_database(tables: list[str], source: str, destination: str, reset: bool
     command.extend([">", f"/tmp/{destination}-tables.sql"])
 
     with get_docker_client() as client:
-        postgres = client.containers.get("sentry_postgres")
+        postgres_container = (
+            "sentry_postgres"
+            if os.environ.get("USE_NEW_DEVSERVICES") != "1"
+            else "sentry-postgres-1"
+        )
+        postgres = client.containers.get(postgres_container)
 
         if verbose:
             click.echo(f">> Running {' '.join(command)}")
