@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
@@ -9,8 +9,10 @@ from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, EventsResponse, SnubaData, SnubaParams
 from sentry.utils import snuba_rpc
+from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -135,21 +137,20 @@ def run_timeseries_query(
     params: SnubaParams,
     query_string: str,
     y_axes: list[str],
-    groupby: list[str],
-) -> Any:
-    pass
+    referrer: str,
+    granularity_secs: int,
+    config: SearchResolverConfig,
+) -> SnubaTSResult:
     """Make the query"""
-    # maker = SearchResolver(params)
-    # groupby, contexts = maker.resolve_columns(groupby)
-    # yaxes = maker.resolve_aggregate(y_axes)
-    # query = maker.resolve_query(query_string)
+    rpc_request = get_timeseries_query(
+        params, query_string, y_axes, [], referrer, config, granularity_secs
+    )
 
     """Run the query"""
-    # rpc = timeseries_RPC(columns=[column.proto_definition for column in groupby], query=query)
-    # result = rpc.run()
+    rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
 
     """Process the results"""
-    # return _process_timeseries(result, columns)
+    return _process_timeseries(rpc_response, params, granularity_secs)
 
 
 def run_top_events_timeseries_query(
@@ -180,9 +181,17 @@ def run_top_events_timeseries_query(
     # return _process_timeseries(result, columns)
 
 
-def _process_timeseries(result, columns):
-    pass
-    # for row in result:
-    #     for column in columns:
-    #         column.process(row)
-    # return result
+def _process_timeseries(
+    rpc_response: TimeSeriesResponse, params: SnubaParams, granularity_secs: int
+) -> SnubaTSResult:
+    result: SnubaData = []
+    for timeseries in rpc_response.result_timeseries:
+        # Timeseries serialization expects the function alias (eg. `count` not `count()`)
+        label = get_function_alias(timeseries.label)
+        if len(result) < len(timeseries.buckets):
+            for bucket in timeseries.buckets:
+                result.append({"time": bucket.seconds})
+        for index, data_point in enumerate(timeseries.data_points):
+            result[index][label] = data_point.data
+
+    return SnubaTSResult({"data": result}, params.start, params.end, granularity_secs)

@@ -1,8 +1,9 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -71,6 +72,9 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [chartError, setChartError] = useState<string>('');
+  const [tableError, setTableError] = useState<string>('');
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -126,8 +130,13 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </TopSection>
             <ExploreToolbar extras={toolbarExtras} />
             <MainSection fullWidth>
-              <ExploreCharts query={userQuery} />
-              <ExploreTables />
+              {(tableError || chartError) && (
+                <Alert type="error" showIcon>
+                  {tableError || chartError}
+                </Alert>
+              )}
+              <ExploreCharts query={userQuery} setError={setChartError} />
+              <ExploreTables setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
@@ -150,11 +159,12 @@ const Body = styled(Layout.Body)`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 300px minmax(100px, auto);
+    grid-template-columns: 350px minmax(100px, auto);
+    gap: ${space(2)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: 350px minmax(100px, auto);
+    grid-template-columns: 400px minmax(100px, auto);
   }
 `;
 
@@ -165,12 +175,12 @@ const TopSection = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(300px, auto) 1fr;
+    grid-template-columns: minmax(350px, auto) 1fr;
     margin-bottom: 0;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: minmax(350px, auto) 1fr;
+    grid-template-columns: minmax(400px, auto) 1fr;
   }
 `;
 

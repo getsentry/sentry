@@ -6,7 +6,7 @@ class AlertRuleTriggerActionDeletionTask(ModelDeletionTask[AlertRuleTriggerActio
     manager_name = "objects_for_deletion"
 
     def get_child_relations(self, instance: AlertRuleTriggerAction) -> list[BaseRelation]:
-        from sentry.models.notificationmessage import NotificationMessage
+        from sentry.notifications.models.notificationmessage import NotificationMessage
 
         return [
             ModelRelation(NotificationMessage, {"trigger_action_id": instance.id}),

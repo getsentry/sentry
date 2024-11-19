@@ -128,17 +128,18 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
-        key="avatar-list"
+        key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
         teams={[teams.find(team => team.id === selectedOptions[1])!]}
         maxVisibleAvatars={1}
         avatarSize={25}
+        renderUsersFirst
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
-        key="avatar-list"
+        key="avatar-list-many-teams"
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
