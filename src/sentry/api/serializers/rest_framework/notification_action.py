@@ -157,15 +157,17 @@ Required if **service_type** is `slack` or `opsgenie`.
                 }
             )
         integration = integration_service.get_integration(integration_id=data.get("integration_id"))
+        if integration is None:
+            raise serializers.ValidationError(
+                f"Service type of '{service_provider}' requires having an active integration"
+            )
+
         if integration and service_provider != integration.provider:
             raise serializers.ValidationError(
                 {
                     "integration_id": f"Integration of provider '{integration.provider}' does not match service type of '{service_provider}'"
                 }
             )
-        assert (
-            integration
-        ), f"Service type of '{service_provider}' requires having an active integration"
         self.integration = integration
 
     def validate_sentry_app_and_service(self, data: NotificationActionInputData):
