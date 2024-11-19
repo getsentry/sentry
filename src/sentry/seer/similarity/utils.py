@@ -218,10 +218,6 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             base64_encoded = False
             for base64_prefix in BASE64_ENCODED_PREFIXES:
                 if frame_dict["filename"].startswith(base64_prefix):
-                    metrics.incr(
-                        "seer.grouping.base64_encoded_filename",
-                        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                    )
                     base64_encoded = True
                     break
             if base64_encoded:
