@@ -2,8 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
-from sentry.models.notificationaction import logger as NotificationActionLogger
+from sentry.notifications.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    NotificationAction,
+)
+from sentry.notifications.models.notificationaction import logger as NotificationActionLogger
 from sentry.testutils.cases import TestCase
 
 
@@ -34,7 +38,7 @@ class NotificationActionTest(TestCase):
         assert not mock_error_logger.called
         assert mock_handler.called
 
-    @patch("sentry.models.notificationaction.ActionTrigger")
+    @patch("sentry.notifications.models.notificationaction.ActionTrigger")
     def test_register_action_for_overlap(self, mock_action_trigger):
         mock_action_trigger.as_choices.return_value = (self.test_trigger,)
         mock_handler = MagicMock()

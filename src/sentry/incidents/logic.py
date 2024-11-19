@@ -56,9 +56,9 @@ from sentry.incidents.models.incident import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.environment import Environment
-from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
