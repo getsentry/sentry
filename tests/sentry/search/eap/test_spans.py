@@ -221,8 +221,8 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_empty_query(self):
-        query = self.resolver.resolve_query("")
-        assert query is None
+        assert self.resolver.resolve_query("") is None
+        assert self.resolver.resolve_query(None) is None
 
 
 class SearchResolverColumnTest(TestCase):
