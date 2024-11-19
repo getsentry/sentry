@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -19,28 +20,36 @@ type Props = {
 };
 
 function BookmarkStar({className, organization, project, onToggle}: Props) {
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
-  const handleBookmarkToggle = (event: React.MouseEvent) => {
-    // prevent dropdowns from closing
-    event.stopPropagation();
+  const {mutate: handleBookmarkToggle, isPending: isBookmarking} = useMutation({
+    mutationFn: () => {
+      return update(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        data: {isBookmarked: !isBookmarked},
+      });
+    },
+    onMutate: () => {
+      onToggle?.(isBookmarked);
+      setIsBookmarked(current => !current);
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+      setIsBookmarked(current => !current);
+    },
+  });
 
-    update(api, {
-      orgId: organization.slug,
-      projectId: project.slug,
-      data: {isBookmarked: !isBookmarked},
-    }).catch(() => addErrorMessage(t('Unable to toggle bookmark for %s', project.slug)));
-
-    setIsBookmarked(current => !current);
-    onToggle?.(!isBookmarked);
-  };
+  const label = isBookmarked ? t('Remove Bookmark') : t('Bookmark');
 
   return (
     <BookmarkStarButton
-      aria-label={t('Bookmark Project')}
+      title={label}
+      aria-label={label}
       aria-pressed={isBookmarked}
-      onClick={handleBookmarkToggle}
+      busy={isBookmarking}
+      onClick={() => handleBookmarkToggle()}
       size="zero"
       borderless
       className={className}
