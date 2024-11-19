@@ -104,7 +104,7 @@ export default function SolutionsSection({
       </SidebarSectionTitle>
       {hasSummary && !summaryData && (
         <Placeholder
-          height="60px"
+          height="12rem"
           style={{marginBottom: space(1)}}
           testId="loading-placeholder"
         />
@@ -223,10 +223,10 @@ const StyledButton = styled(Button)`
 const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  gap: ${space(1)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
   padding-bottom: 3px;
 `;
