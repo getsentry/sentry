@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
 )
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -55,8 +56,15 @@ class SnubaRPCRequest(Protocol):
 
 
 def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
-    resp = _make_rpc_request("EndpointTraceItemTable", "v1", req)
+    resp = _make_rpc_request("EndpointTraceItemTable", "v1", req.meta.referrer, req)
     response = TraceItemTableResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def timeseries_rpc(req: TimeSeriesRequest) -> TimeSeriesResponse:
+    resp = _make_rpc_request("EndpointTimeSeries", "v1", req.meta.referrer, req)
+    response = TimeSeriesResponse()
     response.ParseFromString(resp.data)
     return response
 
@@ -99,7 +107,7 @@ def rpc(
     cls = req.__class__
     endpoint_name = cls.__name__
     class_version = cls.__module__.split(".", 3)[2]
-    http_resp = _make_rpc_request(endpoint_name, class_version, req)
+    http_resp = _make_rpc_request(endpoint_name, class_version, req.meta.referrer, req)
     resp = resp_type()
     resp.ParseFromString(http_resp.data)
     return resp
@@ -108,9 +116,9 @@ def rpc(
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
+    referrer: str | None,
     req: SnubaRPCRequest | CreateSubscriptionRequest,
 ) -> BaseHTTPResponse:
-    referrer = req.meta.referrer if hasattr(req, "meta") else None
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
@@ -143,7 +151,7 @@ def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionRes
     cls = req.__class__
     endpoint_name = cls.__name__
     class_version = cls.__module__.split(".", 3)[2]
-    http_resp = _make_rpc_request(endpoint_name, class_version, req)
+    http_resp = _make_rpc_request(endpoint_name, class_version, None, req)
     resp = CreateSubscriptionResponse()
     resp.ParseFromString(http_resp.data)
     return resp

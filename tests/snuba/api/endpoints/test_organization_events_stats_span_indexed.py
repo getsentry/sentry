@@ -12,6 +12,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     endpoint = "sentry-api-0-organization-events-stats"
     is_eap = False
+    is_rpc = False
 
     @property
     def dataset(self):
@@ -34,9 +35,44 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
     def _do_request(self, data, url=None, features=None):
         if features is None:
             features = {"organizations:discover-basic": True}
+        if self.is_rpc:
+            data["useRpc"] = "1"
         features.update(self.features)
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def test_count(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_spans(
+                    [
+                        self.create_span(
+                            {"description": "foo", "sentry_tags": {"status": "success"}},
+                            start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        ),
+                    ],
+                    is_eap=self.is_eap,
+                )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0]
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder
@@ -225,3 +261,31 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
+
+
+class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
+    is_eap = True
+    is_rpc = True
+
+    def test_count(self):
+        super().test_count()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_hour_rollup(self):
+        super().test_throughput_epm_hour_rollup()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_day_rollup(self):
+        super().test_throughput_epm_day_rollup()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_hour_rollup_offset_of_hour(self):
+        super().test_throughput_epm_hour_rollup_offset_of_hour()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_eps_minute_rollup(self):
+        super().test_throughput_eps_minute_rollup()
+
+    @pytest.mark.xfail(reason="wip: not implemented yet")
+    def test_top_events(self):
+        super().test_top_events()
