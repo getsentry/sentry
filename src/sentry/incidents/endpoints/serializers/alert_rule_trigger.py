@@ -41,13 +41,3 @@ class AlertRuleTriggerSerializer(Serializer):
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }
-
-
-class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        result: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
-        return result
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        data = super().serialize(obj, attrs, user, **kwargs)
-        return data
