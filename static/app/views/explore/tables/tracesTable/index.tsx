@@ -70,7 +70,7 @@ export function TracesTable({setError}: TracesTableProps) {
   });
 
   useEffect(() => {
-    setError(result.error?.message);
+    setError(result.error?.message ?? '');
   }, [setError, result.error?.message]);
 
   useAnalytics({
