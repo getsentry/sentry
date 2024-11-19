@@ -442,8 +442,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
         in their request.
         """
-        # if the requesting user has any of these scopes, then they can create an alert
-        # if alerts: write is org-scoped, that means that member alert creation is enabled.
+        # if the requesting user has any of these org-level permissions, then they can create an alert
         if (
             request.access.has_scope("alerts:write")
             or request.access.has_scope("org:admin")
