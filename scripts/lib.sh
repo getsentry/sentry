@@ -8,7 +8,8 @@
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
 POSTGRES_CONTAINER="sentry_postgres"
-if [ "$USE_NEW_DEVSERVICES" == 1 ]; then
+USE_NEW_DEVSERVICES=${USE_NEW_DEVSERVICES:-"0"}
+if [ "$USE_NEW_DEVSERVICES" == "1" ]; then
 POSTGRES_CONTAINER="sentry-postgres-1"
 fi
 
