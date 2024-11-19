@@ -23,7 +23,6 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
@@ -93,25 +92,6 @@ class CommitContextIntegration(ABC):
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
 
-    def record_event(
-        self,
-        event: SCMIntegrationInteractionType,
-        organization: Organization | None = None,
-        project: Project | None = None,
-        commit: Commit | None = None,
-        repository: Repository | None = None,
-        pull_request: PullRequest | None = None,
-    ):
-        return CommitContextIntegrationInteractionEvent(
-            interaction_type=event,
-            provider_key=self.integration_name,
-            organization=organization,
-            project=project,
-            commit=commit,
-            repository=repository,
-            pull_request=pull_request,
-        )
-
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:
@@ -120,8 +100,9 @@ class CommitContextIntegration(ABC):
 
         files: list of FileBlameInfo objects
         """
-        with self.record_event(
-            SCMIntegrationInteractionType.GET_BLAME_FOR_FILES
+        with CommitContextIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
+            provider_key=self.integration_name,
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
@@ -155,8 +136,9 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
-        with self.record_event(
-            SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
+        with CommitContextIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
+            provider_key=self.integration_name,
             organization=project.organization,
             project=project,
             commit=commit,
@@ -311,8 +293,11 @@ class CommitContextIntegration(ABC):
             else SCMIntegrationInteractionType.UPDATE_COMMENT
         )
 
-        with self.record_event(
-            interaction_type, repository=repo, pull_request_id=pullrequest_id
+        with CommitContextIntegrationInteractionEvent(
+            interaction_type=interaction_type,
+            provider_key=self.integration_name,
+            repository=repo,
+            pull_request_id=pullrequest_id,
         ).capture():
             if pr_comment is None:
                 resp = client.create_comment(
