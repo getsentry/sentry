@@ -60,8 +60,10 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
-    def resolve_query(self, querystring: str) -> TraceItemFilter | None:
+    def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        if querystring is None:
+            return None
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
