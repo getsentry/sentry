@@ -63,6 +63,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
                     return request.access.has_projects_access(obj.projects.all())
 
                 # 2. Dashboard covers all projects or all my projects
+
                 # allow when Open Membership
                 if obj.organization.flags.allow_joinleave:
                     return True
@@ -76,6 +77,8 @@ class OrganizationDashboardsPermission(OrganizationPermission):
                     return True
 
                 return False
+
+        return True
 
 
 @extend_schema(tags=["Dashboards"])
