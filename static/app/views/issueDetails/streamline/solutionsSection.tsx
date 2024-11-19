@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import useDrawer from 'sentry/components/globalDrawer';
-import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
-import Placeholder from 'sentry/components/placeholder';
+import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -70,7 +69,11 @@ export default function SolutionsSection({
   };
 
   const hasGenAIConsent = organization.genAIConsent;
-  const {data: summaryData} = useGroupSummary(group.id, group.issueCategory);
+  const {
+    data: summaryData,
+    isPending: isSummaryLoading,
+    isError: isSummaryError,
+  } = useGroupSummary(group.id, group.issueCategory);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -102,19 +105,12 @@ export default function SolutionsSection({
           )}
         </HeaderContainer>
       </SidebarSectionTitle>
-      {hasSummary && !summaryData && (
-        <Placeholder
-          height="12rem"
-          style={{marginBottom: space(1)}}
-          testId="loading-placeholder"
-        />
-      )}
-      {hasSummary && summaryData && (
+      {hasSummary && (
         <Summary>
-          <GroupSummaryBody
-            data={summaryData}
-            isError={false}
-            isPending={false}
+          <GroupSummary
+            data={summaryData ?? undefined}
+            isError={isSummaryError}
+            isPending={isSummaryLoading}
             preview
           />
         </Summary>
