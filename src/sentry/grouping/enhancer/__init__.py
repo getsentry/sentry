@@ -35,9 +35,13 @@ LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
+    "path",  # stack.abs_path alias
     "stack.module",
+    "module",  # stack.module alias
     "stack.function",
+    "function",  # stack.function alias
     "stack.package",
+    "package",  # stack.package
 )
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
