@@ -8,7 +8,10 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.models.commit import Commit
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganization
 
 
@@ -74,6 +77,28 @@ class LinkAllReposHaltReason(StrEnum):
     MISSING_ORGANIZATION = "missing_organization"
     RATE_LIMITED = "rate_limited"
     REPOSITORY_NOT_CREATED = "repository_not_created"
+
+
+@dataclass
+class CommitContextIntegrationInteractionEvent(SCMIntegrationInteractionEvent):
+    """
+    An instance to be recorded of a CommitContextIntegration feature call.
+    """
+
+    project: Project | None = None
+    commit: Commit | None = None
+    repository: Repository | None = None
+    pull_request_id: int | None = None
+
+    def get_extras(self) -> Mapping[str, Any]:
+        parent_extras = super().get_extras()
+        return {
+            **parent_extras,
+            "project_id": (self.project.id if self.project else None),
+            "commit_id": (self.commit.id if self.commit else None),
+            "repository_id": (self.repository.id if self.repository else None),
+            "pull_request_id": self.pull_request_id,
+        }
 
 
 class CommitContextHaltReason(StrEnum):
