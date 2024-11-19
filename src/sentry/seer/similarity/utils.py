@@ -204,7 +204,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
         ]
-        if len(contributing_frames) > 30:
+        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
             is_frames_truncated = True
         contributing_frames = _discard_excess_frames(
             contributing_frames, MAX_FRAME_COUNT, frame_count
@@ -274,7 +274,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
-        if (frame_count > 30 or is_frames_truncated) and not app_hash:
+        if is_frames_truncated and not app_hash:
             raise TooManyOnlySystemFramesException
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
