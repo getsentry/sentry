@@ -36,7 +36,6 @@ class ApiAuthorization(Model, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apiauthorization"
-        unique_together = (("user", "application"),)
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "application"],

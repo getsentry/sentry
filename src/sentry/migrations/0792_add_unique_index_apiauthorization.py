@@ -41,4 +41,8 @@ class Migration(CheckedMigration):
                 name="apiauthorization_user_app_org",
             ),
         ),
+        migrations.AlterUniqueTogether(
+            name="apiauthorization",
+            unique_together=set(),
+        ),
     ]
