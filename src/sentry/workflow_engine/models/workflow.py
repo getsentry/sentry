@@ -2,19 +2,14 @@ from django.conf import settings
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.models.json_config_mixin import JsonConfigMixin
 
 
 @region_silo_model
-class Workflow(DefaultFieldsModel, OwnerModel):
+class Workflow(DefaultFieldsModel, OwnerModel, JsonConfigMixin):
     """
     A workflow is a way to execute actions in a specified order.
     Workflows are initiated after detectors have been processed, driven by changes to their state.
@@ -32,9 +27,8 @@ class Workflow(DefaultFieldsModel, OwnerModel):
         "workflow_engine.DataConditionGroup", blank=True, null=True
     )
 
-    environment_id = BoundedPositiveIntegerField(null=True)
+    environment = FlexibleForeignKey("sentry.Environment", db_constraint=False)
     created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    frequency = BoundedPositiveIntegerField(default=30)  # in minutes
 
     __repr__ = sane_repr("name", "organization_id")
 

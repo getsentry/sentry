@@ -4,14 +4,17 @@ import builtins
 import logging
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.models.json_config_mixin import JsonConfigMixin
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.processors.detector import DetectorHandler
@@ -20,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_model
-class Detector(DefaultFieldsModel, OwnerModel):
+class Detector(DefaultFieldsModel, OwnerModel, JsonConfigMixin):
     __relocation_scope__ = RelocationScope.Organization
 
     # TODO - Finish removing this field
@@ -40,10 +43,6 @@ class Detector(DefaultFieldsModel, OwnerModel):
     # Optionally set a description of the detector, this will be used in notifications
     description = models.TextField(blank=True, null=True)
 
-    # This represents a time delta, in seconds. If not null, this is used to determine which time
-    # window to query to compare the result from the current time_window to.
-    comparison_delta = models.IntegerField(null=True)
-
     # This will emit an event for the workflow to process
     workflow_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup",
@@ -52,7 +51,13 @@ class Detector(DefaultFieldsModel, OwnerModel):
         unique=True,
         on_delete=models.SET_NULL,
     )
+
+    # The type of detector that is being used, this is used to determine the class
+    # to load for the detector
     type = models.CharField(max_length=200)
+
+    # The user that created the detector
+    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
