@@ -24,7 +24,9 @@ def make_ctx_snapshot(insta_snapshot):
 
 
 def test_os(make_ctx_snapshot):
-    make_ctx_snapshot({"os": {"name": "Windows", "version": "95", "rooted": True}})
+    make_ctx_snapshot(
+        {"os": {"os": "Windows 95", "name": "Windows", "version": "95", "rooted": True}}
+    )
 
 
 def test_null_values(make_ctx_snapshot):
@@ -43,13 +45,21 @@ def test_os_normalization(make_ctx_snapshot):
     make_ctx_snapshot({"os": {"raw_description": "Microsoft Windows 6.1.7601 S"}})
 
 
-def test_runtime(make_ctx_snapshot, insta_snapshot):
-    make_ctx_snapshot({"runtime": {"name": "Java", "version": "1.2.3", "build": "BLAH"}})
+def test_runtime(make_ctx_snapshot):
+    make_ctx_snapshot(
+        {"runtime": {"runtime": "Java 1.2.3", "name": "Java", "version": "1.2.3", "build": "BLAH"}}
+    )
 
 
 def test_runtime_normalization(make_ctx_snapshot):
     make_ctx_snapshot(
         {"runtime": {"raw_description": ".NET Framework 4.0.30319.42000", "build": "461808"}}
+    )
+
+
+def test_browser(make_ctx_snapshot):
+    make_ctx_snapshot(
+        {"browser": {"browser": "Chrome 132.0.6834.0", "name": "Chrome", "version": "132.0.6834.0"}}
     )
 
 
