@@ -17,6 +17,7 @@ type Props = {
   className?: string;
   maxVisibleAvatars?: number;
   renderTooltip?: UserAvatarProps['renderTooltip'];
+  renderUsersFirst?: boolean;
   teams?: Team[];
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
@@ -51,6 +52,7 @@ function AvatarList({
   className,
   users = [],
   teams = [],
+  renderUsersFirst = false,
   renderTooltip,
 }: Props) {
   const numTeams = teams.length;
@@ -87,25 +89,48 @@ function AvatarList({
           </CollapsedAvatars>
         </Tooltip>
       )}
-      {visibleUserAvatars.map(user => (
-        <StyledUserAvatar
-          key={`${user.id}-${user.email}`}
-          user={user}
-          size={avatarSize}
-          renderTooltip={renderTooltip}
-          tooltipOptions={tooltipOptions}
-          hasTooltip
-        />
-      ))}
-      {visibleTeamAvatars.map(team => (
-        <StyledTeamAvatar
-          key={`${team.id}-${team.name}`}
-          team={team}
-          size={avatarSize}
-          tooltipOptions={tooltipOptions}
-          hasTooltip
-        />
-      ))}
+
+      {renderUsersFirst
+        ? visibleTeamAvatars.map(team => (
+            <StyledTeamAvatar
+              key={`${team.id}-${team.name}`}
+              team={team}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
+              hasTooltip
+            />
+          ))
+        : visibleUserAvatars.map(user => (
+            <StyledUserAvatar
+              key={user.id}
+              user={user}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
+              renderTooltip={renderTooltip}
+              hasTooltip
+            />
+          ))}
+
+      {!renderUsersFirst
+        ? visibleTeamAvatars.map(team => (
+            <StyledTeamAvatar
+              key={`${team.id}-${team.name}`}
+              team={team}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
+              hasTooltip
+            />
+          ))
+        : visibleUserAvatars.map(user => (
+            <StyledUserAvatar
+              key={user.id}
+              user={user}
+              size={avatarSize}
+              tooltipOptions={tooltipOptions}
+              renderTooltip={renderTooltip}
+              hasTooltip
+            />
+          ))}
     </AvatarListWrapper>
   );
 }
