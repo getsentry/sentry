@@ -71,3 +71,18 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
+
+    def test_profile_chunk_category(self):
+        """
+        Test that the organization stats endpoint correctly handles profile chunk category.
+        """
+        query = {
+            "interval": "1d",
+            "field": "sum(quantity)",
+            "groupBy": "category",
+            "category": "profile_chunk",
+        }
+        response = self.client.get(self.url, query, format="json")
+        request = RequestFactory().get(self.url)
+
+        self.validate_schema(request, response)
