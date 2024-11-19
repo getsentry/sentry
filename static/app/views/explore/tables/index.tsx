@@ -1,3 +1,4 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
@@ -54,24 +55,26 @@ function useTab(): [Tab, (tab: Tab) => void] {
   return [tab, setTab];
 }
 
-interface ExploreTablesProps {}
+interface ExploreTablesProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function ExploreTables({}: ExploreTablesProps) {
+export function ExploreTables({setError}: ExploreTablesProps) {
   const [resultMode] = useResultMode();
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregatesTable />}
-      {resultMode === 'samples' && <ExploreSamplesTable />}
+      {resultMode === 'aggregate' && <ExploreAggregatesTable setError={setError} />}
+      {resultMode === 'samples' && <ExploreSamplesTable setError={setError} />}
     </Fragment>
   );
 }
 
-function ExploreAggregatesTable() {
-  return <AggregatesTable />;
+function ExploreAggregatesTable({setError}: ExploreTablesProps) {
+  return <AggregatesTable setError={setError} />;
 }
 
-function ExploreSamplesTable() {
+function ExploreSamplesTable({setError}: ExploreTablesProps) {
   const [tab, setTab] = useTab();
 
   const [fields, setFields] = useSampleFields();
@@ -110,8 +113,8 @@ function ExploreSamplesTable() {
           {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable />}
-      {tab === Tab.TRACE && <TracesTable />}
+      {tab === Tab.SPAN && <SpansTable setError={setError} />}
+      {tab === Tab.TRACE && <TracesTable setError={setError} />}
     </Fragment>
   );
 }

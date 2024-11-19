@@ -445,7 +445,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   };
 }
 
-const parseError = (error: any): QueryError | null => {
+export const parseError = (error: any): QueryError | null => {
   if (!error) {
     return null;
   }
