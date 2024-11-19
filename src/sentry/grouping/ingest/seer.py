@@ -28,7 +28,9 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def should_call_seer_for_grouping(
+    event: Event, variants: dict[str, BaseVariant], stacktrace_string: str
+) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
@@ -54,6 +56,7 @@ def should_call_seer_for_grouping(event: Event, variants: dict[str, BaseVariant]
         # attempt. Thus we only want to run the rate limit check if every other check has already
         # succeeded.)
         or _ratelimiting_enabled(event, project)
+        or _has_empty_stacktrace_string(event, stacktrace_string)
     ):
         return False
 
@@ -176,9 +179,24 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
     return circuit_broken
 
 
+def _has_empty_stacktrace_string(event: Event, stacktrace_string: str) -> bool:
+    if stacktrace_string == "":
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={
+                "call_made": False,
+                "platform": event.platform if event.platform else "unknown",
+                "blocker": "empty-stacktrace-string",
+            },
+        )
+        return True
+    return False
+
+
 def get_seer_similar_issues(
     event: Event,
-    variants: dict[str, BaseVariant],
+    stacktrace_string: str,
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -187,15 +205,7 @@ def get_seer_similar_issues(
     should go in (if any), or None if no neighbor was near enough.
     """
     event_hash = event.get_primary_hash()
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
     exception_type = get_path(event.data, "exception", "values", -1, "type")
-
-    if stacktrace_string == "":
-        similar_issues_metadata = {
-            "results": [],
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-        }
-        return (similar_issues_metadata, None)
 
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
@@ -242,7 +252,8 @@ def maybe_check_seer_for_matching_grouphash(
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
-    if should_call_seer_for_grouping(event, variants):
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    if should_call_seer_for_grouping(event, variants, stacktrace_string):
         metrics.incr(
             "grouping.similarity.did_call_seer",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -252,7 +263,9 @@ def maybe_check_seer_for_matching_grouphash(
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event, variants)
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(
+                event, stacktrace_string
+            )
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}
