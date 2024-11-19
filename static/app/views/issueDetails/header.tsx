@@ -36,13 +36,12 @@ import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHe
 
 import GroupActions from './actions';
 import {Tab} from './types';
-import type {ReprocessingStatus} from './utils';
+import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
   event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
 };
@@ -177,15 +176,9 @@ export function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({
-  baseUrl,
-  group,
-  groupReprocessingStatus,
-  organization,
-  event,
-  project,
-}: Props) {
+function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {
     disabledTabs,
