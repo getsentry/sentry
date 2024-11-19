@@ -134,7 +134,6 @@ R = TypeVar("R")  # response
 
 # Command handler type that receives lifecycle object
 CommandHandler = Callable[[CommandInput], IntegrationResponse[R]]
-MessagingDispatchResponse = Callable[[CommandInput], IntegrationResponse[R]]
 
 
 class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
@@ -170,14 +169,6 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
 
     @abstractmethod
     def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[R]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def link_team_handler(self, input: CommandInput) -> IntegrationResponse[R]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def unlink_team_handler(self, input: CommandInput) -> IntegrationResponse[R]:
         raise NotImplementedError
 
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
