@@ -565,9 +565,9 @@ def update_groups(
 
     elif status:
         # The previous if statement handles the resolved and resolvedInNextRelease status updates
-        activity_type, activity_data = handle_other_status_updates(
+        activity_type, activity_data, result = handle_other_status_updates(
             result,
-            list(queryset),
+            group_list,
             group_ids,
             projects,
             project_lookup,
@@ -647,7 +647,6 @@ def handle_other_status_updates(
     acting_user: User,
     user: User,
 ):
-    # XXX: I think group_list and queryset are the same thing
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
     new_substatus = (
@@ -688,7 +687,7 @@ def handle_other_status_updates(
                 status_details=result.get("statusDetails", {}),
                 sender=update_groups,
             )
-    return activity_type, activity_data
+    return activity_type, activity_data, result
 
 
 def update_results(
