@@ -147,14 +147,12 @@ describe('ProjectPageFilter', function () {
 
     // Move focus to "Bookmark Project" button
     await userEvent.keyboard('{ArrowRight}');
-    expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
-    ).toHaveFocus();
+    expect(within(optionOne).getByRole('button', {name: 'Bookmark'})).toHaveFocus();
 
     // Activate the button
     await userEvent.keyboard('{Enter}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
+      within(optionOne).getByRole('button', {name: 'Remove Bookmark'})
     ).toHaveAttribute('aria-pressed', 'true');
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project-1/`,
