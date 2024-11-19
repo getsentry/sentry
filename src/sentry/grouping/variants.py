@@ -146,6 +146,7 @@ def expose_fingerprint_dict(values, info):
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
     ):
         rv["client_values"] = client_values
+
     matched_rule = info.get("matched_rule")
     if matched_rule:
         rule = FingerprintRule.from_json(matched_rule)
