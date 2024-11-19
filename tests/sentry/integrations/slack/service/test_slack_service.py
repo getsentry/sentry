@@ -10,9 +10,9 @@ from sentry.integrations.repository.issue_alert import IssueAlertNotificationMes
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import RuleDataError, SlackService
 from sentry.models.activity import Activity
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode

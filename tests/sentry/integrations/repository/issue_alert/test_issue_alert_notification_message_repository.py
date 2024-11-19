@@ -5,8 +5,8 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
     NewIssueAlertNotificationMessage,
 )
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
 
 
