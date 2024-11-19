@@ -29,7 +29,7 @@ interface ShareIssueModalProps extends ModalRenderProps {
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
 export function getShareUrl(group: Group) {
-  const path = `/share/issue/${group!.shareId}/`;
+  const path = `/share/issue/${group.shareId}/`;
   const {host, protocol} = window.location;
   return `${protocol}//${host}${path}`;
 }
