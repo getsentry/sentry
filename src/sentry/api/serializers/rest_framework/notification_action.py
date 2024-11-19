@@ -163,6 +163,9 @@ Required if **service_type** is `slack` or `opsgenie`.
                     "integration_id": f"Integration of provider '{integration.provider}' does not match service type of '{service_provider}'"
                 }
             )
+        assert (
+            integration
+        ), f"Service type of '{service_provider}' requires having an active integration"
         self.integration = integration
 
     def validate_sentry_app_and_service(self, data: NotificationActionInputData):
@@ -214,7 +217,6 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
-                assert self.integration, "Associated integration must exist to validate channel id"
                 validate_channel_id(
                     name=channel_name,
                     integration_id=self.integration.id,
@@ -228,7 +230,6 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
-            assert self.integration, "Associated integration must exist to get channel id"
             channel_data = get_channel_id(integration=self.integration, channel_name=channel_name)
         except Exception:
             raise serializers.ValidationError({"target_display": generic_error_message})
@@ -271,9 +272,7 @@ Required if **service_type** is `slack` or `opsgenie`.
             )
 
         try:
-            assert self.integration, "Associated integration must exist to validate channel id"
             assert channel_id, "Channel id must exist to validate channel id"
-
             validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
@@ -300,7 +299,6 @@ Required if **service_type** is `slack` or `opsgenie`.
             return data
 
         service_id = data.get("target_identifier")
-        assert self.integration, "Integration must exist to get id"
         ois = integration_service.get_organization_integrations(
             organization_id=self.context["organization"].id,
             integration_id=self.integration.id,
