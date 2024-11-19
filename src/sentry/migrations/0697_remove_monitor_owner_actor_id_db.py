@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0696_remove_monitor_owner_actor_id"),
     ]
