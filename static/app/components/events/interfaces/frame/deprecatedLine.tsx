@@ -290,7 +290,7 @@ export class DeprecatedLine extends Component<Props, State> {
             frame_count: hiddenFrameCount,
             is_frame_expanded: isShowFramesToggleExpanded,
           }}
-          size="xs"
+          size="zero"
           borderless
           onClick={e => {
             this.props.onShowFramesToggle?.(e);
@@ -524,7 +524,7 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
-  height: 32px;
+  min-height: 32px;
   word-break: break-word;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -568,6 +568,7 @@ const StyledLi = styled('li')`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};
