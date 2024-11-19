@@ -58,7 +58,6 @@ export default function OnboardingIntegrationSection({
   return (
     <Fragment>
       <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
-      {}
       <IntegrationSection>
         <SubSection>
           <InputTitle>{t('Signing Secret')}</InputTitle>
