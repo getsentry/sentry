@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -35,9 +36,11 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 import {FieldRenderer} from './fieldRenderer';
 
-interface SpansTableProps {}
+interface SpansTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function SpansTable({}: SpansTableProps) {
+export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
@@ -85,6 +88,10 @@ export function SpansTable({}: SpansTableProps) {
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
   });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
 
   useAnalytics({
     resultLength: result.data?.length,
