@@ -4,6 +4,11 @@ creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "system"
+}
 ---
 contributing variants:
   system*

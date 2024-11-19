@@ -24,7 +24,7 @@ from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.issues.merge import handle_merge
+from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
@@ -136,20 +136,25 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        try:
-            # This sets current_release_version to the latest semver version associated with a group
-            associated_release_id = GroupRelease.objects.filter(
-                project_id=group.project.id, group_id=group.id
-            ).values_list("release_id")
+        if not features.has(
+            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
+        ):
+            try:
+                # This sets current_release_version to the latest semver version associated with a group
+                associated_release_id = GroupRelease.objects.filter(
+                    project_id=group.project.id, group_id=group.id
+                ).values_list("release_id")
+                current_release_version = (
+                    get_semver_releases(group.project)
+                    .filter(id__in=associated_release_id)
+                    .values_list("version", flat=True)[:1]
+                    .get()
+                )
+            except Release.DoesNotExist:
+                pass
+        else:
+            current_release_version = greatest_semver_release(group.project).version
 
-            current_release_version = (
-                get_semver_releases(group.project)
-                .filter(id__in=associated_release_id)
-                .values_list("version", flat=True)[:1]
-                .get()
-            )
-        except Release.DoesNotExist:
-            pass
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -404,18 +409,9 @@ def update_groups(
                             release_version=release.version,
                         )
 
-                        if (
-                            features.has(
-                                "organizations:releases-resolve-next-release-semver-fix",
-                                project.organization,
-                            )
-                            and follows_semver
-                        ):
-                            current_release_version = get_release_to_resolve_by(projects[0]).version
-                        else:
-                            current_release_version = get_current_release_version_of_group(
-                                group=group, follows_semver=follows_semver
-                            )
+                        current_release_version = get_current_release_version_of_group(
+                            group, follows_semver
+                        )
 
                         if current_release_version:
                             resolution_params.update(
@@ -568,45 +564,128 @@ def update_groups(
         result.update({"status": "resolved", "statusDetails": new_status_details})
 
     elif status:
-        new_status = STATUS_UPDATE_CHOICES[result["status"]]
-        new_substatus = (
-            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        # The previous if statement handles the resolved and resolvedInNextRelease status updates
+        activity_type, activity_data, result = handle_other_status_updates(
+            result,
+            group_list,
+            group_ids,
+            projects,
+            project_lookup,
+            status_details,
+            acting_user,
+            user,
         )
-        new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
-        with transaction.atomic(router.db_for_write(Group)):
-            # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
-            #                we should centralize the logic for validating and defaulting substatus values
-            #                and refactor pre_save and the above new_substatus assignment to account for this
-            status_updated = queryset.exclude(status=new_status).update(
-                status=new_status, substatus=new_substatus
-            )
-            GroupResolution.objects.filter(group__in=group_ids).delete()
-            if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
-                    result["statusDetails"] = handle_archived_until_escalating(
-                        group_list, acting_user, projects, sender=update_groups
-                    )
-                else:
-                    result["statusDetails"] = handle_ignored(
-                        group_ids, group_list, status_details, acting_user, user
-                    )
-                result["inbox"] = None
+    return prepare_response(
+        result,
+        group_list,
+        group_ids,
+        project_lookup,
+        projects,
+        acting_user,
+        data,
+        res_type,
+        request.META.get("HTTP_REFERER", ""),
+    )
+
+
+def merge_groups(
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user: User,
+    referer: str,
+) -> MergedGroup:
+    issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
+    similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
+
+    metrics.incr(
+        "grouping.merge_issues",
+        sample_rate=1.0,
+        tags={
+            # We assume that if someone's merging groups, they're from the same platform
+            "platform": group_list[0].platform or "unknown",
+            "sdk": group_list[0].sdk or "unknown",
+            # TODO: It's probably cleaner to just send this value from the front end
+            "referer": (
+                "issue stream"
+                if re.search(issue_stream_regex, referer)
+                else (
+                    "similar issues tab"
+                    if re.search(similar_issues_tab_regex, referer)
+                    else "unknown"
+                )
+            ),
+        },
+    )
+    return handle_merge(group_list, project_lookup, acting_user)
+
+
+def handle_other_status_updates(
+    result: Mapping[str, Any],
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    projects: Sequence[Project],
+    project_lookup: Mapping[int, Project],
+    status_details: Mapping[str, Any],
+    acting_user: User,
+    user: User,
+):
+    activity_type = None
+    activity_data: MutableMapping[str, Any | None] | None = None
+    queryset = Group.objects.filter(id__in=group_ids)
+    new_status = STATUS_UPDATE_CHOICES[result["status"]]
+    new_substatus = (
+        SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+    )
+    new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
+
+    with transaction.atomic(router.db_for_write(Group)):
+        # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
+        #                we should centralize the logic for validating and defaulting substatus values
+        #                and refactor pre_save and the above new_substatus assignment to account for this
+        status_updated = queryset.exclude(status=new_status).update(
+            status=new_status, substatus=new_substatus
+        )
+        GroupResolution.objects.filter(group__in=group_ids).delete()
+        if new_status == GroupStatus.IGNORED:
+            if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
+                result["statusDetails"] = handle_archived_until_escalating(
+                    group_list, acting_user, projects, sender=update_groups
+                )
             else:
-                result["statusDetails"] = {}
-        if group_list and status_updated:
-            activity_type, activity_data = handle_status_update(
-                group_list=group_list,
-                projects=projects,
-                project_lookup=project_lookup,
-                new_status=new_status,
-                new_substatus=new_substatus,
-                is_bulk=is_bulk,
-                acting_user=acting_user,
-                status_details=result.get("statusDetails", {}),
-                sender=update_groups,
-            )
+                result["statusDetails"] = handle_ignored(
+                    group_ids, group_list, status_details, acting_user, user
+                )
+            result["inbox"] = None
+        else:
+            result["statusDetails"] = {}
 
+    if group_list and status_updated:
+        activity_type, activity_data = handle_status_update(
+            group_list=group_list,
+            projects=projects,
+            project_lookup=project_lookup,
+            new_status=new_status,
+            new_substatus=new_substatus,
+            is_bulk=len(group_ids) > 1,
+            acting_user=acting_user,
+            status_details=result.get("statusDetails", {}),
+            sender=update_groups,
+        )
+    return activity_type, activity_data, result
+
+
+def prepare_response(
+    result: dict[str, Any],
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    projects: Sequence[Project],
+    acting_user: User,
+    data: Mapping[str, Any],
+    res_type: GroupResolution.Type | None,
+    referer: str,
+) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
     try:
@@ -654,37 +733,17 @@ def update_groups(
             result["isPublic"], group_list, project_lookup, acting_user
         )
 
-    # XXX(dcramer): this feels a bit shady like it should be its own endpoint.
+    # TODO: Create new endpoint for this
     if result.get("merge") and len(group_list) > 1:
         # don't allow merging cross project
-        if len(projects) > 1:
+        if len(project_lookup) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
-
-        referer = urlparse(request.META.get("HTTP_REFERER", "")).path
-        issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
-        similar_issues_tab_regex = r"^(\/organizations\/[^\/]+)?\/issues\/\d+\/similar\/$"
-
-        metrics.incr(
-            "grouping.merge_issues",
-            sample_rate=1.0,
-            tags={
-                # We assume that if someone's merging groups, they're from the same platform
-                "platform": group_list[0].platform or "unknown",
-                "sdk": group_list[0].sdk or "unknown",
-                # TODO: It's probably cleaner to just send this value from the front end
-                "referer": (
-                    "issue stream"
-                    if re.search(issue_stream_regex, referer)
-                    else (
-                        "similar issues tab"
-                        if re.search(similar_issues_tab_regex, referer)
-                        else "unknown"
-                    )
-                ),
-            },
+        result["merge"] = merge_groups(
+            group_list,
+            project_lookup,
+            acting_user,
+            urlparse(referer).path,
         )
-
-        result["merge"] = handle_merge(group_list, project_lookup, acting_user)
 
     inbox = result.get("inbox", None)
     if inbox is not None:
@@ -693,7 +752,7 @@ def update_groups(
             group_list,
             project_lookup,
             acting_user,
-            http_referrer=request.META.get("HTTP_REFERER"),
+            http_referrer=referer,
             sender=update_groups,
         )
 
