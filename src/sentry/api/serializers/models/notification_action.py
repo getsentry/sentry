@@ -4,7 +4,7 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.models.notificationaction import (
+from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
     ActionTrigger,
