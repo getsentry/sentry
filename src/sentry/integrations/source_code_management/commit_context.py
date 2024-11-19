@@ -15,7 +15,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
-    SCMIntegrationInteractionEvent,
+    CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
 from sentry.locks import locks
@@ -23,6 +23,7 @@ from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
@@ -92,10 +93,23 @@ class CommitContextIntegration(ABC):
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
 
-    def record_event(self, event: SCMIntegrationInteractionType):
-        return SCMIntegrationInteractionEvent(
+    def record_event(
+        self,
+        event: SCMIntegrationInteractionType,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        commit: Commit | None = None,
+        repository: Repository | None = None,
+        pull_request: PullRequest | None = None,
+    ):
+        return CommitContextIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
+            organization=organization,
+            project=project,
+            commit=commit,
+            repository=repository,
+            pull_request=pull_request,
         )
 
     def get_blame_for_files(
@@ -142,15 +156,11 @@ class CommitContextIntegration(ABC):
         group_id: int,
     ) -> None:
         with self.record_event(
-            SCMIntegrationInteractionType.QUEUE_COMMENT_TASK
+            SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
+            organization=project.organization,
+            project=project,
+            commit=commit,
         ).capture() as lifecycle:
-            lifecycle.add_extras(
-                {
-                    "project_id": project.id,
-                    "organization_id": project.organization_id,
-                    "commit_id": commit.id,
-                }
-            )
             if not OrganizationOption.objects.get_value(
                 organization=project.organization,
                 key="sentry:github_pr_bot",
@@ -301,17 +311,9 @@ class CommitContextIntegration(ABC):
             else SCMIntegrationInteractionType.UPDATE_COMMENT
         )
 
-        with self.record_event(interaction_type).capture() as lifecycle:
-            lifecycle.add_extras(
-                {
-                    "repository_id": repo.id,
-                    "organization_id": repo.organization_id,
-                    "pull_request_id": pullrequest_id,
-                    "comment_type": comment_type,
-                    "language": language,
-                }
-            )
-
+        with self.record_event(
+            interaction_type, repository=repo, pull_request_id=pullrequest_id
+        ).capture():
             if pr_comment is None:
                 resp = client.create_comment(
                     repo=repo.name,
