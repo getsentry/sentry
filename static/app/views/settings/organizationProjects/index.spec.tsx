@@ -53,9 +53,9 @@ describe('OrganizationProjects', function () {
     );
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Bookmark Project'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Bookmark'}));
     expect(
-      await screen.findByRole('button', {name: 'Bookmark Project', pressed: true})
+      await screen.findByRole('button', {name: 'Remove Bookmark', pressed: true})
     ).toBeInTheDocument();
 
     expect(projectsPutMock).toHaveBeenCalledTimes(1);
