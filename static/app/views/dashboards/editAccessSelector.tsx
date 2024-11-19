@@ -134,6 +134,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         teams={[teams.find(team => team.id === selectedOptions[1])!]}
         maxVisibleAvatars={1}
         avatarSize={25}
+        renderUsersFirst
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
