@@ -87,7 +87,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {

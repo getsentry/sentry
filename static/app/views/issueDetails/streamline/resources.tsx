@@ -4,7 +4,6 @@ import {LinkButton} from 'sentry/components/button';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,7 +23,7 @@ export default function Resources({configResources, eventPlatform, group}: Props
 
   return (
     <div>
-      {group.issueCategory !== IssueCategory.ERROR && configResources.description}
+      <p>{configResources.description}</p>
       <LinkSection>
         {links.map(({link, text}) => (
           <LinkButton
