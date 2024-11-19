@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -48,9 +49,11 @@ export function formatSort(sort: Sort): string {
   return `${direction}${getAggregateAlias(sort.field)}`;
 }
 
-interface AggregatesTableProps {}
+interface AggregatesTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function AggregatesTable({}: AggregatesTableProps) {
+export function AggregatesTable({setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
@@ -93,6 +96,10 @@ export function AggregatesTable({}: AggregatesTableProps) {
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table',
   });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
 
   useAnalytics({
     resultLength: result.data?.length,
