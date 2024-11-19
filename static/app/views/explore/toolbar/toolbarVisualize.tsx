@@ -162,13 +162,15 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
         >
           <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
         </Tooltip>
-        <ToolbarHeaderButton
-          size="zero"
-          icon={<IconAdd />}
-          onClick={addChart}
-          aria-label={t('Add Chart')}
-          borderless
-        />
+        <Tooltip title={t('Add a new chart visualization')}>
+          <ToolbarHeaderButton
+            size="zero"
+            icon={<IconAdd />}
+            onClick={addChart}
+            aria-label={t('Add Chart')}
+            borderless
+          />
+        </Tooltip>
       </ToolbarHeader>
       <div>
         {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
