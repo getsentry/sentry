@@ -11,12 +11,13 @@ type StatusCounts = [
   missed: number,
   timeout: number,
   error: number,
+  unknown: number,
 ];
 
 export function generateEnvMapping(name: string, counts: StatusCounts) {
-  const [in_progress, ok, missed, timeout, error] = counts;
+  const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
-    [name]: {in_progress, ok, missed, timeout, error},
+    [name]: {in_progress, ok, missed, timeout, error, unknown},
   };
 }
 
@@ -38,7 +39,7 @@ describe('CheckInTooltip', function () {
   it('renders tooltip representing single job run', async function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const envMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0]);
+    const envMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0, 0]);
     const jobTick = {
       startTs,
       envMapping,
@@ -63,7 +64,7 @@ describe('CheckInTooltip', function () {
   it('renders tooltip representing multiple job runs 1 env', async function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const envMapping = generateEnvMapping('prod', [0, 1, 1, 1, 1]);
+    const envMapping = generateEnvMapping('prod', [0, 1, 1, 1, 1, 0]);
     const jobTick = {
       startTs,
       envMapping,
@@ -101,8 +102,8 @@ describe('CheckInTooltip', function () {
   it('renders tooltip representing multiple job runs multiple envs', async function () {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
-    const prodEnvMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0]);
-    const devEnvMapping = generateEnvMapping('dev', [0, 1, 2, 1, 0]);
+    const prodEnvMapping = generateEnvMapping('prod', [0, 0, 1, 0, 0, 0]);
+    const devEnvMapping = generateEnvMapping('dev', [0, 1, 2, 1, 0, 0]);
     const envMapping = {...prodEnvMapping, ...devEnvMapping};
     const jobTick = {
       startTs,

@@ -7,7 +7,9 @@ describe('isEnvMappingEmpty', function () {
   });
 
   it('returns false for a filled env', function () {
-    const envMapping = {prod: {ok: 1, missed: 0, timeout: 0, error: 0, in_progress: 0}};
+    const envMapping = {
+      prod: {ok: 1, missed: 0, timeout: 0, error: 0, in_progress: 0, unknown: 0},
+    };
     expect(isEnvMappingEmpty(envMapping)).toEqual(false);
   });
 });

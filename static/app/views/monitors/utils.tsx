@@ -48,6 +48,7 @@ export const statusToText: Record<CheckInStatus, string> = {
   [CheckInStatus.IN_PROGRESS]: t('In Progress'),
   [CheckInStatus.MISSED]: t('Missed'),
   [CheckInStatus.TIMEOUT]: t('Timed Out'),
+  [CheckInStatus.UNKNOWN]: t('Unknown'),
 };
 
 interface TickStyle {
@@ -87,6 +88,11 @@ export const tickStyle: Record<CheckInStatus, TickStyle> = {
   [CheckInStatus.IN_PROGRESS]: {
     labelColor: 'disabled',
     tickColor: 'disabled',
+  },
+  [CheckInStatus.UNKNOWN]: {
+    labelColor: 'gray400',
+    tickColor: 'gray300',
+    hatchTick: 'gray200',
   },
 };
 
