@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
@@ -11,8 +10,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import filterThreadInfo from './filterThreadInfo';
-import Header from './header';
 import Option from './option';
+import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
+import {getMappedThreadState} from './threadStates';
 
 type Props = {
   activeThread: Thread;
@@ -24,6 +24,18 @@ type Props = {
    */
   threads: Thread[];
 };
+
+function Header({hasThreadStates}: {hasThreadStates: boolean}) {
+  return (
+    <StyledGrid hasThreadStates={hasThreadStates}>
+      <ThreadSelectorGridCell />
+      <ThreadSelectorGridCell>{t('ID')}</ThreadSelectorGridCell>
+      <ThreadSelectorGridCell>{t('Name')}</ThreadSelectorGridCell>
+      <ThreadSelectorGridCell>{t('Label')}</ThreadSelectorGridCell>
+      {hasThreadStates && <ThreadSelectorGridCell>{t('State')}</ThreadSelectorGridCell>}
+    </StyledGrid>
+  );
+}
 
 function getThreadLabel(
   details: ReturnType<typeof filterThreadInfo>,
@@ -125,4 +137,13 @@ const ActiveThreadName = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
   max-width: 200px;
   ${p => p.theme.overflowEllipsis};
+`;
+
+const StyledGrid = styled(ThreadSelectorGrid)`
+  padding-left: 40px;
+  padding-right: 40px;
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: 2px;
 `;

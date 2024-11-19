@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
@@ -8,7 +7,8 @@ import {t, tct} from 'sentry/locale';
 import type {Thread} from 'sentry/types/event';
 import type {EntryData} from 'sentry/types/group';
 
-import {Grid} from './styles';
+import {ThreadSelectorGrid} from './styles';
+import type {ThreadStates} from './threadStates';
 
 type Props = {
   crashedInfo: EntryData | undefined;
@@ -28,7 +28,7 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   const optionName = thread.name || `<${t('unknown')}>`;
 
   return (
-    <Grid hasThreadStates={hasThreadStates}>
+    <ThreadSelectorGrid hasThreadStates={hasThreadStates}>
       <div>
         {thread.crashed && (
           <InnerCell isCentered>
@@ -54,7 +54,7 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
           <TextOverflow>{`#${thread.id}`}</TextOverflow>
         </Tooltip>
       </InnerCell>
-      <InnerCell>
+      <InnerCell isBold>
         <Tooltip title={optionName} position="top">
           <TextOverflow>{optionName}</TextOverflow>
         </Tooltip>
@@ -71,7 +71,7 @@ function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
           </Tooltip>
         </InnerCell>
       )}
-    </Grid>
+    </ThreadSelectorGrid>
   );
 }
 
