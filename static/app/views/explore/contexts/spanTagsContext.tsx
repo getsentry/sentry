@@ -131,6 +131,7 @@ function useTypedSpanTags({
       environment: selection.environments,
       ...normalizeDateTimeParams(selection.datetime),
       dataset: 'spans',
+      process: 1,
       type,
     },
   };
@@ -154,15 +155,16 @@ function useTypedSpanTags({
       }
 
       // EAP spans contain tags with illegal characters
-      if (!/^[a-zA-Z0-9_.:-]+$/.test(tag.key)) {
+      if (
+        !/^[a-zA-Z0-9_.:-]+$/.test(tag.key) &&
+        !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(tag.key)
+      ) {
         continue;
       }
 
-      const key = type === 'number' ? `tags[${tag.key},number]` : tag.key;
-
-      allTags[key] = {
-        key,
-        name: tag.key,
+      allTags[tag.key] = {
+        key: tag.key,
+        name: tag.name,
         kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
       };
     }
