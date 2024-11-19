@@ -86,10 +86,12 @@ export function GroupSummaryBody({
   data,
   isError,
   isPending,
+  preview = false,
 }: {
   data: GroupSummaryData | undefined;
   isError: boolean;
   isPending: boolean;
+  preview?: boolean;
 }) {
   const insightCards = [
     {
@@ -113,29 +115,33 @@ export function GroupSummaryBody({
   ].filter(card => card.insight);
 
   return (
-    <Body>
+    <Body preview={preview}>
       {isError ? <div>{t('Error loading summary')}</div> : null}
       {isPending ? (
         <Content>
-          <InsightGrid>
+          <InsightGrid preview={preview}>
             <InsightCard>
-              <Placeholder height="96px" />
+              <Placeholder height="10rem" />
             </InsightCard>
           </InsightGrid>
         </Content>
       ) : (
         data && (
           <Content>
-            <InsightGrid>
+            <InsightGrid preview={preview}>
               {insightCards.map(card => (
                 <InsightCard key={card.id}>
-                  <CardTitle>
+                  <CardTitle preview={preview}>
                     <CardTitleIcon>{card.icon}</CardTitleIcon>
                     <CardTitleText>{card.title}</CardTitleText>
                   </CardTitle>
                   <CardContent
                     dangerouslySetInnerHTML={{
-                      __html: marked(card.insight ?? ''),
+                      __html: marked(
+                        preview
+                          ? card.insight?.replace(/\*\*/g, '') ?? ''
+                          : card.insight ?? ''
+                      ),
                     }}
                   />
                 </InsightCard>
@@ -234,8 +240,8 @@ export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
   );
 }
 
-const Body = styled('div')`
-  padding: 0 ${space(2)} ${space(0.5)} ${space(2)};
+const Body = styled('div')<{preview?: boolean}>`
+  padding: ${p => (p.preview ? 0 : `0 ${space(2)} ${space(0.5)} ${space(2)}`)};
 `;
 
 const HeadlinePreview = styled('span')`
@@ -311,11 +317,11 @@ const IconContainerRight = styled('div')`
   max-height: ${space(2)};
 `;
 
-const InsightGrid = styled('div')`
+const InsightGrid = styled('div')<{preview?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  margin-top: ${space(1)};
+  margin-top: ${p => (p.preview ? 0 : space(1))};
 `;
 
 const InsightCard = styled('div')`
@@ -336,12 +342,11 @@ const SummaryPreview = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const CardTitle = styled('div')`
+const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
   padding-bottom: ${space(0.5)};
 `;
 
@@ -359,9 +364,9 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: ${space(2)};
-  border-left: 3px solid ${p => p.theme.border};
-  margin-left: ${space(0.5)};
+  padding-left: ${space(1.5)};
+  border-left: 1px solid ${p => p.theme.border};
+  margin-left: ${space(0.75)};
   p {
     margin: 0;
     white-space: pre-wrap;
