@@ -288,7 +288,6 @@ const ChartContainer = styled('div')`
 const ChartHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
@@ -306,4 +305,5 @@ const ChartLabel = styled('div')`
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
+  margin-right: ${space(1)};
 `;
