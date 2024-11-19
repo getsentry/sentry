@@ -14,9 +14,9 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
 from sentry.integrations.slack.utils.channel import validate_channel_id
-from sentry.models.notificationaction import ActionService
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
