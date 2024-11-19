@@ -1,8 +1,9 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -71,6 +72,9 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [chartError, setChartError] = useState<string>('');
+  const [tableError, setTableError] = useState<string>('');
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
       <PageFiltersContainer>
@@ -126,8 +130,13 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </TopSection>
             <ExploreToolbar extras={toolbarExtras} />
             <MainSection fullWidth>
-              <ExploreCharts query={userQuery} />
-              <ExploreTables />
+              {(tableError || chartError) && (
+                <Alert type="error" showIcon>
+                  {tableError || chartError}
+                </Alert>
+              )}
+              <ExploreCharts query={userQuery} setError={setChartError} />
+              <ExploreTables setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
