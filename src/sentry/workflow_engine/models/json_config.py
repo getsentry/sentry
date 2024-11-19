@@ -12,7 +12,7 @@ class JSONConfigBase(models.Model):
     def CONFIG_SCHEMA(self) -> dict[str, Any]:
         pass
 
-    def validate_config(self) -> bool:
+    def validate_config(self) -> None:
         try:
             validate(self.config, self.CONFIG_SCHEMA)
         except ValidationError as e:

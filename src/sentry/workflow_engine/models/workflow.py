@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.conf import settings
 from django.db import models
 
@@ -31,7 +33,12 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     environment = FlexibleForeignKey(
         "sentry.Environment", db_constraint=False, blank=True, null=True
     )
+
     created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+
+    @property
+    def CONFIG_SCHEMA(self) -> dict[str, Any]:
+        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
 
     __repr__ = sane_repr("name", "organization_id")
 

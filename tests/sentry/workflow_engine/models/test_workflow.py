@@ -45,8 +45,8 @@ class WorkflowTest(TestCase):
             name="test_workflow", organization=self.org, config={"frequency": 1}
         )
 
+        workflow.validate_config()
         assert workflow.config == {"frequency": 1}
-        assert workflow.validate_config() is None
 
     def test_create_workflow_with_config__invalid(self):
         workflow = IssueAlertWorkflow(
@@ -55,4 +55,4 @@ class WorkflowTest(TestCase):
 
         assert workflow.config == {"freq": 2}
         with pytest.raises(ValidationError):
-            assert workflow.validate_config()
+            workflow.validate_config()
