@@ -267,6 +267,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# User Settings
+register(
+    "user-settings.signed-url-confirmation-emails",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Staff
 register(
     "staff.ga-rollout",

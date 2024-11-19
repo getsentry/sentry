@@ -276,6 +276,26 @@ class User(Model, AbstractBaseUser):
     def get_actor_identifier(self) -> str:
         return f"user:{self.id}"
 
+    def send_signed_url_confirm_email_singular(self, email: str, signed_data: str) -> None:
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
+        context = {
+            "user": self,
+            "url": absolute_uri(reverse("sentry-account-confirm-signed-email", args=[signed_data])),
+            "confirm_email": email,
+            "is_new_user": False,
+        }
+
+        msg = MessageBuilder(
+            subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+            template="sentry/emails/confirm_email.txt",
+            html_template="sentry/emails/confirm_email.html",
+            type="user.confirm_email",
+            context=context,
+        )
+        msg.send_async([email.email])
+
     def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
         from sentry import options
         from sentry.utils.email import MessageBuilder
