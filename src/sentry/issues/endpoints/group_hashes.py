@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.utils import metrics
@@ -98,5 +98,5 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         return {
             "id": result["primary_hash"],
-            "latestEvent": serialize(event, user, EventSerializer()),
+            "latestEvent": serialize(event, user, SimpleEventSerializer()),
         }
