@@ -8,7 +8,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
@@ -89,12 +88,7 @@ describe('GroupDetailsLayout', () => {
 
   it('renders children, can collapse sidebar', async () => {
     render(
-      <GroupDetailsLayout
-        group={group}
-        event={event}
-        project={project}
-        groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-      >
+      <GroupDetailsLayout group={group} event={event} project={project}>
         <div data-test-id="children" />
       </GroupDetailsLayout>
     );
