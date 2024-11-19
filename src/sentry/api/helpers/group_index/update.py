@@ -654,9 +654,7 @@ def handle_other_status_updates(
     status_details: Mapping[str, Any],
     acting_user: User,
     user: User,
-):
-    activity_type = None
-    activity_data: MutableMapping[str, Any | None] | None = None
+) -> dict[str, Any]:
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
     new_substatus = (
@@ -686,7 +684,7 @@ def handle_other_status_updates(
             result["statusDetails"] = {}
 
     if group_list and status_updated:
-        activity_type, activity_data = handle_status_update(
+        handle_status_update(
             group_list=group_list,
             projects=projects,
             project_lookup=project_lookup,
@@ -697,7 +695,7 @@ def handle_other_status_updates(
             status_details=result.get("statusDetails", {}),
             sender=update_groups,
         )
-    return activity_type, activity_data, result
+    return result
 
 
 def update_results(
