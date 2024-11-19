@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -38,7 +39,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const teamIds: string[] = Object.values(teams).map(team => team.id);
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -176,7 +176,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           setMenuOpen(false);
           if (isMenuOpen) {
             setSelectedOptions(getSelectedOptions());
-            setHasUnsavedChanges(false);
           }
         }}
         disabled={!isCurrentUserDashboardOwner}
@@ -198,7 +197,10 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           setMenuOpen(!isMenuOpen);
         }}
         priority="primary"
-        disabled={!isCurrentUserDashboardOwner || !hasUnsavedChanges}
+        disabled={
+          !isCurrentUserDashboardOwner ||
+          isEqual(getDashboardPermissions(), dashboard.permissions)
+        }
       >
         {t('Save Changes')}
       </Button>
@@ -210,20 +212,26 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
-        setHasUnsavedChanges(true);
       }}
       multiple
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={[t('Edit Access:'), triggerAvatars]}
+      triggerLabel={[
+        t('Edit Access:'),
+        triggerAvatars,
+        <FeatureBadge
+          key="beta-badge"
+          type="beta"
+          title={t('This feature is available for early adopters and may change')}
+        />,
+      ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
         if (isMenuOpen) {
           setSelectedOptions(getSelectedOptions());
-          setHasUnsavedChanges(false);
         }
       }}
       menuFooter={dropdownFooterButtons}
@@ -261,12 +269,12 @@ const StyledDisplayName = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
+  margin-right: -3px;
 `;
 
 const StyledBadge = styled(Badge)`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
-  margin-right: 3px;
   padding: 0;
   height: 20px;
   width: 20px;

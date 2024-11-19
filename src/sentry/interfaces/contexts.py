@@ -146,6 +146,28 @@ class ContextType:
             return value
 
 
+# NOTE:
+# If you are adding a new context to tag mapping which creates a tag out of an interpolation
+# of multiple context fields, you will most likely have to add the same mapping creation in Relay,
+# which should be added directly to the context payload itself, and you should reflect this here.
+#
+# Current examples of this include the `os`, `runtime` and `browser` fields of their respective context.
+#
+# Example:
+# Suppose you have a new context named "my_context" which has fields:
+# - "field_1"
+# - "field_2"
+#
+# And you want to create a tag named "field_3" which is equal to "{field_1}-{field_2}".
+#
+# If you do this here, on demand metrics will stop working because if a user filters by "field_3" and
+# we generate a metrics extraction specification for it, Relay won't know what "field_3" means, it will
+# only know "field_1" and "field_2" from the context.
+#
+# To solve this, you should materialize "field_3" during event normalization in Relay and directly express
+# the mapping in Sentry as "field_3" is equal to "field_3" (which was added by Relay during normalization).
+
+
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
 @contexttype
 class DefaultContextType(ContextType):
@@ -168,20 +190,20 @@ class DeviceContextType(ContextType):
 @contexttype
 class RuntimeContextType(ContextType):
     type = "runtime"
-    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}"}
+    context_to_tag_mapping = {"": "{runtime}", "name": "{name}"}
 
 
 @contexttype
 class BrowserContextType(ContextType):
     type = "browser"
-    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}"}
+    context_to_tag_mapping = {"": "{browser}", "name": "{name}"}
     # viewport
 
 
 @contexttype
 class OsContextType(ContextType):
     type = "os"
-    context_to_tag_mapping = {"": "{name} {version}", "name": "{name}", "rooted": "{rooted}"}
+    context_to_tag_mapping = {"": "{os}", "name": "{name}", "rooted": "{rooted}"}
     # build, rooted
 
 

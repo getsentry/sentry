@@ -263,7 +263,7 @@ export default function IssueAlertNotificationOptions(
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
           analyticsParams={{
-            view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
+            view: MessagingIntegrationAnalyticsView.PROJECT_CREATION,
           }}
         />
       )}

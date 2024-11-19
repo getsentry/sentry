@@ -1,10 +1,11 @@
 import logging
 from typing import Any
 
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
-from sentry.search.eap.columns import ResolvedColumn
+from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
@@ -14,12 +15,11 @@ from sentry.utils import snuba_rpc
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn) -> Column:
-    proto_definition = column.proto_definition
-    if isinstance(proto_definition, AttributeAggregation):
-        return Column(aggregation=proto_definition, label=column.public_alias)
+def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
+    if isinstance(column, ResolvedFunction):
+        return Column(aggregation=column.proto_definition, label=column.public_alias)
     else:
-        return Column(key=proto_definition, label=column.public_alias)
+        return Column(key=column.proto_definition, label=column.public_alias)
 
 
 def run_table_query(
@@ -97,6 +97,38 @@ def run_table_query(
             final_data[index][attribute] = resolved_column.process_column(result_value)
 
     return {"data": final_data, "meta": final_meta}
+
+
+def get_timeseries_query(
+    params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    groupby: list[str],
+    referrer: str,
+    config: SearchResolverConfig,
+    granularity_secs: int,
+) -> TimeSeriesRequest:
+    resolver = SearchResolver(params=params, config=config)
+    meta = resolver.resolve_meta(referrer=referrer)
+    query = resolver.resolve_query(query_string)
+    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (groupbys, _) = resolver.resolve_columns(groupby)
+
+    return TimeSeriesRequest(
+        meta=meta,
+        filter=query,
+        aggregations=[
+            agg.proto_definition
+            for agg in aggregations
+            if isinstance(agg.proto_definition, AttributeAggregation)
+        ],
+        group_by=[
+            groupby.proto_definition
+            for groupby in groupbys
+            if isinstance(groupby.proto_definition, AttributeKey)
+        ],
+        granularity_secs=granularity_secs,
+    )
 
 
 def run_timeseries_query(

@@ -27,8 +27,12 @@ export default function hydrateBreadcrumbs(
         }
         return {
           ...frame,
+          // Logcat and Timber are used for mobile replays and are considered a console frame instead of a custom breadcrumb frame
           // custom frames might not have a defined category, so we need to set one
-          category: frame.category || defaultTitle(frame) || 'custom',
+          category:
+            frame.category === 'Logcat' || frame.category === 'Timber'
+              ? 'console'
+              : frame.category || defaultTitle(frame) || 'custom',
           offsetMs: Math.abs(time.getTime() - startTimestampMs),
           timestamp: time,
           timestampMs: time.getTime(),

@@ -7,14 +7,16 @@ import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 import useProjects from 'sentry/utils/useProjects';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
@@ -80,12 +82,12 @@ export function ProjectsEditTable({
       if (editMode === 'single') {
         projectRateSnapshotRef.current = value;
       }
-      const cappedOrgRate = Math.min(100, Math.max(0, Number(newRate))) ?? 100;
+      const cappedOrgRate = parsePercent(newRate, 1);
 
       const scalingItems = Object.entries(projectRateSnapshotRef.current)
         .map(([projectId, rate]) => ({
           id: projectId,
-          sampleRate: rate ? Number(rate) / 100 : 0,
+          sampleRate: rate ? parsePercent(rate) : 0,
           count: dataByProjectId[projectId]?.count ?? 0,
         }))
         // We do not wan't to bulk edit inactive projects as they have no effect on the outcome
@@ -93,11 +95,11 @@ export function ProjectsEditTable({
 
       const {scaledItems} = scaleSampleRates({
         items: scalingItems,
-        sampleRate: cappedOrgRate / 100,
+        sampleRate: cappedOrgRate,
       });
 
       const newProjectValues = scaledItems.reduce((acc, item) => {
-        acc[item.id] = formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2);
+        acc[item.id] = formatPercent(item.sampleRate);
         return acc;
       }, {});
       onChange(prev => {
@@ -109,6 +111,12 @@ export function ProjectsEditTable({
     },
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
+
+  const handleOrgBlur = useCallback(() => {
+    setIsBulkEditEnabled(false);
+    // Parse to ensure valid values
+    setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+  }, []);
 
   const items = useMemo(
     () =>
@@ -130,7 +138,6 @@ export function ProjectsEditTable({
       }),
     [dataByProjectId, error, initialValue, projects, value]
   );
-  const [activeItems, inactiveItems] = partition(items, item => item.count > 0);
 
   const totalSpanCount = useMemo(
     () => items.reduce((acc, item) => acc + item.count, 0),
@@ -142,30 +149,35 @@ export function ProjectsEditTable({
       return orgRate;
     }
     const totalSampledSpans = items.reduce(
-      (acc, item) => acc + item.count * Number(value[item.project.id] ?? 100),
+      (acc, item) => acc + item.count * parsePercent(value[item.project.id], 1),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpanCount, 2);
+    return formatPercent(totalSampledSpans / totalSpanCount);
   }, [editMode, items, orgRate, totalSpanCount, value]);
 
   const initialOrgRate = useMemo(() => {
     const totalSampledSpans = items.reduce(
-      (acc, item) => acc + item.count * Number(initialValue[item.project.id] ?? 100),
+      (acc, item) => acc + item.count * parsePercent(initialValue[item.project.id], 1),
       0
     );
-    return formatNumberWithDynamicDecimalPoints(totalSampledSpans / totalSpanCount, 2);
+    return formatPercent(totalSampledSpans / totalSpanCount);
   }, [initialValue, items, totalSpanCount]);
 
   const breakdownSampleRates = useMemo(
     () =>
       Object.entries(value).reduce(
         (acc, [projectId, rate]) => {
-          acc[projectId] = Number(rate) / 100;
+          acc[projectId] = parsePercent(rate);
           return acc;
         },
         {} as Record<string, number>
       ),
     [value]
+  );
+
+  const [activeItems, inactiveItems] = useMemo(
+    () => partition(items, item => item.count > 0 || item.initialSampleRate !== '100'),
+    [items]
   );
 
   const isLoading = fetching || isLoadingProp;
@@ -176,7 +188,7 @@ export function ProjectsEditTable({
         {isLoading ? (
           <LoadingIndicator
             css={css`
-              margin: ${space(4)} 0;
+              margin: 60px 0;
             `}
           />
         ) : (
@@ -188,22 +200,32 @@ export function ProjectsEditTable({
               />
             </BreakdownWrapper>
             <FieldGroup
-              label={t('Projected Organization Rate')}
-              help={t(
-                "An estimate of the combined sample rate for all projects. Adjusting this will proportionally update each project's rate below."
-              )}
+              label={t('Estimated Organization Rate')}
+              help={t('An estimate of the combined sample rate for all projects.')}
               flexibleControlStateSize
               alignRight
             >
               <InputWrapper>
-                <PercentInput
-                  type="number"
-                  ref={inputRef}
-                  disabled={!hasAccess || !isBulkEditEnabled}
-                  size="sm"
-                  onChange={handleOrgChange}
-                  value={projectedOrgRate}
-                />
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t('You do not have permission to change the sample rate')}
+                >
+                  <PercentInput
+                    type="number"
+                    ref={inputRef}
+                    disabled={!hasAccess || !isBulkEditEnabled}
+                    size="sm"
+                    onChange={handleOrgChange}
+                    value={projectedOrgRate}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        inputRef.current?.blur();
+                      }
+                    }}
+                    onBlur={handleOrgBlur}
+                  />
+                </Tooltip>
                 <FlexRow>
                   <PreviousValue>
                     {initialOrgRate !== projectedOrgRate
@@ -214,9 +236,10 @@ export function ProjectsEditTable({
                   {hasAccess && !isBulkEditEnabled && (
                     <BulkEditButton
                       size="zero"
-                      title={t(
-                        'Adjusting your organization rate will automatically scale individual project rates to match.'
-                      )}
+                      tooltipProps={{
+                        position: 'bottom',
+                      }}
+                      title={t('Proportionally scale project rates')}
                       priority="link"
                       onClick={() => {
                         setIsBulkEditEnabled(true);
@@ -233,7 +256,8 @@ export function ProjectsEditTable({
       </BreakdownPanel>
 
       <ProjectsTable
-        canEdit
+        rateHeader={t('Target Rate')}
+        canEdit={!isBulkEditEnabled}
         onChange={handleProjectChange}
         emptyMessage={t('No active projects found in the selected period.')}
         isLoading={isLoading}

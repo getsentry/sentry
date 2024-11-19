@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
