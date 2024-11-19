@@ -6,7 +6,7 @@ from jsonschema import ValidationError, validate
 
 
 class JSONConfigBase(models.Model):
-    config = models.JSONField(default=None, blank=True, null=True)
+    config = models.JSONField(default=dict, blank=True, null=True)
 
     @abstractproperty
     def CONFIG_SCHEMA(self) -> dict[str, Any]:
