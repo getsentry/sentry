@@ -73,7 +73,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "access": request.access,
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=organization.id
             ),
         },
