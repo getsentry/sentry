@@ -29,6 +29,7 @@ from sentry.sentry_apps.services.app.service import (
     app_service,
     get_by_application_id,
     get_installation,
+    get_installations_for_organization,
 )
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -226,9 +227,10 @@ def _process_resource_change(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
         assert org, "organization must exist to get related sentry app installations"
-        installations: list[RpcSentryAppInstallation] = [
+
+        installations = [
             installation
-            for installation in app_service.get_installed_for_organization(organization_id=org.id)
+            for installation in app_service.installations_for_organization(organization_id=org.id)
             if event in installation.sentry_app.events
         ]
 
@@ -314,6 +316,10 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
         organization_id__in=list(install_map.keys()), region_name=region_name
     ).values("organization_id")
     for region_row in region_query:
+        region_caching_service.clear_key(
+            key=get_installations_for_organization.key_from(region_row["organization_id"]),
+            region_name=region_name,
+        )
         installs = install_map[region_row["organization_id"]]
         for install_id in installs:
             region_caching_service.clear_key(
