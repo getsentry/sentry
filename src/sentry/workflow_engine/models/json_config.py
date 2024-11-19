@@ -5,14 +5,14 @@ from django.db import models
 from jsonschema import ValidationError, validate
 
 
-class JsonConfigMixin(models.Model):
+class JSONConfigBase(models.Model):
     config = models.JSONField(default=None, blank=True, null=True)
 
     @abstractproperty
     def CONFIG_SCHEMA(self) -> dict[str, Any]:
         pass
 
-    def validate_config(self) -> None:
+    def validate_config(self) -> bool:
         try:
             validate(self.config, self.CONFIG_SCHEMA)
         except ValidationError as e:

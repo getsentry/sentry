@@ -14,7 +14,8 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
-from sentry.workflow_engine.models.json_config_mixin import JsonConfigMixin
+
+from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.processors.detector import DetectorHandler
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_model
-class Detector(DefaultFieldsModel, OwnerModel, JsonConfigMixin):
+class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
     # TODO - Finish removing this field
