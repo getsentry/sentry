@@ -9,4 +9,5 @@ export const CHECKIN_STATUS_PRECEDENT = [
   CheckInStatus.MISSED,
   CheckInStatus.TIMEOUT,
   CheckInStatus.ERROR,
+  CheckInStatus.UNKNOWN,
 ] satisfies Array<keyof StatsBucket>;

@@ -68,6 +68,7 @@ export type StatsBucket = {
   [CheckInStatus.MISSED]: number;
   [CheckInStatus.TIMEOUT]: number;
   [CheckInStatus.ERROR]: number;
+  [CheckInStatus.UNKNOWN]: number;
 };
 
 export type MonitorBucketEnvMapping = Record<string, StatsBucket>;

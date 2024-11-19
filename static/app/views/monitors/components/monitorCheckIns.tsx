@@ -46,6 +46,7 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
   [CheckInStatus.TIMEOUT]: 'error',
+  [CheckInStatus.UNKNOWN]: 'muted',
 };
 
 function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {

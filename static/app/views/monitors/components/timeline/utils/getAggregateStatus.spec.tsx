@@ -8,20 +8,21 @@ type StatusCounts = [
   missed: number,
   timeout: number,
   error: number,
+  unknown: number,
 ];
 
 export function generateEnvMapping(name: string, counts: StatusCounts) {
-  const [in_progress, ok, missed, timeout, error] = counts;
+  const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
-    [name]: {in_progress, ok, missed, timeout, error},
+    [name]: {in_progress, ok, missed, timeout, error, unknown},
   };
 }
 
 describe('getAggregateStatus', function () {
   it('aggregates correctly across multiple envs', function () {
     const envData = {
-      ...generateEnvMapping('prod', [0, 1, 2, 0, 1]),
-      ...generateEnvMapping('dev', [0, 1, 0, 1, 0]),
+      ...generateEnvMapping('prod', [0, 1, 2, 0, 1, 0]),
+      ...generateEnvMapping('dev', [0, 1, 0, 1, 0, 0]),
     };
     expect(getAggregateStatus(envData)).toEqual(CheckInStatus.ERROR);
   });
