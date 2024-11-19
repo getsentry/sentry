@@ -15,6 +15,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   DEFAULT_VISUALIZATION,
+  MAX_VISUALIZES,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -168,6 +169,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           onClick={addChart}
           aria-label={t('Add Chart')}
           borderless
+          disabled={visualizes.length >= MAX_VISUALIZES}
         />
       </ToolbarHeader>
       <div>
