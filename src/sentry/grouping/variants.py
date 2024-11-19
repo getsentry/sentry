@@ -134,7 +134,7 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values, info=None):
+def expose_fingerprint_dict(values, info):
     rv = {
         "values": values,
     }
@@ -161,7 +161,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, values, fingerprint_info=None):
+    def __init__(self, values, fingerprint_info):
         self.values = values
         self.info = fingerprint_info
 
@@ -191,7 +191,7 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, values, component, config, fingerprint_info=None):
+    def __init__(self, values, component, config, fingerprint_info):
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info
