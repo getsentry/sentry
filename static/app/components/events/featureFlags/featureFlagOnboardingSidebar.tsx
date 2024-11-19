@@ -10,7 +10,6 @@ import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags
 import {ProviderOptions} from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -210,23 +209,19 @@ function OnboardingContent({
           [
             'openFeature',
             <PlatformSelect key="platform-select">
-              {tct(
-                'I use the [link:OpenFeature] SDK using a provider from [providerSelect]',
-                {
-                  providerSelect: (
-                    <CompactSelect
-                      triggerLabel={openFeatureProvider.label}
-                      value={openFeatureProvider.value}
-                      onChange={setOpenFeatureProvider}
-                      options={openFeatureProviderOptions}
-                      position="bottom-end"
-                      key={openFeatureProvider.textValue}
-                      disabled={setupMode() === 'other'}
-                    />
-                  ),
-                  link: <ExternalLink href="" />, // TODO: link
-                }
-              )}
+              {tct('I use the OpenFeature SDK using a provider from [providerSelect]', {
+                providerSelect: (
+                  <CompactSelect
+                    triggerLabel={openFeatureProvider.label}
+                    value={openFeatureProvider.value}
+                    onChange={setOpenFeatureProvider}
+                    options={openFeatureProviderOptions}
+                    position="bottom-end"
+                    key={openFeatureProvider.textValue}
+                    disabled={setupMode() === 'other'}
+                  />
+                ),
+              })}
             </PlatformSelect>,
           ],
           [

@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function _usePostSecret({
+function usePostSecret({
   orgSlug,
   provider,
 }: {
@@ -43,7 +43,7 @@ export default function OnboardingIntegrationSection({
 }) {
   const organization = useOrganization();
   const [tokenSaved, setTokenSaved] = useState(false);
-  // const {postSecret} = usePostSecret({provider, orgSlug: organization?.slug});
+  const {postSecret} = usePostSecret({provider, orgSlug: organization?.slug});
   const [secret, setSecret] = useState('');
   const [storedProvider, setStoredProvider] = useState(provider);
   const [storedIntegration, setStoredIntegration] = useState(integration);
@@ -72,7 +72,7 @@ export default function OnboardingIntegrationSection({
             <Button
               priority="default"
               onClick={() => {
-                // postSecret(secret);
+                postSecret(secret);
                 setTokenSaved(true);
               }}
               disabled={secret === ''}
