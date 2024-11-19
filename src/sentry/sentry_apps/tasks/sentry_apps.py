@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from celery import Task, current_task
@@ -459,7 +459,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: GroupEvent, futures: list[RuleFuture]):
+def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
