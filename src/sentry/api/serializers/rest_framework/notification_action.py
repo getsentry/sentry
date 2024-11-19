@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TypedDict
 
 from django.db import router, transaction
@@ -15,7 +16,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.utils.strings import oxfordize_list
 
 
-def format_choices_text(choices: list[tuple[int, str]]):
+def format_choices_text(choices: Sequence[tuple[int, str]]):
     choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
     return oxfordize_list(choices_as_display_text)
 
@@ -29,7 +30,7 @@ INTEGRATION_SERVICES = {
 
 
 # Note the ordering of fields affects the Spike Protection API Documentation
-class NotificationActionInputData(TypedDict):
+class NotificationActionInputData(TypedDict, total=False):
     trigger_type: int
     service_type: int
     integration_id: int
@@ -213,6 +214,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
             try:
+                assert self.integration, "Associated integration must exist to validate channel id"
                 validate_channel_id(
                     name=channel_name,
                     integration_id=self.integration.id,
@@ -226,6 +228,7 @@ Required if **service_type** is `slack` or `opsgenie`.
         # If we've only received a channel name, ask slack for its id
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
+            assert self.integration, "Associated integration must exist to get channel id"
             channel_data = get_channel_id(integration=self.integration, channel_name=channel_name)
         except Exception:
             raise serializers.ValidationError({"target_display": generic_error_message})
@@ -268,6 +271,9 @@ Required if **service_type** is `slack` or `opsgenie`.
             )
 
         try:
+            assert self.integration, "Associated integration must exist to validate channel id"
+            assert channel_id, "Channel id must exist to validate channel id"
+
             validate_channel_id(
                 channel_id=channel_id,
                 guild_id=self.integration.external_id,
@@ -294,6 +300,7 @@ Required if **service_type** is `slack` or `opsgenie`.
             return data
 
         service_id = data.get("target_identifier")
+        assert self.integration, "Integration must exist to get id"
         ois = integration_service.get_organization_integrations(
             organization_id=self.context["organization"].id,
             integration_id=self.integration.id,
