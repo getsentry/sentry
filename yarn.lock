@@ -6570,17 +6570,6 @@ escodegen@^2.0.0:
   optionalDependencies:
     source-map "~0.6.1"
 
-eslint-config-sentry-react@^2.10.0:
-  version "2.10.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-2.10.0.tgz#0246ea2bb75ce38b75dd3dfc9a403009301d54f7"
-  integrity sha512-/QbnGOpIdEC9TWbHCpdmd4gDT7HzXtTv5BQUkIcN16z+cM+7lOS5PBd4KVYb1W+QZoFNOzPw7PdpN63YIBCvuA==
-  dependencies:
-    eslint-config-sentry "^2.10.0"
-    eslint-plugin-jest-dom "^5.4.0"
-    eslint-plugin-react-hooks "^4.6.2"
-    eslint-plugin-testing-library "^6.3.0"
-    eslint-plugin-typescript-sort-keys "^3.3.0"
-
 eslint-config-sentry@^2.10.0:
   version "2.10.0"
   resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-2.10.0.tgz#41437ef8481c6375bd1816a912f3629e57b2a6fb"
