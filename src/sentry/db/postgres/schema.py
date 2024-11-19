@@ -17,13 +17,9 @@ from django_zero_downtime_migrations.backends.postgres.schema import (
 )
 
 unsafe_mapping = {
-    Unsafe.ADD_COLUMN_DEFAULT: (
-        "Adding {}.{} as column with a default is safe, but you need to take additional steps.\n"
-        "Follow this guide: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
-    ),
     Unsafe.ADD_COLUMN_NOT_NULL: (
-        "Adding {}.{} as a not null column is unsafe.\n"
-        "More info: https://develop.sentry.dev/database-migrations/#adding-not-null-to-columns"
+        "Adding {}.{} as a not null column with no default is unsafe. Provide a default using db_default. \n"
+        "More info: https://develop.sentry.dev/api-server/application-domains/database-migrations/#adding-columns-with-a-default"
     ),
     Unsafe.ALTER_COLUMN_TYPE: (
         "Altering the type of column {}.{} in this way is unsafe\n"
@@ -121,29 +117,34 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         else:
             statements.append(sql)
         for statement in statements:
+            idempotent_condition = None
             if isinstance(statement, PGLock):
                 use_timeouts = statement.use_timeouts
                 disable_statement_timeout = statement.disable_statement_timeout
+                idempotent_condition = statement.idempotent_condition
                 statement = statement.sql
             elif isinstance(statement, Statement) and isinstance(statement.template, PGLock):
                 use_timeouts = statement.template.use_timeouts
                 disable_statement_timeout = statement.template.disable_statement_timeout
+                if statement.template.idempotent_condition is not None:
+                    idempotent_condition = statement.template.idempotent_condition % statement.parts
                 statement = Statement(statement.template.sql, **statement.parts)
             else:
                 use_timeouts = False
                 disable_statement_timeout = False
 
-            if use_timeouts:
-                with self._set_operation_timeout(self.STATEMENT_TIMEOUT, self.LOCK_TIMEOUT):
+            if not self._skip_applied(idempotent_condition):
+                if use_timeouts:
+                    with self._set_operation_timeout(self.STATEMENT_TIMEOUT, self.LOCK_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                elif self.LOCK_TIMEOUT_FORCE:
+                    with self._set_operation_timeout(lock_timeout=self.LOCK_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                elif disable_statement_timeout and self.FLEXIBLE_STATEMENT_TIMEOUT:
+                    with self._set_operation_timeout(self.ZERO_TIMEOUT):
+                        PostgresDatabaseSchemaEditor.execute(self, statement, params)
+                else:
                     PostgresDatabaseSchemaEditor.execute(self, statement, params)
-            elif self.LOCK_TIMEOUT_FORCE:
-                with self._set_operation_timeout(lock_timeout=self.LOCK_TIMEOUT):
-                    PostgresDatabaseSchemaEditor.execute(self, statement, params)
-            elif disable_statement_timeout and self.FLEXIBLE_STATEMENT_TIMEOUT:
-                with self._set_operation_timeout(self.ZERO_TIMEOUT):
-                    PostgresDatabaseSchemaEditor.execute(self, statement, params)
-            else:
-                PostgresDatabaseSchemaEditor.execute(self, statement, params)
 
     @contextmanager
     def _set_operation_timeout(self, statement_timeout=None, lock_timeout=None):
@@ -152,27 +153,27 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             previous_lock_timeout = self.ZERO_TIMEOUT
         else:
             with self.connection.cursor() as cursor:
-                cursor.execute(self.sql_get_statement_timeout)
+                cursor.execute(self._sql_get_statement_timeout)
                 (previous_statement_timeout,) = cursor.fetchone()
-                cursor.execute(self.sql_get_lock_timeout)
+                cursor.execute(self._sql_get_lock_timeout)
                 (previous_lock_timeout,) = cursor.fetchone()
         if statement_timeout is not None:
             PostgresDatabaseSchemaEditor.execute(
-                self, self.sql_set_statement_timeout % {"statement_timeout": statement_timeout}
+                self, self._sql_set_statement_timeout % {"statement_timeout": statement_timeout}
             )
         if lock_timeout is not None:
             PostgresDatabaseSchemaEditor.execute(
-                self, self.sql_set_lock_timeout % {"lock_timeout": lock_timeout}
+                self, self._sql_set_lock_timeout % {"lock_timeout": lock_timeout}
             )
         yield
         if statement_timeout is not None:
             PostgresDatabaseSchemaEditor.execute(
                 self,
-                self.sql_set_statement_timeout % {"statement_timeout": previous_statement_timeout},
+                self._sql_set_statement_timeout % {"statement_timeout": previous_statement_timeout},
             )
         if lock_timeout is not None:
             PostgresDatabaseSchemaEditor.execute(
-                self, self.sql_set_lock_timeout % {"lock_timeout": previous_lock_timeout}
+                self, self._sql_set_lock_timeout % {"lock_timeout": previous_lock_timeout}
             )
 
 

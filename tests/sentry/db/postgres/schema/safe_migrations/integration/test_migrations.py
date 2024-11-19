@@ -66,7 +66,8 @@ class AddColWithDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
+            match="Adding TestTable.field as a not null column with no default is unsafe. "
+            "Provide a default using db_default.",
         ):
             self.run_migration()
 
@@ -79,9 +80,18 @@ class AddColWithNotNullDefaultTest(BaseSafeMigrationTest):
     def test(self):
         with pytest.raises(
             UnsafeOperationException,
-            match="Adding TestTable.field as column with a default is safe, but you need to take additional steps.",
+            match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default.",
         ):
             self.run_migration()
+
+
+class AddColWithNotNullDbDefaultTest(BaseSafeMigrationTest):
+    app = "good_flow_add_column_with_notnull_db_default_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0002_add_field_notnull_db_default"
+
+    def test(self):
+        self.run_migration()
 
 
 class AddColWithNotNullTest(BaseSafeMigrationTest):
@@ -91,7 +101,8 @@ class AddColWithNotNullTest(BaseSafeMigrationTest):
 
     def test(self):
         with pytest.raises(
-            UnsafeOperationException, match="Adding TestTable.field as a not null column is unsafe."
+            UnsafeOperationException,
+            match="Adding TestTable.field as a not null column with no default is unsafe. Provide a default using db_default",
         ):
             self.run_migration()
 
