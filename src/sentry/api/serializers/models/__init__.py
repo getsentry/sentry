@@ -1,3 +1,4 @@
+from ....notifications.api.serializers.notification_action_response import *  # noqa: F401,F403
 from .activity import *  # noqa: F401,F403
 from .actor import *  # noqa: F401,F403
 from .apiapplication import *  # noqa: F401,F403
@@ -24,7 +25,6 @@ from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
 from .incidentactivity import *  # noqa: F401,F403
 from .incidentseen import *  # noqa: F401,F403
-from .notification_action import *  # noqa: F401,F403
 from .organization import *  # noqa: F401,F403
 from .organization_access_request import *  # noqa: F401,F403
 from .organization_member.base import *  # noqa: F401,F403
