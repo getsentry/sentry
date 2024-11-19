@@ -12,6 +12,7 @@ import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
+import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
 import logoDeno from 'sentry-logos/logo-deno.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
@@ -70,6 +71,7 @@ const LOGO_MAPPING = {
   arm: logoArm,
   chrome: logoChrome,
   chromium: logoChromium,
+  cloudflare: logoCloudflareWorker,
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
