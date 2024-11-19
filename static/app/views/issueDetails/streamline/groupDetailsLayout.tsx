@@ -16,13 +16,12 @@ import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/toggleSidebar';
-import type {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+import {getGroupReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
   event: Event | undefined;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   project: Project;
 }
 
@@ -30,7 +29,6 @@ export function GroupDetailsLayout({
   group,
   event,
   project,
-  groupReprocessingStatus,
   children,
 }: GroupDetailsLayoutProps) {
   const searchQuery = useEventQuery({group});
@@ -38,6 +36,7 @@ export function GroupDetailsLayout({
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
     <Fragment>

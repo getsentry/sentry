@@ -6,14 +6,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import GroupEventDetails, {
-  type GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-function GroupMergedTab(props: GroupEventDetailsProps) {
+function GroupMergedTab() {
   const params = useParams<{groupId: Group['id']}>();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -32,7 +30,7 @@ function GroupMergedTab(props: GroupEventDetailsProps) {
 
   // TODO(streamline-ui): Point router to event details page since merged issues opens in a drawer.
   if (hasStreamlinedUI) {
-    return <GroupEventDetails {...props} />;
+    return <GroupEventDetails />;
   }
 
   if (isGroupPending || !project) {
