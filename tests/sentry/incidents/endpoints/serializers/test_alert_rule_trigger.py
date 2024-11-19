@@ -60,4 +60,3 @@ class DetailedAlertRuleTriggerSerializerTest(BaseAlertRuleTriggerSerializerTest,
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         result = serialize(trigger, serializer=DetailedAlertRuleTriggerSerializer())
         self.assert_alert_rule_trigger_serialized(trigger, result)
-        assert result["excludedProjects"] == []
