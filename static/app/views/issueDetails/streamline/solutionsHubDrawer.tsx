@@ -14,7 +14,7 @@ import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -160,7 +160,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   const hasConsent = Boolean(setupData?.genAIConsent.ok);
   const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
 
-  const hasSummary = summaryData && !isError && hasConsent;
+  const hasSummary = (summaryData || isSummaryLoading) && !isError && hasConsent;
 
   const organization = useOrganization();
   const isSampleError = useIsSampleEvent();
@@ -250,7 +250,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <Fragment>
             {hasSummary && (
               <StyledCard>
-                <GroupSummaryBody
+                <GroupSummary
                   data={summaryData}
                   isError={isError}
                   isPending={isSummaryLoading}
@@ -427,8 +427,13 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   padding-bottom: 3px;
 `;
 
-const ResourcesHeader = styled(HeaderText)`
+const ResourcesHeader = styled('div')`
   gap: ${space(1)};
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: flex;
+  align-items: center;
+  padding-bottom: ${space(2)};
 `;
 
 const StarTrail = styled('div')`
