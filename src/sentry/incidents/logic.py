@@ -1639,7 +1639,7 @@ def _get_alert_rule_trigger_action_sentry_app(
     from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
-        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+        installations = app_service.installations_for_organization(organization_id=organization.id)
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
@@ -1851,7 +1851,7 @@ def get_slack_actions_with_async_lookups(
                         "access": SystemAccess(),
                         "user": user,
                         "input_channel_id": action.get("inputChannelId"),
-                        "installations": app_service.get_installed_for_organization(
+                        "installations": app_service.installations_for_organization(
                             organization_id=organization.id
                         ),
                     },

@@ -100,6 +100,12 @@ class DatabaseBackedAppService(AppService):
     def get_installed_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
+        # Deprecated. Use get_installations_for_organization instead.
+        return self.get_installations_for_organization(organization_id=organization_id)
+
+    def get_installations_for_organization(
+        self, *, organization_id: int
+    ) -> list[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ).select_related("sentry_app")

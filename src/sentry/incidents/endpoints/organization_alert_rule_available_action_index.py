@@ -119,7 +119,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # Add all alertable SentryApps to the list.
             elif registered_type.service_type == AlertRuleTriggerAction.Type.SENTRY_APP:
-                installs = app_service.get_installed_for_organization(
+                installs = app_service.installations_for_organization(
                     organization_id=organization.id
                 )
                 actions += [

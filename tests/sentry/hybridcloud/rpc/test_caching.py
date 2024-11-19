@@ -5,12 +5,16 @@ from django.core.cache import cache
 
 from sentry.hybridcloud.rpc.caching import (
     back_with_silo_cache,
+    back_with_silo_cache_list,
     back_with_silo_cache_many,
     control_caching_service,
     region_caching_service,
 )
 from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
-from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import (
+    RpcOrganizationMember,
+    RpcOrganizationSummary,
+)
 from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
@@ -279,3 +283,47 @@ def test_caching_many_versioning() -> None:
 
     after_clear = get_users(user_ids)
     assert len(after_clear) == 2
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_caching_list() -> None:
+    cache.clear()
+
+    @back_with_silo_cache_list(
+        base_key="get_owner_members", silo_mode=SiloMode.CONTROL, t=RpcOrganizationMember
+    )
+    def get_org_members(organization_id: int) -> list[RpcOrganizationMember]:
+        return organization_service.get_organization_owner_members(organization_id=organization_id)
+
+    users = [Factories.create_user() for _ in range(3)]
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        org = Factories.create_organization()
+        members = [
+            Factories.create_member(organization=org, user=user, role="owner") for user in users
+        ]
+
+    wrapped_result = get_org_members(org.id)
+    direct_result = get_org_members.cb(org.id)
+
+    assert len(wrapped_result) == len(direct_result)
+    for wrapped, direct in zip(wrapped_result, direct_result):
+        assert wrapped == direct
+
+    with assume_test_silo_mode(SiloMode.REGION):
+        for member in members:
+            member.update(role="member")
+
+    # Does not include updates made to db
+    after_update_wrapped = get_org_members(org.id)
+    for member in after_update_wrapped:
+        assert member.role == "owner"
+
+        # Clear cache simulating outbox logic
+        region_caching_service.clear_key(
+            region_name=get_local_region().name, key=get_org_members.key_from(org.id)
+        )
+
+    cached_members = get_org_members(org.id)
+    assert len(cached_members) == 0, "with members updated none are owners"

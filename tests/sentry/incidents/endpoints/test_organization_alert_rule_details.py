@@ -80,7 +80,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
                 "user": self.user,
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=self.organization.id
                 ),
             },
@@ -400,7 +400,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
                 "user": self.user,
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=self.organization.id
                 ),
             },
