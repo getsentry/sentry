@@ -203,9 +203,10 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-            track_sampled_event(
-                data["event_id"], data.get("type"), TransactionStageStatus.REDIS_PUT
-            )
+            if data.get("type") == "transaction":
+                track_sampled_event(
+                    data["event_id"], "transaction", TransactionStageStatus.REDIS_PUT
+                )
 
             save_attachments(attachments, cache_key)
 
