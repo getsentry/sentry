@@ -62,12 +62,14 @@ export interface DocsParams<
    * The page where the docs are being displayed
    */
   docsLocation?: DocsPageLocation;
+  featureFlagOptions?: {
+    integration: string;
+  };
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;
     screenshot?: boolean;
   };
-  integration?: string;
   newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';

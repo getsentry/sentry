@@ -326,7 +326,7 @@ function OnboardingContent({
           // dropdown value (from either dropdown)
           setupMode() === 'openFeature' ? openFeatureProvider.value : sdkProvider.value
         }
-        configType={'featureFlagOnboarding'}
+        configType="featureFlagOnboarding"
       />
     </Fragment>
   );

@@ -66,7 +66,7 @@ export default function OnboardingIntegrationSection({
             <Input
               value={secret}
               type="text"
-              placeholder={'Signing Secret'}
+              placeholder={t('Signing Secret')}
               onChange={e => setSecret(e.target.value)}
             />
             <Button

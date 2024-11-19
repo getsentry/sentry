@@ -217,12 +217,12 @@ export function AlternativeConfiguration() {
 
 export const featureFlagOnboarding: OnboardingConfig = {
   install: onboarding.install,
-  configure: ({integration = '', dsn}) => [
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
       description: tct('Add [name] to your integrations list.', {
         name: (
-          <code>{`${PROVIDER_OPTION_TO_LABELS[integration].pythonIntegration}()`}</code>
+          <code>{`${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}()`}</code>
         ),
       }),
       configurations: [
@@ -230,12 +230,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
           language: 'python',
           code: `
 import sentry-sdk
-from sentry_sdk.integrations.${PROVIDER_OPTION_TO_LABELS[integration].pythonModule} import ${PROVIDER_OPTION_TO_LABELS[integration].pythonIntegration}
+from sentry_sdk.integrations.${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonModule} import ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
   integrations=[
-    ${PROVIDER_OPTION_TO_LABELS[integration].pythonIntegration}(),
+    ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}(),
   ]
 )`,
         },

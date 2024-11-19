@@ -123,7 +123,7 @@ type Labels = {
   pythonModule: string; // what's imported from sentry_sdk.integrations
 };
 
-export const PROVIDER_OPTION_TO_LABELS: Record<string, Labels> = {
+export const PROVIDER_OPTION_TO_LABELS: Record<ProviderOptions, Labels> = {
   [ProviderOptions.LAUNCHDARKLY]: {
     pythonModule: 'launchdarkly',
     pythonIntegration: 'LaunchDarklyIntegration',
