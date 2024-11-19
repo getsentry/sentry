@@ -2,8 +2,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import control_silo_model, sane_repr
-
-from .notificationsettingbase import NotificationSettingBase
+from sentry.notifications.models.notificationsettingbase import NotificationSettingBase
 
 
 @control_silo_model
