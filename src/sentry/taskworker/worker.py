@@ -18,8 +18,8 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TaskActivation,
 )
 
+from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.registry import taskregistry
-from sentry.taskworker.service.client import TaskClient
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
@@ -53,7 +53,7 @@ class TaskWorker:
         self._execution_count = 0
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
-        self.client = TaskClient(rpc_host)
+        self.client = TaskworkerClient(rpc_host)
         self._pool: Pool | None = None
         self._build_pool()
 
