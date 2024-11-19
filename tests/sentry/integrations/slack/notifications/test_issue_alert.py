@@ -16,9 +16,9 @@ from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.api.serializers import Serializer
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 
 

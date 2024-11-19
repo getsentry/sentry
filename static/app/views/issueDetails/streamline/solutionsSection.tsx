@@ -1,12 +1,12 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import useDrawer from 'sentry/components/globalDrawer';
-import {useGroupSummary} from 'sentry/components/group/groupSummary';
-import Placeholder from 'sentry/components/placeholder';
+import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -69,7 +69,11 @@ export default function SolutionsSection({
   };
 
   const hasGenAIConsent = organization.genAIConsent;
-  const {data: summaryData} = useGroupSummary(group.id, group.issueCategory);
+  const {
+    data: summaryData,
+    isPending: isSummaryLoading,
+    isError: isSummaryError,
+  } = useGroupSummary(group.id, group.issueCategory);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -86,23 +90,28 @@ export default function SolutionsSection({
   return (
     <div>
       <SidebarSectionTitle style={{marginTop: 0}}>
-        {t('Solutions Hub')}
+        <HeaderContainer>
+          {t('Solutions Hub')}
+          {hasSummary && (
+            <StyledFeatureBadge
+              type="beta"
+              title={tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {
+                  email: <a href="mailto:autofix@sentry.io" />,
+                }
+              )}
+            />
+          )}
+        </HeaderContainer>
       </SidebarSectionTitle>
-      {hasSummary && !summaryData && (
-        <Placeholder
-          height="60px"
-          style={{marginBottom: space(1)}}
-          testId="loading-placeholder"
-        />
-      )}
-      {hasSummary && summaryData && (
+      {hasSummary && (
         <Summary>
-          <HeadlineText
-            dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(
-                summaryData.whatsWrong?.replaceAll('**', '') ?? ''
-              ),
-            }}
+          <GroupSummary
+            data={summaryData ?? undefined}
+            isError={isSummaryError}
+            isPending={isSummaryLoading}
+            preview
           />
         </Summary>
       )}
@@ -151,6 +160,7 @@ export default function SolutionsSection({
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
+  position: relative;
 `;
 
 const HeadlineText = styled('span')`
@@ -204,4 +214,15 @@ const StyledButton = styled(Button)`
   background: ${p => p.theme.background}
     linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   color: ${p => p.theme.pink400};
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: ${space(0.25)};
+  padding-bottom: 3px;
 `;

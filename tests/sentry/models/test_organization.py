@@ -19,10 +19,10 @@ from sentry.deletions.tasks.hybrid_cloud import (
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
