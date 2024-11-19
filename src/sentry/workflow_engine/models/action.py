@@ -3,7 +3,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.notificationaction import ActionTarget
+from sentry.notifications.models.notificationaction import ActionTarget
 
 
 @region_silo_model

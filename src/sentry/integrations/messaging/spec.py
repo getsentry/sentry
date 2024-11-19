@@ -11,8 +11,8 @@ from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
 from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
-from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 

@@ -99,12 +99,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationaction import (
-    ActionService,
-    ActionTarget,
-    ActionTrigger,
-    NotificationAction,
-)
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -127,6 +121,12 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
