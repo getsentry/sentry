@@ -42,6 +42,7 @@ import logoSamsung from 'sentry-logos/logo-samsung.svg';
 import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
 import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
+import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -102,6 +103,7 @@ const LOGO_MAPPING = {
   samsung: logoSamsung,
   tvos: logoApple,
   ubuntu: logoUbuntu,
+  vercel: logoVercel,
   watch: logoAppleWatch,
   watchos: logoApple,
   windows: logoWindows,
@@ -119,6 +121,7 @@ const INVERT_IN_DARKMODE = [
   'mac',
   'apple',
   'watchos',
+  'vercel',
 ];
 
 const darkCss = css`
