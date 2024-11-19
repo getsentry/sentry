@@ -156,6 +156,30 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
         """
         raise NotImplementedError
 
+    """
+    Handlers for bot commands which should wrap the EventLifecycle context.
+    """
+
+    @abstractmethod
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[R]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[R]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[R]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def link_team_handler(self, input: CommandInput) -> IntegrationResponse[R]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def unlink_team_handler(self, input: CommandInput) -> IntegrationResponse[R]:
+        raise NotImplementedError
+
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
         return MessagingInteractionEvent(
             interaction_type=command.interaction_type, spec=self.integration_spec

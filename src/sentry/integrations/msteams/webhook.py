@@ -655,48 +655,49 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     def teams_user_id(self) -> str:
         return self.data["from"]["id"]
 
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=build_help_command_card(),
+        )
+
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+        linked_identity = identity_service.get_identity(
+            filter={"identity_ext_id": self.teams_user_id}
+        )
+        has_linked_identity = linked_identity is not None
+
+        if has_linked_identity:
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=build_already_linked_identity_command_card(),
+                outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
+                context_data={
+                    "user_id": self.teams_user_id,
+                    "identity_id": linked_identity.id if linked_identity else None,
+                },
+            )
+        else:
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=build_link_identity_command_card(),
+            )
+
+    def unlink_identity_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+        unlink_url = build_unlinking_url(
+            self.conversation_id, self.data["serviceUrl"], self.teams_user_id
+        )
+        # TODO: check if the user is already unlinked
+        return IntegrationResponse(
+            response=build_unlink_identity_card(unlink_url),
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+        )
+
     @property
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
-        def help_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=build_help_command_card(),
-            )
 
-        def link_identity_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
-            linked_identity = identity_service.get_identity(
-                filter={"identity_ext_id": self.teams_user_id}
-            )
-            has_linked_identity = linked_identity is not None
-
-            if has_linked_identity:
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
-                    response=build_already_linked_identity_command_card(),
-                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
-                    context_data={
-                        "user_id": self.teams_user_id,
-                        "identity_id": linked_identity.id if linked_identity else None,
-                    },
-                )
-            else:
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.SUCCESS,
-                    response=build_link_identity_command_card(),
-                )
-
-        def unlink_identity_handler(input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
-            unlink_url = build_unlinking_url(
-                self.conversation_id, self.data["serviceUrl"], self.teams_user_id
-            )
-            # TODO: check if the user is already unlinked
-            return IntegrationResponse(
-                response=build_unlink_identity_card(unlink_url),
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-            )
-
-        yield commands.HELP, help_handler
-        yield commands.LINK_IDENTITY, link_identity_handler
-        yield commands.UNLINK_IDENTITY, unlink_identity_handler
+        yield commands.HELP, self.help_handler
+        yield commands.LINK_IDENTITY, self.link_user_handler
+        yield commands.UNLINK_IDENTITY, self.unlink_user_handler

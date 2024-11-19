@@ -69,78 +69,79 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
     def integration_spec(self) -> MessagingIntegrationSpec:
         return DiscordMessagingSpec()
 
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[str]:
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=HELP_MESSAGE,
+        )
+
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[str]:
+        if self.request.has_identity():
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
+                outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
+                context_data={
+                    "email": self.request.get_identity_str(),
+                },
+            )
+
+        if not self.request.integration or not self.request.user_id:
+            # TODO: remove this logger
+            logger.warning(
+                "discord.interaction.command.missing.integration",
+                extra={
+                    "hasIntegration": bool(self.request.integration),
+                    "hasUserId": self.request.user_id,
+                },
+            )
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.FAILURE,
+                response=MISSING_DATA_MESSAGE,
+                outcome_reason=MessageCommandFailureReason.MISSING_DATA,
+                context_data={
+                    "has_integration": bool(self.request.integration),
+                    "has_user_id": bool(self.request.user_id),
+                },
+            )
+
+        link_url = build_linking_url(
+            integration=self.request.integration,
+            discord_id=self.request.user_id,
+        )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=LINK_USER_MESSAGE.format(url=link_url),
+        )
+
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[str]:
+        if not self.request.has_identity():
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=NOT_LINKED_MESSAGE,
+                outcome_reason=MessageCommandHaltReason.NOT_LINKED,
+            )
+
+        # if self.request.has_identity() then these must not be None
+        assert self.request.integration is not None
+        assert self.request.user_id is not None
+
+        unlink_url = build_unlinking_url(
+            integration=self.request.integration,
+            discord_id=self.request.user_id,
+        )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=UNLINK_USER_MESSAGE.format(url=unlink_url),
+        )
+
     @property
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[str]]]:
-        def help_handler(input: CommandInput) -> IntegrationResponse[str]:
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=HELP_MESSAGE,
-            )
 
-        def link_user_handler(input: CommandInput) -> IntegrationResponse[str]:
-            if self.request.has_identity():
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
-                    response=ALREADY_LINKED_MESSAGE.format(email=self.request.get_identity_str()),
-                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
-                    context_data={
-                        "email": self.request.get_identity_str(),
-                    },
-                )
-
-            if not self.request.integration or not self.request.user_id:
-                # TODO: remove this logger
-                logger.warning(
-                    "discord.interaction.command.missing.integration",
-                    extra={
-                        "hasIntegration": bool(self.request.integration),
-                        "hasUserId": self.request.user_id,
-                    },
-                )
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.FAILURE,
-                    response=MISSING_DATA_MESSAGE,
-                    outcome_reason=MessageCommandFailureReason.MISSING_DATA,
-                    context_data={
-                        "has_integration": bool(self.request.integration),
-                        "has_user_id": bool(self.request.user_id),
-                    },
-                )
-
-            link_url = build_linking_url(
-                integration=self.request.integration,
-                discord_id=self.request.user_id,
-            )
-
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=LINK_USER_MESSAGE.format(url=link_url),
-            )
-
-        def unlink_user_handler(input: CommandInput) -> IntegrationResponse[str]:
-            if not self.request.has_identity():
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
-                    response=NOT_LINKED_MESSAGE,
-                    outcome_reason=MessageCommandHaltReason.NOT_LINKED,
-                )
-
-            # if self.request.has_identity() then these must not be None
-            assert self.request.integration is not None
-            assert self.request.user_id is not None
-
-            unlink_url = build_unlinking_url(
-                integration=self.request.integration,
-                discord_id=self.request.user_id,
-            )
-
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=UNLINK_USER_MESSAGE.format(url=unlink_url),
-            )
-
-        yield commands.HELP, help_handler
-        yield commands.LINK_IDENTITY, link_user_handler
-        yield commands.UNLINK_IDENTITY, unlink_user_handler
+        yield commands.HELP, self.help_handler
+        yield commands.LINK_IDENTITY, self.link_user_handler
+        yield commands.UNLINK_IDENTITY, self.unlink_user_handler

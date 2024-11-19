@@ -155,84 +155,83 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     def integration_spec(self) -> MessagingIntegrationSpec:
         return SlackMessagingSpec()
 
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.help(input.cmd_value)
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.link_user(self.request)
+        if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(response.data):
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=response,
+                outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
+                context_data={
+                    "email": self.request.identity_str,
+                },
+            )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.unlink_user(self.request)
+        if NOT_LINKED_MESSAGE in str(response.data):
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=response,
+                outcome_reason=MessageCommandHaltReason.NOT_LINKED,
+                context_data={
+                    "email": self.request.identity_str,
+                },
+            )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def link_team_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.link_team(self.request)
+
+        for message, reason in self.TEAM_HALT_MAPPINGS.items():
+            if message in str(response.data):
+                return IntegrationResponse(
+                    interaction_result=EventLifecycleOutcome.HALTED,
+                    response=response,
+                    outcome_reason=reason,
+                )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def unlink_team_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.unlink_team(self.request)
+        for message, reason in self.TEAM_HALT_MAPPINGS.items():
+            if message in str(response.data):
+                return IntegrationResponse(
+                    interaction_result=EventLifecycleOutcome.HALTED,
+                    response=response,
+                    outcome_reason=reason,
+                )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
     @property
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
-        def help_handler(input: CommandInput) -> IntegrationResponse[Response]:
-            response = self.endpoint.help(input.cmd_value)
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=response,
-            )
 
-        def link_user_handler(input: CommandInput) -> IntegrationResponse[Response]:
-            response = self.endpoint.link_user(self.request)
-            if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(
-                response.data
-            ):
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
-                    response=response,
-                    outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
-                    context_data={
-                        "email": self.request.identity_str,
-                    },
-                )
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=response,
-            )
-
-        def unlink_user_handler(input: CommandInput) -> IntegrationResponse[Response]:
-            response = self.endpoint.unlink_user(self.request)
-            if NOT_LINKED_MESSAGE in str(response.data):
-                return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
-                    response=response,
-                    outcome_reason=MessageCommandHaltReason.NOT_LINKED,
-                    context_data={
-                        "email": self.request.identity_str,
-                    },
-                )
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=response,
-            )
-
-        def link_team_handler(input: CommandInput) -> IntegrationResponse[Response]:
-            response = self.endpoint.link_team(self.request)
-
-            for message, reason in self.TEAM_HALT_MAPPINGS.items():
-                if message in str(response.data):
-                    return IntegrationResponse(
-                        interaction_result=EventLifecycleOutcome.HALTED,
-                        response=response,
-                        outcome_reason=reason,
-                    )
-
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=response,
-            )
-
-        def unlink_team_handler(input: CommandInput) -> IntegrationResponse[Response]:
-            response = self.endpoint.unlink_team(self.request)
-            for message, reason in self.TEAM_HALT_MAPPINGS.items():
-                if message in str(response.data):
-                    return IntegrationResponse(
-                        interaction_result=EventLifecycleOutcome.HALTED,
-                        response=response,
-                        outcome_reason=reason,
-                    )
-
-            return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.SUCCESS,
-                response=response,
-            )
-
-        yield commands.HELP, help_handler
-        yield commands.LINK_IDENTITY, link_user_handler
-        yield commands.UNLINK_IDENTITY, unlink_user_handler
-        yield commands.LINK_TEAM, link_team_handler
-        yield commands.UNLINK_TEAM, unlink_team_handler
+        yield commands.HELP, self.help_handler
+        yield commands.LINK_IDENTITY, self.link_user_handler
+        yield commands.UNLINK_IDENTITY, self.unlink_user_handler
+        yield commands.LINK_TEAM, self.link_team_handler
+        yield commands.UNLINK_TEAM, self.unlink_team_handler
