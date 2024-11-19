@@ -249,11 +249,14 @@ const strictRules = {
   'sentry/no-styled-shortcut': ['error'],
 };
 
+const extendsList = ['sentry-react', 'plugin:import/typescript'];
+if (detectDeprecations) {
+  extendsList.push('plugin:deprecation/recommended');
+}
+
 module.exports = {
   root: true,
-  extends: detectDeprecations
-    ? ['sentry-react', 'plugin:import/typescript', 'plugin:deprecation/recommended']
-    : ['sentry-react', 'plugin:import/typescript'],
+  extends: extendsList,
 
   plugins: [
     '@typescript-eslint',
@@ -434,11 +437,7 @@ module.exports = {
     },
     {
       files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
-      extends: [
-        'plugin:testing-library/react',
-        'sentry-react',
-        'plugin:import/typescript',
-      ],
+      extends: ['plugin:testing-library/react', ...extendsList],
       rules: {
         ...appRules,
         ...strictRules,
