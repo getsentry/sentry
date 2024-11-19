@@ -185,7 +185,7 @@ const CardTitleIcon = styled('div')`
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: ${space(1.5)};
+  padding-left: 14px;
   border-left: 1px solid ${p => p.theme.border};
   margin-left: ${space(0.75)};
   p {
