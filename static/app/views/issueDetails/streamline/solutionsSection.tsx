@@ -1,12 +1,13 @@
 import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import useDrawer from 'sentry/components/globalDrawer';
-import {useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -86,7 +87,20 @@ export default function SolutionsSection({
   return (
     <div>
       <SidebarSectionTitle style={{marginTop: 0}}>
-        {t('Solutions Hub')}
+        <HeaderContainer>
+          {t('Solutions Hub')}
+          {hasSummary && (
+            <StyledFeatureBadge
+              type="beta"
+              title={tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {
+                  email: <a href="mailto:autofix@sentry.io" />,
+                }
+              )}
+            />
+          )}
+        </HeaderContainer>
       </SidebarSectionTitle>
       {hasSummary && !summaryData && (
         <Placeholder
@@ -97,12 +111,11 @@ export default function SolutionsSection({
       )}
       {hasSummary && summaryData && (
         <Summary>
-          <HeadlineText
-            dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(
-                summaryData.whatsWrong?.replaceAll('**', '') ?? ''
-              ),
-            }}
+          <GroupSummaryBody
+            data={summaryData}
+            isError={false}
+            isPending={false}
+            preview
           />
         </Summary>
       )}
@@ -151,6 +164,7 @@ export default function SolutionsSection({
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
+  position: relative;
 `;
 
 const HeadlineText = styled('span')`
@@ -204,4 +218,15 @@ const StyledButton = styled(Button)`
   background: ${p => p.theme.background}
     linear-gradient(to right, ${p => p.theme.background}, ${p => p.theme.pink400}20);
   color: ${p => p.theme.pink400};
+`;
+
+const HeaderContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  padding-bottom: 3px;
 `;
