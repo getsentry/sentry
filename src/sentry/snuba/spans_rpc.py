@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
 
@@ -150,17 +150,7 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
 
     """Process the results"""
-    result: SnubaData = []
-    for timeseries in rpc_response.result_timeseries:
-        # Timeseries serialization expects the function alias (eg. `count` not `count()`)
-        label = get_function_alias(timeseries.label)
-        if len(result) < len(timeseries.buckets):
-            for bucket in timeseries.buckets:
-                result.append({"time": bucket.seconds})
-        for index, data_point in enumerate(timeseries.data_points):
-            result[index][label] = data_point.data
-
-    return SnubaTSResult({"data": result}, params.start, params.end, granularity_secs)
+    return _process_timeseries(rpc_response, params, granularity_secs)
 
 
 def run_top_events_timeseries_query(
@@ -191,9 +181,17 @@ def run_top_events_timeseries_query(
     # return _process_timeseries(result, columns)
 
 
-def _process_timeseries(result, columns):
-    pass
-    # for row in result:
-    #     for column in columns:
-    #         column.process(row)
-    # return result
+def _process_timeseries(
+    rpc_response: TimeSeriesResponse, params: SnubaParams, granularity_secs: int
+) -> SnubaTSResult:
+    result: SnubaData = []
+    for timeseries in rpc_response.result_timeseries:
+        # Timeseries serialization expects the function alias (eg. `count` not `count()`)
+        label = get_function_alias(timeseries.label)
+        if len(result) < len(timeseries.buckets):
+            for bucket in timeseries.buckets:
+                result.append({"time": bucket.seconds})
+        for index, data_point in enumerate(timeseries.data_points):
+            result[index][label] = data_point.data
+
+    return SnubaTSResult({"data": result}, params.start, params.end, granularity_secs)
