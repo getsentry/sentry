@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
 import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
-import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {EntryData} from 'sentry/types/group';
-import type {ColorOrAlias} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';
 
@@ -52,33 +50,25 @@ function Option({id, details, name, crashed, crashedInfo, hasThreadStates}: Prop
         )}
       </GridCell>
       <GridCell>
-        <InnerCell>
-          <Tooltip title={`#${id}`} position="top">
-            <TextOverflow>{`#${id}`}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
+        <Tooltip title={`#${id}`} position="top">
+          <InnerCell>{`#${id}`}</InnerCell>
+        </Tooltip>
       </GridCell>
       <GridCell>
-        <InnerCell isBold>
-          <Tooltip title={optionName} position="top">
-            <TextOverflow>{optionName}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
+        <Tooltip title={optionName} position="top" skipWrapper>
+          <InnerCell isBold>{optionName}</InnerCell>
+        </Tooltip>
       </GridCell>
       <GridCell>
-        <InnerCell color="linkColor">
-          <Tooltip title={label} position="top">
-            <TextOverflow>{label}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
+        <Tooltip title={label} position="top" skipWrapper>
+          <InnerCell>{label}</InnerCell>
+        </Tooltip>
       </GridCell>
       {hasThreadStates && (
         <GridCell>
-          <InnerCell>
-            <Tooltip title={details.state} position="top">
-              <TextOverflow>{details.state}</TextOverflow>
-            </Tooltip>
-          </InnerCell>
+          <Tooltip title={details.state} position="top" skipWrapper>
+            <InnerCell>{details.state}</InnerCell>
+          </Tooltip>
         </GridCell>
       )}
     </Grid>
@@ -88,7 +78,6 @@ function Option({id, details, name, crashed, crashedInfo, hasThreadStates}: Prop
 export default Option;
 
 const InnerCell = styled('div')<{
-  color?: ColorOrAlias;
   isBold?: boolean;
   isCentered?: boolean;
 }>`
@@ -96,5 +85,5 @@ const InnerCell = styled('div')<{
   align-items: center;
   justify-content: ${p => (p.isCentered ? 'center' : 'flex-start')};
   font-weight: ${p => (p.isBold ? 600 : 400)};
-  ${p => p.color && `color: ${p.theme[p.color]}`}
+  ${p => p.theme.overflowEllipsis}
 `;

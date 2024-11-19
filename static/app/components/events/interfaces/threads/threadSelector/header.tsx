@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {t} from 'sentry/locale';
 
 import {Grid, GridCell} from './styles';
@@ -8,14 +10,24 @@ type Props = {
 
 function Header({hasThreadStates}: Props) {
   return (
-    <Grid hasThreadStates={hasThreadStates}>
+    <StyledGrid hasThreadStates={hasThreadStates}>
       <GridCell />
       <GridCell>{t('Id')}</GridCell>
       <GridCell>{t('Name')}</GridCell>
       <GridCell>{t('Label')}</GridCell>
       {hasThreadStates && <GridCell>{t('State')}</GridCell>}
-    </Grid>
+    </StyledGrid>
   );
 }
 
 export default Header;
+
+const StyledGrid = styled(Grid)`
+  padding-left: 32px;
+  padding-right: 32px;
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: 2px;
+`;
