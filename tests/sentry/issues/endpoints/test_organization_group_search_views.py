@@ -397,9 +397,7 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
 
         # instead of editing the original view, it should create a new view for user 2
         assert len(response.data) == 1
-        assert (
-            response.data[0]["id"] == "3"
-        )  # should be 3 because user 1 created a view (2) and then deleted it
+        assert response.data[0]["id"] != default_view["id"]
         assert response.data[0]["name"] == "New Name"
 
         # as user 1, verify the name has not been changed
@@ -407,7 +405,7 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
         response = self.client.get(self.url)
 
         assert len(response.data) == 1
-        assert response.data[0]["id"] == "1"
+        assert response.data[0]["id"] == default_view["id"]
         assert response.data[0]["name"] == "Prioritized"
         assert response.data[0]["query"] == view["query"]
         assert response.data[0]["querySort"] == view["querySort"]
