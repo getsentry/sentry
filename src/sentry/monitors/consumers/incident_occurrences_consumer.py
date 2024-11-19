@@ -20,6 +20,7 @@ from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident
 from sentry.monitors.system_incidents import TickAnomalyDecision, get_clock_tick_decision
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +108,12 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
         ).update(status=CheckInStatus.UNKNOWN)
 
         # Do NOT send the occurrence
+        metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
         return
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+        metrics.incr("monitors.incident_ocurrences.sent_incident_occurrence")
     except Exception:
         logger.exception("failed_send_incident_occurrence")
 
