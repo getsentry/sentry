@@ -647,6 +647,8 @@ def handle_other_status_updates(
     acting_user: User,
     user: User,
 ):
+    activity_type = None
+    activity_data: MutableMapping[str, Any | None] | None = None
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
     new_substatus = (
