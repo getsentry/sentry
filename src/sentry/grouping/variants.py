@@ -138,8 +138,6 @@ def expose_fingerprint_dict(values, info):
     rv = {
         "values": values,
     }
-    if not info:
-        return rv
 
     from sentry.grouping.fingerprinting import FingerprintRule
 
