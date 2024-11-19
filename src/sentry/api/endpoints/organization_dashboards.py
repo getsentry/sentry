@@ -48,9 +48,16 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, Dashboard):
-            if not features.has(
+            if features.has(
                 "organizations:dashboards-edit-access", obj.organization, actor=request.user
             ):
+                # check if user is restricted from editing dashboard
+                if hasattr(obj, "permissions"):
+                    return obj.permissions.has_edit_permissions(request.user.id)
+                # If no permissions are assigned, it is considered accessible to all users
+                return True
+
+            else:
                 # 1. Dashboard contains certain projects
                 if obj.projects.exists():
                     return request.access.has_projects_access(obj.projects.all())
@@ -60,27 +67,15 @@ class OrganizationDashboardsPermission(OrganizationPermission):
                 if obj.organization.flags.allow_joinleave:
                     return True
 
-            # allow for Managers and Owners
-            if request.access.has_scope("org:write"):
-                return True
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
 
-            # allow for creator
-            if request.user.id == obj.created_by_id:
-                return True
+                # allow for creator
+                if request.user.id == obj.created_by_id:
+                    return True
 
-            if features.has(
-                "organizations:dashboards-edit-access", obj.organization, actor=request.user
-            ):
-                # check if user is restricted from editing dashboard
-                if hasattr(obj, "permissions"):
-                    return obj.permissions.has_edit_permissions(request.user.id)
-
-                # If no permissions are assigned, it is considered accessible to all users
-                return True
-
-            return False
-
-        return True
+                return False
 
 
 @extend_schema(tags=["Dashboards"])
