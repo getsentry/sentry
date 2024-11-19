@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -216,7 +217,15 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={[t('Edit Access:'), triggerAvatars]}
+      triggerLabel={[
+        t('Edit Access:'),
+        triggerAvatars,
+        <FeatureBadge
+          key="beta-badge"
+          type="beta"
+          title={t('This feature is available for early adopters and may change')}
+        />,
+      ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -260,12 +269,12 @@ const StyledDisplayName = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
+  margin-right: -3px;
 `;
 
 const StyledBadge = styled(Badge)`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
-  margin-right: 3px;
   padding: 0;
   height: 20px;
   width: 20px;
