@@ -4,13 +4,14 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconPanel} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -22,6 +23,7 @@ import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,6 +31,8 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 function TimelineItem({
   item,
@@ -90,12 +94,26 @@ function TimelineItem({
   );
 }
 
-export default function StreamlinedActivitySection({group}: {group: Group}) {
+interface StreamlinedActivitySectionProps {
+  group: Group;
+  /**
+   * Whether the activity section is being rendered in the activity drawer.
+   * Disables collapse feature, and hides headers
+   */
+  isDrawer?: boolean;
+}
+
+export default function StreamlinedActivitySection({
+  group,
+  isDrawer,
+}: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
-  const [showAll, setShowAll] = useState(false);
-
-  const [inputId, setInputId] = useState(uniqueId());
+  // Expand all activities when rendered as a drawer
+  const [showAll, setShowAll] = useState(() => isDrawer);
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const [inputId, setInputId] = useState(() => uniqueId());
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -158,21 +176,38 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
 
   return (
     <div>
-      <Flex justify="space-between" align="center">
-        <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-        {showAll && (
-          <TextButton
-            borderless
-            size="zero"
-            onClick={() => setShowAll(false)}
-            analyticsEventKey="issue_details.activity_collapsed"
-            analyticsEventName="Issue Details: Activity Collapsed"
-            analyticsParams={{num_activities: group.activity.length}}
-          >
-            {t('Collapse')}
-          </TextButton>
-        )}
-      </Flex>
+      {!isDrawer && (
+        <Flex justify="space-between" align="center">
+          <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
+          <ButtonBar gap={0.5}>
+            {showAll && (
+              <TextButton
+                borderless
+                size="zero"
+                onClick={() => setShowAll(false)}
+                analyticsEventKey="issue_details.activity_collapsed"
+                analyticsEventName="Issue Details: Activity Collapsed"
+                analyticsParams={{num_activities: group.activity.length}}
+              >
+                {t('Collapse')}
+              </TextButton>
+            )}
+            <LinkButton
+              size="xs"
+              icon={<IconPanel direction="right" />}
+              aria-label={t('Open activity drawer')}
+              title={t('Open activity drawer')}
+              to={{
+                pathname: `${baseUrl}${Tab.ACTIVITY}`,
+                query: {
+                  ...location.query,
+                  cursor: undefined,
+                },
+              }}
+            />
+          </ButtonBar>
+        </Flex>
+      )}
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
