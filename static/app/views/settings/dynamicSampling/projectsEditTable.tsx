@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
@@ -111,6 +112,12 @@ export function ProjectsEditTable({
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
+  const handleOrgBlur = useCallback(() => {
+    setIsBulkEditEnabled(false);
+    // Parse to ensure valid values
+    setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+  }, []);
+
   const items = useMemo(
     () =>
       projects.map(project => {
@@ -181,7 +188,7 @@ export function ProjectsEditTable({
         {isLoading ? (
           <LoadingIndicator
             css={css`
-              margin: ${space(4)} 0;
+              margin: 60px 0;
             `}
           />
         ) : (
@@ -199,21 +206,26 @@ export function ProjectsEditTable({
               alignRight
             >
               <InputWrapper>
-                <PercentInput
-                  type="number"
-                  ref={inputRef}
-                  disabled={!hasAccess || !isBulkEditEnabled}
-                  size="sm"
-                  onChange={handleOrgChange}
-                  value={projectedOrgRate}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      inputRef.current?.blur();
-                    }
-                  }}
-                  onBlur={() => setIsBulkEditEnabled(false)}
-                />
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t('You do not have permission to change the sample rate')}
+                >
+                  <PercentInput
+                    type="number"
+                    ref={inputRef}
+                    disabled={!hasAccess || !isBulkEditEnabled}
+                    size="sm"
+                    onChange={handleOrgChange}
+                    value={projectedOrgRate}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        inputRef.current?.blur();
+                      }
+                    }}
+                    onBlur={handleOrgBlur}
+                  />
+                </Tooltip>
                 <FlexRow>
                   <PreviousValue>
                     {initialOrgRate !== projectedOrgRate
