@@ -333,7 +333,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'span',
     plural: 'spans',
     displayName: 'span',
-    titleName: t('Spans'),
+    titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
     uid: 12,
     isBilledCategory: true,
@@ -347,6 +347,16 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Cron Monitoring'),
     uid: 13,
     isBilledCategory: true,
+  },
+  [DataCategoryExact.SPAN_INDEXED]: {
+    name: DataCategoryExact.SPAN_INDEXED,
+    apiName: 'span_indexed',
+    plural: 'spans_indexed',
+    displayName: 'stored span',
+    titleName: t('Stored Spans'),
+    productName: t('Tracing'),
+    uid: 16,
+    isBilledCategory: false,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,
