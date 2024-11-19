@@ -576,34 +576,17 @@ def update_groups(
             user,
         )
 
-    result = update_results(
-        result, group_list, group_ids, project_lookup, projects, acting_user, data, res_type
+    return prepare_response(
+        result,
+        group_list,
+        group_ids,
+        project_lookup,
+        projects,
+        acting_user,
+        data,
+        res_type,
+        request.META.get("HTTP_REFERER", ""),
     )
-
-    # TODO: Create new endpoint for this
-    if result.get("merge") and len(group_list) > 1:
-        # don't allow merging cross project
-        if len(project_lookup) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
-        result["merge"] = merge_groups(
-            group_list,
-            project_lookup,
-            acting_user,
-            urlparse(request.META.get("HTTP_REFERER", "")).path,
-        )
-
-    inbox = result.get("inbox", None)
-    if inbox is not None:
-        result["inbox"] = update_inbox(
-            inbox,
-            group_list,
-            project_lookup,
-            acting_user,
-            http_referrer=request.META.get("HTTP_REFERER"),
-            sender=update_groups,
-        )
-
-    return Response(result)
 
 
 def merge_groups(
@@ -692,7 +675,7 @@ def handle_other_status_updates(
     return activity_type, activity_data, result
 
 
-def update_results(
+def prepare_response(
     result: dict[str, Any],
     group_list: Sequence[Group],
     group_ids: Sequence[Group],
@@ -701,7 +684,8 @@ def update_results(
     acting_user: User,
     data: Mapping[str, Any],
     res_type: GroupResolution.Type | None,
-) -> dict[str, Any]:
+    referer: str,
+) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
     try:
@@ -749,7 +733,30 @@ def update_results(
             result["isPublic"], group_list, project_lookup, acting_user
         )
 
-    return result
+    # TODO: Create new endpoint for this
+    if result.get("merge") and len(group_list) > 1:
+        # don't allow merging cross project
+        if len(project_lookup) > 1:
+            return Response({"detail": "Merging across multiple projects is not supported"})
+        result["merge"] = merge_groups(
+            group_list,
+            project_lookup,
+            acting_user,
+            urlparse(referer).path,
+        )
+
+    inbox = result.get("inbox", None)
+    if inbox is not None:
+        result["inbox"] = update_inbox(
+            inbox,
+            group_list,
+            project_lookup,
+            acting_user,
+            http_referrer=referer,
+            sender=update_groups,
+        )
+
+    return Response(result)
 
 
 def get_release_to_resolve_by(project: Project) -> Release | None:
