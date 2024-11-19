@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import pick from 'lodash/pick';
 
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
@@ -14,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 import type {ObjectStatus} from 'sentry/types/core';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
@@ -67,12 +68,16 @@ export function OverviewRow({
 
   const isDisabled = monitor.status === 'disabled';
 
+  const location = useLocation();
+  const query = pick(location.query, ['start', 'end', 'statsPeriod', 'environment']);
+
   const monitorDetails = singleMonitorView ? null : (
     <DetailsArea>
       <DetailsLink
-        to={normalizeUrl(
-          `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`
-        )}
+        to={{
+          pathname: `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/`,
+          query,
+        }}
       >
         <DetailsHeadline>
           <Name>{monitor.name}</Name>
@@ -115,9 +120,7 @@ export function OverviewRow({
     (env: string) => ({
       label: t('View Environment'),
       key: 'view',
-      to: normalizeUrl(
-        `/organizations/${organization.slug}/crons/${monitor.project.slug}/${monitor.slug}/?environment=${env}`
-      ),
+      to: {pathname: location.pathname, query: {...query, environment: env}},
     }),
     ...(onToggleMuteEnvironment
       ? [
