@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import Literal
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -29,6 +30,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.columns import translate_internal_to_public_alias
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
@@ -39,15 +41,23 @@ from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
 from sentry.utils import snuba_rpc
 
-# This causes problems if a user sends an attribute with any of these values
-# but the meta table currently can't handle that anyways
-# More users will see the 3 of these since they're on everything so lets try to make
-# the common usecase more reasonable
-TAG_NAME_MAPPING = {
-    "segment_name": "transaction",
-    "name": "span.description",
-    "service": "project",
-}
+
+def as_tag_key(name: str, type: Literal["string", "number"]):
+    key = translate_internal_to_public_alias(name, type)
+
+    if key is not None:
+        name = key
+    elif type == "number":
+        key = f"tags[{name},number]"
+    else:
+        key = name
+
+    return {
+        # key is what will be used to query the API
+        "key": key,
+        # name is what will be used to display the tag nicely in the UI
+        "name": name,
+    }
 
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
@@ -62,13 +72,7 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
-
-    def validate_type(self, value):
-        if value == "string":
-            return AlphaAttributeKey.Type.TYPE_STRING
-        if value == "number":
-            return AlphaAttributeKey.Type.TYPE_FLOAT
-        raise NotImplementedError
+    process = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
@@ -125,14 +129,22 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 ),
                 limit=max_span_tags,
                 offset=0,
-                type=serialized["type"],
+                type=(
+                    AlphaAttributeKey.Type.TYPE_FLOAT
+                    if serialized["type"] == "number"
+                    else AlphaAttributeKey.Type.TYPE_STRING
+                ),
             )
             rpc_response = snuba_rpc.rpc(rpc_request, TraceItemAttributesResponse)
 
             paginator = ChainPaginator(
                 [
                     [
-                        TagKey(TAG_NAME_MAPPING.get(tag.name, tag.name))
+                        (
+                            as_tag_key(tag.name, serialized["type"])
+                            if serialized["process"]
+                            else TagKey(tag.name)
+                        )
                         for tag in rpc_response.tags
                         if tag.name
                     ],
