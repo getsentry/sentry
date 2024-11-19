@@ -51,10 +51,15 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             if features.has(
                 "organizations:dashboards-edit-access", obj.organization, actor=request.user
             ):
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
+
                 # check if user is restricted from editing dashboard
                 if hasattr(obj, "permissions"):
                     return obj.permissions.has_edit_permissions(request.user.id)
-                # If no permissions are assigned, it is considered accessible to all users
+
+                # if no permissions are assigned, it is considered accessible to all users
                 return True
 
             else:
