@@ -564,44 +564,17 @@ def update_groups(
         result.update({"status": "resolved", "statusDetails": new_status_details})
 
     elif status:
-        new_status = STATUS_UPDATE_CHOICES[result["status"]]
-        new_substatus = (
-            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+        # The previous if statement handles the resolved and resolvedInNextRelease status updates
+        activity_type, activity_data, result = handle_other_status_updates(
+            result,
+            group_list,
+            group_ids,
+            projects,
+            project_lookup,
+            status_details,
+            acting_user,
+            user,
         )
-        new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
-
-        with transaction.atomic(router.db_for_write(Group)):
-            # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
-            #                we should centralize the logic for validating and defaulting substatus values
-            #                and refactor pre_save and the above new_substatus assignment to account for this
-            status_updated = queryset.exclude(status=new_status).update(
-                status=new_status, substatus=new_substatus
-            )
-            GroupResolution.objects.filter(group__in=group_ids).delete()
-            if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
-                    result["statusDetails"] = handle_archived_until_escalating(
-                        group_list, acting_user, projects, sender=update_groups
-                    )
-                else:
-                    result["statusDetails"] = handle_ignored(
-                        group_ids, group_list, status_details, acting_user, user
-                    )
-                result["inbox"] = None
-            else:
-                result["statusDetails"] = {}
-        if group_list and status_updated:
-            activity_type, activity_data = handle_status_update(
-                group_list=group_list,
-                projects=projects,
-                project_lookup=project_lookup,
-                new_status=new_status,
-                new_substatus=new_substatus,
-                is_bulk=is_bulk,
-                acting_user=acting_user,
-                status_details=result.get("statusDetails", {}),
-                sender=update_groups,
-            )
 
     result = update_results(
         result, group_list, group_ids, project_lookup, projects, acting_user, data, res_type
@@ -662,6 +635,61 @@ def merge_groups(
         },
     )
     return handle_merge(group_list, project_lookup, acting_user)
+
+
+def handle_other_status_updates(
+    result: Mapping[str, Any],
+    group_list: Sequence[Group],
+    group_ids: Sequence[Group],
+    projects: Sequence[Project],
+    project_lookup: Mapping[int, Project],
+    status_details: Mapping[str, Any],
+    acting_user: User,
+    user: User,
+):
+    activity_type = None
+    activity_data: MutableMapping[str, Any | None] | None = None
+    queryset = Group.objects.filter(id__in=group_ids)
+    new_status = STATUS_UPDATE_CHOICES[result["status"]]
+    new_substatus = (
+        SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
+    )
+    new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
+
+    with transaction.atomic(router.db_for_write(Group)):
+        # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
+        #                we should centralize the logic for validating and defaulting substatus values
+        #                and refactor pre_save and the above new_substatus assignment to account for this
+        status_updated = queryset.exclude(status=new_status).update(
+            status=new_status, substatus=new_substatus
+        )
+        GroupResolution.objects.filter(group__in=group_ids).delete()
+        if new_status == GroupStatus.IGNORED:
+            if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
+                result["statusDetails"] = handle_archived_until_escalating(
+                    group_list, acting_user, projects, sender=update_groups
+                )
+            else:
+                result["statusDetails"] = handle_ignored(
+                    group_ids, group_list, status_details, acting_user, user
+                )
+            result["inbox"] = None
+        else:
+            result["statusDetails"] = {}
+
+    if group_list and status_updated:
+        activity_type, activity_data = handle_status_update(
+            group_list=group_list,
+            projects=projects,
+            project_lookup=project_lookup,
+            new_status=new_status,
+            new_substatus=new_substatus,
+            is_bulk=len(group_ids) > 1,
+            acting_user=acting_user,
+            status_details=result.get("statusDetails", {}),
+            sender=update_groups,
+        )
+    return activity_type, activity_data, result
 
 
 def update_results(
