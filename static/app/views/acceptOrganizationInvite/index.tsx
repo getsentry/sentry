@@ -65,6 +65,12 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     logout(this.api);
   };
 
+  handleLogoutAndRetry = (e: React.MouseEvent) => {
+    const {memberId, token} = this.props.params;
+    e.preventDefault();
+    logout(this.api, `/accept/${memberId}/${token}/`);
+  };
+
   handleAcceptInvite = async () => {
     const {memberId, token} = this.props.params;
 
@@ -249,10 +255,28 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
   }
 
   renderError() {
+    /**
+     * NOTE (mifu67): this error view could show up for multiple reasons, including:
+     * invite link expired, signed into account that is already in the inviting
+     * org, and invite not approved. Previously, the message seemed to indivate that
+     * the link had expired, regardless of which error prompted it, so update the
+     * error message to be a little more helpful.
+     */
     return (
       <NarrowLayout>
         <Alert type="warning">
-          {t('This organization invite link is no longer valid.')}
+          {tct(
+            'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
+            {
+              switchLink: (
+                <Link
+                  to=""
+                  data-test-id="existing-member-link"
+                  onClick={this.handleLogoutAndRetry}
+                />
+              ),
+            }
+          )}
         </Alert>
       </NarrowLayout>
     );

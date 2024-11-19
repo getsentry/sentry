@@ -100,6 +100,27 @@ describe('AcceptOrganizationInvite', function () {
     expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
+  it('renders error message', function () {
+    MockApiClient.addMockResponse({
+      url: '/accept-invite/1/abc/',
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'uh oh'},
+    });
+
+    render(
+      <AcceptOrganizationInvite
+        {...RouteComponentPropsFixture()}
+        params={{memberId: '1', token: 'abc'}}
+      />
+    );
+    expect(getJoinButton()).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole('link', {name: 'sign in with a different account'})
+    ).toBeInTheDocument();
+  });
+
   it('requires authentication to join', function () {
     addMock({
       orgSlug: organization.slug,
