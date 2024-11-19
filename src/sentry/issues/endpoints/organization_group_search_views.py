@@ -118,7 +118,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 def bulk_update_views(
     org: Organization, user_id: int, views: list[GroupSearchViewValidatorResponse]
 ) -> None:
-
     existing_view_ids = [view["id"] for view in views if "id" in view]
 
     _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
@@ -140,7 +139,7 @@ def _update_existing_view(
     org: Organization, user_id: int, view: GroupSearchViewValidatorResponse, position: int
 ) -> None:
     try:
-        GroupSearchView.objects.get(id=view["id"]).update(
+        GroupSearchView.objects.get(id=view["id"], user_id=user_id).update(
             name=view["name"],
             query=view["query"],
             query_sort=view["querySort"],
