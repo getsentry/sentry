@@ -11,8 +11,8 @@ from sentry.integrations.repository.base import (
     BaseNotificationMessage,
     NotificationMessageValidationError,
 )
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 
 _default_logger: Logger = getLogger(__name__)
 
