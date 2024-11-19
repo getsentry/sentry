@@ -1,14 +1,15 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
-from unittest.mock import patch
 from uuid import uuid1
 
-from sentry import options
+import pytest
+
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     SEER_ELIGIBLE_PLATFORMS,
+    TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
@@ -482,17 +483,17 @@ class GetStacktraceStringTest(TestCase):
         return frames
 
     def test_simple(self):
-        stacktrace_str = get_stacktrace_string(self.BASE_APP_DATA, "python")
+        stacktrace_str = get_stacktrace_string(self.BASE_APP_DATA)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
     def test_no_values(self):
-        stacktrace_string = get_stacktrace_string({}, "python")
+        stacktrace_string = get_stacktrace_string({})
         assert stacktrace_string == ""
 
     def test_contributing_exception_no_frames(self):
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
         data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
-        stacktrace_str = get_stacktrace_string(data_non_contributing_frame, "python")
+        stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_contributing_exception_no_contributing_frames(self):
@@ -500,13 +501,13 @@ class GetStacktraceStringTest(TestCase):
         data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
             self.create_frames(1, False)
         )
-        stacktrace_str = get_stacktrace_string(data_no_contributing_frame, "python")
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_no_contributing_exception(self):
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
         data_no_contributing_frame["app"]["component"]["values"][0]["contributes"] = False
-        stacktrace_str = get_stacktrace_string(data_no_contributing_frame, "python")
+        stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
         assert stacktrace_str == ""
 
     def test_non_contributing_frame(self):
@@ -514,17 +515,17 @@ class GetStacktraceStringTest(TestCase):
         data_non_contributing_frame["app"]["component"]["values"][0]["values"][0][
             "values"
         ] += self.create_frames(1, False)
-        stacktrace_str = get_stacktrace_string(data_non_contributing_frame, "python")
+        stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
     def test_no_stacktrace(self):
         data_no_stacktrace = copy.deepcopy(self.BASE_APP_DATA)
         data_no_stacktrace["app"]["component"]["values"].pop(0)
-        stacktrace_str = get_stacktrace_string(data_no_stacktrace, "python")
+        stacktrace_str = get_stacktrace_string(data_no_stacktrace)
         assert stacktrace_str == ""
 
     def test_chained(self):
-        stacktrace_str = get_stacktrace_string(self.CHAINED_APP_DATA, "python")
+        stacktrace_str = get_stacktrace_string(self.CHAINED_APP_DATA)
         expected_stacktrace_str = (
             'Exception: Catch divide by zero error\n  File "python_onboarding.py", function <module>\n    divide_by_zero()\n  File "python_onboarding.py", function divide_by_zero\n    raise Exception("Catch divide by zero error")\n'
             + self.EXPECTED_STACKTRACE_STRING
@@ -556,7 +557,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, "python")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -608,7 +609,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, "python")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -662,7 +663,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception, "python")
+            stacktrace_str = get_stacktrace_string(data_chained_exception)
 
             assert (
                 stacktrace_str.count("outer line")
@@ -682,19 +683,19 @@ class GetStacktraceStringTest(TestCase):
             )
             for i in range(1, 32)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception, "python")
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
         for i in range(2, 32):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
 
     def test_thread(self):
-        stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA, "python")
+        stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
         assert stacktrace_str == 'File "", function TestHandler'
 
     def test_system(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
-        stacktrace_str = get_stacktrace_string(data_system, "python")
+        stacktrace_str = get_stacktrace_string(data_system)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
     def test_app_and_system(self):
@@ -704,31 +705,23 @@ class GetStacktraceStringTest(TestCase):
         data_system["component"]["values"][0]["values"][0]["values"] = self.create_frames(1, True)
         data.update({"system": data_system})
 
-        stacktrace_str = get_stacktrace_string(data, "python")
+        stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
     def test_no_app_no_system(self):
         data = {"default": "something"}
-        stacktrace_str = get_stacktrace_string(data, "python")
+        stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_over_30_system_frames(self, mock_metrics):
+    def test_over_30_system_frames(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
             "values"
         ] += self.create_frames(31, True)
 
-        stacktrace_str = get_stacktrace_string(data_system, "python")
-        assert stacktrace_str == ""
-
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_called_with(
-            "grouping.similarity.over_30_only_system_frames",
-            sample_rate=sample_rate,
-            tags={"platform": "python"},
-        )
+        with pytest.raises(TooManyOnlySystemFramesException):
+            get_stacktrace_string(data_system)
 
     def test_over_30_in_app_contributing_frames(self):
         """Check that when there are over 30 contributing frames, the last 30 are included."""
@@ -746,7 +739,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames, "python")
+        stacktrace_str = get_stacktrace_string(data_frames)
 
         num_frames = 0
         for i in range(1, 11):
@@ -781,7 +774,7 @@ class GetStacktraceStringTest(TestCase):
     def test_no_exception(self):
         data_no_exception = copy.deepcopy(self.BASE_APP_DATA)
         data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
-        stacktrace_str = get_stacktrace_string(data_no_exception, "python")
+        stacktrace_str = get_stacktrace_string(data_no_exception)
         assert stacktrace_str == ""
 
     def test_recognizes_snip_at_start_or_end(self):
@@ -797,11 +790,11 @@ class GetStacktraceStringTest(TestCase):
             data_base64_encoded_filename["app"]["component"]["values"][0]["values"][0]["values"][0][
                 "values"
             ][1]["values"][0] = base64_filename
-            stacktrace_str = get_stacktrace_string(data_base64_encoded_filename, "python")
+            stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
             assert stacktrace_str == "ZeroDivisionError: division by zero"
 
     def test_only_stacktrace_frames(self):
-        stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE, "python")
+        stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
         assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
 
 

@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from typing import Any, TypeVar
 
 from sentry import options
@@ -151,11 +152,21 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 
+class ReferrerOptions(Enum):
+    INGEST = "ingest"
+    BACKFILL = "backfill"
+    UI = "ui"
+
+
+class TooManyOnlySystemFramesException(Exception):
+    pass
+
+
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
-def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
+def get_stacktrace_string(data: dict[str, Any]) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -263,13 +274,8 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
-        if is_frames_truncated and not app_hash:
-            metrics.incr(
-                "grouping.similarity.over_30_only_system_frames",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": platform if platform else "unkown"},
-            )
-            return ""
+        if (frame_count > 30 or is_frames_truncated) and not app_hash:
+            raise TooManyOnlySystemFramesException
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -303,6 +309,28 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     )
 
     return stacktrace_str.strip()
+
+
+def get_stacktrace_string_handle_system_frame_exception(
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
+) -> str:
+    try:
+        stacktrace_string = get_stacktrace_string(data)
+    except TooManyOnlySystemFramesException:
+        if referrer != ReferrerOptions.UI:
+            metrics.incr(
+                "grouping.similarity.over_threshold_only_system_frames",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"platform": platform if platform else "unknown", "referrer": referrer.value},
+            )
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+            )
+        stacktrace_string = ""
+    return stacktrace_string
 
 
 def event_content_has_stacktrace(event: Event) -> bool:

@@ -47,7 +47,7 @@ from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
-EXCEPTION = {
+EXCEPTION: dict[str, Any] = {
     "values": [
         {
             "stacktrace": {
@@ -364,6 +364,69 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(self, mock_metrics):
+        """
+        Test that if a group has over 30 only system frames, its data is not includeded in
+        the bulk lookup result
+        """
+        # Use 2 events
+        rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
+        group_ids = [row["group_id"] for row in rows]
+        for group_id in group_ids:
+            hashes.update({group_id: self.group_hashes[group_id]})
+        # Create one event where the stacktrace has over 30 system only frames
+        exception = copy.deepcopy(EXCEPTION)
+        exception["values"][0]["stacktrace"]["frames"] += [
+            {
+                "function": f"divide_by_zero_{i}",
+                "module": "__main__",
+                "filename": "python_onboarding_{i}.py",
+                "abs_path": "/Users/user/python_onboarding/python_onboarding_{i}.py",
+                "lineno": i,
+                "in_app": True,
+            }
+            for i in range(31)
+        ]
+        event = self.store_event(
+            data={
+                "platform": "python",
+                "exception": exception,
+                "title": "title",
+                "timestamp": before_now(seconds=10).isoformat(),
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        rows.append({"event_id": event.event_id, "group_id": event.group_id})
+        group_hash = GroupHash.objects.filter(group_id=event.group.id).first()
+        assert group_hash
+        hashes.update({event.group_id: group_hash.hash})
+
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
+        expected_group_data = [
+            CreateGroupingRecordData(
+                group_id=event.group.id,
+                hash=hashes[event.group.id],
+                project_id=self.project.id,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
+            )
+            for event in events
+        ]
+        expected_stacktraces = [
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            for i in range(2)
+        ]
+        assert bulk_group_data_stacktraces["data"] == expected_group_data
+        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "backfill"},
+        )
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
         """Test successful bulk lookup with fallback, where the fallback isn't used"""

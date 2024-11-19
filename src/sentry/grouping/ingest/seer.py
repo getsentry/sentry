@@ -16,9 +16,10 @@ from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    ReferrerOptions,
     event_content_is_seer_eligible,
     filter_null_from_string,
-    get_stacktrace_string,
+    get_stacktrace_string_handle_system_frame_exception,
     killswitch_enabled,
 )
 from sentry.utils import metrics
@@ -187,8 +188,8 @@ def get_seer_similar_issues(
     should go in (if any), or None if no neighbor was near enough.
     """
     event_hash = event.get_primary_hash()
-    stacktrace_string = get_stacktrace_string(
-        get_grouping_info_from_variants(variants), event.platform
+    stacktrace_string = get_stacktrace_string_handle_system_frame_exception(
+        get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
     )
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
