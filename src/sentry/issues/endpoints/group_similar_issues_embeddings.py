@@ -87,7 +87,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                 grouping_info, latest_event.platform, ReferrerOptions.UI
             )
 
-        if stacktrace_string == "" or not latest_event:
+        if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {

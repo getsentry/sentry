@@ -313,7 +313,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
 def get_stacktrace_string_handle_system_frame_exception(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
-) -> str:
+) -> str | None:
     try:
         stacktrace_string = get_stacktrace_string(data)
     except TooManyOnlySystemFramesException:
@@ -334,7 +334,7 @@ def get_stacktrace_string_handle_system_frame_exception(
                     "blocker": "over-threshold-only-system-frames",
                 },
             )
-        stacktrace_string = ""
+        stacktrace_string = None
     return stacktrace_string
 
 

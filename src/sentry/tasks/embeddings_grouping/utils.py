@@ -359,7 +359,7 @@ def get_events_from_nodestore(
             stacktrace_string = get_stacktrace_string_handle_system_frame_exception(
                 grouping_info, event.platform, ReferrerOptions.BACKFILL
             )
-            if stacktrace_string == "":
+            if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
                 continue
             primary_hash = event.get_primary_hash()
