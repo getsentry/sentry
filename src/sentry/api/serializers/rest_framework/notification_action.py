@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from typing import TypedDict
 
-from django.db import router, transaction
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
@@ -30,7 +29,7 @@ INTEGRATION_SERVICES = {
 
 
 # Note the ordering of fields affects the Spike Protection API Documentation
-class NotificationActionInputData(TypedDict, total=False):
+class NotificationActionInputData(TypedDict):
     trigger_type: int
     service_type: int
     integration_id: int
@@ -350,29 +349,3 @@ Required if **service_type** is `slack` or `opsgenie`.
     class Meta:
         model = NotificationAction
         fields = list(NotificationActionInputData.__annotations__.keys())
-
-    def create(self, validated_data: NotificationActionInputData) -> NotificationAction:
-        projects = validated_data.pop("projects", [])
-        service_type = validated_data.pop("service_type")
-        action = NotificationAction(
-            type=service_type,
-            organization_id=self.context["organization"].id,
-            **validated_data,
-        )
-        with transaction.atomic(router.db_for_write(NotificationAction)):
-            action.save()
-            action.projects.set(projects)
-        return action
-
-    def update(
-        self, instance: NotificationAction, validated_data: NotificationActionInputData
-    ) -> NotificationAction:
-        projects = validated_data.pop("projects", [])
-        service_type = validated_data.pop("service_type")
-        for key, value in validated_data.items():
-            setattr(instance, key, value)
-        instance.type = service_type
-        with transaction.atomic(router.db_for_write(NotificationAction)):
-            instance.save()
-            instance.projects.set(projects)
-        return instance
