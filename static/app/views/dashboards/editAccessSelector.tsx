@@ -223,7 +223,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         <FeatureBadge
           key="beta-badge"
           type="beta"
-          title={'This feature is available for early adopters and may change'}
+          title={t('This feature is available for early adopters and may change')}
         />,
       ]}
       searchPlaceholder={t('Search Teams')}
