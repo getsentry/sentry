@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -22,8 +23,11 @@ from sentry.users.api.serializers.useremail import UserEmailSerializer, UserEmai
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
+from sentry.utils.signing import sign
 
 logger = logging.getLogger("sentry.accounts")
+
+EMAIL_CONFIRMATION_SALT = "email-confirmation"
 
 
 class InvalidEmailError(Exception):
@@ -36,6 +40,25 @@ class DuplicateEmailError(Exception):
 
 class EmailValidator(serializers.Serializer[UserEmail]):
     email = AllowedEmailField(required=True, help_text="The email address to add/remove.")
+
+
+def add_email_signed(email: str, user: User) -> None:
+    """New path for adding email - uses signed URLs"""
+    if email is None:
+        raise InvalidEmailError
+
+    if UserEmail.objects.filter(user=user, email__iexact=email).exists():
+        raise DuplicateEmailError
+
+    # Generate signed data for verification URL
+    signed_data = sign(
+        user_id=user.id,
+        email=email,
+        salt=EMAIL_CONFIRMATION_SALT,
+    )
+
+    # Send verification email with signed URL
+    user.send_signed_url_confirm_email_singular(email, signed_data)
 
 
 def add_email(email: str, user: User) -> UserEmail:
@@ -128,7 +151,11 @@ class UserEmailsEndpoint(UserEndpoint):
         email = result["email"].lower().strip()
 
         try:
-            new_useremail = add_email(email, user)
+            use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
+            if use_signed_urls:
+                add_email_signed(email, user)
+            else:
+                new_useremail = add_email(email, user)
         except DuplicateEmailError:
             new_useremail = user.emails.get(email__iexact=email)
             return self.respond(
