@@ -32,10 +32,14 @@ from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import (
+    AbstractNotificationAction,
+    ActionService,
+    ActionTarget,
+)
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription

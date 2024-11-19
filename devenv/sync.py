@@ -281,12 +281,16 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    postgres_container = (
+        "sentry_postgres" if os.environ.get("USE_NEW_DEVSERVICES") != "1" else "sentry-postgres-1"
+    )
+
     # faster prerequisite check than starting up sentry and running createuser idempotently
     stdout = proc.run(
         (
             "docker",
             "exec",
-            "sentry_postgres",
+            postgres_container,
             "psql",
             "sentry",
             "postgres",

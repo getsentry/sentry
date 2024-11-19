@@ -297,7 +297,7 @@ function AutofixMessageBox({
     let text = message;
     if (isChangesStep && changesMode === 'add_tests') {
       text =
-        'Please write a unit test that reproduces the issue to make sure it is fixed.';
+        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.';
     }
 
     if (text.trim() !== '' || allowEmptyMessage) {
