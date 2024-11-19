@@ -286,7 +286,7 @@ function Chart({
           return axisLabelFormatter(
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-            undefined,
+            true,
             durationUnit ?? getDurationUnit(data),
             rateUnit
           );
