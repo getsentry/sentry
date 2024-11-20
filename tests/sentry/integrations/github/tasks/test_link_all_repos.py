@@ -7,11 +7,14 @@ from django.db import IntegrityError
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.link_all_repos import link_all_repos
+from sentry.integrations.source_code_management.metrics import LinkAllReposHaltReason
+from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 
 @control_silo_test
@@ -41,8 +44,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
             },
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
-    def test_link_all_repos_inactive_integration(self, mock_metrics, _):
+    def test_link_all_repos_inactive_integration(self, mock_metrics, mock_record, _):
         self.integration.update(status=ObjectStatus.DISABLED)
 
         link_all_repos(
@@ -55,8 +59,14 @@ class LinkAllReposTestCase(IntegrationTestCase):
             "github.link_all_repos.error", tags={"type": "missing_integration"}
         )
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
+
     @responses.activate
-    def test_link_all_repos(self, _):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_all_repos(self, mock_record, _):
         self._add_responses()
 
         link_all_repos(
@@ -76,8 +86,13 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert repos[0].name == "getsentry/sentry"
         assert repos[1].name == "getsentry/snuba"
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+
     @responses.activate
-    def test_link_all_repos_api_response_keyerror(self, _):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_all_repos_api_response_keyerror(self, mock_record, _):
 
         responses.add(
             responses.GET,
@@ -112,8 +127,13 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         assert repos[0].name == "getsentry/snuba"
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
-    def test_link_all_repos_missing_integration(self, mock_metrics, _):
+    def test_link_all_repos_missing_integration(self, mock_metrics, mock_record, _):
         link_all_repos(
             integration_key=self.key,
             integration_id=0,
@@ -123,8 +143,14 @@ class LinkAllReposTestCase(IntegrationTestCase):
             "github.link_all_repos.error", tags={"type": "missing_integration"}
         )
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
-    def test_link_all_repos_missing_organization(self, mock_metrics, _):
+    def test_link_all_repos_missing_organization(self, mock_metrics, mock_record, _):
         link_all_repos(
             integration_key=self.key,
             integration_id=self.integration.id,
@@ -134,9 +160,15 @@ class LinkAllReposTestCase(IntegrationTestCase):
             "github.link_all_repos.error", tags={"type": "missing_organization"}
         )
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_ORGANIZATION.value)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
     @responses.activate
-    def test_link_all_repos_api_error(self, mock_metrics, _):
+    def test_link_all_repos_api_error(self, mock_metrics, mock_record, _):
 
         responses.add(
             responses.GET,
@@ -150,11 +182,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
             )
-            mock_metrics.incr.assert_called_with("github.link_all_repos.api_error")
+        mock_metrics.incr.assert_called_with("github.link_all_repos.api_error")
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
-    def test_link_all_repos_api_error_rate_limited(self, mock_metrics, _):
+    def test_link_all_repos_api_error_rate_limited(self, mock_metrics, mock_record, _):
 
         responses.add(
             responses.GET,
@@ -173,10 +210,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.RATE_LIMITED.value)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
     @responses.activate
-    def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, _):
+    def test_link_all_repos_repo_creation_error(self, mock_metrics, mock_repo, mock_record, _):
         mock_repo.side_effect = IntegrityError
 
         self._add_responses()
@@ -189,11 +232,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
 
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.services.repository.repository_service.create_repository")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     @responses.activate
     def test_link_all_repos_repo_creation_exception(
-        self, mock_delete_repo, mock_create_repository, _
+        self, mock_delete_repo, mock_create_repository, mock_record, _
     ):
         mock_create_repository.return_value = None
         mock_delete_repo.side_effect = Exception
@@ -206,3 +254,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
             )
+
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE

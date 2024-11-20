@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from attr import dataclass
@@ -29,6 +29,9 @@ class SCMIntegrationInteractionType(Enum):
     CREATE_COMMENT = "CREATE_COMMENT"
     UPDATE_COMMENT = "UPDATE_COMMENT"
 
+    # Tasks
+    LINK_ALL_REPOS = "LINK_ALL_REPOS"
+
     def __str__(self) -> str:
         return self.value.lower()
 
@@ -43,8 +46,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     provider_key: str
 
     # Optional attributes to populate extras
-    organization: Organization | RpcOrganization | None = None
-    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None
+    organization: Organization | RpcOrganization | int | None = None
+    org_integration: OrganizationIntegration | RpcOrganizationIntegration | int | None = None
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
@@ -56,7 +59,27 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return str(self.interaction_type)
 
     def get_extras(self) -> Mapping[str, Any]:
+        organization_id = (
+            (
+                self.organization.id
+                if hasattr(self.organization, "id")
+                else self.organization if isinstance(self.organization, int) else None
+            ),
+        )
+        org_integration_id = (
+            self.org_integration.id
+            if hasattr(self.org_integration, "id")
+            else self.org_integration if isinstance(self.org_integration, int) else None
+        )
         return {
-            "organization_id": (self.organization.id if self.organization else None),
-            "org_integration_id": (self.org_integration.id if self.org_integration else None),
+            "organization_id": organization_id,
+            "org_integration_id": org_integration_id,
         }
+
+
+class LinkAllReposHaltReason(StrEnum):
+    """Common reasons why a link all repos task may halt without success/failure."""
+
+    MISSING_INTEGRATION = "missing_integration"
+    MISSING_ORGANIZATION = "missing_organization"
+    RATE_LIMITED = "rate_limited"
