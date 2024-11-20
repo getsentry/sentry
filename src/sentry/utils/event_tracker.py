@@ -14,10 +14,10 @@ class TransactionStageStatus(StrEnum):
     REDIS_PUT = "redis_put"
 
     # a save_transactions task is kicked off
-    SAVE_TRX_STARTED = "save_trx_started"
+    SAVE_TXN_STARTED = "save_txn_started"
 
     # a save_transactions task is finished
-    SAVE_TRX_FINISHED = "save_trx_finished"
+    SAVE_TXN_FINISHED = "save_txn_finished"
 
     # the transaction is published to the `events` topic for snuba/sbc consumers to consume
     SNUBA_TOPIC_PUT = "snuba_topic_put"
