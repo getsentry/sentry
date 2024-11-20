@@ -99,7 +99,7 @@ class TestEvaluateConditionGroupTypeAny(TestCase):
             [],
         )
 
-    def test_evaluate_conditon_group__passes_without_conditions(self):
+    def test_evaluate_condition_group__passes_without_conditions(self):
         data_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY
         )
@@ -152,7 +152,7 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestCase):
             [],
         )
 
-    def test_evaluate_conditon_group__passes_without_conditions(self):
+    def test_evaluate_condition_group__passes_without_conditions(self):
         data_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         )
@@ -202,7 +202,7 @@ class TestEvaluateConditionGroupTypeAll(TestCase):
             [],
         )
 
-    def test_evaluate_conditon_group__passes_without_conditions(self):
+    def test_evaluate_condition_group__passes_without_conditions(self):
         data_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ALL
         )
