@@ -19,9 +19,7 @@ import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import GroupEventDetails, {
-  type GroupEventDetailsProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -148,12 +146,12 @@ export function GroupTagsTab() {
   );
 }
 
-function GroupTagsRoute(props: GroupEventDetailsProps) {
+function GroupTagsRoute() {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   // TODO(streamlined-ui): Point the router to group event details
   if (hasStreamlinedUI) {
-    return <GroupEventDetails {...props} />;
+    return <GroupEventDetails />;
   }
 
   return <GroupTagsTab />;
