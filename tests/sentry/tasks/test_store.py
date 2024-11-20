@@ -14,7 +14,6 @@ from sentry.tasks.store import (
     save_event,
     save_event_transaction,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -402,11 +401,9 @@ def test_store_consumer_type(
 
 
 @django_db_all
-@override_options({"save_event_transactions.post_process_cleanup": True})
 def test_store_consumer_type_transactions_cleanup(
     default_project,
     mock_save_event,
-    mock_save_event_transaction,
     register_plugin,
     mock_event_processing_store,
     mock_transaction_processing_store,
@@ -447,7 +444,6 @@ def test_store_consumer_type_transactions_cleanup(
     }
 
     mock_transaction_processing_store.get.return_value = transaction_data
-    # mock_transaction_processing_store.delete_by_key = mock.Mock()
 
     mock_transaction_processing_store.store.return_value = "tx:3"
 
