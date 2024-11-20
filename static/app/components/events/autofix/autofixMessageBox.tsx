@@ -409,7 +409,7 @@ function AutofixMessageBox({
                       onChange={e => setMessage(e.target.value)}
                       placeholder={
                         !isRootCauseSelectionStep
-                          ? 'Say something...'
+                          ? 'Share helpful context or feedback...'
                           : rootCauseMode === 'suggested_root_cause'
                             ? '(Optional) Provide any instructions for the fix...'
                             : 'Propose your own root cause...'

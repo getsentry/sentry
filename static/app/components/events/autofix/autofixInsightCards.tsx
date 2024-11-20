@@ -135,6 +135,8 @@ interface AutofixInsightCardProps {
   repos: AutofixRepository[];
   runId: string;
   stepIndex: number;
+  isLastInsightInStep?: boolean;
+  shouldHighlightRethink?: boolean;
 }
 
 function AutofixInsightCard({
@@ -146,6 +148,8 @@ function AutofixInsightCard({
   stepIndex,
   groupId,
   runId,
+  shouldHighlightRethink,
+  isLastInsightInStep,
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
 
@@ -165,6 +169,7 @@ function AutofixInsightCard({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isHighlighted={shouldHighlightRethink}
             />
           )}
           {!isUserMessage && (
@@ -288,6 +293,8 @@ function AutofixInsightCard({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isHighlighted={shouldHighlightRethink}
+              isLastCard={isLastInsightInStep}
             />
           )}
         </AnimationWrapper>
@@ -304,6 +311,7 @@ interface AutofixInsightCardsProps {
   repos: AutofixRepository[];
   runId: string;
   stepIndex: number;
+  shouldHighlightRethink?: boolean;
 }
 
 function AutofixInsightCards({
@@ -314,6 +322,7 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldHighlightRethink,
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
@@ -330,6 +339,8 @@ function AutofixInsightCards({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isLastInsightInStep={index === insights.length - 1}
+              shouldHighlightRethink={shouldHighlightRethink}
             />
           )
         )
@@ -350,6 +361,8 @@ function AutofixInsightCards({
             stepIndex={stepIndex}
             groupId={groupId}
             runId={runId}
+            isHighlighted={shouldHighlightRethink}
+            isLastCard
           />
         </EmptyResultsContainer>
       ) : null}
@@ -393,11 +406,15 @@ function ChainLink({
   runId,
   stepIndex,
   insightCardAboveIndex,
+  isHighlighted,
+  isLastCard,
 }: {
   groupId: string;
   insightCardAboveIndex: number | null;
   runId: string;
   stepIndex: number;
+  isHighlighted?: boolean;
+  isLastCard?: boolean;
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
   const [referenceElement, setReferenceElement] = useState<
@@ -452,15 +469,30 @@ function ChainLink({
   return (
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
-      <RethinkButton
-        ref={setReferenceElement}
-        icon={<IconRefresh size="xs" />}
-        size="zero"
-        className="rethink-button"
-        title={t('Rethink from here')}
-        aria-label={t('Rethink from here')}
-        onClick={() => setShowOverlay(true)}
-      />
+      <RethinkButtonContainer className="rethink-button-container">
+        <AnimatePresence>
+          {isLastCard && isHighlighted && (
+            <RethinkMessage
+              initial={{opacity: 0, x: 20}}
+              animate={{opacity: 1, x: 0}}
+              exit={{opacity: 0, x: 20}}
+              transition={{duration: 0.4}}
+            >
+              Not satisfied?
+            </RethinkMessage>
+          )}
+        </AnimatePresence>
+        <RethinkButton
+          ref={setReferenceElement}
+          icon={<IconRefresh size="xs" />}
+          size="zero"
+          className="rethink-button"
+          title={t('Rethink from here')}
+          aria-label={t('Rethink from here')}
+          onClick={() => setShowOverlay(true)}
+          isHighlighted={isHighlighted}
+        />
+      </RethinkButtonContainer>
 
       {showOverlay &&
         createPortal(
@@ -488,7 +520,7 @@ function ChainLink({
             >
               <Input
                 type="text"
-                placeholder="Say something..."
+                placeholder="You should know X... Dive deeper into Y... Look at Z..."
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 size="md"
@@ -591,25 +623,55 @@ const ArrowContainer = styled('div')`
     align-self: center;
   }
 
-  .rethink-button {
+  .rethink-button-container {
     grid-column: 3 / 4;
     justify-self: end;
     align-self: center;
-  }
-
-  &:hover {
-    .rethink-button {
-      color: ${p => p.theme.subText};
-    }
+    position: relative;
   }
 `;
 
-const RethinkButton = styled(Button)`
+const RethinkButtonContainer = styled('div')`
+  position: relative;
+`;
+
+const RethinkMessage = styled(motion.div)`
+  color: ${p => p.theme.active};
+  font-size: ${p => p.theme.fontSizeSmall};
+  position: absolute;
+  right: calc(100% + ${space(1)});
+  margin-top: 1px;
+  white-space: nowrap;
+`;
+
+const RethinkButton = styled(Button)<{isHighlighted?: boolean}>`
   font-weight: normal;
   font-size: small;
   border: none;
   color: ${p => p.theme.subText};
-  transition: color 0.2s ease-in-out;
+  transition: all 0.4s ease-in-out;
+  position: relative;
+
+  ${p =>
+    p.isHighlighted &&
+    `
+    color: ${p.theme.button.primary.backgroundActive};
+    background: ${p.theme.purple100};
+    border-radius: ${p.theme.borderRadius};
+
+    &:hover {
+      color: ${p.theme.activeHover};
+      background: ${p.theme.purple200};
+    }
+  `}
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
 const RethinkInput = styled('div')`

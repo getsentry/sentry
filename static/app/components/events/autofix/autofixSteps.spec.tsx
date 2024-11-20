@@ -190,7 +190,7 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...propsWithChanges} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Feedback on changes');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
