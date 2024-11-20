@@ -92,4 +92,5 @@ T = TypeVar("T")
 class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
+    outcome_reason: str | Exception | None = None
     context_data: dict | None = None

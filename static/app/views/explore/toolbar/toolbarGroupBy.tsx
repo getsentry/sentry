@@ -20,7 +20,13 @@ import {useSpanTags} from '../contexts/spanTagsContext';
 import type {Column} from '../hooks/useDragNDropColumns';
 import {useResultMode} from '../hooks/useResultsMode';
 
-import {ToolbarHeader, ToolbarHeaderButton, ToolbarLabel, ToolbarSection} from './styles';
+import {
+  ToolbarHeader,
+  ToolbarHeaderButton,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from './styles';
 
 interface ToolbarGroupByProps {
   disabled?: boolean;
@@ -77,14 +83,16 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
             >
               <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
             </Tooltip>
-            <ToolbarHeaderButton
-              disabled={disabled}
-              size="zero"
-              onClick={insertColumn}
-              borderless
-              aria-label={t('Add Group')}
-              icon={<IconAdd />}
-            />
+            <Tooltip title={t('Add a new group')}>
+              <ToolbarHeaderButton
+                disabled={disabled}
+                size="zero"
+                onClick={insertColumn}
+                borderless
+                aria-label={t('Add Group')}
+                icon={<IconAdd />}
+              />
+            </Tooltip>
           </StyledToolbarHeader>
           {editableColumns.map((column, i) => (
             <ColumnEditorRow
@@ -185,11 +193,7 @@ function ColumnEditorRow({
   );
 }
 
-const RowContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-
+const RowContainer = styled(ToolbarRow)`
   :not(:first-child) {
     margin-top: ${space(1)};
   }

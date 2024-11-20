@@ -562,6 +562,19 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
+    def test_count_field_type(self):
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["fields"] == {"count()": "integer"}
+        assert response.data["meta"]["units"] == {"count()": None}
+        assert response.data["data"] == [{"count()": 0}]
+
     def test_simple_measurements(self):
         keys = [
             ("app_start_cold", "duration", "millisecond"),
@@ -655,6 +668,35 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                     "project.name": self.project.slug,
                 }
             ]
+
+    def test_environment(self):
+        self.create_environment(self.project, name="prod")
+        self.create_environment(self.project, name="test")
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"environment": "prod"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"environment": "test"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["environment", "count()"],
+                "project": self.project.id,
+                "environment": "prod",
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {"environment": "prod", "count()": 1},
+        ]
 
     def test_transaction(self):
         self.store_spans(
