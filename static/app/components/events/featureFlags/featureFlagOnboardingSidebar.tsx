@@ -7,7 +7,10 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
-import {ProviderOptions} from 'sentry/components/events/featureFlags/utils';
+import {
+  IntegrationOptions,
+  ProviderOptions,
+} from 'sentry/components/events/featureFlags/utils';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -320,7 +323,9 @@ function OnboardingContent({
         projectSlug={currentProject.slug}
         integration={
           // either OpenFeature or the SDK selected from the second dropdown
-          setupMode() === 'openFeature' ? ProviderOptions.OPENFEATURE : sdkProvider.value
+          setupMode() === 'openFeature'
+            ? IntegrationOptions.OPENFEATURE
+            : sdkProvider.value
         }
         provider={
           // dropdown value (from either dropdown)

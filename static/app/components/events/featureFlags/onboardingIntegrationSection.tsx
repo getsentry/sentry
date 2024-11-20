@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
+import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconCheckmark} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -86,9 +88,12 @@ export default function OnboardingIntegrationSection({
           ) : null}
         </SubSection>
         <SubSection>
-          {t(
-            'Once the token is saved, go back to your feature flag service and create a webhook integration using the URL provided below.'
-          )}
+          <div>
+            {tct(
+              'Once the token is saved, go back to your [link:feature flag service] and create a webhook integration using the URL provided below.',
+              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+            )}
+          </div>
           <InputTitle>{t('Webhook URL')}</InputTitle>
           <TextCopyInput
             style={{padding: '20px'}}
