@@ -122,10 +122,23 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
   }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[]) => {
-      return dedupedYAxes.flatMap(yAxis => {
-        const series = timeSeriesResult.data[yAxis];
-        return series !== undefined ? series : [];
+    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+      return dedupedYAxes.flatMap((yAxis, i) => {
+        const series = timeSeriesResult.data[yAxis] ?? [];
+        return series.map(s => {
+          // We replace the series name with the formatted series name here
+          // when possible as it's cleaner to read.
+          //
+          // We can't do this in top N mode as the series name uses the row
+          // values instead of the aggregate function.
+          if (s.seriesName === yAxis) {
+            return {
+              ...s,
+              seriesName: formattedYAxes[i] ?? yAxis,
+            };
+          }
+          return s;
+        });
       });
     },
     [timeSeriesResult]
@@ -153,12 +166,10 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
 
-        const formattedYAxes = dedupedYAxes
-          .map(yaxis => {
-            const func = parseFunction(yaxis);
-            return func ? formatParsedFunction(func) : undefined;
-          })
-          .filter(Boolean);
+        const formattedYAxes = dedupedYAxes.map(yaxis => {
+          const func = parseFunction(yaxis);
+          return func ? formatParsedFunction(func) : undefined;
+        });
 
         const {chartType, label, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
@@ -191,12 +202,14 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
             }))
           : undefined;
 
+        const data = getSeries(dedupedYAxes, formattedYAxes);
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
                 {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
-                <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
+                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
@@ -262,7 +275,7 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
-                data={getSeries(dedupedYAxes)}
+                data={data}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
                 chartGroup={EXPLORE_CHART_GROUP}
