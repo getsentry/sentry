@@ -131,6 +131,41 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_all_repos_api_response_keyerror_single_repo(self, mock_record, _):
+
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories?per_page=100",
+            status=200,
+            json={
+                "total_count": 2,
+                "repositories": [
+                    {
+                        "full_name": "getsentry/sentry",
+                    },
+                ],
+            },
+        )
+
+        link_all_repos(
+            integration_key=self.key,
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+        )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            repos = Repository.objects.all()
+        assert len(repos) == 0
+
+        start, halt = mock_record.mock_calls
+
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
     def test_link_all_repos_missing_integration(self, mock_metrics, mock_record, _):
@@ -234,7 +269,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.services.repository.repository_service.create_repository")

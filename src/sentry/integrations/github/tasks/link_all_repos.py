@@ -44,8 +44,8 @@ def link_all_repos(
     with SCMIntegrationInteractionEvent(
         interaction_type=SCMIntegrationInteractionType.LINK_ALL_REPOS,
         provider_key=integration_key,
-        organization=organization_id,
     ).capture() as lifecycle:
+        lifecycle.add_extra("organization_id", organization_id)
         integration = integration_service.get_integration(
             integration_id=integration_id, status=ObjectStatus.ACTIVE
         )
@@ -90,14 +90,21 @@ def link_all_repos(
 
         integration_repo_provider = get_integration_repository_provider(integration)
 
+        # If we successfully create any repositories, we'll set this to True
+        success = False
+
         for repo in repositories:
             try:
                 config = get_repo_config(repo, integration_id)
                 integration_repo_provider.create_repository(
                     repo_config=config, organization=rpc_org
                 )
+                success = True
             except KeyError:
                 continue
             except RepoExistsError:
                 metrics.incr("sentry.integration_repo_provider.repo_exists")
                 continue
+
+        if not success:
+            lifecycle.record_halt(str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED))

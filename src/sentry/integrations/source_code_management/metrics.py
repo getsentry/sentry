@@ -46,8 +46,8 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     provider_key: str
 
     # Optional attributes to populate extras
-    organization: Organization | RpcOrganization | int | None = None
-    org_integration: OrganizationIntegration | RpcOrganizationIntegration | int | None = None
+    organization: Organization | RpcOrganization | None = None
+    org_integration: OrganizationIntegration | RpcOrganizationIntegration | None = None
 
     def get_integration_domain(self) -> IntegrationDomain:
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
@@ -59,16 +59,9 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return str(self.interaction_type)
 
     def get_extras(self) -> Mapping[str, Any]:
-        def get_id(obj: Any) -> int | None:
-            if hasattr(obj, "id"):
-                return obj.id
-            if isinstance(obj, int):
-                return obj
-            return None
-
         return {
-            "organization_id": get_id(self.organization),
-            "org_integration_id": get_id(self.org_integration),
+            "organization_id": (self.organization.id if self.organization else None),
+            "org_integration_id": (self.org_integration.id if self.org_integration else None),
         }
 
 
@@ -78,3 +71,4 @@ class LinkAllReposHaltReason(StrEnum):
     MISSING_INTEGRATION = "missing_integration"
     MISSING_ORGANIZATION = "missing_organization"
     RATE_LIMITED = "rate_limited"
+    REPOSITORY_NOT_CREATED = "repository_not_created"
