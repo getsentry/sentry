@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -47,7 +48,11 @@ import {
   WrappingText,
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
-export function TracesTable() {
+interface TracesTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
+
+export function TracesTable({setError}: TracesTableProps) {
   const [dataset] = useDataset();
   const [query] = useUserQuery();
   const [visualizes] = useVisualizes();
@@ -63,6 +68,10 @@ export function TracesTable() {
     sort: '-timestamp',
     cursor,
   });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
 
   useAnalytics({
     resultLength: result.data?.data?.length,
@@ -84,13 +93,8 @@ export function TracesTable() {
 
   const {data, isPending, isError, getResponseHeader} = result;
 
-  const showErrorState = useMemo(() => {
-    return !isPending && isError;
-  }, [isPending, isError]);
-
-  const showEmptyState = useMemo(() => {
-    return !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
-  }, [data, isPending, showErrorState]);
+  const showErrorState = !isPending && isError;
+  const showEmptyState = !isPending && !showErrorState && (data?.data?.length ?? 0) === 0;
 
   return (
     <Fragment>
@@ -119,15 +123,15 @@ export function TracesTable() {
               <LoadingIndicator />
             </StyledPanelItem>
           )}
-          {showErrorState && ( // TODO: need an error state
-            <StyledPanelItem span={7} overflow>
-              <EmptyStreamWrapper>
-                <IconWarning color="gray300" size="lg" />
-              </EmptyStreamWrapper>
+          {showErrorState && (
+            <StyledPanelItem span={6} overflow>
+              <WarningStreamWrapper>
+                <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
+              </WarningStreamWrapper>
             </StyledPanelItem>
           )}
           {showEmptyState && (
-            <StyledPanelItem span={7} overflow>
+            <StyledPanelItem span={6} overflow>
               <EmptyStateWarning withIcon>
                 <EmptyStateText size="fontSizeExtraLarge">
                   {t('No trace results found')}
@@ -311,4 +315,10 @@ function TraceRow({
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};
+`;
+
+const WarningStreamWrapper = styled(EmptyStreamWrapper)`
+  > svg {
+    fill: ${p => p.theme.gray300};
+  }
 `;
