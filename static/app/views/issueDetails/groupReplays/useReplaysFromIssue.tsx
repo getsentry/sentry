@@ -10,6 +10,9 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 export default function useReplaysFromIssue({
@@ -22,6 +25,7 @@ export default function useReplaysFromIssue({
   organization: Organization;
 }) {
   const api = useApi();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const [replayIds, setReplayIds] = useState<string[]>();
 
@@ -53,6 +57,19 @@ export default function useReplaysFromIssue({
     }
   }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
+  const searchQuery = useEventQuery({group});
+  const replayQuery = replayIds?.length ? `id:[${String(replayIds)}]` : 'id:1';
+  const combinedQuery = [searchQuery, replayQuery].join(' ').trim();
+  const issueDetailsEventView = useIssueDetailsEventView({
+    group,
+    queryProps: {
+      version: 2,
+      fields: REPLAY_LIST_FIELDS,
+      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
+    },
+  });
+  issueDetailsEventView.query = combinedQuery;
+
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {
       return null;
@@ -78,7 +95,7 @@ export default function useReplaysFromIssue({
   }, [fetchReplayIds]);
 
   return {
-    eventView,
+    eventView: hasStreamlinedUI ? issueDetailsEventView : eventView,
     fetchError,
     isFetching: replayIds === undefined,
     pageLinks: null,
