@@ -3005,7 +3005,7 @@
     },
     "model": "sentry.incident",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3033,7 +3033,7 @@
     },
     "model": "sentry.incidentactivity",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3112,7 +3112,7 @@
     },
     "model": "sentry.incidentsnapshot",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3139,7 +3139,7 @@
     },
     "model": "sentry.incidentsubscription",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3167,7 +3167,7 @@
     },
     "model": "sentry.incidenttrigger",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -4096,7 +4096,7 @@
     },
     "model": "sentry.pendingincidentsnapshot",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -6059,7 +6059,7 @@
     "relocation_dependencies": [
       "sentry.incident"
     ],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
