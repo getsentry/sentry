@@ -16,15 +16,9 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics, redis
-from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.iterators import chunked
-from sentry.workflow_engine.models import (
-    DataCondition,
-    DataConditionGroup,
-    DataPacket,
-    Detector,
-    DetectorState,
-)
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector, DetectorState
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -44,6 +38,7 @@ class DetectorEvaluationResult:
     event_data: dict[str, Any] | None = None
 
 
+# TODO - Add metrics / logging here
 def process_detectors(
     data_packet: DataPacket, detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluationResult]]]:
@@ -55,6 +50,7 @@ def process_detectors(
         if not handler:
             continue
 
+        # TODO add metric here for detector processing
         detector_results = handler.evaluate(data_packet)
 
         for result in detector_results.values():
@@ -62,6 +58,7 @@ def process_detectors(
                 create_issue_occurrence_from_result(result)
 
         if detector_results:
+            # TODO - Add metrics / logging here for successful result
             results.append((detector, detector_results))
 
         # Now that we've processed all results for this detector, commit any state changes
@@ -115,12 +112,19 @@ class DetectorHandler(abc.ABC, Generic[T]):
     def __init__(self, detector: Detector):
         self.detector = detector
         if detector.workflow_condition_group_id is not None:
-            results = get_data_group_conditions_and_group(detector.workflow_condition_group_id)
-            self.condition_group: DataConditionGroup | None = results[0]
-            self.conditions: list[DataCondition] = results[1]
+            try:
+                group = DataConditionGroup.objects.get_from_cache(
+                    id=detector.workflow_condition_group_id
+                )
+                self.condition_group: DataConditionGroup | None = group
+            except DataConditionGroup.DoesNotExist:
+                logger.exception(
+                    "Failed to find the data condition group for detector",
+                    extra={"detector_id": detector.id},
+                )
+                self.condition_group = None
         else:
             self.condition_group = None
-            self.conditions = []
 
     @abc.abstractmethod
     def evaluate(
@@ -268,18 +272,23 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None
 
+        # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
+        # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
+        # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
+        # level, but usually we want to set this at a higher level.
         new_status = DetectorPriorityLevel.OK
+        is_group_condition_met, condition_results = evaluate_condition_group(
+            self.condition_group, value
+        )
 
-        for condition in self.conditions:
-            # TODO: We need to handle tracking consecutive evaluations before emitting a result here. We're able to
-            # store these in `DetectorStateData.counter_updates`, but we don't have anywhere to set the required
-            # thresholds at the moment. Probably should be a field on the Detector? Could also be on the condition
-            # level, but usually we want to set this at a higher level.
-            evaluation = condition.evaluate_value(value)
+        if is_group_condition_met:
+            validated_condition_results: list[DetectorPriorityLevel] = [
+                result
+                for result in condition_results
+                if result is not None and isinstance(result, DetectorPriorityLevel)
+            ]
 
-            # ensures that the result is a DetectorPriorityLevel, and then uses the highest priority
-            if isinstance(evaluation, DetectorPriorityLevel):
-                new_status = max(new_status, evaluation)
+            new_status = max(new_status, *validated_condition_results)
 
         # TODO: We'll increment and change these later, but for now they don't change so just pass an empty dict
         self.enqueue_counter_update(group_key, {})
@@ -407,24 +416,3 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         if updated_detector_states:
             DetectorState.objects.bulk_update(updated_detector_states, ["active", "state"])
         self.state_updates.clear()
-
-
-@cache_func_for_models(
-    [
-        (DataConditionGroup, lambda group: (group.id,)),
-        (DataCondition, lambda condition: (condition.condition_group_id,)),
-    ],
-    # There shouldn't be stampedes to fetch this data, and we might update multiple `DataConditionGroup`s at the same
-    # time, so we'd prefer to avoid re-fetching this many times. Just bust the cache and re-fetch lazily.
-    recalculate=False,
-)
-def get_data_group_conditions_and_group(
-    data_condition_group_id: int,
-) -> tuple[DataConditionGroup | None, list[DataCondition]]:
-    try:
-        group = DataConditionGroup.objects.get(id=data_condition_group_id)
-        conditions = list(group.datacondition_set.all())
-    except DataConditionGroup.DoesNotExist:
-        group = None
-        conditions = []
-    return group, conditions
