@@ -6,7 +6,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -53,7 +52,8 @@ class DataCondition(DefaultFieldsModel):
     type = models.CharField(max_length=200)
 
     condition_group = models.ForeignKey(
-        DataConditionGroup,
+        "workflow_engine.DataConditionGroup",
+        related_name="conditions",
         on_delete=models.CASCADE,
     )
 
