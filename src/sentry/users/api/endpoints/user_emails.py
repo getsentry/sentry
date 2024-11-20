@@ -2,8 +2,6 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from django.http import HttpResponseRedirect
-from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -155,7 +153,7 @@ class UserEmailsEndpoint(UserEndpoint):
         use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
         if use_signed_urls:
             add_email_signed(email, user)
-            return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
+            return self.respond(status=201)
         else:
             try:
                 new_useremail = add_email(email, user)
