@@ -2919,6 +2919,7 @@ register(
     "performance.event-tracker.sample-rate.transaction",
     default=0.0,
 )
+
 register(
     "transactions.do_post_process_in_save",
     type=Bool,
