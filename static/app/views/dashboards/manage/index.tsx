@@ -22,7 +22,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd, IconDashboard, IconList} from 'sentry/icons';
+import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -38,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
+import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
@@ -45,12 +46,13 @@ import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
-import DashboardList from './dashboardList';
+import DashboardGrid from './dashboardGrid';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+  DASHBOARD_TABLE_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import TemplateCard from './templateCard';
@@ -116,7 +118,8 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
-          per_page: rowCount * columnCount,
+          per_page:
+            dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
       },
     ],
@@ -264,17 +267,14 @@ function ManageDashboards() {
               key="grid"
               textValue="grid"
               aria-label={t('Grid View')}
-            >
-              {/* TODO (nikkikapadia): replace this icon with correct one once made */}
-              <IconDashboard />
-            </SegmentedControl.Item>
+              icon={<IconGrid />}
+            />
             <SegmentedControl.Item
               key="list"
               textValue="list"
               aria-label={t('List View')}
-            >
-              <IconList />
-            </SegmentedControl.Item>
+              icon={<IconList />}
+            />
           </SegmentedControl>
         </Feature>
         <CompactSelect
@@ -297,8 +297,8 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
-    return (
-      <DashboardList
+    return dashboardsLayout === GRID ? (
+      <DashboardGrid
         api={api}
         dashboards={dashboards}
         organization={organization}
@@ -307,6 +307,15 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
+      />
+    ) : (
+      <DashboardTable
+        api={api}
+        dashboards={dashboards}
+        organization={organization}
+        location={location}
+        onDashboardsChange={() => refetchDashboards()}
+        isLoading={isLoading}
       />
     );
   }
