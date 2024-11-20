@@ -52,7 +52,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
     label: t('Insights'),
     icon: <IconGraph />,
     feature: {features: 'insights-entry-points'},
-    id: 'insights',
+    analyticsKey: 'insights',
     submenu: [
       {
         label: MODULE_TITLE_HTTP,
@@ -95,7 +95,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perf: NavSidebarItem = {
     label: t('Perf.'),
     to: '/performance/',
-    id: 'performance',
+    analyticsKey: 'performance',
     icon: <IconLightning />,
     feature: {
       features: 'performance-view',
@@ -106,7 +106,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perfDomainViews: NavSidebarItem = {
     label: t('Perf.'),
     icon: <IconLightning />,
-    id: 'insights-domains',
+    analyticsKey: 'insights-domains',
     feature: {features: ['insights-domain-view', 'performance-view']},
     submenu: [
       {
@@ -133,7 +133,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Issues'),
         icon: <IconIssues />,
-        id: 'issues',
+        analyticsKey: 'issues',
         submenu: [
           {
             label: t('All'),
@@ -160,14 +160,14 @@ export function createNavConfig({organization}: {organization: Organization}): N
       },
       {
         label: t('Projects'),
-        id: 'projects',
+        analyticsKey: 'projects',
         to: `/${prefix}/projects/`,
         icon: <IconProject />,
       },
       {
         label: t('Explore'),
         icon: <IconSearch />,
-        id: 'explore',
+        analyticsKey: 'explore',
         submenu: [
           {
             label: t('Traces'),
@@ -211,7 +211,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       ...(hasPerfDomainViews ? [perfDomainViews, perf] : [insights, perf]),
       {
         label: t('Boards'),
-        id: 'customizable-dashboards',
+        analyticsKey: 'customizable-dashboards',
         to: '/dashboards/',
         icon: <IconDashboard />,
         feature: {
@@ -222,7 +222,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       },
       {
         label: t('Alerts'),
-        id: 'alerts',
+        analyticsKey: 'alerts',
         to: `/${prefix}/alerts/rules/`,
         icon: <IconSiren />,
       },
@@ -231,7 +231,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Help'),
         icon: <IconQuestion />,
-        id: 'help',
+        analyticsKey: 'help',
         dropdown: [
           {
             key: 'search',
@@ -259,7 +259,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       },
       {
         label: t('Settings'),
-        id: 'settings',
+        analyticsKey: 'settings',
         to: `/settings/${organization.slug}/`,
         icon: <IconSettings />,
       },

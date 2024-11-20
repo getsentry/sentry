@@ -109,8 +109,9 @@ function SidebarItem({item}: SidebarItemProps) {
   const featureGuardProps: any = item.feature ?? {};
 
   const recordAnalytics = useCallback(
-    () => trackAnalytics('growth.clicked_sidebar', {item: item.id, organization}),
-    [organization, item.id]
+    () =>
+      trackAnalytics('growth.clicked_sidebar', {item: item.analyticsKey, organization}),
+    [organization, item.analyticsKey]
   );
 
   return (
