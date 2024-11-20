@@ -2734,6 +2734,41 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
         ]
 
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+    @override_options({"save_event_transactions.sample_transactions_in_save": True})
+    def test_process_transaction_event_clusterer_flag_off(
+        self,
+        mock_store_transaction_name,
+    ):
+        min_ago = before_now(minutes=1)
+        event = process_event(
+            data={
+                "project": self.project.id,
+                "event_id": "b" * 32,
+                "transaction": "foo",
+                "start_timestamp": str(min_ago),
+                "timestamp": str(min_ago),
+                "type": "transaction",
+                "transaction_info": {
+                    "source": "url",
+                },
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            group_id=0,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=None,
+            project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
+        )
+
+        assert mock_store_transaction_name.mock_calls == []
+
 
 class PostProcessGroupGenericTest(
     TestCase,

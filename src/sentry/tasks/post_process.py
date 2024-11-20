@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
@@ -611,7 +611,9 @@ def post_process_group(
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
-        if is_transaction_event:
+        if is_transaction_event and not options.get(
+            "save_event_transactions.sample_transactions_in_save"
+        ):
             record_transaction_name_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
