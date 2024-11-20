@@ -109,10 +109,10 @@ export default function SolutionsSection({
       if (needsAutofixSetup) {
         return t('Set up Autofix');
       }
-      return hasResources ? t('View Resources & Autofix') : t('View Autofix');
+      return hasResources ? t('Open Resources & Autofix') : t('Open Autofix');
     }
 
-    return t('View Resources');
+    return t('Open Resources');
   };
 
   const renderContent = () => {
