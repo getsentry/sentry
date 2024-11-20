@@ -370,12 +370,14 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
+  const isJSPlatform = event.platform?.includes('javascript');
+
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      title={t('Images Loaded')}
+      title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse
@@ -383,7 +385,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
+            placeholder={isJSPlatform ? t('Search source maps') : t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}

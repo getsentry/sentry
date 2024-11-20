@@ -6,7 +6,7 @@ type Props = {
 };
 
 function NoStackTraceMessage({message}: Props) {
-  return <Alert type="error">{message ?? t('No or unknown stacktrace')}</Alert>;
+  return <Alert type="muted">{message ?? t('No stacktrace found.')}</Alert>;
 }
 
 export default NoStackTraceMessage;
