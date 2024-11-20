@@ -157,18 +157,20 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
         <Tooltip
           position="right"
           title={t(
-            'Primary metric that appears in your chart, overlays and/or equations.'
+            'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
           )}
         >
           <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
         </Tooltip>
-        <ToolbarHeaderButton
-          size="zero"
-          icon={<IconAdd />}
-          onClick={addChart}
-          aria-label={t('Add Chart')}
-          borderless
-        />
+        <Tooltip title={t('Add a new chart')}>
+          <ToolbarHeaderButton
+            size="zero"
+            icon={<IconAdd />}
+            onClick={addChart}
+            aria-label={t('Add Chart')}
+            borderless
+          />
+        </Tooltip>
       </ToolbarHeader>
       <div>
         {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
