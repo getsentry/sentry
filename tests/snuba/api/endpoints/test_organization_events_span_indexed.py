@@ -562,6 +562,19 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
+    def test_count_field_type(self):
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["fields"] == {"count()": "integer"}
+        assert response.data["meta"]["units"] == {"count()": None}
+        assert response.data["data"] == [{"count()": 0}]
+
     def test_simple_measurements(self):
         keys = [
             ("app_start_cold", "duration", "millisecond"),

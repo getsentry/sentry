@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -11,11 +12,7 @@ import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {
-  aggregateOutputType,
-  formatParsedFunction,
-  parseFunction,
-} from 'sentry/utils/discover/fields';
+import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -42,6 +39,7 @@ import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
 const exploreChartTypeOptions = [
@@ -62,7 +60,7 @@ const exploreChartTypeOptions = [
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
-export function ExploreCharts({query}: ExploreChartsProps) {
+export function ExploreCharts({query, setError}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -118,6 +116,10 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     'api.explorer.stats',
     dataset
   );
+
+  useEffect(() => {
+    setError(timeSeriesResult.error?.message ?? '');
+  }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[]) => {
@@ -267,8 +269,6 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
-                // for now, use the first y axis unit
-                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
               />
             </ChartPanel>
           </ChartContainer>
