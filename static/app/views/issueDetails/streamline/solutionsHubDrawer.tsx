@@ -27,10 +27,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  getConfigForIssueType,
-  shouldShowCustomErrorResourceConfig,
-} from 'sentry/utils/issueTypeConfig';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -169,7 +166,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   const displayAiAutofix =
     shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
-    !shouldShowCustomErrorResourceConfig(group, project) &&
     hasStacktraceWithFrames(event) &&
     !isSampleError;
 
