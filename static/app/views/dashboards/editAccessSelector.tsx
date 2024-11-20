@@ -225,6 +225,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           key="beta-badge"
           type="beta"
           title={t('This feature is available for early adopters and may change')}
+          tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
         />,
         t('Edit Access:'),
         triggerAvatars,
