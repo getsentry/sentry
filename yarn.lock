@@ -6570,11 +6570,6 @@ escodegen@^2.0.0:
   optionalDependencies:
     source-map "~0.6.1"
 
-eslint-config-sentry@^2.10.0:
-  version "2.10.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-2.10.0.tgz#41437ef8481c6375bd1816a912f3629e57b2a6fb"
-  integrity sha512-81IE9qoV3A8+KUDYHkwHtj4dO4XufoUwpXHJVi+5H6iuSRRGsDwIIgMegKblwnihomye6FkNxS/sCOHXEK7p3A==
-
 eslint-import-resolver-node@^0.3.9:
   version "0.3.9"
   resolved "https://registry.yarnpkg.com/eslint-import-resolver-node/-/eslint-import-resolver-node-0.3.9.tgz#d4eaac52b8a2e7c3cd1903eb00f7e053356118ac"
