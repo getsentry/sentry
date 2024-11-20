@@ -31,9 +31,19 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
     if (resultMode === 'samples') {
       return sampleFields;
     }
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
+
+    const allFields = [...groupBys];
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    return allFields.filter(Boolean);
   }, [resultMode, sampleFields, groupBys, visualizes]);
 
   const [sorts, setSorts] = useSorts({fields});
