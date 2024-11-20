@@ -309,7 +309,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                 sample_rate=1.0,
                 tags={
                     "call_made": False,
-                    "platform": "python",
                     "blocker": "over-threshold-only-system-frames",
                 },
             ),
