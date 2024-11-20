@@ -25,14 +25,10 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
       ariaLabel: t('Issue Activity'),
       shouldCloseOnInteractOutside: () => false,
       onClose: () => {
-        // Remove drawer state from URL
         navigate(
           {
             pathname: baseUrl,
-            query: {
-              ...location.query,
-              cursor: undefined,
-            },
+            query: location.query,
           },
           {replace: true}
         );

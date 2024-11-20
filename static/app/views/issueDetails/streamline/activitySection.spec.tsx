@@ -172,9 +172,9 @@ describe('StreamlinedActivitySection', function () {
 
     render(<StreamlinedActivitySection group={updatedActivityGroup} />);
     expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
-    expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
-    expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
-    expect(await screen.findByText('4 activities hidden')).toBeInTheDocument();
+    expect(await screen.findByText('Test Note 3')).toBeInTheDocument();
+    expect(screen.queryByText('Test Note 7')).not.toBeInTheDocument();
+    expect(await screen.findByText('View 4 more')).toBeInTheDocument();
   });
 
   it('does not collapse activity when rendered in the drawer', function () {
@@ -201,8 +201,6 @@ describe('StreamlinedActivitySection', function () {
       ).toBeInTheDocument();
     }
 
-    expect(
-      screen.queryByRole('button', {name: 'Show all activity'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

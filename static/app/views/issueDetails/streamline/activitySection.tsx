@@ -10,7 +10,7 @@ import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconPanel} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -176,11 +176,10 @@ export default function StreamlinedActivitySection({
       {!isDrawer && (
         <Flex justify="space-between" align="center">
           <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <LinkButton
-            size="xs"
-            icon={<IconPanel direction="right" />}
+          <TextLinkButton
+            borderless
+            size="zero"
             aria-label={t('Open activity drawer')}
-            title={t('Open activity drawer')}
             to={{
               pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
               query: {
@@ -193,7 +192,9 @@ export default function StreamlinedActivitySection({
             analyticsParams={{
               num_activities: group.activity.length,
             }}
-          />
+          >
+            {t('View')}
+          </TextLinkButton>
         </Flex>
       )}
       <Timeline.Container>
@@ -222,7 +223,7 @@ export default function StreamlinedActivitySection({
           })}
         {!isDrawer && group.activity.length >= 5 && (
           <Fragment>
-            {group.activity.slice(0, 2).map(item => {
+            {group.activity.slice(0, 3).map(item => {
               return (
                 <TimelineItem
                   item={item}
@@ -235,8 +236,8 @@ export default function StreamlinedActivitySection({
             })}
             <ActivityTimelineItem
               title={
-                <TextButton
-                  aria-label={t('Show all activity')}
+                <LinkButton
+                  aria-label={t('View all activity')}
                   to={{
                     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
                     query: {
@@ -244,25 +245,17 @@ export default function StreamlinedActivitySection({
                       cursor: undefined,
                     },
                   }}
-                  borderless
-                  size="zero"
+                  size="xs"
                   analyticsEventKey="issue_details.activity_expanded"
                   analyticsEventName="Issue Details: Activity Expanded"
                   analyticsParams={{
                     num_activities_hidden: group.activity.length - 3,
                   }}
                 >
-                  {t('%s activities hidden', group.activity.length - 3)}
-                </TextButton>
+                  {t('View %s more', group.activity.length - 3)}
+                </LinkButton>
               }
               icon={<RotatedEllipsisIcon direction={'up'} />}
-            />
-            <TimelineItem
-              item={group.activity[group.activity.length - 1]}
-              handleDelete={handleDelete}
-              group={group}
-              teams={teams}
-              key={group.activity[group.activity.length - 1].id}
             />
           </Fragment>
         )}
@@ -292,7 +285,7 @@ const Timestamp = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const TextButton = styled(LinkButton)`
+const TextLinkButton = styled(LinkButton)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
