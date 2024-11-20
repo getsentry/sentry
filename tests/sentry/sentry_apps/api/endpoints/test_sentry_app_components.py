@@ -286,7 +286,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": f"Missing `value` or `label` in option data for SelectField, while preparing component: {str(self.component1.uuid)}",
+                "error": f"Encountered error: Missing `value` or `label` in option data for SelectField, while preparing component: {str(self.component1.uuid)}",
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -310,11 +310,42 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         assert response.data == expected
 
+    @patch("sentry_sdk.capture_exception")
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_component_prep_general_error(self, run):
-        run.side_effect = [Exception(), self.component2]
+    def test_component_prep_general_error(self, run, capture_exception):
+        run.side_effect = [Exception(":dead:"), KeyError("oh shit swip split snip")]
+        capture_exception.return_value = 1
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": f"Something went wrong while trying to link issue for component: {str(self.component1.uuid)}. Sentry error ID: {capture_exception.return_value}",
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
+            {
+                "uuid": str(self.component2.uuid),
+                "type": self.component2.type,
+                "schema": self.component2.schema,
+                "error": f"Something went wrong while trying to link issue for component: {str(self.component2.uuid)}. Sentry error ID: {capture_exception.return_value}",
+                "sentryApp": {
+                    "uuid": self.sentry_app2.uuid,
+                    "slug": self.sentry_app2.slug,
+                    "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
+                },
+            },
+        ]
 
-        pass
+        assert response.data == expected
 
     def _get_component_uris(
         self, component_field: str, component: SentryAppComponent
