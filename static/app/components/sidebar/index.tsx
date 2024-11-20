@@ -721,7 +721,12 @@ function Sidebar() {
             )}
           </DropdownSidebarSection>
 
-          {!collapsed ? <DismissableRollbackBanner /> : null}
+          {organization ? (
+            <DismissableRollbackBanner
+              organization={organization}
+              collapsed={collapsed}
+            />
+          ) : null}
 
           <PrimaryItems>
             {hasOrganization && (

@@ -1,19 +1,7 @@
 import styled from '@emotion/styled';
 
-import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
-
-type RollbackNotificationDotProps = {
-  collapsed: boolean;
-};
-
-export function RollbackNotificationDot({collapsed}: RollbackNotificationDotProps) {
-  const {shouldShowDot} = useRollbackPrompts({collapsed});
-
-  if (!shouldShowDot) {
-    return null;
-  }
-
-  return <Dot />;
+export function RollbackNotificationDot() {
+  return <Dot data-test-id="rollback-notification-dot" />;
 }
 
 const Dot = styled('div')`

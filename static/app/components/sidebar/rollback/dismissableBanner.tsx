@@ -1,18 +1,38 @@
 import styled from '@emotion/styled';
 
 import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
+import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 
-export function DismissableRollbackBanner() {
+type DismissableRollbackBannerProps = {collapsed: boolean; organization: Organization};
+
+export function DismissableRollbackBanner({
+  collapsed,
+  organization,
+}: DismissableRollbackBannerProps) {
   const config = useLegacyStore(ConfigStore);
 
   const isDarkMode = config.theme === 'dark';
 
+  const {shouldShowSidebarBanner, onDismissSidebarBanner} = useRollbackPrompts({
+    collapsed,
+    organization,
+  });
+
+  if (!shouldShowSidebarBanner || !organization) {
+    return null;
+  }
+
   return (
     <Wrapper>
-      <TranslucentBackgroundBanner dismissable isDarkMode={isDarkMode} />
+      <TranslucentBackgroundBanner
+        organization={organization}
+        isDarkMode={isDarkMode}
+        handleDismiss={onDismissSidebarBanner}
+      />
     </Wrapper>
   );
 }

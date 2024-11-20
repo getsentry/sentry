@@ -2,24 +2,22 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
-import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
 
-type RollbackBannerProps = {className?: string; dismissable?: boolean};
+type RollbackBannerProps = {
+  organization: Organization;
+  className?: string;
+  handleDismiss?: () => void;
+};
 
-export function RollbackBanner({className, dismissable}: RollbackBannerProps) {
-  const organization = useOrganization();
-  const {shouldShowSidebarBanner, onDismissSidebarBanner} = useRollbackPrompts({
-    collapsed: false,
-  });
-
-  if (!shouldShowSidebarBanner) {
-    return null;
-  }
-
+export function RollbackBanner({
+  className,
+  handleDismiss,
+  organization,
+}: RollbackBannerProps) {
   return (
     <StyledPanel className={className}>
       <Title>🥳 {t('Your 2024 Rollback')}</Title>
@@ -37,17 +35,17 @@ export function RollbackBanner({className, dismissable}: RollbackBannerProps) {
       >
         {t('View My Rollback')}
       </RollbackButton>
-      {dismissable && (
+      {handleDismiss ? (
         <DismissButton
           icon={<IconClose />}
           aria-label={t('Dismiss')}
-          onClick={onDismissSidebarBanner}
+          onClick={handleDismiss}
           size="xs"
           borderless
           analyticsEventKey="rollback.sidebar_dismiss_clicked"
           analyticsEventName="Rollback: Sidebar Dismiss Clicked"
         />
-      )}
+      ) : null}
     </StyledPanel>
   );
 }

@@ -1,11 +1,16 @@
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useRollback} from 'sentry/components/sidebar/rollback/useRollback';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
 
-export function useRollbackPrompts({collapsed}: {collapsed: boolean}) {
-  const organization = useOrganization();
-  const hasRollback = organization.features.includes('sentry-rollback-2024');
-  const {data} = useRollback();
+export function useRollbackPrompts({
+  collapsed,
+  organization,
+}: {
+  collapsed: boolean;
+  organization: Organization | null;
+}) {
+  const hasRollback = organization?.features.includes('sentry-rollback-2024') ?? false;
+  const {data} = useRollback({organization});
 
   const {
     isPromptDismissed: isSidebarPromptDismissed,
@@ -26,7 +31,8 @@ export function useRollbackPrompts({collapsed}: {collapsed: boolean}) {
   });
 
   return {
-    shouldShowSidebarBanner: hasRollback && data && !isSidebarPromptDismissed,
+    shouldShowSidebarBanner: hasRollback && data && isSidebarPromptDismissed === false,
+    shouldShowDropdownBanner: hasRollback && data,
     shouldShowDot:
       hasRollback &&
       data &&
