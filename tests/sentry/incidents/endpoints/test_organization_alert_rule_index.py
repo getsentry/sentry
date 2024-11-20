@@ -184,7 +184,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         with self.feature("organizations:incidents"):
             resp = self.get_response(self.organization.slug)
 
-        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[ALERT_RULES_COUNT_HEADER] == "1"
         assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
 
 
