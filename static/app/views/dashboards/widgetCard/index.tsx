@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -40,6 +40,7 @@ import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
 import type {Meta} from '../widgets/common/types';
 import {WidgetFrame} from '../widgets/common/widgetFrame';
+import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -100,6 +101,7 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched && newData.tableResults) {
@@ -174,6 +176,14 @@ function WidgetCard(props: Props) {
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
+      setWidgetViewerData({
+        pageLinks: data?.pageLinks,
+        seriesData: data?.timeseriesResults,
+        tableData: data?.tableResults,
+        seriesResultsType: data?.timeseriesResultsTypes,
+        totalIssuesCount: data?.totalIssuesCount,
+      });
+
       props.router.push({
         pathname: `${location.pathname}${
           location.pathname.endsWith('/') ? '' : '/'
