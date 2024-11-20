@@ -444,7 +444,7 @@ interface TraceIdRendererProps {
   location: Location;
   timestamp: number; // in milliseconds
   traceId: string;
-  onClick?: () => void;
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
 

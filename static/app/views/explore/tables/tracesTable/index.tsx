@@ -244,12 +244,13 @@ function TraceRow({
         <TraceIdRenderer
           traceId={trace.trace}
           timestamp={trace.end}
-          onClick={() =>
+          onClick={event => {
+            event.stopPropagation();
             trackAnalytics('trace_explorer.open_trace', {
               organization,
               source: 'new explore',
-            })
-          }
+            });
+          }}
           location={location}
         />
       </StyledPanelItem>
