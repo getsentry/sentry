@@ -43,7 +43,8 @@ interface AutofixStartBoxProps {
 function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const [message, setMessage] = useState('');
 
-  const send = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     onSend(message);
   };
 
@@ -63,37 +64,39 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
       <ContentContainer>
         <HeaderText>Autofix</HeaderText>
         <p>Work together with Autofix to find the root cause and fix the issue.</p>
-        <Row>
-          <Input
-            type="text"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder={'(Optional) Share helpful context here...'}
-          />
-          <ButtonWithStars>
-            <StarLarge1 src={starImage} />
-            <StarLarge2 src={starImage} />
-            <StarLarge3 src={starImage} />
-            <Button
-              priority="primary"
-              onClick={send}
-              analyticsEventKey={
-                message
-                  ? 'autofix.give_instructions_clicked'
-                  : 'autofix.start_fix_clicked'
-              }
-              analyticsEventName={
-                message
-                  ? 'Autofix: Give Instructions Clicked'
-                  : 'Autofix: Start Fix Clicked'
-              }
-              analyticsParams={{group_id: groupId}}
-              aria-label="Start Autofix"
-            >
-              {t('Start Autofix')}
-            </Button>
-          </ButtonWithStars>
-        </Row>
+        <form onSubmit={handleSubmit}>
+          <Row>
+            <Input
+              type="text"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder={'(Optional) Share helpful context here...'}
+            />
+            <ButtonWithStars>
+              <StarLarge1 src={starImage} />
+              <StarLarge2 src={starImage} />
+              <StarLarge3 src={starImage} />
+              <Button
+                type="submit"
+                priority="primary"
+                analyticsEventKey={
+                  message
+                    ? 'autofix.give_instructions_clicked'
+                    : 'autofix.start_fix_clicked'
+                }
+                analyticsEventName={
+                  message
+                    ? 'Autofix: Give Instructions Clicked'
+                    : 'Autofix: Start Fix Clicked'
+                }
+                analyticsParams={{group_id: groupId}}
+                aria-label="Start Autofix"
+              >
+                {t('Start Autofix')}
+              </Button>
+            </ButtonWithStars>
+          </Row>
+        </form>
       </ContentContainer>
     </StartBox>
   );
