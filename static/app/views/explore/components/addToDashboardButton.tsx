@@ -28,6 +28,10 @@ export function AddToDashboardButton() {
   const [dataset] = useDataset();
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
+  const yAxes = useMemo(
+    () => visualizes.flatMap(visualize => visualize.yAxes).slice(0, 3),
+    [visualizes]
+  );
   const fields = useMemo(() => {
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
       Boolean
@@ -39,12 +43,6 @@ export function AddToDashboardButton() {
   const discoverQuery: NewQuery = useMemo(() => {
     const search = new MutableSearch(query);
 
-    // Filtering out all spans with op like 'ui.interaction*' which aren't
-    // embedded under transactions. The trace view does not support rendering
-    // such spans yet.
-    // TODO: Is this still needed? It doesn't show up in tags for the widget builder.
-    // search.addFilterValues('!transaction.span_id', ['00']);
-
     return {
       name: t('Custom Explore Widget'),
       fields,
@@ -52,9 +50,9 @@ export function AddToDashboardButton() {
       query: search.formatString(),
       version: 2,
       dataset,
-      yAxis: visualizes.flatMap(visualize => visualize.yAxes.slice(0, 3)),
+      yAxis: yAxes,
     };
-  }, [dataset, fields, sorts, query, visualizes]);
+  }, [dataset, fields, sorts, query, yAxes]);
 
   const eventView = useMemo(() => {
     const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
