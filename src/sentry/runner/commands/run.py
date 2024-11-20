@@ -254,6 +254,140 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 
 
 @run.command()
+@click.option("--rust-binary", help="Path to taskbroker brinary")
+@log_options()
+@configuration
+def taskbroker_integration_test(rust_binary: str) -> None:
+    import datetime
+    import random
+    import subprocess
+    import threading
+    import time
+    import uuid
+    from pathlib import Path
+
+    import yaml
+
+    from sentry.utils import json
+
+    def manage_consumer(
+        rust_binary: str, config_file: str, iterations: int, min_sleep: int, max_sleep: int
+    ) -> None:
+        for _ in range(iterations):
+            process = subprocess.Popen([rust_binary, "-c", config_file])
+            time.sleep(random.randint(min_sleep, max_sleep))
+            process.send_signal(signal.SIGINT)
+            try:
+                return_code = process.wait(timeout=10)
+                assert return_code == 0
+            except Exception:
+                process.kill()
+
+    # First check if taskdemo topic exists
+    print("Checking if taskdemo topic already exists")
+    check_topic_cmd = [
+        "docker",
+        "exec",
+        "sentry_kafka",
+        "kafka-topics",
+        "--bootstrap-server",
+        "localhost:9092",
+        "--list",
+    ]
+    result = subprocess.run(check_topic_cmd, check=True, capture_output=True, text=True)
+    topics = result.stdout.strip().split("\n")
+
+    # Create taskdemo Kafka topic with 32 partitions
+    if "task-worker" not in topics:
+        print("task-worker topic does not exist, creating it with 32 partitions")
+        create_topic_cmd = [
+            "docker",
+            "exec",
+            "sentry_kafka",
+            "kafka-topics",
+            "--bootstrap-server",
+            "localhost:9092",
+            "--create",
+            "--topic",
+            "task-worker",
+            "--partitions",
+            "32",
+            "--replication-factor",
+            "1",
+        ]
+        subprocess.run(create_topic_cmd, check=True)
+    else:
+        print("Taskdemo topic already exists, making sure it has 32 partitions")
+        try:
+            create_topic_cmd = [
+                "docker",
+                "exec",
+                "sentry_kafka",
+                "kafka-topics",
+                "--bootstrap-server",
+                "localhost:9092",
+                "--alter",
+                "--topic",
+                "task-worker",
+                "--partitions",
+                "32",
+            ]
+            subprocess.run(create_topic_cmd, check=True)
+        except Exception:
+            pass
+
+    # Create config files for consumers
+    print("Creating config files for consumers in taskbroker/tests")
+    consumer_configs = {
+        "config_0.yml": {
+            "db_path": "db_0.sqlite",
+            "kafka_topic": "task-worker",
+            "kafka_consumer_group": "task-worker-integration-test",
+            "grpc_port": 50051,
+        },
+        "config_1.yml": {
+            "db_path": "db_1.sqlite",
+            "kafka_topic": "task-worker",
+            "kafka_consumer_group": "task-worker-integration-test",
+            "grpc_port": 50052,
+        },
+        "config_2.yml": {
+            "db_path": "db_2.sqlite",
+            "kafka_topic": "task-worker",
+            "kafka_consumer_group": "task-worker-integration-test",
+            "grpc_port": 50053,
+        },
+        "config_3.yml": {
+            "db_path": "db_3.sqlite",
+            "kafka_topic": "task-worker",
+            "kafka_consumer_group": "task-worker-integration-test",
+            "grpc_port": 50054,
+        },
+    }
+
+    test_dir = Path("../taskbroker/tests")
+    test_dir.mkdir(parents=True, exist_ok=True)
+
+    for filename, config in consumer_configs.items():
+        with open(test_dir / filename, "w") as f:
+            yaml.safe_dump(config, f)
+
+    try:
+        manage_consumer(rust_binary, "config_0.yml", 1, 3, 10)
+
+        # Produce a test message to the taskdemo topic
+        from sentry.taskdemo import say_hello
+
+        for i in range(10):
+            print(f"Sending messages {i}")
+            say_hello.delay("hello world")
+
+        manage_consumer(rust_binary, "config_0.yml", 1, 8, 10)
+    except Exception:
+        raise
+
+
+@run.command()
 @click.option(
     "--pidfile",
     help=(
