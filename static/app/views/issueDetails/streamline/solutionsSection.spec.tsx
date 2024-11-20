@@ -220,7 +220,7 @@ describe('SolutionsSection', () => {
       expect(screen.getByRole('button', {name: 'Set up Autofix'})).toBeInTheDocument();
     });
 
-    it('shows "View Resources & Autofix" when both are available', async () => {
+    it('shows "Open Resources & Autofix" when both are available', async () => {
       // Mock successful summary response
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
@@ -257,12 +257,12 @@ describe('SolutionsSection', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', {name: 'View Resources & Autofix'})
+          screen.getByRole('button', {name: 'Open Resources & Autofix'})
         ).toBeInTheDocument();
       });
     });
 
-    it('shows "View Autofix" when only autofix is available', async () => {
+    it('shows "Open Autofix" when only autofix is available', async () => {
       // Mock successful autofix setup but disable resources
       MockApiClient.addMockResponse({
         url: `/issues/${mockGroup.id}/autofix/setup/`,
@@ -294,7 +294,7 @@ describe('SolutionsSection', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByRole('button', {name: 'View Autofix'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
       });
     });
 
