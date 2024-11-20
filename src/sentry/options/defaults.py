@@ -2926,3 +2926,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
+register(
+    "transactions.dont_send_to_post_process",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
