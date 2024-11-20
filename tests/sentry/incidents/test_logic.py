@@ -501,7 +501,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         for monitor_type in [
             None,
             AlertRuleMonitorTypeInt.CONTINUOUS,
-            AlertRuleMonitorTypeInt.ACTIVATED,
         ]:
             name = "hello"
             query = "level:error"
@@ -552,31 +551,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             assert alert_rule.threshold_period == threshold_period
             # We now create an AlertRuleProject for all rule monitor types
             assert alert_rule.projects.all().count() == 1
-
-    def test_create_activated_alert_rule_errors_without_condition(self):
-        name = "hello"
-        query = "level:error"
-        aggregate = "count(*)"
-        time_window = 10
-        threshold_type = AlertRuleThresholdType.ABOVE
-        resolve_threshold = 10
-        threshold_period = 1
-        event_types = [SnubaQueryEventType.EventType.ERROR]
-
-        with pytest.raises(ValidationError):
-            create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                query,
-                aggregate,
-                time_window,
-                threshold_type,
-                threshold_period,
-                resolve_threshold=resolve_threshold,
-                event_types=event_types,
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            )
 
     def test_ignore(self):
         name = "hello"

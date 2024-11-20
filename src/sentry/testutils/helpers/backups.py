@@ -49,6 +49,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorTypeInt,
     AlertRuleTriggerExclusion,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -532,13 +533,16 @@ class ExhaustiveFixtures(Fixtures):
             monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-        self.create_alert_rule_activation(
+
+        AlertRuleActivations.objects.create(
             alert_rule=activated_alert,
-            project=project,
+            finished_at=None,
             metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            query_subscription=activated_alert.query_subscription,
+            condition_type=AlertRuleActivationConditionType.RELEASE_CREATION.value,
+            activator="testing",
         )
+
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 

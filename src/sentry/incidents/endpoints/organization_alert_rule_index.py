@@ -78,10 +78,6 @@ class AlertRuleIndexMixin(Endpoint):
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
-
         response = self.paginate(
             request,
             queryset=alert_rules,
@@ -185,11 +181,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
-
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
             source__in=[RuleSource.ISSUE],

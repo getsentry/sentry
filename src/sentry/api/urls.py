@@ -84,9 +84,6 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogIndexEndpoint,
 )
 from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
-from sentry.incidents.endpoints.organization_alert_rule_activations import (
-    OrganizationAlertRuleActivationsEndpoint,
-)
 from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
     OrganizationAlertRuleAnomaliesEndpoint,
 )
@@ -1159,11 +1156,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
         OrganizationAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
-        OrganizationAlertRuleActivationsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-activations",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
