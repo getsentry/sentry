@@ -13,16 +13,22 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
+import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
 
-describe('Dashboards - DashboardList', function () {
+describe('Dashboards - DashboardTable', function () {
   let dashboards: DashboardListItem[];
   let deleteMock: jest.Mock;
   let dashboardUpdateMock: jest.Mock;
   let createMock: jest.Mock;
   const organization = OrganizationFixture({
-    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
+    features: [
+      'global-views',
+      'dashboards-basic',
+      'dashboards-edit',
+      'discover-query',
+      'dashboards-table-view',
+    ],
   });
 
   const {router} = initializeOrg();
@@ -100,30 +106,29 @@ describe('Dashboards - DashboardList', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', function () {
+  it('renders an empty list', async function () {
     render(
-      <DashboardList
+      <DashboardTable
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
         location={router.location}
-        columnCount={3}
-        rowCount={3}
       />
     );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Sorry, no Dashboards match your filters.')
+    ).toBeInTheDocument();
   });
 
   it('renders dashboard list', function () {
     render(
-      <DashboardList
+      <DashboardTable
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-        columnCount={3}
-        rowCount={3}
       />
     );
 
@@ -133,13 +138,11 @@ describe('Dashboards - DashboardList', function () {
 
   it('returns landing page url for dashboards', function () {
     render(
-      <DashboardList
+      <DashboardTable
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         location={router.location}
-        columnCount={3}
-        rowCount={3}
       />,
       {router}
     );
@@ -156,13 +159,11 @@ describe('Dashboards - DashboardList', function () {
 
   it('persists global selection headers', function () {
     render(
-      <DashboardList
+      <DashboardTable
         onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {statsPeriod: '7d'}}}
-        columnCount={3}
-        rowCount={3}
       />,
       {router}
     );
@@ -175,20 +176,17 @@ describe('Dashboards - DashboardList', function () {
 
   it('can delete dashboards', async function () {
     render(
-      <DashboardList
+      <DashboardTable
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columnCount={3}
-        rowCount={3}
       />,
       {router}
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    await userEvent.click(screen.getByTestId('dashboard-delete'));
+    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]);
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -202,7 +200,7 @@ describe('Dashboards - DashboardList', function () {
     });
   });
 
-  it('cannot delete last dashboard', async function () {
+  it('cannot delete last dashboard', function () {
     const singleDashboard = [
       DashboardListItemFixture({
         id: '1',
@@ -213,18 +211,15 @@ describe('Dashboards - DashboardList', function () {
       }),
     ];
     render(
-      <DashboardList
+      <DashboardTable
         organization={organization}
         dashboards={singleDashboard}
         location={LocationFixture()}
         onDashboardsChange={dashboardUpdateMock}
-        columnCount={3}
-        rowCount={3}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: /dashboard actions/i}));
-    expect(screen.getByTestId('dashboard-delete')).toHaveAttribute(
+    expect(screen.getAllByTestId('dashboard-delete')[0]).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -232,18 +227,15 @@ describe('Dashboards - DashboardList', function () {
 
   it('can duplicate dashboards', async function () {
     render(
-      <DashboardList
+      <DashboardTable
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columnCount={3}
-        rowCount={3}
       />
     );
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -259,18 +251,15 @@ describe('Dashboards - DashboardList', function () {
     });
 
     render(
-      <DashboardList
+      <DashboardTable
         organization={organization}
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
-        columnCount={3}
-        rowCount={3}
       />
     );
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();

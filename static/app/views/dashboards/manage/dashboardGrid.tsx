@@ -45,7 +45,7 @@ type Props = {
   isLoading?: boolean;
 };
 
-function DashboardList({
+function DashboardGrid({
   api,
   organization,
   location,
@@ -203,21 +203,25 @@ function DashboardList({
       : dashboards?.length ?? 0;
 
     return (
-      <DashboardGrid rows={rowCount} columns={columnCount}>
+      <DashboardGridContainer
+        rows={rowCount}
+        columns={columnCount}
+        data-test-id={'dashboard-grid'}
+      >
         {renderMiniDashboards()}
         {isLoading &&
           rowCount * columnCount > numDashboards &&
           new Array(rowCount * columnCount - numDashboards)
             .fill(0)
             .map((_, index) => <Placeholder key={index} height="270px" />)}
-      </DashboardGrid>
+      </DashboardGridContainer>
     );
   }
 
   return <Fragment>{renderDashboardGrid()}</Fragment>;
 }
 
-const DashboardGrid = styled('div')<{columns: number; rows: number}>`
+const DashboardGridContainer = styled('div')<{columns: number; rows: number}>`
   display: grid;
   grid-template-columns: repeat(
     ${props => props.columns},
@@ -231,4 +235,4 @@ const DropdownTrigger = styled(Button)`
   transform: translateX(${space(1)});
 `;
 
-export default withApi(DashboardList);
+export default withApi(DashboardGrid);
