@@ -221,13 +221,13 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       options={allDropdownOptions}
       value={selectedOptions}
       triggerLabel={[
-        t('Edit Access:'),
-        triggerAvatars,
-        <FeatureBadge
+        <StyledFeatureBadge
           key="beta-badge"
           type="beta"
           title={t('This feature is available for early adopters and may change')}
         />,
+        t('Edit Access:'),
+        triggerAvatars,
       ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
@@ -274,6 +274,11 @@ const StyledDisplayName = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
   margin-right: -3px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: 0px;
+  margin-right: 6px;
 `;
 
 const StyledBadge = styled(Badge)`
