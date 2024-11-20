@@ -196,6 +196,10 @@ describe('SolutionsHubDrawer', () => {
       url: `/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
+      body: [],
+    });
 
     render(
       <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
