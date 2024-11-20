@@ -32,6 +32,7 @@ class Task(Generic[P, R]):
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
+        at_most_once: bool = False,
     ):
         # TODO(taskworker) Implement task execution deadlines
         self.name = name
@@ -42,6 +43,7 @@ class Task(Generic[P, R]):
         self._processing_deadline_duration = (
             processing_deadline_duration or DEFAULT_PROCESSING_DEADLINE
         )
+        self.at_most_once = at_most_once
         update_wrapper(self, func)
 
     @property
