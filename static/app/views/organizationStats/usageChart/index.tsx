@@ -380,10 +380,6 @@ function UsageChartBody({
   function chartLegendData(): LegendComponentOption['data'] {
     const legend: LegendComponentOption['data'] = [];
 
-    // if ((chartData.accepted_stored ?? []).length > 0) {
-    //   legend.push({name: SeriesTypes.ACCEPTED_STORED});
-    // }
-
     if (!chartData.reserved || chartData.reserved.length === 0) {
       legend.push({name: SeriesTypes.ACCEPTED});
     }
