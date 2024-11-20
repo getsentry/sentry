@@ -1205,8 +1205,8 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if job["is_reprocessed"] or features.has(
-        "projects:similarity-embeddings", job["event"].group.project
+    if job["is_reprocessed"] or job["event"].group.project.get_option(
+        "sentry:similarity_backfill_completed"
     ):
         return
 

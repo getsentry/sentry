@@ -2436,9 +2436,9 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
             return
         raise AssertionError("Expected safe_execute to not be called with similarity.record")
 
-    @with_feature("projects:similarity-embeddings")
     @patch("sentry.tasks.post_process.safe_execute")
     def test_skip_process_similarity(self, mock_safe_execute):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
         event = self.create_event(data={}, project_id=self.project.id)
 
         self.call_post_process_group(
