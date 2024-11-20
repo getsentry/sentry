@@ -34,6 +34,7 @@ interface StepProps {
   hasStepBelow: boolean;
   repos: AutofixRepository[];
   runId: string;
+  shouldHighlightRethink: boolean;
   step: AutofixStep;
 }
 
@@ -67,6 +68,7 @@ export function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
+  shouldHighlightRethink,
 }: StepProps) {
   return (
     <StepCard>
@@ -90,6 +92,7 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
+                  shouldHighlightRethink={shouldHighlightRethink}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -249,6 +252,14 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             nextStep?.status === 'PROCESSING' &&
             nextStep?.insights?.length === 0;
 
+          const isNextStepLastStep = index === steps.length - 2;
+          const shouldHighlightRethink =
+            (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+              isNextStepLastStep) ||
+            (nextStep?.type === AutofixStepType.CHANGES &&
+              nextStep.changes.length > 0 &&
+              !nextStep.changes.every(change => change.pull_request));
+
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
               {twoNonDefaultStepsInARow && <br />}
@@ -264,6 +275,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 runId={runId}
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
+                shouldHighlightRethink={shouldHighlightRethink}
               />
             </div>
           );
