@@ -318,7 +318,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        if not features.has("organizations:invite-billing", organization) and not features.has(
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        billing_bypass = assigned_org_role == "billing" and features.has(
+            "organizations:invite-billing", organization
+        )
+        if not billing_bypass and not features.has(
             "organizations:invite-members", organization, actor=request.user
         ):
             return Response(
@@ -326,7 +330,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
 
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
