@@ -88,7 +88,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(4);
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -179,7 +179,7 @@ describe('SolutionsSection', () => {
       );
 
       await waitFor(() => {
-        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
 
       expect(
@@ -214,7 +214,7 @@ describe('SolutionsSection', () => {
       );
 
       await waitFor(() => {
-        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
 
       expect(screen.getByRole('button', {name: 'Set up Autofix'})).toBeInTheDocument();
@@ -330,7 +330,7 @@ describe('SolutionsSection', () => {
       );
 
       await waitFor(() => {
-        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
       });
 
       expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
