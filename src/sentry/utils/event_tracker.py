@@ -1,40 +1,35 @@
 import logging
-from enum import IntEnum
+from enum import StrEnum
 
 from sentry import options
 
 
-class EventType(IntEnum):
-    TRANSACTION = 1
-    ERROR = 2
+class EventType(StrEnum):
+    TRANSACTION = "transaction"
+    ERROR = "error"
 
 
-class TransactionStageStatus(IntEnum):
-    """
-    Do NOT change the int values of existing items. It will change meaning of existing tracking data
-    This class is DELETE or APPEND ONLY
-    """
-
+class TransactionStageStatus(StrEnum):
     # the transaction is stored to rc-transactions
-    REDIS_PUT = 1
+    REDIS_PUT = "redis_put"
 
     # a save_transactions task is kicked off
-    SAVE_TRX_STARTED = 2
+    SAVE_TRX_STARTED = "save_trx_started"
 
     # a save_transactions task is finished
-    SAVE_TRX_FINISHED = 3
+    SAVE_TRX_FINISHED = "save_trx_finished"
 
     # the transaction is published to the `events` topic for snuba/sbc consumers to consume
-    SNUBA_TOPIC_PUT = 4
+    SNUBA_TOPIC_PUT = "snuba_topic_put"
 
     # the transaction is published to the `snuba-commit-log` topic
-    COMMIT_LOG_TOPIC_PUT = 5
+    COMMIT_LOG_TOPIC_PUT = "commit_log_topic_put"
 
     # a post_process task is kicked off
-    POST_PROCESS_STARTED = 6
+    POST_PROCESS_STARTED = "post_process_started"
 
     # the transaction is deleted from rc-transactions
-    REDIS_DELETED = 7
+    REDIS_DELETED = "redis_deleted"
 
 
 logger = logging.getLogger("EventTracker")
