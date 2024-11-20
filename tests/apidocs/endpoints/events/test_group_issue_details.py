@@ -24,7 +24,7 @@ class ProjectGroupIssueDetailsDocs(APIDocsTestCase):
         for timestamp in last_release.values():
             event = self.create_event("c", release="1.0a", timestamp=timestamp.isoformat())
 
-        self.url = f"/api/0/issues/{event.group.id}/"
+        self.url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/"
 
         self.login_as(user=self.user)
 
