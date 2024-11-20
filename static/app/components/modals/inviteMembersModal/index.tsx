@@ -75,15 +75,6 @@ function InviteMembersModal({
     );
   }
 
-  const hasOwnerRole =
-    (Array.isArray(memberResult.data) &&
-      memberResult.data.some(member => member.orgRole === 'owner')) ||
-    memberResult.data?.orgRole === 'owner';
-  const hasBillingRole =
-    (Array.isArray(memberResult.data) &&
-      memberResult.data.some(member => member.orgRole === 'billing')) ||
-    memberResult.data?.orgRole === 'billing';
-
   return (
     <ErrorBoundary>
       <InviteModalHook
@@ -134,7 +125,7 @@ function InviteMembersModal({
           ) : (
             <InviteMembersModalView
               addInviteRow={addInviteRow}
-              canSend={canSend && !(hasOwnerRole && hasBillingRole)}
+              canSend={canSend}
               closeModal={() => {
                 trackAnalytics('invite_modal.closed', {
                   organization,

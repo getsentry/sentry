@@ -154,6 +154,29 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
 
+    @with_feature("organizations:invite-billing")
+    def test_valid_invite_billing_member(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "bill@localhost",
+            "orgRole": "billing",
+            "teamRoles": [],
+        }
+
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
+        assert serializer.is_valid()
+
+    def test_invalid_invite_billing_member(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "bill@localhost",
+            "orgRole": "billing",
+            "teamRoles": [],
+        }
+
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
+        assert not serializer.is_valid()
+
 
 class OrganizationMemberListTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
@@ -556,13 +579,6 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
         with Feature({"organizations:invite-members": False}):
             data = {"email": user.email, "role": "member", "teams": [self.team.slug]}
             self.get_error_response(self.organization.slug, **data, status_code=403)
-
-    def test_allows_billing_members(self):
-        user = self.create_user("billing@example.com")
-
-        with Feature({"organizations:invite-members": False}):
-            data = {"email": user.email, "role": "billing", "teams": []}
-            self.get_success_response(self.organization.slug, **data, status_code=201)
 
     def test_no_team_invites(self):
         data = {"email": "eric@localhost", "role": "owner", "teams": []}
