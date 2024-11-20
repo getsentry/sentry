@@ -149,7 +149,7 @@ export function mapSeriesToChart({
         if (category === 'span_indexed') {
           if (outcome === Outcome.ACCEPTED) {
             usageStats[i].accepted_stored += stat;
-            updateChartSubLabels(SeriesTypes.ACCEPTED, 'stored');
+            updateChartSubLabels(SeriesTypes.ACCEPTED, 'Stored');
             return;
           }
         }
