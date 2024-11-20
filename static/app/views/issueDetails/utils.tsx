@@ -12,6 +12,7 @@ import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -238,12 +239,20 @@ export function getGroupEventQueryKey({
 export function useHasStreamlinedUI() {
   const location = useLocation();
   const user = useUser();
-  if (location.query.streamline === '0') {
-    return false;
+  const organization = useOrganization();
+
+  // Allow query param to override all other settings to set the UI.
+  if (defined(location.query.streamline)) {
+    return location.query.streamline === '1';
   }
-  return (
-    location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
-  );
+
+  // If the enforce flag is set for the organization, ignore user preferences and enable the UI
+  if (organization.features.includes('issue-details-streamline-enforce')) {
+    return true;
+  }
+
+  // Apply the UI based on user preferences
+  return !!user?.options?.prefersIssueDetailsStreamlinedUI;
 }
 
 export function useIsSampleEvent(): boolean {
