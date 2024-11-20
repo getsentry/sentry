@@ -343,24 +343,28 @@ def taskbroker_integration_test(rust_binary: str) -> None:
             "db_path": "db_0.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
+            "kafka_auto_offset_reset": "earliest",
             "grpc_port": 50051,
         },
         "config_1.yml": {
             "db_path": "db_1.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
+            "kafka_auto_offset_reset": "earliest",
             "grpc_port": 50052,
         },
         "config_2.yml": {
             "db_path": "db_2.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
+            "kafka_auto_offset_reset": "earliest",
             "grpc_port": 50053,
         },
         "config_3.yml": {
             "db_path": "db_3.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
+            "kafka_auto_offset_reset": "earliest",
             "grpc_port": 50054,
         },
     }
@@ -373,8 +377,6 @@ def taskbroker_integration_test(rust_binary: str) -> None:
             yaml.safe_dump(config, f)
 
     try:
-        manage_consumer(rust_binary, "config_0.yml", 1, 3, 10)
-
         # Produce a test message to the taskdemo topic
         from sentry.taskdemo import say_hello
 
