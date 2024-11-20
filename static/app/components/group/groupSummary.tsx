@@ -213,4 +213,5 @@ const CardContent = styled('div')`
   code {
     word-break: break-all;
   }
+  flex: 1;
 `;

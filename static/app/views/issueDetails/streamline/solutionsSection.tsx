@@ -16,6 +16,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
@@ -69,7 +70,7 @@ export default function SolutionsSection({
     isPending: isSummaryLoading,
     isError: isSummaryError,
   } = useGroupSummary(group.id, group.issueCategory);
-  const {data: autofixSetupData, isLoading: isAutofixSetupLoading} = useAutofixSetup({
+  const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
     groupId: group.id,
   });
 
@@ -77,23 +78,25 @@ export default function SolutionsSection({
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de';
+
   const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
   const isAutofixEnabled = issueTypeConfig.autofix;
   const hasResources = issueTypeConfig.resources;
 
-  const hasSummary = hasGenAIConsent && isSummaryEnabled && !organization.hideAiFeatures;
-  const hasAutofix = isAutofixEnabled && !organization.hideAiFeatures && !isSampleError;
+  const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
+  const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
 
   const needsGenAIConsent =
-    !hasGenAIConsent &&
-    (isSummaryEnabled || isAutofixEnabled) &&
-    !organization.hideAiFeatures;
+    !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
 
   const needsAutofixSetup =
     isAutofixEnabled &&
     !isAutofixSetupLoading &&
     (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok) &&
-    !organization.hideAiFeatures;
+    areAiFeaturesAllowed;
 
   const showCtaButton = needsGenAIConsent || hasAutofix || (hasSummary && hasResources);
   const isButtonLoading = isAutofixSetupLoading;
@@ -166,7 +169,7 @@ export default function SolutionsSection({
   };
 
   return (
-    <div>
+    <SolutionsSectionContainer>
       <SidebarSectionTitle style={{marginTop: 0}}>
         <HeaderContainer>
           {t('Solutions Hub')}
@@ -202,9 +205,14 @@ export default function SolutionsSection({
           </ChevronContainer>
         </StyledButton>
       ) : null}
-    </div>
+    </SolutionsSectionContainer>
   );
 }
+
+const SolutionsSectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
