@@ -36,6 +36,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
+  const ORIGINAL_HASH = window.location.hash;
 
   const {
     hasDocs,
@@ -111,6 +112,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
               // the event.target will be unmounted by the time the panel listener
               // receives the event and assume the click was outside the panel
               e.stopPropagation();
+              window.location.hash = ORIGINAL_HASH;
             }}
           >
             <CompactSelect
