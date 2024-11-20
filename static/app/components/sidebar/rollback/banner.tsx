@@ -3,24 +3,13 @@ import styled from '@emotion/styled';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button, LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
+import {useRollback} from 'sentry/components/sidebar/rollback/useRollback';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type RollbackBannerProps = {className?: string; dismissable?: boolean};
-
-function useRollback() {
-  const organization = useOrganization();
-
-  return useApiQuery([`/organizations/${organization.slug}/user-rollback/`], {
-    staleTime: Infinity,
-    retry: false,
-    enabled: organization.features.includes('sentry-rollback-2024'),
-    retryOnMount: false,
-  });
-}
 
 export function RollbackBanner({className, dismissable}: RollbackBannerProps) {
   const organization = useOrganization();
