@@ -175,9 +175,6 @@ describe('StreamlinedActivitySection', function () {
     expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
     expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
     expect(await screen.findByText('4 activities hidden')).toBeInTheDocument();
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Show all activity'}));
-    expect(await screen.findByText('Test Note 6')).toBeInTheDocument();
   });
 
   it('does not collapse activity when rendered in the drawer', function () {

@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
@@ -109,8 +108,6 @@ export default function StreamlinedActivitySection({
 }: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
-  // Expand all activities when rendered as a drawer
-  const [showAll, setShowAll] = useState(() => isDrawer);
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [inputId, setInputId] = useState(() => uniqueId());
@@ -179,33 +176,24 @@ export default function StreamlinedActivitySection({
       {!isDrawer && (
         <Flex justify="space-between" align="center">
           <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-          <ButtonBar gap={0.5}>
-            {showAll && (
-              <TextButton
-                borderless
-                size="zero"
-                onClick={() => setShowAll(false)}
-                analyticsEventKey="issue_details.activity_collapsed"
-                analyticsEventName="Issue Details: Activity Collapsed"
-                analyticsParams={{num_activities: group.activity.length}}
-              >
-                {t('Collapse')}
-              </TextButton>
-            )}
-            <LinkButton
-              size="xs"
-              icon={<IconPanel direction="right" />}
-              aria-label={t('Open activity drawer')}
-              title={t('Open activity drawer')}
-              to={{
-                pathname: `${baseUrl}${Tab.ACTIVITY}`,
-                query: {
-                  ...location.query,
-                  cursor: undefined,
-                },
-              }}
-            />
-          </ButtonBar>
+          <LinkButton
+            size="xs"
+            icon={<IconPanel direction="right" />}
+            aria-label={t('Open activity drawer')}
+            title={t('Open activity drawer')}
+            to={{
+              pathname: `${baseUrl}${Tab.ACTIVITY}`,
+              query: {
+                ...location.query,
+                cursor: undefined,
+              },
+            }}
+            analyticsEventKey="issue_details.activity_drawer_opened"
+            analyticsEventName="Issue Details: Activity Drawer Opened"
+            analyticsParams={{
+              num_activities: group.activity.length,
+            }}
+          />
         </Flex>
       )}
       <Timeline.Container>
@@ -220,7 +208,7 @@ export default function StreamlinedActivitySection({
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 5 || showAll) &&
+        {(group.activity.length < 5 || isDrawer) &&
           group.activity.map(item => {
             return (
               <TimelineItem
@@ -232,7 +220,7 @@ export default function StreamlinedActivitySection({
               />
             );
           })}
-        {!showAll && group.activity.length >= 5 && (
+        {!isDrawer && group.activity.length >= 5 && (
           <Fragment>
             {group.activity.slice(0, 2).map(item => {
               return (
@@ -249,7 +237,13 @@ export default function StreamlinedActivitySection({
               title={
                 <TextButton
                   aria-label={t('Show all activity')}
-                  onClick={() => setShowAll(true)}
+                  to={{
+                    pathname: `${baseUrl}${Tab.ACTIVITY}`,
+                    query: {
+                      ...location.query,
+                      cursor: undefined,
+                    },
+                  }}
                   borderless
                   size="zero"
                   analyticsEventKey="issue_details.activity_expanded"
@@ -298,7 +292,7 @@ const Timestamp = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const TextButton = styled(Button)`
+const TextButton = styled(LinkButton)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
