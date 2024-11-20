@@ -31,7 +31,8 @@ export function useRollbackPrompts({
   });
 
   return {
-    shouldShowSidebarBanner: hasRollback && data && isSidebarPromptDismissed === false,
+    shouldShowSidebarBanner:
+      hasRollback && data && !collapsed && isSidebarPromptDismissed === false,
     shouldShowDropdownBanner: hasRollback && data,
     shouldShowDot:
       hasRollback &&

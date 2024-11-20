@@ -11,6 +11,7 @@ import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
@@ -440,6 +441,10 @@ describe('Sidebar', function () {
   });
 
   describe('Rollback prompts', () => {
+    beforeEach(() => {
+      PreferenceStore.showSidebar();
+    });
+
     it('should render the sidebar banner with no dismissed prompts and an existing rollback', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
@@ -470,6 +475,26 @@ describe('Sidebar', function () {
       renderSidebarWithFeatures(['sentry-rollback-2024']);
 
       await screen.findByText('OS');
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('will not render sidebar banner when collapsed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: {}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/user-rollback/`,
+        body: {data: {}},
+      });
+
+      renderSidebarWithFeatures(['sentry-rollback-2024']);
+
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
       await waitFor(() => {
         expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
