@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +8,8 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 
 
@@ -38,6 +41,16 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         types = request.GET.getlist("types") or ()
         event_ids = request.GET.getlist("event_id") or ()
         screenshot = "screenshot" in request.GET
+
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams as e:
+            raise ParseError(detail=str(e))
+
+        if start:
+            attachments = attachments.filter(date_added__gte=start)
+        if end:
+            attachments = attachments.filter(date_added__lte=end)
 
         if screenshot:
             attachments = event_attachment_screenshot_filter(attachments)
