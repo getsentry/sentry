@@ -78,7 +78,9 @@ class SelectRequester:
                 message = "select-requester.request-failed"
 
             logger.info(message, extra=extra)
-            raise APIError from e
+            raise APIError(
+                f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            ) from e
 
         if not self._validate_response(response):
             logger.info(
