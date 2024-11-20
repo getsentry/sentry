@@ -239,7 +239,7 @@ function Chart({
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
   }, [bucketSize, lastBucketTimestamp]);
 
-  // TODO: Support area and bar charts
+  // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
     const metricChartType =
       type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
@@ -454,16 +454,10 @@ function Chart({
     if (type === ChartType.BAR) {
       return (
         <BarChart
+          {...zoomRenderProps}
           height={height}
           series={series}
-          xAxis={{
-            type: 'category',
-            axisTick: {show: true},
-            truncate: Infinity, // Show axis labels
-            axisLabel: {
-              interval: 0, // Show _all_ axis labels
-            },
-          }}
+          xAxis={xAxis}
           yAxis={{
             minInterval: durationUnit ?? getDurationUnit(data),
             splitNumber: definedAxisTicks,
@@ -474,7 +468,7 @@ function Chart({
                 return axisLabelFormatter(
                   value,
                   aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-                  undefined,
+                  true,
                   durationUnit ?? getDurationUnit(data),
                   rateUnit
                 );

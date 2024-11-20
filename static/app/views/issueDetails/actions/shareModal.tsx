@@ -28,6 +28,12 @@ interface ShareIssueModalProps extends ModalRenderProps {
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
+export function getShareUrl(group: Group) {
+  const path = `/share/issue/${group.shareId}/`;
+  const {host, protocol} = window.location;
+  return `${protocol}//${host}${path}`;
+}
+
 function ShareIssueModal({
   Header,
   Body,
@@ -86,13 +92,7 @@ function ShareIssueModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want to run this on open
   }, []);
 
-  function getShareUrl() {
-    const path = `/share/issue/${group!.shareId}/`;
-    const {host, protocol} = window.location;
-    return `${protocol}//${host}${path}`;
-  }
-
-  const shareUrl = group?.shareId ? getShareUrl() : null;
+  const shareUrl = group?.shareId ? getShareUrl(group) : null;
 
   const {onClick: handleCopy} = useCopyToClipboard({
     text: shareUrl!,

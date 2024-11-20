@@ -1267,6 +1267,18 @@ describe('Threads', function () {
         within(threadSelector).getByText('ViewController.causeCrash');
       });
 
+      it('can navigate to next/previous thread', async function () {
+        render(<Threads {...props} />, {organization});
+        const threadSelector = await screen.findByTestId('thread-selector');
+        expect(threadSelector).toHaveTextContent('Thread #0');
+        await userEvent.click(await screen.findByRole('button', {name: 'Next Thread'}));
+        expect(threadSelector).toHaveTextContent('Thread #1');
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Previous Thread'})
+        );
+        expect(threadSelector).toHaveTextContent('Thread #0');
+      });
+
       it('renders raw stack trace', async function () {
         MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
