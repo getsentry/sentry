@@ -21,7 +21,10 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
-from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata
+from sentry.grouping.ingest.grouphash_metadata import (
+    create_or_update_grouphash_metadata,
+    record_grouphash_metadata_metrics,
+)
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -233,6 +236,9 @@ def get_or_create_grouphashes(
             create_or_update_grouphash_metadata(
                 event, project, grouphash, created, grouping_config, variants
             )
+
+        if grouphash.metadata:
+            record_grouphash_metadata_metrics(grouphash.metadata)
 
         grouphashes.append(grouphash)
 
