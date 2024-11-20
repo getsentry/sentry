@@ -1013,8 +1013,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
         ts = message.value.timestamp
         partition = message.value.partition.index
 
-        if wrapper["message_type"] != "clock_pulse":
-            update_check_in_volume([ts])
+        update_check_in_volume([ts])
 
         try:
             try_monitor_clock_tick(ts, partition)
