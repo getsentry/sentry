@@ -7,7 +7,6 @@ import {Chevron} from 'sentry/components/chevron';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import useDrawer from 'sentry/components/globalDrawer';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -102,10 +101,6 @@ export default function SolutionsSection({
   const isButtonLoading = isAutofixSetupLoading;
 
   const getButtonText = () => {
-    if (isAutofixSetupLoading) {
-      return <LoadingIndicator mini />;
-    }
-
     if (needsGenAIConsent) {
       return t('Set up Sentry AI');
     }
