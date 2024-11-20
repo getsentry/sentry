@@ -100,9 +100,6 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
 )
-from sentry.incidents.endpoints.organization_incident_activity_index import (
-    OrganizationIncidentActivityIndexEndpoint,
-)
 from sentry.incidents.endpoints.organization_incident_comment_details import (
     OrganizationIncidentCommentDetailsEndpoint,
 )
@@ -1206,11 +1203,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-data-secrecy",
     ),
     # Incidents
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
-        OrganizationIncidentActivityIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-activity",
-    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$",
         OrganizationIncidentCommentIndexEndpoint.as_view(),
