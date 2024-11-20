@@ -47,11 +47,6 @@ export type OnboardingLayoutProps = {
   newOrg?: boolean;
 };
 
-export interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
-  integration?: string;
-  provider?: string;
-}
-
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({

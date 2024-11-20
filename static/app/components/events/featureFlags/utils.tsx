@@ -123,6 +123,16 @@ type Labels = {
   pythonModule: string; // what's imported from sentry_sdk.integrations
 };
 
+// to organize this better, we could do something like
+// [ProviderOptions.LAUNCHDARKLY]: {
+//    python: {
+//        module: 'launchdarkly',
+//        integration 'LaunchDarklyIntegration',
+//    },
+//    javascript: {
+//        ...
+//    }
+// }
 export const PROVIDER_OPTION_TO_LABELS: Record<ProviderOptions, Labels> = {
   [ProviderOptions.LAUNCHDARKLY]: {
     pythonModule: 'launchdarkly',

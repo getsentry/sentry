@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import type {FeatureFlagOnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
@@ -12,6 +12,11 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+
+interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
+  integration?: string;
+  provider?: string;
+}
 
 export function FeatureFlagOnboardingLayout({
   docsConfig,
