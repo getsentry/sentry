@@ -76,7 +76,7 @@ export function ColumnEditorModal({
   const [tempColumns, setTempColumns] = useState<string[]>(columns);
 
   function handleApply() {
-    onColumnsChange(tempColumns);
+    onColumnsChange(tempColumns.filter(Boolean));
     closeModal();
   }
 
