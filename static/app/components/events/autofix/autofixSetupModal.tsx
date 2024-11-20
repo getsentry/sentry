@@ -113,11 +113,13 @@ function AutofixCodeMappingStep() {
   const url = `/settings/integrations/github/${configurationId ? configurationId + '/?tab=codeMappings' : ''}`;
 
   return (
-    <p>
-      {tct(
-        "Set up code mappings for the Github repositories you want to run Autofix on for this project. Go to the [link:integration settings page], and configure the installation's code mappings.",
-        {link: <ExternalLink href={url} />}
-      )}
+    <Fragment>
+      <p>
+        {tct(
+          "Set up code mappings for the Github repositories you want to run Autofix on for this project. Go to the [link:integration settings page], and configure the installation's code mappings.",
+          {link: <ExternalLink href={url} />}
+        )}
+      </p>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton />
         <ExternalLink href={url}>
@@ -126,7 +128,7 @@ function AutofixCodeMappingStep() {
           </Button>
         </ExternalLink>
       </GuidedSteps.ButtonWrapper>
-    </p>
+    </Fragment>
   );
 }
 
