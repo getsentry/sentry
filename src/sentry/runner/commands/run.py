@@ -385,7 +385,29 @@ def taskbroker_integration_test(rust_binary: str) -> None:
             print(f"Sending messages {i}")
             say_hello.delay("hello world")
 
-        manage_consumer(rust_binary, "config_0.yml", 1, 8, 10)
+        consumer_params = [
+            {"config": "config_0.yml", "iterations": 1, "min_sleep": 5, "max_sleep": 6},
+            {"config": "config_1.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
+            {"config": "config_2.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
+            {"config": "config_3.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
+        ]
+        threads = []
+        for consumer_param in consumer_params:
+            thread = threading.Thread(
+                target=manage_consumer,
+                args=(
+                    rust_binary,
+                    consumer_param["config"],
+                    consumer_param["iterations"],
+                    consumer_param["min_sleep"],
+                    consumer_param["max_sleep"],
+                ),
+            )
+            thread.start()
+            threads.append(thread)
+
+        for t in threads:
+            t.join()
     except Exception:
         raise
 
