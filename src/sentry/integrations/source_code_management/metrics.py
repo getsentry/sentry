@@ -59,21 +59,16 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return str(self.interaction_type)
 
     def get_extras(self) -> Mapping[str, Any]:
-        organization_id = (
-            (
-                self.organization.id
-                if hasattr(self.organization, "id")
-                else self.organization if isinstance(self.organization, int) else None
-            ),
-        )
-        org_integration_id = (
-            self.org_integration.id
-            if hasattr(self.org_integration, "id")
-            else self.org_integration if isinstance(self.org_integration, int) else None
-        )
+        def get_id(obj: Any) -> int | None:
+            if hasattr(obj, "id"):
+                return obj.id
+            if isinstance(obj, int):
+                return obj
+            return None
+
         return {
-            "organization_id": organization_id,
-            "org_integration_id": org_integration_id,
+            "organization_id": get_id(self.organization),
+            "org_integration_id": get_id(self.org_integration),
         }
 
 
