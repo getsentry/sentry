@@ -2,9 +2,11 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import * as analytics from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
-const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+jest.mock('sentry/utils/analytics', () => ({
+  trackAnalytics: jest.fn(),
+}));
 
 import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -183,7 +185,7 @@ describe('Nav', function () {
     it('tracks primary sidebar item', async function () {
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
-      expect(analyticsSpy).toHaveBeenCalledWith(
+      expect(trackAnalytics).toHaveBeenCalledWith(
         'growth.clicked_sidebar',
         expect.objectContaining({
           item: 'issues',
