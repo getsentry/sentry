@@ -12,6 +12,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+export const MAX_VISUALIZES = 4;
+
 type BaseVisualize = {
   chartType: ChartType;
   yAxes: string[];
