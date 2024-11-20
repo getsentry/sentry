@@ -1,9 +1,13 @@
+from collections.abc import Sequence
 from unittest.mock import patch
+
+import responses
 
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -39,7 +43,7 @@ class SentryAppComponentsTest(APITestCase):
             "uuid": str(self.component.uuid),
             "type": "issue-link",
             "schema": self.component.schema,
-            "error": False,
+            "error": "",
             "sentryApp": {
                 "uuid": self.sentry_app.uuid,
                 "slug": self.sentry_app.slug,
@@ -103,7 +107,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component1.uuid),
             "type": "issue-link",
             "schema": self.component1.schema,
-            "error": False,
+            "error": "",
             "sentryApp": {
                 "uuid": self.sentry_app1.uuid,
                 "slug": self.sentry_app1.slug,
@@ -116,7 +120,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             "uuid": str(self.component2.uuid),
             "type": "issue-link",
             "schema": self.component2.schema,
-            "error": False,
+            "error": "",
             "sentryApp": {
                 "uuid": self.sentry_app2.uuid,
                 "slug": self.sentry_app2.slug,
@@ -142,7 +146,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(component.uuid),
                 "type": "alert-rule",
                 "schema": component.schema,
-                "error": False,
+                "error": "",
                 "sentryApp": {
                     "uuid": sentry_app.uuid,
                     "slug": sentry_app.slug,
@@ -173,7 +177,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component1.uuid),
                 "type": self.component1.type,
                 "schema": self.component1.schema,
-                "error": True,
+                "error": f"Encountered error: Invalid request, while preparing component: {str(self.component1.uuid)}",
                 "sentryApp": {
                     "uuid": self.sentry_app1.uuid,
                     "slug": self.sentry_app1.slug,
@@ -185,7 +189,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
                 "uuid": str(self.component2.uuid),
                 "type": self.component2.type,
                 "schema": self.component2.schema,
-                "error": False,
+                "error": "",
                 "sentryApp": {
                     "uuid": self.sentry_app2.uuid,
                     "slug": self.sentry_app2.slug,
@@ -196,3 +200,134 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         ]
 
         assert response.data == expected
+
+    @responses.activate
+    def test_component_prep_api_error(self):
+        responses.add(
+            method=responses.GET,
+            url="https://example.com/",
+            json={"error": "the dumpsters on fire!!!"},
+            status=500,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.GET,
+            url="https://example.com/",
+            json={"error": "couldnt find the dumpsters :C"},
+            status=404,
+            content_type="application/json",
+        )
+
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": f"Encountered error: Something went wrong while getting SelectFields from {self.sentry_app1.slug}, while preparing component: {str(self.component1.uuid)}",
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
+            {
+                "uuid": str(self.component2.uuid),
+                "type": self.component2.type,
+                "schema": self.component2.schema,
+                "error": f"Encountered error: Something went wrong while getting SelectFields from {self.sentry_app2.slug}, while preparing component: {str(self.component2.uuid)}",
+                "sentryApp": {
+                    "uuid": self.sentry_app2.uuid,
+                    "slug": self.sentry_app2.slug,
+                    "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
+                },
+            },
+        ]
+
+        assert response.data == expected
+
+    @responses.activate
+    def test_component_prep_validation_error(self):
+        component1_uris = self._get_component_uris(
+            component_field="link", component=self.component1
+        )
+
+        component2_uris = self._get_component_uris(
+            component_field="link", component=self.component2
+        )
+
+        # We only get the first uri since the SentryAppComponentPreparer will short circuit after getting the first error
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com{component1_uris[0]}?installationId={self.install1.uuid}",
+            json=[{"bruh": "the dumpsters on fire!!!"}],
+            status=200,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com{component2_uris[0]}?installationId={self.install2.uuid}",
+            json={},
+            status=200,
+            content_type="application/json",
+        )
+
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
+        expected = [
+            {
+                "uuid": str(self.component1.uuid),
+                "type": self.component1.type,
+                "schema": self.component1.schema,
+                "error": f"Missing `value` or `label` in option data for SelectField, while preparing component: {str(self.component1.uuid)}",
+                "sentryApp": {
+                    "uuid": self.sentry_app1.uuid,
+                    "slug": self.sentry_app1.slug,
+                    "name": self.sentry_app1.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app1),
+                },
+            },
+            {
+                "uuid": str(self.component2.uuid),
+                "type": self.component2.type,
+                "schema": self.component2.schema,
+                "error": f"Encountered error: Invalid response format for SelectField in {self.sentry_app2.slug} from uri: {component2_uris[0]}, while preparing component: {str(self.component2.uuid)}",
+                "sentryApp": {
+                    "uuid": self.sentry_app2.uuid,
+                    "slug": self.sentry_app2.slug,
+                    "name": self.sentry_app2.name,
+                    "avatars": get_sentry_app_avatars(self.sentry_app2),
+                },
+            },
+        ]
+
+        assert response.data == expected
+
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
+    def test_component_prep_general_error(self, run):
+        run.side_effect = [Exception(), self.component2]
+
+        pass
+
+    def _get_component_uris(
+        self, component_field: str, component: SentryAppComponent
+    ) -> Sequence[str]:
+        fields = dict(**component.app_schema).get(component_field)
+        uris = []
+
+        for field in fields.get("required_fields", []):
+            if "uri" in field:
+                uris.append(field.get("uri"))
+
+        for field in fields.get("optional_fields", []):
+            if "uri" in field:
+                uris.append(field.get("uri"))
+
+        return uris

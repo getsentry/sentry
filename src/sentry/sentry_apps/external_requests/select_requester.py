@@ -71,7 +71,9 @@ class SelectRequester:
                 message = "select-requester.request-failed"
 
             logger.info(message, extra=extra)
-            raise APIError from e
+            raise APIError(
+                f"Something went wrong while getting SelectFields from {self.sentry_app.slug}"
+            )
 
         if not self._validate_response(response):
             logger.info(
@@ -85,7 +87,7 @@ class SelectRequester:
                 },
             )
             raise ValidationError(
-                f"Invalid response format for SelectField in {self.sentry_app} from uri: {self.uri}"
+                f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
             )
         return self._format_response(response)
 
