@@ -29,7 +29,7 @@ class SafeRenderer extends marked.Renderer {
       return href;
     }
 
-    const out = `<a href="${href}"${title ? ` title="${title}"` : ''}>${text}</a>`;
+    const out = super.link(href, title, text);
     return dompurify.sanitize(out);
   }
 
