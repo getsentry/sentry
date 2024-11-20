@@ -135,7 +135,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         maxVisibleAvatars={1}
         avatarSize={25}
         renderUsersFirst
-        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
+        tooltipOptions={{disabled: true}}
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
@@ -145,7 +145,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={25}
-        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
+        tooltipOptions={{disabled: true}}
       />
     );
 
