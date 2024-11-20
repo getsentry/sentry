@@ -81,6 +81,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert hour_one["unknown"] == 0
         assert "in_progress" not in hour_one
 
         assert hour_two["duration"] == 2500
@@ -88,6 +89,7 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 1
         assert hour_two["timeout"] == 2
+        assert hour_two["unknown"] == 0
 
     def test_simple_environment(self):
         resp = self.get_success_response(
@@ -107,12 +109,14 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert hour_one["unknown"] == 0
 
         assert hour_two["duration"] == 2250
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 0
         assert hour_two["timeout"] == 1
+        assert hour_two["unknown"] == 0
 
     def test_multiple_environment(self):
         resp = self.get_success_response(
@@ -132,12 +136,14 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert hour_one["unknown"] == 0
 
         assert hour_two["duration"] == 2500
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 1
         assert hour_two["error"] == 1
         assert hour_two["timeout"] == 2
+        assert hour_two["unknown"] == 0
 
     def test_bad_monitorenvironment(self):
         self.create_environment(name="empty", project=self.project)
@@ -158,9 +164,11 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_one["missed"] == 0
         assert hour_one["error"] == 0
         assert hour_one["timeout"] == 0
+        assert hour_one["unknown"] == 0
 
         assert hour_two["duration"] == 0
         assert hour_two["ok"] == 0
         assert hour_two["missed"] == 0
         assert hour_two["error"] == 0
         assert hour_two["timeout"] == 0
+        assert hour_two["unknown"] == 0
