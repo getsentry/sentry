@@ -25,6 +25,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
@@ -368,7 +369,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.seer.similarity.utils.metrics")
     def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(self, mock_metrics):
         """
-        Test that if a group has over 30 only system frames, its data is not includeded in
+        Test that if a group has over MAX_FRAME_COUNT only system frames, its data is not included in
         the bulk lookup result
         """
         # Use 2 events
@@ -376,7 +377,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
-        # Create one event where the stacktrace has over 30 system only frames
+        # Create one event where the stacktrace has over MAX_FRAME_COUNT system only frames
         exception = copy.deepcopy(EXCEPTION)
         exception["values"][0]["stacktrace"]["frames"] += [
             {
@@ -387,7 +388,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "lineno": i,
                 "in_app": True,
             }
-            for i in range(31)
+            for i in range(MAX_FRAME_COUNT + 1)
         ]
         event = self.store_event(
             data={

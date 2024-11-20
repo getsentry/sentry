@@ -1,5 +1,5 @@
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
@@ -152,10 +152,9 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 
-class ReferrerOptions(Enum):
+class ReferrerOptions(StrEnum):
     INGEST = "ingest"
     BACKFILL = "backfill"
-    UI = "ui"
 
 
 class TooManyOnlySystemFramesException(Exception):
@@ -311,19 +310,18 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     return stacktrace_str.strip()
 
 
-def get_stacktrace_string_handle_system_frame_exception(
+def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     try:
         stacktrace_string = get_stacktrace_string(data)
     except TooManyOnlySystemFramesException:
         platform = platform if platform else "unknown"
-        if referrer != ReferrerOptions.UI:
-            metrics.incr(
-                "grouping.similarity.over_threshold_only_system_frames",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"platform": platform, "referrer": referrer.value},
-            )
+        metrics.incr(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": platform, "referrer": referrer},
+        )
         if referrer == ReferrerOptions.INGEST:
             metrics.incr(
                 "grouping.similarity.did_call_seer",

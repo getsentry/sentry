@@ -35,7 +35,7 @@ from sentry.seer.similarity.utils import (
     ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
-    get_stacktrace_string_handle_system_frame_exception,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -356,7 +356,7 @@ def get_events_from_nodestore(
         event._project_cache = project
         if event and event.data and event_content_has_stacktrace(event):
             grouping_info = get_grouping_info(None, project=project, event=event)
-            stacktrace_string = get_stacktrace_string_handle_system_frame_exception(
+            stacktrace_string = get_stacktrace_string_with_metrics(
                 grouping_info, event.platform, ReferrerOptions.BACKFILL
             )
             if not stacktrace_string:

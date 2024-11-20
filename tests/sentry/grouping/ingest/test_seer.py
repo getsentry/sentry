@@ -8,6 +8,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -285,7 +286,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                                         "filename": f"dogpark{i}.py",
                                         "context_line": context_line,
                                     }
-                                    for i in range(31)
+                                    for i in range(MAX_FRAME_COUNT + 1)
                                 ]
                             },
                         }

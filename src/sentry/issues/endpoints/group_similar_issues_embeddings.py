@@ -18,9 +18,9 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
-    ReferrerOptions,
+    TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
-    get_stacktrace_string_handle_system_frame_exception,
+    get_stacktrace_string,
     killswitch_enabled,
 )
 from sentry.users.models.user import User
@@ -83,9 +83,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         stacktrace_string = ""
         if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
-            stacktrace_string = get_stacktrace_string_handle_system_frame_exception(
-                grouping_info, latest_event.platform, ReferrerOptions.UI
-            )
+            try:
+                stacktrace_string = get_stacktrace_string(grouping_info)
+            except TooManyOnlySystemFramesException:
+                stacktrace_string = ""
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
