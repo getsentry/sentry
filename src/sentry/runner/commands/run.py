@@ -274,7 +274,8 @@ def taskbroker_integration_test(rust_binary: str) -> None:
         rust_binary: str, config_file: str, iterations: int, min_sleep: int, max_sleep: int
     ) -> None:
         for _ in range(iterations):
-            process = subprocess.Popen([rust_binary, "-c", config_file])
+            config_file_path = f"../taskbroker/tests/{config_file}"
+            process = subprocess.Popen([rust_binary, "-c", config_file_path])
             time.sleep(random.randint(min_sleep, max_sleep))
             process.send_signal(signal.SIGINT)
             try:
