@@ -104,7 +104,6 @@ from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
 from sentry.incidents.endpoints.organization_incident_subscription_index import (
     OrganizationIncidentSubscriptionIndexEndpoint,
 )
@@ -1206,11 +1205,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/$",
         OrganizationIncidentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$",
-        OrganizationIncidentSeenEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-seen",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
