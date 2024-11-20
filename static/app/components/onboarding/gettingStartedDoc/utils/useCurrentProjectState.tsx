@@ -39,7 +39,6 @@ function useCurrentProjectState({
 
   useEffect(() => {
     if (!isActive) {
-      setCurrentProject(undefined);
       return;
     }
 
