@@ -1,5 +1,5 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -8,52 +8,14 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-
-import {useSpanTags} from '../contexts/spanTagsContext';
-
-import {TracesTable} from './tracesTable/index';
-import {AggregatesTable} from './aggregatesTable';
-import {ColumnEditorModal} from './columnEditorModal';
-import {SpansTable} from './spansTable';
-
-enum Tab {
-  SPAN = 'span',
-  TRACE = 'trace',
-}
-
-function useTab(): [Tab, (tab: Tab) => void] {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const tab = useMemo(() => {
-    const rawTab = decodeScalar(location.query.table);
-    if (rawTab === 'trace') {
-      return Tab.TRACE;
-    }
-    return Tab.SPAN;
-  }, [location.query.table]);
-
-  const setTab = useCallback(
-    (newTab: Tab) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          table: newTab,
-          cursor: undefined,
-        },
-      });
-    },
-    [location, navigate]
-  );
-
-  return [tab, setTab];
-}
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
+import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {SpansTable} from 'sentry/views/explore/tables/spansTable';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface ExploreTablesProps {
   setError: Dispatch<SetStateAction<string>>;
