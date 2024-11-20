@@ -180,6 +180,7 @@ class ShouldCallSeerTest(TestCase):
                         "is_builtin": True,
                         "matchers": [["family", "python"]],
                         "fingerprint": ["failedtofetcherror"],
+                        "text": "text",
                     }
                 },
             },
