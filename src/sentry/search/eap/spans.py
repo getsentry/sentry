@@ -62,6 +62,55 @@ class SearchResolver:
 
     def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        environment_query = self.__resolve_environment_query()
+        query = self.__resolve_query(querystring)
+
+        # The RPC request meta does not contain the environment.
+        # So we have to inject it as a query condition.
+        #
+        # To do so, we want to AND it with the query.
+        # So if either one is not defined, we just use the other.
+        # But if both are defined, we AND them together.
+
+        if not environment_query:
+            return query
+
+        if not query:
+            return environment_query
+
+        return TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    environment_query,
+                    query,
+                ]
+            )
+        )
+
+    def __resolve_environment_query(self) -> TraceItemFilter | None:
+        resolved_column, _ = self.resolve_column("environment")
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            return None
+
+        # TODO: replace this with an IN condition when the RPC supports it
+        filters = [
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=environment.name),
+                )
+            )
+            for environment in self.params.environments
+            if environment is not None
+        ]
+
+        if not filters:
+            return None
+
+        return TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+    def __resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         if querystring is None:
             return None
         try:
