@@ -62,6 +62,9 @@ export interface DocsParams<
    * The page where the docs are being displayed
    */
   docsLocation?: DocsPageLocation;
+  featureFlagOptions?: {
+    integration: string;
+  };
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;
@@ -106,6 +109,7 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   onboarding: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
@@ -122,4 +126,5 @@ export type ConfigType =
   | 'crashReportOnboarding'
   | 'replayOnboarding'
   | 'replayOnboardingJsLoader'
-  | 'customMetricsOnboarding';
+  | 'customMetricsOnboarding'
+  | 'featureFlagOnboarding';
