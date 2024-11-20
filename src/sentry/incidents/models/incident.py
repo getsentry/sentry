@@ -185,7 +185,7 @@ class Incident(Model):
     - UI should be able to handle multiple active incidents
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     objects: ClassVar[IncidentManager] = IncidentManager()
 
@@ -250,7 +250,7 @@ class Incident(Model):
 
 @region_silo_model
 class PendingIncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
@@ -263,7 +263,7 @@ class PendingIncidentSnapshot(Model):
 
 @region_silo_model
 class IncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
     event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
@@ -278,7 +278,7 @@ class IncidentSnapshot(Model):
 
 @region_silo_model
 class TimeSeriesSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
     __relocation_dependencies__ = {"sentry.Incident"}
 
     start = models.DateTimeField()
@@ -313,7 +313,7 @@ class IncidentActivity(Model):
     An IncidentActivity is a record of a change that occurred in an Incident. This could be a status change,
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
@@ -348,7 +348,7 @@ class IncidentSubscription(Model):
     Not to be confused with a snuba QuerySubscription
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
@@ -405,7 +405,7 @@ class IncidentTrigger(Model):
     NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()
 
