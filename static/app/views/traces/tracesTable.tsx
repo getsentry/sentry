@@ -195,17 +195,20 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
             trackAnalytics('trace_explorer.toggle_trace_details', {
               organization,
               expanded,
+              source: 'trace explorer',
             })
           }
         />
         <TraceIdRenderer
           traceId={trace.trace}
           timestamp={trace.end}
-          onClick={() =>
+          onClick={event => {
+            event.stopPropagation();
             trackAnalytics('trace_explorer.open_trace', {
               organization,
-            })
-          }
+              source: 'trace explorer',
+            });
+          }}
           location={location}
         />
       </StyledPanelItem>

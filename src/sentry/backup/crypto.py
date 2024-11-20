@@ -216,10 +216,6 @@ class Decryptor(ABC):
     """
 
     @abstractmethod
-    def read(self) -> bytes:
-        pass
-
-    @abstractmethod
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
         pass
 
@@ -235,9 +231,6 @@ class LocalFileDecryptor(Decryptor):
     @classmethod
     def from_bytes(cls, b: bytes) -> LocalFileDecryptor:
         return cls(io.BytesIO(b))
-
-    def read(self) -> bytes:
-        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
         """
@@ -287,9 +280,6 @@ class GCPKMSDecryptor(Decryptor):
     @classmethod
     def from_bytes(cls, b: bytes) -> GCPKMSDecryptor:
         return cls(io.BytesIO(b))
-
-    def read(self) -> bytes:
-        return self.__key
 
     def decrypt_data_encryption_key(self, unwrapped: UnwrappedEncryptedExportTarball) -> bytes:
         gcp_kms_config_bytes = self.__key

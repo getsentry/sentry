@@ -4,7 +4,8 @@ from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.notificationaction import (
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.notifications.models.notificationaction import (
     ActionRegistration,
     ActionService,
     ActionTarget,
@@ -12,7 +13,6 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack

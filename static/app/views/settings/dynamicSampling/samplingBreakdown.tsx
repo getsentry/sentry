@@ -63,13 +63,13 @@ export function SamplingBreakdown({sampleCounts, sampleRates, ...props}: Props) 
     .reduce((acc, item) => acc + item.sampledSpans, 0);
   const total = spansWithSampleRates.reduce((acc, item) => acc + item.sampledSpans, 0);
 
-  const getSpanRate = spanCount => (total === 0 ? 1 : spanCount / total);
+  const getSpanRate = spanCount => (total === 0 ? 0 : spanCount / total);
   const otherRate = getSpanRate(otherSpanCount);
 
   return (
     <div {...props}>
       <Heading>
-        {t('Breakdown of stored spans')}
+        {t('Breakdown of stored spans originating in these projects')}
         <SubText>{t('Total: %s', formatAbbreviatedNumber(total))}</SubText>
       </Heading>
       <Breakdown>

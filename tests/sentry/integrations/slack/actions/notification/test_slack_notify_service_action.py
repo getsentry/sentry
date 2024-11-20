@@ -5,8 +5,8 @@ import orjson
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
@@ -39,7 +39,7 @@ class TestInit(RuleTestCase):
             "channel": "test-notifications",
             "uuid": self.uuid,
         }
-        self.rule = self.create_project_rule(project=self.project, action_match=[self.action_data])
+        self.rule = self.create_project_rule(project=self.project, action_data=[self.action_data])
         self.notification_uuid = str(uuid4())
         self.event = self.store_event(
             data={
