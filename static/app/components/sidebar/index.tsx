@@ -19,6 +19,7 @@ import {
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -720,6 +721,13 @@ function Sidebar() {
               <Hook name="component:superuser-warning" organization={organization} />
             )}
           </DropdownSidebarSection>
+
+          {organization ? (
+            <DismissableRollbackBanner
+              organization={organization}
+              collapsed={collapsed}
+            />
+          ) : null}
 
           <PrimaryItems>
             {hasOrganization && (
