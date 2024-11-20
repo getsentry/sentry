@@ -40,21 +40,7 @@ export const ToolbarFooter = styled('div')<{disabled?: boolean}>`
 export const ToolbarRow = styled('div')`
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
   gap: ${space(0.5)};
   margin-bottom: ${space(0.5)};
-
-  div,
-  label,
-  span {
-    flex-grow: 1;
-
-    &:first-child {
-      min-width: 0;
-    }
-
-    > button {
-      width: 100%;
-      font-weight: normal;
-    }
-  }
 `;

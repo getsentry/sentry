@@ -2,7 +2,8 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -106,7 +107,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   );
 
   const setChartField = useCallback(
-    (group: number, index: number, {value}: SelectOption<string>) => {
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
         `${parsedVisualizeGroups[group][index].func.name}(${value})`;
@@ -116,7 +117,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   );
 
   const setChartAggregate = useCallback(
-    (group: number, index: number, {value}: SelectOption<string>) => {
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
         `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
@@ -179,13 +180,13 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
                   {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
-                  <CompactSelect
+                  <ColumnCompactSelect
                     searchable
                     options={fieldOptions}
                     value={parsedVisualize.func.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}
                   />
-                  <CompactSelect
+                  <AggregateCompactSelect
                     options={aggregateOptions}
                     value={parsedVisualize.func.name}
                     onChange={newAggregate =>
@@ -226,9 +227,26 @@ const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  min-width: 32px;
+  width: 32px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
+`;
+
+const ColumnCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const AggregateCompactSelect = styled(CompactSelect)`
+  width: 100px;
+
+  > button {
+    width: 100%;
+  }
 `;
