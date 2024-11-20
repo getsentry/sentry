@@ -29,7 +29,7 @@ logger = logging.getLogger("sentry.events.grouping")
 
 
 def should_call_seer_for_grouping(
-    event: Event, variants: dict[str, BaseVariant], stacktrace_string: str
+    event: Event, variants: Mapping[str, BaseVariant], stacktrace_string: str
 ) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
