@@ -19,6 +19,7 @@ import type {DataCategoryInfo} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withProjects from 'sentry/utils/withProjects';
 
 import type {UsageSeries} from './types';
@@ -57,6 +58,7 @@ export enum SortBy {
   PROJECT = 'project',
   TOTAL = 'total',
   ACCEPTED = 'accepted',
+  ACCEPTED_STORED = 'accepted_stored',
   FILTERED = 'filtered',
   INVALID = 'invalid',
   RATE_LIMITED = 'rate_limited',
@@ -112,24 +114,42 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
             statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
           };
 
+    const groupBy = ['outcome', 'project'];
+    const category: string[] = [dataCategory.apiName];
+
+    if (
+      hasDynamicSamplingCustomFeature(this.props.organization) &&
+      dataCategory.apiName === 'span'
+    ) {
+      groupBy.push('category');
+      category.push('span_indexed');
+    }
+
     // We do not need more granularity in the data so interval is '1d'
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['outcome', 'project'],
+      groupBy,
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category: dataCategory.apiName,
+      category,
     };
   }
 
   get tableData() {
     const {projectStats} = this.state;
+    const seriesData = this.mapSeriesToTable(projectStats);
+
+    const showStoredOutcome =
+      hasDynamicSamplingCustomFeature(this.props.organization) &&
+      this.props.dataCategory.apiName === 'span' &&
+      seriesData.hasStoredOutcome;
 
     return {
-      headers: this.tableHeader,
-      ...this.mapSeriesToTable(projectStats),
+      headers: this.getTableHeader({showStoredOutcome}),
+      showStoredOutcome,
+      ...seriesData,
     };
   }
 
@@ -211,7 +231,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       : projects.filter(p => p.hasAccess && this.projectSelectionFilter(p));
   }
 
-  get tableHeader() {
+  getTableHeader({showStoredOutcome}: {showStoredOutcome: boolean}) {
     const {key, direction} = this.tableSort;
 
     const getArrowDirection = (linkKey: SortBy): Directions => {
@@ -239,7 +259,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       },
       {
         key: SortBy.ACCEPTED,
-        title: t('Accepted'),
+        title: showStoredOutcome ? t('Accepted (Stored)') : t('Accepted'),
         align: 'right',
         direction: getArrowDirection(SortBy.ACCEPTED),
         onClick: () => this.handleChangeSort(SortBy.ACCEPTED),
@@ -341,11 +361,12 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
   };
 
   mapSeriesToTable(projectStats?: UsageSeries): {
+    hasStoredOutcome: boolean;
     tableStats: TableStat[];
     error?: Error;
   } {
     if (!projectStats) {
-      return {tableStats: []};
+      return {tableStats: [], hasStoredOutcome: false};
     }
 
     const stats: Record<number, object> = {};
@@ -354,6 +375,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       const baseStat: Partial<TableStat> = {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
+        [SortBy.ACCEPTED_STORED]: 0,
         [SortBy.FILTERED]: 0,
         [SortBy.INVALID]: 0,
         [SortBy.RATE_LIMITED]: 0,
@@ -363,8 +385,13 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       const projectSet = new Set(projectList.map(p => p.id));
 
       projectStats.groups.forEach(group => {
-        const {outcome, project: projectId} = group.by;
+        const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
+
+        if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
+          // we need `span_indexed` data for `accepted_stored` only
+          return;
+        }
 
         if (!projectSet.has(projectId.toString())) {
           return;
@@ -374,8 +401,13 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId] = {...baseStat};
         }
 
-        if (outcome !== Outcome.CLIENT_DISCARD) {
+        if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
           stats[projectId].total += group.totals['sum(quantity)'];
+        }
+
+        if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
+          stats[projectId].accepted_stored += group.totals['sum(quantity)'];
+          return;
         }
 
         if (
@@ -396,8 +428,15 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       });
 
       // For projects without stats, fill in with zero
+      let hasStoredOutcome = false;
       const tableStats: TableStat[] = projectList.map(proj => {
         const stat = stats[proj.id] ?? {...baseStat};
+        if (
+          stat[SortBy.ACCEPTED_STORED] > 0 &&
+          stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
+        ) {
+          hasStoredOutcome = true;
+        }
         return {
           project: {...proj},
           ...this.getProjectLink(proj),
@@ -423,6 +462,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           offset,
           offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE
         ),
+        hasStoredOutcome,
       };
     } catch (err) {
       Sentry.withScope(scope => {
@@ -433,6 +473,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
 
       return {
         tableStats: [],
+        hasStoredOutcome: false,
         error: err,
       };
     }
@@ -441,7 +482,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
   renderComponent() {
     const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
-    const {headers, tableStats} = this.tableData;
+    const {headers, tableStats, showStoredOutcome} = this.tableData;
     return (
       <Fragment>
         {isSingleProject && (
@@ -469,6 +510,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
             headers={headers}
             dataCategory={dataCategory}
             usageStats={tableStats}
+            showStoredOutcome={showStoredOutcome}
           />
           <Pagination pageLinks={this.pageLink} />
         </Container>
