@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -88,7 +89,7 @@ def _check_for_mismatched_hashes(
 
 
 def get_grouping_info_from_variants(
-    variants: dict[str, BaseVariant],
+    variants: Mapping[str, BaseVariant],
 ) -> dict[str, dict[str, Any]]:
     """
     Given a dictionary of variant objects, create and return a copy of the dictionary in which each
