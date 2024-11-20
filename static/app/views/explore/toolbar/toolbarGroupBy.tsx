@@ -94,24 +94,33 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
               />
             </Tooltip>
           </StyledToolbarHeader>
-          {editableColumns.map((column, i) => (
-            <ColumnEditorRow
-              disabled={resultMode === 'samples'}
-              key={column.id}
-              canDelete={
-                editableColumns.length > 1 || !['', undefined].includes(column.column)
-              }
-              column={column}
-              options={options}
-              onColumnChange={c => updateColumnAtIndex(i, c)}
-              onColumnDelete={() => deleteColumnAtIndex(i)}
-            />
-          ))}
+          <FullWidthTooltip
+            position="top"
+            title={t('Group by is only applicable to aggregate results.')}
+          >
+            {editableColumns.map((column, i) => (
+              <ColumnEditorRow
+                disabled={resultMode === 'samples'}
+                key={column.id}
+                canDelete={
+                  editableColumns.length > 1 || !['', undefined].includes(column.column)
+                }
+                column={column}
+                options={options}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
+              />
+            ))}
+          </FullWidthTooltip>
         </ToolbarSection>
       )}
     </DragNDropContext>
   );
 }
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
+`;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   margin-bottom: ${space(1)};
