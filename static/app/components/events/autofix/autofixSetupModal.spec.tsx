@@ -48,9 +48,7 @@ describe('AutofixSetupContent', function () {
     render(<AutofixSetupContent groupId="1" projectId="1" />);
 
     expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Install the GitHub integration by navigating to/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Install the GitHub integration/)).toBeInTheDocument();
   });
 
   it('renders the code mappings instructions', async function () {
