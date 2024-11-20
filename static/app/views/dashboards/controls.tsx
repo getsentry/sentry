@@ -218,26 +218,25 @@ function Controls({
                     disabled={widgetLimitReached}
                   />
                 ) : (
-                  <Tooltip
-                    title={t('You do not have permission to edit this dashboard')}
-                    disabled={hasEditAccess}
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    size="sm"
+                    disabled={widgetLimitReached || !hasEditAccess}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAnalytics('dashboards_views.widget_library.opened', {
+                        organization,
+                      });
+                      onAddWidget(defaultDataset);
+                    }}
+                    title={
+                      !hasEditAccess &&
+                      t('You do not have permission to edit this dashboard')
+                    }
                   >
-                    <Button
-                      data-test-id="add-widget-library"
-                      priority="primary"
-                      size="sm"
-                      disabled={widgetLimitReached || !hasEditAccess}
-                      icon={<IconAdd isCircled />}
-                      onClick={() => {
-                        trackAnalytics('dashboards_views.widget_library.opened', {
-                          organization,
-                        });
-                        onAddWidget(defaultDataset);
-                      }}
-                    >
-                      {t('Add Widget')}
-                    </Button>
-                  </Tooltip>
+                    {t('Add Widget')}
+                  </Button>
                 )}
               </Tooltip>
             ) : null}
