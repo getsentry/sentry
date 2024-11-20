@@ -1,3 +1,6 @@
+import {createRoot} from 'react-dom/client';
+import throttle from 'lodash/throttle';
+
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
@@ -32,15 +35,23 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
     if (!input || !element) {
       return;
     }
+    const inputElem = document.querySelector(input);
+    const rootEl = document.querySelector(element);
+    if (!inputElem || !rootEl) {
+      return;
+    }
 
-    const passwordStrength = await import(
+    const {PasswordStrength} = await import(
       /* webpackChunkName: "PasswordStrength" */ 'sentry/components/passwordStrength'
     );
 
-    passwordStrength.attachTo({
-      input: document.querySelector(input),
-      element: document.querySelector(element),
-    });
+    const root = createRoot(rootEl);
+    inputElem.addEventListener(
+      'input',
+      throttle(e => {
+        root.render(<PasswordStrength value={e.target.value} />);
+      })
+    );
 
     return;
   }
