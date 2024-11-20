@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -18,7 +19,7 @@ import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummar
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconDocs, IconSeer} from 'sentry/icons';
+import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryType, type Event} from 'sentry/types/event';
@@ -211,7 +212,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         )}
         <HeaderText>
           <HeaderContainer>
-            <IconSeer size="lg" />
+            <SeerIcon size="lg" />
             {t('Sentry AI')}
             <StyledFeatureBadge
               type="beta"
@@ -409,7 +410,7 @@ const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-bottom: ${space(1)};
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderText = styled('div')`

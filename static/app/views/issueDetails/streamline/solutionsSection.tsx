@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import useDrawer from 'sentry/components/globalDrawer';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
-import {IconChevron} from 'sentry/icons';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -74,6 +76,9 @@ export default function SolutionsSection({
     isPending: isSummaryLoading,
     isError: isSummaryError,
   } = useGroupSummary(group.id, group.issueCategory);
+  const {data: autofixSetupData, isLoading: isAutofixSetupLoading} = useAutofixSetup({
+    groupId: group.id,
+  });
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasSummary = isSummaryEnabled(
@@ -86,6 +91,10 @@ export default function SolutionsSection({
     issueTypeConfig.issueSummary.enabled &&
     !organization.hideAiFeatures;
   const hasResources = issueTypeConfig.resources;
+  const hasAutofix = issueTypeConfig.autofix;
+  const autofixNeedsSetup =
+    !isAutofixSetupLoading &&
+    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok);
 
   return (
     <div>
@@ -140,7 +149,10 @@ export default function SolutionsSection({
           </ExpandButton>
         </ResourcesWrapper>
       )}
-      {(hasSummary || aiNeedsSetup) && (
+      {(aiNeedsSetup ||
+        hasAutofix ||
+        autofixNeedsSetup ||
+        (hasSummary && hasResources)) && (
         <StyledButton
           ref={openButtonRef}
           onClick={() => openSolutionsDrawer()}
@@ -150,8 +162,24 @@ export default function SolutionsSection({
             has_streamlined_ui: hasStreamlinedUI,
           }}
         >
-          {t('Open Solutions Hub')}
-          <IconChevron direction="right" size="xs" />
+          {isAutofixSetupLoading ? (
+            <LoadingIndicator mini />
+          ) : aiNeedsSetup ? (
+            t('Set up Sentry AI')
+          ) : hasAutofix ? (
+            autofixNeedsSetup ? (
+              t('Set up Autofix')
+            ) : hasResources ? (
+              t('View Resources & Autofix')
+            ) : (
+              t('View Autofix')
+            )
+          ) : (
+            t('View Resources')
+          )}
+          <ChevronContainer>
+            <Chevron direction="right" size="large" />
+          </ChevronContainer>
         </StyledButton>
       )}
     </div>
@@ -216,10 +244,16 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.pink400};
 `;
 
+const ChevronContainer = styled('div')`
+  margin-left: ${space(0.5)};
+  height: 16px;
+  width: 16px;
+`;
+
 const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
