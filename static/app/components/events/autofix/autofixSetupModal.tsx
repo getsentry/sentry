@@ -69,11 +69,8 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
   return (
     <Fragment>
       <p>
-        {tct(
-          'Install the GitHub integration by navigating to the [link:integration settings page] and clicking the "Install" button. Follow the steps provided.',
-          {
-            link: <ExternalLink href={`/settings/integrations/github/`} />,
-          }
+        {t(
+          'Install the GitHub integration on the integration settings page and clicking the "Install" button. Follow the steps provided.'
         )}
       </p>
       <p>
@@ -115,9 +112,8 @@ function AutofixCodeMappingStep() {
   return (
     <Fragment>
       <p>
-        {tct(
-          "Set up code mappings for the Github repositories you want to run Autofix on for this project. Go to the [link:integration settings page], and configure the installation's code mappings.",
-          {link: <ExternalLink href={url} />}
+        {t(
+          'Set up code mappings for the Github repositories you want to run Autofix on for this project.'
         )}
       </p>
       <GuidedSteps.ButtonWrapper>
