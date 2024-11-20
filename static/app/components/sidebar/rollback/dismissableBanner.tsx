@@ -5,9 +5,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
-type Props = {};
-
-export function DismissableRollbackBanner({}: Props) {
+export function DismissableRollbackBanner() {
   const config = useLegacyStore(ConfigStore);
 
   const isDarkMode = config.theme === 'dark';

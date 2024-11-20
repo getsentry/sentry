@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {usePrompt} from 'sentry/actionCreators/prompts';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import Avatar from 'sentry/components/avatar';
 import {Chevron} from 'sentry/components/chevron';
@@ -12,6 +11,7 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
 import {RollbackNotificationDot} from 'sentry/components/sidebar/rollback/notificationDot';
+import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 import SidebarDropdownMenu from 'sentry/components/sidebar/sidebarDropdownMenu.styled';
 import SidebarMenuItem, {menuItemStyles} from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
@@ -41,7 +41,6 @@ type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
 
 export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: Props) {
   const api = useApi();
-  const organization = useOrganization();
 
   const config = useLegacyStore(ConfigStore);
   const org = useOrganization({allowNull: true});
@@ -58,9 +57,8 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
   const hasTeamRead = org?.access?.includes('team:read');
   const canCreateOrg = ConfigStore.get('features').has('organizations:create');
 
-  const {dismissPrompt} = usePrompt({
-    feature: 'rollback_2024_dropdown',
-    organization,
+  const {onOpenOrgDropdown} = useRollbackPrompts({
+    collapsed,
   });
 
   function handleLogout() {
@@ -84,7 +82,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
     );
 
   return (
-    <DeprecatedDropdownMenu onOpen={dismissPrompt}>
+    <DeprecatedDropdownMenu onOpen={onOpenOrgDropdown}>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
         <SidebarDropdownRoot {...getRootProps()}>
           <SidebarDropdownActor

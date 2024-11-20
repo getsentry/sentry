@@ -1,28 +1,15 @@
 import styled from '@emotion/styled';
 
-import {usePrompt} from 'sentry/actionCreators/prompts';
-import {useRollback} from 'sentry/components/sidebar/rollback/useRollback';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 
 type RollbackNotificationDotProps = {
   collapsed: boolean;
 };
 
 export function RollbackNotificationDot({collapsed}: RollbackNotificationDotProps) {
-  const organization = useOrganization();
-  const {data} = useRollback();
+  const {shouldShowDot} = useRollbackPrompts({collapsed});
 
-  const {isPromptDismissed: isSidebarPromptDismissed} = usePrompt({
-    feature: 'rollback_2024_sidebar',
-    organization,
-  });
-
-  const {isPromptDismissed: isDropdownPromptDismissed} = usePrompt({
-    feature: 'rollback_2024_dropdown',
-    organization,
-  });
-
-  if (!data || isDropdownPromptDismissed || (!collapsed && !isSidebarPromptDismissed)) {
+  if (!shouldShowDot) {
     return null;
   }
 
