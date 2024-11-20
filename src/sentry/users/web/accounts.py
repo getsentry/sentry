@@ -409,7 +409,7 @@ def confirm_signed_email(
     if not use_signed_urls:
         return HttpResponseNotFound()
 
-    msg = _("Thanks for confirming your email!")
+    msg = _("Thank you for confirming your email.")
     level = messages.SUCCESS
 
     try:
@@ -423,32 +423,37 @@ def confirm_signed_email(
         # check to see if the email has already been verified
         email = UserEmail.objects.get(user=request.user.id, email=data["email"])
         if email:
-            raise VerifiedEmailAlreadyExists
+            raise VerifiedEmailAlreadyExists()
     except UserEmail.DoesNotExist:
         # user email does not exist, so we can create it
         pass
     except VerifiedEmailAlreadyExists:
         msg = WARN_EMAIL_ALREADY_VERIFIED
         level = messages.INFO
+        messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
     except SignatureExpired:
         msg = ERR_SIGNATURE_EXPIRED
         level = messages.ERROR
+        messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
     except (InvalidRequest, BadSignature):
         msg = ERR_CONFIRMING_EMAIL
         level = messages.ERROR
+        messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
     except Exception:
         logger.exception("user.email.signed-confirm.error")
         msg = ERR_CONFIRMING_EMAIL
         level = messages.ERROR
+        messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
 
     user = User.objects.get(id=request.user.id)
     email = UserEmail.objects.create(
         user=user,
         email=data["email"],
+        validation_hash="",
         is_verified=True,
     )
     email.save()
