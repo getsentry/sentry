@@ -120,3 +120,56 @@ class TestSelectRequester(TestCase):
         assert len(requests) == 1
         assert requests[0]["response_code"] == 500
         assert requests[0]["event_type"] == "select_options.requested"
+
+    @responses.activate
+    def test_api_error_message(self):
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            body="Something failed",
+            status=500,
+        )
+
+        with pytest.raises(APIError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/get-issues",
+            ).run()
+        assert str(exception_info.value) == "hi"
+
+    @responses.activate
+    def test_validation_error_message_validator(self):
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            body={},
+            status=200,
+        )
+
+        with pytest.raises(ValidationError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/get-issues",
+            ).run()
+
+        assert str(exception_info.value) == "hi"
+
+    @responses.activate
+    def test_validation_error_message_missing_field(self):
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
+            body={"bruh": "bruhhhh"},
+            status=200,
+        )
+
+        with pytest.raises(ValidationError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/get-issues",
+            ).run()
+
+        assert str(exception_info.value) == "hi"
