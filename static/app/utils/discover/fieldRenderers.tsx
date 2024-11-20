@@ -364,6 +364,7 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.description': SpecialField;
   'span.status_code': SpecialField;
   span_id: SpecialField;
   team_key_transaction: SpecialField;
@@ -490,6 +491,29 @@ const SPECIAL_FIELDS: SpecialFields = {
       }
 
       return <Container>{getShortEventId(spanId)}</Container>;
+    },
+  },
+  'span.description': {
+    sortField: 'span.description',
+    renderFunc: data => {
+      const value = data['span.description'];
+
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
     },
   },
   trace: {
