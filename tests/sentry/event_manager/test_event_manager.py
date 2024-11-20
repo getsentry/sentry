@@ -1603,10 +1603,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"save_event_transactions.sample_transactions_in_save": True})
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_transaction_sampler_and_recieve_mock_called(
         self,
-        mock_record_sample: mock.MagicMock,
         transaction_processed_signal_mock: mock.MagicMock,
+        mock_record_sample: mock.MagicMock,
+        eventstream_insert: mock.MagicMock,
     ) -> None:
         manager = EventManager(
             make_event(
@@ -1667,6 +1669,72 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]
+        eventstream_insert.assert_called_once()
+        assert "skip_consume" not in eventstream_insert.call_args.kwargs
+
+    @override_options({"save_event_transactions.post_process_cleanup": True})
+    @mock.patch("sentry.event_manager.eventstream.backend.insert")
+    def test_transaction_event_stream_insert_with_raw(
+        self, eventstream_insert: mock.MagicMock
+    ) -> None:
+        # make sure with the option on we don't get any errors
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "transaction_info": {
+                        "source": "url",
+                    },
+                }
+            )
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+        eventstream_insert.assert_called_once()
+        assert eventstream_insert.call_args.kwargs["skip_consume"] is True
 
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))

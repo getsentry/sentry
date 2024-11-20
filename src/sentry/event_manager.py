@@ -2655,6 +2655,12 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
         _nodestore_save_many(jobs=jobs, app_feature="transactions")
 
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
+        for job in jobs:
+            if options.get("save_event_transactions.post_process_cleanup"):
+                # we don't need to send transactions to post process
+                # so set raw so we skip post_process
+                job["raw"] = True
+
         _eventstream_insert_many(jobs)
 
     with metrics.timer("save_transaction_events.track_outcome_accepted_many"):

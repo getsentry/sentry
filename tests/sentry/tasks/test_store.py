@@ -14,6 +14,7 @@ from sentry.tasks.store import (
     save_event,
     save_event_transaction,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -397,3 +398,67 @@ def test_store_consumer_type(
         )
 
     mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_not_called()
+
+
+@django_db_all
+@override_options({"save_event_transactions.post_process_cleanup": True})
+def test_store_consumer_type_transactions_cleanup(
+    default_project,
+    mock_save_event,
+    mock_save_event_transaction,
+    register_plugin,
+    mock_event_processing_store,
+    mock_transaction_processing_store,
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+    }
+
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:2"
+
+    process_event(cache_key="e:2", start_time=1)
+
+    mock_event_processing_store.get.assert_called_once_with("e:2")
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:2",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+
+    transaction_data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.get.return_value = transaction_data
+    # mock_transaction_processing_store.delete_by_key = mock.Mock()
+
+    mock_transaction_processing_store.store.return_value = "tx:3"
+
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="tx:3",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")

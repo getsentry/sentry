@@ -582,6 +582,14 @@ def _do_save_event(
             raise
 
         finally:
+            if consumer_type == ConsumerType.Transactions and options.get(
+                "save_event_transactions.post_process_cleanup"
+            ):
+                # we won't use the transaction data in post_process
+                # so we can delete it from the cache now.
+                if cache_key:
+                    processing_store.delete_by_key(cache_key)
+
             reprocessing2.mark_event_reprocessed(data)
             if cache_key and has_attachments:
                 attachment_cache.delete(cache_key)
