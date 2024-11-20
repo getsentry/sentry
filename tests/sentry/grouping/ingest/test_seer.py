@@ -310,7 +310,8 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.seer.similarity.utils.logger")
-    def test_too_many_only_system_frames(self, mock_logger: Mock) -> None:
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_only_system_frames(self, mock_metrics: Mock, mock_logger: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -350,5 +351,21 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "project_id": "",
                 "event_id": "",
                 "hash": grouping_info["system"]["hash"],
+            },
+        )
+        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
+
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "ingest"},
+        )
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={
+                "call_made": False,
+                "blocker": "over-threshold-only-system-frames",
             },
         )

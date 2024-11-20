@@ -32,9 +32,10 @@ from sentry.seer.similarity.types import (
     SimilarHashNotFoundError,
 )
 from sentry.seer.similarity.utils import (
+    ReferrerOptions,
     event_content_has_stacktrace,
     filter_null_from_string,
-    get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -359,8 +360,10 @@ def get_events_from_nodestore(
             # TODO: Remove when grouping.similarity.over_threshold_system_only_frames is removed
             grouping_info["project_id"] = project.id
             grouping_info["event_id"] = event.event_id  # type: ignore[assignment]
-            stacktrace_string = get_stacktrace_string(grouping_info)
-            if stacktrace_string == "":
+            stacktrace_string = get_stacktrace_string_with_metrics(
+                grouping_info, event.platform, ReferrerOptions.BACKFILL
+            )
+            if not stacktrace_string:
                 invalid_event_group_ids.append(group_id)
                 continue
             primary_hash = event.get_primary_hash()
