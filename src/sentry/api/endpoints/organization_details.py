@@ -42,7 +42,6 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -180,12 +179,6 @@ ORG_OPTIONS = (
     ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
-    (
-        "aiSuggestedSolution",
-        "sentry:ai_suggested_solution",
-        bool,
-        AI_SUGGESTED_SOLUTION,
-    ),
     (
         "hideAiFeatures",
         "sentry:hide_ai_features",

@@ -30,7 +30,6 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
@@ -599,9 +598,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
-                "aiSuggestedSolution": bool(
-                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
-                ),
                 "hideAiFeatures": bool(
                     obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
                 ),
