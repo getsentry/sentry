@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
 
@@ -83,7 +84,7 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
 # combined with some other value). To the extent to which we're then using this function to decide
 # whether or not to call Seer, this means that the calculations giving rise to the default part of
 # the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
+def _has_customized_fingerprint(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
     if "{{ default }}" in fingerprint:
