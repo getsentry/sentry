@@ -150,6 +150,7 @@ function OnboardingContent({
   hasDocs: boolean;
 }) {
   const organization = useOrganization();
+  const ORIGINAL_HASH = window.location.hash;
   const skipConfig = window.location.hash === FLAG_HASH_SKIP_CONFIG;
   const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
   const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
@@ -249,7 +250,10 @@ function OnboardingContent({
           ],
         ]}
         value={setupMode()}
-        onChange={setSetupMode}
+        onChange={value => {
+          setSetupMode(value);
+          window.location.hash = ORIGINAL_HASH;
+        }}
       />
     </Header>
   );
