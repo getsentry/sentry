@@ -57,7 +57,7 @@ def link_all_repos(
                 extra={"organization_id": organization_id},
             )
             metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
-            lifecycle.record_halt(str(LinkAllReposHaltReason.MISSING_INTEGRATION))
+            lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_INTEGRATION))
             return
 
         rpc_org = organization_service.get(id=organization_id)
@@ -71,7 +71,7 @@ def link_all_repos(
                 f"{integration_key}.link_all_repos.error",
                 tags={"type": "missing_organization"},
             )
-            lifecycle.record_halt(str(LinkAllReposHaltReason.MISSING_ORGANIZATION))
+            lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_ORGANIZATION))
             return
 
         installation = integration.get_installation(organization_id=organization_id)

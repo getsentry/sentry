@@ -14,7 +14,10 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_halt_metric,
+)
 
 
 @control_silo_test
@@ -61,8 +64,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+        assert_failure_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -180,8 +183,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+        assert_failure_metric(mock_record, LinkAllReposHaltReason.MISSING_INTEGRATION.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
@@ -197,8 +200,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, LinkAllReposHaltReason.MISSING_ORGANIZATION.value)
+        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+        assert_failure_metric(mock_record, LinkAllReposHaltReason.MISSING_ORGANIZATION.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.tasks.link_all_repos.metrics")
