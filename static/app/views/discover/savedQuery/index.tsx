@@ -577,6 +577,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             query: savedQuery,
             yAxis,
             router,
+            widgetType: hasDatasetSelector(organization)
+              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                  getSavedQueryDataset(organization, location, savedQuery)
+                ]
+              : undefined,
           });
         },
       });

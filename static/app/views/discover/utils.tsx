@@ -693,8 +693,8 @@ export function handleAddQueryToDashboard({
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  widgetType: WidgetType | undefined;
   query?: NewQuery;
-  widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
