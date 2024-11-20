@@ -188,7 +188,9 @@ export function checkUserHasEditAccess(
   }
   if (dashboardPermissions.teamsWithEditAccess?.length) {
     const userTeamIds = userTeams.map(team => Number(team.id));
-    dashboardPermissions.teamsWithEditAccess.some(teamId => userTeamIds.includes(teamId));
+    return dashboardPermissions.teamsWithEditAccess.some(teamId =>
+      userTeamIds.includes(teamId)
+    );
   }
   return false;
 }
