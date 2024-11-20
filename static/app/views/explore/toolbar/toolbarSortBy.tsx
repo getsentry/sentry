@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -56,8 +57,8 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   }, [fields, numberTags, stringTags]);
 
   const setSortField = useCallback(
-    (i: number, {value}: SelectOption<Field>) => {
-      if (sorts[i]) {
+    (i: number, {value}: SelectOption<SelectKey>) => {
+      if (sorts[i] && typeof value === 'string') {
         setSorts([
           {
             field: value,
@@ -85,12 +86,12 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   }, []);
 
   const setSortKind = useCallback(
-    (i: number, {value}: SelectOption<Sort['kind']>) => {
+    (i: number, {value}: SelectOption<SelectKey>) => {
       if (sorts[i]) {
         setSorts([
           {
             field: sorts[i].field,
-            kind: value,
+            kind: value as Sort['kind'],
           },
         ]);
       }
@@ -110,12 +111,12 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
       </ToolbarHeader>
       <div>
         <ToolbarRow>
-          <CompactSelect
+          <ColumnCompactSelect
             options={fieldOptions}
             value={sorts[0]?.field}
             onChange={newSortField => setSortField(0, newSortField)}
           />
-          <CompactSelect
+          <DirectionCompactSelect
             options={kindOptions}
             value={sorts[0]?.kind}
             onChange={newSortKind => setSortKind(0, newSortKind)}
@@ -125,3 +126,20 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
     </ToolbarSection>
   );
 }
+
+const ColumnCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const DirectionCompactSelect = styled(CompactSelect)`
+  width: 90px;
+
+  > button {
+    width: 100%;
+  }
+`;

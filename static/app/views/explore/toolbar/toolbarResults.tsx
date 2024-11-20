@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {ResultMode} from 'sentry/views/explore/hooks/useResultsMode';
@@ -12,16 +14,30 @@ interface ToolbarResultsProps {
 export function ToolbarResults({resultMode, setResultMode}: ToolbarResultsProps) {
   return (
     <ToolbarSection data-test-id="section-result-mode">
-      <ToolbarRow>
+      <StyledToolbarRow>
         <SegmentedControl
           aria-label={t('Result Mode')}
           value={resultMode}
           onChange={setResultMode}
         >
-          <SegmentedControl.Item key="samples">{t('Samples')}</SegmentedControl.Item>
-          <SegmentedControl.Item key="aggregate">{t('Aggregates')}</SegmentedControl.Item>
+          <SegmentedControl.Item key={'samples' as const}>
+            {t('Samples')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key={'aggregate' as const}>
+            {t('Aggregates')}
+          </SegmentedControl.Item>
         </SegmentedControl>
-      </ToolbarRow>
+      </StyledToolbarRow>
     </ToolbarSection>
   );
 }
+
+const StyledToolbarRow = styled(ToolbarRow)`
+  > div {
+    flex-grow: 1;
+
+    > label > :last-child {
+      flex-grow: 1;
+    }
+  }
+`;
