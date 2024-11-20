@@ -3,7 +3,6 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
-POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -158,7 +157,6 @@ test-monolith-dbs:
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
-	  tests/sentry/backup/test_releases.py \
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \

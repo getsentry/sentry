@@ -7,8 +7,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationaction import NotificationAction
 
 
 @region_silo_endpoint

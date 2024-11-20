@@ -7,6 +7,11 @@ import sentry_protos.snuba.v1alpha.request_common_pb2
 import sentry_sdk
 import sentry_sdk.scope
 from google.protobuf.message import Message as ProtobufMessage
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+)
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -57,27 +62,37 @@ class SnubaRPCRequest(Protocol):
 
 
 def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
-    resp = _make_rpc_request("EndpointTraceItemTable", "v1", req)
+    resp = _make_rpc_request("EndpointTraceItemTable", "v1", req.meta.referrer, req)
     response = TraceItemTableResponse()
     response.ParseFromString(resp.data)
     return response
 
 
+def timeseries_rpc(req: TimeSeriesRequest) -> TimeSeriesResponse:
+    resp = _make_rpc_request("EndpointTimeSeries", "v1", req.meta.referrer, req)
+    response = TimeSeriesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
 def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
-    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req)
+    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
     return response
 
 
 def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
-    resp = _make_rpc_request("EndpointTraceItemAttributeValues", "v1", req)
+    resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
     return response
 
 
-def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseType:
+def rpc(
+    req: SnubaRPCRequest,
+    resp_type: type[RPCResponseType],
+) -> RPCResponseType:
     """
     You want to call a snuba RPC. Here's how you do it:
 
@@ -112,34 +127,51 @@ def rpc(req: SnubaRPCRequest, resp_type: type[RPCResponseType]) -> RPCResponseTy
     cls = req.__class__
     endpoint_name = cls.__name__
     class_version = cls.__module__.split(".", 3)[2]
-    http_resp = _make_rpc_request(endpoint_name, class_version, req)
+    http_resp = _make_rpc_request(endpoint_name, class_version, req.meta.referrer, req)
     resp = resp_type()
     resp.ParseFromString(http_resp.data)
     return resp
 
 
 def _make_rpc_request(
-    endpoint_name: str, class_version: str, req: SnubaRPCRequest
+    endpoint_name: str,
+    class_version: str,
+    referrer: str | None,
+    req: SnubaRPCRequest | CreateSubscriptionRequest,
 ) -> BaseHTTPResponse:
-    referrer = req.meta.referrer
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
-        span.set_tag("snuba.referrer", referrer)
+        if referrer:
+            span.set_tag("snuba.referrer", referrer)
         http_resp = _snuba_pool.urlopen(
             "POST",
             f"/rpc/{endpoint_name}/{class_version}",
             body=req.SerializeToString(),
-            headers={
-                "referer": referrer,
-            },
+            headers=(
+                {
+                    "referer": referrer,
+                }
+                if referrer
+                else {}
+            ),
         )
-        if http_resp.status != 200:
+        if http_resp.status != 200 and http_resp.status != 202:
             error = ErrorProto()
             error.ParseFromString(http_resp.data)
             if SNUBA_INFO:
                 log_snuba_info(f"{referrer}.error:\n{error}")
             raise SnubaRPCError(error)
         return http_resp
+
+
+def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionResponse:
+    cls = req.__class__
+    endpoint_name = cls.__name__
+    class_version = cls.__module__.split(".", 3)[2]
+    http_resp = _make_rpc_request(endpoint_name, class_version, None, req)
+    resp = CreateSubscriptionResponse()
+    resp.ParseFromString(http_resp.data)
+    return resp

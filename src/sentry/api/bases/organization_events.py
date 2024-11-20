@@ -52,12 +52,6 @@ def get_query_columns(columns, rollup):
     column_map = {
         "user_count": "count_unique(user)",
         "event_count": "count()",
-        "epm()": "epm(%d)" % rollup,
-        "eps()": "eps(%d)" % rollup,
-        "tpm()": "tpm(%d)" % rollup,
-        "tps()": "tps(%d)" % rollup,
-        "sps()": "sps(%d)" % rollup,
-        "spm()": "spm(%d)" % rollup,
     }
 
     return [column_map.get(column, column) for column in columns]
@@ -411,7 +405,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [Sequence[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult
+            [list[str], str, SnubaParams, int, bool, timedelta | None], SnubaTSResult
         ],
         top_events: int = 0,
         query_column: str = "count()",
@@ -433,7 +427,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 columns = request.GET.getlist("yAxis", _columns)
 
                 if query is None:
-                    query = request.GET.get("query")
+                    query = request.GET.get("query", "")
                 if snuba_params is None:
                     try:
                         # events-stats is still used by events v1 which doesn't require global views
@@ -573,7 +567,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         event_result: SnubaTSResult,
         snuba_params: SnubaParams,
         columns: Sequence[str],
-        query_columns: Sequence[str],
+        query_columns: list[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
         dataset: Any | None = None,

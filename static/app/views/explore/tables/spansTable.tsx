@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -11,6 +12,8 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   Table,
@@ -23,23 +26,29 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {FieldRenderer} from './fieldRenderer';
 
-interface SpansTableProps {}
+interface SpansTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function SpansTable({}: SpansTableProps) {
+export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
+  const [visualizes] = useVisualizes();
+  const organization = useOrganization();
 
   const eventView = useMemo(() => {
     const queryFields = [
@@ -51,12 +60,19 @@ export function SpansTable({}: SpansTableProps) {
       'timestamp',
     ];
 
+    const search = new MutableSearch(query);
+
+    // Filtering out all spans with op like 'ui.interaction*' which aren't
+    // embedded under transactions. The trace view does not support rendering
+    // such spans yet.
+    search.addFilterValues('!transaction.span_id', ['00']);
+
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
       orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
-      query,
+      query: search.formatString(),
       version: 2,
       dataset,
     };
@@ -71,6 +87,20 @@ export function SpansTable({}: SpansTableProps) {
     initialData: [],
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
+  });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
+
+  useAnalytics({
+    resultLength: result.data?.length,
+    resultMode: 'span samples',
+    resultStatus: result.status,
+    visualizes,
+    organization,
+    columns: fields,
+    userQuery: query,
   });
 
   const {tableStyles} = useTableStyles({

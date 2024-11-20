@@ -1,9 +1,4 @@
-import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
-
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import type {SelectOption} from 'sentry/components/compactSelect';
-import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -33,7 +28,6 @@ export function useSystemSelectorOptions() {
   data.forEach(entry => {
     const system = entry['span.system'];
     if (system) {
-      let label: ReactNode = '';
       const textValue =
         system in DATABASE_SYSTEM_TO_LABEL ? DATABASE_SYSTEM_TO_LABEL[system] : system;
 
@@ -41,19 +35,8 @@ export function useSystemSelectorOptions() {
         Object.values(SupportedDatabaseSystem)
       );
 
-      if (system === SupportedDatabaseSystem.MONGODB) {
-        label = (
-          <LabelContainer>
-            {textValue}
-            <StyledFeatureBadge type={'new'} />
-          </LabelContainer>
-        );
-      } else {
-        label = textValue;
-      }
-
       if (supportedSystemSet.has(system)) {
-        options.push({value: system, label, textValue});
+        options.push({value: system, label: textValue, textValue});
       }
     }
   });
@@ -70,12 +53,3 @@ export function useSystemSelectorOptions() {
 
   return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};
 }
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: ${space(1)};
-`;
-
-const LabelContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;

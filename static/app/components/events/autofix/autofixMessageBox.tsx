@@ -297,7 +297,7 @@ function AutofixMessageBox({
     let text = message;
     if (isChangesStep && changesMode === 'add_tests') {
       text =
-        'Please write a unit test that reproduces the issue to make sure it is fixed.';
+        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.';
     }
 
     if (text.trim() !== '' || allowEmptyMessage) {
@@ -464,7 +464,7 @@ function AutofixMessageBox({
           </InputArea>
         )}
         {isChangesStep && prsMade && (
-          <ViewPRButtons>
+          <ViewPRButtons aria-label={t('View pull requests')}>
             {changes.map(
               change =>
                 change.pull_request?.pr_url && (

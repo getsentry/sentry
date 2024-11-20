@@ -31,3 +31,21 @@ export const MOCK_DATA_SECTION_PROPS = {
   project: ProjectFixture(),
   group: GroupFixture(),
 };
+
+export const EMPTY_STATE_SECTION_PROPS = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {flags: {values: []}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};
+
+export const NO_FLAG_CONTEXT_SECTION_PROPS = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {other: {}},
+  }),
+  project: ProjectFixture(),
+  group: GroupFixture(),
+};

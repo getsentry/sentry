@@ -9,13 +9,13 @@ import {
   GridHead,
   GridHeadCell,
   GridResizer,
+  GridRow,
 } from 'sentry/components/gridEditable/styles';
 import Panel from 'sentry/components/panels/panel';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {type Group, IssueType} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {parseCursor} from 'sentry/utils/cursor';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -29,7 +29,6 @@ import EventsTable from 'sentry/views/performance/transactionSummary/transaction
 
 interface EventListProps {
   group: Group;
-  project: Project;
 }
 
 export function EventList({group}: EventListProps) {
@@ -44,7 +43,6 @@ export function EventList({group}: EventListProps) {
     group,
     queryProps: {
       fields,
-      orderby: ['-timestamp'],
       widths: fields.map(field => {
         switch (field) {
           case 'id':
@@ -69,10 +67,12 @@ export function EventList({group}: EventListProps) {
     },
   });
 
-  if (location.query.sort) {
-    eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
-      fields.includes(sort.field)
-    );
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
+
+  if (!eventView.sorts.length) {
+    eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
 
   const grayText = css`
@@ -117,7 +117,7 @@ export function EventList({group}: EventListProps) {
             <EventListHeader>
               <EventListTitle>{t('All Events')}</EventListTitle>
               <EventListHeaderItem>
-                {isPending
+                {isPending || pageEventsCount === 0
                   ? null
                   : tct('Showing [start]-[end] of [count] matching events', {
                       start: start.toLocaleString(),
@@ -171,10 +171,10 @@ export function EventList({group}: EventListProps) {
 
 const EventListHeader = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto;
   gap: ${space(1.5)};
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   background: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
   position: sticky;
@@ -233,6 +233,9 @@ const StreamlineEventsTable = styled('div')`
     &:last-child {
       border: 0;
     }
+    &:first-child {
+      padding-left: ${space(1.5)};
+    }
   }
 
   ${GridBodyCell} {
@@ -242,13 +245,19 @@ const StreamlineEventsTable = styled('div')`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    a {
-      color: ${p => p.theme.textColor};
-    }
   }
-  a {
-    text-decoration: underline;
-    text-decoration-style: dotted;
-    text-decoration-color: ${p => p.theme.border};
+
+  ${GridRow} {
+    td:nth-child(2) {
+      padding-left: ${space(1.5)};
+    }
+
+    td:not(:nth-child(2)) {
+      a {
+        color: ${p => p.theme.textColor};
+        text-decoration: underline;
+        text-decoration-color: ${p => p.theme.border};
+      }
+    }
   }
 `;
