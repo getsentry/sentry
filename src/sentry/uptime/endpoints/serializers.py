@@ -23,6 +23,7 @@ class ProjectUptimeSubscriptionSerializerResponse(TypedDict):
     intervalSeconds: int
     timeoutMs: int
     owner: ActorSerializerResponse
+    traceSampling: bool
 
 
 @register(ProjectUptimeSubscription)
@@ -70,4 +71,5 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "intervalSeconds": obj.uptime_subscription.interval_seconds,
             "timeoutMs": obj.uptime_subscription.timeout_ms,
             "owner": attrs["owner"],
+            "traceSampling": obj.uptime_subscription.trace_sampling,
         }

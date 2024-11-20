@@ -1,9 +1,13 @@
 ---
-created: '2024-10-28T14:00:24.806218+00:00'
+created: '2024-11-08T19:21:15.831013+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: message
+hashing_metadata: {
+  "message_parameterized": true,
+  "message_source": "message"
+}
 ---
 contributing variants:
   default*

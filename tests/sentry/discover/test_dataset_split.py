@@ -656,12 +656,12 @@ class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSpli
 
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner: User) -> None:
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 

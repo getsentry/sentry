@@ -19,8 +19,15 @@ x-sentry-service-config:
         mode: containerized
     postgres:
       description: Database used to store Sentry data
+    redis:
+      description: Shared instance of redis used by sentry services
+      remote:
+        repo_name: sentry-shared-redis
+        branch: main
+        repo_link: git@github.com:getsentry/sentry-shared-redis.git
   modes:
     default: [snuba, postgres, relay]
+    migrations: [postgres, redis]
 
 services:
   postgres:

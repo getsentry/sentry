@@ -302,24 +302,28 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
           ? data[field]
           : emptyValue;
+
       if (isUrl(value)) {
         return (
-          <Container>
-            <ExternalLink href={value} data-test-id="group-tag-url">
-              {value}
-            </ExternalLink>
-          </Container>
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>
+              <ExternalLink href={value} data-test-id="group-tag-url">
+                {value}
+              </ExternalLink>
+            </Container>
+          </Tooltip>
         );
       }
 
-      const content =
-        value && typeof value === 'string' ? (
-          <span title={value}>{nullableValue(value)}</span>
-        ) : (
-          nullableValue(value)
+      if (value && typeof value === 'string') {
+        return (
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>{nullableValue(value)}</Container>
+          </Tooltip>
         );
+      }
 
-      return <Container>{content}</Container>;
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {

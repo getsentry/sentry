@@ -7,7 +7,7 @@ from sentry.utils.strings import unescape_string
 from .actions import FlagAction, VarAction
 from .exceptions import InvalidEnhancerConfig
 from .matchers import CalleeMatch, CallerMatch, FrameMatch
-from .rules import Rule
+from .rules import EnhancementRule
 
 # Grammar is defined in EBNF syntax.
 enhancements_grammar = Grammar(
@@ -59,7 +59,7 @@ class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
-    def visit_enhancements(self, node, children) -> list[Rule]:
+    def visit_enhancements(self, node, children) -> list[EnhancementRule]:
         rules = []
         for child in children:
             if not isinstance(child, str) and child is not None:
@@ -75,7 +75,7 @@ class EnhancementsVisitor(NodeVisitor):
 
     def visit_rule(self, node, children):
         _, matcher, actions = children
-        return Rule(matcher, actions)
+        return EnhancementRule(matcher, actions)
 
     def visit_matchers(self, node, children):
         caller_matcher, frame_matchers, callee_matcher = children
@@ -141,7 +141,7 @@ class EnhancementsVisitor(NodeVisitor):
         return node.match.groups()[0].lstrip("!")
 
 
-def parse_enhancements(s: str) -> list[Rule]:
+def parse_enhancements(s: str) -> list[EnhancementRule]:
     try:
         tree = enhancements_grammar.parse(s)
         return EnhancementsVisitor().visit(tree)

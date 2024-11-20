@@ -1,6 +1,7 @@
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {getNodeIds} from 'sentry/utils/replays/types';
 import constructSelector from 'sentry/views/replays/deadRageClick/constructSelector';
 
 export type Extraction = {
@@ -10,7 +11,27 @@ export type Extraction = {
   timestamp: number;
 };
 
-export default function extractHtmlAndSelector(
+const extractDomNodes = {
+  shouldVisitFrame: frame => {
+    const nodeIds = getNodeIds(frame);
+    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const mirror = replayer.getMirror();
+    const nodeIds = getNodeIds(frame);
+    const {html, selectors} = extractHtmlAndSelector((nodeIds ?? []) as number[], mirror);
+    collection.set(frame as ReplayFrame, {
+      frame,
+      html,
+      selectors,
+      timestamp: frame.timestampMs,
+    });
+  },
+};
+
+export default extractDomNodes;
+
+function extractHtmlAndSelector(
   nodeIds: number[],
   mirror: Mirror
 ): {html: string[]; selectors: Map<number, string>} {

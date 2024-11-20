@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -42,6 +43,7 @@ import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
 const exploreChartTypeOptions = [
@@ -62,7 +64,7 @@ const exploreChartTypeOptions = [
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
-export function ExploreCharts({query}: ExploreChartsProps) {
+export function ExploreCharts({query, setError}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -118,6 +120,10 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     'api.explorer.stats',
     dataset
   );
+
+  useEffect(() => {
+    setError(timeSeriesResult.error?.message ?? '');
+  }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[]) => {
@@ -288,7 +294,6 @@ const ChartContainer = styled('div')`
 const ChartHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
@@ -306,4 +311,5 @@ const ChartLabel = styled('div')`
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
+  margin-right: ${space(1)};
 `;

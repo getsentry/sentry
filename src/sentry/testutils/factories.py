@@ -99,13 +99,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationaction import (
-    ActionService,
-    ActionTarget,
-    ActionTrigger,
-    NotificationAction,
-)
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -127,6 +120,13 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -155,6 +155,7 @@ from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
+    IntervalSecondsLiteral,
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
@@ -861,7 +862,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
+    def create_user(
+        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+    ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
 
@@ -1953,12 +1956,13 @@ class Factories:
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
-        interval_seconds: int,
+        interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
         method,
         headers,
         body,
         date_updated: datetime,
+        trace_sampling: bool = False,
     ):
         return UptimeSubscription.objects.create(
             type=type,
@@ -1974,6 +1978,7 @@ class Factories:
             method=method,
             headers=headers,
             body=body,
+            trace_sampling=trace_sampling,
         )
 
     @staticmethod
