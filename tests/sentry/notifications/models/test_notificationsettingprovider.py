@@ -1,5 +1,5 @@
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner

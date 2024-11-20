@@ -3,10 +3,10 @@ from django.core import mail
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,

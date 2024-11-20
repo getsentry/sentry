@@ -99,7 +99,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -127,6 +126,7 @@ from sentry.notifications.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,

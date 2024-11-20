@@ -1,8 +1,8 @@
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.team import Team
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.types import (
     GroupSubscriptionStatus,

@@ -9,6 +9,7 @@ from sentry.notifications.models.notificationaction import (
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.notifications.models.notificationsettingbase import NotificationSettingBase
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 
 __all__ = (
     "NotificationActionProject",
@@ -20,4 +21,5 @@ __all__ = (
     "NotificationSettingBase",
     "NotificationMessage",
     "NotificationSettingOption",
+    "NotificationSettingProvider",
 )
