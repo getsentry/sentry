@@ -13,8 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
-from sentry.eventstream.types import EventStreamEventType
+from sentry import features, projectoptions
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -23,7 +22,7 @@ from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.sentry_metrics.client import generic_metrics_backend
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.signals import event_processed, issue_unignored, transaction_processed
+from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
@@ -471,10 +470,9 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(1.00))
 
 
-def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -> bool:
+def should_update_escalating_metrics(event: Event) -> bool:
     return (
         features.has("organizations:escalating-metrics-backend", event.project.organization)
-        and not is_transaction_event
         and event.group is not None
         and event.group.issue_type.should_detect_escalation()
     )
@@ -505,22 +503,14 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import (
-            event_processing_store,
-            transaction_processing_store,
-        )
-        from sentry.ingest.transaction_clusterer.datasource.redis import (
-            record_transaction_name as record_transaction_name_for_clustering,
-        )
+        from sentry.eventstore.processing import event_processing_store
         from sentry.issues.occurrence_consumer import EventLookupError
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        if eventstream_type == EventStreamEventType.Transaction.value:
-            processing_store = transaction_processing_store
-        else:
-            processing_store = event_processing_store
+        processing_store = event_processing_store
+
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
@@ -606,22 +596,6 @@ def post_process_group(
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
 
-        is_transaction_event = event.get_event_type() == "transaction"
-
-        # Simplified post processing for transaction events.
-        # This should eventually be completely removed and transactions
-        # will not go through any post processing.
-        if is_transaction_event and not options.get(
-            "save_event_transactions.sample_transactions_in_save"
-        ):
-            record_transaction_name_for_clustering(event.project, event.data)
-            with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
-                transaction_processed.send_robust(
-                    sender=post_process_group,
-                    project=event.project,
-                    event=event,
-                )
-
         metric_tags = {}
         if group_id:
             group_state: GroupState = {
@@ -634,7 +608,7 @@ def post_process_group(
             group_event = update_event_group(event, group_state)
             bind_organization_context(event.project.organization)
             _capture_event_stats(event)
-            if should_update_escalating_metrics(event, is_transaction_event):
+            if should_update_escalating_metrics(event):
                 _update_escalating_metrics(event)
 
             group_event.occurrence = occurrence

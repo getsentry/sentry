@@ -2518,9 +2518,6 @@ def _detect_performance_problems(
 
 @sentry_sdk.tracing.trace
 def _sample_transactions_in_save(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    if not options.get("save_event_transactions.sample_transactions_in_save"):
-        return
-
     for job in jobs:
         project = job["event"].project
         record_transaction_name_for_clustering(project, job["event"].data)
@@ -2528,9 +2525,6 @@ def _sample_transactions_in_save(jobs: Sequence[Job], projects: ProjectsMapping)
 
 @sentry_sdk.tracing.trace
 def _send_transaction_processed_signals(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    if not options.get("save_event_transactions.sample_transactions_in_save"):
-        return
-
     for job in jobs:
         project = job["event"].project
         with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
@@ -2656,10 +2650,9 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
         for job in jobs:
-            if options.get("save_event_transactions.post_process_cleanup"):
-                # we don't need to send transactions to post process
-                # so set raw so we skip post_process
-                job["raw"] = True
+            # we don't need to send transactions to post process
+            # so set raw so we skip post_process
+            job["raw"] = True
 
         _eventstream_insert_many(jobs)
 

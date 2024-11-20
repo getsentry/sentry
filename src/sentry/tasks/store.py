@@ -582,9 +582,7 @@ def _do_save_event(
             raise
 
         finally:
-            if consumer_type == ConsumerType.Transactions and options.get(
-                "save_event_transactions.post_process_cleanup"
-            ):
+            if consumer_type == ConsumerType.Transactions:
                 # we won't use the transaction data in post_process
                 # so we can delete it from the cache now.
                 if cache_key:

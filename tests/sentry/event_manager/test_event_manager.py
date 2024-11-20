@@ -1541,7 +1541,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
-    @override_options({"save_event_transactions.sample_transactions_in_save": True})
     def test_transaction_sampler_and_recieve(self) -> None:
         # make sure with the option on we don't get any errors
         manager = EventManager(
@@ -1600,15 +1599,12 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
         manager.save(self.project.id)
 
-    @override_options({"save_event_transactions.sample_transactions_in_save": True})
     @patch("sentry.signals.transaction_processed.send_robust")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-    @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_transaction_sampler_and_recieve_mock_called(
         self,
         transaction_processed_signal_mock: mock.MagicMock,
         mock_record_sample: mock.MagicMock,
-        eventstream_insert: mock.MagicMock,
     ) -> None:
         manager = EventManager(
             make_event(
@@ -1669,10 +1665,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]
-        eventstream_insert.assert_called_once()
-        assert "skip_consume" not in eventstream_insert.call_args.kwargs
 
-    @override_options({"save_event_transactions.post_process_cleanup": True})
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_transaction_event_stream_insert_with_raw(
         self, eventstream_insert: mock.MagicMock
