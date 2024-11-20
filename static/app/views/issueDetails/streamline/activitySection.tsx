@@ -30,7 +30,7 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import {Tab} from 'sentry/views/issueDetails/types';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 function TimelineItem({
@@ -182,7 +182,7 @@ export default function StreamlinedActivitySection({
             aria-label={t('Open activity drawer')}
             title={t('Open activity drawer')}
             to={{
-              pathname: `${baseUrl}${Tab.ACTIVITY}`,
+              pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
               query: {
                 ...location.query,
                 cursor: undefined,
@@ -238,7 +238,7 @@ export default function StreamlinedActivitySection({
                 <TextButton
                   aria-label={t('Show all activity')}
                   to={{
-                    pathname: `${baseUrl}${Tab.ACTIVITY}`,
+                    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
                     query: {
                       ...location.query,
                       cursor: undefined,
