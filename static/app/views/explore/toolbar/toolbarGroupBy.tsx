@@ -77,14 +77,16 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
             >
               <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
             </Tooltip>
-            <ToolbarHeaderButton
-              disabled={disabled}
-              size="zero"
-              onClick={insertColumn}
-              borderless
-              aria-label={t('Add Group')}
-              icon={<IconAdd />}
-            />
+            <Tooltip title={t('Add a new group')}>
+              <ToolbarHeaderButton
+                disabled={disabled}
+                size="zero"
+                onClick={insertColumn}
+                borderless
+                aria-label={t('Add Group')}
+                icon={<IconAdd />}
+              />
+            </Tooltip>
           </StyledToolbarHeader>
           {editableColumns.map((column, i) => (
             <ColumnEditorRow
