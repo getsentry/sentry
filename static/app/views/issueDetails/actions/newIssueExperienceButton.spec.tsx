@@ -35,6 +35,21 @@ describe('NewIssueExperienceButton', function () {
     expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
+  it('does not appear when an organization has the enforce flag', function () {
+    render(
+      <div data-test-id="test-id">
+        <NewIssueExperienceButton />
+      </div>,
+      {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'issue-details-streamline-enforce'],
+        },
+      }
+    );
+    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
+  });
+
   it('appears when organization has flag', function () {
     render(
       <div data-test-id="test-id">
