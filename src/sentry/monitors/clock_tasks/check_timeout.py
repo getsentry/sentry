@@ -121,4 +121,9 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
             monitor.schedule,
         )
 
-        mark_failed(checkin, failed_at=most_recent_expected_ts, received=ts)
+        mark_failed(
+            checkin,
+            failed_at=most_recent_expected_ts,
+            received=ts,
+            clock_tick=ts,
+        )

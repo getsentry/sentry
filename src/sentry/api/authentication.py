@@ -443,9 +443,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                         # I soft launch this by only logging the error for now
                         # raise AuthenticationFailed("Unauthorized organization access")
                         logger.info(
-                            "Token has access to organization %s but wants to get access to organization %s",
+                            "Token has access to organization %s but wants to get access to organization %s: %s",
                             organization.slug,
                             target_org_id_or_slug,
+                            request.path_info,
                         )
                 else:
                     # TODO (@athena): We want to limit org level token's access to org level endpoints only
