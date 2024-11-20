@@ -104,9 +104,6 @@ function OrganizationMembersList() {
     [memberId: string]: 'loading' | 'success' | null;
   }>({});
 
-  const hasOwnerRole: boolean = members.some(member => member.orgRole === 'owner');
-  const hasBillingRole: boolean = members.some(member => member.orgRole === 'billing');
-
   const removeMember = async (id: string) => {
     await api.requestPromise(`/organizations/${organization.slug}/members/${id}/`, {
       method: 'DELETE',
@@ -295,7 +292,7 @@ function OrganizationMembersList() {
     >
       {({disabled, isSsoRequired, onTriggerModal}) => (
         <InviteMembersButton
-          disabled={disabled || (hasOwnerRole && hasBillingRole)}
+          disabled={disabled}
           isSsoRequired={isSsoRequired}
           onTriggerModal={onTriggerModal}
         />
