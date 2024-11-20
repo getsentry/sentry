@@ -1,3 +1,4 @@
+import {PROVIDER_OPTION_TO_LABELS} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -214,6 +215,37 @@ export function AlternativeConfiguration() {
   );
 }
 
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: onboarding.install,
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Add [name] to your integrations list.', {
+        name: (
+          <code>{`${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}()`}</code>
+        ),
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import sentry-sdk
+from sentry_sdk.integrations.${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonModule} import ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}(),
+  ]
+)`,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
@@ -221,6 +253,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
 };
 
 export default docs;
