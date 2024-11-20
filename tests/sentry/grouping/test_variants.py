@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
@@ -97,3 +98,22 @@ def _assert_and_snapshot_results(
             __file__, input_file, "test_event_hash_variant", config_name
         ),
     )
+
+
+# TODO: This can be deleted after Jan 2025, when affected events have aged out
+def test_old_event_with_no_fingerprint_rule_text():
+    variant = CustomFingerprintVariant(
+        ["dogs are great"],
+        {
+            "matched_rule": {
+                "attributes": {},
+                "fingerprint": ["dogs are great"],
+                "matchers": [["message", "*dogs*"]],
+                # newer events have a `text` entry here
+            }
+        },
+    )
+    assert expose_fingerprint_dict(variant.values, variant.info) == {
+        "values": ["dogs are great"],
+        "matched_rule": 'message:"*dogs*" -> "dogs are great"',
+    }
