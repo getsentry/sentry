@@ -409,7 +409,7 @@ def confirm_signed_email(
     if not use_signed_urls:
         return HttpResponseNotFound()
 
-    msg = _("Thanks for confirming your email")
+    msg = _("Thanks for confirming your email!")
     level = messages.SUCCESS
 
     try:
@@ -424,7 +424,9 @@ def confirm_signed_email(
         email = UserEmail.objects.get(user=request.user.id, email=data["email"])
         if email:
             raise VerifiedEmailAlreadyExists
-
+    except UserEmail.DoesNotExist:
+        # user email does not exist, so we can create it
+        pass
     except VerifiedEmailAlreadyExists:
         msg = WARN_EMAIL_ALREADY_VERIFIED
         level = messages.INFO
@@ -442,23 +444,24 @@ def confirm_signed_email(
         msg = ERR_CONFIRMING_EMAIL
         level = messages.ERROR
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
-    else:
-        email = UserEmail.objects.create(
-            user=request.user.id,
-            email=data["email"],
-            is_verified=True,
-        )
-        email.save()
 
-        email_verified.send(email=email.email, sender=email)
-        logger.info(
-            "user.email.signed-confirm",
-            extra={
-                "user_id": request.user.id,
-                "ip_address": request.META["REMOTE_ADDR"],
-                "email": email.email,
-            },
-        )
+    user = User.objects.get(id=request.user.id)
+    email = UserEmail.objects.create(
+        user=user,
+        email=data["email"],
+        is_verified=True,
+    )
+    email.save()
+
+    email_verified.send(email=email.email, sender=email)
+    logger.info(
+        "user.email.signed-confirm",
+        extra={
+            "user_id": request.user.id,
+            "ip_address": request.META["REMOTE_ADDR"],
+            "email": email.email,
+        },
+    )
 
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse("sentry-account-settings-emails"))

@@ -2,6 +2,8 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -150,31 +152,32 @@ class UserEmailsEndpoint(UserEndpoint):
         result = validator.validated_data
         email = result["email"].lower().strip()
 
-        try:
-            use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
-            if use_signed_urls:
-                add_email_signed(email, user)
-            else:
-                new_useremail = add_email(email, user)
-        except DuplicateEmailError:
-            new_useremail = user.emails.get(email__iexact=email)
-            return self.respond(
-                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                status=200,
-            )
+        use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
+        if use_signed_urls:
+            add_email_signed(email, user)
+            return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
         else:
-            logger.info(
-                "user.email.add",
-                extra={
-                    "user_id": user.id,
-                    "ip_address": request.META["REMOTE_ADDR"],
-                    "email": new_useremail.email,
-                },
-            )
-            return self.respond(
-                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
-                status=201,
-            )
+            try:
+                new_useremail = add_email(email, user)
+            except DuplicateEmailError:
+                new_useremail = user.emails.get(email__iexact=email)
+                return self.respond(
+                    serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                    status=200,
+                )
+            else:
+                logger.info(
+                    "user.email.add",
+                    extra={
+                        "user_id": user.id,
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "email": email,
+                    },
+                )
+                return self.respond(
+                    serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                    status=201,
+                )
 
     @extend_schema(
         operation_id="Update a primary email address",

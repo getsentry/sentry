@@ -294,7 +294,7 @@ class User(Model, AbstractBaseUser):
             type="user.confirm_email",
             context=context,
         )
-        msg.send_async([email.email])
+        msg.send_async([email])
 
     def send_confirm_email_singular(self, email: UserEmail, is_new_user: bool = False) -> None:
         from sentry import options
