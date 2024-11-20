@@ -134,24 +134,20 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values, info=None):
+def expose_fingerprint_dict(values, info):
     rv = {
         "values": values,
     }
-    if not info:
-        return rv
-
-    from sentry.grouping.fingerprinting import FingerprintRule
 
     client_values = info.get("client_fingerprint")
     if client_values and (
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
     ):
         rv["client_values"] = client_values
+
     matched_rule = info.get("matched_rule")
     if matched_rule:
-        rule = FingerprintRule.from_json(matched_rule)
-        rv["matched_rule"] = rule.text
+        rv["matched_rule"] = matched_rule["text"]
 
     return rv
 
@@ -161,7 +157,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, values, fingerprint_info=None):
+    def __init__(self, values, fingerprint_info):
         self.values = values
         self.info = fingerprint_info
 
@@ -191,7 +187,7 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, values, component, config, fingerprint_info=None):
+    def __init__(self, values, component, config, fingerprint_info):
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info

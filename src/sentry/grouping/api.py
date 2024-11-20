@@ -336,7 +336,7 @@ def get_grouping_variants_for_event(
     # a materialized fingerprint info from server side fingerprinting we forward it to the
     # variants which can export additional information about them.
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
-    fingerprint_info = event.data.get("_fingerprint_info")
+    fingerprint_info = event.data.get("_fingerprint_info", {})
     defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
 
     if config is None:
@@ -359,7 +359,7 @@ def get_grouping_variants_for_event(
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
+        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
             rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
             rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
