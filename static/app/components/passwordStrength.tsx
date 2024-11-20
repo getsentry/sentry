@@ -1,18 +1,11 @@
 import {Fragment} from 'react';
-import {render} from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import throttle from 'lodash/throttle';
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import theme from 'sentry/utils/theme';
-
-/**
- * NOTE: Do not import this component synchronously. The zxcvbn library is
- * relatively large. This component should be loaded async as a split chunk.
- */
 
 /**
  * The maximum score that zxcvbn reports
@@ -34,7 +27,11 @@ type Props = {
   labels?: [string, string, string, string, string];
 };
 
-function PasswordStrength({
+/**
+ * NOTE: Do not import this component synchronously. The zxcvbn library is
+ * relatively large. This component should be loaded async as a split chunk.
+ */
+export function PasswordStrength({
   value,
   labels = ['Very Weak', 'Very Weak', 'Weak', 'Strong', 'Very Strong'],
   colors = [theme.red300, theme.red300, theme.yellow300, theme.green300, theme.green300],
@@ -96,20 +93,3 @@ const StrengthLabel = styled('div')`
 const ScoreText = styled('strong')`
   color: ${p => p.theme.black};
 `;
-
-export default PasswordStrength;
-
-/**
- * This is a shim that allows the password strength component to be used
- * outside of our main react application. Mostly useful since all of our
- * registration pages aren't in the react app.
- */
-export const attachTo = ({input, element}) =>
-  element &&
-  input &&
-  input.addEventListener(
-    'input',
-    throttle(e => {
-      render(<PasswordStrength value={e.target.value} />, element);
-    })
-  );
