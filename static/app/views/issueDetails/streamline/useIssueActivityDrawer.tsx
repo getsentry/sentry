@@ -33,6 +33,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
           {replace: true}
         );
       },
+      transitionProps: {stiffness: 1000},
     });
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);
 
