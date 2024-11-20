@@ -106,7 +106,7 @@ describe('Dashboards - DashboardTable', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', function () {
+  it('renders an empty list', async function () {
     render(
       <DashboardTable
         onDashboardsChange={jest.fn()}
@@ -117,6 +117,9 @@ describe('Dashboards - DashboardTable', function () {
     );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Sorry, no Dashboards match your filters.')
+    ).toBeInTheDocument();
   });
 
   it('renders dashboard list', function () {

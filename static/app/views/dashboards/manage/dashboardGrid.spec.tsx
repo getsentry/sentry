@@ -16,7 +16,7 @@ import {
 import DashboardGrid from 'sentry/views/dashboards/manage/dashboardGrid';
 import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
 
-describe('Dashboards - DashboardTable', function () {
+describe('Dashboards - DashboardGrid', function () {
   let dashboards: DashboardListItem[];
   let deleteMock: jest.Mock;
   let dashboardUpdateMock: jest.Mock;
@@ -100,7 +100,7 @@ describe('Dashboards - DashboardTable', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', function () {
+  it('renders an empty list', async function () {
     render(
       <DashboardGrid
         onDashboardsChange={jest.fn()}
@@ -113,6 +113,9 @@ describe('Dashboards - DashboardTable', function () {
     );
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Sorry, no Dashboards match your filters.')
+    ).toBeInTheDocument();
   });
 
   it('renders dashboard list', function () {

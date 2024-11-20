@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -38,7 +37,7 @@ type Props = {
   isLoading?: boolean;
 };
 
-enum Keys {
+enum ResponseKeys {
   NAME = 'title',
   WIDGETS = 'widgetDisplay',
   OWNER = 'createdBy',
@@ -54,10 +53,10 @@ function DashboardTable({
   isLoading,
 }: Props) {
   const columnOrder = [
-    {key: Keys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-    {key: Keys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-    {key: Keys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    {key: Keys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
   function handleDelete(dashboard: DashboardListItem) {
@@ -104,7 +103,7 @@ function DashboardTable({
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
   ) => {
-    if (column.key === Keys.NAME) {
+    if (column.key === ResponseKeys.NAME) {
       return (
         <Link
           to={{
@@ -112,30 +111,30 @@ function DashboardTable({
             ...queryLocation,
           }}
         >
-          {dataRow[Keys.NAME]}
+          {dataRow[ResponseKeys.NAME]}
         </Link>
       );
     }
 
-    if (column.key === Keys.WIDGETS) {
-      return dataRow[Keys.WIDGETS].length;
+    if (column.key === ResponseKeys.WIDGETS) {
+      return dataRow[ResponseKeys.WIDGETS].length;
     }
 
-    if (column.key === Keys.OWNER) {
-      return dataRow[Keys.OWNER] ? (
-        <ActivityAvatar type="user" user={dataRow[Keys.OWNER]} size={26} />
+    if (column.key === ResponseKeys.OWNER) {
+      return dataRow[ResponseKeys.OWNER] ? (
+        <ActivityAvatar type="user" user={dataRow[ResponseKeys.OWNER]} size={26} />
       ) : (
         <ActivityAvatar type="system" size={26} />
       );
     }
 
-    if (column.key === Keys.CREATED) {
+    if (column.key === ResponseKeys.CREATED) {
       return (
         <DateActionsContainer>
           <DateSelected>
-            {dataRow[Keys.CREATED] ? (
+            {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
-                <TimeSince date={dataRow[Keys.CREATED]} />
+                <TimeSince date={dataRow[ResponseKeys.CREATED]} />
               </DateStatus>
             ) : (
               <DateStatus />
@@ -175,29 +174,22 @@ function DashboardTable({
     return <span>{dataRow[column.key]}</span>;
   };
 
-  function renderDashboardTable() {
-    if (!dashboards?.length && !isLoading) {
-      return (
+  return (
+    <GridEditable
+      data={dashboards ?? []}
+      columnOrder={columnOrder}
+      columnSortBy={[]}
+      grid={{
+        renderBodyCell,
+      }}
+      isLoading={isLoading}
+      emptyMessage={
         <EmptyStateWarning>
           <p>{t('Sorry, no Dashboards match your filters.')}</p>
         </EmptyStateWarning>
-      );
-    }
-
-    return (
-      <GridEditable
-        data={dashboards ?? []}
-        columnOrder={columnOrder}
-        columnSortBy={[]}
-        grid={{
-          renderBodyCell,
-        }}
-        isLoading={isLoading}
-      />
-    );
-  }
-
-  return <Fragment>{renderDashboardTable()}</Fragment>;
+      }
+    />
+  );
 }
 
 export default withApi(DashboardTable);
