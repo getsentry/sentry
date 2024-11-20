@@ -47,6 +47,7 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -70,6 +71,9 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer.datasource.redis import (
+    record_transaction_name as record_transaction_name_for_clustering,
+)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -107,6 +111,7 @@ from sentry.signals import (
     first_insight_span_received,
     first_transaction_received,
     issue_unresolved,
+    transaction_processed,
 )
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -2512,6 +2517,39 @@ def _detect_performance_problems(
         )
 
 
+@sentry_sdk.tracing.trace
+def _sample_transactions_in_save(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        try:
+            if not in_rollout_group(
+                "transactions.do_post_process_in_save", job["event"].project_id
+            ):
+                continue
+            project = job["event"].project
+            record_transaction_name_for_clustering(project, job["event"].data)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
+@sentry_sdk.tracing.trace
+def _send_transaction_processed_signals(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        try:
+            if not in_rollout_group(
+                "transactions.do_post_process_in_save", job["event"].project_id
+            ):
+                continue
+
+            project = job["event"].project
+            transaction_processed.send_robust(
+                sender="save_transaction_events",
+                project=project,
+                event=job["event"],
+            )
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
@@ -2636,6 +2674,12 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
         _send_occurrence_to_platform(jobs, projects)
+
+    with metrics.timer("save_transaction_events.sample_transactions"):
+        _sample_transactions_in_save(jobs, projects)
+
+    with metrics.timer("save_transaction_events.send_transaction_processed_signals"):
+        _send_transaction_processed_signals(jobs, projects)
 
     return jobs
 
