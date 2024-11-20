@@ -223,6 +223,7 @@ SPAN_EAP_COLUMN_MAP = {
     "ai.total_cost": "attr_num[ai_total_cost]",
     "sdk.name": "attr_str[sentry.sdk.name]",
     "release": "attr_str[sentry.release]",
+    "environment": "attr_str[sentry.environment]",
     "user": "attr_str[sentry.user]",
     "user.id": "attr_str[sentry.user.id]",
     "user.email": "attr_str[sentry.user.email]",
