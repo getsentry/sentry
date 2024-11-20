@@ -8,6 +8,7 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import useDrawer from 'sentry/components/globalDrawer';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -19,15 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const isSummaryEnabled = (
-  hasGenAIConsent: boolean,
-  hasIssueSummary: boolean,
-  hideAiFeatures: boolean
-) => {
-  return hasGenAIConsent && hasIssueSummary && !hideAiFeatures;
-};
+import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({
   group,
@@ -80,21 +73,97 @@ export default function SolutionsSection({
     groupId: group.id,
   });
 
+  const isSampleError = useIsSampleEvent();
+
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const hasSummary = isSummaryEnabled(
-    hasGenAIConsent,
-    issueTypeConfig.issueSummary.enabled,
-    organization.hideAiFeatures
-  );
-  const aiNeedsSetup =
-    !hasGenAIConsent &&
-    issueTypeConfig.issueSummary.enabled &&
-    !organization.hideAiFeatures;
+
+  const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
+  const isAutofixEnabled = issueTypeConfig.autofix;
   const hasResources = issueTypeConfig.resources;
-  const hasAutofix = issueTypeConfig.autofix;
-  const autofixNeedsSetup =
+
+  const hasSummary = hasGenAIConsent && isSummaryEnabled && !organization.hideAiFeatures;
+  const hasAutofix = isAutofixEnabled && !organization.hideAiFeatures && !isSampleError;
+
+  const needsGenAIConsent =
+    !hasGenAIConsent &&
+    (isSummaryEnabled || isAutofixEnabled) &&
+    !organization.hideAiFeatures;
+
+  const needsAutofixSetup =
+    isAutofixEnabled &&
     !isAutofixSetupLoading &&
-    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok);
+    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok) &&
+    !organization.hideAiFeatures;
+
+  const showCtaButton = needsGenAIConsent || hasAutofix || (hasSummary && hasResources);
+  const isButtonLoading = isAutofixSetupLoading;
+
+  const getButtonText = () => {
+    if (isAutofixSetupLoading) {
+      return <LoadingIndicator mini />;
+    }
+
+    if (needsGenAIConsent) {
+      return t('Set up Sentry AI');
+    }
+
+    if (isAutofixEnabled) {
+      if (needsAutofixSetup) {
+        return t('Set up Autofix');
+      }
+      return hasResources ? t('View Resources & Autofix') : t('View Autofix');
+    }
+
+    return t('View Resources');
+  };
+
+  const renderContent = () => {
+    if (needsGenAIConsent) {
+      return (
+        <Summary>
+          <HeadlineText
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(
+                'Explore potential root causes and solutions with Sentry AI.'
+              ),
+            }}
+          />
+        </Summary>
+      );
+    }
+
+    if (hasSummary) {
+      return (
+        <Summary>
+          <GroupSummary
+            data={summaryData ?? undefined}
+            isError={isSummaryError}
+            isPending={isSummaryLoading}
+            preview
+          />
+        </Summary>
+      );
+    }
+
+    if (!hasSummary && hasResources) {
+      return (
+        <ResourcesWrapper isExpanded={isExpanded}>
+          <ResourcesContent isExpanded={isExpanded}>
+            <Resources
+              configResources={issueTypeConfig.resources!}
+              eventPlatform={event?.platform}
+              group={group}
+            />
+          </ResourcesContent>
+          <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
+            {isExpanded ? t('SHOW LESS') : t('READ MORE')}
+          </ExpandButton>
+        </ResourcesWrapper>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div>
@@ -114,45 +183,10 @@ export default function SolutionsSection({
           )}
         </HeaderContainer>
       </SidebarSectionTitle>
-      {hasSummary && (
-        <Summary>
-          <GroupSummary
-            data={summaryData ?? undefined}
-            isError={isSummaryError}
-            isPending={isSummaryLoading}
-            preview
-          />
-        </Summary>
-      )}
-      {aiNeedsSetup && (
-        <Summary>
-          <HeadlineText
-            dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(
-                'Explore potential root causes and solutions with Sentry AI.'
-              ),
-            }}
-          />
-        </Summary>
-      )}
-      {!hasSummary && hasResources && !aiNeedsSetup && (
-        <ResourcesWrapper isExpanded={isExpanded}>
-          <ResourcesContent isExpanded={isExpanded}>
-            <Resources
-              configResources={issueTypeConfig.resources!}
-              eventPlatform={event?.platform}
-              group={group}
-            />
-          </ResourcesContent>
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-            {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-          </ExpandButton>
-        </ResourcesWrapper>
-      )}
-      {(aiNeedsSetup ||
-        hasAutofix ||
-        autofixNeedsSetup ||
-        (hasSummary && hasResources)) && (
+      {renderContent()}
+      {isButtonLoading ? (
+        <ButtonPlaceholder />
+      ) : showCtaButton ? (
         <StyledButton
           ref={openButtonRef}
           onClick={() => openSolutionsDrawer()}
@@ -162,26 +196,12 @@ export default function SolutionsSection({
             has_streamlined_ui: hasStreamlinedUI,
           }}
         >
-          {isAutofixSetupLoading ? (
-            <LoadingIndicator mini />
-          ) : aiNeedsSetup ? (
-            t('Set up Sentry AI')
-          ) : hasAutofix ? (
-            autofixNeedsSetup ? (
-              t('Set up Autofix')
-            ) : hasResources ? (
-              t('View Resources & Autofix')
-            ) : (
-              t('View Autofix')
-            )
-          ) : (
-            t('View Resources')
-          )}
+          {getButtonText()}
           <ChevronContainer>
             <Chevron direction="right" size="large" />
           </ChevronContainer>
         </StyledButton>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -259,4 +279,11 @@ const HeaderContainer = styled('div')`
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
   padding-bottom: 3px;
+`;
+
+const ButtonPlaceholder = styled(Placeholder)`
+  width: 100%;
+  height: 38px;
+  border-radius: ${p => p.theme.borderRadius};
+  margin-top: ${space(1)};
 `;
