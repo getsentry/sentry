@@ -248,7 +248,6 @@ function AddToDashboardModal({
       false,
   };
 
-  console.log('addToDashboardModal', widget);
   return (
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>

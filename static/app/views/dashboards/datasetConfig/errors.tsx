@@ -200,7 +200,6 @@ function getErrorsSeriesRequest(
   referrer?: string,
   _mepSetting?: MEPState | null
 ) {
-  console.log('errors dataset', widget);
   const requestData = getSeriesRequestData(
     widget,
     queryIndex,
@@ -209,6 +208,5 @@ function getErrorsSeriesRequest(
     DiscoverDatasets.ERRORS,
     referrer
   );
-  console.log('request data', requestData);
   return doEventsRequest<true>(api, requestData);
 }
