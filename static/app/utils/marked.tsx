@@ -39,7 +39,7 @@ class SafeRenderer extends marked.Renderer {
       return '';
     }
 
-    return `<img src="${href}" alt="${text}"${title ? ` title="${title}"` : ''} />`;
+    return super.image(href, title, text);
   }
 }
 
