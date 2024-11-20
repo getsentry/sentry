@@ -76,7 +76,7 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -185,7 +185,7 @@ export function EventFeatureFlagList({
           <Button
             aria-label={t('Set Up Integration')}
             size="xs"
-            onClick={activateSidebar}
+            onClick={activateSidebarSkipConfigure}
           >
             {t('Set Up Integration')}
           </Button>

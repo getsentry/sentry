@@ -7,6 +7,7 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeatureFlagOnboardingLayout} from 'sentry/components/events/featureFlags/featureFlagOnboardingLayout';
+import {FLAG_HASH_SKIP_CONFIG} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   IntegrationOptions,
   ProviderOptions,
@@ -149,6 +150,7 @@ function OnboardingContent({
   hasDocs: boolean;
 }) {
   const organization = useOrganization();
+  const skipConfig = window.location.hash === FLAG_HASH_SKIP_CONFIG;
   const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
   const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
 
@@ -314,6 +316,7 @@ function OnboardingContent({
     <Fragment>
       {radioButtons}
       <FeatureFlagOnboardingLayout
+        skipConfig={skipConfig}
         docsConfig={docs}
         dsn={dsn}
         projectKeyId={projectKeyId}
