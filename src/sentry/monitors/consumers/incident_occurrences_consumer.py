@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import TypeGuard
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -14,12 +15,14 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from cachetools.func import ttl_cache
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
+from sentry_sdk.tracing import Span, Transaction
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.logic.incident_occurrence import send_incident_occurrence
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident
 from sentry.monitors.system_incidents import TickAnomalyDecision, get_clock_tick_decision
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +41,9 @@ def memoized_tick_decision(tick: datetime) -> TickAnomalyDecision | None:
     return get_clock_tick_decision(tick)
 
 
-def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]):
+def _process_incident_occurrence(
+    message: Message[KafkaPayload | FilteredPayload], txn: Transaction | Span
+):
     """
     Process a incident occurrence message. This will immediately dispatch an
     issue occurrence via send_incident_occurrence.
@@ -59,6 +64,7 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
         # the tick decision is resolved so we can know if it's OK to dispatch the
         # incident occurrence, or if we should drop the occurrence and mark the
         # associated check-ins as UNKNOWN due to a system incident.
+        txn.set_tag("result", "delayed")
 
         # XXX(epurkhiser): MessageRejected tells arroyo that we can't process
         # this message right now and it should try again
@@ -107,12 +113,24 @@ def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]
         ).update(status=CheckInStatus.UNKNOWN)
 
         # Do NOT send the occurrence
+        txn.set_tag("result", "dropped")
+        metrics.incr("monitors.incident_ocurrences.dropped_incident_occurrence")
         return
 
     try:
         send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+        txn.set_tag("result", "sent")
+        metrics.incr("monitors.incident_ocurrences.sent_incident_occurrence")
     except Exception:
         logger.exception("failed_send_incident_occurrence")
+
+
+def process_incident_occurrence(message: Message[KafkaPayload | FilteredPayload]):
+    with sentry_sdk.start_transaction(
+        op="_process_incident_occurrence",
+        name="monitors.incident_occurrence_consumer",
+    ) as txn:
+        _process_incident_occurrence(message, txn)
 
 
 class MonitorIncidentOccurenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

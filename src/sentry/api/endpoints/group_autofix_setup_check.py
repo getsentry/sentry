@@ -7,15 +7,10 @@ import requests
 from django.conf import settings
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.helpers.autofix import (
-    AutofixCodebaseIndexingStatus,
-    get_project_codebase_indexing_status,
-)
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -116,12 +111,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         org: Organization = request.organization
         has_gen_ai_consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
 
-        is_codebase_indexing_disabled = features.has(
-            "organizations:autofix-disable-codebase-indexing",
-            group.organization,
-            actor=request.user,
-        )
-
         integration_check = None
         # This check is to skip using the GitHub integration for Autofix in s4s.
         # As we only use the github integration to get the code mappings, we can skip this check if the repos are hardcoded.
@@ -132,14 +121,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
 
         repos = get_repos_and_access(group.project)
         write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
-
-        codebase_indexing_ok = is_codebase_indexing_disabled
-        if not codebase_indexing_ok:
-            codebase_indexing_status = get_project_codebase_indexing_status(group.project)
-            codebase_indexing_ok = (
-                codebase_indexing_status == AutofixCodebaseIndexingStatus.UP_TO_DATE
-                or codebase_indexing_status == AutofixCodebaseIndexingStatus.INDEXING
-            )
 
         return Response(
             {
@@ -154,9 +135,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 "githubWriteIntegration": {
                     "ok": write_access_ok,
                     "repos": repos,
-                },
-                "codebaseIndexing": {
-                    "ok": codebase_indexing_ok,
                 },
             }
         )

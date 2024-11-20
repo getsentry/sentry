@@ -23,6 +23,7 @@ TRACKED_STATUSES = [
     CheckInStatus.ERROR,
     CheckInStatus.MISSED,
     CheckInStatus.TIMEOUT,
+    CheckInStatus.UNKNOWN,
 ]
 
 

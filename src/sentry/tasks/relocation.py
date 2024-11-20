@@ -24,6 +24,7 @@ from sentry import analytics
 from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.crypto import (
+    EncryptorDecryptorPair,
     GCPKMSDecryptor,
     GCPKMSEncryptor,
     LocalFileEncryptor,
@@ -72,6 +73,7 @@ from sentry.utils.relocation import (
     TASK_TO_STEP,
     LoggingPrinter,
     OrderedTask,
+    StorageBackedCheckpointExporter,
     create_cloudbuild_yaml,
     fail_relocation,
     get_relocations_bucket_name,
@@ -376,6 +378,16 @@ def fulfill_cross_region_export_request(
         encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
         org_filter={org_slug},
         printer=LoggingPrinter(uuid),
+        checkpointer=StorageBackedCheckpointExporter(
+            crypto=EncryptorDecryptorPair(
+                encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+                decryptor=GCPKMSDecryptor.from_bytes(
+                    json.dumps(get_default_crypto_key_version()).encode("utf-8")
+                ),
+            ),
+            uuid=uuid,
+            storage=relocation_storage,
+        ),
     )
     logger.info(
         "fulfill_cross_region_export_request: exported",
