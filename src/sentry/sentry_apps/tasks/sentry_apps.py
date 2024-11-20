@@ -104,13 +104,16 @@ def _webhook_event_data(
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_event(
-    instance_id: str,
-    group_id: int,
-    occurrence_id: str | None,
     rule: str,
     sentry_app_id: int,
+    # instance_id, group_id, & occurrence_id will become required to replace passing in Event
+    instance_id: str | None = None,
+    group_id: int | None = None,
+    occurrence_id: str | None = None,
+    event: Event | GroupEvent | None = None,  # deprecated
     additional_payload_key: str | None = None,
     additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     When an incident alert is triggered, send incident data to the SentryApp's webhook.
