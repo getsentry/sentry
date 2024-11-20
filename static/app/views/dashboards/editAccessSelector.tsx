@@ -139,7 +139,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
-        teams={selectedTeam}
+        teams={selectedTeam ? selectedTeam : []}
         maxVisibleAvatars={1}
         avatarSize={25}
         renderUsersFirst
