@@ -25,7 +25,7 @@ export function TraceAutogroupedRow(
       }
       tabIndex={props.tabIndex}
       className={`Autogrouped TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >

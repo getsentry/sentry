@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -19,7 +20,6 @@ import {
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
@@ -84,27 +84,25 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   }
 
   return (
-    <Fragment>
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey="issue-details-view-preferences"
-      >
-        <TraceViewWaterfallWrapper>
-          <TraceWaterfall
-            tree={tree}
-            trace={trace}
-            traceSlug={traceId}
-            rootEvent={rootEvent}
-            organization={organization}
-            traceEventView={traceEventView}
-            meta={meta}
-            source="issues"
-            scrollToNode={scrollToNode}
-            replay={null}
-          />
-        </TraceViewWaterfallWrapper>
-      </TraceStateProvider>
-    </Fragment>
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="issue-details-view-preferences"
+    >
+      <TraceViewWaterfallWrapper rowCount={tree.type === 'trace' ? tree.list.length : 6}>
+        <IssuesTraceWaterfall
+          tree={tree}
+          trace={trace}
+          traceSlug={traceId}
+          rootEvent={rootEvent}
+          organization={organization}
+          traceEventView={traceEventView}
+          meta={meta}
+          source="issues"
+          scrollToNode={scrollToNode}
+          replay={null}
+        />
+      </TraceViewWaterfallWrapper>
+    </TraceStateProvider>
   );
 }
 
@@ -151,8 +149,17 @@ const TraceContentWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceViewWaterfallWrapper = styled('div')`
+const ROW_HEIGHT = 24;
+const MIN_ROW_COUNT = 1;
+const MAX_HEIGHT = 400;
+const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
+const HEADER_HEIGHT = 32;
+
+const TraceViewWaterfallWrapper = styled('div')<{rowCount: number}>`
   display: flex;
   flex-direction: column;
-  height: 500px;
+  max-height: ${MAX_HEIGHT}px;
+  height: ${p =>
+    Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
+    HEADER_HEIGHT}px;
 `;

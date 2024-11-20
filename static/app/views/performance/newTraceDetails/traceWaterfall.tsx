@@ -15,8 +15,6 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -38,21 +36,16 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  TraceShape,
-  TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
+import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
-import {
-  TraceEventPriority,
-  type TraceEvents,
-  TraceScheduler,
-} from './traceRenderers/traceScheduler';
+import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView as TraceViewModel} from './traceRenderers/traceView';
 import {
   type ViewManagerScrollAnchor,
@@ -86,9 +79,11 @@ import {
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
 import TraceTypeWarnings from './traceTypeWarnings';
+import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
   node: 'trace',
@@ -100,28 +95,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Vitals'),
 };
 
-function logTraceMetadata(
-  tree: TraceTree,
-  projects: Project[],
-  organization: Organization
-) {
-  switch (tree.shape) {
-    case TraceShape.BROKEN_SUBTRACES:
-    case TraceShape.EMPTY_TRACE:
-    case TraceShape.MULTIPLE_ROOTS:
-    case TraceShape.ONE_ROOT:
-    case TraceShape.NO_ROOT:
-    case TraceShape.ONLY_ERRORS:
-    case TraceShape.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(tree, projects, organization);
-      break;
-    default: {
-      Sentry.captureMessage('Unknown trace type');
-    }
-  }
-}
-
-interface TraceWaterfallProps {
+export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
@@ -132,11 +106,6 @@ interface TraceWaterfallProps {
   traceSlug: string | undefined;
   tree: TraceTree;
   replayTraces?: ReplayTrace[];
-  /**
-   * Ignore eventId or path query parameters and use the provided node.
-   * Must be set at component mount, no reactivity
-   */
-  scrollToNode?: {eventId?: string; path?: TraceTree.NodePath[]};
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
@@ -157,7 +126,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
+  const scrollQueueRef = useTraceScrollToPath(undefined);
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -217,50 +186,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useLayoutEffect(() => {
-    const onTraceViewChange: TraceEvents['set trace view'] = view => {
-      traceView.setTraceView(view);
-      viewManager.enqueueFOVQueryParamSync(traceView);
-    };
-
-    const onPhysicalSpaceChange: TraceEvents['set container physical space'] =
-      container => {
-        traceView.setTracePhysicalSpace(container, [
-          0,
-          0,
-          container[2] * viewManager.columns.span_list.width,
-          container[3],
-        ]);
-      };
-
-    const onTraceSpaceChange: TraceEvents['initialize trace space'] = view => {
-      traceView.setTraceSpace(view);
-    };
-
-    // These handlers have high priority because they are responsible for
-    // updating the view coordinates. If we update them first, then any components downstream
-    // that rely on the view coordinates will be in sync with the view.
-    traceScheduler.on('set trace view', onTraceViewChange, TraceEventPriority.HIGH);
-    traceScheduler.on('set trace space', onTraceSpaceChange, TraceEventPriority.HIGH);
-    traceScheduler.on(
-      'set container physical space',
-      onPhysicalSpaceChange,
-      TraceEventPriority.HIGH
-    );
-    traceScheduler.on(
-      'initialize trace space',
-      onTraceSpaceChange,
-      TraceEventPriority.HIGH
-    );
-
-    return () => {
-      traceScheduler.off('set trace view', onTraceViewChange);
-      traceScheduler.off('set trace space', onTraceSpaceChange);
-      traceScheduler.off('set container physical space', onPhysicalSpaceChange);
-      traceScheduler.off('initialize trace space', onTraceSpaceChange);
-    };
-  }, [traceScheduler, traceView, viewManager]);
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
@@ -570,7 +495,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    logTraceMetadata(props.tree, projectsRef.current, props.organization);
+    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -739,48 +664,23 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollRowIntoView,
   ]);
 
-  // Setup the middleware for the view manager and store the list width as a preference
-  useLayoutEffect(() => {
-    function onDividerResizeEnd(list_width: number) {
-      traceDispatch({
-        type: 'set list width',
-        payload: list_width,
-      });
-    }
-    traceScheduler.on('divider resize end', onDividerResizeEnd);
-    return () => {
-      traceScheduler.off('divider resize end', onDividerResizeEnd);
-    };
-  }, [traceScheduler, traceDispatch]);
-
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
   // Memoized because it requires tree traversal
   const shape = useMemo(() => props.tree.shape, [props.tree]);
 
-  useLayoutEffect(() => {
-    if (props.tree.type !== 'trace') {
-      return undefined;
-    }
+  useTraceTimelineChangeSync({
+    tree: props.tree,
+    traceScheduler,
+  });
 
-    traceScheduler.dispatch('initialize trace space', [
-      props.tree.root.space[0],
-      0,
-      props.tree.root.space[1],
-      1,
-    ]);
+  useTraceSpaceListeners({
+    view: traceView,
+    viewManager,
+    traceScheduler,
+  });
 
-    // Whenever the timeline changes, update the trace space and trigger a redraw
-    const onTraceTimelineChange = (s: [number, number]) => {
-      traceScheduler.dispatch('set trace space', [s[0], 0, s[1], 1]);
-    };
-
-    props.tree.on('trace timeline change', onTraceTimelineChange);
-
-    return () => {
-      props.tree.off('trace timeline change', onTraceTimelineChange);
-    };
-  }, [viewManager, traceScheduler, props.tree]);
+  useDividerResizeSync(traceScheduler);
 
   const onLoadScrollStatus = useTraceOnLoad({
     onTraceLoad,
@@ -912,11 +812,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         />
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceLoading />
+          <TraceWaterfallState.Loading />
         ) : props.tree.type === 'error' ? (
-          <TraceError />
+          <TraceWaterfallState.Error />
         ) : props.tree.type === 'empty' ? (
-          <TraceEmpty />
+          <TraceWaterfallState.Empty />
         ) : null}
 
         <TraceDrawer
@@ -944,7 +844,7 @@ const TraceToolbar = styled('div')`
   gap: ${space(1)};
 `;
 
-const TraceGrid = styled('div')<{
+export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
   --info: ${p => p.theme.purple400};
@@ -982,123 +882,4 @@ const TraceGrid = styled('div')<{
         ? 'min-content 1fr'
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
-`;
-
-function TraceLoading() {
-  return (
-    // Dont flash the animation on load because it's annoying
-    <LoadingContainer animate={false}>
-      <NoMarginIndicator size={24}>
-        <div>{t('Assembling the trace')}</div>
-      </NoMarginIndicator>
-    </LoadingContainer>
-  );
-}
-
-function TraceError() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackFailedToFetchTraceState();
-  }, []);
-
-  return (
-    <LoadingContainer animate error>
-      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-function TraceEmpty() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-
-  useEffect(() => {
-    traceAnalytics.trackEmptyTraceState();
-  }, []);
-
-  return (
-    <LoadingContainer animate>
-      <div>{t('This trace does not contain any data?!')}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
-    </LoadingContainer>
-  );
-}
-
-const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  left: 50%;
-  top: 50%;
-  position: absolute;
-  height: auto;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
-  z-index: 30;
-  padding: 24px;
-  background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  transform-origin: 50% 50%;
-  transform: translate(-50%, -50%);
-  animation: ${p =>
-    p.animate
-      ? `${p.error ? 'showLoadingContainerShake' : 'showLoadingContainer'} 300ms cubic-bezier(0.61, 1, 0.88, 1) forwards`
-      : 'none'};
-
-  @keyframes showLoadingContainer {
-    from {
-      opacity: 0.6;
-      transform: scale(0.99) translate(-50%, -50%);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) translate(-50%, -50%);
-    }
-  }
-
-  @keyframes showLoadingContainerShake {
-    0% {
-      transform: translate(-50%, -50%);
-    }
-    25% {
-      transform: translate(-51%, -50%);
-    }
-    75% {
-      transform: translate(-49%, -50%);
-    }
-    100% {
-      transform: translate(-50%, -50%);
-    }
-  }
-`;
-
-const NoMarginIndicator = styled(LoadingIndicator)`
-  margin: 0;
 `;

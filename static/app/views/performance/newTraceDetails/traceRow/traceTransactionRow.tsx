@@ -26,7 +26,7 @@ export function TraceTransactionRow(
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
       onKeyDown={props.onRowKeyDown}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       style={props.style}
     >
       <div
