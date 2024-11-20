@@ -1,18 +1,22 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import {
   type AutofixSetupRepoDefinition,
   type AutofixSetupResponse,
   useAutofixSetup,
 } from 'sentry/components/events/autofix/useAutofixSetup';
+import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
@@ -22,6 +26,9 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
         {tct('The GitHub integration is already installed, [link: view in settings].', {
           link: <ExternalLink href={`/settings/integrations/github/`} />,
         })}
+        <GuidedSteps.ButtonWrapper>
+          <GuidedSteps.NextButton />
+        </GuidedSteps.ButtonWrapper>
       </Fragment>
     );
   }
@@ -47,31 +54,14 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
             }
           )}
         </p>
-      </Fragment>
-    );
-  }
-
-  if (autofixSetup.integration.reason === 'integration_no_code_mappings') {
-    return (
-      <Fragment>
-        <p>
-          {tct(
-            'You have an active GitHub installation, but no code mappings for this project. Add code mappings by visiting the [link:integration settings page] and editing your configuration.',
-            {
-              link: <ExternalLink href={`/settings/integrations/github/`} />,
-            }
-          )}
-        </p>
-        <p>
-          {tct(
-            'Once added, come back to this page. For more information related to installing the GitHub integration, read the [link:documentation].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/" />
-              ),
-            }
-          )}
-        </p>
+        <GuidedSteps.ButtonWrapper>
+          <ExternalLink href="/settings/integrations/github/">
+            <Button size="sm" priority="primary">
+              {t('Set up Integration')}
+            </Button>
+          </ExternalLink>
+          <GuidedSteps.NextButton />
+        </GuidedSteps.ButtonWrapper>
       </Fragment>
     );
   }
@@ -79,11 +69,8 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
   return (
     <Fragment>
       <p>
-        {tct(
-          'Install the GitHub integration by navigating to the [link:integration settings page] and clicking the "Install" button. Follow the steps provided.',
-          {
-            link: <ExternalLink href={`/settings/integrations/github/`} />,
-          }
+        {t(
+          'Install the GitHub integration on the integration settings page and clicking the "Install" button. Follow the steps provided.'
         )}
       </p>
       <p>
@@ -96,6 +83,47 @@ function AutofixIntegrationStep({autofixSetup}: {autofixSetup: AutofixSetupRespo
           }
         )}
       </p>
+      <GuidedSteps.ButtonWrapper>
+        <ExternalLink href="/settings/integrations/github/">
+          <Button size="sm" priority="primary">
+            {t('Set up Integration')}
+          </Button>
+        </ExternalLink>
+        <GuidedSteps.NextButton />
+      </GuidedSteps.ButtonWrapper>
+    </Fragment>
+  );
+}
+
+function AutofixCodeMappingStep() {
+  const organization = useOrganization();
+  const {data: integrationConfigurations} = useApiQuery<Integration[]>(
+    [
+      `/organizations/${organization.slug}/integrations/?provider_key=github&includeConfig=0`,
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
+
+  const configurationId = integrationConfigurations?.at(0)?.id;
+  const url = `/settings/integrations/github/${configurationId ? configurationId + '/?tab=codeMappings' : ''}`;
+
+  return (
+    <Fragment>
+      <p>
+        {t(
+          'Set up code mappings for the Github repositories you want to run Autofix on for this project.'
+        )}
+      </p>
+      <GuidedSteps.ButtonWrapper>
+        <GuidedSteps.BackButton />
+        <ExternalLink href={url}>
+          <Button size="sm" priority="primary">
+            {configurationId ? t('Configure Code Mappings') : t('Configure Integration')}
+          </Button>
+        </ExternalLink>
+      </GuidedSteps.ButtonWrapper>
     </Fragment>
   );
 }
@@ -122,34 +150,27 @@ export function GitRepoLink({repo}: {repo: AutofixSetupRepoDefinition}) {
   );
 }
 
-function SetupStep({
-  title,
-  isCompleted,
-  children,
-}: {
-  children: React.ReactNode;
-  isCompleted: boolean;
-  title: string;
-}) {
-  return (
-    <StepWrapper>
-      <StepHeader>
-        <StepTitle>{title}</StepTitle>
-        {isCompleted && <IconCheckmark color="success" size="sm" />}
-      </StepHeader>
-      <div>{children}</div>
-    </StepWrapper>
-  );
-}
-
 function AutofixSetupSteps({autofixSetup}: {autofixSetup: AutofixSetupResponse}) {
   return (
-    <SetupStep
-      title={t('Install the GitHub Integration')}
-      isCompleted={autofixSetup.integration.ok}
-    >
-      <AutofixIntegrationStep autofixSetup={autofixSetup} />
-    </SetupStep>
+    <GuidedSteps>
+      <GuidedSteps.Step
+        stepKey="integration"
+        title={t('Install the GitHub Integration')}
+        isCompleted={
+          autofixSetup.integration.ok ||
+          autofixSetup.integration.reason === 'integration_no_code_mappings'
+        }
+      >
+        <AutofixIntegrationStep autofixSetup={autofixSetup} />
+      </GuidedSteps.Step>
+      <GuidedSteps.Step
+        stepKey="codeMappings"
+        title={t('Set up Code Mappings')}
+        isCompleted={autofixSetup.integration.ok}
+      >
+        <AutofixCodeMappingStep />
+      </GuidedSteps.Step>
+    </GuidedSteps>
   );
 }
 
@@ -236,23 +257,4 @@ const GithubLink = styled('div')`
 const Divider = styled('div')`
   margin: ${space(3)} 0;
   border-bottom: 2px solid ${p => p.theme.gray100};
-`;
-
-const StepWrapper = styled('div')`
-  margin-top: ${space(3)};
-  padding-left: ${space(2)};
-  border-left: 2px solid ${p => p.theme.border};
-`;
-
-const StepHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-  margin-bottom: ${space(1)};
-`;
-
-const StepTitle = styled('p')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
-  margin: 0;
 `;
