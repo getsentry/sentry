@@ -1,14 +1,17 @@
 import {useCallback, useMemo} from 'react';
-import {useLocation} from 'sentry/utils/useLocation';
+
 import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types/organization';
+import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
@@ -16,7 +19,6 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
-import useRouter from 'sentry/utils/useRouter';
 
 export function AddToDashboardButton() {
   const location = useLocation();
@@ -52,14 +54,13 @@ export function AddToDashboardButton() {
       dataset,
       yAxis: visualizes.flatMap(visualize => visualize.yAxes.slice(0, 3)),
     };
-  }, [dataset, fields, sorts, query]);
+  }, [dataset, fields, sorts, query, visualizes]);
 
   const eventView = useMemo(() => {
-    const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-    eventView.dataset = dataset;
-    console.log('eventView in add to dashboard button', eventView);
-    return eventView;
-  }, [discoverQuery, selection]);
+    const newEventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+    newEventView.dataset = dataset;
+    return newEventView;
+  }, [discoverQuery, selection, dataset]);
 
   const handleAddToDashboard = useCallback(() => {
     handleAddQueryToDashboard({
@@ -68,6 +69,7 @@ export function AddToDashboardButton() {
       eventView,
       router,
       yAxis: eventView.yAxis,
+      widgetType: WidgetType.SPANS,
     });
   }, [organization, location, eventView, router]);
 
