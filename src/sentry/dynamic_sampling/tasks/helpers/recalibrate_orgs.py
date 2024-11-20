@@ -93,7 +93,8 @@ def compute_adjusted_factor(
     Calculates an adjustment factor in order to bring the effective sample rate close to the target sample rate.
     """
     # If the factor is outside the range, we can't do much besides bailing.
-    if prev_factor <= 0.0:
+    # We also bail, when we don't have a valid effective sample rate.
+    if prev_factor <= 0.0 or effective_sample_rate == 0.0:
         return None
 
     # This formula aims at scaling the factor proportionally to the ratio of the sample rate we are targeting compared
