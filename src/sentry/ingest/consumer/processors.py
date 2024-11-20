@@ -25,6 +25,7 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.sdk import set_current_event_project
 from sentry.utils.snuba import RateLimitExceeded
 
@@ -202,6 +203,11 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
+            if data.get("type") == "transaction":
+                track_sampled_event(
+                    data["event_id"], "transaction", TransactionStageStatus.REDIS_PUT
+                )
+
             save_attachments(attachments, cache_key)
 
         try:
