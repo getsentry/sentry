@@ -36,7 +36,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
-  const ORIGINAL_HASH = window.location.hash;
+  const skipConfig = window.location.hash === FLAG_HASH_SKIP_CONFIG;
 
   const {
     hasDocs,
@@ -112,7 +112,6 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
               // the event.target will be unmounted by the time the panel listener
               // receives the event and assume the click was outside the panel
               e.stopPropagation();
-              window.location.hash = ORIGINAL_HASH;
             }}
           >
             <CompactSelect
@@ -138,7 +137,11 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
+        <OnboardingContent
+          skipConfig={skipConfig}
+          currentProject={selectedProject}
+          hasDocs={hasDocs}
+        />
       </TaskList>
     </TaskSidebarPanel>
   );
@@ -147,13 +150,14 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 function OnboardingContent({
   currentProject,
   hasDocs,
+  skipConfig,
 }: {
   currentProject: Project;
   hasDocs: boolean;
+  skipConfig: boolean;
 }) {
   const organization = useOrganization();
   const ORIGINAL_HASH = window.location.hash;
-  const skipConfig = window.location.hash === FLAG_HASH_SKIP_CONFIG;
   const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
   const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
 
