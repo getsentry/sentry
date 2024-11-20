@@ -29,7 +29,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
@@ -512,7 +511,6 @@ def create_alert_rule(
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] = (),
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
@@ -612,7 +610,6 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             comparison_delta=comparison_delta,
-            monitor_type=monitor_type,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,
@@ -733,7 +730,6 @@ def update_alert_rule(
     user: RpcUser | None = None,
     event_types: Collection[SnubaQueryEventType.EventType] | None = None,
     comparison_delta: int | None | NotSet = NOT_SET,
-    monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None | NotSet = NOT_SET,
     seasonality: AlertRuleSeasonality | None | NotSet = NOT_SET,
@@ -795,9 +791,6 @@ def update_alert_rule(
             updated_query_fields["dataset"] = dataset
     if query_type is not None:
         updated_query_fields["query_type"] = query_type
-    if monitor_type is not None:
-        # TODO: determine how to convert activated alert into continuous alert and vice versa
-        pass
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:

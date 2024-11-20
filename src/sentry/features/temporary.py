@@ -42,8 +42,6 @@ def register_temporary_features(manager: FeatureManager):
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
-    # Enables activated alert rules
-    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI Issue Summary feature on the Issue Details page.
     manager.add("organizations:ai-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)

@@ -23,7 +23,6 @@ from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleThresholdType,
@@ -179,7 +178,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        self.create_alert_rule()
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):

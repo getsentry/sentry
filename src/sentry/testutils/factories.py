@@ -44,7 +44,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -57,7 +56,6 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -1568,8 +1566,6 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
-        activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
         sensitivity=None,
         seasonality=None,
@@ -1598,8 +1594,6 @@ class Factories:
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
-            monitor_type=monitor_type,
-            activation_condition=activation_condition,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,

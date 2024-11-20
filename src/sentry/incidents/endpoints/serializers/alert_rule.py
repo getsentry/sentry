@@ -91,8 +91,6 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     dateModified: datetime
     dateCreated: datetime
     createdBy: dict
-    activations: list[dict]
-    activationCondition: int | None
     description: str
     detectionType: str
 
@@ -266,7 +264,6 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
-        condition_type = obj.activation_condition.values_list("condition_type", flat=True).first()
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
@@ -294,8 +291,6 @@ class AlertRuleSerializer(Serializer):
             "dateModified": obj.date_modified,
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
-            "activationCondition": condition_type,
-            "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
             "sensitivity": obj.sensitivity,
             "seasonality": obj.seasonality,

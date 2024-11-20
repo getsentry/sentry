@@ -10,12 +10,9 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
-    register_alert_subscription_callback,
 )
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.testutils.cases import TestCase
@@ -333,29 +330,6 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
-
-
-class UpdateAlertActivationsTest(TestCase):
-    def test_update_alerts_add_processor(self):
-        @register_alert_subscription_callback(AlertRuleMonitorTypeInt.CONTINUOUS)
-        def mock_processor(_subscription, alert_rule, value):
-            # everything other than subscription is passed as a kwarg
-            return True
-
-        assert AlertRuleMonitorTypeInt.CONTINUOUS in alert_subscription_callback_registry
-        assert (
-            alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-            == mock_processor
-        )
-
-    def test_update_alerts_execute_processor(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        assert alert_rule.snuba_query is not None
-        subscription = alert_rule.snuba_query.subscriptions.get()
-
-        callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-        result = callback(subscription, alert_rule=alert_rule, value=10)
-        assert result is True
 
 
 class AlertRuleFetchForProjectTest(TestCase):
