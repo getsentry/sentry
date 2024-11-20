@@ -562,6 +562,12 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
+// Feature flag onboarding platforms
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+  // 'javascript',
+  'python',
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dart',
