@@ -77,7 +77,7 @@ class DiscordCommandDispatcher(MessagingIntegrationCommandDispatcher[str]):
             response=HELP_MESSAGE,
         )
 
-    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[str]:
+    def link_user_handler(self, _: CommandInput) -> IntegrationResponse[str]:
         if self.request.has_identity():
             return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.HALTED,
