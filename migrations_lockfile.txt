@@ -16,7 +16,6 @@ remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
 
 sentry: 0792_add_unique_index_apiauthorization
-
 social_auth: 0002_default_auto_field
 
 uptime: 0018_add_trace_sampling_field_to_uptime
