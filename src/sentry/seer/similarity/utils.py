@@ -44,7 +44,7 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
-        # "groovy",
+        "groovy",
         "java",
         "java-android",
         "java-appengine",
