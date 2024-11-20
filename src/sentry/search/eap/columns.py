@@ -254,7 +254,6 @@ SPAN_COLUMN_DEFINITIONS = {
             public_alias="transaction",
             internal_name="sentry.segment_name",
             search_type="string",
-            validator=is_event_id,
         ),
         ResolvedColumn(
             public_alias="replay.id",
