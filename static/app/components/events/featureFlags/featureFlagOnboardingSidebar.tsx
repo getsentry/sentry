@@ -36,7 +36,6 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 
   const isActive = currentPanel === SidebarPanelKey.FEATURE_FLAG_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
-  const skipConfig = window.location.hash === FLAG_HASH_SKIP_CONFIG;
 
   const {
     hasDocs,
@@ -137,11 +136,7 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent
-          skipConfig={skipConfig}
-          currentProject={selectedProject}
-          hasDocs={hasDocs}
-        />
+        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </TaskSidebarPanel>
   );
@@ -150,14 +145,15 @@ function FeatureFlagOnboardingSidebar(props: CommonSidebarProps) {
 function OnboardingContent({
   currentProject,
   hasDocs,
-  skipConfig,
 }: {
   currentProject: Project;
   hasDocs: boolean;
-  skipConfig: boolean;
 }) {
   const organization = useOrganization();
-  const ORIGINAL_HASH = window.location.hash;
+  const ORIGINAL_HASH = useMemo(() => {
+    return window.location.hash;
+  }, []);
+  const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
   const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
   const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
 
