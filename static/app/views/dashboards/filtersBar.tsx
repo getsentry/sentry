@@ -120,9 +120,19 @@ export default function FiltersBar({
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons>
-            <Button priority="primary" onClick={onSave} disabled={!hasEditAccess}>
+            {/* <Tooltip
+              title={t('You do not have permission to edit this dashboard')}
+              disabled={hasEditAccess}
+            > */}
+            <Button
+              title={t('You do not have permission to edit this dashboard')}
+              priority="primary"
+              onClick={onSave}
+              disabled={!hasEditAccess}
+            >
               {t('Save')}
             </Button>
+            {/* </Tooltip> */}
             <Button onClick={onCancel}>{t('Cancel')}</Button>
           </FilterButtons>
         )}

@@ -192,7 +192,11 @@ function Controls({
               }}
               icon={<IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
-              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+              title={
+                !hasEditAccess
+                  ? t('You do not have permission to edit this dashboard')
+                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+              }
               priority="default"
               size="sm"
             >
@@ -214,21 +218,26 @@ function Controls({
                     disabled={widgetLimitReached}
                   />
                 ) : (
-                  <Button
-                    data-test-id="add-widget-library"
-                    priority="primary"
-                    size="sm"
-                    disabled={widgetLimitReached || !hasEditAccess}
-                    icon={<IconAdd isCircled />}
-                    onClick={() => {
-                      trackAnalytics('dashboards_views.widget_library.opened', {
-                        organization,
-                      });
-                      onAddWidget(defaultDataset);
-                    }}
+                  <Tooltip
+                    title={t('You do not have permission to edit this dashboard')}
+                    disabled={hasEditAccess}
                   >
-                    {t('Add Widget')}
-                  </Button>
+                    <Button
+                      data-test-id="add-widget-library"
+                      priority="primary"
+                      size="sm"
+                      disabled={widgetLimitReached || !hasEditAccess}
+                      icon={<IconAdd isCircled />}
+                      onClick={() => {
+                        trackAnalytics('dashboards_views.widget_library.opened', {
+                          organization,
+                        });
+                        onAddWidget(defaultDataset);
+                      }}
+                    >
+                      {t('Add Widget')}
+                    </Button>
+                  </Tooltip>
                 )}
               </Tooltip>
             ) : null}

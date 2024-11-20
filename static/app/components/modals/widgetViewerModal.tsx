@@ -1084,6 +1084,7 @@ function WidgetViewerModal(props: Props) {
                               });
                             }}
                             disabled={!hasEditAccess}
+                            title={t('You do not have permission to edit this dashboard')}
                           >
                             {t('Edit Widget')}
                           </Button>
