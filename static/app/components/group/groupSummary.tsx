@@ -94,10 +94,10 @@ export function GroupSummary({
   ];
 
   return (
-    <Body preview={preview} data-testid="group-summary">
+    <div data-testid="group-summary">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        <InsightGrid preview={preview}>
+        <InsightGrid>
           {insightCards.map(card => {
             // Hide the card if we're not loading and there's no insight
             if (!isPending && !card.insight) {
@@ -110,35 +110,36 @@ export function GroupSummary({
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
-                {isPending ? (
-                  <CardContent>
-                    <Placeholder height="1.5rem" />
-                  </CardContent>
-                ) : (
-                  card.insight && (
-                    <CardContent
-                      dangerouslySetInnerHTML={{
-                        __html: marked(
-                          preview
-                            ? card.insight.replace(/\*\*/g, '') ?? ''
-                            : card.insight ?? ''
-                        ),
-                      }}
-                    />
-                  )
-                )}
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    card.insight && (
+                      <CardContent
+                        dangerouslySetInnerHTML={{
+                          __html: marked(
+                            preview
+                              ? card.insight.replace(/\*\*/g, '') ?? ''
+                              : card.insight ?? ''
+                          ),
+                        }}
+                      />
+                    )
+                  )}
+                </CardContentContainer>
               </InsightCard>
             );
           })}
         </InsightGrid>
       </Content>
-    </Body>
+    </div>
   );
 }
-
-const Body = styled('div')<{preview?: boolean}>`
-  padding: ${p => (p.preview ? 0 : `0 ${space(2)} ${space(0.5)} ${space(2)}`)};
-`;
 
 const Content = styled('div')`
   display: flex;
@@ -146,17 +147,15 @@ const Content = styled('div')`
   gap: ${space(1)};
 `;
 
-const InsightGrid = styled('div')<{preview?: boolean}>`
+const InsightGrid = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  margin-top: ${p => (p.preview ? 0 : space(1))};
 `;
 
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   width: 100%;
@@ -174,6 +173,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const CardTitleIcon = styled('div')`
@@ -182,12 +182,30 @@ const CardTitleIcon = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 2px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: 14px;
-  border-left: 1px solid ${p => p.theme.border};
-  margin-left: ${space(0.75)};
   p {
     margin: 0;
     white-space: pre-wrap;
@@ -195,4 +213,5 @@ const CardContent = styled('div')`
   code {
     word-break: break-all;
   }
+  flex: 1;
 `;
