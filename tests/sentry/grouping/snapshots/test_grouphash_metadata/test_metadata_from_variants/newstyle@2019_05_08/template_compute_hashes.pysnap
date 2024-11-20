@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:51.602429+00:00'
+created: '2024-11-20T21:26:30.557706+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -7,6 +7,13 @@ hash_basis: template
 hashing_metadata: {
   "template_context_line": "hello world",
   "template_name": "foo.html"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "template",
+    "is_hybrid_fingerprint": "False"
+  }
 }
 ---
 contributing variants:
