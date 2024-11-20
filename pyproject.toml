@@ -198,7 +198,6 @@ module = [
     "sentry.incidents.endpoints.bases",
     "sentry.incidents.endpoints.organization_alert_rule_details",
     "sentry.incidents.endpoints.organization_alert_rule_index",
-    "sentry.incidents.endpoints.organization_incident_comment_details",
     "sentry.incidents.endpoints.organization_incident_index",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
