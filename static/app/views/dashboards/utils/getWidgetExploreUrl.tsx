@@ -4,10 +4,7 @@ import * as qs from 'query-string';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {
-  getAggregateAlias,
-  isAggregateFieldOrEquation,
-} from 'sentry/utils/discover/fields';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
@@ -91,7 +88,8 @@ export function getWidgetExploreUrl(
 
     mode: exploreMode,
     visualize: JSON.stringify(pick(locationQueryParams, ['yAxes', 'chartType'])),
-    groupBy: fields?.filter(field => !isAggregateFieldOrEquation(field)),
+    // TODO(nar): Support passing along groupBy
+    // groupBy: fields?.filter(field => !isAggregateFieldOrEquation(field)),
     field: locationQueryParams.field,
     query: locationQueryParams.query,
     sort:

@@ -236,6 +236,7 @@ export function getDatasetConfig(
   | typeof ErrorsAndTransactionsConfig
   | typeof ErrorsConfig
   | typeof TransactionsConfig {
+  console.log('getDatasetConfig', widgetType);
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;

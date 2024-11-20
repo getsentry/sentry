@@ -237,6 +237,7 @@ function WidgetQueries({
     }
   };
 
+  console.log('widget queries', widget);
   return (
     <OnDemandControlConsumer>
       {OnDemandControlContext => (
