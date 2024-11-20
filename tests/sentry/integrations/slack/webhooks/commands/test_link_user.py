@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.integrations.messaging.commands import MessageCommandHaltReason
+from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (

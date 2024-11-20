@@ -2,7 +2,6 @@ import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from enum import Enum
 from typing import Generic, TypeVar
 
 from sentry.integrations.messaging.metrics import (
@@ -101,35 +100,6 @@ MESSAGING_INTEGRATION_COMMANDS = (
     ),
 )
 
-
-class MessageCommandHaltReason(Enum):
-    """Common reasons why a messaging command may halt without success/failure."""
-
-    # Identity Linking
-    ALREADY_LINKED = "already_linked"
-    NOT_LINKED = "not_linked"
-
-    # Team Linking
-    LINK_FROM_CHANNEL = "link_from_channel"
-    LINK_USER_FIRST = "link_user_first"
-    CHANNEL_ALREADY_LINKED = "channel_already_linked"
-    TEAM_NOT_LINKED = "team_not_linked"
-    INSUFFICIENT_ROLE = "insufficient_role"
-
-    def __str__(self) -> str:
-        return self.value
-
-
-class MessageCommandFailureReason(Enum):
-    """Common reasons why a messaging command may fail."""
-
-    MISSING_DATA = "missing_data"
-    INVALID_STATE = "invalid_state"
-
-    def __str__(self) -> str:
-        return self.value
-
-
 R = TypeVar("R")  # response
 
 # Command handler type that receives lifecycle object
@@ -158,18 +128,6 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
     """
     Handlers for bot commands which should wrap the EventLifecycle context.
     """
-
-    @abstractmethod
-    def help_handler(self, input: CommandInput) -> IntegrationResponse[R]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[R]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[R]:
-        raise NotImplementedError
 
     def get_event(self, command: MessagingIntegrationCommand) -> MessagingInteractionEvent:
         return MessagingInteractionEvent(
@@ -204,11 +162,9 @@ class MessagingIntegrationCommandDispatcher(Generic[R], ABC):
                     response = handler.callback(arg_input)
                     # Record the appropriate lifecycle event based on the response
                     if response.interaction_result == EventLifecycleOutcome.HALTED:
-                        lifecycle.record_halt(str(response.outcome_reason), response.context_data)
+                        lifecycle.record_halt(response.outcome_reason, response.context_data)
                     elif response.interaction_result == EventLifecycleOutcome.FAILURE:
-                        lifecycle.record_failure(
-                            str(response.outcome_reason), response.context_data
-                        )
+                        lifecycle.record_failure(response.outcome_reason, response.context_data)
                     else:
                         lifecycle.record_success()
                     return response.response

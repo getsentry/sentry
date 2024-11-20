@@ -8,7 +8,7 @@ import responses
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.integrations.messaging.commands import MessageCommandHaltReason
+from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.integrations.types import EventLifecycleOutcome

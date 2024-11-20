@@ -27,11 +27,11 @@ from sentry.integrations.messaging.commands import (
     CommandHandler,
     CommandInput,
     CommandNotMatchedError,
-    MessageCommandHaltReason,
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
 from sentry.integrations.messaging.metrics import (
+    MessageCommandHaltReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -671,7 +671,7 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
             return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.HALTED,
                 response=build_already_linked_identity_command_card(),
-                outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
+                outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
                 context_data={
                     "user_id": self.teams_user_id,
                     "identity_id": linked_identity.id if linked_identity else None,
@@ -683,7 +683,7 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
                 response=build_link_identity_command_card(),
             )
 
-    def unlink_identity_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         unlink_url = build_unlinking_url(
             self.conversation_id, self.data["serviceUrl"], self.teams_user_id
         )

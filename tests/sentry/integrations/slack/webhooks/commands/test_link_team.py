@@ -4,7 +4,7 @@ import orjson
 import responses
 from rest_framework import status
 
-from sentry.integrations.messaging.commands import MessageCommandHaltReason
+from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.slack.webhooks.command import (
     CHANNEL_ALREADY_LINKED_MESSAGE,
     INSUFFICIENT_ROLE_MESSAGE,

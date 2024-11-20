@@ -4,7 +4,7 @@ from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLA
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
-from sentry.integrations.messaging.commands import (
+from sentry.integrations.messaging.metrics import (
     MessageCommandFailureReason,
     MessageCommandHaltReason,
 )

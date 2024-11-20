@@ -92,5 +92,5 @@ T = TypeVar("T")
 class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
-    outcome_reason: str | Enum | None = None
+    outcome_reason: str | None = None
     context_data: dict | None = None

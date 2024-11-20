@@ -14,10 +14,10 @@ from sentry.integrations.messaging.commands import (
     CommandHandler,
     CommandInput,
     CommandNotMatchedError,
-    MessageCommandHaltReason,
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
+from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.metrics import (
@@ -168,7 +168,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.HALTED,
                 response=response,
-                outcome_reason=MessageCommandHaltReason.ALREADY_LINKED,
+                outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
                 context_data={
                     "email": self.request.identity_str,
                 },
@@ -184,7 +184,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             return IntegrationResponse(
                 interaction_result=EventLifecycleOutcome.HALTED,
                 response=response,
-                outcome_reason=MessageCommandHaltReason.NOT_LINKED,
+                outcome_reason=str(MessageCommandHaltReason.NOT_LINKED),
                 context_data={
                     "email": self.request.identity_str,
                 },
@@ -202,7 +202,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
-                    outcome_reason=reason,
+                    outcome_reason=str(reason),
                 )
 
         return IntegrationResponse(
@@ -217,7 +217,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 return IntegrationResponse(
                     interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
-                    outcome_reason=reason,
+                    outcome_reason=str(reason),
                 )
 
         return IntegrationResponse(
