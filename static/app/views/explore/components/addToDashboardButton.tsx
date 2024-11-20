@@ -55,7 +55,10 @@ export function AddToDashboardButton() {
   }, [dataset, fields, sorts, query]);
 
   const eventView = useMemo(() => {
-    return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+    const eventView = EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
+    eventView.dataset = dataset;
+    console.log('eventView in add to dashboard button', eventView);
+    return eventView;
   }, [discoverQuery, selection]);
 
   const handleAddToDashboard = useCallback(() => {
