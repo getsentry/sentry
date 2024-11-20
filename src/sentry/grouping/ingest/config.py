@@ -20,7 +20,9 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # Used to migrate projects that have no activity via getsentry scripts
-CONFIGS_TO_DEPRECATE = ()
+CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
+    DEFAULT_GROUPING_CONFIG,
+}
 
 
 def update_grouping_config_if_needed(project: Project, source: str) -> None:
