@@ -72,6 +72,7 @@ export interface FormProps
    * If set to true, preventDefault is not called
    */
   skipPreventDefault?: boolean;
+  submitButtonTitle?: React.ReactNode;
   /**
    * Should the submit button be disabled.
    */
@@ -137,6 +138,7 @@ function Form({
   submitDisabled,
   submitLabel,
   submitPriority,
+  submitButtonTitle,
 }: FormProps) {
   const [formModel] = useState(() => {
     const resolvedModel = model ?? new FormModel();
@@ -266,7 +268,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    title={submitButtonTitle ?? getSubmitButtonTitle(formModel)}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={

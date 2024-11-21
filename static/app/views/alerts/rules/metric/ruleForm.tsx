@@ -58,6 +58,7 @@ import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEven
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
+import {isLowConfidenceTimeSeries} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -153,6 +154,7 @@ type State = {
   chartErrorMessage?: string;
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
+  isLowConfidenceChartData?: boolean;
   monitorType?: MonitorType;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
@@ -1042,6 +1044,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
       newState.isExtrapolatedChartData = Boolean(isExtrapolatedData);
     }
+    if (isLowConfidenceTimeSeries(data)) {
+      newState.isLowConfidenceChartData = true;
+    }
     this.setState(newState, () => this.fetchAnomalies());
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
@@ -1226,7 +1231,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
+    if (
+      alertType === 'custom_metrics' ||
+      alertType === 'insights_metrics' ||
+      alertType === 'eap_metrics'
+    ) {
       formattedQuery = '';
     }
 
@@ -1280,6 +1289,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isExtrapolatedChartData,
+      isLowConfidenceChartData,
       triggersHaveChanged,
       activationCondition,
       monitorType,
@@ -1333,9 +1343,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       />
     );
 
+    const isEapAlert = alertType === 'eap_metrics';
+
     const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
     const formDisabled = loading || !hasAlertWrite;
-    const submitDisabled = formDisabled || !this.state.isQueryValid;
+    const submitDisabled = formDisabled || !this.state.isQueryValid || isEapAlert; // Disabled save for EAP alerts until backend supports EAP subscriptions
 
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
@@ -1394,6 +1406,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           submitLabel={
             isMigration && !triggersHaveChanged ? t('Looks good to me!') : t('Save Rule')
           }
+          submitButtonTitle={isEapAlert ? t('Saving EAP alerts disabled') : undefined}
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm
@@ -1418,6 +1431,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
                 'sum(ai.total_cost)',
               ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              isLowConfidenceChartData={isLowConfidenceChartData}
               monitorType={monitorType}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
