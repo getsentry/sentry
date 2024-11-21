@@ -94,6 +94,17 @@ config:
       - '*/readyz'
       - '*/ping'
       - '*/up'
+      - '*/health/'
+      - '*/healthy/'
+      - '*/healthz/'
+      - '*/_health/'
+      - '*/\[_health\]/'
+      - '*/live/'
+      - '*/livez/'
+      - '*/ready/'
+      - '*/readyz/'
+      - '*/ping/'
+      - '*/up/'
   groupingConfig:
     enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
