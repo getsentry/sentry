@@ -96,7 +96,12 @@ function FieldGroup({
             </span>
             {helpElement && showHelpInTooltip && (
               <FieldQuestion>
-                <QuestionTooltip position="top" size="sm" title={helpElement} />
+                <QuestionTooltip
+                  position="top"
+                  size="sm"
+                  {...(showHelpInTooltip !== true ? showHelpInTooltip : {})}
+                  title={helpElement}
+                />
               </FieldQuestion>
             )}
           </FieldLabel>
