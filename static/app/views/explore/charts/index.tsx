@@ -12,7 +12,11 @@ import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  formatParsedFunction,
+  parseFunction,
+} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -204,6 +208,10 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
 
         const data = getSeries(dedupedYAxes, formattedYAxes);
 
+        const outputTypes = new Set(
+          formattedYAxes.filter(Boolean).map(aggregateOutputType)
+        );
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
@@ -282,6 +290,9 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
+                aggregateOutputFormat={
+                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                }
               />
             </ChartPanel>
           </ChartContainer>
