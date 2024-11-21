@@ -201,6 +201,7 @@ SPAN_EAP_COLUMN_MAP = {
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
+    "transaction.op": "attr_str[sentry.transaction.op]",
     # `transaction.id` and `segment.id` is going to be replaced by `transaction.span_id` please do not use
     # transaction.id is "wrong", its pointing to segment_id to return something for the transistion, but represents the
     # txn event id(32 char uuid). EAP will no longer be storing this.
@@ -223,6 +224,7 @@ SPAN_EAP_COLUMN_MAP = {
     "ai.total_cost": "attr_num[ai_total_cost]",
     "sdk.name": "attr_str[sentry.sdk.name]",
     "release": "attr_str[sentry.release]",
+    "environment": "attr_str[sentry.environment]",
     "user": "attr_str[sentry.user]",
     "user.id": "attr_str[sentry.user.id]",
     "user.email": "attr_str[sentry.user.email]",
@@ -1674,6 +1676,9 @@ JSON_TYPE_MAP = {
     "UInt16": "integer",
     "UInt32": "integer",
     "UInt64": "integer",
+    "Int16": "integer",
+    "Int32": "integer",
+    "Int64": "integer",
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",

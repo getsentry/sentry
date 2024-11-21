@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -8,7 +9,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 
 import {ToolbarHeader, ToolbarLabel, ToolbarRow, ToolbarSection} from './styles';
 
@@ -19,6 +22,12 @@ interface ToolbarSortByProps {
 }
 
 export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
+  const [resultMode] = useResultMode();
+  const [tab] = useTab();
+
+  // traces table is only sorted by timestamp so disable the sort by
+  const disabled = resultMode === 'samples' && tab === Tab.TRACE;
+
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
@@ -56,8 +65,8 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   }, [fields, numberTags, stringTags]);
 
   const setSortField = useCallback(
-    (i: number, {value}: SelectOption<Field>) => {
-      if (sorts[i]) {
+    (i: number, {value}: SelectOption<SelectKey>) => {
+      if (sorts[i] && typeof value === 'string') {
         setSorts([
           {
             field: value,
@@ -85,18 +94,46 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   }, []);
 
   const setSortKind = useCallback(
-    (i: number, {value}: SelectOption<Sort['kind']>) => {
+    (i: number, {value}: SelectOption<SelectKey>) => {
       if (sorts[i]) {
         setSorts([
           {
             field: sorts[i].field,
-            kind: value,
+            kind: value as Sort['kind'],
           },
         ]);
       }
     },
     [setSorts, sorts]
   );
+
+  let toolbarRow = (
+    <ToolbarRow>
+      <ColumnCompactSelect
+        options={fieldOptions}
+        value={sorts[0]?.field}
+        onChange={newSortField => setSortField(0, newSortField)}
+        disabled={disabled}
+      />
+      <DirectionCompactSelect
+        options={kindOptions}
+        value={sorts[0]?.kind}
+        onChange={newSortKind => setSortKind(0, newSortKind)}
+        disabled={disabled}
+      />
+    </ToolbarRow>
+  );
+
+  if (disabled) {
+    toolbarRow = (
+      <FullWidthTooltip
+        position="top"
+        title={t('Sort by is not applicable to trace results.')}
+      >
+        {toolbarRow}
+      </FullWidthTooltip>
+    );
+  }
 
   return (
     <ToolbarSection data-test-id="section-sort-by">
@@ -105,23 +142,31 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
           position="right"
           title={t('Results you see first and last in your samples or aggregates.')}
         >
-          <ToolbarLabel>{t('Sort By')}</ToolbarLabel>
+          <ToolbarLabel disabled={disabled}>{t('Sort By')}</ToolbarLabel>
         </Tooltip>
       </ToolbarHeader>
-      <div>
-        <ToolbarRow>
-          <CompactSelect
-            options={fieldOptions}
-            value={sorts[0]?.field}
-            onChange={newSortField => setSortField(0, newSortField)}
-          />
-          <CompactSelect
-            options={kindOptions}
-            value={sorts[0]?.kind}
-            onChange={newSortKind => setSortKind(0, newSortKind)}
-          />
-        </ToolbarRow>
-      </div>
+      <div>{toolbarRow}</div>
     </ToolbarSection>
   );
 }
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
+`;
+
+const ColumnCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const DirectionCompactSelect = styled(CompactSelect)`
+  width: 90px;
+
+  > button {
+    width: 100%;
+  }
+`;

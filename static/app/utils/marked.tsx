@@ -29,7 +29,7 @@ class SafeRenderer extends marked.Renderer {
       return href;
     }
 
-    const out = `<a href="${href}"${title ? ` title="${title}"` : ''}>${text}</a>`;
+    const out = super.link(href, title, text);
     return dompurify.sanitize(out);
   }
 
@@ -39,7 +39,7 @@ class SafeRenderer extends marked.Renderer {
       return '';
     }
 
-    return `<img src="${href}" alt="${text}"${title ? ` title="${title}"` : ''} />`;
+    return super.image(href, title, text);
   }
 }
 

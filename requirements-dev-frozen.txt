@@ -238,7 +238,7 @@ urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.25.0
 wcwidth==0.2.10
-werkzeug==3.0.3
+werkzeug==3.0.6
 wheel==0.38.4
 wrapt==1.17.0rc1
 wsproto==1.1.0
