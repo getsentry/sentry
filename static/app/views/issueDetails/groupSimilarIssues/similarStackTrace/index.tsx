@@ -2,8 +2,6 @@ import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,6 +12,7 @@ import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,25 +30,6 @@ type ItemState = {
   pageLinks: string | null;
   similar: SimilarItem[];
 };
-
-export function fetchProjectDetails(
-  api: Client,
-  organization_slug: string,
-  project_slug: string
-) {
-  const promise = api.requestPromise(`/projects/${organization_slug}/${project_slug}/`, {
-    method: 'GET',
-  });
-  promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
-
-    if (errorResponse) {
-      addErrorMessage('Unable to fetch project details');
-    }
-  });
-
-  return promise;
-}
 
 const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',
@@ -70,24 +50,20 @@ function SimilarStackTrace({project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const api = new Client();
-  const [similarityEmbeddingsProjectFeature, setSimilarityEmbeddingsProjectFeature] =
-    useState<boolean | null>(null);
+  const {data: projectData, isPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
   const hasSimilarityEmbeddingsFeature =
-    similarityEmbeddingsProjectFeature || location.query.similarityEmbeddings === '1';
+    projectData?.features.includes('similarity-embeddings') ||
+    location.query.similarityEmbeddings === '1';
   // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
   // backend option is using its default value of `True`). This is just so we can turn it off
   // on demand to see if/how that changes the results.
   const useReranking = String(location.query.useReranking !== '0');
 
-  fetchProjectDetails(api, organization?.slug, project.slug).then(response => {
-    setSimilarityEmbeddingsProjectFeature(
-      response.features.includes('similarity-embeddings')
-    );
-  });
-
   const fetchData = useCallback(() => {
-    if (similarityEmbeddingsProjectFeature == null) {
+    if (isPending) {
       return;
     }
     setStatus('loading');
@@ -125,7 +101,7 @@ function SimilarStackTrace({project}: Props) {
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
     useReranking,
-    similarityEmbeddingsProjectFeature,
+    isPending,
   ]);
 
   const onGroupingChange = useCallback(

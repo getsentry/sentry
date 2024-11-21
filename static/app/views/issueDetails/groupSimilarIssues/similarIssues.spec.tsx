@@ -54,7 +54,7 @@ describe('Issues Similar View', function () {
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/`,
-      body: {features: []},
+      body: {features: ['similarity-view']},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
