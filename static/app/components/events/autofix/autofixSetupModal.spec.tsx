@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixCodebaseIndexingStatus} from 'sentry/components/events/autofix/types';
@@ -40,22 +40,23 @@ describe('AutofixSetupContent', function () {
       },
     });
 
-    const onComplete = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
+      body: [],
+    });
 
-    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
+    render(<AutofixSetupContent groupId="1" projectId="1" />);
 
     expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Install the GitHub integration by navigating to/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Install the GitHub integration/)).toBeInTheDocument();
   });
 
-  it('displays successful integration text when it is installed', async function () {
+  it('renders the code mappings instructions', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
+        genAIConsent: {ok: true},
+        integration: {ok: false, reason: 'integration_no_code_mappings'},
         githubWriteIntegration: {
           ok: false,
           repos: [
@@ -71,25 +72,34 @@ describe('AutofixSetupContent', function () {
       },
     });
 
-    const onComplete = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
+      body: [
+        {
+          id: '123',
+        },
+      ],
+    });
 
-    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
+    render(<AutofixSetupContent groupId="1" projectId="1" />);
 
-    await screen.findByText('Install the GitHub Integration');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-
+    expect(await screen.findByText('Set up Code Mappings')).toBeInTheDocument();
     expect(
-      await screen.findByText(/The GitHub integration is already installed/)
+      screen.getByText(
+        /Set up code mappings for the Github repositories you want to run Autofix on/
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Configure Code Mappings'})
     ).toBeInTheDocument();
   });
 
-  it('displays pending repos for github app text', async function () {
+  it('renders the code mappings with fallback if no integration is configured', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
+        genAIConsent: {ok: true},
+        integration: {ok: false, reason: 'integration_no_code_mappings'},
         githubWriteIntegration: {
           ok: false,
           repos: [
@@ -98,13 +108,6 @@ describe('AutofixSetupContent', function () {
               owner: 'getsentry',
               name: 'sentry',
               external_id: '123',
-              ok: true,
-            },
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'seer',
-              external_id: '235',
               ok: false,
             },
           ],
@@ -112,52 +115,21 @@ describe('AutofixSetupContent', function () {
       },
     });
 
-    const onComplete = jest.fn();
-
-    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
-
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
-  });
-
-  it('displays success repos for github app text', async function () {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: false,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-              ok: true,
-            },
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'seer',
-              external_id: '235',
-              ok: false,
-            },
-          ],
-        },
-      },
+      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
+      body: [],
     });
 
-    const onComplete = jest.fn();
+    render(<AutofixSetupContent groupId="1" projectId="1" />);
 
-    render(<AutofixSetupContent groupId="1" projectId="1" onComplete={onComplete} />);
-
-    await screen.findByText('Allow Autofix to Make Pull Requests');
-
+    expect(await screen.findByText('Set up Code Mappings')).toBeInTheDocument();
     expect(
-      await screen.findByText(/for the following repositories:/)
+      screen.getByText(
+        /Set up code mappings for the Github repositories you want to run Autofix on/
+      )
     ).toBeInTheDocument();
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(await screen.findByText('getsentry/seer')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Configure Integration'})
+    ).toBeInTheDocument();
   });
 });

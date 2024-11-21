@@ -6,14 +6,24 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 
-describe('AutofixDrawer', () => {
-  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
+describe('SolutionsHubDrawer', () => {
+  const organization = OrganizationFixture({
+    genAIConsent: true,
+    hideAiFeatures: false,
+    features: ['gen-ai-features'],
+  });
 
   const mockEvent = EventFixture({
     entries: [
@@ -51,10 +61,18 @@ describe('AutofixDrawer', () => {
     });
   });
 
-  it('renders properly', () => {
+  it('renders consent state if not consented', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: false},
+        integration: {ok: false},
+        githubWriteIntegration: {ok: false},
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: mockAutofixData},
+      body: {autofix: null},
     });
 
     render(
@@ -62,9 +80,35 @@ describe('AutofixDrawer', () => {
       {organization}
     );
 
-    expect(screen.getByText(mockGroup.shortId)).toBeInTheDocument();
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+
+    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
+  });
+
+  it('renders initial state correctly', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
 
     expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
 
@@ -87,6 +131,12 @@ describe('AutofixDrawer', () => {
     render(
       <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
       {organization}
+    );
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
     );
 
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
@@ -131,5 +181,41 @@ describe('AutofixDrawer', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Start Autofix'})).toBeInTheDocument();
     });
+  });
+
+  it('shows setup if not complete', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: false},
+        githubWriteIntegration: {ok: false, repos: []},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/?provider_key=github&includeConfig=0',
+      body: [],
+    });
+
+    render(
+      <SolutionsHubDrawer event={mockEvent} group={mockGroup} project={mockProject} />,
+      {organization}
+    );
+
+    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(screen.getByRole('heading', {name: 'Solutions Hub'})).toBeInTheDocument();
+
+    expect(screen.queryByRole('button', {name: 'Start Autofix'})).not.toBeInTheDocument();
+
+    expect(await screen.findByText('Install the GitHub Integration')).toBeInTheDocument();
   });
 });

@@ -120,7 +120,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             "organization": self.organization,
             "access": self.access,
             "user": self.user,
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=self.organization.id
             ),
             "integrations": integration_service.get_integrations(

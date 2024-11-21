@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {t} from 'sentry/locale';
 import useRouter from 'sentry/utils/useRouter';
 
 export type OptionControlProps = {
@@ -73,12 +76,15 @@ export function PlatformOptionDropdown({
   }
 
   return (
-    <OptionControl
-      key="platformOption"
-      option={platforms}
-      value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
-      onChange={v => handleChange('siblingOption', v.value)}
-      disabled={disabled}
-    />
+    <Fragment>
+      {t('with')}
+      <OptionControl
+        key="platformOption"
+        option={platforms}
+        value={urlOptionValues.siblingOption ?? platforms.items[0]?.label}
+        onChange={v => handleChange('siblingOption', v.value)}
+        disabled={disabled}
+      />
+    </Fragment>
   );
 }

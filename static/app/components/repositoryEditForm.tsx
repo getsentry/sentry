@@ -58,7 +58,7 @@ function RepositoryEditForm({
           'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
+              <ExternalLink href="https://docs.sentry.io/cli/releases/#sentry-cli-commit-integration" />
             ),
             name: <strong>repo name</strong>,
           }

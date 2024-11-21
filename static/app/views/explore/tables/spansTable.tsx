@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -25,20 +26,21 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {useAnalytics} from '../hooks/useAnalytics';
-import {useVisualizes} from '../hooks/useVisualizes';
 
 import {FieldRenderer} from './fieldRenderer';
 
-interface SpansTableProps {}
+interface SpansTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function SpansTable({}: SpansTableProps) {
+export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset();
@@ -54,7 +56,7 @@ export function SpansTable({}: SpansTableProps) {
       'project',
       'trace',
       'transaction.span_id',
-      'span_id',
+      'id',
       'timestamp',
     ];
 
@@ -87,13 +89,18 @@ export function SpansTable({}: SpansTableProps) {
     allowAggregateConditions: false,
   });
 
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
+
   useAnalytics({
-    result,
+    resultLength: result.data?.length,
+    resultMode: 'span samples',
+    resultStatus: result.status,
     visualizes,
     organization,
     columns: fields,
     userQuery: query,
-    resultsMode: 'sample',
   });
 
   const {tableStyles} = useTableStyles({

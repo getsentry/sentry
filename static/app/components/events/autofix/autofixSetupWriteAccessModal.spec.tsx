@@ -29,7 +29,6 @@ describe('AutofixSetupWriteAccessModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -80,7 +79,6 @@ describe('AutofixSetupWriteAccessModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 

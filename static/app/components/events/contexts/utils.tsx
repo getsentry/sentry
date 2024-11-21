@@ -75,6 +75,10 @@ export function generateIconName(
     return 'google';
   }
 
+  if (lowerCaseName.startsWith('vercel')) {
+    return 'vercel';
+  }
+
   const formattedName = name
     .split(/\d/)[0]
     .toLowerCase()

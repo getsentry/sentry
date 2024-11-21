@@ -14,6 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 
 interface ProjectItem {
@@ -46,6 +47,7 @@ export function ProjectsTable({
   onChange,
   ...props
 }: Props) {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
 
   const handleTableSort = useCallback(() => {
@@ -87,6 +89,7 @@ export function ProjectsTable({
             canEdit={canEdit}
             onChange={onChange}
             inputTooltip={inputTooltip}
+            hasAccess={hasAccess}
             {...item}
           />
         ))}
@@ -110,6 +113,7 @@ export function ProjectsTable({
               key={item.project.id}
               canEdit={canEdit}
               onChange={onChange}
+              hasAccess={hasAccess}
               {...item}
             />
           ))}
@@ -164,7 +168,7 @@ function getSubProjectContent(
   isExpanded: boolean
 ) {
   let subProjectContent: React.ReactNode = t('No distributed traces');
-  if (subProjects.length > 1) {
+  if (subProjects.length > 0) {
     const truncatedSubProjects = subProjects.slice(0, MAX_PROJECTS_COLLAPSED);
     const overflowCount = subProjects.length - MAX_PROJECTS_COLLAPSED;
     const moreTranslation = t('+%d more', overflowCount);
@@ -194,7 +198,7 @@ function getSubSpansContent(
   isExpanded: boolean
 ) {
   let subSpansContent: React.ReactNode = '';
-  if (subProjects.length > 1) {
+  if (subProjects.length > 0) {
     const subProjectSum = subProjects.reduce(
       (acc, subProject) => acc + subProject.count,
       0
@@ -215,9 +219,40 @@ function getSubSpansContent(
   return subSpansContent;
 }
 
+function getStoredSpansContent(
+  ownCount: number,
+  subProjects: SubProject[],
+  sampleRate: number,
+  isExpanded: boolean
+) {
+  let subSpansContent: React.ReactNode = '';
+  if (subProjects.length > 0) {
+    const subProjectSum = subProjects.reduce(
+      (acc, subProject) => acc + Math.floor(subProject.count * sampleRate),
+      0
+    );
+
+    subSpansContent = isExpanded ? (
+      <Fragment>
+        <div>{formatAbbreviatedNumber(Math.floor(ownCount * sampleRate), 2)}</div>
+        {subProjects.map(subProject => (
+          <div key={subProject.slug}>
+            {formatAbbreviatedNumber(Math.floor(subProject.count * sampleRate))}
+          </div>
+        ))}
+      </Fragment>
+    ) : (
+      formatAbbreviatedNumber(subProjectSum)
+    );
+  }
+
+  return subSpansContent;
+}
+
 const MAX_PROJECTS_COLLAPSED = 3;
 const TableRow = memo(function TableRow({
   project,
+  hasAccess,
   canEdit,
   count,
   ownCount,
@@ -225,10 +260,11 @@ const TableRow = memo(function TableRow({
   initialSampleRate,
   subProjects,
   error,
-  inputTooltip,
+  inputTooltip: inputTooltipProp,
   onChange,
 }: {
   count: number;
+  hasAccess: boolean;
   initialSampleRate: string;
   ownCount: number;
   project: Project;
@@ -243,10 +279,15 @@ const TableRow = memo(function TableRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isExpandable = subProjects.length > 0;
-  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasProjectAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
   const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
+
+  let inputTooltip = inputTooltipProp;
+  if (!hasAccess) {
+    inputTooltip = t('You do not have permission to change the sample rate.');
+  }
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,8 +297,6 @@ const TableRow = memo(function TableRow({
   );
 
   const storedSpans = Math.floor(count * parsePercent(sampleRate));
-  const initialStoredSpans = Math.floor(count * parsePercent(initialSampleRate));
-
   return (
     <Fragment key={project.slug}>
       <Cell>
@@ -273,8 +312,9 @@ const TableRow = memo(function TableRow({
             )}
             <ProjectBadge project={project} disableLink avatarSize={16} />
           </HiddenButton>
-          {hasAccess && (
+          {hasProjectAccess && (
             <SettingsButton
+              tabIndex={-1}
               title={t('Open Project Settings')}
               aria-label={t('Open Project Settings')}
               size="xs"
@@ -284,30 +324,31 @@ const TableRow = memo(function TableRow({
             />
           )}
         </FirstCellLine>
-        <SubProjects>{subProjectContent}</SubProjects>
+        <SubProjects data-is-first-column>{subProjectContent}</SubProjects>
       </Cell>
       <Cell>
         <FirstCellLine data-align="right">{formatAbbreviatedNumber(count)}</FirstCellLine>
-        <SubSpans>{subSpansContent}</SubSpans>
+        <SubContent>{subSpansContent}</SubContent>
       </Cell>
       <Cell>
         <FirstCellLine data-align="right">
           {formatAbbreviatedNumber(storedSpans)}
         </FirstCellLine>
-        <SubSpans>
-          {storedSpans !== initialStoredSpans ? (
-            <SmallPrint>
-              {t('previous: %s', formatAbbreviatedNumber(initialStoredSpans))}
-            </SmallPrint>
-          ) : null}
-        </SubSpans>
+        <SubContent data-is-last-column>
+          {getStoredSpansContent(
+            ownCount,
+            subProjects,
+            parsePercent(sampleRate),
+            isExpanded
+          )}
+        </SubContent>
       </Cell>
       <Cell>
         <FirstCellLine>
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
-              disabled={!canEdit}
+              disabled={!canEdit || !hasAccess}
               onChange={handleChange}
               size="sm"
               value={sampleRate}
@@ -383,40 +424,40 @@ const FirstCellLine = styled('div')`
   }
 `;
 
-const SubProjects = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  margin-left: ${space(2)};
-  & > div {
-    line-height: 2;
-    margin-right: -${space(2)};
-    padding-right: ${space(2)};
-    margin-left: -${space(1)};
-    padding-left: ${space(1)};
-    border-top-left-radius: ${p => p.theme.borderRadius};
-    border-bottom-left-radius: ${p => p.theme.borderRadius};
-    &:nth-child(odd) {
-      background: ${p => p.theme.backgroundSecondary};
-    }
-  }
-`;
-
-const SubSpans = styled('div')`
+const SubContent = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: right;
+
   & > div {
     line-height: 2;
     margin-left: -${space(2)};
     padding-left: ${space(2)};
-    margin-right: -${space(1)};
-    padding-right: ${space(1)};
-    border-top-right-radius: ${p => p.theme.borderRadius};
-    border-bottom-right-radius: ${p => p.theme.borderRadius};
+    margin-right: -${space(2)};
+    padding-right: ${space(2)};
     &:nth-child(odd) {
       background: ${p => p.theme.backgroundSecondary};
     }
   }
+
+  &[data-is-first-column] > div {
+    margin-left: -${space(1)};
+    padding-left: ${space(1)};
+    border-top-left-radius: ${p => p.theme.borderRadius};
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+
+  &[data-is-last-column] > div {
+    margin-right: -${space(1)};
+    padding-right: ${space(1)};
+    border-top-right-radius: ${p => p.theme.borderRadius};
+    border-bottom-right-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const SubProjects = styled(SubContent)`
+  text-align: left;
+  margin-left: ${space(2)};
 `;
 
 const HiddenButton = styled('button')`

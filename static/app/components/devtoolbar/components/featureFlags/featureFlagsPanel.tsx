@@ -1,6 +1,6 @@
 import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
+import {css} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -203,9 +203,13 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             {display: 'block', textAlign: 'center'},
           ]}
         >
-          <Button
-            size="xs"
-            css={{width: '100%'}}
+          <button
+            css={[
+              resetButtonCss,
+              css`
+                width: 100%;
+              `,
+            ]}
             onClick={() => {
               clearOverrides();
             }}
@@ -222,7 +226,7 @@ function FlagTable({prefilter, searchTerm}: {prefilter: Prefilter; searchTerm: s
             >
               <IconClose isCircled size="xs" /> Remove All
             </span>
-          </Button>
+          </button>
         </div>
       )}
     </span>
