@@ -12,7 +12,7 @@ import type {EventOwners} from 'sentry/components/group/assignedTo';
 import MemberListStore from 'sentry/stores/memberListStore';
 import type {Committer} from 'sentry/types/integrations';
 
-import {GroupHeaderAssigneeSelector} from './assigneeSelector';
+import {GroupHeaderAssigneeSelector} from '../assigneeSelector';
 
 describe('GroupHeaderAssigneeSelector', () => {
   const organization = OrganizationFixture();

@@ -32,7 +32,7 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
-import Resources from 'sentry/views/issueDetails/streamline/resources';
+import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AutofixStartBoxProps {

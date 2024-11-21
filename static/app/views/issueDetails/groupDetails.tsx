@@ -53,9 +53,9 @@ import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTa
 import GroupHeader from 'sentry/views/issueDetails/header';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
-import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/useIssueActivityDrawer';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';

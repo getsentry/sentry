@@ -17,12 +17,12 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
-import Resources from 'sentry/views/issueDetails/streamline/resources';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {
   hasStacktraceWithFrames,
   SolutionsHubDrawer,
-} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({

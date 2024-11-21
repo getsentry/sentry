@@ -9,7 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 describe('StreamlinedGroupHeader', () => {

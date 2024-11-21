@@ -16,7 +16,7 @@ import {
 
 import {t} from 'sentry/locale';
 import {EntryType} from 'sentry/types/event';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 
 describe('SolutionsHubDrawer', () => {
   const organization = OrganizationFixture({
