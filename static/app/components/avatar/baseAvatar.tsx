@@ -129,7 +129,7 @@ function BaseAvatar({
       round={!!round}
       suggested={!!suggested}
       style={{...sizeStyle, ...style}}
-      title={hasTooltip ? title : title}
+      title={title}
       hasTooltip={hasTooltip}
       {...props}
     >
