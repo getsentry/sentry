@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db import router, transaction
 
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.serializers import ProjectSerializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
@@ -126,17 +127,14 @@ class DatabaseBackedProjectService(ProjectService):
                 if team:
                     project.add_team(team)
 
+            set_default_symbol_sources(project)
+
             project_created.send(
                 project=project,
                 default_rules=True,
                 sender=self.create_project_for_organization,
                 user_id=user_id,
             )
-            # Add electron symbol server by default to both electron and javascript-electron projects
-            if project.platform and project.platform in ["electron", "javascript-electron"]:
-                project.update_option(
-                    "sentry:builtin_symbol_sources", ["ios", "microsoft", "electron"]
-                )
 
             return serialize_project(project)
 

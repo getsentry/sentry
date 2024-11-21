@@ -13,6 +13,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -203,6 +204,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             if project.platform and project.platform.startswith("javascript"):
                 set_default_inbound_filters(project, team.organization)
 
+            set_default_symbol_sources(project)
+
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -221,11 +224,5 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             # Create project option to turn on ML similarity feature for new EA projects
             if project_is_seer_eligible(project):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
-
-            # Add electron symbol server by default to both electron and javascript-electron projects
-            if project.platform and project.platform in ["electron", "javascript-electron"]:
-                project.update_option(
-                    "sentry:builtin_symbol_sources", ["ios", "microsoft", "electron"]
-                )
 
         return Response(serialize(project, request.user), status=201)
