@@ -305,7 +305,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=electron_project, key="sentry:builtin_symbol_sources"
         )
-        assert "electron" in symbol_sources
+        assert symbol_sources == ["ios", "microsoft", "electron"]
 
     def test_builtin_symbol_sources_not_electron(self):
         # Test non-Electron project (e.g. Python)

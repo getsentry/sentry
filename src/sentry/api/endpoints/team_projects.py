@@ -22,7 +22,6 @@ from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
@@ -225,10 +224,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
 
             # Add electron symbol server by default to both electron and javascript-electron projects
             if project.platform and project.platform.endswith("electron"):
-                symbol_sources = ProjectOption.objects.get_value(
-                    project=project, key="sentry:builtin_symbol_sources"
+                project.update_option(
+                    "sentry:builtin_symbol_sources", ["ios", "microsoft", "electron"]
                 )
-                symbol_sources.append("electron")
-                project.update_option("sentry:builtin_symbol_sources", symbol_sources)
 
         return Response(serialize(project, request.user), status=201)
