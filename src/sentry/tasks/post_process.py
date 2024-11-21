@@ -16,6 +16,7 @@ from google.api_core.exceptions import ServiceUnavailable
 from sentry import features, projectoptions
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
+from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -611,7 +612,9 @@ def post_process_group(
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
-        if is_transaction_event:
+        if is_transaction_event and not in_rollout_group(
+            "transactions.do_post_process_in_save", event.project_id
+        ):
             record_transaction_name_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
                 transaction_processed.send_robust(
