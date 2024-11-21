@@ -115,7 +115,7 @@ describe('EventGraph', () => {
     );
   });
 
-  it('allows filtering by environment', async function () {
+  it('allows filtering by environment, and shows unfiltered stats', async function () {
     render(<EventDetailsHeader {...defaultProps} />, {organization});
     expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
 
@@ -127,6 +127,15 @@ describe('EventGraph', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           environment: ['production'],
+        }),
+      })
+    );
+    // Also makes request without environment filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: [],
         }),
       })
     );
@@ -151,6 +160,15 @@ describe('EventGraph', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: [persistantQuery, locationQuery.query.query].join(' '),
+        }),
+      })
+    );
+    // Also makes request without tag filter
+    expect(mockEventStats).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: persistantQuery,
         }),
       })
     );
