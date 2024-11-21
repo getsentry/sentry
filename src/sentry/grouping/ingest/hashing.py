@@ -21,7 +21,10 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.ingest.config import is_in_transition
-from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata
+from sentry.grouping.ingest.grouphash_metadata import (
+    create_or_update_grouphash_metadata,
+    record_grouphash_metadata_metrics,
+)
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -230,9 +233,19 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            create_or_update_grouphash_metadata(
-                event, project, grouphash, created, grouping_config, variants
-            )
+            with metrics.timer("grouping.grouphashmetadata.create_or_update_grouphash_metadata"):
+                create_or_update_grouphash_metadata(
+                    event, project, grouphash, created, grouping_config, variants
+                )
+
+        if grouphash.metadata:
+            record_grouphash_metadata_metrics(grouphash.metadata)
+        else:
+            # Collect a temporary metric to get a sense of how often we would be adding metadata to an
+            # existing hash. (Yes, this is an overestimate, because this will fire every time we see a given
+            # non-backfilled grouphash, not the once per non-backfilled grouphash we'd actually be doing a
+            # backfill, but it will give us a ceiling from which we can work down.)
+            metrics.incr("grouping.grouphashmetadata.backfill_needed")
 
         grouphashes.append(grouphash)
 
