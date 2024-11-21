@@ -370,7 +370,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         user = self.create_user(email="user1@test.com")
         self.login_as(user)
         resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3write&state=foo"
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
         )
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
@@ -382,9 +382,8 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
     def test_rich_params(self):
         self.login_as(self.owner)
 
-        # Putting scope in the query string to show that this will be overridden by the scopes that are stored on the application model
         resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3write&state=foo"
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
         )
 
         assert resp.status_code == 200
@@ -398,8 +397,7 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         grant = ApiGrant.objects.get(user=self.owner)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        assert grant.get_scopes() == ["org:read", "project:read"]
-        assert "org:write" not in grant.get_scopes()
+        assert grant.get_scopes() == ["org:read"]
         assert grant.organization_id == self.organization.id
 
         assert resp.status_code == 302
@@ -411,3 +409,13 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
         )
 
         assert not ApiToken.objects.filter(user=self.owner).exists()
+
+    def test_exceed_scope(self):
+        self.login_as(self.owner)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:write&state=foo"
+        )
+
+        assert resp.status_code == 302
+        assert resp["Location"] == "https://example.com?error=invalid_scope&state=foo"
