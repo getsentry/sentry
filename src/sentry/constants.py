@@ -790,6 +790,19 @@ HEALTH_CHECK_GLOBS = [
     "*/readyz",
     "*/ping",
     "*/up",
+    # Same as above with trailing slash. Relay's pattern matcher cannot handle
+    # optional trailing slashes.
+    "*/health/",
+    "*/healthy/",
+    "*/healthz/",
+    "*/_health/",
+    r"*/\[_health\]/",
+    "*/live/",
+    "*/livez/",
+    "*/ready/",
+    "*/readyz/",
+    "*/ping/",
+    "*/up/",
 ]
 
 
