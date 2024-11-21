@@ -125,7 +125,7 @@ describe('OrganizationStats', function () {
         groupBy: ['outcome', 'reason'],
         project: [-1],
         field: ['sum(quantity)'],
-        category: 'error',
+        category: ['error'],
       },
       UsageStatsPerMin: {
         statsPeriod: '5m',
@@ -140,7 +140,7 @@ describe('OrganizationStats', function () {
         groupBy: ['outcome', 'project'],
         project: [-1],
         field: ['sum(quantity)'],
-        category: 'error',
+        category: ['error'],
       },
     };
     for (const query of Object.values(mockExpectations)) {
@@ -325,7 +325,7 @@ describe('OrganizationStats', function () {
           groupBy: ['outcome', 'reason'],
           project: selectedProjects,
           field: ['sum(quantity)'],
-          category: 'error',
+          category: ['error'],
         },
       })
     );
@@ -367,7 +367,7 @@ describe('OrganizationStats', function () {
           groupBy: ['outcome', 'reason'],
           project: selectedProject,
           field: ['sum(quantity)'],
-          category: 'error',
+          category: ['error'],
         },
       })
     );
