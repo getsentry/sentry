@@ -2926,9 +2926,3 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
 )
-
-register(
-    "transactions.dont_do_transactions_logic_in_post_process",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
-)
