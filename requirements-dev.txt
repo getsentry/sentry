@@ -4,6 +4,7 @@ sentry-devenv>=1.13.0
 devservices>=1.0.3
 
 covdefaults>=2.3.0
+sentry-covdefaults-disable-branch-coverage>=1.0.2
 docker>=7
 time-machine>=2.16.0
 honcho>=2
