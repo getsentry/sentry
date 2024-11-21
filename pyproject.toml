@@ -180,7 +180,6 @@ module = [
     "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.team",
     "sentry.api.serializers.rest_framework.mentions",
-    "sentry.api.serializers.rest_framework.notification_action",
     "sentry.auth.helper",
     "sentry.auth.provider",
     "sentry.auth.system",
