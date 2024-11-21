@@ -53,10 +53,12 @@ services:
       - 127.0.0.1:5432:5432
     extra_hosts:
       - host.docker.internal:host-gateway
+    restart: unless-stopped
 
 networks:
   devservices:
     name: devservices
+    external: true
 
 volumes:
   postgres-data:
