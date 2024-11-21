@@ -14,8 +14,8 @@ import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   aggregateOutputType,
-  formatParsedFunction,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -172,7 +172,7 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
 
         const formattedYAxes = dedupedYAxes.map(yaxis => {
           const func = parseFunction(yaxis);
-          return func ? formatParsedFunction(func) : undefined;
+          return func ? prettifyParsedFunction(func) : undefined;
         });
 
         const {chartType, label, yAxes: visualizeYAxes} = visualize;
