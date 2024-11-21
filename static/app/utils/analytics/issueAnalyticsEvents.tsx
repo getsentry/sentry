@@ -53,7 +53,7 @@ export type IssueEventParameters = {
     projectId: string;
     setup_gen_ai_consent: boolean;
     setup_integration: boolean;
-    setup_write_integration: boolean;
+    setup_write_integration?: boolean;
   };
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
