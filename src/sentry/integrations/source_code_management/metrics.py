@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 from attr import dataclass
@@ -15,7 +15,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganization
 
 
-class SCMIntegrationInteractionType(Enum):
+class SCMIntegrationInteractionType(StrEnum):
     """
     SCM integration features
     """
@@ -36,9 +36,6 @@ class SCMIntegrationInteractionType(Enum):
 
     # Tasks
     LINK_ALL_REPOS = "LINK_ALL_REPOS"
-
-    def __str__(self) -> str:
-        return self.value.lower()
 
 
 @dataclass
@@ -68,15 +65,6 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
             "organization_id": (self.organization.id if self.organization else None),
             "org_integration_id": (self.org_integration.id if self.org_integration else None),
         }
-
-
-class LinkAllReposHaltReason(StrEnum):
-    """Common reasons why a link all repos task may halt without success/failure."""
-
-    MISSING_INTEGRATION = "missing_integration"
-    MISSING_ORGANIZATION = "missing_organization"
-    RATE_LIMITED = "rate_limited"
-    REPOSITORY_NOT_CREATED = "repository_not_created"
 
 
 @dataclass
@@ -109,3 +97,12 @@ class CommitContextHaltReason(StrEnum):
     COMMIT_NOT_IN_DEFAULT_BRANCH = "commit_not_in_default_branch"
     MISSING_PR = "missing_pr"
     ALREADY_QUEUED = "already_queued"
+
+
+class LinkAllReposHaltReason(StrEnum):
+    """Common reasons why a link all repos task may halt without success/failure."""
+
+    MISSING_INTEGRATION = "missing_integration"
+    MISSING_ORGANIZATION = "missing_organization"
+    RATE_LIMITED = "rate_limited"
+    REPOSITORY_NOT_CREATED = "repository_not_created"
