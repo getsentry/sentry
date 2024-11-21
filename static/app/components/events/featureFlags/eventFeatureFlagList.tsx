@@ -27,6 +27,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
@@ -77,6 +78,11 @@ export function EventFeatureFlagList({
     },
   });
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
+  const {setParamValue: setProjectId} = useUrlParams('project');
+
+  useEffect(() => {
+    setProjectId(event.projectID);
+  }, [setProjectId, event.projectID]);
 
   const {
     suspectFlags,
