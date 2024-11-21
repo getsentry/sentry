@@ -378,7 +378,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has over MAX_FRAME_COUNT system only frames
-        exception = copy.deepcopy(EXCEPTION)
+        exception: Any = copy.deepcopy(EXCEPTION)
         exception["values"][0]["stacktrace"]["frames"] += [
             {
                 "function": f"divide_by_zero_{i}",
