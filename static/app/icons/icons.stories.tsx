@@ -147,13 +147,6 @@ const SECTIONS: TSection[] = [
         name: 'Timer',
         defaultProps: {},
       },
-      {
-        id: 'seer',
-        groups: ['product'],
-        keywords: ['ai'],
-        name: 'Seer',
-        defaultProps: {},
-      },
     ],
   },
   {
