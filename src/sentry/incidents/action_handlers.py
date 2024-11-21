@@ -445,7 +445,6 @@ def generate_incident_trigger_email_context(
         "timezone": tz,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": snooze_alert_url,
-        "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
         "activator": (activation.activator if activation else ""),
         "condition_type": (
             activation.condition_type if activation else None

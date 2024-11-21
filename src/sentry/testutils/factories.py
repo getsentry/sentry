@@ -43,13 +43,10 @@ from sentry.incidents.logic import (
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
-    AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -59,7 +56,6 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
@@ -147,7 +143,7 @@ from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
+from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -1570,8 +1566,6 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
-        activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
         sensitivity=None,
         seasonality=None,
@@ -1600,8 +1594,6 @@ class Factories:
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
-            monitor_type=monitor_type,
-            activation_condition=activation_condition,
             description=description,
             sensitivity=sensitivity,
             seasonality=seasonality,
@@ -1612,28 +1604,6 @@ class Factories:
             alert_rule.update(date_added=date_added)
 
         return alert_rule
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_activation(
-        alert_rule: AlertRule,
-        query_subscription: QuerySubscription,
-        metric_value: int | None = None,
-        finished_at: datetime | None = None,
-        activation_condition: AlertRuleActivationConditionType = AlertRuleActivationConditionType.RELEASE_CREATION,
-    ):
-
-        with transaction.atomic(router.db_for_write(AlertRuleActivations)):
-            activation = AlertRuleActivations.objects.create(
-                alert_rule=alert_rule,
-                finished_at=finished_at,
-                metric_value=metric_value,
-                query_subscription=query_subscription,
-                condition_type=activation_condition.value,
-                activator="testing",
-            )
-
-        return activation
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

@@ -45,9 +45,14 @@ from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
     AlertRuleExcludedProjects,
     AlertRuleMonitorTypeInt,
     AlertRuleTriggerExclusion,
+)
+from sentry.incidents.models.alert_rule_activations import (
+    AlertRuleActivationCondition,
+    AlertRuleActivations,
 )
 from sentry.incidents.models.incident import (
     IncidentActivity,
@@ -526,19 +531,23 @@ class ExhaustiveFixtures(Fixtures):
             alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.get()
         )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        activated_alert = self.create_alert_rule(
+        activated_alert = AlertRule.objects.create(
             organization=org,
-            projects=[project],
+            threshold_period=5,
             monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-        self.create_alert_rule_activation(
+        AlertRuleActivationCondition.objects.create(
             alert_rule=activated_alert,
-            project=project,
-            metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            condition_type=AlertRuleActivationConditionType.RELEASE_CREATION.value,
         )
+        AlertRuleActivations.objects.create(
+            alert_rule=activated_alert,
+            finished_at=None,
+            metric_value=100,
+            condition_type=AlertRuleActivationConditionType.RELEASE_CREATION.value,
+            activator="testing",
+        )
+
         activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
