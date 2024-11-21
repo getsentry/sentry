@@ -47,7 +47,7 @@ class IframeView(ProjectView):
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
 
         if referrer and is_origin_allowed(referrer, allowed_origins):
-            return self._respond_with_state("success")
+            return self._respond_with_state("logged-in")
 
         return self._respond_with_state("invalid-domain")
 

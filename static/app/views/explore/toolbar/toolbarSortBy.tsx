@@ -6,7 +6,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
@@ -45,7 +45,7 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
 
       const func = parseFunction(field);
       if (func) {
-        const formatted = formatParsedFunction(func);
+        const formatted = prettifyParsedFunction(func);
         return {
           label: formatted,
           value: field,
