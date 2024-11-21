@@ -133,7 +133,7 @@ class DatabaseBackedProjectService(ProjectService):
                 user_id=user_id,
             )
             # Add electron symbol server by default to both electron and javascript-electron projects
-            if project.platform and project.platform.endswith("electron"):
+            if project.platform and project.platform in ["electron", "javascript-electron"]:
                 project.update_option(
                     "sentry:builtin_symbol_sources", ["ios", "microsoft", "electron"]
                 )
