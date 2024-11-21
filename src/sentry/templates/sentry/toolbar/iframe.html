@@ -20,7 +20,7 @@ Required context variables:
     <script>
       (function() {
         const referrer = '{{ referrer|escapejs }}';
-        const state = '{{ state|escapejs }}';
+        const state = '{{ state|escapejs }}'; // enum of: logged-out, missing-project, invalid-domain, logged-in
         const logging = '{{ logging|escapejs }}';
         const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
@@ -43,6 +43,12 @@ Required context variables:
           );
         }
 
+        /**
+         * This should only be called on pageload, which is when the server has
+         * checked for auth, project validity, and domain config first.
+         *
+         * Also to be called when we clear auth tokens.
+         */
         function sendStateMessage(state) {
           log('sendStateMessage(state)', { state });
           window.parent.postMessage({
@@ -60,7 +66,7 @@ Required context variables:
             log('window.onMessage', messageEvent.data, messageEvent);
             if (messageEvent.data.message === 'did-login') {
               saveAccessToken(messageEvent.data);
-              sendStateMessage('logged-in');
+              window.location.reload();
             }
           });
         }
@@ -163,8 +169,7 @@ Required context variables:
 
         setupMessageChannel();
         listenForLoginSuccess();
-        // enum of: logged-out, missing-project, invalid-domain, logged-in
-        sendStateMessage(state === 'success' ? 'logged-in' : state);
+        sendStateMessage(state);
       })();
     </script>
     {% endscript %}
