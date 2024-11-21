@@ -1,10 +1,12 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
+import ConfigStore from 'sentry/stores/configStore';
 import type {EntryRequest} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 
@@ -325,6 +327,39 @@ describe('Request entry', function () {
           },
         })
       ).not.toThrow();
+    });
+
+    it('should remove any non-tuple values from array', function () {
+      const user = UserFixture();
+      user.options.prefersIssueDetailsStreamlinedUI = true;
+      ConfigStore.set('user', user);
+
+      const data: EntryRequest['data'] = {
+        apiTarget: null,
+        query: 'a%AFc',
+        data: '',
+        headers: [['foo', 'bar'], null],
+        cookies: [],
+        env: {},
+        method: 'POST',
+        url: '/Home/PostIndex',
+      };
+      const event = EventFixture({
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data,
+          },
+        ],
+      });
+      expect(() =>
+        render(<Request event={event} data={event.entries[0].data} />, {
+          organization: {
+            relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
+          },
+        })
+      ).not.toThrow();
+      ConfigStore.set('user', user);
     });
 
     it("should not cause an invariant violation if data.data isn't a string", function () {
