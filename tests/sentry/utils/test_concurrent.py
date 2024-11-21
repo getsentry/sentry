@@ -187,7 +187,7 @@ def test_timed_future_cancel():
 
 
 def test_synchronous_executor():
-    executor: SynchronousExecutor[object] = SynchronousExecutor()
+    executor = SynchronousExecutor()
 
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
@@ -204,7 +204,7 @@ def test_synchronous_executor():
 
 
 def test_threaded_same_priority_Tasks():
-    executor: ThreadedExecutor[None] = ThreadedExecutor(worker_count=1)
+    executor = ThreadedExecutor(worker_count=1)
 
     def callable():
         pass
@@ -215,7 +215,7 @@ def test_threaded_same_priority_Tasks():
 
 
 def test_threaded_executor():
-    executor: ThreadedExecutor[int] = ThreadedExecutor(worker_count=1, maxsize=3)
+    executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
     def waiter(ready, waiting, result):
         ready.set()
