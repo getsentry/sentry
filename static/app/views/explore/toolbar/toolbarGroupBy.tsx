@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
@@ -72,46 +72,69 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
   return (
     <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
-      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
-        <ToolbarSection data-test-id="section-group-by">
-          <StyledToolbarHeader>
-            <Tooltip
-              position="right"
-              title={t(
-                'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
-              )}
-            >
-              <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
-            </Tooltip>
-            <Tooltip title={t('Add a new group')}>
-              <ToolbarHeaderButton
-                disabled={disabled}
-                size="zero"
-                onClick={insertColumn}
-                borderless
-                aria-label={t('Add Group')}
-                icon={<IconAdd />}
+      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
+        let columnEditorRows = (
+          <Fragment>
+            {editableColumns.map((column, i) => (
+              <ColumnEditorRow
+                disabled={resultMode === 'samples'}
+                key={column.id}
+                canDelete={
+                  editableColumns.length > 1 || !['', undefined].includes(column.column)
+                }
+                column={column}
+                options={options}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
               />
-            </Tooltip>
-          </StyledToolbarHeader>
-          {editableColumns.map((column, i) => (
-            <ColumnEditorRow
-              disabled={resultMode === 'samples'}
-              key={column.id}
-              canDelete={
-                editableColumns.length > 1 || !['', undefined].includes(column.column)
-              }
-              column={column}
-              options={options}
-              onColumnChange={c => updateColumnAtIndex(i, c)}
-              onColumnDelete={() => deleteColumnAtIndex(i)}
-            />
-          ))}
-        </ToolbarSection>
-      )}
+            ))}
+          </Fragment>
+        );
+
+        if (disabled) {
+          columnEditorRows = (
+            <FullWidthTooltip
+              position="top"
+              title={t('Group by is only applicable to aggregate results.')}
+            >
+              {columnEditorRows}
+            </FullWidthTooltip>
+          );
+        }
+
+        return (
+          <ToolbarSection data-test-id="section-group-by">
+            <StyledToolbarHeader>
+              <Tooltip
+                position="right"
+                title={t(
+                  'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+                )}
+              >
+                <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+              </Tooltip>
+              <Tooltip title={t('Add a new group')}>
+                <ToolbarHeaderButton
+                  disabled={disabled}
+                  size="zero"
+                  onClick={insertColumn}
+                  borderless
+                  aria-label={t('Add Group')}
+                  icon={<IconAdd />}
+                />
+              </Tooltip>
+            </StyledToolbarHeader>
+            {columnEditorRows}
+          </ToolbarSection>
+        );
+      }}
     </DragNDropContext>
   );
 }
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
+`;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`
   margin-bottom: ${space(1)};
