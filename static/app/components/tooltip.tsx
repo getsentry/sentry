@@ -23,14 +23,18 @@ export const TooltipContext = createContext<TooltipContextProps>({container: nul
 
 interface TooltipProps extends UseHoverOverlayProps {
   /**
-   * The content to show in the tooltip popover
+   * The content to show in the tooltip popover.
    */
   title: React.ReactNode;
   children?: React.ReactNode;
   /**
-   * Disable the tooltip display entirely
+   * Disable the tooltip display entirely.
    */
   disabled?: boolean;
+  /**
+   * The max width the tooltip is allowed to grow.
+   */
+  maxWidth?: number;
   /**
    * Additional style rules for the tooltip content.
    */
@@ -42,6 +46,7 @@ function Tooltip({
   overlayStyle,
   title,
   disabled = false,
+  maxWidth,
   ...hoverOverlayProps
 }: TooltipProps) {
   const {container} = useContext(TooltipContext);
@@ -63,6 +68,7 @@ function Tooltip({
   const tooltipContent = isOpen && (
     <PositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
       <TooltipContent
+        maxWidth={maxWidth}
         animated
         arrowProps={arrowProps}
         originPoint={arrowData}
@@ -85,10 +91,10 @@ function Tooltip({
   );
 }
 
-const TooltipContent = styled(Overlay)`
+const TooltipContent = styled(Overlay)<{maxWidth?: number}>`
   padding: ${space(1)} ${space(1.5)};
   overflow-wrap: break-word;
-  max-width: 225px;
+  max-width: ${p => p.maxWidth ?? 225}px;
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;

@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from sentry.integrations.base import IntegrationDomain
@@ -12,7 +12,7 @@ from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 
 
-class MessagingInteractionType(Enum):
+class MessagingInteractionType(StrEnum):
     """A way in which a user can interact with Sentry through a messaging app."""
 
     # Direct interactions with the user
@@ -42,9 +42,6 @@ class MessagingInteractionType(Enum):
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
-    def __str__(self) -> str:
-        return self.value.lower()
-
 
 @dataclass
 class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
@@ -71,3 +68,31 @@ class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
             "user_id": (self.user.id if self.user else None),
             "organization_id": (self.organization.id if self.organization else None),
         }
+
+
+class MessageCommandHaltReason(StrEnum):
+    """Common reasons why a messaging command may halt without success/failure."""
+
+    # Identity Linking
+    ALREADY_LINKED = "already_linked"
+    NOT_LINKED = "not_linked"
+
+    # Team Linking
+    LINK_FROM_CHANNEL = "link_from_channel"
+    LINK_USER_FIRST = "link_user_first"
+    CHANNEL_ALREADY_LINKED = "channel_already_linked"
+    TEAM_NOT_LINKED = "team_not_linked"
+    INSUFFICIENT_ROLE = "insufficient_role"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class MessageCommandFailureReason(StrEnum):
+    """Common reasons why a messaging command may fail."""
+
+    MISSING_DATA = "missing_data"
+    INVALID_STATE = "invalid_state"
+
+    def __str__(self) -> str:
+        return self.value
