@@ -26,11 +26,6 @@ import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
-import {
-  isAutogroupedNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
-} from './traceGuards';
 import type {TraceReducerState} from './traceState';
 import {
   traceNodeAdjacentAnalyticsProperties,
@@ -160,31 +155,17 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree.build();
 
     const eventId = scrollQueueRef.current?.eventId;
-    const [type, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
+    const [_, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
     scrollQueueRef.current = null;
 
-    let node =
+    const node =
       (path === 'root' && props.tree.root.children[0]) ||
       (path && TraceTree.FindByID(props.tree.root, path)) ||
       (eventId && TraceTree.FindByID(props.tree.root, eventId)) ||
       null;
 
-    // If the node points to a span, but we found an autogrouped node, then
-    // perform another search inside the autogrouped node to find the more detailed
-    // location of the span. This is necessary because the id of the autogrouped node
-    // is in some cases inferred from the spans it contains and searching by the span id
-    // just gives us the first match which may not be the one the user is looking for.
-    if (node) {
-      if (isAutogroupedNode(node) && type !== 'ag') {
-        if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path) ?? node;
-        } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path)) ?? node;
-        }
-      }
-    }
-
-    const index = node ? TraceTree.EnforceVisibility(props.tree, node) : -1;
+    // @TODO Scrolling to a node is not yet supported for issues, so always pin to the top
+    const index = -1;
 
     if (index === -1 || !node) {
       const hasScrollComponent = !!(path || eventId);

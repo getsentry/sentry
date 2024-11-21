@@ -11,10 +11,10 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
+import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
@@ -57,7 +57,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     limit: 10000,
   });
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
-  const tree = useTraceTree({trace, meta, replay: null});
+  const tree = useIssuesTraceTree({trace, meta, replay: null});
 
   const hasNoTransactions = meta.data?.transactions === 0;
   const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
@@ -151,9 +151,9 @@ const TraceContentWrapper = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const MAX_HEIGHT = 400;
+const MAX_HEIGHT = 500;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
-const HEADER_HEIGHT = 32;
+const HEADER_HEIGHT = 26;
 
 const TraceViewWaterfallWrapper = styled('div')<{rowCount: number}>`
   display: flex;

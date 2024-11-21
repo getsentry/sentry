@@ -1,0 +1,20 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IssuesTraceTree collapsed nodes without errors 1`] = `
+"
+trace root
+  collapsed
+  transaction 3 - transaction.op
+  collapsed
+"
+`;
+
+exports[`IssuesTraceTree preserves path to child error 1`] = `
+"
+trace root
+  collapsed
+  transaction 2 - transaction.op
+    transaction - transaction.op
+  collapsed
+"
+`;
