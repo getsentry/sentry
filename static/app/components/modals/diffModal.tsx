@@ -14,6 +14,7 @@ function DiffModal({className, Body, CloseButton, ...props}: Props) {
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
+  // similarity-embeddings feature is only available on project details
   const similarityEmbeddingsProjectFeature = projectData?.features.includes(
     'similarity-embeddings'
   );
