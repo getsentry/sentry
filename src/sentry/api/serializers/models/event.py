@@ -586,6 +586,7 @@ SimpleEventSerializerResponse = TypedDict(
         "platform": str,
         "dateCreated": datetime,
         "crashFile": str | None,
+        "metadata": dict[str, Any] | None,
     },
 )
 
@@ -642,6 +643,7 @@ class SimpleEventSerializer(EventSerializer):
             "dateCreated": obj.datetime,
             # Needed to generate minidump links in UI
             "crashFile": attrs["crash_file"],
+            "metadata": obj.get_event_metadata(),
         }
 
         return response

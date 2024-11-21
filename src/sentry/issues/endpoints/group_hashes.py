@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.utils import metrics
@@ -31,8 +31,10 @@ class GroupHashesEndpoint(GroupEndpoint):
         checksums used to aggregate individual events.
 
         :pparam string issue_id: the ID of the issue to retrieve.
+        :pparam bool full: If this is set to true, the event payload will include the full event body, including the stacktrace.
         :auth: required
         """
+        full = request.GET.get("full", True)
 
         data_fn = partial(
             lambda *args, **kwargs: raw_query(*args, **kwargs)["data"],
@@ -47,7 +49,9 @@ class GroupHashesEndpoint(GroupEndpoint):
             tenant_ids={"organization_id": group.project.organization_id},
         )
 
-        handle_results = partial(self.__handle_results, group.project_id, group.id, request.user)
+        handle_results = partial(
+            self.__handle_results, group.project_id, group.id, request.user, full
+        )
 
         return self.paginate(
             request=request,
@@ -90,13 +94,16 @@ class GroupHashesEndpoint(GroupEndpoint):
 
         return Response(status=202)
 
-    def __handle_results(self, project_id, group_id, user, results):
-        return [self.__handle_result(user, project_id, group_id, result) for result in results]
+    def __handle_results(self, project_id, group_id, user, full, results):
+        return [
+            self.__handle_result(user, project_id, group_id, full, result) for result in results
+        ]
 
-    def __handle_result(self, user, project_id, group_id, result):
+    def __handle_result(self, user, project_id, group_id, full, result):
         event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
 
+        serializer = EventSerializer if full else SimpleEventSerializer
         return {
             "id": result["primary_hash"],
-            "latestEvent": serialize(event, user, EventSerializer()),
+            "latestEvent": serialize(event, user, serializer()),
         }
