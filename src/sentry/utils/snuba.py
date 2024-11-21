@@ -201,6 +201,7 @@ SPAN_EAP_COLUMN_MAP = {
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
+    "transaction.op": "attr_str[sentry.transaction.op]",
     # `transaction.id` and `segment.id` is going to be replaced by `transaction.span_id` please do not use
     # transaction.id is "wrong", its pointing to segment_id to return something for the transistion, but represents the
     # txn event id(32 char uuid). EAP will no longer be storing this.
