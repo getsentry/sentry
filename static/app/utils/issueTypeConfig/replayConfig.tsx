@@ -5,9 +5,18 @@ const replayConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {enabled: false},
-      deleteAndDiscard: {enabled: false},
-      merge: {enabled: false},
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for replay issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for replay issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not supported for replay issues'),
+      },
       ignore: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
