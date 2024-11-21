@@ -49,6 +49,7 @@ from sentry.incidents.models.incident import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -650,7 +651,7 @@ def create_alert_rule(
 
 def subscribe_projects_to_alert_rule(
     alert_rule: AlertRule,
-    projects: list[Project],
+    projects: Iterable[Project],
     query_extra: str | None = None,
 ):
     """
@@ -658,7 +659,7 @@ def subscribe_projects_to_alert_rule(
     :return: The list of created subscriptions
     """
     return bulk_create_snuba_subscriptions(
-        projects, tasks.INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query, query_extra
+        projects, INCIDENTS_SNUBA_SUBSCRIPTION_TYPE, alert_rule.snuba_query, query_extra
     )
 
 
