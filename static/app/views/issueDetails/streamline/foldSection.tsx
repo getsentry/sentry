@@ -184,7 +184,8 @@ const SectionExpander = styled('div')<{preventCollapse: boolean}>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  padding: ${space(1)} ${space(0.75)};
+  padding: ${space(0.5)} ${space(1.5)};
+  margin: 0 -${space(0.75)};
   border-radius: ${p => p.theme.borderRadius};
   cursor: ${p => (p.preventCollapse ? 'initial' : 'pointer')};
   position: relative;

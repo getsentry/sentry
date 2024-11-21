@@ -254,7 +254,6 @@ SPAN_COLUMN_DEFINITIONS = {
             public_alias="transaction",
             internal_name="sentry.segment_name",
             search_type="string",
-            validator=is_event_id,
         ),
         ResolvedColumn(
             public_alias="replay.id",
@@ -288,6 +287,7 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("span_id"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
+        simple_sentry_field("transaction.op"),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
         simple_sentry_field("user.geo.country_code"),
@@ -335,7 +335,6 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_measurements_field("messaging.message.body.size"),
         simple_measurements_field("messaging.message.receive.latency"),
         simple_measurements_field("messaging.message.retry.count"),
-        simple_measurements_field("http.response_content_length"),
     ]
 }
 

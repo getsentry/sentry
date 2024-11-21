@@ -14,8 +14,8 @@ import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   aggregateOutputType,
-  formatParsedFunction,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {AddToDashboardButton} from 'sentry/views/explore/components/addToDashboardButton';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -126,10 +127,23 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
   }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
-    (dedupedYAxes: string[]) => {
-      return dedupedYAxes.flatMap(yAxis => {
-        const series = timeSeriesResult.data[yAxis];
-        return series !== undefined ? series : [];
+    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+      return dedupedYAxes.flatMap((yAxis, i) => {
+        const series = timeSeriesResult.data[yAxis] ?? [];
+        return series.map(s => {
+          // We replace the series name with the formatted series name here
+          // when possible as it's cleaner to read.
+          //
+          // We can't do this in top N mode as the series name uses the row
+          // values instead of the aggregate function.
+          if (s.seriesName === yAxis) {
+            return {
+              ...s,
+              seriesName: formattedYAxes[i] ?? yAxis,
+            };
+          }
+          return s;
+        });
       });
     },
     [timeSeriesResult]
@@ -157,12 +171,10 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
 
-        const formattedYAxes = dedupedYAxes
-          .map(yaxis => {
-            const func = parseFunction(yaxis);
-            return func ? formatParsedFunction(func) : undefined;
-          })
-          .filter(Boolean);
+        const formattedYAxes = dedupedYAxes.map(yaxis => {
+          const func = parseFunction(yaxis);
+          return func ? prettifyParsedFunction(func) : undefined;
+        });
 
         const {chartType, label, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
@@ -195,12 +207,18 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
             }))
           : undefined;
 
+        const data = getSeries(dedupedYAxes, formattedYAxes);
+
+        const outputTypes = new Set(
+          formattedYAxes.filter(Boolean).map(aggregateOutputType)
+        );
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
                 {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
-                <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
+                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
@@ -256,6 +274,9 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                     />
                   </Tooltip>
                 </Feature>
+                <Feature features="organizations:dashboards-eap">
+                  <AddToDashboardButton visualizeIndex={index} />
+                </Feature>
               </ChartHeader>
               <Chart
                 height={CHART_HEIGHT}
@@ -266,15 +287,17 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
-                data={getSeries(dedupedYAxes)}
+                data={data}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
                 chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
-                // for now, use the first y axis unit
-                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                aggregateOutputFormat={
+                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                }
+                showLegend
               />
             </ChartPanel>
           </ChartContainer>
