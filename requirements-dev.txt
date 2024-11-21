@@ -1,19 +1,21 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.13.0
+devservices>=1.0.3
 
 covdefaults>=2.3.0
-docker>=6
+sentry-covdefaults-disable-branch-coverage>=1.0.2
+docker>=7
 time-machine>=2.16.0
 honcho>=2
 openapi-core>=0.18.2
 openapi-pydantic>=0.4.0
-pytest>=8.1
+pytest>=8.3
 pytest-cov>=4.0.0
 pytest-django>=4.9.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
-pytest-rerunfailures>=14
+pytest-rerunfailures>=15
 pytest-sentry>=0.3.0
 pytest-xdist>=3
 responses>=0.23.1
@@ -42,7 +44,6 @@ msgpack-types>=0.2.0
 mypy>=1.13
 types-beautifulsoup4
 types-cachetools
-types-croniter
 types-jsonschema
 types-oauthlib
 types-parsimonious
@@ -55,6 +56,6 @@ types-pytz
 types-pyyaml
 # make sure to match close-enough to redis==
 types-redis<4
-types-requests>=2.31.0.20240406
+types-requests>=2.32.0.20241016
 types-setuptools>=68
 types-simplejson>=3.17.7.2

@@ -47,7 +47,7 @@ class Topic(Enum):
     INGEST_MONITORS = "ingest-monitors"
     MONITORS_CLOCK_TICK = "monitors-clock-tick"
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
-    UPTIME_CONFIG = "uptime-configs"
+    MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
     UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"

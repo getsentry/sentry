@@ -2,24 +2,31 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import {openModal} from 'sentry/actionCreators/modal';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {IconLock} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActions from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
+import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
@@ -57,31 +64,67 @@ export default function StreamlinedGroupHeader({
   ].includes(groupReprocessingStatus);
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
+  const shareUrl = group?.shareId ? getShareUrl(group) : null;
 
   return (
     <Fragment>
       <Header>
         <Flex justify="space-between">
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Issues',
-                to: {
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                  query,
+          <Flex align="center">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: 'Issues',
+                  to: {
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query,
+                  },
                 },
-              },
-              {
-                label: (
-                  <ShortIdBreadcrumb
-                    organization={organization}
-                    project={project}
-                    group={group}
+                {
+                  label: (
+                    <ShortIdBreadcrumb
+                      organization={organization}
+                      project={project}
+                      group={group}
+                    />
+                  ),
+                },
+              ]}
+            />
+            {group.isPublic && shareUrl ? (
+              <Button
+                size="xs"
+                borderless
+                aria-label={t('View issue share settings')}
+                title={tct('This issue has been shared [link:with a public link].', {
+                  link: <ExternalLink href={shareUrl} />,
+                })}
+                tooltipProps={{isHoverable: true}}
+                icon={
+                  <IconLock
+                    locked={false}
+                    size="xs"
+                    color="subText"
+                    onClick={() =>
+                      openModal(modalProps => (
+                        <ShareIssueModal
+                          {...modalProps}
+                          organization={organization}
+                          projectSlug={group.project.slug}
+                          groupId={group.id}
+                          onToggle={() =>
+                            trackAnalytics('issue.shared_publicly', {
+                              organization,
+                            })
+                          }
+                        />
+                      ))
+                    }
                   />
-                ),
-              },
-            ]}
-          />
+                }
+              />
+            ) : null}
+          </Flex>
           <NewIssueExperienceButton />
         </Flex>
         <HeaderGrid>
@@ -104,12 +147,22 @@ export default function StreamlinedGroupHeader({
               {secondaryTitle ?? t('No error message')}
             </SecondaryTitle>
           </Flex>
-          <StatTitle>{t('Events')}</StatTitle>
+          <StatTitle>
+            <StatLink
+              to={`${baseUrl}events/${location.search}`}
+              aria-label={t('View events')}
+            >
+              {t('Events')}
+            </StatLink>
+          </StatTitle>
           <StatTitle>
             {userCount === 0 ? (
               t('Users')
             ) : (
-              <StatLink to={`${baseUrl}tags/user/${location.search}`}>
+              <StatLink
+                to={`${baseUrl}tags/user/${location.search}`}
+                aria-label={t('View affected users')}
+              >
                 {t('Users')}
               </StatLink>
             )}
@@ -133,16 +186,17 @@ export default function StreamlinedGroupHeader({
                 </Subtitle>
               </Fragment>
             )}
-
             <AttachmentsBadge group={group} />
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </Flex>
-          <StatCount value={eventCount} />
-          <StatCount value={userCount} />
+          <StatCount value={eventCount} aria-label={t('Event count')} />
+          <GuideAnchor target="issue_header_stats">
+            <StatCount value={userCount} aria-label={t('User count')} />
+          </GuideAnchor>
         </HeaderGrid>
       </Header>
-      <ActionBar isComplete={isComplete}>
+      <ActionBar isComplete={isComplete} role="banner">
         <GroupActions
           group={group}
           project={project}
@@ -155,17 +209,23 @@ export default function StreamlinedGroupHeader({
             {t('Priority')}
             <GroupPriority group={group} />
           </Workflow>
-          <Workflow>
-            {t('Assignee')}
-            <GroupHeaderAssigneeSelector group={group} project={project} event={event} />
-          </Workflow>
+          <GuideAnchor target="issue_sidebar_owners" position="left">
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
+          </GuideAnchor>
         </WorkflowActions>
       </ActionBar>
     </Fragment>
   );
 }
 
-const Header = styled('div')`
+const Header = styled('header')`
   background-color: ${p => p.theme.background};
   padding: ${space(1)} 24px;
 `;

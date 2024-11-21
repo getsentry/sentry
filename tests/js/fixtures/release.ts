@@ -1,3 +1,4 @@
+import {CommitFixture} from 'sentry-fixture/commit';
 import {HealthFixture} from 'sentry-fixture/health';
 
 import type {Health, ReleaseWithHealth} from 'sentry/types/release';
@@ -31,12 +32,7 @@ export function ReleaseFixture(
     lastEvent: '2020-03-24T02:04:50Z',
     version: 'sentry-android-shop@1.2.0',
     firstEvent: '',
-    lastCommit: {
-      dateCreated: '',
-      id: '',
-      message: null,
-      releases: [],
-    },
+    lastCommit: CommitFixture(),
     authors: [],
     owner: null,
     versionInfo: {

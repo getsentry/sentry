@@ -1,34 +1,29 @@
-import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron, IconFocus, IconMegaphone} from 'sentry/icons';
+import {IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types/group';
-import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-
-interface GroupSummaryProps {
-  groupCategory: IssueCategory;
-  groupId: string;
-}
 
 interface GroupSummaryData {
   groupId: string;
-  impact: string;
-  summary: string;
-  headline?: string;
+  headline: string;
+  possibleCause?: string | null;
+  trace?: string | null;
+  whatsWrong?: string | null;
 }
 
-const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
-  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
+const isSummaryEnabled = (
+  hasGenAIConsent: boolean,
+  hideAiFeatures: boolean,
+  groupCategory: IssueCategory
+) => {
+  return hasGenAIConsent && !hideAiFeatures && groupCategory === IssueCategory.ERROR;
 };
 
 export const makeGroupSummaryQueryKey = (
@@ -49,12 +44,13 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   } = useAutofixSetup({groupId});
 
   const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
+  const hideAiFeatures = organization.hideAiFeatures;
 
   const queryData = useApiQuery<GroupSummaryData>(
     makeGroupSummaryQueryKey(organization.slug, groupId),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
+      enabled: isSummaryEnabled(hasGenAIConsent, hideAiFeatures, groupCategory),
     }
   );
   return {
@@ -65,166 +61,85 @@ export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
   };
 }
 
-function GroupSummaryFeatureBadge() {
+export function GroupSummary({
+  data,
+  isError,
+  isPending,
+  preview = false,
+}: {
+  data: GroupSummaryData | undefined;
+  isError: boolean;
+  isPending: boolean;
+  preview?: boolean;
+}) {
+  const insightCards = [
+    {
+      id: 'whats_wrong',
+      title: t("What's wrong"),
+      insight: data?.whatsWrong,
+      icon: <IconFatal size="sm" />,
+    },
+    {
+      id: 'trace',
+      title: t('In the trace'),
+      insight: data?.trace,
+      icon: <IconSpan size="sm" />,
+    },
+    {
+      id: 'possible_cause',
+      title: t('Possible cause'),
+      insight: data?.possibleCause,
+      icon: <IconFocus size="sm" />,
+    },
+  ];
+
   return (
-    <StyledFeatureBadge
-      type="experimental"
-      title={t(
-        'This feature is experimental and may produce inaccurate results. Please share feedback to help us improve the experience.'
-      )}
-    />
+    <div data-testid="group-summary">
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      <Content>
+        <InsightGrid>
+          {insightCards.map(card => {
+            // Hide the card if we're not loading and there's no insight
+            if (!isPending && !card.insight) {
+              return null;
+            }
+
+            return (
+              <InsightCard key={card.id}>
+                <CardTitle preview={preview}>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                  <CardTitleText>{card.title}</CardTitleText>
+                </CardTitle>
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    card.insight && (
+                      <CardContent
+                        dangerouslySetInnerHTML={{
+                          __html: marked(
+                            preview
+                              ? card.insight.replace(/\*\*/g, '') ?? ''
+                              : card.insight ?? ''
+                          ),
+                        }}
+                      />
+                    )
+                  )}
+                </CardContentContainer>
+              </InsightCard>
+            );
+          })}
+        </InsightGrid>
+      </Content>
+    </div>
   );
 }
-
-export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
-    groupId,
-    groupCategory
-  );
-
-  const [expanded, setExpanded] = useState(false);
-
-  const openForm = useFeedbackForm();
-
-  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
-    // TODO: Render a banner for needing genai consent
-    return null;
-  }
-
-  return (
-    <Wrapper>
-      <StyledTitleRow onClick={() => setExpanded(!data ? false : !expanded)}>
-        <CollapsedRow>
-          <IconContainer>
-            <IconFocus />
-          </IconContainer>
-          {isPending && <Placeholder height="19px" width="95%" />}
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && !expanded && (
-            <Fragment>
-              <HeadlinePreview>{data.headline}</HeadlinePreview>
-              <SummaryPreview
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(
-                    `Details: ${data.summary.replaceAll('\n', ' ').replaceAll('-', '')}`
-                  ),
-                }}
-              />
-            </Fragment>
-          )}
-          {data && expanded && <HeadlineContent>{data.headline}</HeadlineContent>}
-        </CollapsedRow>
-        <IconContainerRight>
-          <IconChevron direction={expanded ? 'up' : 'down'} />
-        </IconContainerRight>
-      </StyledTitleRow>
-      {expanded && (
-        <Body>
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && (
-            <Content>
-              <SummaryContent
-                dangerouslySetInnerHTML={{
-                  __html: marked(data.summary),
-                }}
-              />
-            </Content>
-          )}
-          {openForm && !isPending && (
-            <ButtonContainer>
-              <Button
-                onClick={() => {
-                  openForm({
-                    messagePlaceholder: t(
-                      'How can we make this issue summary more useful?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'issue_details_ai_issue_summary',
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  });
-                }}
-                size="xs"
-                icon={<IconMegaphone />}
-              >
-                Give Feedback
-              </Button>
-              <GroupSummaryFeatureBadge />
-            </ButtonContainer>
-          )}
-        </Body>
-      )}
-    </Wrapper>
-  );
-}
-
-const Body = styled('div')`
-  padding: 0 ${space(4)} ${space(1.5)} ${space(4)};
-`;
-
-const HeadlinePreview = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-right: ${space(0.5)};
-  flex-shrink: 0;
-  max-width: 92%;
-`;
-
-const SummaryPreview = styled('span')`
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-grow: 1;
-  color: ${p => p.theme.subText};
-`;
-
-const Wrapper = styled(Panel)`
-  margin-bottom: ${space(1)};
-  padding: ${space(0.5)};
-`;
-
-const StyledTitleRow = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1)};
-
-  &:hover {
-    cursor: pointer;
-    background: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
-const CollapsedRow = styled('div')`
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-  overflow: hidden;
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)``;
-
-const HeadlineContent = styled('span')`
-  overflow-wrap: break-word;
-  p {
-    margin: 0;
-  }
-  code {
-    word-break: break-all;
-  }
-  width: 100%;
-`;
-
-const SummaryContent = styled('div')`
-  overflow-wrap: break-word;
-  p {
-    margin: 0;
-  }
-  code {
-    word-break: break-all;
-  }
-`;
 
 const Content = styled('div')`
   display: flex;
@@ -232,21 +147,71 @@ const Content = styled('div')`
   gap: ${space(1)};
 `;
 
-const ButtonContainer = styled('div')`
-  align-items: center;
+const InsightGrid = styled('div')`
   display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
-const IconContainer = styled('div')`
-  flex-shrink: 0;
-  margin-right: ${space(1)};
-  margin-top: ${space(0.25)};
-  max-height: ${space(2)};
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.background};
+  width: 100%;
+  min-height: 0;
 `;
 
-const IconContainerRight = styled('div')`
+const CardTitle = styled('div')<{preview?: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  padding-bottom: ${space(0.5)};
+`;
+
+const CardTitleText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
   flex-shrink: 0;
-  margin-left: ${space(1)};
-  margin-top: ${space(0.25)};
-  max-height: ${space(2)};
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 2px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
 `;

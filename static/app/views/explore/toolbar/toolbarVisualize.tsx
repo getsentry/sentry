@@ -1,7 +1,9 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -14,6 +16,7 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   DEFAULT_VISUALIZATION,
+  MAX_VISUALIZES,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -28,6 +31,11 @@ import {
   ToolbarSection,
 } from './styles';
 
+type ParsedVisualize = {
+  func: ParsedFunction;
+  label: string;
+};
+
 interface ToolbarVisualizeProps {}
 
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
@@ -35,9 +43,17 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
 
   const numberTags = useSpanTags('number');
 
-  const parsedVisualizeGroups: ParsedFunction[][] = useMemo(() => {
+  const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
     return visualizes.map(visualize =>
-      visualize.yAxes.map(parseFunction).filter(defined)
+      visualize.yAxes
+        .map(parseFunction)
+        .filter(defined)
+        .map(func => {
+          return {
+            func,
+            label: visualize.label,
+          };
+        })
     );
   }, [visualizes]);
 
@@ -92,20 +108,20 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   );
 
   const setChartField = useCallback(
-    (group: number, index: number, {value}: SelectOption<string>) => {
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
-        `${parsedVisualizeGroups[group][index].name}(${value})`;
+        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
   const setChartAggregate = useCallback(
-    (group: number, index: number, {value}: SelectOption<string>) => {
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
       newVisualizes[group].yAxes[index] =
-        `${value}(${parsedVisualizeGroups[group][index].arguments[0]})`;
+        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [parsedVisualizeGroups, setVisualizes, visualizes]
@@ -135,24 +151,29 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       .map(parsedVisualizeGroup => parsedVisualizeGroup.length)
       .reduce((a, b) => a + b, 0) <= 1;
 
+  const shouldRenderLabel = visualizes.length > 1;
+
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
         <Tooltip
           position="right"
           title={t(
-            'Primary metric that appears in your chart, overlays and/or equations.'
+            'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
           )}
         >
           <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
         </Tooltip>
-        <ToolbarHeaderButton
-          size="zero"
-          icon={<IconAdd />}
-          onClick={addChart}
-          aria-label={t('Add Chart')}
-          borderless
-        />
+        <Tooltip title={t('Add a new chart')}>
+          <ToolbarHeaderButton
+            size="zero"
+            icon={<IconAdd />}
+            onClick={addChart}
+            aria-label={t('Add Chart')}
+            borderless
+            disabled={visualizes.length >= MAX_VISUALIZES}
+          />
+        </Tooltip>
       </ToolbarHeader>
       <div>
         {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
@@ -160,15 +181,16 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
             <Fragment key={group}>
               {parsedVisualizeGroup.map((parsedVisualize, index) => (
                 <ToolbarRow key={index}>
-                  <CompactSelect
+                  {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
+                  <ColumnCompactSelect
                     searchable
                     options={fieldOptions}
-                    value={parsedVisualize.arguments[0]}
+                    value={parsedVisualize.func.arguments[0]}
                     onChange={newField => setChartField(group, index, newField)}
                   />
-                  <CompactSelect
+                  <AggregateCompactSelect
                     options={aggregateOptions}
-                    value={parsedVisualize?.name}
+                    value={parsedVisualize.func.name}
                     onChange={newAggregate =>
                       setChartAggregate(group, index, newAggregate)
                     }
@@ -190,9 +212,9 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
                   icon={<IconAdd />}
                   onClick={() => addOverlay(group)}
                   priority="link"
-                  aria-label={t('Add Overlay')}
+                  aria-label={t('Add Series')}
                 >
-                  {t('Add Overlay')}
+                  {t('Add Series')}
                 </ToolbarFooterButton>
               </ToolbarFooter>
             </Fragment>
@@ -202,3 +224,31 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     </ToolbarSection>
   );
 }
+
+const ChartLabel = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  width: 32px;
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
+`;
+
+const ColumnCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const AggregateCompactSelect = styled(CompactSelect)`
+  width: 100px;
+
+  > button {
+    width: 100%;
+  }
+`;

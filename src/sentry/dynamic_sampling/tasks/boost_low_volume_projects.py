@@ -3,7 +3,6 @@ import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from enum import Enum
 
 import sentry_sdk
 from snuba_sdk import (
@@ -57,7 +56,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
     sample_function,
 )
-from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
@@ -79,20 +78,13 @@ PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 logger = logging.getLogger(__name__)
 
 
-class SamplingMeasure(Enum):
-    """The type of data being measured for dynamic sampling rebalancing."""
-
-    SPANS = "spans"
-    TRANSACTIONS = "transactions"
-
-
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=5 * 60,  # 5 minutes
+    time_limit=5 * 60 + 5,
     silo_mode=SiloMode.REGION,
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
@@ -121,7 +113,9 @@ def boost_low_volume_projects(context: TaskContext) -> None:
 
 
 @metrics.wraps("dynamic_sampling.partition_by_measure")
-def partition_by_measure(org_ids: list[OrganizationId]) -> Mapping[SamplingMeasure, list[int]]:
+def partition_by_measure(
+    org_ids: list[OrganizationId],
+) -> Mapping[SamplingMeasure, list[OrganizationId]]:
     """
     Partitions the orgs by the measure that will be used to adjust the sample
     rates. This is controlled through a feature flag on the organization,

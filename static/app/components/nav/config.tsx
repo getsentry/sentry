@@ -52,6 +52,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
     label: t('Insights'),
     icon: <IconGraph />,
     feature: {features: 'insights-entry-points'},
+    analyticsKey: 'insights',
     submenu: [
       {
         label: MODULE_TITLE_HTTP,
@@ -94,6 +95,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perf: NavSidebarItem = {
     label: t('Perf.'),
     to: '/performance/',
+    analyticsKey: 'performance',
     icon: <IconLightning />,
     feature: {
       features: 'performance-view',
@@ -104,6 +106,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
   const perfDomainViews: NavSidebarItem = {
     label: t('Perf.'),
     icon: <IconLightning />,
+    analyticsKey: 'insights-domains',
     feature: {features: ['insights-domain-view', 'performance-view']},
     submenu: [
       {
@@ -130,6 +133,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       {
         label: t('Issues'),
         icon: <IconIssues />,
+        analyticsKey: 'issues',
         submenu: [
           {
             label: t('All'),
@@ -154,10 +158,16 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Feedback'), to: `/${prefix}/feedback/`},
         ],
       },
-      {label: t('Projects'), to: `/${prefix}/projects/`, icon: <IconProject />},
+      {
+        label: t('Projects'),
+        analyticsKey: 'projects',
+        to: `/${prefix}/projects/`,
+        icon: <IconProject />,
+      },
       {
         label: t('Explore'),
         icon: <IconSearch />,
+        analyticsKey: 'explore',
         submenu: [
           {
             label: t('Traces'),
@@ -201,6 +211,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       ...(hasPerfDomainViews ? [perfDomainViews, perf] : [insights, perf]),
       {
         label: t('Boards'),
+        analyticsKey: 'customizable-dashboards',
         to: '/dashboards/',
         icon: <IconDashboard />,
         feature: {
@@ -209,12 +220,18 @@ export function createNavConfig({organization}: {organization: Organization}): N
           requireAll: false,
         },
       },
-      {label: t('Alerts'), to: `/${prefix}/alerts/rules/`, icon: <IconSiren />},
+      {
+        label: t('Alerts'),
+        analyticsKey: 'alerts',
+        to: `/${prefix}/alerts/rules/`,
+        icon: <IconSiren />,
+      },
     ],
     footer: [
       {
         label: t('Help'),
         icon: <IconQuestion />,
+        analyticsKey: 'help',
         dropdown: [
           {
             key: 'search',
@@ -242,6 +259,7 @@ export function createNavConfig({organization}: {organization: Organization}): N
       },
       {
         label: t('Settings'),
+        analyticsKey: 'settings',
         to: `/settings/${organization.slug}/`,
         icon: <IconSettings />,
       },

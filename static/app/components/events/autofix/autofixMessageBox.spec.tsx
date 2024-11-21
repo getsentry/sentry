@@ -80,7 +80,9 @@ describe('AutofixMessageBox', () => {
     render(<AutofixMessageBox {...defaultProps} />);
 
     expect(screen.getByText('Test display text')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Share helpful context or feedback...')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
@@ -88,7 +90,7 @@ describe('AutofixMessageBox', () => {
     const onSendMock = jest.fn();
     render(<AutofixMessageBox {...defaultProps} onSend={onSendMock} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -104,7 +106,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -125,7 +127,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -196,7 +198,9 @@ describe('AutofixMessageBox', () => {
   it('shows feedback input when "Give feedback" is selected', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Share helpful context or feedback...')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
@@ -206,7 +210,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
@@ -230,7 +233,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
@@ -287,7 +289,6 @@ describe('AutofixMessageBox', () => {
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [
@@ -315,5 +316,41 @@ describe('AutofixMessageBox', () => {
     expect(
       within(screen.getByRole('dialog')).getByText('Allow Autofix to Make Pull Requests')
     ).toBeInTheDocument();
+  });
+
+  it('shows segmented control with "Add tests" option for changes step', () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    expect(screen.getByRole('radio', {name: 'Give feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Add tests'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Approve changes'})).toBeInTheDocument();
+  });
+
+  it('shows "Add Tests" button and static message when "Add tests" is selected', async () => {
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Add tests'}));
+
+    expect(
+      screen.getByText('Write unit tests to make sure the issue is fixed?')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Tests'})).toBeInTheDocument();
+  });
+
+  it('sends correct message when "Add Tests" is clicked without onSend prop', async () => {
+    MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/issues/123/autofix/update/',
+      body: {},
+    });
+
+    render(<AutofixMessageBox {...changesStepProps} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Add tests'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Tests'}));
+
+    await waitFor(() => {
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks for the input.');
+    });
   });
 });

@@ -30,8 +30,8 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
@@ -116,7 +116,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         (event_failures,) = (
             call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
         )
-        assert event_failures.args[1]["failure_reason"] == error_msg
+        assert event_failures.args[1] == error_msg
 
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self):

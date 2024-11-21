@@ -69,9 +69,11 @@ describe('StreamlinedGroupHeader', () => {
 
       expect(screen.getByText('RequestError')).toBeInTheDocument();
       expect(screen.getByText('Unhandled')).toBeInTheDocument();
-      expect(await screen.findByText('Events')).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'View events'})).toBeInTheDocument();
       expect(screen.getByText(formatAbbreviatedNumber(group.count))).toBeInTheDocument();
-      expect(await screen.findByRole('link', {name: 'Users'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: 'View affected users'})
+      ).toBeInTheDocument();
       expect(
         screen.getByText(formatAbbreviatedNumber(group.userCount))
       ).toBeInTheDocument();
@@ -107,6 +109,25 @@ describe('StreamlinedGroupHeader', () => {
       );
       expect(
         await screen.findByRole('button', {name: 'Switch to the old issue experience'})
+      ).toBeInTheDocument();
+    });
+
+    it('displays share icon if issue has been shared', async () => {
+      render(
+        <StreamlinedGroupHeader
+          {...defaultProps}
+          group={{...group, isPublic: true, shareId: 'abc123'}}
+          project={project}
+          event={null}
+        />,
+        {
+          organization,
+          router,
+        }
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'View issue share settings'})
       ).toBeInTheDocument();
     });
   });

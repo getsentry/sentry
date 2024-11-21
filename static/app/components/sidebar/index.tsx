@@ -6,6 +6,7 @@ import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Chevron} from 'sentry/components/chevron';
+import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
@@ -18,6 +19,7 @@ import {
   ExpandedContextProvider,
 } from 'sentry/components/sidebar/expandedContextProvider';
 import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {DismissableRollbackBanner} from 'sentry/components/sidebar/rollback/dismissableBanner';
 import {isDone} from 'sentry/components/sidebar/utils';
 import {
   IconDashboard,
@@ -74,7 +76,6 @@ import {
 import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
-  DOMAIN_VIEW_RELEASE_LEVEL,
 } from 'sentry/views/insights/pages/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
@@ -621,10 +622,8 @@ function Sidebar() {
         icon={<IconGraph />}
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
-        initiallyExpanded={false}
+        initiallyExpanded
         exact={!shouldAccordionFloat}
-        isAlpha={DOMAIN_VIEW_RELEASE_LEVEL === 'alpha'}
-        isBeta={DOMAIN_VIEW_RELEASE_LEVEL === 'beta'}
       >
         <SidebarItem
           {...sidebarItemProps}
@@ -723,6 +722,13 @@ function Sidebar() {
             )}
           </DropdownSidebarSection>
 
+          {organization ? (
+            <DismissableRollbackBanner
+              organization={organization}
+              collapsed={collapsed}
+            />
+          ) : null}
+
           <PrimaryItems>
             {hasOrganization && (
               <Fragment>
@@ -789,6 +795,12 @@ function Sidebar() {
             <ReplaysOnboardingSidebar
               currentPanel={activePanel}
               onShowPanel={() => togglePanel(SidebarPanelKey.REPLAYS_ONBOARDING)}
+              hidePanel={hidePanel}
+              {...sidebarItemProps}
+            />
+            <FeatureFlagOnboardingSidebar
+              currentPanel={activePanel}
+              onShowPanel={() => togglePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />

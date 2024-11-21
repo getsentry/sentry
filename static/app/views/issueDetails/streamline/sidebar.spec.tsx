@@ -21,7 +21,9 @@ describe('StreamlinedSidebar', function () {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['gen-ai-features'],
+  });
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
@@ -93,8 +95,7 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(await screen.findByText('Solutions & Resources')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'See More'})).toBeInTheDocument();
+    expect(await screen.findByText('Solutions Hub')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();
@@ -107,7 +108,7 @@ describe('StreamlinedSidebar', function () {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Add a comment...')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
 
     expect(screen.getByRole('heading', {name: 'Similar Issues'})).toBeInTheDocument();

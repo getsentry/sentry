@@ -427,6 +427,54 @@ class TestProcessResourceChange(TestCase):
             "Sentry-Hook-Signature",
         }
 
+    @with_feature("organizations:integrations-event-hooks")
+    @override_options({"app_service.installations_for_org.cached": 1.0})
+    def test_error_created_sends_webhook_cached_service_call(self, safe_urlopen):
+        sentry_app = self.create_sentry_app(
+            organization=self.project.organization, events=["error.created"]
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.project.organization, slug=sentry_app.slug
+        )
+
+        one_min_ago = before_now(minutes=1).isoformat()
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+                project_id=self.project.id,
+                eventstream_type=EventStreamEventType.Error,
+            )
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        data = json.loads(kwargs["data"])
+
+        assert data["action"] == "created"
+        assert data["installation"]["uuid"] == install.uuid
+        assert data["data"]["error"]["event_id"] == event.event_id
+        assert data["data"]["error"]["issue_id"] == str(event.group_id)
+        assert kwargs["headers"].keys() >= {
+            "Content-Type",
+            "Request-ID",
+            "Sentry-Hook-Resource",
+            "Sentry-Hook-Timestamp",
+            "Sentry-Hook-Signature",
+        }
+
     # TODO(nola): Enable this test whenever we prevent infinite loops w/ error.created integrations
     @pytest.mark.skip(reason="enable this when/if we do prevent infinite error.created loops")
     @with_feature("organizations:integrations-event-hooks")

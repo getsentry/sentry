@@ -1,8 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
-
-import bannerImage from 'sentry-images/insights/module-upsells/insights-module-upsell.svg';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -29,7 +29,6 @@ import {
   IconArrow,
   IconChevron,
   IconCode,
-  IconEdit,
   IconFire,
   IconRefresh,
   IconSpan,
@@ -136,6 +135,8 @@ interface AutofixInsightCardProps {
   repos: AutofixRepository[];
   runId: string;
   stepIndex: number;
+  isLastInsightInStep?: boolean;
+  shouldHighlightRethink?: boolean;
 }
 
 function AutofixInsightCard({
@@ -147,6 +148,8 @@ function AutofixInsightCard({
   stepIndex,
   groupId,
   runId,
+  shouldHighlightRethink,
+  isLastInsightInStep,
 }: AutofixInsightCardProps) {
   const isUserMessage = insight.justification === 'USER';
 
@@ -166,6 +169,7 @@ function AutofixInsightCard({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isHighlighted={shouldHighlightRethink}
             />
           )}
           {!isUserMessage && (
@@ -289,6 +293,8 @@ function AutofixInsightCard({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isHighlighted={shouldHighlightRethink}
+              isLastCard={isLastInsightInStep}
             />
           )}
         </AnimationWrapper>
@@ -305,6 +311,7 @@ interface AutofixInsightCardsProps {
   repos: AutofixRepository[];
   runId: string;
   stepIndex: number;
+  shouldHighlightRethink?: boolean;
 }
 
 function AutofixInsightCards({
@@ -315,6 +322,7 @@ function AutofixInsightCards({
   stepIndex,
   groupId,
   runId,
+  shouldHighlightRethink,
 }: AutofixInsightCardsProps) {
   return (
     <InsightsContainer>
@@ -331,19 +339,32 @@ function AutofixInsightCards({
               stepIndex={stepIndex}
               groupId={groupId}
               runId={runId}
+              isLastInsightInStep={index === insights.length - 1}
+              shouldHighlightRethink={shouldHighlightRethink}
             />
           )
         )
-      ) : !hasStepAbove && !hasStepBelow ? (
+      ) : stepIndex === 0 && !hasStepBelow ? (
         <NoInsightsYet>
+          <p>Autofix will share its discoveries here.</p>
           <p>
-            Autofix will share important conclusions here as it discovers them, building a
-            line of reasoning up to the root cause.
+            Autofix is like an AI rubber ducky to help you debug your code.
+            <br />
+            Collaborate with it and share your own knowledge and opinions for the best
+            results.
           </p>
-          <IllustrationContainer>
-            <Illustration src={bannerImage} />
-          </IllustrationContainer>
         </NoInsightsYet>
+      ) : hasStepBelow ? (
+        <EmptyResultsContainer>
+          <ChainLink
+            insightCardAboveIndex={null}
+            stepIndex={stepIndex}
+            groupId={groupId}
+            runId={runId}
+            isHighlighted={shouldHighlightRethink}
+            isLastCard
+          />
+        </EmptyResultsContainer>
       ) : null}
     </InsightsContainer>
   );
@@ -385,22 +406,54 @@ function ChainLink({
   runId,
   stepIndex,
   insightCardAboveIndex,
+  isHighlighted,
+  isLastCard,
 }: {
   groupId: string;
   insightCardAboveIndex: number | null;
   runId: string;
   stepIndex: number;
+  isHighlighted?: boolean;
+  isLastCard?: boolean;
 }) {
   const [showOverlay, setShowOverlay] = useState(false);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [referenceElement, setReferenceElement] = useState<
+    HTMLAnchorElement | HTMLButtonElement | null
+  >(null);
+  const [popperElement, setPopperElement] = useState<HTMLDivElement | null>(null);
   const [comment, setComment] = useState('');
   const {mutate: send} = useUpdateInsightCard({groupId, runId});
 
-  const handleClickOutside = event => {
-    if (overlayRef.current && !overlayRef.current.contains(event.target)) {
+  const {styles, attributes} = usePopper(referenceElement, popperElement, {
+    placement: 'left-start',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [-16, 8],
+        },
+      },
+      {
+        name: 'flip',
+        options: {
+          fallbackPlacements: ['right-start', 'bottom-start'],
+        },
+      },
+    ],
+  });
+
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (
+        referenceElement?.contains(event.target as Node) ||
+        popperElement?.contains(event.target as Node)
+      ) {
+        return;
+      }
       setShowOverlay(false);
-    }
-  };
+    },
+    [popperElement, referenceElement]
+  );
 
   useEffect(() => {
     if (showOverlay) {
@@ -411,57 +464,82 @@ function ChainLink({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showOverlay]);
-
-  // Determine if this is the first chain link (before first insight)
-  const isFirstLink = insightCardAboveIndex === null || insightCardAboveIndex < 0;
+  }, [showOverlay, handleClickOutside]);
 
   return (
     <ArrowContainer>
       <IconArrow direction={'down'} className="arrow-icon" />
-      <RethinkButton
-        icon={<IconEdit size="xs" />}
-        size="zero"
-        className="rethink-button"
-        title={t('Rethink from here')}
-        aria-label={t('Rethink from here')}
-        onClick={() => setShowOverlay(true)}
-      />
+      <RethinkButtonContainer className="rethink-button-container">
+        <AnimatePresence>
+          {isLastCard && isHighlighted && (
+            <RethinkMessage
+              initial={{opacity: 0, x: 20}}
+              animate={{opacity: 1, x: 0}}
+              exit={{opacity: 0, x: 20}}
+              transition={{duration: 0.4}}
+            >
+              Not satisfied?
+            </RethinkMessage>
+          )}
+        </AnimatePresence>
+        <RethinkButton
+          ref={setReferenceElement}
+          icon={<IconRefresh size="xs" />}
+          size="zero"
+          className="rethink-button"
+          title={t('Rethink from here')}
+          aria-label={t('Rethink from here')}
+          onClick={() => setShowOverlay(true)}
+          isHighlighted={isHighlighted}
+        />
+      </RethinkButtonContainer>
 
-      {showOverlay && (
-        <RethinkInput $isFirstLink={isFirstLink} ref={overlayRef}>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              setShowOverlay(false);
-              setComment('');
-              send({
-                message: comment,
-                step_index: stepIndex,
-                retain_insight_card_index: insightCardAboveIndex,
-              });
-            }}
-            className="row-form"
+      {showOverlay &&
+        createPortal(
+          <RethinkInput
+            ref={setPopperElement}
+            style={styles.popper}
+            {...attributes.popper}
+            id="autofix-rethink-input"
           >
-            <Input
-              type="text"
-              placeholder="Say something..."
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-              size="md"
-              autoFocus
-            />
-            <Button
-              type="submit"
-              icon={<IconRefresh />}
-              title="Restart analysis from this point in the chain"
-              aria-label="Restart analysis from this point in the chain"
-              priority="primary"
-              size="md"
-            />
-          </form>
-        </RethinkInput>
-      )}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowOverlay(false);
+                setComment('');
+                send({
+                  message: comment,
+                  step_index: stepIndex,
+                  retain_insight_card_index: insightCardAboveIndex,
+                });
+              }}
+              className="row-form"
+              onClick={e => e.stopPropagation()}
+              id="autofix-rethink-input"
+            >
+              <Input
+                type="text"
+                placeholder="You should know X... Dive deeper into Y... Look at Z..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                size="md"
+                autoFocus
+                id="autofix-rethink-input"
+              />
+              <Button
+                type="submit"
+                icon={<IconRefresh />}
+                title="Restart analysis from this point in the chain"
+                aria-label="Restart analysis from this point in the chain"
+                priority="primary"
+                size="md"
+                id="autofix-rethink-input"
+              />
+            </form>
+          </RethinkInput>,
+          document.querySelector('.solutions-drawer-container') ?? document.body
+        )}
     </ArrowContainer>
   );
 }
@@ -502,14 +580,6 @@ const UserMessage = styled('div')`
   flex-shrink: 100;
 `;
 
-const IllustrationContainer = styled('div')`
-  padding-top: ${space(4)};
-`;
-
-const Illustration = styled('img')`
-  height: 100%;
-`;
-
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
@@ -517,6 +587,13 @@ const NoInsightsYet = styled('div')`
   padding-left: ${space(4)};
   padding-right: ${space(4)};
   text-align: center;
+  color: ${p => p.theme.subText};
+  padding-top: ${space(4)};
+`;
+
+const EmptyResultsContainer = styled('div')`
+  position: relative;
+  bottom: -${space(1)};
 `;
 
 const InsightsContainer = styled('div')``;
@@ -546,38 +623,66 @@ const ArrowContainer = styled('div')`
     align-self: center;
   }
 
-  .rethink-button {
+  .rethink-button-container {
     grid-column: 3 / 4;
     justify-self: end;
     align-self: center;
-  }
-
-  &:hover {
-    .rethink-button {
-      color: ${p => p.theme.subText};
-    }
+    position: relative;
   }
 `;
 
-const RethinkButton = styled(Button)`
+const RethinkButtonContainer = styled('div')`
+  position: relative;
+`;
+
+const RethinkMessage = styled(motion.div)`
+  color: ${p => p.theme.active};
+  font-size: ${p => p.theme.fontSizeSmall};
+  position: absolute;
+  right: calc(100% + ${space(1)});
+  margin-top: 1px;
+  white-space: nowrap;
+`;
+
+const RethinkButton = styled(Button)<{isHighlighted?: boolean}>`
   font-weight: normal;
   font-size: small;
   border: none;
   color: ${p => p.theme.subText};
-  transition: color 0.2s ease-in-out;
+  transition: all 0.4s ease-in-out;
+  position: relative;
+
+  ${p =>
+    p.isHighlighted &&
+    `
+    color: ${p.theme.button.primary.backgroundActive};
+    background: ${p.theme.purple100};
+    border-radius: ${p.theme.borderRadius};
+
+    &:hover {
+      color: ${p.theme.activeHover};
+      background: ${p.theme.purple200};
+    }
+  `}
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
-const RethinkInput = styled('div')<{$isFirstLink: boolean}>`
-  position: absolute;
+const RethinkInput = styled('div')`
+  position: fixed;
   box-shadow: ${p => p.theme.dropShadowHeavy};
   border: 1px solid ${p => p.theme.border};
-  width: 95%;
+  width: 90%;
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
-  margin: 0 ${space(1.5)} 0 ${space(1.5)};
-  z-index: 10000;
-  transform: translateY(${p => (p.$isFirstLink ? '25%' : '-25%')});
+  z-index: ${p => p.theme.zIndex.tooltip};
 
   .row-form {
     display: flex;

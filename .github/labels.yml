@@ -1,5 +1,7 @@
 # This file is used to declaratively define the sentry repository labels.
 #
+# Please keep labels within each section in alphabetical order.
+#
 # XXX: A note on renaming labels
 #
 # You MUST use a `alias: [ ... ]` list for the label to specify the old name of
@@ -11,10 +13,10 @@
 - name: 'Trigger: getsentry tests'
   aliases: ['trigger-getsentry-external']
   color: 'A0CABD'
-  description: 'once code is reviewed: apply label to PR to trigger getsentry tests'
+  description: 'Once code is reviewed: apply label to PR to trigger getsentry tests'
 - name: 'Trigger: Revert'
   color: 'A0CABD'
-  description: 'add to a merged PR to revert it (skips CI)'
+  description: 'Add to a merged PR to revert it (skips CI)'
 - name: 'Trigger: Silo db'
   color: 'A0CABD'
   description: 'Trigger tests with split databases that simulate hybrid cloud data separation in postgres'
@@ -22,7 +24,7 @@
 # Unito - www.notion.so/52d10dbfad474328850319e48b057a5b
 - name: 'Sync: Jira'
   color: 'A0CABD'
-  description: 'apply to auto-create a Jira shadow ticket'
+  description: 'Apply to auto-create a Jira shadow ticket'
 
 # Scopes
 - name: 'Scope: Backend'
@@ -153,7 +155,7 @@
   color: '584774'
   description: ''
 
-# Waiting for Labels
+# Waiting-for labels
 - name: 'Waiting for: Support'
   color: '8D5494'
 - name: 'Waiting for: Product Owner'
@@ -163,10 +165,28 @@
 - name: 'Stale'
   color: '8D5494'
 
-# Product Areas - www.notion.so/sentry/473791bae5bf43399d46093050b77bf0
-- name: 'Product Area: Unknown'
+# Product areas - www.notion.so/sentry/473791bae5bf43399d46093050b77bf0
+- name: 'Product Area: Alerts'
   color: '8D5494'
-- name: 'Product Area: Sign In'
+- name: 'Product Area: APIs'
+  color: '8D5494'
+- name: 'Product Area: Crons'
+  color: '8D5494'
+- name: 'Product Area: Dashboards'
+  color: '8D5494'
+- name: 'Product Area: DDM'
+  color: '8D5494'
+- name: 'Product Area: Discover'
+  color: '8D5494'
+- name: 'Product Area: Explore'
+  color: '8D5494'
+- name: 'Product Area: Footer'
+  color: '8D5494'
+- name: 'Product Area: Help'
+  color: '8D5494'
+- name: 'Product Area: Ingestion and Filtering'
+  color: '8D5494'
+- name: 'Product Area: Insights'
   color: '8D5494'
 - name: 'Product Area: Issues'
   color: '8D5494'
@@ -174,59 +194,43 @@
   color: '8D5494'
 - name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
+- name: 'Product Area: Org Relocation'
+  color: '8D5494'
+- name: 'Product Area: Performance'
+  color: '8D5494'
 - name: 'Product Area: Processing'
+  color: '8D5494'
+- name: 'Product Area: Profiling'
   color: '8D5494'
 - name: 'Product Area: Projects - Project Creation'
   color: '8D5494'
 - name: 'Product Area: Projects - Project Details'
   color: '8D5494'
-- name: 'Product Area: Profiling'
-  color: '8D5494'
-- name: 'Product Area: DDM'
-  color: '8D5494'
-- name: 'Product Area: Replays'
-  color: '8D5494'
-- name: 'Product Area: Crons'
-  color: '8D5494'
-- name: 'Product Area: Alerts'
-  color: '8D5494'
-- name: 'Product Area: Discover'
-  color: '8D5494'
-- name: 'Product Area: Explore'
-  color: '8D5494'
-- name: 'Product Area: Insights'
-  color: '8D5494'
-- name: 'Product Area: Dashboards'
-  color: '8D5494'
-- name: 'Product Area: Performance'
-  color: '8D5494'
 - name: 'Product Area: Releases'
   color: '8D5494'
-- name: 'Product Area: User Feedback'
+- name: 'Product Area: Replays'
   color: '8D5494'
 - name: 'Product Area: Stats'
   color: '8D5494'
 - name: 'Product Area: Settings'
   color: '8D5494'
+- name: 'Product Area: Settings - Auth'
+  color: '8D5494'
+- name: 'Product Area: Settings - Developer Settings'
+  color: '8D5494'
 - name: 'Product Area: Settings - General'
   color: '8D5494'
-- name: 'Product Area: Settings - Projects'
-  color: '8D5494'
-- name: 'Product Area: Settings - Teams'
+- name: 'Product Area: Settings - Integrations'
   color: '8D5494'
 - name: 'Product Area: Settings - Members'
   color: '8D5494'
-- name: 'Product Area: Settings - Security & Privacy'
-  color: '8D5494'
-- name: 'Product Area: Settings - Auth'
+- name: 'Product Area: Settings - Projects'
   color: '8D5494'
 - name: 'Product Area: Settings - Relay'
   color: '8D5494'
 - name: 'Product Area: Settings - Repositories'
   color: '8D5494'
-- name: 'Product Area: Settings - Integrations'
-  color: '8D5494'
-- name: 'Product Area: Settings - Developer Settings'
+- name: 'Product Area: Settings - Security & Privacy'
   color: '8D5494'
 - name: 'Product Area: Settings - Spend Allocation'
   color: '8D5494'
@@ -234,19 +238,17 @@
   color: '8D5494'
 - name: 'Product Area: Settings - Subscription'
   color: '8D5494'
-- name: 'Product Area: Help'
+- name: 'Product Area: Settings - Teams'
+  color: '8D5494'
+- name: 'Product Area: Sign In'
+  color: '8D5494'
+- name: 'Product Area: User Feedback'
   color: '8D5494'
 - name: "Product Area: What's New"
   color: '8D5494'
-- name: 'Product Area: Footer'
-  color: '8D5494'
-- name: 'Product Area: APIs'
-  color: '8D5494'
-- name: 'Product Area: Ingestion and Filtering'
-  color: '8D5494'
-- name: 'Product Area: Org Relocation'
-  color: '8D5494'
 - name: 'Product Area: Other'
+  color: '8D5494'
+- name: 'Product Area: Unknown'
   color: '8D5494'
 
 # Deploy types
@@ -265,18 +267,16 @@
   color: 'ffa0df'
   description: ''
 
-# Bug bash-y Things
+# Bug bash-y things
 - name: 'Hacktoberfest :jack_o_lantern:'
   color: 'ffa500'
   description: ''
 - name: Hacktoberfest-accepted
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
-
 - name: 'Hackweek :zap:'
   color: 'F91A8A'
   description: ''
-
 - name: 'Papercut'
   color: 'F91A8A'
   description: ''
@@ -327,10 +327,7 @@
   color: '584774'
   description: ''
 
-# Generic useful label
-- name: WIP
-  color: 'F6F6F8'
-  description: ''
+# Generic useful labels
 - name: Do Not Merge
   color: 'C83852'
   description: Don't merge
@@ -339,6 +336,9 @@
   description: ''
 - name: Security
   color: 'C83852'
+  description: ''
+- name: WIP
+  color: 'F6F6F8'
   description: ''
 
 # Legacy labels

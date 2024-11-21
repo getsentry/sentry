@@ -153,11 +153,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
   align-items: center;
+  ${p => p.theme.overflowEllipsis}
 `;
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

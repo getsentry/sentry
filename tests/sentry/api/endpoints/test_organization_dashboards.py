@@ -779,6 +779,58 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201, response.data
         assert response.data["title"] == f"{self.dashboard.title} copy 1"
 
+    def test_many_duplicate_dashboards(self):
+        title = "My Awesome Dashboard"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "My Awesome Dashboard"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "My Awesome Dashboard copy"
+
+        for i in range(1, 10):
+            response = self.do_request(
+                "post",
+                self.url,
+                data={"title": title, "duplicate": True},
+            )
+
+            assert response.status_code == 201, response.data
+            assert response.data["title"] == f"My Awesome Dashboard copy {i}"
+
+    def test_duplicate_a_duplicate(self):
+        title = "An Amazing Dashboard copy 3"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "An Amazing Dashboard copy 3"
+
+        response = self.do_request(
+            "post",
+            self.url,
+            data={"title": title, "duplicate": True},
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data["title"] == "An Amazing Dashboard copy 4"
+
     def test_widget_preview_field_returns_empty_list_if_no_widgets(self):
         response = self.do_request("get", self.url, data={"query": "1"})
 
@@ -971,3 +1023,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         queries = widgets[0].dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_create_new_edit_perms_with_teams(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+
+        data = {
+            "title": "New Dashboard 7",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(team2.id)],
+            },
+            "createdBy": {"id": "23516"},
+            "id": "7136",
+        }
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201, response.content
+        assert response.data["permissions"]["isEditableByEveryone"] is False
+        assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]

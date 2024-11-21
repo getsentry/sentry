@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -30,16 +29,17 @@ from sentry.profiles.java import (
     format_signature,
     merge_jvm_frames_with_android_methods,
 )
-from sentry.profiles.utils import get_from_profiling_service
+from sentry.profiles.utils import (
+    Profile,
+    apply_stack_trace_rules_to_profile,
+    get_from_profiling_service,
+)
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
-
-Profile = MutableMapping[str, Any]
-CallTrees = Mapping[str, list[Any]]
 
 
 class VroomTimeout(Exception):
@@ -179,6 +179,17 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
+    if options.get("profiling.stack_trace_rules.enabled") and project.id in options.get(
+        "profiling.stack_trace_rules.allowed_project_ids"
+    ):
+        try:
+            with metrics.timer("process_profile.apply_stack_trace_rules"):
+                rules_config = project.get_option("sentry:grouping_enhancements")
+                if rules_config is not None and rules_config != "":
+                    apply_stack_trace_rules_to_profile(profile, rules_config)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     if not _push_profile_to_vroom(profile, project):
         return
 
@@ -194,7 +205,35 @@ def process_profile_task(
             except Exception as e:
                 sentry_sdk.capture_exception(e)
             if "profiler_id" not in profile:
-                _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
+                if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+                    _track_outcome(
+                        profile=profile,
+                        project=project,
+                        outcome=Outcome.ACCEPTED,
+                        categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+                    )
+                else:
+                    _track_outcome_legacy(
+                        profile=profile, project=project, outcome=Outcome.ACCEPTED
+                    )
+    else:
+        if (
+            options.get("profiling.emit_outcomes_in_profiling_consumer.enabled")
+            and "profiler_id" not in profile
+        ):
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.ACCEPTED,
+                categories=[DataCategory.PROFILE],
+            )
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.FILTERED,
+                categories=[DataCategory.PROFILE_INDEXED],
+                reason="sampled",
+            )
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -288,12 +327,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_symbolication",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_symbolication")
             return False
         profile["debug_meta"]["images"] = original_images
         profile["processed_by_symbolicator"] = True
@@ -320,12 +354,7 @@ def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_deobfuscation",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_deobfuscation")
             return False
 
 
@@ -340,12 +369,7 @@ def _normalize_profile(profile: Profile, organization: Organization, project: Pr
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            _track_outcome(
-                profile=profile,
-                project=project,
-                outcome=Outcome.INVALID,
-                reason="profiling_failed_normalization",
-            )
+            _track_failed_outcome(profile, project, "profiling_failed_normalization")
             return False
 
 
@@ -806,7 +830,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 profile=profile,
                 modules=[
                     {
-                        "uuid": UUID(debug_file_id).hex,
+                        "uuid": debug_file_id,
                         "type": "proguard",
                     }
                 ],
@@ -841,10 +865,22 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
     return False
 
 
+def get_debug_file_id(profile: Profile) -> str | None:
+    debug_file_id = profile.get("build_id")
+
+    if debug_file_id is None or debug_file_id == "":
+        return None
+
+    try:
+        return UUID(debug_file_id).hex
+    except ValueError:
+        return None
+
+
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
-    debug_file_id = profile.get("build_id")
-    if debug_file_id is None or debug_file_id == "":
+    debug_file_id = get_debug_file_id(profile)
+    if debug_file_id is None:
         # we still need to decode signatures
         for m in profile["profile"]["methods"]:
             if m.get("signature"):
@@ -881,7 +917,7 @@ def get_data_category(profile: Profile) -> DataCategory:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome(
+def _track_outcome_legacy(
     profile: Profile,
     project: Project,
     outcome: Outcome,
@@ -898,6 +934,54 @@ def _track_outcome(
         category=get_data_category(profile),
         quantity=1,
     )
+
+
+@metrics.wraps("process_profile.track_outcome")
+def _track_outcome(
+    profile: Profile,
+    project: Project,
+    outcome: Outcome,
+    categories: list[DataCategory],
+    reason: str | None = None,
+    quantity: int = 1,
+) -> None:
+    for category in categories:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            key_id=None,
+            outcome=outcome,
+            reason=reason,
+            timestamp=datetime.now(timezone.utc),
+            event_id=get_event_id(profile),
+            category=category,
+            quantity=quantity,
+        )
+
+
+def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> None:
+    if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
+        categories = []
+        if "profiler_id" not in profile:
+            categories.append(DataCategory.PROFILE)
+            if profile.get("sampled"):
+                categories.append(DataCategory.PROFILE_INDEXED)
+        else:
+            categories.append(DataCategory.PROFILE_CHUNK)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            categories=categories,
+            reason=reason,
+        )
+    else:
+        _track_outcome_legacy(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            reason=reason,
+        )
 
 
 @metrics.wraps("process_profile.insert_vroom_profile")
@@ -943,12 +1027,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
 def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
     if _insert_vroom_profile(profile=profile):
         return True
-    _track_outcome(
-        profile=profile,
-        project=project,
-        outcome=Outcome.INVALID,
-        reason="profiling_failed_vroom_insertion",
-    )
+    _track_failed_outcome(profile, project, "profiling_failed_vroom_insertion")
     return False
 
 
