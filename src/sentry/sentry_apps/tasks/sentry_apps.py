@@ -101,31 +101,18 @@ def _webhook_event_data(
     return event_context
 
 
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event_v2", **TASK_OPTIONS)
 @retry_decorator
-def send_alert_event(
+def send_alert_event_v2(
     rule: str,
     sentry_app_id: int,
-    # instance_id, group_id, & occurrence_id will become required to replace passing in Event
-    instance_id: str | None = None,
-    group_id: int | None = None,
-    occurrence_id: str | None = None,
-    event: Event | GroupEvent | None = None,  # deprecated
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
     additional_payload_key: str | None = None,
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
-) -> None:
-    """
-    When an incident alert is triggered, send incident data to the SentryApp's webhook.
-    :param instance_id: The event id to reference when pulling data from nodestore
-    :param group_id: The Group for the event
-    :param occurrence_id: Corresponding IssueOccurrence for the event
-    :param rule: The AlertRule that was triggered.
-    :param sentry_app_id: The SentryApp to notify.
-    :param additional_payload_key: The key used to attach additional data to the webhook payload
-    :param additional_payload: The extra data attached to the payload body at the key specified by `additional_payload_key`.
-    :return:
-    """
+):
     group = Group.objects.get_from_cache(id=group_id)
     assert group, "Group must exist to get related attributes"
     project = Project.objects.get_from_cache(id=group.project_id)
@@ -189,6 +176,77 @@ def send_alert_event(
     )
 
     event_context = _webhook_event_data(group_event, group.id, project.id)
+
+    data = {"event": event_context, "triggered_rule": rule}
+
+    # Attach extra payload to the webhook
+    if additional_payload_key and additional_payload:
+        data[additional_payload_key] = additional_payload
+
+    request_data = AppPlatformEvent(
+        resource="event_alert", action="triggered", install=install, data=data
+    )
+
+    send_and_save_webhook_request(sentry_app, request_data)
+
+    # On success, record analytic event for Alert Rule UI Component
+    if request_data.data.get("issue_alert"):
+        analytics.record(
+            "alert_rule_ui_component_webhook.sent",
+            organization_id=organization.id,
+            sentry_app_id=sentry_app_id,
+            event=f"{request_data.resource}.{request_data.action}",
+        )
+
+
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
+@retry_decorator
+def send_alert_event(
+    event: Event | GroupEvent,
+    rule: str,
+    sentry_app_id: int,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+) -> None:
+    """
+    When an incident alert is triggered, send incident data to the SentryApp's webhook.
+    :param event: The `Event` for which to build a payload.
+    :param rule: The AlertRule that was triggered.
+    :param sentry_app_id: The SentryApp to notify.
+    :param additional_payload_key: The key used to attach additional data to the webhook payload
+    :param additional_payload: The extra data attached to the payload body at the key specified by `additional_payload_key`.
+    :return:
+    """
+    group = event.group
+    assert group, "Group must exist to get related attributes"
+    project = Project.objects.get_from_cache(id=group.project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+
+    extra = {
+        "sentry_app_id": sentry_app_id,
+        "project_slug": project.slug,
+        "organization_slug": organization.slug,
+        "rule": rule,
+    }
+
+    sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+    if sentry_app is None:
+        logger.info("event_alert_webhook.missing_sentry_app", extra=extra)
+        return
+
+    installations = app_service.get_many(
+        filter=dict(
+            organization_id=organization.id,
+            app_ids=[sentry_app.id],
+            status=SentryAppInstallationStatus.INSTALLED,
+        )
+    )
+    if not installations:
+        logger.info("event_alert_webhook.missing_installation", extra=extra)
+        return
+    (install,) = installations
+
+    event_context = _webhook_event_data(event, group.id, project.id)
 
     data = {"event": event_context, "triggered_rule": rule}
 
@@ -481,10 +539,9 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,
             }
+
         send_alert_event.delay(
-            instance_id=event.event_id,
-            group_id=event.group_id,
-            occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
+            event=event,
             rule=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
