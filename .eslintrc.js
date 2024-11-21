@@ -806,7 +806,6 @@ const strictRules = {
 };
 
 const extendsList = [
-  'sentry',
   'plugin:jest/recommended',
   'plugin:jest-dom/recommended',
   'plugin:import/typescript',
