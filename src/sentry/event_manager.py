@@ -123,7 +123,6 @@ from sentry.utils.circuit_breaker import (
 )
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
-from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -1141,11 +1140,6 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
             skip_consume=job.get("raw", False),
             group_states=group_states,
         )
-
-        if job["data"].get("type") == "transaction":
-            track_sampled_event(
-                job["event_id"], "transaction", TransactionStageStatus.SNUBA_TOPIC_PUT
-            )
 
 
 def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
