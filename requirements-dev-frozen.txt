@@ -152,7 +152,7 @@ pytest-django==4.9.0
 pytest-fail-slow==0.3.0
 pytest-json-report==1.5.0
 pytest-metadata==3.1.1
-pytest-rerunfailures==14.0
+pytest-rerunfailures==15.0
 pytest-sentry==0.3.0
 pytest-xdist==3.0.2
 python-dateutil==2.9.0
