@@ -275,7 +275,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
-    aiSuggestedSolution = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
@@ -656,10 +655,6 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     isEarlyAdopter = serializers.BooleanField(
         help_text="Specify `true` to opt-in to new features before they're released to the public.",
-        required=False,
-    )
-    aiSuggestedSolution = serializers.BooleanField(
-        help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
         required=False,
     )
     hideAiFeatures = serializers.BooleanField(

@@ -481,7 +481,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
-    aiSuggestedSolution: bool
     hideAiFeatures: bool
     githubPRBot: bool
     githubOpenPRBot: bool
