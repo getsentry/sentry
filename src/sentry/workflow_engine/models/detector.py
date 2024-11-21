@@ -4,14 +4,18 @@ import builtins
 import logging
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+
+from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.processors.detector import DetectorHandler
@@ -20,10 +24,13 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_model
-class Detector(DefaultFieldsModel, OwnerModel):
+class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    # TODO - Finish removing this field
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE, null=True)
+
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=200)
 
     # The data sources that the detector is watching
@@ -31,7 +38,12 @@ class Detector(DefaultFieldsModel, OwnerModel):
         "workflow_engine.DataSource", through="workflow_engine.DataSourceDetector"
     )
 
-    # The conditions that must be met for the detector to be considered 'active'
+    # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
+    enabled = models.BooleanField(db_default=True)
+
+    # Optionally set a description of the detector, this will be used in notifications
+    description = models.TextField(null=True)
+
     # This will emit an event for the workflow to process
     workflow_condition_group = FlexibleForeignKey(
         "workflow_engine.DataConditionGroup",
@@ -40,7 +52,17 @@ class Detector(DefaultFieldsModel, OwnerModel):
         unique=True,
         on_delete=models.SET_NULL,
     )
+
+    # The type of detector that is being used, this is used to determine the class
+    # to load for the detector
     type = models.CharField(max_length=200)
+
+    # The user that created the detector
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+
+    @property
+    def CONFIG_SCHEMA(self) -> dict[str, Any]:
+        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
@@ -49,11 +71,6 @@ class Detector(DefaultFieldsModel, OwnerModel):
                 name="workflow_engine_detector_org_name",
             )
         ]
-
-    @property
-    def project_id(self):
-        # XXX: Temporary property until we add `project_id` to the model.
-        return 1
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
