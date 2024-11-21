@@ -1,10 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
@@ -12,7 +14,14 @@ import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSect
 jest.mock('sentry/utils/issueTypeConfig');
 
 describe('SolutionsSection', () => {
-  const mockEvent = EventFixture();
+  const mockEvent = EventFixture({
+    entries: [
+      {
+        type: EntryType.EXCEPTION,
+        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
+      },
+    ],
+  });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
