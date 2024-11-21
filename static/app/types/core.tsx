@@ -80,7 +80,7 @@ export enum DataCategory {
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   SPANS = 'spans',
-  SPAN_INDEXED = 'spanIndexed',
+  SPANS_INDEXED = 'spansIndexed',
 }
 
 /**
