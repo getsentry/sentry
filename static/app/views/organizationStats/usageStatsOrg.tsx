@@ -27,6 +27,7 @@ import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -134,19 +135,31 @@ class UsageStatsOrganization<
 
     const queryDatetime = this.endpointQueryDatetime;
 
+    const groupBy = ['outcome', 'reason'];
+    const category: string[] = [dataCategoryApiName];
+
+    if (
+      hasDynamicSamplingCustomFeature(this.props.organization) &&
+      dataCategoryApiName === 'span'
+    ) {
+      groupBy.push('category');
+      category.push('span_indexed');
+    }
+
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['outcome', 'reason'],
+      groupBy,
       project: projectIds,
       field: ['sum(quantity)'],
-      category: dataCategoryApiName,
+      category,
     };
   }
 
   get chartData(): {
     cardStats: {
       accepted?: string;
+      accepted_stored?: string;
       filtered?: string;
       invalid?: string;
       rateLimited?: string;
@@ -342,7 +355,8 @@ class UsageStatsOrganization<
       router,
       dataCategoryApiName,
     } = this.props;
-    const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
+    const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
+      this.chartData.cardStats;
     const dataCategoryNameLower = dataCategoryName.toLowerCase();
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
@@ -373,14 +387,17 @@ class UsageStatsOrganization<
           }
         ),
         score: accepted,
-        trend: (
-          <UsageStatsPerMin
-            dataCategoryApiName={dataCategoryApiName}
-            dataCategory={dataCategory}
-            organization={organization}
-            projectIds={projectIds}
-          />
-        ),
+        trend:
+          dataCategoryApiName === 'span' && accepted_stored ? (
+            t('%s stored', accepted_stored)
+          ) : (
+            <UsageStatsPerMin
+              dataCategoryApiName={dataCategoryApiName}
+              dataCategory={dataCategory}
+              organization={organization}
+              projectIds={projectIds}
+            />
+          ),
       },
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
