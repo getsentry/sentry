@@ -21,8 +21,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
 
-export const MAX_NUM_Y_AXES = 3;
-
 interface Props {
   aggregates: QueryFieldValue[];
   displayType: DisplayType;
@@ -109,7 +107,7 @@ export function YAxisSelector({
 
   const hideAddYAxisButtons =
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
-      aggregates.length === MAX_NUM_Y_AXES) ||
+      aggregates.length === 3) ||
     (displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE);
 
   let injectedFunctions: Set<string> = new Set();
