@@ -111,7 +111,7 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.duration)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]);
 
@@ -122,18 +122,18 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.self_time)'],
+        yAxes: ['avg(span.self_time)'],
       },
     ]);
 
     // try changing the aggregate
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['avg(span.self_time)'],
+        yAxes: ['count(span.self_time)'],
       },
     ]);
 
@@ -145,7 +145,7 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
     ]);
 
@@ -155,12 +155,12 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
       {
         chartType: ChartType.LINE,
         label: 'B',
-        yAxes: ['count(span.duration)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]);
 
@@ -170,12 +170,12 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.self_time)'],
+        yAxes: ['avg(span.self_time)'],
       },
       {
         chartType: ChartType.LINE,
         label: 'B',
-        yAxes: ['count(span.duration)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]);
 
@@ -185,7 +185,7 @@ describe('ExploreToolbar', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.self_time)'],
+        yAxes: ['avg(span.self_time)'],
       },
     ]);
 
