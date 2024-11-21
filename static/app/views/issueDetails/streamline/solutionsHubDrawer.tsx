@@ -112,7 +112,7 @@ const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
 };
 
 // Autofix requires the event to have stack trace frames in order to work correctly.
-function hasStacktraceWithFrames(event: Event) {
+export function hasStacktraceWithFrames(event: Event) {
   for (const entry of event.entries) {
     if (entry.type === EntryType.EXCEPTION) {
       if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
