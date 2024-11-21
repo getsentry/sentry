@@ -270,7 +270,7 @@ def get_cluster_from_options(
         cluster = rb.Cluster(pool_cls=_shared_pool, **cluster_options)
     else:
         cluster = cluster_manager.get(
-            options.pop(cluster_option_name, default_cluster_name), refresh
+            options.pop(cluster_option_name, default_cluster_name), refresh=refresh
         )
 
     return cluster, options
@@ -288,7 +288,7 @@ def get_dynamic_cluster_from_options(
         return True, redis_clusters.get(cluster_name, refresh), config
 
     # RBCluster
-    cluster, config = get_cluster_from_options(setting, config, refresh)
+    cluster, config = get_cluster_from_options(setting, config, refresh=refresh)
     return False, cluster, config
 
 

@@ -43,7 +43,7 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory, None, Non
     """
 
     if isinstance(service, Redis):
-        yield from iter_cluster_memory_usage(service.cluster, service)
+        yield from iter_cluster_memory_usage(service.cluster)
 
     elif isinstance(service, RabbitMq):
         for server in service.servers:
