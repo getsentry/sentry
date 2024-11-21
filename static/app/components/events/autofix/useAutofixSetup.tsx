@@ -22,9 +22,6 @@ export type AutofixSetupResponse = {
     ok: boolean;
     reason: string | null;
   };
-  subprocessorConsent: {
-    ok: boolean;
-  };
 };
 
 export function makeAutofixSetupQueryKey(groupId: string): ApiQueryKey {
