@@ -39,10 +39,10 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     )
 
     # If the detector is not enabled, it will not be evaluated. This is how we "snooze" a detector
-    enabled = models.BooleanField(default=True)
+    enabled = models.BooleanField(db_default=True)
 
     # Optionally set a description of the detector, this will be used in notifications
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(null=True)
 
     # This will emit an event for the workflow to process
     workflow_condition_group = FlexibleForeignKey(
@@ -58,7 +58,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     type = models.CharField(max_length=200)
 
     # The user that created the detector
-    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     @property
     def CONFIG_SCHEMA(self) -> dict[str, Any]:

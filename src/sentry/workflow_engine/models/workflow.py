@@ -23,18 +23,14 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
-    enabled = models.BooleanField(default=True)
+    enabled = models.BooleanField(db_default=True)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
-    when_condition_group = FlexibleForeignKey(
-        "workflow_engine.DataConditionGroup", blank=True, null=True
-    )
+    when_condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", null=True)
 
-    environment = FlexibleForeignKey(
-        "sentry.Environment", db_constraint=False, blank=True, null=True
-    )
+    environment = FlexibleForeignKey("sentry.Environment", null=True)
 
-    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     @property
     def CONFIG_SCHEMA(self) -> dict[str, Any]:
