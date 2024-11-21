@@ -1343,11 +1343,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       />
     );
 
-    const isEapAlert = alertType === 'eap_metrics';
-
     const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
     const formDisabled = loading || !hasAlertWrite;
-    const submitDisabled = formDisabled || !this.state.isQueryValid || isEapAlert; // Disabled save for EAP alerts until backend supports EAP subscriptions
+    const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
@@ -1406,7 +1404,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           submitLabel={
             isMigration && !triggersHaveChanged ? t('Looks good to me!') : t('Save Rule')
           }
-          submitButtonTitle={isEapAlert ? t('Saving EAP alerts disabled') : undefined}
         >
           <List symbol="colored-numeric">
             <RuleConditionsForm

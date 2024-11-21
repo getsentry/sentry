@@ -64,6 +64,7 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getProjectOptions} from '../utils';
 
@@ -657,6 +658,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const confidenceEnabled = hasEAPAlerts(organization);
+
     return (
       <Fragment>
         <ChartPanel>
@@ -677,7 +680,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 )}
               />
             )}
-            {isLowConfidenceChartData && (
+            {confidenceEnabled && isLowConfidenceChartData && (
               <Alert showIcon type="warning">
                 {t(
                   'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'

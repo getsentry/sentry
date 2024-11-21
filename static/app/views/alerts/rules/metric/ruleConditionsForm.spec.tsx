@@ -8,7 +8,9 @@ import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {
   const {organization, projects, router} = initializeOrg({
-    organization: {features: ['search-query-builder-alerts']},
+    organization: {
+      features: ['search-query-builder-alerts', 'alerts-eap'],
+    },
   });
   ProjectsStore.loadInitialData(projects);
 
@@ -87,7 +89,10 @@ describe('RuleConditionsForm', () => {
       />,
       {
         router,
-        organization: {...organization, features: ['search-query-builder-alerts']},
+        organization: {
+          ...organization,
+          features: ['search-query-builder-alerts', 'alerts-eap'],
+        },
       }
     );
     await screen.findByPlaceholderText(
