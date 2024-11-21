@@ -1639,12 +1639,14 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-export const TYPED_TAG_KEY_RE = /tags\[(.*),(.*)\]/;
+export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
-export function formatParsedFunction(func: ParsedFunction) {
-  const args = func.arguments.map(arg => {
-    const result = arg.match(TYPED_TAG_KEY_RE);
-    return result?.[1] ?? arg;
-  });
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}
+
+export function prettifyParsedFunction(func: ParsedFunction) {
+  const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }
