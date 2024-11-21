@@ -6505,12 +6505,17 @@
     ]
   },
   "workflow_engine.detector": {
-    "dangling": false,
+    "dangling": true,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
-        "nullable": false
+        "nullable": true
       },
       "owner_team": {
         "kind": "FlexibleForeignKey",
@@ -6520,6 +6525,11 @@
       "owner_user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
         "nullable": true
       },
       "workflow_condition_group": {
@@ -6591,10 +6601,30 @@
   "workflow_engine.workflow": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       },
       "when_condition_group": {
         "kind": "FlexibleForeignKey",
