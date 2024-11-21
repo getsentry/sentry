@@ -6,7 +6,9 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -33,7 +35,7 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   const query = new MutableSearch(userQuery);
   const field = column.name;
 
-  const renderer = getFieldRenderer(field, meta, false);
+  const renderer = getExploreFieldRenderer(field, meta);
 
   let rendered = renderer(data, {
     location,
@@ -89,6 +91,28 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
       {rendered}
     </CellAction>
   );
+}
+
+function getExploreFieldRenderer(
+  field: string,
+  meta: MetaType
+): ReturnType<typeof getFieldRenderer> {
+  if (field === 'id' || field === 'span_id') {
+    return eventIdRenderFunc(field);
+  }
+  return getFieldRenderer(field, meta, false);
+}
+
+function eventIdRenderFunc(field: string) {
+  function renderer(data: EventData) {
+    const spanId: string | unknown = data?.[field];
+    if (typeof spanId !== 'string') {
+      return null;
+    }
+
+    return <Container>{getShortEventId(spanId)}</Container>;
+  }
+  return renderer;
 }
 
 const StyledTimeSince = styled(TimeSince)`
