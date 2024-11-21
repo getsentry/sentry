@@ -15,9 +15,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
-  formatParsedFunction,
   getAggregateAlias,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -147,7 +147,7 @@ export function AggregatesTable({setError}: AggregatesTableProps) {
 
               const func = parseFunction(field);
               if (func) {
-                label = formatParsedFunction(func);
+                label = prettifyParsedFunction(func);
               }
 
               const direction = sorts.find(s => s.field === field)?.kind;

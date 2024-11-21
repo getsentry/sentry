@@ -14,7 +14,7 @@ describe('useSampleFields', function () {
     render(<TestPage />, {disableRouterMocks: true});
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -27,7 +27,7 @@ describe('useSampleFields', function () {
 
     act(() => setSampleFields([]));
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',

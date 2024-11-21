@@ -179,7 +179,12 @@ export function EAPSpanSearchQueryBuilder({
       SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
     );
     return [
-      ...SPANS_FILTER_KEY_SECTIONS,
+      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
+        return {
+          ...section,
+          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
+        };
+      }),
       {
         value: 'custom_fields',
         label: 'Custom Tags',

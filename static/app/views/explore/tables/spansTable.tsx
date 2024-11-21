@@ -56,7 +56,7 @@ export function SpansTable({setError}: SpansTableProps) {
       'project',
       'trace',
       'transaction.span_id',
-      'span_id',
+      'id',
       'timestamp',
     ];
 

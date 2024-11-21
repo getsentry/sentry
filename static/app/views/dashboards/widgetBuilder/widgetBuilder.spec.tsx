@@ -2608,7 +2608,7 @@ describe('WidgetBuilder', function () {
         body: [
           {
             key: 'plan',
-            name: 'Plan',
+            name: 'plan',
           },
         ],
         match: [
@@ -2621,12 +2621,12 @@ describe('WidgetBuilder', function () {
         url: `/organizations/org-slug/spans/fields/`,
         body: [
           {
-            key: 'lcp.size',
-            name: 'Lcp.Size',
+            key: 'tags[lcp.size,number]',
+            name: 'lcp.size',
           },
           {
-            key: 'something.else',
-            name: 'Something.Else',
+            key: 'tags[something.else,number]',
+            name: 'something.else',
           },
         ],
         match: [
