@@ -26,6 +26,7 @@ import withApi from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
+  getSavedQueryDataset,
   getSavedQueryWithDataset,
   handleCreateQuery,
   handleDeleteQuery,
@@ -33,7 +34,11 @@ import {
 } from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
-import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
+import {
+  getPrebuiltQueries,
+  handleAddQueryToDashboard,
+  SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
+} from './utils';
 
 type Props = {
   api: Client;
@@ -185,6 +190,11 @@ class QueryList extends Component<Props> {
               organization,
               yAxis: view?.yAxis,
               router,
+              widgetType: hasDatasetSelector(organization)
+                ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                    getSavedQueryDataset(organization, location, newQuery)
+                  ]
+                : undefined,
             }),
         },
         {
@@ -275,6 +285,11 @@ class QueryList extends Component<Props> {
                     organization,
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                     router,
+                    widgetType: hasDatasetSelector(organization)
+                      ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                          getSavedQueryDataset(organization, location, savedQuery)
+                        ]
+                      : undefined,
                   }),
               },
             ]
