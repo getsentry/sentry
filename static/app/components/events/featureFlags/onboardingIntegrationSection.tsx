@@ -62,35 +62,9 @@ export default function OnboardingIntegrationSection({
       <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
       <IntegrationSection>
         <SubSection>
-          <InputTitle>{t('Signing Secret')}</InputTitle>
-          <InputArea>
-            <Input
-              value={secret}
-              type="text"
-              placeholder={t('Signing Secret')}
-              onChange={e => setSecret(e.target.value)}
-            />
-            <Button
-              priority="default"
-              onClick={() => {
-                postSecret(secret);
-                setTokenSaved(true);
-              }}
-              disabled={secret === ''}
-            >
-              {t('Save')}
-            </Button>
-          </InputArea>
-          {tokenSaved ? (
-            <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
-              {t('Secret token verified.')}
-            </StyledAlert>
-          ) : null}
-        </SubSection>
-        <SubSection>
           <div>
             {tct(
-              'Once the token is saved, go back to your [link:feature flag service] and create a webhook integration using the URL provided below.',
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
               {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
             )}
           </div>
@@ -102,6 +76,37 @@ export default function OnboardingIntegrationSection({
           >
             {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}
           </TextCopyInput>
+        </SubSection>
+        <SubSection>
+          <div>
+            {t(
+              "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
+            )}
+          </div>
+          <InputTitle>{t('Secret')}</InputTitle>
+          <InputArea>
+            <Input
+              value={secret}
+              type="text"
+              placeholder={t('Secret')}
+              onChange={e => setSecret(e.target.value)}
+            />
+            <Button
+              priority="default"
+              onClick={() => {
+                postSecret(secret);
+                setTokenSaved(true);
+              }}
+              disabled={secret === ''}
+            >
+              {t('Save Secret')}
+            </Button>
+          </InputArea>
+          {tokenSaved ? (
+            <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
+              {t('Secret token verified.')}
+            </StyledAlert>
+          ) : null}
         </SubSection>
       </IntegrationSection>
     </Fragment>
