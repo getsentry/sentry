@@ -1,14 +1,10 @@
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
-// import {usePrompt} from 'sentry/actionCreators/prompts';
+import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {
-  modalCss,
-  SetupIntegrationModal,
-} from 'sentry/components/events/featureFlags/setupIntegrationModal';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {IconClose, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,23 +14,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-export default function FeatureFlagInlineCTA({_projectId}: {_projectId: string}) {
+export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
+  const {activateSidebar} = useFeatureFlagOnboarding();
 
-  function handleSetupButtonClick() {
+  function handleSetupButtonClick(e) {
     trackAnalytics('flags.setup_modal_opened', {organization});
     trackAnalytics('flags.cta_setup_button_clicked', {organization});
-    openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
-      modalCss,
-    });
+    activateSidebar(e);
   }
 
-  // const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
-  //   feature: 'issue_feature_flags_inline_onboarding',
-  //   organization,
-  //   projectId,
-  //   daysToSnooze: 7,
-  // });
+  const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
+    feature: 'issue_feature_flags_inline_onboarding',
+    organization,
+    projectId,
+    daysToSnooze: 7,
+  });
 
   const openForm = useFeedbackForm();
   const feedbackButton = openForm ? (
@@ -56,9 +51,9 @@ export default function FeatureFlagInlineCTA({_projectId}: {_projectId: string})
     </Button>
   ) : null;
 
-  // if (isLoading || isError || isPromptDismissed) {
-  //   return null;
-  // }
+  if (isLoading || isError || isPromptDismissed) {
+    return null;
+  }
 
   const actions = <ButtonBar gap={1}>{feedbackButton}</ButtonBar>;
 
@@ -106,7 +101,7 @@ export default function FeatureFlagInlineCTA({_projectId}: {_projectId: string})
               key: 'dismiss',
               label: t('Dismiss'),
               onAction: () => {
-                // dismissPrompt();
+                dismissPrompt();
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'dismiss',
@@ -117,7 +112,7 @@ export default function FeatureFlagInlineCTA({_projectId}: {_projectId: string})
               key: 'snooze',
               label: t('Snooze'),
               onAction: () => {
-                // snoozePrompt();
+                snoozePrompt();
                 trackAnalytics('flags.cta_dismissed', {
                   organization,
                   type: 'snooze',

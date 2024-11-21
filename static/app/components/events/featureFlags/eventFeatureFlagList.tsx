@@ -177,7 +177,7 @@ export function EventFeatureFlagList({
   }, [hasFlags, hydratedFlags.length, organization]);
 
   if (showCTA) {
-    return <FeatureFlagInlineCTA _projectId={event.projectID} />;
+    return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
   // if contexts.flags is not set, hide the section
@@ -188,45 +188,39 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      {hasFlagContext && (
-        <Fragment>
-          <Button
-            aria-label={t('Set Up Integration')}
-            size="xs"
-            onClick={activateSidebar}
-          >
-            {t('Set Up Integration')}
-          </Button>
-          {hasFlags && (
-            <Fragment>
-              <Button
-                size="xs"
-                aria-label={t('View All')}
-                ref={viewAllButtonRef}
-                title={t('View All Flags')}
-                onClick={() => {
-                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
-                }}
-              >
-                {t('View All')}
-              </Button>
-              <Button
-                aria-label={t('Open Feature Flag Search')}
-                icon={<IconSearch size="xs" />}
-                size="xs"
-                title={t('Open Search')}
-                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-              />
-              <FeatureFlagSort
-                orderBy={orderBy}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                setOrderBy={setOrderBy}
-              />
-            </Fragment>
-          )}
-        </Fragment>
-      )}
+      <Fragment>
+        <Button aria-label={t('Set Up Integration')} size="xs" onClick={activateSidebar}>
+          {t('Set Up Integration')}
+        </Button>
+        {hasFlags && (
+          <Fragment>
+            <Button
+              size="xs"
+              aria-label={t('View All')}
+              ref={viewAllButtonRef}
+              title={t('View All Flags')}
+              onClick={() => {
+                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+              }}
+            >
+              {t('View All')}
+            </Button>
+            <Button
+              aria-label={t('Open Feature Flag Search')}
+              icon={<IconSearch size="xs" />}
+              size="xs"
+              title={t('Open Search')}
+              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+            />
+            <FeatureFlagSort
+              orderBy={orderBy}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              setOrderBy={setOrderBy}
+            />
+          </Fragment>
+        )}
+      </Fragment>
     </ButtonBar>
   );
 
