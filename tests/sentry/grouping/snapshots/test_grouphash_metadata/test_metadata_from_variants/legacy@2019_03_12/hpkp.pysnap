@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:32.690112+00:00'
+created: '2024-11-20T21:26:15.573366+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -7,6 +7,16 @@ hash_basis: violation
 hashing_metadata: {
   "blocked_host": "example.com",
   "security_report_type": "hpkp"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "hpkp"
+  }
 }
 ---
 contributing variants:
