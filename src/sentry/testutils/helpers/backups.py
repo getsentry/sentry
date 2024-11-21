@@ -533,12 +533,10 @@ class ExhaustiveFixtures(Fixtures):
             monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
-
         AlertRuleActivations.objects.create(
             alert_rule=activated_alert,
             finished_at=None,
             metric_value=100,
-            query_subscription=activated_alert.query_subscription,
             condition_type=AlertRuleActivationConditionType.RELEASE_CREATION.value,
             activator="testing",
         )
