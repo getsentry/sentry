@@ -106,13 +106,15 @@ class CommitContextIntegration(ABC):
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
-            except Identity.DoesNotExist:
-                sentry_sdk.capture_exception()
+            except Identity.DoesNotExist as e:
+                lifecycle.record_failure(e)
+                sentry_sdk.capture_exception(e)
                 return []
             try:
                 response = client.get_blame_for_files(files, extra)
-            except IdentityNotValid:
-                sentry_sdk.capture_exception()
+            except IdentityNotValid as e:
+                lifecycle.record_failure(e)
+                sentry_sdk.capture_exception(e)
                 return []
             # Swallow rate limited errors so we don't log them as exceptions
             except ApiRateLimitedError as e:
