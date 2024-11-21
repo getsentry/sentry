@@ -40,6 +40,7 @@ jobs:
         run: |
           echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
           echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
+          echo "Testing Github Workflow...."
 
       - name: webpack cache
         uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
