@@ -1126,6 +1126,12 @@ const SECTIONS: TSection[] = [
         keywords: ['squares', 'layout'],
         defaultProps: {},
       },
+      {
+        id: 'globe',
+        name: 'Globe',
+        keywords: ['map', 'international'],
+        defaultProps: {},
+      },
     ],
   },
   {
