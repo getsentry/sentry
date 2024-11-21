@@ -13,6 +13,10 @@ import {EntryType} from 'sentry/types/event';
 jest.unmock('prismjs');
 
 describe('Request entry', function () {
+  beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
+  });
+
   it('display redacted data', async function () {
     const event = EventFixture({
       entries: [
@@ -359,7 +363,6 @@ describe('Request entry', function () {
           },
         })
       ).not.toThrow();
-      ConfigStore.set('user', user);
     });
 
     it("should not cause an invariant violation if data.data isn't a string", function () {
