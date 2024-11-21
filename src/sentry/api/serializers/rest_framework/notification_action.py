@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TypedDict
 
 from django.db import router, transaction
@@ -19,7 +20,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.utils.strings import oxfordize_list
 
 
-def format_choices_text(choices: list[tuple[int, str]]):
+def format_choices_text(choices: Sequence[tuple[int, str]]):
     choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
     return oxfordize_list(choices_as_display_text)
 
@@ -33,7 +34,7 @@ INTEGRATION_SERVICES = {
 
 
 # Note the ordering of fields affects the Spike Protection API Documentation
-class NotificationActionInputData(TypedDict):
+class NotificationActionInputData(TypedDict, total=False):
     trigger_type: int
     service_type: int
     integration_id: int
@@ -160,6 +161,11 @@ Required if **service_type** is `slack` or `opsgenie`.
                 }
             )
         integration = integration_service.get_integration(integration_id=data.get("integration_id"))
+        if integration is None:
+            raise serializers.ValidationError(
+                f"Service type of '{service_provider}' requires having an active integration"
+            )
+
         if integration and service_provider != integration.provider:
             raise serializers.ValidationError(
                 {
@@ -251,7 +257,7 @@ Required if **service_type** is `slack` or `opsgenie`.
     ) -> NotificationActionInputData:
         """
         Validates that SPECIFIC targets for DISCORD service have the following target data:
-            target_display: Discord channel id
+            target_display: Discord channel name
             target_identifier: Discord channel id
         NOTE: Reaches out to via discord integration to verify channel
         """
@@ -263,12 +269,12 @@ Required if **service_type** is `slack` or `opsgenie`.
         ):
             return data
 
-        channel_name = data.get("target_display")
-        channel_id = data.get("target_identifier")
+        channel_name = data.get("target_display", None)
+        channel_id = data.get("target_identifier", None)
 
-        if not channel_id and channel_name:
+        if channel_id is None or channel_name is None:
             raise serializers.ValidationError(
-                {"target_identifier": "Did not receive a discord channel id."}
+                {"target_identifier": "Did not receive a discord channel id or name."}
             )
 
         try:
@@ -280,7 +286,6 @@ Required if **service_type** is `slack` or `opsgenie`.
         except Exception as e:
             raise serializers.ValidationError({"target_identifier": str(e)})
 
-        data["target_identifier"] = channel_id
         return data
 
     def validate_pagerduty_service(
