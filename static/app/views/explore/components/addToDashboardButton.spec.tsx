@@ -65,7 +65,7 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
-            'span_id',
+            'id',
             'project',
             'span.op',
             'span.description',
@@ -77,7 +77,7 @@ describe('AddToDashboardButton', () => {
             'name=&aggregates=avg(span.duration)&columns=&fields=avg(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
           field: [
-            'span_id',
+            'id',
             'project',
             'span.op',
             'span.description',
@@ -136,7 +136,7 @@ describe('AddToDashboardButton', () => {
         widgetAsQueryParams: expect.objectContaining({
           dataset: WidgetType.SPANS,
           defaultTableColumns: [
-            'span_id',
+            'id',
             'project',
             'span.op',
             'span.description',
@@ -148,7 +148,7 @@ describe('AddToDashboardButton', () => {
             'name=&aggregates=max(span.duration)&columns=&fields=max(span.duration)&conditions=&orderby=-timestamp',
           displayType: DisplayType.LINE,
           field: [
-            'span_id',
+            'id',
             'project',
             'span.op',
             'span.description',
