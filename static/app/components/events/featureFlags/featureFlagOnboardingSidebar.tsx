@@ -150,6 +150,9 @@ function OnboardingContent({
   hasDocs: boolean;
 }) {
   const organization = useOrganization();
+
+  // useMemo is needed to remember the original hash
+  // in case window.location.hash disappears
   const ORIGINAL_HASH = useMemo(() => {
     return window.location.hash;
   }, []);
