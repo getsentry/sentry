@@ -92,7 +92,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   noQueryEventView.environment = [];
 
   const isUnfilteredStatsEnabled =
-    eventView.query !== noQueryEventView.query || !!eventView.environment;
+    eventView.query !== noQueryEventView.query || eventView.environment.length > 0;
   const {data: unfilteredGroupStats} =
     useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
       options: {
