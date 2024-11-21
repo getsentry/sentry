@@ -9,6 +9,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
     ProjectManagementEvent,
+    ProjectManagementHaltReason,
 )
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
@@ -124,7 +125,9 @@ def sync_group_assignee_inbound(
                 )
                 groups_assigned.append(group)
             else:
-                lifecycle.record_halt("inbound-assignee-not-found", extra=log_context)
+                lifecycle.record_halt(
+                    ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
+                )
                 logger.info("inbound-assignee-not-found", extra=log_context)
         return groups_assigned
 

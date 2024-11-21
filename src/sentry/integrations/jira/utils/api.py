@@ -13,7 +13,11 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.shared_integrations.exceptions import ApiError
 
 from ...mixins.issues import IssueSyncIntegration
-from ...project_management.metrics import ProjectManagementActionType, ProjectManagementEvent
+from ...project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+    ProjectManagementHaltReason,
+)
 from ..client import JiraCloudClient
 
 logger = logging.getLogger(__name__)
@@ -97,7 +101,9 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
                 item for item in data["changelog"]["items"] if item["field"] == "status"
             )
         except StopIteration:
-            lifecycle.record_halt("missing-changelog-status", extra=log_context)
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.SYNC_INBOUND_MISSING_CHANGELOG_STATUS, extra=log_context
+            )
             logger.info("jira.missing-changelog-status", extra=log_context)
             return
 
@@ -109,7 +115,10 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
                     issue_key, {"changelog": changelog, "issue": data["issue"]}
                 )
             else:
-                lifecycle.record_halt("installation-not-issue-sync-instance", extra=log_context)
+                lifecycle.record_halt(
+                    ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
+                    extra=log_context,
+                )
 
 
 def handle_jira_api_error(error: ApiError, message: str = "") -> Mapping[str, str] | None:

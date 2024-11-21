@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models import Integration
@@ -7,7 +7,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 
 
-class ProjectManagementActionType(Enum):
+class ProjectManagementActionType(StrEnum):
     CREATE_EXTERNAL_ISSUE = "create_external_issue"
     OUTBOUND_ASSIGNMENT_SYNC = "outbound_assignment_sync"
     INBOUND_ASSIGNMENT_SYNC = "inbound_assignment_sync"
@@ -18,6 +18,17 @@ class ProjectManagementActionType(Enum):
 
     def __str__(self):
         return self.value.lower()
+
+
+class ProjectManagementHaltReason(StrEnum):
+    SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"
+    SYNC_NON_SYNC_INTEGRATION_PROVIDED = "sync-non-sync-integration-provided"
+    SYNC_INBOUND_SYNC_SKIPPED = "sync-skipped"
+    SYNC_INBOUND_MISSING_CHANGELOG_STATUS = "missing-changelog-status"
+
+
+class ProjectManagementFailuresReason(StrEnum):
+    INSTALLATION_STATE_MISSING = "installation-state-missing"
 
 
 @dataclass

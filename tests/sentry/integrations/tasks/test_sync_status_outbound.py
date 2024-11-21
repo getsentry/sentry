@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
+from sentry.integrations.project_management.metrics import ProjectManagementHaltReason
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
@@ -55,7 +56,7 @@ class TestSyncStatusOutbound(TestCase):
 
         sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
         mock_record_halt.assert_called_with(
-            "sync_outbound_status.marked_should_not_sync",
+            ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
             extra={"organization_id": self.organization.id, "group_id": self.group.id},
         )
 

@@ -4,6 +4,7 @@ import pytest
 
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
+from sentry.integrations.project_management.metrics import ProjectManagementHaltReason
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
@@ -93,7 +94,7 @@ class TestSyncAssigneeOutbound(TestCase):
         mock_sync_assignee.assert_not_called()
 
         mock_record_halt.assert_called_with(
-            "sync_assignee_outbound.marked_should_not_sync",
+            ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
             extra={
                 "organization_id": self.organization.id,
                 "external_issue_id": external_issue.id,
@@ -116,7 +117,7 @@ class TestSyncAssigneeOutbound(TestCase):
         mock_sync_assignee.assert_not_called()
 
         mock_record_halt.assert_called_with(
-            "sync_assignee_outbound.integration_missing_sync_methods",
+            ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
             extra={
                 "organization_id": self.organization.id,
                 "external_issue_id": external_issue.id,

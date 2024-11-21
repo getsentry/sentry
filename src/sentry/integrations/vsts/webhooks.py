@@ -17,6 +17,7 @@ from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
     ProjectManagementEvent,
+    ProjectManagementHaltReason,
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
@@ -164,7 +165,10 @@ def handle_status_change(
                     },
                 )
             else:
-                lifecycle.record_halt("installation-not-issue-sync-instance", extra=logging_context)
+                lifecycle.record_halt(
+                    ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
+                    extra=logging_context,
+                )
 
 
 def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration) -> None:

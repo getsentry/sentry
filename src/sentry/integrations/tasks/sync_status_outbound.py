@@ -5,6 +5,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
     ProjectManagementEvent,
+    ProjectManagementHaltReason,
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
@@ -51,6 +52,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration
     ).capture() as lifecycle:
+        lifecycle.add_extra("sync_task", "sync_status_outbound")
         if installation.should_sync("outbound_status"):
             installation.sync_status_outbound(
                 external_issue, group.status == GroupStatus.RESOLVED, group.project_id
@@ -64,7 +66,7 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         else:
             # Find a way to pass further context to this in the future
             lifecycle.record_halt(
-                "sync_outbound_status.marked_should_not_sync",
+                ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "group_id": group.id,

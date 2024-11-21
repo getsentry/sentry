@@ -12,6 +12,7 @@ from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_
 from sentry.utils import jwt
 
 from ...base import IntegrationDomain
+from ...project_management.metrics import ProjectManagementFailuresReason
 from ...utils.metrics import IntegrationPipelineViewEvent, IntegrationPipelineViewType
 from ..integration import JiraIntegrationProvider
 from .base import JiraWebhookBase
@@ -37,7 +38,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
 
             state = request.data
             if not state:
-                lifecycle.record_failure("state-missing-from-installation-request")
+                lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
                 return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
             key_id = jwt.peek_header(token).get("kid")

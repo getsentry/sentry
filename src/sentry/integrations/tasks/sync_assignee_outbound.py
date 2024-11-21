@@ -7,6 +7,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
     ProjectManagementEvent,
+    ProjectManagementHaltReason,
 )
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
@@ -56,11 +57,12 @@ def sync_assignee_outbound(
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.OUTBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
+        lifecycle.add_extra("sync_task", "sync_assignee_outbound")
         if not (
             hasattr(installation, "should_sync") and hasattr(installation, "sync_assignee_outbound")
         ):
             lifecycle.record_halt(
-                "sync_assignee_outbound.integration_missing_sync_methods",
+                ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "external_issue_id": external_issue_id,
@@ -85,7 +87,7 @@ def sync_assignee_outbound(
             )
         else:
             lifecycle.record_halt(
-                "sync_assignee_outbound.marked_should_not_sync",
+                ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
                 extra={
                     "organization_id": external_issue.organization_id,
                     "external_issue_id": external_issue_id,
