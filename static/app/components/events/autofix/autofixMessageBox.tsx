@@ -161,7 +161,7 @@ function SetupAndCreatePRsButton({
   changes: AutofixCodebaseChange[];
   groupId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId});
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
 
   if (
     !changes.every(
