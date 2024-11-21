@@ -271,8 +271,6 @@ function GroupReplaysTable({
     replayTable
   );
 
-  console.log({replayCount});
-
   return (
     <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
       <ReplayCountHeader>
