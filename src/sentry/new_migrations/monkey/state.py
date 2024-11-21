@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from copy import deepcopy
 from enum import Enum
 
 from django.db.migrations.state import ProjectState
+from django.db.models import Model
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 
@@ -13,9 +16,9 @@ class DeletionAction(Enum):
 class SentryProjectState(ProjectState):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.pending_deletion_models = {}
+        self.pending_deletion_models: dict[tuple[str, str], type[Model]] = {}
 
-    def get_pending_deletion_model(self, app_label, model_name):
+    def get_pending_deletion_model(self, app_label: str, model_name: str) -> type[Model]:
         model_key = (app_label.lower(), model_name.lower())
         if model_key not in self.pending_deletion_models:
             raise UnsafeOperationException(
@@ -24,8 +27,10 @@ class SentryProjectState(ProjectState):
             )
         return self.pending_deletion_models[model_key]
 
-    def remove_model(self, app_label, model_name, deletion_action: DeletionAction | None = None):
-        model_key = (app_label, model_name)
+    def remove_model(
+        self, app_label: str, model_name: str, deletion_action: DeletionAction | None = None
+    ) -> None:
+        model_key = (app_label.lower(), model_name.lower())
         if deletion_action == DeletionAction.DELETE:
             if model_key not in self.pending_deletion_models:
                 raise UnsafeOperationException(
@@ -43,7 +48,7 @@ class SentryProjectState(ProjectState):
             self.pending_deletion_models[model_key] = self.apps.get_model(app_label, model_name)
         super().remove_model(app_label, model_name)
 
-    def clone(self):
+    def clone(self) -> SentryProjectState:
         new_state = super().clone()
         new_state.pending_deletion_models = deepcopy(self.pending_deletion_models)  # type: ignore[attr-defined]
-        return new_state
+        return new_state  # type: ignore[return-value]
