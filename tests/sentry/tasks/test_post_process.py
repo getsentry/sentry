@@ -2735,7 +2735,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
         ]
 
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-    @override_options({"transactions.do_post_process_in_save": 1.0})
+    @override_options({"transactions.dont_do_transactions_logic_in_post_process": 1.0})
     def test_process_transaction_event_clusterer_flag_on(
         self,
         mock_store_transaction_name,

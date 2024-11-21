@@ -1601,12 +1601,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.save(self.project.id)
 
     @override_options({"transactions.do_post_process_in_save": 1.0})
-    @patch("sentry.signals.transaction_processed.send_robust")
+    @patch("sentry.event_manager.record_event_processed")
+    @patch("sentry.event_manager.record_user_context_received")
+    @patch("sentry.event_manager.record_release_received")
     @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_transaction_sampler_and_receive_mock_called(
         self,
         mock_record_sample: mock.MagicMock,
-        transaction_processed_signal_mock: mock.MagicMock,
+        mock_record_release: mock.MagicMock,
+        mock_record_user: mock.MagicMock,
+        mock_record_event: mock.MagicMock,
     ) -> None:
         manager = EventManager(
             make_event(
@@ -1662,8 +1666,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         manager.normalize()
-        manager.save(self.project.id)
-        assert transaction_processed_signal_mock.call_count == 1
+        event = manager.save(self.project.id)
+
+        mock_record_event.assert_called_once_with(self.project, event)
+        mock_record_user.assert_called_once_with(self.project, event)
+        mock_record_release.assert_called_once_with(self.project, event)
         assert mock_record_sample.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]

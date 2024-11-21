@@ -103,6 +103,8 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.features import record_event_processed
+from sentry.receivers.onboarding import record_release_received, record_user_context_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -111,7 +113,6 @@ from sentry.signals import (
     first_insight_span_received,
     first_transaction_received,
     issue_unresolved,
-    transaction_processed,
 )
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -2532,7 +2533,9 @@ def _sample_transactions_in_save(jobs: Sequence[Job], projects: ProjectsMapping)
 
 
 @sentry_sdk.tracing.trace
-def _send_transaction_processed_signals(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _do_transaction_processed_signal_receivers(
+    jobs: Sequence[Job], projects: ProjectsMapping
+) -> None:
     for job in jobs:
         try:
             if not in_rollout_group(
@@ -2541,11 +2544,14 @@ def _send_transaction_processed_signals(jobs: Sequence[Job], projects: ProjectsM
                 continue
 
             project = job["event"].project
-            transaction_processed.send_robust(
-                sender="save_transaction_events",
-                project=project,
-                event=job["event"],
-            )
+            # these are what the "transaction_processed" signal hooked into
+            # we should not use signals here, so call the recievers directly
+            # instead of sending a signal. we should consider potentially
+            # deleting these
+            record_event_processed(project, job["event"])
+            record_user_context_received(project, job["event"])
+            record_release_received(project, job["event"])
+
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2678,8 +2684,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     with metrics.timer("save_transaction_events.sample_transactions"):
         _sample_transactions_in_save(jobs, projects)
 
-    with metrics.timer("save_transaction_events.send_transaction_processed_signals"):
-        _send_transaction_processed_signals(jobs, projects)
+    with metrics.timer("save_transaction_events.do_transaction_processed_signal_receivers"):
+        _do_transaction_processed_signal_receivers(jobs, projects)
 
     return jobs
 

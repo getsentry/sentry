@@ -613,7 +613,7 @@ def post_process_group(
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event and not in_rollout_group(
-            "transactions.do_post_process_in_save", event.project_id
+            "transactions.dont_do_transactions_logic_in_post_process", event.project_id
         ):
             record_transaction_name_for_clustering(event.project, event.data)
             with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
