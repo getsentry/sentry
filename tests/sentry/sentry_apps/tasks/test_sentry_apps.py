@@ -12,6 +12,7 @@ from requests.exceptions import Timeout
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import SentryAppStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.types import EventStreamEventType
@@ -30,6 +31,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     notify_sentry_app,
     process_resource_change_bound,
     send_alert_event,
+    send_alert_event_v2,
     send_webhooks,
     workflow_notification,
 )
@@ -39,6 +41,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -108,7 +111,16 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        send_alert_event(
+        send_alert_event(group_event, self.rule, 9999)
+
+        assert not safe_urlopen.called
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_no_sentry_app_for_send_alert_event_v2(self, safe_urlopen):
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+        group_event = GroupEvent.from_event(event, event.group)
+        send_alert_event_v2(
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
@@ -238,6 +250,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
+    @override_options({"sentryapps.send_alert_event.use-eventid": 1.0})
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_groupevent(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
@@ -283,7 +296,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             f"/api/0/issues/{group_event.group.id}/"
         )
         assert data["data"]["event"]["issue_id"] == str(group_event.group.id)
-
+        assert data["data"]["event"]["occurrence"] == convert_dict_key_case(
+            group_event.occurrence.to_dict(), snake_to_camel_case
+        )
         assert kwargs["headers"].keys() >= {
             "Content-Type",
             "Request-ID",

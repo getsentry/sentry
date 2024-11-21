@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
@@ -76,6 +77,8 @@ TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 def _webhook_event_data(
     event: Event | GroupEvent, group_id: int, project_id: int
 ) -> dict[str, Any]:
+    from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
     project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -92,6 +95,10 @@ def _webhook_event_data(
             "sentry-organization-event-detail", args=[organization.slug, group_id, event.event_id]
         )
     )
+    if hasattr(event, "occurrence") and event.occurrence is not None:
+        event_context["occurrence"] = convert_dict_key_case(
+            event.occurrence.to_dict(), snake_to_camel_case
+        )
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -540,12 +547,22 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
                 "settings": settings,
             }
 
-        send_alert_event.delay(
-            event=event,
-            rule=f.rule.label,
-            sentry_app_id=f.kwargs["sentry_app"].id,
-            **extra_kwargs,
-        )
+        if in_random_rollout("sentryapps.send_alert_event.use-eventid"):
+            send_alert_event_v2.delay(
+                instance_id=event.event_id,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
+                rule=f.rule.label,
+                sentry_app_id=f.kwargs["sentry_app"].id,
+                **extra_kwargs,
+            )
+        else:
+            send_alert_event.delay(
+                event=event,
+                rule=f.rule.label,
+                sentry_app_id=f.kwargs["sentry_app"].id,
+                **extra_kwargs,
+            )
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
