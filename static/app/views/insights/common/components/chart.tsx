@@ -334,6 +334,7 @@ function Chart({
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      truncate: true,
       utc: utc ?? false,
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
