@@ -15,7 +15,7 @@ const replayConfig: IssueCategoryConfigMapping = {
       },
       merge: {
         enabled: false,
-        disabledReason: t('Not yet supported for replay issues'),
+        disabledReason: t('Not supported for replay issues'),
       },
       ignore: {enabled: true},
       resolveInRelease: {enabled: true},
