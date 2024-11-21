@@ -77,11 +77,12 @@ class RBClusterManager:
 
         return rb.Cluster(**config, pool_cls=_shared_pool)
 
-    def get(self, key: str) -> rb.Cluster:
-        try:
-            return self._clusters[key]
-        except KeyError:
-            pass
+    def get(self, key: str, refresh: bool = False) -> rb.Cluster:
+        if not refresh:
+            try:
+                return self._clusters[key]
+            except KeyError:
+                pass
 
         cfg = self._options_manager.get("redis.clusters", {}).get(key)
         if cfg is None:
@@ -198,22 +199,26 @@ class RedisClusterManager:
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)  # type: ignore[return-value]
 
-    def get(self, key: str) -> RedisCluster[str] | StrictRedis[str]:
-        try:
-            return self._clusters_str[key]
-        except KeyError:
-            pass
+    def get(self, key: str, refresh: bool = False) -> RedisCluster[str] | StrictRedis[str]:
+        if not refresh:
+            try:
+                return self._clusters_str[key]
+            except KeyError:
+                pass
 
         # Do not access attributes of the `cluster` object to prevent
         # setup/init of lazy objects.
         ret = self._clusters_str[key] = self._factory(**self._cfg(key), decode_responses=True)
         return ret
 
-    def get_binary(self, key: str) -> RedisCluster[bytes] | StrictRedis[bytes]:
-        try:
-            return self._clusters_bytes[key]
-        except KeyError:
-            pass
+    def get_binary(
+        self, key: str, refresh: bool = False
+    ) -> RedisCluster[bytes] | StrictRedis[bytes]:
+        if not refresh:
+            try:
+                return self._clusters_bytes[key]
+            except KeyError:
+                pass
 
         # Do not access attributes of the `cluster` object to prevent
         # setup/init of lazy objects.
@@ -232,6 +237,7 @@ def get_cluster_from_options(
     setting: str,
     options: dict[str, Any],
     cluster_manager: RBClusterManager = clusters,
+    refresh: bool = False,
 ) -> tuple[rb.Cluster, dict[str, Any]]:
     cluster_option_name = "cluster"
     default_cluster_name = "default"
@@ -263,13 +269,15 @@ def get_cluster_from_options(
             )
         cluster = rb.Cluster(pool_cls=_shared_pool, **cluster_options)
     else:
-        cluster = cluster_manager.get(options.pop(cluster_option_name, default_cluster_name))
+        cluster = cluster_manager.get(
+            options.pop(cluster_option_name, default_cluster_name), refresh
+        )
 
     return cluster, options
 
 
 def get_dynamic_cluster_from_options(
-    setting: str, config: dict[str, Any]
+    setting: str, config: dict[str, Any], refresh: bool = False
 ) -> tuple[bool, RedisCluster[str] | StrictRedis[str] | rb.Cluster, dict[str, Any]]:
     cluster_name = config.get("cluster", "default")
     cluster_opts: dict[str, Any] | None = options.default_manager.get("redis.clusters").get(
@@ -277,10 +285,10 @@ def get_dynamic_cluster_from_options(
     )
     if cluster_opts is not None and cluster_opts.get("is_redis_cluster"):
         # RedisCluster, StrictRedis
-        return True, redis_clusters.get(cluster_name), config
+        return True, redis_clusters.get(cluster_name, refresh), config
 
     # RBCluster
-    cluster, config = get_cluster_from_options(setting, config)
+    cluster, config = get_cluster_from_options(setting, config, refresh)
     return False, cluster, config
 
 

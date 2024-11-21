@@ -43,20 +43,21 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory, None, Non
     """
 
     if isinstance(service, Redis):
-        yield from iter_cluster_memory_usage(service.cluster)
+        yield from iter_cluster_memory_usage(service.cluster, service)
 
     elif isinstance(service, RabbitMq):
         for server in service.servers:
             yield query_rabbitmq_memory_usage(server)
 
 
-def load_service_definitions() -> dict[str, Service]:
+def load_service_definitions(refresh: bool = False) -> dict[str, Service]:
     services: dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
             _is_cluster, cluster, _config = redis.get_dynamic_cluster_from_options(
                 setting=f"SENTRY_PROCESSING_SERVICES[{name}]",
                 config={"cluster": cluster_id},
+                refresh=refresh,
             )
             services[name] = Redis(cluster)
 
@@ -96,6 +97,8 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                     memory.available,
                     memory.percentage,
                 )
+        except (ConnectionError, TimeoutError):
+            load_service_definitions(refresh=True)
         except Exception as e:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("service", name)
