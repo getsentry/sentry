@@ -23,7 +23,11 @@ import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
-export function AddToDashboardButton() {
+interface AddToDashboardButtonProps {
+  visualizeIndex: number;
+}
+
+export function AddToDashboardButton({visualizeIndex}: AddToDashboardButtonProps) {
   const location = useLocation();
   const router = useRouter();
   const {selection} = usePageFilters();
@@ -35,18 +39,16 @@ export function AddToDashboardButton() {
   const [visualizes] = useVisualizes();
   const [sampleFields] = useSampleFields();
   const yAxes = useMemo(
-    () => visualizes.flatMap(visualize => visualize.yAxes).slice(0, MAX_NUM_Y_AXES),
-    [visualizes]
+    () => visualizes[visualizeIndex].yAxes.slice(0, MAX_NUM_Y_AXES),
+    [visualizes, visualizeIndex]
   );
   const fields = useMemo(() => {
     if (resultMode === 'samples') {
       return sampleFields.filter(Boolean);
     }
 
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [groupBys, visualizes, resultMode, sampleFields]);
+    return [...groupBys, ...yAxes].filter(Boolean);
+  }, [groupBys, resultMode, sampleFields, yAxes]);
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
 

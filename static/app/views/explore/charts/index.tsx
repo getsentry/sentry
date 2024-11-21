@@ -267,7 +267,7 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                   </Tooltip>
                 </Feature>
                 <Feature features="organizations:dashboards-eap">
-                  <AddToDashboardButton />
+                  <AddToDashboardButton visualizeIndex={index} />
                 </Feature>
               </ChartHeader>
               <Chart
