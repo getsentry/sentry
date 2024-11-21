@@ -39,6 +39,7 @@ import {
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
 
 const enum EventNavOptions {
   RECOMMENDED = 'recommended',
@@ -139,6 +140,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
+  const eventCount = useIssueDetailsEventCount({group});
 
   const {data: replayData} = useIssueDetailsReplayCount<ReplayCount>({group});
   const replaysCount = replayData?.[group.id] ?? 0;
@@ -202,7 +204,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               key: Tab.DETAILS,
               label: (
                 <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
-                  {TabName[Tab.DETAILS]} <ItemCount value={group.count} />
+                  {TabName[Tab.DETAILS]} <ItemCount value={eventCount} />
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.DETAILS],
