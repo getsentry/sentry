@@ -173,9 +173,24 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if not force_prompt:
             try:
-                existing_auth = ApiAuthorization.objects.get(
-                    user_id=request.user.id, application=application
-                )
+                if application.requires_org_level_access:
+                    existing_auths = ApiAuthorization.objects.filter(
+                        user_id=request.user.id,
+                        application=application,
+                        organization_id__isnull=True,
+                    )
+                    # if the user gave org level access to multiple orgs we can't auto approve
+                    # because at this point we don't know user's intention, what org they're talking about
+                    # at this point we assume there is no existing auth to put the user in the flow to choose
+                    # the right org
+                    if len(existing_auths) == 1:
+                        existing_auth = existing_auths[0]
+                    else:
+                        raise ApiAuthorization.DoesNotExist
+                else:
+                    existing_auth = ApiAuthorization.objects.get(
+                        user_id=request.user.id, application=application
+                    )
             except ApiAuthorization.DoesNotExist:
                 pass
             else:
