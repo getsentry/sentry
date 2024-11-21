@@ -15,7 +15,7 @@ describe('IssueDiff', function () {
   const entries123Base = Entries123Base();
   const api = new MockApiClient();
   const organization = OrganizationFixture();
-  const project = ProjectFixture({features: ['similarity-embeddings']});
+  const project = ProjectFixture();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -92,6 +92,7 @@ describe('IssueDiff', function () {
           action: 'PUSH',
           key: 'default',
         }}
+        hasSimilarityEmbeddingsProjectFeature
       />
     );
 
