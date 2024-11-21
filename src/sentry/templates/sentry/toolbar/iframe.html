@@ -60,7 +60,7 @@ Required context variables:
             log('window.onMessage', messageEvent.data, messageEvent);
             if (messageEvent.data.message === 'did-login') {
               saveAccessToken(messageEvent.data);
-              sendStateMessage('logged-in');
+              window.location.reload();
             }
           });
         }
