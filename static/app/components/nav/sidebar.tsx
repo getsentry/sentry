@@ -1,4 +1,5 @@
-import {Fragment} from 'react';
+import type {MouseEventHandler} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -18,8 +19,10 @@ import {
 } from 'sentry/components/nav/utils';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function Sidebar() {
   return (
@@ -93,19 +96,28 @@ const SidebarItemList = styled('ul')`
 
 interface SidebarItemProps {
   item: NavSidebarItem;
+  children?: React.ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
 }
 
 function SidebarItem({item}: SidebarItemProps) {
   const to = resolveNavItemTo(item);
   const SidebarChild = to ? SidebarLink : SidebarMenu;
+  const organization = useOrganization();
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
 
+  const recordAnalytics = useCallback(
+    () =>
+      trackAnalytics('growth.clicked_sidebar', {item: item.analyticsKey, organization}),
+    [organization, item.analyticsKey]
+  );
+
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <SidebarChild item={item} key={item.label}>
+        <SidebarChild item={item} key={item.label} onClick={recordAnalytics}>
           {item.icon}
           <span>{item.label}</span>
         </SidebarChild>
@@ -127,7 +139,7 @@ const NavButton = styled('button')`
   ${linkStyles}
 `;
 
-function SidebarLink({children, item}: SidebarItemProps & {children: React.ReactNode}) {
+function SidebarLink({children, item, onClick}: SidebarItemProps) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
   const isSubmenuActive = isSubmenuItemActive(item, location);
@@ -142,6 +154,7 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
   return (
     <NavLink
       {...linkProps}
+      onClick={onClick}
       className={isActive || isSubmenuActive ? 'active' : undefined}
       aria-current={isActive ? 'page' : undefined}
     >
@@ -151,7 +164,7 @@ function SidebarLink({children, item}: SidebarItemProps & {children: React.React
   );
 }
 
-function SidebarMenu({item, children}: SidebarItemProps & {children: React.ReactNode}) {
+function SidebarMenu({item, children, onClick}: SidebarItemProps) {
   if (!item.dropdown) {
     throw new Error(
       `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
@@ -162,7 +175,13 @@ function SidebarMenu({item, children}: SidebarItemProps & {children: React.React
       position="right-end"
       trigger={(props, isOpen) => {
         return (
-          <NavButton {...props}>
+          <NavButton
+            {...props}
+            onClick={event => {
+              onClick?.(event);
+              props.onClick?.(event);
+            }}
+          >
             <InteractionStateLayer hasSelectedBackground={isOpen} />
             {children}
           </NavButton>
