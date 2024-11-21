@@ -4,7 +4,7 @@ import logging
 import os
 import signal
 from multiprocessing import cpu_count
-from typing import Any
+from threading import Thread
 
 import click
 
@@ -254,35 +254,84 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 
 
 @run.command()
-@click.option("--rust-binary", help="Path to taskbroker brinary")
+@click.option("--consumer-path", type=str, help="Path to taskbroker brinary")
+@click.option(
+    "--num-consumers",
+    type=int,
+    help="Number of consumers to run in the consumer group",
+    default=8,
+    show_default=True,
+)
+@click.option(
+    "--num-messages",
+    type=int,
+    help="Number of messages to send to the kafka topic",
+    default=80_000,
+    show_default=True,
+)
+@click.option(
+    "--num-restarts",
+    type=int,
+    help="Number of restarts for each consumers",
+    default=24,
+    show_default=True,
+)
+@click.option(
+    "--min-restart-duration",
+    type=int,
+    help="Minimum number of seconds between each restarts per consumer",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--max-restart-duration",
+    type=int,
+    help="Maximum number of seconds between each restarts per consumer",
+    default=30,
+    show_default=True,
+)
 @log_options()
 @configuration
-def taskbroker_integration_test(rust_binary: str) -> None:
-    import datetime
+def taskbroker_integration_test(
+    consumer_path: str,
+    num_consumers: int,
+    num_messages: int,
+    num_restarts: int,
+    min_restart_duration: int,
+    max_restart_duration: int,
+) -> None:
     import random
     import subprocess
     import threading
     import time
-    import uuid
     from pathlib import Path
 
     import yaml
 
-    from sentry.utils import json
-
     def manage_consumer(
-        rust_binary: str, config_file: str, iterations: int, min_sleep: int, max_sleep: int
+        consumer_index: int,
+        consumer_path: str,
+        config_file: str,
+        iterations: int,
+        min_sleep: int,
+        max_sleep: int,
+        log_file_path: str,
     ) -> None:
-        for _ in range(iterations):
-            config_file_path = f"../taskbroker/tests/{config_file}"
-            process = subprocess.Popen([rust_binary, "-c", config_file_path])
-            time.sleep(random.randint(min_sleep, max_sleep))
-            process.send_signal(signal.SIGINT)
-            try:
-                return_code = process.wait(timeout=10)
-                assert return_code == 0
-            except Exception:
-                process.kill()
+        with open(log_file_path, "a") as log_file:
+            print(f"Starting consumer {consumer_index}, writing log file to {log_file_path}")
+            for i in range(iterations):
+                config_file_path = f"../taskbroker/tests/{config_file}"
+                process = subprocess.Popen([consumer_path, "-c", config_file_path], stderr=log_file)
+                time.sleep(random.randint(min_sleep, max_sleep))
+                print(
+                    f"Sending SIGINT to consumer {consumer_index}, {iterations - i - 1} SIGINTs remaining"
+                )
+                process.send_signal(signal.SIGINT)
+                try:
+                    return_code = process.wait(timeout=10)
+                    assert return_code == 0
+                except Exception:
+                    process.kill()
 
     # First check if taskdemo topic exists
     print("Checking if taskdemo topic already exists")
@@ -340,34 +389,14 @@ def taskbroker_integration_test(rust_binary: str) -> None:
     # Create config files for consumers
     print("Creating config files for consumers in taskbroker/tests")
     consumer_configs = {
-        "config_0.yml": {
-            "db_path": "db_0.sqlite",
+        f"config_{i}.yml": {
+            "db_path": f"db_{i}.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
             "kafka_auto_offset_reset": "earliest",
-            "grpc_port": 50051,
-        },
-        "config_1.yml": {
-            "db_path": "db_1.sqlite",
-            "kafka_topic": "task-worker",
-            "kafka_consumer_group": "task-worker-integration-test",
-            "kafka_auto_offset_reset": "earliest",
-            "grpc_port": 50052,
-        },
-        "config_2.yml": {
-            "db_path": "db_2.sqlite",
-            "kafka_topic": "task-worker",
-            "kafka_consumer_group": "task-worker-integration-test",
-            "kafka_auto_offset_reset": "earliest",
-            "grpc_port": 50053,
-        },
-        "config_3.yml": {
-            "db_path": "db_3.sqlite",
-            "kafka_topic": "task-worker",
-            "kafka_consumer_group": "task-worker-integration-test",
-            "kafka_auto_offset_reset": "earliest",
-            "grpc_port": 50054,
-        },
+            "grpc_port": 50051 + i,
+        }
+        for i in range(num_consumers)
     }
 
     test_dir = Path("../taskbroker/tests")
@@ -381,26 +410,23 @@ def taskbroker_integration_test(rust_binary: str) -> None:
         # Produce a test message to the taskdemo topic
         from sentry.taskdemo import say_hello
 
-        for i in range(10):
-            print(f"Sending messages {i}")
+        for i in range(num_messages):
+            print(f"Sending message: {i}", end="\r")
             say_hello.delay("hello world")
+        print(f"\nDone: sent {num_messages} messages")
 
-        consumer_params = [
-            {"config": "config_0.yml", "iterations": 1, "min_sleep": 5, "max_sleep": 6},
-            {"config": "config_1.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
-            {"config": "config_2.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
-            {"config": "config_3.yml", "iterations": 1, "min_sleep": 14, "max_sleep": 15},
-        ]
-        threads = []
-        for consumer_param in consumer_params:
+        threads: list[Thread] = []
+        for i in range(num_consumers):
             thread = threading.Thread(
                 target=manage_consumer,
                 args=(
-                    rust_binary,
-                    consumer_param["config"],
-                    consumer_param["iterations"],
-                    consumer_param["min_sleep"],
-                    consumer_param["max_sleep"],
+                    i,
+                    consumer_path,
+                    f"config_{i}.yml",
+                    num_restarts,
+                    min_restart_duration,
+                    max_restart_duration,
+                    f"consumer_{i}.log",
                 ),
             )
             thread.start()
@@ -408,8 +434,29 @@ def taskbroker_integration_test(rust_binary: str) -> None:
 
         for t in threads:
             t.join()
+
     except Exception:
         raise
+
+    query_prelude = "".join([f"attach 'db_{i}.sqlite' as db{i};\n" for i in range(num_consumers)])
+
+    from_stmt = "\nUNION ALL\n".join(
+        [f"    SELECT * FROM db{i}.inflight_taskactivations" for i in range(num_consumers)]
+    )
+    query = f"""
+{query_prelude}
+SELECT
+    partition,
+    (max(offset) - min(offset)) + 1 AS offset_diff,
+    count(*) AS occ,
+    (max(offset) - min(offset)) + 1 - count(offset) AS delta
+FROM (
+{from_stmt}
+)
+GROUP BY partition
+ORDER BY partition;
+    """
+    print(f"DONE!!!\nUse the following query to validate sqlite integrity:\n{query}")
 
 
 @run.command()
