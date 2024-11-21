@@ -533,7 +533,7 @@ class ExhaustiveFixtures(Fixtures):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = AlertRule.objects.create(
             organization=org,
-            projects=[project],
+            projects=project,
             monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
         )
         AlertRuleActivationCondition.objects.create(
