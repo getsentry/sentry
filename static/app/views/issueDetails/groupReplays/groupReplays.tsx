@@ -20,6 +20,10 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import {
+  type ReplayCount,
+  useIssueDetailsReplayCount,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -28,10 +32,6 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
 import useReplaysFromIssue from './useReplaysFromIssue';
-import {
-  type ReplayCount,
-  useIssueDetailsReplayCount,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 
 type Props = {
   group: Group;

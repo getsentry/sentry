@@ -1,9 +1,9 @@
+import {type Group, IssueCategory} from 'sentry/types/group';
 import {
   type ApiQueryKey,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import {type Group, IssueCategory} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
