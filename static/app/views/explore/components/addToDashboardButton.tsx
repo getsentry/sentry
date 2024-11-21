@@ -12,9 +12,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {WidgetType} from 'sentry/views/dashboards/types';
+import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
+import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
+import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -25,18 +28,25 @@ export function AddToDashboardButton() {
   const router = useRouter();
   const {selection} = usePageFilters();
   const organization = useOrganization();
+
+  const [resultMode] = useResultMode();
   const [dataset] = useDataset();
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
+  const [sampleFields] = useSampleFields();
   const yAxes = useMemo(
-    () => visualizes.flatMap(visualize => visualize.yAxes).slice(0, 3),
+    () => visualizes.flatMap(visualize => visualize.yAxes).slice(0, MAX_NUM_Y_AXES),
     [visualizes]
   );
   const fields = useMemo(() => {
+    if (resultMode === 'samples') {
+      return sampleFields.filter(Boolean);
+    }
+
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
       Boolean
     );
-  }, [groupBys, visualizes]);
+  }, [groupBys, visualizes, resultMode, sampleFields]);
   const [sorts] = useSorts({fields});
   const [query] = useUserQuery();
 
