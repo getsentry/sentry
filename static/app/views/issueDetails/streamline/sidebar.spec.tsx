@@ -22,7 +22,7 @@ describe('StreamlinedSidebar', function () {
   const issueTrackingKey = 'issue-key';
 
   const organization = OrganizationFixture({
-    features: ['ai-summary'],
+    features: ['gen-ai-features'],
   });
   const project = ProjectFixture();
   const group = GroupFixture({
@@ -95,8 +95,7 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(await screen.findByText('Solutions & Resources')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'See More'})).toBeInTheDocument();
+    expect(await screen.findByText('Solutions Hub')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

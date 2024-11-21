@@ -10,9 +10,9 @@ from sentry.integrations.repository.issue_alert import IssueAlertNotificationMes
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import RuleDataError, SlackService
 from sentry.models.activity import Activity
-from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -68,7 +68,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
             }
         ]
         self.rule = self.create_project_rule(
-            project=self.project, action_match=self.notify_issue_owners_action
+            project=self.project, action_data=self.notify_issue_owners_action
         )
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -205,7 +205,7 @@ class TestHandleParentNotification(TestCase):
             "uuid": self.rule_action_uuid,
         }
         self.rule = self.create_project_rule(
-            project=self.project, action_match=self.notify_issue_owners_action
+            project=self.project, action_data=self.notify_issue_owners_action
         )
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -216,7 +216,7 @@ class TestHandleParentNotification(TestCase):
         )
 
         self.slack_rule = self.create_project_rule(
-            project=self.project, action_match=[self.slack_action]
+            project=self.project, action_data=[self.slack_action]
         )
         self.slack_rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
@@ -314,7 +314,7 @@ class TestHandleParentNotification(TestCase):
             }
         ]
         rule = self.create_project_rule(
-            project=self.project, action_match=notify_issue_owners_action
+            project=self.project, action_data=notify_issue_owners_action
         )
         rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import importlib
+import importlib.metadata
 import os
 import shlex
 import subprocess
@@ -106,6 +106,8 @@ def main(context: dict[str, str]) -> int:
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
 
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
+
+    USE_NEW_DEVSERVICES = os.environ.get("USE_NEW_DEVSERVICES") == "1"
 
     from devenv.lib import node
 
@@ -253,18 +255,35 @@ def main(context: dict[str, str]) -> int:
         print("Skipping python migrations since SENTRY_DEVENV_FRONTEND_ONLY is set.")
         return 0
 
-    # TODO: check healthchecks for redis and postgres to short circuit this
-    proc.run(
-        (
-            f"{venv_dir}/bin/{repo}",
-            "devservices",
-            "up",
-            "redis",
-            "postgres",
-        ),
-        pathprepend=f"{reporoot}/.devenv/bin",
-        exit=True,
-    )
+    if USE_NEW_DEVSERVICES:
+        # Ensure old sentry devservices is not being used, otherwise ports will conflict
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "down",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+        proc.run(
+            (f"{venv_dir}/bin/devservices", "up", "--mode", "migrations"),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
+    else:
+        # TODO: check healthchecks for redis and postgres to short circuit this
+        proc.run(
+            (
+                f"{venv_dir}/bin/{repo}",
+                "devservices",
+                "up",
+                "redis",
+                "postgres",
+            ),
+            pathprepend=f"{reporoot}/.devenv/bin",
+            exit=True,
+        )
 
     if not run_procs(
         repo,
@@ -281,12 +300,16 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+    postgres_container = (
+        "sentry_postgres" if os.environ.get("USE_NEW_DEVSERVICES") != "1" else "sentry-postgres-1"
+    )
+
     # faster prerequisite check than starting up sentry and running createuser idempotently
     stdout = proc.run(
         (
             "docker",
             "exec",
-            "sentry_postgres",
+            postgres_container,
             "psql",
             "sentry",
             "postgres",

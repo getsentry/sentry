@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
-import extractHtmlandSelector from 'sentry/utils/replays/extractHtml';
+import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -28,7 +28,6 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
-  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -38,13 +37,17 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
-  getNodeIds,
   IncrementalSource,
   isCLSFrame,
+  isConsoleFrame,
   isDeadClick,
   isDeadRageClick,
+  isMetaFrame,
   isPaintFrame,
+  isTouchEndFrame,
+  isTouchStartFrame,
   isWebVitalFrame,
+  NodeType,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -147,24 +150,6 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
-
-const extractDomNodes = {
-  shouldVisitFrame: frame => {
-    const nodeIds = getNodeIds(frame);
-    return nodeIds.filter(nodeId => nodeId !== -1).length > 0;
-  },
-  onVisitFrame: (frame, collection, replayer) => {
-    const mirror = replayer.getMirror();
-    const nodeIds = getNodeIds(frame);
-    const {html, selectors} = extractHtmlandSelector((nodeIds ?? []) as number[], mirror);
-    collection.set(frame as ReplayFrame, {
-      frame,
-      html,
-      selectors,
-      timestamp: frame.timestampMs,
-    });
-  },
-};
 
 export default class ReplayReader {
   static factory({
@@ -493,6 +478,68 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getRRWebFramesWithSnapshots = memoize(() => {
+    const eventsWithSnapshots: RecordingFrame[] = [];
+    const events = this._sortedRRWebEvents;
+    events.forEach((e, index) => {
+      // For taps, sometimes the timestamp difference between TouchStart
+      // and TouchEnd is too small. This clamps the tap to a min time
+      // if the difference is less, so that the rrweb tap is visible and obvious.
+      if (isTouchStartFrame(e) && index < events.length - 2) {
+        const nextEvent = events[index + 1];
+        if (isTouchEndFrame(nextEvent)) {
+          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
+        }
+      }
+      eventsWithSnapshots.push(e);
+      if (isMetaFrame(e)) {
+        // Create a mock full snapshot event, in order to render rrweb gestures properly
+        // Need to add one for every meta event we see
+        // The hardcoded data.node.id here should match the ID of the data being sent
+        // in the `positions` arrays
+        eventsWithSnapshots.push({
+          type: EventType.FullSnapshot,
+          data: {
+            node: {
+              type: NodeType.Document,
+              childNodes: [
+                {
+                  type: NodeType.DocumentType,
+                  id: 1,
+                  name: 'html',
+                  publicId: '',
+                  systemId: '',
+                },
+                {
+                  type: NodeType.Element,
+                  id: 2,
+                  tagName: 'html',
+                  attributes: {
+                    lang: 'en',
+                  },
+                  childNodes: [],
+                },
+              ],
+              id: 0,
+            },
+            initialOffset: {
+              top: 0,
+              left: 0,
+            },
+          },
+          timestamp: e.timestamp,
+        });
+      }
+    });
+    return eventsWithSnapshots;
+  });
+
+  getRRwebTouchEvents = memoize(() =>
+    this.getRRWebFramesWithSnapshots().filter(
+      e => isTouchEndFrame(e) || isTouchStartFrame(e)
+    )
+  );
+
   getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
 
   getRRWebMutations = () =>
@@ -507,7 +554,7 @@ export default class ReplayReader {
   getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(frame => isConsoleFrame(frame))
   );
 
   getNavigationFrames = memoize(() =>

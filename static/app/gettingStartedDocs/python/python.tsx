@@ -1,3 +1,4 @@
+import {PROVIDER_OPTION_TO_LABELS} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -44,10 +45,22 @@ sentry_sdk.init(
   params.profilingOptions?.defaultProfilingMode === 'continuous'
     ? `
 
+def slow_function():
+    import time
+    time.sleep(0.1)
+    return "done"
+
+def fast_function():
+    import time
+    time.sleep(0.05)
+    return "done"
+
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
 sentry_sdk.profiler.start_profiler()
-# this code will be profiled
+for i in range(0, 10):
+    slow_function()
+    fast_function()
 #
 # Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
 # your application until the process exits or stop_profiler is called.
@@ -214,6 +227,37 @@ export function AlternativeConfiguration() {
   );
 }
 
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: onboarding.install,
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Add [name] to your integrations list.', {
+        name: (
+          <code>{`${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}()`}</code>
+        ),
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import sentry-sdk
+from sentry_sdk.integrations.${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonModule} import ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}(),
+  ]
+)`,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
@@ -221,6 +265,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
 };
 
 export default docs;

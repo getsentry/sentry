@@ -22,7 +22,7 @@ enum GPUContextKeys {
   SUPPORTS_GEOMETRY_SHADERS = 'supports_geometry_shaders',
 }
 
-export type GPUContext = {
+export interface GPUContext {
   // Any custom keys users may set
   [key: string]: any;
   [GPUContextKeys.ID]: number;
@@ -40,7 +40,7 @@ export type GPUContext = {
   [GPUContextKeys.SUPPORTS_RAY_TRACING]?: boolean;
   [GPUContextKeys.SUPPORTS_COMPUTE_SHADERS]?: boolean;
   [GPUContextKeys.SUPPORTS_GEOMETRY_SHADERS]?: boolean;
-};
+}
 
 const MEGABYTE_IN_BYTES = 1048576;
 
@@ -60,7 +60,7 @@ export function getGPUContextData({
   data: GPUContext;
   meta?: Record<keyof GPUContext, any>;
 }): KeyValueListData {
-  return getContextKeys(data).map(ctxKey => {
+  return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case GPUContextKeys.NAME:
         return {

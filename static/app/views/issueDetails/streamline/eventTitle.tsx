@@ -236,6 +236,9 @@ function EventNavigationLink({
       borderless
       size="xs"
       css={propCss}
+      analyticsEventName="Issue Details: Jump To Clicked"
+      analyticsEventKey="issue_details.jump_to_clicked"
+      analyticsParams={{section: config.key}}
     >
       {sectionLabels[config.key]}
     </LinkButton>
@@ -260,7 +263,7 @@ const EventInfoJumpToWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: nowrap;
   }
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const EventInfo = styled('div')`

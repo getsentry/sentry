@@ -8,13 +8,12 @@ from django.utils import timezone
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.tick_volume_anomaly_detection": False})
+@override_options({"crons.system_incidents.collect_metrics": False})
 def test_monitor_task_trigger(dispatch_tick):
     now = timezone.now().replace(second=0, microsecond=0)
 
@@ -43,7 +42,7 @@ def test_monitor_task_trigger(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.tick_volume_anomaly_detection": False})
+@override_options({"crons.system_incidents.collect_metrics": False})
 def test_monitor_task_trigger_partition_desync(dispatch_tick):
     """
     When consumer partitions are not completely synchronized we may read
@@ -75,7 +74,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.tick_volume_anomaly_detection": False})
+@override_options({"crons.system_incidents.collect_metrics": False})
 def test_monitor_task_trigger_partition_sync(dispatch_tick):
     """
     When the kafka topic has multiple partitions we want to only tick our clock
@@ -104,7 +103,7 @@ def test_monitor_task_trigger_partition_sync(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.tick_volume_anomaly_detection": False})
+@override_options({"crons.system_incidents.collect_metrics": False})
 def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
     """
     In a scenario where all partitions move multiple ticks past the slowest
@@ -142,14 +141,13 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
 @override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"})
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
-@override_options({"crons.tick_volume_anomaly_detection": False})
+@override_options({"crons.system_incidents.collect_metrics": False})
 def test_dispatch_to_kafka(clock_tick_producer_mock):
     now = timezone.now().replace(second=0, microsecond=0)
     _dispatch_tick(now)
 
     message: ClockTick = {
         "ts": now.timestamp(),
-        "volume_anomaly_result": TickVolumeAnomolyResult.NORMAL.value,
     }
     clock_tick_producer_mock.produce.assert_called_with(
         Topic("clock-tick-test-topic"),

@@ -33,6 +33,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 
 import type {Widget} from '../types';
 import {WidgetType} from '../types';
@@ -48,6 +49,7 @@ type Props = {
   widget: Widget;
   widgetLimitReached: boolean;
   description?: string;
+  hasEditAccess?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -80,6 +82,7 @@ function WidgetCardContextMenu({
   selection,
   widget,
   widgetLimitReached,
+  hasEditAccess,
   onDelete,
   onDuplicate,
   onEdit,
@@ -191,6 +194,7 @@ function WidgetCardContextMenu({
     widget,
     Boolean(isMetricsData),
     widgetLimitReached,
+    hasEditAccess,
     onDelete,
     onDuplicate,
     onEdit
@@ -267,6 +271,7 @@ export function getMenuOptions(
   widget: Widget,
   isMetricsData: boolean,
   widgetLimitReached: boolean,
+  hasEditAccess: boolean = true,
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void
@@ -327,6 +332,14 @@ export function getMenuOptions(
     }
   }
 
+  if (widget.widgetType === WidgetType.SPANS) {
+    menuOptions.push({
+      key: 'open-in-explore',
+      label: t('Open in Explore'),
+      to: getWidgetExploreUrl(widget, selection, organization),
+    });
+  }
+
   if (widget.widgetType === WidgetType.ISSUE) {
     const issuesLocation = getWidgetIssueUrl(widget, selection, organization);
 
@@ -352,13 +365,14 @@ export function getMenuOptions(
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      disabled: widgetLimitReached,
+      disabled: widgetLimitReached || !hasEditAccess,
     });
 
     menuOptions.push({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
+      disabled: !hasEditAccess,
     });
 
     menuOptions.push({
@@ -372,6 +386,7 @@ export function getMenuOptions(
           onConfirm: () => onDelete?.(),
         });
       },
+      disabled: !hasEditAccess,
     });
   }
 

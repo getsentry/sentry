@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -12,10 +11,7 @@ import {
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {
-  modalCss,
-  SetupIntegrationModal,
-} from 'sentry/components/events/featureFlags/setupIntegrationModal';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -81,6 +77,7 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+  const {activateSidebar} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -99,13 +96,6 @@ export function EventFeatureFlagList({
     !hasFlagContext &&
     ['javascript', 'python'].includes(group.project.platform ?? '') &&
     true; // TODO: make this last condition a feature flag for users who have LD integrated
-
-  function handleSetupButtonClick() {
-    trackAnalytics('flags.setup_modal_opened', {organization});
-    openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
-      modalCss,
-    });
-  }
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
@@ -198,39 +188,43 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Button
-        aria-label={t('Set Up Integration')}
-        size="xs"
-        onClick={handleSetupButtonClick}
-      >
-        {t('Set Up Integration')}
-      </Button>
-      {hasFlags && (
+      {hasFlagContext && (
         <Fragment>
           <Button
+            aria-label={t('Set Up Integration')}
             size="xs"
-            aria-label={t('View All')}
-            ref={viewAllButtonRef}
-            title={t('View All Flags')}
-            onClick={() => {
-              isDrawerOpen ? closeDrawer() : onViewAllFlags();
-            }}
+            onClick={activateSidebar}
           >
-            {t('View All')}
+            {t('Set Up Integration')}
           </Button>
-          <Button
-            aria-label={t('Open Feature Flag Search')}
-            icon={<IconSearch size="xs" />}
-            size="xs"
-            title={t('Open Search')}
-            onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-          />
-          <FeatureFlagSort
-            orderBy={orderBy}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            setOrderBy={setOrderBy}
-          />
+          {hasFlags && (
+            <Fragment>
+              <Button
+                size="xs"
+                aria-label={t('View All')}
+                ref={viewAllButtonRef}
+                title={t('View All Flags')}
+                onClick={() => {
+                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
+                }}
+              >
+                {t('View All')}
+              </Button>
+              <Button
+                aria-label={t('Open Feature Flag Search')}
+                icon={<IconSearch size="xs" />}
+                size="xs"
+                title={t('Open Search')}
+                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+              />
+              <FeatureFlagSort
+                orderBy={orderBy}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                setOrderBy={setOrderBy}
+              />
+            </Fragment>
+          )}
         </Fragment>
       )}
     </ButtonBar>
@@ -257,8 +251,8 @@ export function EventFeatureFlagList({
       >
         {hasFlags ? (
           <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card contentItems={columnOne} />
-            <KeyValueData.Card contentItems={columnTwo} />
+            <KeyValueData.Card expandLeft contentItems={columnOne} />
+            <KeyValueData.Card expandLeft contentItems={columnTwo} />
           </CardContainer>
         ) : (
           <StyledEmptyStateWarning withIcon>
