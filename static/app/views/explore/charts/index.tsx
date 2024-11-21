@@ -12,7 +12,7 @@ import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {formatParsedFunction, parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -168,7 +168,7 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
 
         const formattedYAxes = dedupedYAxes.map(yaxis => {
           const func = parseFunction(yaxis);
-          return func ? formatParsedFunction(func) : undefined;
+          return func ? prettifyParsedFunction(func) : undefined;
         });
 
         const {chartType, label, yAxes: visualizeYAxes} = visualize;
