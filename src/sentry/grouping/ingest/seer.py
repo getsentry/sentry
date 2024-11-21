@@ -201,6 +201,7 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
 
 def get_seer_similar_issues(
     event: Event,
+    variants: Mapping[str, BaseVariant],
     num_neighbors: int = 1,
 ) -> tuple[dict[str, Any], GroupHash | None]:
     """
@@ -215,12 +216,15 @@ def get_seer_similar_issues(
         "event_id": event.event_id,
         "hash": event_hash,
         "project_id": event.project.id,
-        "stacktrace": event.data.get("stacktrace_string", ""),
+        "stacktrace": event.data.get(
+            "stacktrace_string", get_stacktrace_string(get_grouping_info_from_variants(variants))
+        ),
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
+    event.data.pop("stacktrace_string", None)
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
@@ -252,7 +256,7 @@ def get_seer_similar_issues(
 
 
 def maybe_check_seer_for_matching_grouphash(
-    event: Event, variants: dict[str, BaseVariant], all_grouphashes: list[GroupHash]
+    event: Event, variants: Mapping[str, BaseVariant], all_grouphashes: list[GroupHash]
 ) -> GroupHash | None:
     seer_matched_grouphash = None
 
@@ -266,7 +270,7 @@ def maybe_check_seer_for_matching_grouphash(
         try:
             # If no matching group is found in Seer, we'll still get back result
             # metadata, but `seer_matched_grouphash` will be None
-            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event)
+            seer_response_data, seer_matched_grouphash = get_seer_similar_issues(event, variants)
         except Exception as e:  # Insurance - in theory we shouldn't ever land here
             sentry_sdk.capture_exception(
                 e, tags={"event": event.event_id, "project": event.project.id}

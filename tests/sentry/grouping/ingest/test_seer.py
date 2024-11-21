@@ -179,7 +179,7 @@ class ShouldCallSeerTest(TestCase):
             data={
                 "title": "title",
                 "platform": "python",
-                "stacktrace": {"in-app": False, "contributes": False, "frames": [{}]},
+                "stacktrace": {"frames": [{}]},
             },
         )
 
@@ -194,10 +194,18 @@ class ShouldCallSeerTest(TestCase):
             },
         )
 
-    def test_stacktrace_string_not_saved_in_event(self) -> None:
-        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-        should_call_seer_for_grouping(self.event, self.event.get_grouping_variants())
-        assert self.event.data.get("stackrace") is None
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    def test_stacktrace_string_not_saved_in_event(
+        self, mock_get_similarity_data: MagicMock
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", 1)
+        event = save_new_event(self.event_data, self.project)
+        assert mock_get_similarity_data.call_count == 1
+        assert "raise FailedToFetchError('Charlie didn't bring the ball back')" in (
+            mock_get_similarity_data.call_args.args[0]["stacktrace"]
+        )
+
+        assert event.data.get("stacktrace_string") is None
 
 
 class GetSeerSimilarIssuesTest(TestCase):
@@ -247,13 +255,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "platform": "python",
             },
         )
-        self.project.update_option("sentry:similarity_backfill_completed", 1)
-        with patch(
-            "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
-            return_value=True,
-        ):
-            should_call_seer_for_grouping(new_event, new_event.get_grouping_variants())
-        get_seer_similar_issues(new_event)
+        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
 
         mock_get_similarity_data.assert_called_with(
             {
@@ -284,7 +286,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 self.existing_event_grouphash,
             )
@@ -299,7 +301,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
-            assert get_seer_similar_issues(self.new_event) == (
+            assert get_seer_similar_issues(self.new_event, self.variants) == (
                 expected_metadata,
                 None,
             )
