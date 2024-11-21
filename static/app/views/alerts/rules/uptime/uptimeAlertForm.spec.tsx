@@ -54,6 +54,8 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('Name of header 1'), 'X-Something');
     await userEvent.type(input('Value of X-Something'), 'Header Value');
 
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Tracing'}));
+
     const name = input('Uptime rule name');
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
@@ -78,6 +80,7 @@ describe('Uptime Alert Form', function () {
           method: 'POST',
           headers: [['X-Something', 'Header Value']],
           body: '{"key": "value"}',
+          traceSampling: true,
           intervalSeconds: 60,
         }),
       })
@@ -96,6 +99,7 @@ describe('Uptime Alert Form', function () {
         ['X-Test2', 'value 2'],
       ],
       body: '{"key": "value"}',
+      traceSampling: true,
       owner: ActorFixture(),
     });
     render(
@@ -115,6 +119,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
     await selectEvent.openMenu(input('Environment'));
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Allow Tracing'})).toBeChecked();
   });
 
   it('handles simple edits', async function () {
@@ -163,6 +168,7 @@ describe('Uptime Alert Form', function () {
       projectSlug: project.slug,
       url: 'https://existing-url.com',
       owner: ActorFixture(),
+      traceSampling: false,
     });
     render(
       <UptimeAlertForm organization={organization} project={project} rule={rule} />,
@@ -187,6 +193,8 @@ describe('Uptime Alert Form', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add Header'}));
     await userEvent.type(input('Name of header 2'), 'X-Another');
     await userEvent.type(input('Value of X-Another'), 'Second Value');
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Tracing'}));
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -216,6 +224,7 @@ describe('Uptime Alert Form', function () {
           ],
           body: '{"different": "value"}',
           intervalSeconds: 60 * 10,
+          traceSampling: true,
         }),
       })
     );

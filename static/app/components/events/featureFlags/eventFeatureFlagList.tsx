@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -11,10 +10,7 @@ import {
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {
-  modalCss,
-  SetupIntegrationModal,
-} from 'sentry/components/events/featureFlags/setupIntegrationModal';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -80,6 +76,7 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+  const {activateSidebar} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -94,13 +91,6 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
-
-  function handleSetupButtonClick() {
-    trackAnalytics('flags.setup_modal_opened', {organization});
-    openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
-      modalCss,
-    });
-  }
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
@@ -195,7 +185,7 @@ export function EventFeatureFlagList({
           <Button
             aria-label={t('Set Up Integration')}
             size="xs"
-            onClick={handleSetupButtonClick}
+            onClick={activateSidebar}
           >
             {t('Set Up Integration')}
           </Button>
