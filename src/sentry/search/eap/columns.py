@@ -287,6 +287,7 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("span_id"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
+        simple_sentry_field("transaction.op"),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
         simple_sentry_field("user.geo.country_code"),
