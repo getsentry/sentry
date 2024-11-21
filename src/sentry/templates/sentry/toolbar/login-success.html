@@ -24,7 +24,7 @@
         if (window.location.origin === 'https://sentry.io') {
           // User was already logged in and didn't get a redirect to the
           // subdomained origin. Do that redirect now.
-          window.location.replace(`https://${orgSlub}.sentry.io${window.location.pathname}${window.location.search}`);
+          window.location.replace(`https://${orgSlug}.sentry.io${window.location.pathname}${window.location.search}`);
           return;
         }
 
