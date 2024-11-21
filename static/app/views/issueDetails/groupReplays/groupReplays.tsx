@@ -20,10 +20,6 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import {
-  type ReplayCount,
-  useIssueDetailsReplayCount,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -32,6 +28,11 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
 import useReplaysFromIssue from './useReplaysFromIssue';
+import {
+  type ReplayCount,
+  useIssueDetailsReplayCount,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
 
 type Props = {
   group: Group;
@@ -206,6 +207,7 @@ function GroupReplaysTable({
     },
     [location]
   );
+  const eventCount = useIssueDetailsEventCount({group});
 
   const selectedReplay = replays?.[selectedReplayIndex];
   const {data: replayData} = useIssueDetailsReplayCount<ReplayCount>({group});
@@ -279,12 +281,12 @@ function GroupReplaysTable({
           ? tn(
               'There are 50+ replays for this issue across %s event',
               'There are 50+ replays for this issue across %s events',
-              group.count
+              eventCount
             )
           : t(
               'There %s for this issue across %s.',
               tn('is %s replay', 'are %s replays', replayCount ?? 0),
-              tn('%s event', '%s events', group.count)
+              tn('%s event', '%s events', eventCount)
             )}
       </ReplayCountHeader>
       {inner}
