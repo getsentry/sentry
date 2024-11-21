@@ -41,5 +41,8 @@
       })();
     </script>
     {% endscript %}
-  </body>
-</html>
+
+{% comment %}
+No need to close `body`. If we do then middleware will inject some extra markup
+we don't need. Browsers can figure out when it missing and deal with it.
+{% endcomment %}
