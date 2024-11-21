@@ -58,7 +58,7 @@ export default function useReplaysFromIssue({
   }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
   const searchQuery = useEventQuery({group});
-  const replayQuery = replayIds?.length ? `id:[${String(replayIds)}]` : 'id:1';
+  const replayQuery = replayIds?.length ? `id:[${String(replayIds)}]` : '';
   const combinedQuery = [searchQuery, replayQuery].join(' ').trim();
   const issueDetailsEventView = useIssueDetailsEventView({
     group,

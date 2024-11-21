@@ -28,7 +28,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useStreamlineReplayCount} from 'sentry/views/issueDetails/streamline/useReplayData';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -136,6 +138,19 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
+  const searchQuery = useEventQuery({group});
+  const {data} = useStreamlineReplayCount({
+    orgSlug: organization.slug,
+    query: {
+      data_source: 'discover',
+      statsPeriod: eventView.statsPeriod ?? '90d',
+      environment: [...eventView.environment],
+      query: `issue.id:[${group.id}] ${searchQuery}`,
+      returnIds: true,
+    },
+  });
+
+  console.log({data});
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
