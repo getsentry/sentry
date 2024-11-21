@@ -1,3 +1,4 @@
+import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -20,7 +21,11 @@ export class IssuesTraceTree extends TraceTree {
     // Collect all nodes with errors and their path to the root. None of these nodes should be collapsed
     // because we want to preserve the path to the error node so that the user can see the chain that lead
     // to it.
-    const errorNodes = TraceTree.FindAll(tree.root, node => node.hasErrors);
+    const errorNodes = TraceTree.FindAll(
+      tree.root,
+      node => node.hasErrors || isTraceErrorNode(node)
+    );
+
     const preservePaths = new Set<TraceTreeNode>();
     for (const node of errorNodes) {
       let current: TraceTreeNode | null = node;

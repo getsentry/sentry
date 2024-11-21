@@ -6,6 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
 import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
+import {makeTraceError} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import {EventTraceView} from './eventTraceView';
 
@@ -72,7 +73,7 @@ describe('EventTraceView', () => {
             errors: [],
           },
         ],
-        orphan_errors: [],
+        orphan_errors: [makeTraceError()],
       },
     });
     MockApiClient.addMockResponse({
@@ -92,7 +93,7 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace')).toBeInTheDocument();
-    expect(await screen.findByText('transaction')).toBeInTheDocument();
+    expect(await screen.findByText('2 hidden spans')).toBeInTheDocument();
   });
 
   it('does not render the trace preview if it has no transactions', async () => {

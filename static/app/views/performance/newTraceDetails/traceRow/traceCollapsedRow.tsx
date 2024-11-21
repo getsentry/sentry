@@ -24,7 +24,8 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
     >
       <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
-          {collapsedChildrenCount} {t('hidden spans')}
+          {collapsedChildrenCount}{' '}
+          {collapsedChildrenCount === 1 ? t('hidden span') : t('hidden spans')}
         </div>
       </div>
     </div>
