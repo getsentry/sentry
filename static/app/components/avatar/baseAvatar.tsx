@@ -129,7 +129,7 @@ function BaseAvatar({
       round={!!round}
       suggested={!!suggested}
       style={{...sizeStyle, ...style}}
-      title={title}
+      title={hasTooltip ? title : title}
       hasTooltip={hasTooltip}
       {...props}
     >
@@ -159,7 +159,9 @@ const StyledBaseAvatar = styled('span')<{
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
-  pointer-events: ${p => (p.hasTooltip ? 'none' : 'auto')};
+  :hover {
+    pointer-events: ${p => (p.hasTooltip ? 'none' : 'auto')};
+  }
 `;
 
 const ImageAvatar = styled('img')<ImageStyleProps>`
