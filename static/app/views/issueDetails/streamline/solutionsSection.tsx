@@ -19,7 +19,10 @@ import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {
+  hasStacktraceWithFrames,
+  SolutionsHubDrawer,
+} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
 import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({
@@ -74,6 +77,7 @@ export default function SolutionsSection({
   });
 
   const isSampleError = useIsSampleEvent();
+  const hasStacktrace = event && hasStacktraceWithFrames(event);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
@@ -86,7 +90,8 @@ export default function SolutionsSection({
   const hasResources = issueTypeConfig.resources;
 
   const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
-  const hasAutofix = isAutofixEnabled && areAiFeaturesAllowed && !isSampleError;
+  const hasAutofix =
+    isAutofixEnabled && areAiFeaturesAllowed && hasStacktrace && !isSampleError;
 
   const needsGenAIConsent =
     !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
