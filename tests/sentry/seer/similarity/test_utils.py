@@ -1,11 +1,13 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
+    MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
@@ -710,7 +712,51 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_over_30_contributing_frames(self):
+    @patch("sentry.seer.similarity.utils.logger")
+    def test_too_many_system_frames_single_exception(self, mock_logger):
+        data_system = copy.deepcopy(self.BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["system"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
+        data_system["project_id"] = self.project.id
+
+        get_stacktrace_string(data_system)
+
+        mock_logger.info.assert_called_with(
+            "grouping.similarity.over_threshold_system_only_frames",
+            extra={
+                "project_id": self.project.id,
+                "hash": data_system["system"]["hash"],
+                "stacktrace_str": 'ZeroDivisionError: division by zero\n  File "hello.py", function hello_there\n    test = 2!\n  File "hello.py", function hello_there\n    test = 3!\n  File "hello.py", function hello_there\n    test = 4!\n  File "hello.py", function hello_there\n    test = 5!\n  File "hello.py", function hello_there\n    test = 6!\n  File "hello.py", function hello_there\n    test = 7!\n  File "hello.py", function hello_there\n    test = 8!\n  File "hello.py", function hello_there\n    test = 9!\n  File "hello.py", function hello_there\n    test = 10!\n  File "hello.py", function hello_there\n    test = 11!\n  File "hello.py", function hello_there\n    test = 12!\n  File "hello.py", function hello_there\n    test = 13!\n  File "hello.py", function hello_there\n    test = 14!\n  File "hello.py", function hello_there\n    test = 15!\n  File "hello.py", function hello_there\n    test = 16!\n  File "hello.py", function hello_there\n    test = 17!\n  File "hello.py", function hello_there\n    test = 18!\n  File "hello.py", function hello_there\n    test = 19!\n  File "hello.py", function hello_there\n    test = 20!\n  File "hello.py", function hello_there\n    test = 21!\n  File "hello.py", function hello_there\n    test = 22!\n  File "hello.py", function hello_there\n    test = 23!\n  File "hello.py", function hello_there\n    test = 24!\n  File "hello.py", function hello_there\n    test = 25!\n  File "hello.py", function hello_there\n    test = 26!\n  File "hello.py", function hello_there\n    test = 27!\n  File "hello.py", function hello_there\n    test = 28!\n  File "hello.py", function hello_there\n    test = 29!\n  File "hello.py", function hello_there\n    test = 30!\n  File "hello.py", function hello_there\n    test = 31!',
+            },
+        )
+
+    @patch("sentry.seer.similarity.utils.logger")
+    def test_too_many_system_frames_chained_exception(self, mock_logger):
+        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["project_id"] = self.project.id
+        # Split MAX_FRAME_COUNT across the two exceptions
+        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+
+        get_stacktrace_string(data_system)
+
+        mock_logger.info.assert_called_with(
+            "grouping.similarity.over_threshold_system_only_frames",
+            extra={
+                "project_id": self.project.id,
+                "hash": data_system["system"]["hash"],
+                "stacktrace_str": 'Exception: Catch divide by zero error\n  File "python_onboarding.py", function <module>\n    divide_by_zero()\n  File "python_onboarding.py", function divide_by_zero\n    raise Exception("Catch divide by zero error")\n  File "hello.py", function hello_there\n    test = 1!\n  File "hello.py", function hello_there\n    test = 2!\n  File "hello.py", function hello_there\n    test = 3!\n  File "hello.py", function hello_there\n    test = 4!\n  File "hello.py", function hello_there\n    test = 5!\n  File "hello.py", function hello_there\n    test = 6!\n  File "hello.py", function hello_there\n    test = 7!\n  File "hello.py", function hello_there\n    test = 8!\n  File "hello.py", function hello_there\n    test = 9!\n  File "hello.py", function hello_there\n    test = 10!\n  File "hello.py", function hello_there\n    test = 11!\n  File "hello.py", function hello_there\n    test = 12!\n  File "hello.py", function hello_there\n    test = 13!\n  File "hello.py", function hello_there\n    test = 14!\n  File "hello.py", function hello_there\n    test = 15!\nZeroDivisionError: division by zero\n  File "hello.py", function hello_there\n    test = 3!\n  File "hello.py", function hello_there\n    test = 4!\n  File "hello.py", function hello_there\n    test = 5!\n  File "hello.py", function hello_there\n    test = 6!\n  File "hello.py", function hello_there\n    test = 7!\n  File "hello.py", function hello_there\n    test = 8!\n  File "hello.py", function hello_there\n    test = 9!\n  File "hello.py", function hello_there\n    test = 10!\n  File "hello.py", function hello_there\n    test = 11!\n  File "hello.py", function hello_there\n    test = 12!\n  File "hello.py", function hello_there\n    test = 13!\n  File "hello.py", function hello_there\n    test = 14!\n  File "hello.py", function hello_there\n    test = 15!',
+            },
+        )
+
+    def test_too_many_in_app_contributing_frames(self):
         """Check that when there are over 30 contributing frames, the last 30 are included."""
 
         data_frames = copy.deepcopy(self.BASE_APP_DATA)

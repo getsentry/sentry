@@ -1,12 +1,14 @@
 from dataclasses import asdict
 from time import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -261,3 +263,47 @@ class GetSeerSimilarIssuesTest(TestCase):
                 expected_metadata,
                 None,
             )
+
+    @patch("sentry.seer.similarity.utils.logger")
+    def test_too_many_only_system_frames(self, mock_logger: Mock) -> None:
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="22312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": context_line,
+                                    }
+                                    for i in range(MAX_FRAME_COUNT + 1)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+        variants = new_event.get_grouping_variants()
+        get_seer_similar_issues(new_event, variants)
+
+        grouping_info = get_grouping_info_from_variants(variants)
+        mock_logger.info.assert_called_with(
+            "grouping.similarity.over_threshold_system_only_frames",
+            extra={
+                "project_id": self.project.id,
+                "hash": grouping_info["system"]["hash"],
+                "stacktrace_str": "FailedToFetchError: Charlie didn't bring the ball back\n  File \"dogpark1.py\", function play_fetch_1\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark2.py\", function play_fetch_2\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark3.py\", function play_fetch_3\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark4.py\", function play_fetch_4\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark5.py\", function play_fetch_5\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark6.py\", function play_fetch_6\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark7.py\", function play_fetch_7\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark8.py\", function play_fetch_8\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark9.py\", function play_fetch_9\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark10.py\", function play_fetch_10\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark11.py\", function play_fetch_11\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark12.py\", function play_fetch_12\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark13.py\", function play_fetch_13\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark14.py\", function play_fetch_14\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark15.py\", function play_fetch_15\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark16.py\", function play_fetch_16\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark17.py\", function play_fetch_17\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark18.py\", function play_fetch_18\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark19.py\", function play_fetch_19\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark20.py\", function play_fetch_20\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark21.py\", function play_fetch_21\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark22.py\", function play_fetch_22\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark23.py\", function play_fetch_23\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark24.py\", function play_fetch_24\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark25.py\", function play_fetch_25\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark26.py\", function play_fetch_26\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark27.py\", function play_fetch_27\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark28.py\", function play_fetch_28\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark29.py\", function play_fetch_29\n    raise FailedToFetchError('Charlie didn't bring the ball back')\n  File \"dogpark30.py\", function play_fetch_30\n    raise FailedToFetchError('Charlie didn't bring the ball back')",
+            },
+        )

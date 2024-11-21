@@ -187,7 +187,11 @@ def get_seer_similar_issues(
     should go in (if any), or None if no neighbor was near enough.
     """
     event_hash = event.get_primary_hash()
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    # Temporarily add project id to this for logging purposes
+    # TODO: Remove when grouping.similarity.over_threshold_system_only_frames is removed
+    grouping_info = get_grouping_info_from_variants(variants)
+    grouping_info["project_id"] = event.project.id
+    stacktrace_string = get_stacktrace_string(grouping_info)
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
     request_data: SimilarIssuesEmbeddingsRequest = {
