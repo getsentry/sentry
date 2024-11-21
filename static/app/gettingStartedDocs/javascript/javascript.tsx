@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 
+import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -61,6 +62,35 @@ const platformOptions = {
 
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
+type FlagOptions = {
+  importStatement: string; // feature flag SDK import
+  integration: string; // what's in the integrations array
+  sdkInit: string; // code to register with feature flag SDK
+};
+
+const FLAG_OPTIONS: Record<IntegrationOptions, FlagOptions> = {
+  [IntegrationOptions.LAUNCHDARKLY]: {
+    importStatement: `import * as LaunchDarkly from 'launchdarkly-js-client-sdk';`,
+    integration: 'launchDarklyIntegration()',
+    sdkInit: `const ldClient = LaunchDarkly.initialize(
+    'my-client-ID',
+    {kind: 'user', key: 'my-user-context-key'},
+    {inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()]}
+);
+
+// Evaluates a flag
+const flagVal = ldClient.variation('my-flag', false);`,
+  },
+  [IntegrationOptions.OPENFEATURE]: {
+    importStatement: `import { OpenFeature } from '@openfeature/web-sdk';`,
+    integration: 'openFeatureIntegration()',
+    sdkInit: `const client = OpenFeature.getClient();
+client.addHooks(new Sentry.OpenFeatureIntegrationHook());
+
+// Evaluating flags will record the result on the Sentry client.
+const result = client.getBooleanValue('my-flag', false);`,
+  },
+};
 
 const isAutoInstall = (params: Params) =>
   params.platformOptions.installationMode === InstallationMode.AUTO;
@@ -612,6 +642,54 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
 };
 
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
+        {code: <code />}
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Add [name] to your integrations list, and then register with your feature flag SDK.',
+        {
+          name: (
+            <code>{`${FLAG_OPTIONS[featureFlagOptions.integration].integration}`}</code>
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'JavaScript',
+          code: `
+import * as Sentry from '@sentry/browser';
+${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
+
+// Register with Sentry
+Sentry.init({
+  dsn: "${dsn.public}",
+  integrations: [
+    Sentry.${FLAG_OPTIONS[featureFlagOptions.integration].integration},
+  ],
+});
+
+// Register with your feature flag SDK
+${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
+`,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -622,6 +700,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;
