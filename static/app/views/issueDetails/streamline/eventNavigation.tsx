@@ -20,7 +20,6 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -28,9 +27,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useStreamlineReplayCount} from 'sentry/views/issueDetails/streamline/useReplayData';
+import {
+  type ReplayCount,
+  useIssueDetailsReplayCount,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -138,24 +139,9 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
-  const searchQuery = useEventQuery({group});
-  const {data} = useStreamlineReplayCount({
-    orgSlug: organization.slug,
-    query: {
-      data_source: 'discover',
-      statsPeriod: eventView.statsPeriod ?? '90d',
-      environment: [...eventView.environment],
-      query: `issue.id:[${group.id}] ${searchQuery}`,
-      returnIds: true,
-    },
-  });
 
-  console.log({data});
-
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
-  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
+  const {data: replayData} = useIssueDetailsReplayCount<ReplayCount>({group});
+  const replaysCount = replayData?.[group.id] ?? 0;
 
   const attachments = useGroupEventAttachments({
     groupId: group.id,
