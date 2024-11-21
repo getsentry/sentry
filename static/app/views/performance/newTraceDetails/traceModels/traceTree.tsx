@@ -1149,8 +1149,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isParentAutogroupedNode(next)) {
         queue.push(next.head);
       } else {
-        for (const child of next.children) {
-          queue.push(child);
+        for (let i = next.children.length - 1; i >= 0; i--) {
+          queue.push(next.children[i]);
         }
       }
     }

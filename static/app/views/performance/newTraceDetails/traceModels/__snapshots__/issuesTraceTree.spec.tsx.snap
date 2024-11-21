@@ -9,6 +9,32 @@ trace root
 "
 `;
 
+exports[`IssuesTraceTree errors only 1`] = `
+"
+trace root
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  error
+  collapsed
+"
+`;
+
 exports[`IssuesTraceTree preserves path to child error 1`] = `
 "
 trace root

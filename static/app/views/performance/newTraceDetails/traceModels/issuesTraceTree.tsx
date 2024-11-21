@@ -1,4 +1,7 @@
-import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isParentAutogroupedNode,
+  isTraceErrorNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -6,6 +9,8 @@ import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import type {TraceTreeNode} from './traceTreeNode';
+
+const MAX_ISSUES = 20;
 
 export class IssuesTraceTree extends TraceTree {
   static FromTrace(
@@ -24,13 +29,13 @@ export class IssuesTraceTree extends TraceTree {
     const errorNodes = TraceTree.FindAll(
       tree.root,
       node => node.hasErrors || isTraceErrorNode(node)
-    );
+    ).slice(0, MAX_ISSUES);
 
-    const preservePaths = new Set<TraceTreeNode>();
+    const preserveNodes = new Set<TraceTreeNode>();
     for (const node of errorNodes) {
       let current: TraceTreeNode | null = node;
       while (current) {
-        preservePaths.add(current);
+        preserveNodes.add(current);
         current = current.parent;
       }
     }
@@ -52,11 +57,7 @@ export class IssuesTraceTree extends TraceTree {
       while (index < node.children.length) {
         const start = index;
 
-        while (
-          node.children[index] &&
-          !node.children[index]?.hasErrors &&
-          !preservePaths.has(node.children[index])
-        ) {
+        while (node.children[index] && !preserveNodes.has(node.children[index])) {
           index++;
         }
 
@@ -90,7 +91,33 @@ export class IssuesTraceTree extends TraceTree {
   }
 
   build() {
-    super.build();
+    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+
+    if (this.root.expanded || isParentAutogroupedNode(this.root)) {
+      const children = TraceTree.DirectVisibleChildren(this.root);
+
+      for (let i = children.length - 1; i >= 0; i--) {
+        queue.push(children[i]);
+      }
+    }
+
+    while (queue.length > 0) {
+      const node = queue.pop()!;
+
+      visibleChildren.push(node);
+
+      // iterate in reverse to ensure nodes are processed in order
+      if (node.expanded || isParentAutogroupedNode(node)) {
+        const children = TraceTree.DirectVisibleChildren(node);
+
+        for (let i = children.length - 1; i >= 0; i--) {
+          queue.push(children[i]);
+        }
+      }
+    }
+
+    this.list = visibleChildren;
     return this;
   }
 }

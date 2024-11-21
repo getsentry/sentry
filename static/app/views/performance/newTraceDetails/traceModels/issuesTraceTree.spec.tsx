@@ -22,6 +22,11 @@ const traceWithChildError = makeTrace({
   ],
 });
 
+const errorsOnlyTrace = makeTrace({
+  transactions: [],
+  orphan_errors: new Array(30).fill(null).map(() => makeTraceError({})),
+});
+
 describe('IssuesTraceTree', () => {
   it('collapsed nodes without errors', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
@@ -34,6 +39,15 @@ describe('IssuesTraceTree', () => {
 
   it('preserves path to child error', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithChildError, {
+      meta: null,
+      replay: null,
+    });
+
+    expect(tree.build().serialize()).toMatchSnapshot();
+  });
+
+  it('errors only', () => {
+    const tree = IssuesTraceTree.FromTrace(errorsOnlyTrace, {
       meta: null,
       replay: null,
     });
