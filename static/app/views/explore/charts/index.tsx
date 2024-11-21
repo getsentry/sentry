@@ -23,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {AddToDashboardButton} from 'sentry/views/explore/components/addToDashboardButton';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -272,6 +273,9 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                       isDisabled={!alertsUrls || alertsUrls.length === 0}
                     />
                   </Tooltip>
+                </Feature>
+                <Feature features="organizations:dashboards-eap">
+                  <AddToDashboardButton visualizeIndex={index} />
                 </Feature>
               </ChartHeader>
               <Chart
