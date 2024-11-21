@@ -1,10 +1,16 @@
 ---
-created: '2024-11-08T19:20:20.938352+00:00'
+created: '2024-11-20T21:26:07.343118+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: unknown
 hashing_metadata: {}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "unknown"
+  }
+}
 ---
 contributing variants:
   dogs*

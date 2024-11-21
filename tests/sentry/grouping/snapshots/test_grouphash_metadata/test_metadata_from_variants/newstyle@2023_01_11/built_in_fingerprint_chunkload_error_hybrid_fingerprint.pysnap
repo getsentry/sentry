@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:21:07.248881+00:00'
+created: '2024-11-20T21:26:48.523813+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -10,6 +10,16 @@ hashing_metadata: {
   "fingerprint_source": "server_builtin_rule",
   "is_hybrid_fingerprint": false,
   "matched_fingerprinting_rule": "family:\"javascript\" type:\"ChunkLoadError\" -> \"chunkloaderror\""
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fingerprint",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fingerprint": {
+    "fingerprint_source": "server_builtin_rule"
+  }
 }
 ---
 contributing variants:
