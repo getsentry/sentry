@@ -129,7 +129,8 @@ function BaseAvatar({
       round={!!round}
       suggested={!!suggested}
       style={{...sizeStyle, ...style}}
-      title={title}
+      title={hasTooltip ? undefined : title}
+      aria-label={title}
       {...props}
     >
       {hasError ? backup : imageAvatar}
