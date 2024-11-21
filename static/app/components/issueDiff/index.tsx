@@ -31,6 +31,7 @@ type Props = {
   targetIssueId: string;
   baseEventId?: string;
   className?: string;
+  hasSimilarityEmbeddingsProjectFeature?: boolean;
   organization?: Organization;
   shouldBeGrouped?: string;
   targetEventId?: string;
@@ -67,12 +68,12 @@ class IssueDiff extends Component<Props, State> {
       baseEventId,
       targetEventId,
       organization,
-      project,
       shouldBeGrouped,
       location,
+      hasSimilarityEmbeddingsProjectFeature,
     } = this.props;
     const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
+      hasSimilarityEmbeddingsProjectFeature ||
       location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data

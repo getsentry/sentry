@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -32,6 +32,10 @@ describe('SimilarIssuesDrawer', function () {
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       body: group,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: {features: []},
+    });
   });
 
   it('renders the content as expected', async function () {
@@ -43,8 +47,11 @@ describe('SimilarIssuesDrawer', function () {
     expect(
       await screen.findByRole('heading', {name: 'Similar Issues'})
     ).toBeInTheDocument();
+
     expect(screen.getByText('Issues with a similar stack trace')).toBeInTheDocument();
-    expect(mockSimilarIssues).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockSimilarIssues).toHaveBeenCalled();
+    });
     expect(screen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
   });
 });

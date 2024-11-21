@@ -52,6 +52,10 @@ describe('Issues Similar View', function () {
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      body: {features: ['similarity-view']},
+    });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
   });
@@ -150,7 +154,7 @@ describe('Issues Similar Embeddings View', function () {
 
   const group = GroupFixture();
   const project = ProjectFixture({
-    features: ['similarity-view', 'similarity-embeddings'],
+    features: ['similarity-view'],
   });
 
   const router = RouterFixture({
@@ -165,7 +169,7 @@ describe('Issues Similar Embeddings View', function () {
   ];
 
   const mockData = {
-    simlarEmbeddings: GroupsFixture().map((issue, i) => [
+    similarEmbeddings: GroupsFixture().map((issue, i) => [
       issue,
       similarEmbeddingsScores[i],
     ]),
@@ -174,11 +178,15 @@ describe('Issues Similar Embeddings View', function () {
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01&useReranking=true`,
-      body: mockData.simlarEmbeddings,
+      body: mockData.similarEmbeddings,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/`,
+      body: {features: ['similarity-embeddings']},
     });
     ProjectsStore.init();
     ProjectsStore.loadInitialData([project]);
