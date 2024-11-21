@@ -6,6 +6,7 @@ import {Observer} from 'mobx-react';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -62,6 +63,7 @@ function getFormDataFromRule(rule: UptimeRule) {
     body: rule.body,
     headers: rule.headers,
     intervalSeconds: rule.intervalSeconds,
+    traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
   };
 }
@@ -216,6 +218,15 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               label={t('Headers')}
               flexibleControlStateSize
             />
+            <BooleanField
+              name="traceSampling"
+              label={t('Allow Tracing')}
+              showHelpInTooltip
+              help={t(
+                'Allows uptime checks to trigger traces if the checked service is configured with a Sentry SDK.'
+              )}
+              flexibleControlStateSize
+            />
             <TextareaField
               name="body"
               label={t('Body')}
@@ -235,6 +246,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
                 body={formModel.getValue('body')}
+                traceSampling={formModel.getValue('traceSampling')}
               />
             )}
           </Observer>

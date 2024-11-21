@@ -1,3 +1,5 @@
+import {generateSentryTraceHeader} from '@sentry/utils';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
@@ -15,7 +17,14 @@ describe('HTTPSnippet', function () {
         method="POST"
         body={'{"key": "value"}'}
         headers={[['X-Something', 'Header Value']]}
+        traceSampling={false}
       />
+    );
+
+    expect(jest.mocked(generateSentryTraceHeader)).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      false
     );
 
     const expected = [
