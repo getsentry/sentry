@@ -89,9 +89,11 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
+  noQueryEventView.environment = [];
 
-  const isUnfilteredStatsEnabled = eventView.query !== noQueryEventView.query;
-  const {data: unfilteredGroupStats = {}} =
+  const isUnfilteredStatsEnabled =
+    eventView.query !== noQueryEventView.query || !!eventView.environment;
+  const {data: unfilteredGroupStats} =
     useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
       options: {
         enabled: isUnfilteredStatsEnabled,
@@ -135,14 +137,14 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     return createSeriesAndCount(groupStats['count()']);
   }, [groupStats]);
   const {series: unfilteredEventSeries} = useMemo(() => {
-    if (!unfilteredGroupStats['count()']) {
+    if (!unfilteredGroupStats?.['count()']) {
       return {series: []};
     }
 
     return createSeriesAndCount(unfilteredGroupStats['count()']);
   }, [unfilteredGroupStats]);
   const {series: unfilteredUserSeries} = useMemo(() => {
-    if (!unfilteredGroupStats['count_unique(user)']) {
+    if (!unfilteredGroupStats?.['count_unique(user)']) {
       return {series: []};
     }
     return createSeriesAndCount(unfilteredGroupStats['count_unique(user)']);
