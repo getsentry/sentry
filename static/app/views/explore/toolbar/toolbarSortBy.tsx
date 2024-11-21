@@ -21,59 +21,13 @@ interface ToolbarSortByProps {
   sorts: Sort[];
 }
 
-export function ToolbarSortBy(props: ToolbarSortByProps) {
+export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const [resultMode] = useResultMode();
   const [tab] = useTab();
 
-  if (resultMode === 'samples' && tab === Tab.TRACE) {
-    return <ToolbarSortByTraces />;
-  }
+  // traces table is only sorted by timestamp so disable the sort by
+  const disabled = resultMode === 'samples' && tab === Tab.TRACE;
 
-  return <ToolbarSortBySelectors {...props} />;
-}
-
-function ToolbarSortByTraces() {
-  const fieldOptions: SelectOption<Field>[] = useMemo(() => {
-    return [
-      {
-        label: 'timestamp',
-        value: 'timestamp',
-        textValue: t('timestamp'),
-      },
-    ];
-  }, []);
-
-  const kindOptions: SelectOption<Sort['kind']>[] = useMemo(() => {
-    return [
-      {
-        label: 'Desc',
-        value: 'desc',
-        textValue: t('Descending'),
-      },
-    ];
-  }, []);
-
-  return (
-    <ToolbarSection data-test-id="section-sort-by">
-      <ToolbarHeader>
-        <Tooltip
-          position="right"
-          title={t('Results you see first and last in your samples or aggregates.')}
-        >
-          <ToolbarLabel disabled>{t('Sort By')}</ToolbarLabel>
-        </Tooltip>
-      </ToolbarHeader>
-      <div>
-        <ToolbarRow>
-          <ColumnCompactSelect options={fieldOptions} value="timestamp" disabled />
-          <DirectionCompactSelect options={kindOptions} value="desc" disabled />
-        </ToolbarRow>
-      </div>
-    </ToolbarSection>
-  );
-}
-
-function ToolbarSortBySelectors({fields, setSorts, sorts}: ToolbarSortByProps) {
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
@@ -153,6 +107,34 @@ function ToolbarSortBySelectors({fields, setSorts, sorts}: ToolbarSortByProps) {
     [setSorts, sorts]
   );
 
+  let toolbarRow = (
+    <ToolbarRow>
+      <ColumnCompactSelect
+        options={fieldOptions}
+        value={sorts[0]?.field}
+        onChange={newSortField => setSortField(0, newSortField)}
+        disabled={disabled}
+      />
+      <DirectionCompactSelect
+        options={kindOptions}
+        value={sorts[0]?.kind}
+        onChange={newSortKind => setSortKind(0, newSortKind)}
+        disabled={disabled}
+      />
+    </ToolbarRow>
+  );
+
+  if (disabled) {
+    toolbarRow = (
+      <FullWidthTooltip
+        position="top"
+        title={t('Sort by is not applicable to trace results.')}
+      >
+        {toolbarRow}
+      </FullWidthTooltip>
+    );
+  }
+
   return (
     <ToolbarSection data-test-id="section-sort-by">
       <ToolbarHeader>
@@ -160,26 +142,17 @@ function ToolbarSortBySelectors({fields, setSorts, sorts}: ToolbarSortByProps) {
           position="right"
           title={t('Results you see first and last in your samples or aggregates.')}
         >
-          <ToolbarLabel>{t('Sort By')}</ToolbarLabel>
+          <ToolbarLabel disabled={disabled}>{t('Sort By')}</ToolbarLabel>
         </Tooltip>
       </ToolbarHeader>
-      <div>
-        <ToolbarRow>
-          <ColumnCompactSelect
-            options={fieldOptions}
-            value={sorts[0]?.field}
-            onChange={newSortField => setSortField(0, newSortField)}
-          />
-          <DirectionCompactSelect
-            options={kindOptions}
-            value={sorts[0]?.kind}
-            onChange={newSortKind => setSortKind(0, newSortKind)}
-          />
-        </ToolbarRow>
-      </div>
+      <div>{toolbarRow}</div>
     </ToolbarSection>
   );
 }
+
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
+`;
 
 const ColumnCompactSelect = styled(CompactSelect)`
   flex: 1 1;
