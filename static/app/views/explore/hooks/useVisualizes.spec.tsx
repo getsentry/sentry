@@ -18,7 +18,7 @@ describe('useVisualizes', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.duration)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]); // default
 
@@ -36,7 +36,7 @@ describe('useVisualizes', function () {
       {
         chartType: ChartType.LINE,
         label: 'A',
-        yAxes: ['count(span.duration)'],
+        yAxes: ['avg(span.duration)'],
       },
     ]); // default
 
