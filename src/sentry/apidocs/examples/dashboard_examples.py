@@ -104,6 +104,7 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
     },
     {
         "id": "2",
@@ -134,6 +135,7 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": None,
     },
 ]
 
