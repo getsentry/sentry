@@ -194,7 +194,7 @@ class ShouldCallSeerTest(TestCase):
             },
         )
 
-    def test_stacktrace_string_not_saved_in_event(self):
+    def test_stacktrace_string_not_saved_in_event(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         should_call_seer_for_grouping(self.event, self.event.get_grouping_variants())
         assert self.event.data.get("stackrace") is None
