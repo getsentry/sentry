@@ -1,17 +1,27 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {EntryType} from 'sentry/types/event';
+import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
 
 jest.mock('sentry/utils/issueTypeConfig');
 
 describe('SolutionsSection', () => {
-  const mockEvent = EventFixture();
+  const mockEvent = EventFixture({
+    entries: [
+      {
+        type: EntryType.EXCEPTION,
+        data: {values: [{stacktrace: {frames: [FrameFixture()]}}]},
+      },
+    ],
+  });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
@@ -87,7 +97,7 @@ describe('SolutionsSection', () => {
     );
 
     expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(4);
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -109,29 +119,7 @@ describe('SolutionsSection', () => {
 
     await waitFor(() => {
       expect(screen.getByText(mockSummary)).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Open Solutions Hub'})
-      ).toBeInTheDocument();
     });
-  });
-
-  it('renders AI setup prompt when consent is not given', () => {
-    const customOrganization = OrganizationFixture({
-      genAIConsent: false,
-      hideAiFeatures: false,
-    });
-
-    render(
-      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-      {
-        organization: customOrganization,
-      }
-    );
-
-    expect(
-      screen.getByText('Explore potential root causes and solutions with Sentry AI.')
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Open Solutions Hub'})).toBeInTheDocument();
   });
 
   it('renders resources section when AI features are disabled', () => {
@@ -174,5 +162,187 @@ describe('SolutionsSection', () => {
 
     expect(screen.queryByRole('button', {name: 'SHOW LESS'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+  });
+
+  describe('Solutions Hub button text', () => {
+    it('shows "Set up Sentry AI" when AI needs setup', async () => {
+      const customOrganization = OrganizationFixture({
+        genAIConsent: false,
+        hideAiFeatures: false,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: false},
+          integration: {ok: false},
+          githubWriteIntegration: {ok: false},
+        },
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization: customOrganization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText('Explore potential root causes and solutions with Sentry AI.')
+      ).toBeInTheDocument();
+
+      expect(screen.getByRole('button', {name: 'Set up Sentry AI'})).toBeInTheDocument();
+    });
+
+    it('shows "Set up Autofix" when autofix needs setup', async () => {
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: false},
+          githubWriteIntegration: {ok: false},
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', {name: 'Set up Autofix'})).toBeInTheDocument();
+    });
+
+    it('shows "Open Resources & Autofix" when both are available', async () => {
+      // Mock successful summary response
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      // Mock successful autofix setup
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: true},
+          githubWriteIntegration: {ok: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {name: 'Open Resources & Autofix'})
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('shows "Open Autofix" when only autofix is available', async () => {
+      // Mock successful autofix setup but disable resources
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: true},
+          githubWriteIntegration: {ok: true},
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+        method: 'POST',
+        body: {
+          whatsWrong: 'Test summary',
+        },
+      });
+
+      jest.mocked(getConfigForIssueType).mockReturnValue({
+        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
+        resources: null,
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      });
+    });
+
+    it('shows "READ MORE" when only resources are available', async () => {
+      mockGroup.issueCategory = IssueCategory.UPTIME;
+
+      // Mock config with autofix disabled
+      MockApiClient.addMockResponse({
+        url: `/issues/${mockGroup.id}/autofix/setup/`,
+        body: {
+          genAIConsent: {ok: true},
+          integration: {ok: true},
+          githubWriteIntegration: {ok: true},
+        },
+      });
+
+      jest.mocked(getConfigForIssueType).mockReturnValue({
+        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
+        autofix: false,
+        issueSummary: {enabled: false},
+        resources: {
+          description: '',
+          links: [],
+          linksByPlatform: {},
+        },
+      });
+
+      render(
+        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+    });
   });
 });

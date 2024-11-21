@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
+import {SeerIcon} from 'sentry/components/ai/SeerIcon';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
@@ -18,7 +19,7 @@ import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummar
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconDocs, IconSeer} from 'sentry/icons';
+import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryType, type Event} from 'sentry/types/event';
@@ -26,10 +27,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  getConfigForIssueType,
-  shouldShowCustomErrorResourceConfig,
-} from 'sentry/utils/issueTypeConfig';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -45,7 +43,8 @@ interface AutofixStartBoxProps {
 function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const [message, setMessage] = useState('');
 
-  const send = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     onSend(message);
   };
 
@@ -65,37 +64,39 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
       <ContentContainer>
         <HeaderText>Autofix</HeaderText>
         <p>Work together with Autofix to find the root cause and fix the issue.</p>
-        <Row>
-          <Input
-            type="text"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder={'(Optional) Share helpful context here...'}
-          />
-          <ButtonWithStars>
-            <StarLarge1 src={starImage} />
-            <StarLarge2 src={starImage} />
-            <StarLarge3 src={starImage} />
-            <Button
-              priority="primary"
-              onClick={send}
-              analyticsEventKey={
-                message
-                  ? 'autofix.give_instructions_clicked'
-                  : 'autofix.start_fix_clicked'
-              }
-              analyticsEventName={
-                message
-                  ? 'Autofix: Give Instructions Clicked'
-                  : 'Autofix: Start Fix Clicked'
-              }
-              analyticsParams={{group_id: groupId}}
-              aria-label="Start Autofix"
-            >
-              {t('Start Autofix')}
-            </Button>
-          </ButtonWithStars>
-        </Row>
+        <form onSubmit={handleSubmit}>
+          <Row>
+            <Input
+              type="text"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder={'(Optional) Share helpful context here...'}
+            />
+            <ButtonWithStars>
+              <StarLarge1 src={starImage} />
+              <StarLarge2 src={starImage} />
+              <StarLarge3 src={starImage} />
+              <Button
+                type="submit"
+                priority="primary"
+                analyticsEventKey={
+                  message
+                    ? 'autofix.give_instructions_clicked'
+                    : 'autofix.start_fix_clicked'
+                }
+                analyticsEventName={
+                  message
+                    ? 'Autofix: Give Instructions Clicked'
+                    : 'Autofix: Start Fix Clicked'
+                }
+                analyticsParams={{group_id: groupId}}
+                aria-label="Start Autofix"
+              >
+                {t('Start Autofix')}
+              </Button>
+            </ButtonWithStars>
+          </Row>
+        </form>
       </ContentContainer>
     </StartBox>
   );
@@ -111,7 +112,7 @@ const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
 };
 
 // Autofix requires the event to have stack trace frames in order to work correctly.
-function hasStacktraceWithFrames(event: Event) {
+export function hasStacktraceWithFrames(event: Event) {
   for (const entry of event.entries) {
     if (entry.type === EntryType.EXCEPTION) {
       if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
@@ -168,7 +169,6 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   const displayAiAutofix =
     shouldDisplayAiAutofixForOrganization(organization) &&
     config.autofix &&
-    !shouldShowCustomErrorResourceConfig(group, project) &&
     hasStacktraceWithFrames(event) &&
     !isSampleError;
 
@@ -211,7 +211,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         )}
         <HeaderText>
           <HeaderContainer>
-            <IconSeer size="lg" />
+            <SeerIcon size="lg" />
             {t('Sentry AI')}
             <StyledFeatureBadge
               type="beta"
@@ -409,7 +409,7 @@ const StyledCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-bottom: ${space(1)};
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const HeaderText = styled('div')`

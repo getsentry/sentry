@@ -899,6 +899,7 @@
   ],
   "workflow_engine.detector": [
     "sentry.organization",
+    "sentry.project",
     "sentry.team",
     "sentry.user",
     "workflow_engine.dataconditiongroup"
@@ -911,7 +912,10 @@
     "workflow_engine.workflow"
   ],
   "workflow_engine.workflow": [
+    "sentry.environment",
     "sentry.organization",
+    "sentry.team",
+    "sentry.user",
     "workflow_engine.dataconditiongroup"
   ],
   "workflow_engine.workflowdataconditiongroup": [
