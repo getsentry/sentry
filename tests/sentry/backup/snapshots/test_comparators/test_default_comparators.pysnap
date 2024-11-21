@@ -1,5 +1,5 @@
 ---
-created: '2024-11-14T18:22:29.534257+00:00'
+created: '2024-11-21T21:10:04.656611+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1718,9 +1718,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
     - organization
     - owner_team
     - owner_user_id
+    - project
     - workflow_condition_group
   model_name: workflow_engine.detector
 - comparators:
@@ -1749,7 +1751,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
+    - environment
     - organization
+    - owner_team
+    - owner_user_id
     - when_condition_group
   model_name: workflow_engine.workflow
 - comparators:

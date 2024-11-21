@@ -86,7 +86,9 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
     def create_detector_and_conditions(self, type: str | None = None):
         if type is None:
             type = "handler_with_state"
+        self.project = self.create_project()
         detector = self.create_detector(
+            project=self.project,
             workflow_condition_group=self.create_data_condition_group(),
             type=type,
         )
@@ -464,7 +466,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
                 is_active=False,
                 result=StatusChangeMessage(
                     fingerprint=[f"{handler.detector.id}:val1"],
-                    project_id=1,
+                    project_id=self.project.id,
                     new_status=1,
                     new_substatus=None,
                 ),
@@ -613,7 +615,7 @@ class TestEvaluateGroupKeyValue(BaseDetectorHandlerTest):
             DetectorPriorityLevel.OK,
             result=StatusChangeMessage(
                 fingerprint=[f"{handler.detector.id}:group_key"],
-                project_id=1,
+                project_id=self.project.id,
                 new_status=1,
                 new_substatus=None,
             ),
