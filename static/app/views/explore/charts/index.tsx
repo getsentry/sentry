@@ -293,6 +293,7 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
                 aggregateOutputFormat={
                   outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
                 }
+                showLegend
               />
             </ChartPanel>
           </ChartContainer>
