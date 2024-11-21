@@ -1,4 +1,5 @@
-import type {Flags} from 'sentry/types/event';
+import {insertFlagToScope} from '@sentry/react';
+
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -22,17 +23,9 @@ export default class FeatureObserver {
   }
 
   private _bufferSize = 0;
-  private FEATURE_FLAGS: Flags = {values: []};
 
   constructor({bufferSize}: {bufferSize: number}) {
     this._bufferSize = bufferSize;
-  }
-
-  /**
-   * Return list of recently accessed feature flags.
-   */
-  public getFeatureFlags() {
-    return this.FEATURE_FLAGS;
   }
 
   public updateFlagBuffer({
@@ -42,26 +35,7 @@ export default class FeatureObserver {
     flagName: string;
     flagResult: boolean;
   }) {
-    const flagBuffer = this.FEATURE_FLAGS;
-    // Check if the flag is already in the buffer
-    const index = flagBuffer.values.findIndex(f => f.flag === flagName);
-
-    // The flag is already in the buffer
-    if (index !== -1) {
-      flagBuffer.values.splice(index, 1);
-    }
-
-    // If at capacity, we need to remove the earliest flag
-    // This will only happen if not a duplicate flag
-    if (flagBuffer.values.length === this._bufferSize) {
-      flagBuffer.values.shift();
-    }
-
-    // Store the flag and its result in the buffer
-    flagBuffer.values.push({
-      flag: flagName,
-      result: flagResult,
-    });
+    insertFlagToScope(flagName, flagResult, this._bufferSize);
   }
 
   public observeOrganizationFlags({organization}: {organization: Organization}) {
