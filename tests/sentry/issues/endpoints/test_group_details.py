@@ -478,6 +478,82 @@ class GroupUpdateTest(APITestCase):
     def test_resolved_in_next_release_semver_with_flag_and_first_release(self):
         self.resolved_in_next_release_helper(with_first_release=True)
 
+    def test_resolved_in_release_sha_comparison(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+
+        now = timezone.now()
+        # create an old release with some events
+        old_release = Release.get_or_create(
+            version="iam01d", project=project, date_added=now - timedelta(days=18)
+        )
+        event = self.store_event(data={"release": old_release.version}, project_id=project.id)
+        group = event.group
+        assert group is not None
+
+        # Create a current release with events
+        current_release = Release.get_or_create(
+            version="abc123", project=project, date_added=now - timedelta(hours=2)
+        )
+        self.store_event(data={"release": current_release.version}, project_id=project.id)
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # This is the release we expect to resolve the issue
+        resolving_release = Release.get_or_create(
+            version="def456", project=project, date_added=now - timedelta(minutes=5)
+        )
+
+        # Resolve in release
+        url = f"/api/0/issues/{group.id}/"
+        data = {"status": "resolved", "statusDetails": {"inRelease": resolving_release.version}}
+        response = self.client.put(url, data=data)
+        assert response.status_code == 200
+
+        # Check that the issue is resolved
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # Check resolution details
+        group_resolution = GroupResolution.objects.filter(group=group).first()
+        assert group_resolution is not None
+        assert group_resolution.type == GroupResolution.Type.in_release
+        assert group_resolution.status == GroupResolution.Status.resolved
+        assert group_resolution.release == resolving_release
+        assert not group_resolution.current_release_version
+
+        # New event with current release should keep the issue resolved
+        event = self.store_event(
+            data={
+                "release": current_release.version,
+                "timestamp": now.isoformat(),
+            },
+            project_id=project.id,
+        )
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # New event with the old release should keep the issue resolved
+        # This is the case that should fail to repro the issue
+        event = self.store_event(
+            data={
+                "release": old_release.version,
+                "timestamp": now.isoformat(),
+            },
+            project_id=project.id,
+        )
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # New event with the resolving release should unresolve the issue
+        event = self.store_event(data={"release": resolving_release.version}, project_id=project.id)
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.REGRESSED
+
     def test_resolved_in_next_release_no_release(self):
         self.login_as(user=self.user)
 
