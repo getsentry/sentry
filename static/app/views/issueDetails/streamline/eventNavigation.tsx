@@ -28,6 +28,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
 import {
   type ReplayCount,
   useIssueDetailsReplayCount,
@@ -39,7 +40,6 @@ import {
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
-import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
 
 const enum EventNavOptions {
   RECOMMENDED = 'recommended',

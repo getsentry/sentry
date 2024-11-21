@@ -1,10 +1,11 @@
-import {type Group} from 'sentry/types/group';
+import {useMemo} from 'react';
+
+import type {Group} from 'sentry/types/group';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
 } from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {MultiSeriesEventsStats} from 'sentry/types/organization';
-import {useMemo} from 'react';
 
 export function useIssueDetailsEventCount({group}: {group: Group}) {
   const eventView = useIssueDetailsEventView({group});
