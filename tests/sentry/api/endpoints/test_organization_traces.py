@@ -209,17 +209,6 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
                     ]
                 )
             },
-            store_metrics_summary={
-                "d:custom/value@millisecond": [
-                    {
-                        "min": 40_000,
-                        "max": 40_000,
-                        "sum": 40_000,
-                        "count": 1,
-                        "tags": {"foo": "qux"},
-                    }
-                ]
-            },
             sdk_name="sentry.javascript.remix",
         )
 
@@ -278,7 +267,10 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
             if query is None:
@@ -287,7 +279,10 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -434,7 +429,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ]
 
         mock_capture_exception.assert_called_with(
-            exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
+            exception,
+            contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}},
         )
 
     def test_use_first_span_for_name(self):
@@ -939,7 +935,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
 
     def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
             if query is None:
@@ -1117,7 +1116,10 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
             if query is None:
@@ -1126,7 +1128,10 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,

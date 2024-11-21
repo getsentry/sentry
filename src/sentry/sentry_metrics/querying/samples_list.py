@@ -11,7 +11,6 @@ from sentry import options
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
@@ -141,7 +140,9 @@ class AbstractSamplesListExecutor(ABC):
                 [
                     Condition(builder.column("span.group"), Op.EQ, key.group),
                     Condition(
-                        builder.column("timestamp"), Op.EQ, datetime.fromisoformat(key.timestamp)
+                        builder.column("timestamp"),
+                        Op.EQ,
+                        datetime.fromisoformat(key.timestamp),
                     ),
                 ]
             )
@@ -910,74 +911,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             return True
         return False
 
-    def get_matching_traces(self, limit: int) -> tuple[list[str], list[datetime]]:
-        builder = MetricsSummariesQueryBuilder(
-            Dataset.MetricsSummaries,
-            params={},
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=["trace", "timestamp"],
-            # The orderby is intentionally `None` here as this query is much faster
-            # if we let Clickhouse decide which order to return the results in.
-            # This also means we cannot order by any columns or paginate.
-            orderby=None,
-            limit=limit,
-            limitby=("trace", 1),
-        )
-
-        additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
-
-        query_results = builder.run_query(self.referrer.value)
-        results = builder.process_results(query_results)
-
-        trace_ids = [row["trace"] for row in results["data"]]
-        timestamps = [datetime.fromisoformat(row["timestamp"]) for row in results["data"]]
-        return trace_ids, timestamps
-
-    def get_matching_spans_from_traces(
-        self,
-        trace_ids: list[str],
-        max_spans_per_trace: int,
-    ) -> list[SpanKey]:
-        builder = MetricsSummariesQueryBuilder(
-            Dataset.MetricsSummaries,
-            params={},
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=["span.group", "timestamp", "id"],
-            # The orderby is intentionally `None` here as this query is much faster
-            # if we let Clickhouse decide which order to return the results in.
-            # This also means we cannot order by any columns or paginate.
-            orderby=None,
-            limit=len(trace_ids) * max_spans_per_trace,
-            limitby=("trace", max_spans_per_trace),
-        )
-
-        trace_id_condition = Condition(Column("trace_id"), Op.IN, trace_ids)
-        additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions(
-            [
-                trace_id_condition,
-                *additional_conditions,
-                *min_max_conditions,
-            ]
-        )
-
-        query_results = builder.run_query(self.referrer.value)
-        results = builder.process_results(query_results)
-
-        return [
-            SpanKey(
-                group=row["span.group"],
-                timestamp=row["timestamp"],
-                span_id=row["id"],
-            )
-            for row in results["data"]
-        ]
-
     def _get_spans(
         self,
         span_keys: list[SpanKey],
@@ -998,153 +931,6 @@ class CustomSamplesListExecutor(AbstractSamplesListExecutor):
             row["summary"] = summaries[span_id]
 
         return result
-
-    def get_matching_spans_sorted(self, offset, limit):
-        span_keys, summaries = self.get_sorted_span_keys(offset, limit)
-        return self._get_spans(span_keys, summaries)
-
-    def get_sorted_span_keys(
-        self,
-        offset: int,
-        limit: int,
-    ) -> tuple[list[SpanKey], dict[str, Summary]]:
-        assert self.sort
-        sort = self.convert_sort(self.sort, self.operation)
-        assert sort is not None
-        direction, sort_column = sort
-
-        fields = [
-            "id",
-            "timestamp",
-            "span.group",
-            "min_metric",
-            "max_metric",
-            "sum_metric",
-            "count_metric",
-        ]
-        if sort_column not in fields:
-            fields.append(sort_column)
-
-        builder = MetricsSummariesQueryBuilder(
-            Dataset.MetricsSummaries,
-            params={},
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=fields,
-            orderby=f"{direction}{sort_column}",
-            limit=limit,
-            offset=offset,
-            # This table has a poor SAMPLE BY so DO NOT use it for now
-            # sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "example"]),
-        )
-
-        additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
-
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-
-        span_keys = [
-            SpanKey(
-                group=row["span.group"],
-                timestamp=row["timestamp"],
-                span_id=row["id"],
-            )
-            for row in result["data"]
-        ]
-
-        """
-        The indexed spans dataset does not contain any metric related
-        data. To propagate these values, we read it from the metric
-        summaries table, and copy them to the results in the next step.
-        """
-        summaries = {
-            cast(str, row["id"]): cast(
-                Summary,
-                {
-                    "min": row["min_metric"],
-                    "max": row["max_metric"],
-                    "sum": row["sum_metric"],
-                    "count": row["count_metric"],
-                },
-            )
-            for row in result["data"]
-        }
-
-        return span_keys, summaries
-
-    def get_matching_spans_unsorted(self, offset, limit):
-        span_keys, summaries = self.get_unsorted_span_keys(offset, limit)
-        return self._get_spans(span_keys, summaries)
-
-    def get_unsorted_span_keys(
-        self,
-        offset: int,
-        limit: int,
-    ) -> tuple[list[SpanKey], dict[str, Summary]]:
-        builder = MetricsSummariesQueryBuilder(
-            Dataset.MetricsSummaries,
-            params={},
-            snuba_params=self.snuba_params,
-            query=self.query,
-            selected_columns=[
-                f"rounded_timestamp({self.rollup})",
-                f"examples({self.num_samples}) AS examples",
-            ],
-            limit=limit,
-            offset=offset,
-            # This table has a poor SAMPLE BY so DO NOT use it for now
-            # sample_rate=options.get("metrics.sample-list.sample-rate"),
-            config=QueryBuilderConfig(functions_acl=["rounded_timestamp", "examples"]),
-        )
-
-        additional_conditions = self.get_additional_conditions(builder)
-        min_max_conditions = self.get_min_max_conditions(builder)
-        builder.add_conditions([*additional_conditions, *min_max_conditions])
-
-        query_results = builder.run_query(self.referrer.value)
-        result = builder.process_results(query_results)
-
-        # 7 here refers to the avg value which is the default
-        # if the operaton doesn't have metric it should sort by
-        index = self.EXAMPLES_SORT_KEY.get(self.operation or "", 7)  # sort by metric
-        metric_key = lambda example: example[index]
-
-        for row in result["data"]:
-            row["examples"] = pick_samples(row["examples"], metric_key=metric_key)
-
-        span_keys = [
-            SpanKey(
-                group=example[0],
-                timestamp=example[1],
-                span_id=example[2],
-            )
-            for row in result["data"]
-            for example in row["examples"]
-        ][:limit]
-
-        """
-        The indexed spans dataset does not contain any metric related
-        data. To propagate these values, we read it from the metric
-        summaries table, and copy them to the results in the next step.
-        """
-        summaries = {
-            cast(str, example[2]): cast(
-                Summary,
-                {
-                    "min": example[3],
-                    "max": example[4],
-                    "sum": example[5],
-                    "count": example[6],
-                },
-            )
-            for row in result["data"]
-            for example in row["examples"]
-        }
-
-        return span_keys, summaries
 
     def get_additional_conditions(self, builder: BaseQueryBuilder) -> list[Condition]:
         return [
