@@ -564,7 +564,7 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 
 // Feature flag onboarding platforms
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
-  // 'javascript',
+  'javascript',
   'python',
 ];
 

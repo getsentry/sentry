@@ -1,4 +1,4 @@
-import {PROVIDER_OPTION_TO_LABELS} from 'sentry/components/events/featureFlags/utils';
+import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
@@ -16,6 +16,22 @@ import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingSt
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+type FlagImports = {
+  integration: string; // what's in the integrations array
+  module: string; // what's imported from sentry_sdk.integrations
+};
+
+const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
+  [IntegrationOptions.LAUNCHDARKLY]: {
+    module: 'launchdarkly',
+    integration: 'LaunchDarklyIntegration',
+  },
+  [IntegrationOptions.OPENFEATURE]: {
+    module: 'OpenFeature',
+    integration: 'OpenFeatureIntegration',
+  },
+};
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
@@ -234,7 +250,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
       type: StepType.CONFIGURE,
       description: tct('Add [name] to your integrations list.', {
         name: (
-          <code>{`${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}()`}</code>
+          <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
         ),
       }),
       configurations: [
@@ -242,12 +258,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
           language: 'python',
           code: `
 import sentry-sdk
-from sentry_sdk.integrations.${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonModule} import ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}
+from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
 
 sentry_sdk.init(
   dsn="${dsn.public}",
   integrations=[
-    ${PROVIDER_OPTION_TO_LABELS[featureFlagOptions.integration].pythonIntegration}(),
+    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
   ]
 )`,
         },

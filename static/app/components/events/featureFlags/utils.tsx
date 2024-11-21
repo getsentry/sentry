@@ -115,31 +115,14 @@ export const sortedFlags = ({
 
 export enum ProviderOptions {
   LAUNCHDARKLY = 'LaunchDarkly',
+}
+
+export enum IntegrationOptions {
+  LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
 }
 
-type Labels = {
-  pythonIntegration: string; // what's in the integrations array
-  pythonModule: string; // what's imported from sentry_sdk.integrations
-};
-
-// to organize this better, we could do something like
-// [ProviderOptions.LAUNCHDARKLY]: {
-//    python: {
-//        module: 'launchdarkly',
-//        integration 'LaunchDarklyIntegration',
-//    },
-//    javascript: {
-//        ...
-//    }
-// }
-export const PROVIDER_OPTION_TO_LABELS: Record<ProviderOptions, Labels> = {
-  [ProviderOptions.LAUNCHDARKLY]: {
-    pythonModule: 'launchdarkly',
-    pythonIntegration: 'LaunchDarklyIntegration',
-  },
-  [ProviderOptions.OPENFEATURE]: {
-    pythonModule: 'OpenFeature',
-    pythonIntegration: 'OpenFeatureIntegration',
-  },
+export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string> = {
+  [ProviderOptions.LAUNCHDARKLY]:
+    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
 };

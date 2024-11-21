@@ -1,6 +1,9 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import OnboardingIntegrationSection from 'sentry/components/events/featureFlags/onboardingIntegrationSection';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
@@ -8,14 +11,17 @@ import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface FeatureFlagOnboardingLayoutProps extends OnboardingLayoutProps {
   integration?: string;
   provider?: string;
+  skipConfig?: boolean;
 }
 
 export function FeatureFlagOnboardingLayout({
@@ -28,6 +34,7 @@ export function FeatureFlagOnboardingLayout({
   configType = 'onboarding',
   integration = '',
   provider = '',
+  skipConfig,
 }: FeatureFlagOnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -35,6 +42,7 @@ export function FeatureFlagOnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const [skipSteps, setSkipSteps] = useState(skipConfig);
 
   const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
@@ -87,11 +95,23 @@ export function FeatureFlagOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        <Steps>
-          {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
-          ))}
-        </Steps>
+        {!skipConfig ? null : (
+          <Alert type="info" showIcon>
+            <Flex gap={space(3)}>
+              {t('Feature flag integration detected. Please follow the remaining steps.')}
+              <Button onClick={() => setSkipSteps(!skipSteps)}>
+                {skipSteps ? t('Show Full Guide') : t('Hide Full Guide')}
+              </Button>
+            </Flex>
+          </Alert>
+        )}
+        {!skipSteps && (
+          <Steps>
+            {steps.map(step => (
+              <Step key={step.title ?? step.type} {...step} />
+            ))}
+          </Steps>
+        )}
         <OnboardingIntegrationSection provider={provider} integration={integration} />
       </Wrapper>
     </AuthTokenGeneratorProvider>
