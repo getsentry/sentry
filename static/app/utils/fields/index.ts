@@ -816,17 +816,17 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
-  AggregationKey.COUNT,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
   AggregationKey.AVG,
-  AggregationKey.SUM,
+  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
+  AggregationKey.SUM,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
 ];
 
 export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {

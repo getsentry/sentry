@@ -54,6 +54,7 @@ function SimilarStackTrace({project}: Props) {
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
+  // similarity-embeddings feature is only available on project details
   const hasSimilarityEmbeddingsFeature =
     projectData?.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';

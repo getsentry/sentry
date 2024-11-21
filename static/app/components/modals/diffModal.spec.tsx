@@ -30,7 +30,7 @@ describe('DiffModal', function () {
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/`,
-      body: {features: ['']},
+      body: {features: []},
     });
 
     const styledWrapper = styled(c => c.children);

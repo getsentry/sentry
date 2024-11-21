@@ -31,14 +31,7 @@ function useSampleFieldsImpl({
       return fields;
     }
 
-    return [
-      'span_id',
-      'project',
-      'span.op',
-      'span.description',
-      'span.duration',
-      'timestamp',
-    ];
+    return ['id', 'project', 'span.op', 'span.description', 'span.duration', 'timestamp'];
   }, [location.query.field]);
 
   const setSampleFields = useCallback(
