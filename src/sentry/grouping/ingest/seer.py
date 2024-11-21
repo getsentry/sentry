@@ -47,6 +47,9 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
         _has_customized_fingerprint(event, variants)
         or killswitch_enabled(project.id, event)
         or _circuit_breaker_broken(event, project)
+        # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
+        # because it calculates the stacktrace string, which we only want to spend the time to do if we already
+        # know the other checks have passed.
         or _has_empty_stacktrace_string(event, variants)
         # **Do not add any new checks after this.** The rate limit check MUST remain the last of all
         # the checks.
@@ -180,9 +183,6 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
     stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
-    # store the stacktrace string in the event so we only calculate it once and so that
-    # we only calculate it if none of the previous checks in should_call_seer_for_grouping fail
-    event.data["stacktrace_string"] = stacktrace_string
     if stacktrace_string == "":
         metrics.incr(
             "grouping.similarity.did_call_seer",
@@ -193,6 +193,9 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
             },
         )
         return True
+    # Store the stacktrace string in the event so we only calculate it once. (We don't need to worry about it being
+    # accidentally stored in the database because only the data in `event.data.data` gets stored.)
+    event.data["stacktrace_string"] = stacktrace_string
     return False
 
 
@@ -218,7 +221,6 @@ def get_seer_similar_issues(
         "referrer": "ingest",
         "use_reranking": options.get("seer.similarity.ingest.use_reranking"),
     }
-    event.data.pop("stacktrace_string", None)
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)

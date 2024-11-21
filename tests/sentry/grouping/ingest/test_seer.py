@@ -1,15 +1,13 @@
 from dataclasses import asdict
 from time import time
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -46,9 +44,6 @@ class ShouldCallSeerTest(TestCase):
             data=self.event_data,
         )
         self.variants = self.event.get_grouping_variants()
-        self.stacktrace_string = get_stacktrace_string(
-            get_grouping_info_from_variants(self.variants)
-        )
         self.primary_hashes = self.event.get_hashes()
 
     def test_obeys_feature_enablement_check(self) -> None:
@@ -156,9 +151,9 @@ class ShouldCallSeerTest(TestCase):
                 "_fingerprint_info": {
                     "matched_rule": {
                         "is_builtin": True,
-                        "matchers": [["family", "python"]],
+                        "matchers": [["type", "FailedToFetchError"]],
                         "fingerprint": ["failedtofetcherror"],
-                        "text": "text",
+                        "text": 'type:"FailedToFetchError" -> "failedtofetcherror"',
                     }
                 },
             },
@@ -176,7 +171,7 @@ class ShouldCallSeerTest(TestCase):
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
     @patch("sentry.grouping.ingest.seer.metrics")
-    def test_obeys_empty_stacktrace_string(self, mock_metrics: Mock) -> None:
+    def test_obeys_empty_stacktrace_string_check(self, mock_metrics: Mock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         new_event = Event(
             project_id=self.project.id,
@@ -184,27 +179,25 @@ class ShouldCallSeerTest(TestCase):
             data={
                 "title": "title",
                 "platform": "python",
+                "stacktrace": {"in-app": False, "contributes": False, "frames": [{}]},
             },
         )
-        with patch(
-            "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
-            return_value=True,
-        ):
-            assert (
-                should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
-            )
+
+        assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        assert (
-            call(
-                "grouping.similarity.did_call_seer",
-                sample_rate=sample_rate,
-                tags={
-                    "call_made": False,
-                    "blocker": "empty-stacktrace-string",
-                },
-            )
-            in mock_metrics.incr.call_args_list
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=sample_rate,
+            tags={
+                "call_made": False,
+                "blocker": "empty-stacktrace-string",
+            },
         )
+
+    def test_stacktrace_string_not_saved_in_event(self):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        should_call_seer_for_grouping(self.event, self.event.get_grouping_variants())
+        assert self.event.data.get("stackrace") is None
 
 
 class GetSeerSimilarIssuesTest(TestCase):
@@ -261,8 +254,6 @@ class GetSeerSimilarIssuesTest(TestCase):
         ):
             should_call_seer_for_grouping(new_event, new_event.get_grouping_variants())
         get_seer_similar_issues(new_event)
-
-        assert new_event.data.get("stacktrace_string") is None
 
         mock_get_similarity_data.assert_called_with(
             {
