@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0775_add_dashboard_permissions_model"),
     ]

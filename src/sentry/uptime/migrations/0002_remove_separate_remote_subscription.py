@@ -22,6 +22,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("uptime", "0001_uptime_subscriptions"),
         ("remote_subscriptions", "0001_remote_subscription"),

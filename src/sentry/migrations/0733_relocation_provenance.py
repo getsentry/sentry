@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0732_add_span_attribute_extraction_rules"),
     ]

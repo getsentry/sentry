@@ -18,6 +18,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0555_set_neglectedrule_email_date_columns_nullable"),
     ]

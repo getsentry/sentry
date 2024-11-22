@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("uptime", "0017_unique_on_timeout"),
     ]
