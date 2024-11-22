@@ -218,15 +218,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               label={t('Headers')}
               flexibleControlStateSize
             />
-            <BooleanField
-              name="traceSampling"
-              label={t('Allow Sampling')}
-              showHelpInTooltip
-              help={t(
-                'Allows uptime checks to trigger traces if the checked service is configured with a Sentry SDK.'
-              )}
-              flexibleControlStateSize
-            />
             <TextareaField
               name="body"
               label={t('Body')}
@@ -236,6 +227,15 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               autosize
               monospace
               placeholder='{"key": "value"}'
+              flexibleControlStateSize
+            />
+            <BooleanField
+              name="traceSampling"
+              label={t('Allow Sampling')}
+              showHelpInTooltip
+              help={t(
+                'Allows uptime checks to trigger traces if the checked service is configured with a Sentry SDK.'
+              )}
               flexibleControlStateSize
             />
           </ConfigurationPanel>
