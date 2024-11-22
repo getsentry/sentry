@@ -27,16 +27,6 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="alertrule",
-            name="excluded_projects",
-            field=models.ManyToManyField(
-                null=True,
-                related_name="alert_rule_exclusions",
-                through="sentry.AlertRuleExcludedProjects",
-                to="sentry.project",
-            ),
-        ),
         SafeRemoveField(
             model_name="alertrule",
             name="excluded_projects",
