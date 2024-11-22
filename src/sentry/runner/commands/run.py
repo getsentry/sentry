@@ -301,6 +301,7 @@ def taskbroker_integration_test(
     max_restart_duration: int,
 ) -> None:
     import random
+    import sqlite3
     import subprocess
     import threading
     import time
@@ -333,6 +334,10 @@ def taskbroker_integration_test(
                 except Exception:
                     process.kill()
 
+    if num_consumers < 1:
+        print("Number of consumers must be greater than 0")
+        return
+
     # First check if taskdemo topic exists
     print("Checking if taskdemo topic already exists")
     check_topic_cmd = [
@@ -346,7 +351,6 @@ def taskbroker_integration_test(
     ]
     result = subprocess.run(check_topic_cmd, check=True, capture_output=True, text=True)
     topics = result.stdout.strip().split("\n")
-
     # Create taskdemo Kafka topic with 32 partitions
     if "task-worker" not in topics:
         print("task-worker topic does not exist, creating it with 32 partitions")
@@ -390,7 +394,7 @@ def taskbroker_integration_test(
     print("Creating config files for consumers in taskbroker/tests")
     consumer_configs = {
         f"config_{i}.yml": {
-            "db_path": f"db_{i}.sqlite",
+            "db_path": f"db_{i}_{int(time.time())}.sqlite",
             "kafka_topic": "task-worker",
             "kafka_consumer_group": "task-worker-integration-test",
             "kafka_auto_offset_reset": "earliest",
@@ -438,25 +442,39 @@ def taskbroker_integration_test(
     except Exception:
         raise
 
-    query_prelude = "".join([f"attach 'db_{i}.sqlite' as db{i};\n" for i in range(num_consumers)])
-
+    attach_db_stmt = "".join(
+        [
+            f"attach '{config['db_path']}' as {config['db_path'].replace('.sqlite', '')};\n"
+            for config in consumer_configs.values()
+        ]
+    )
     from_stmt = "\nUNION ALL\n".join(
-        [f"    SELECT * FROM db{i}.inflight_taskactivations" for i in range(num_consumers)]
+        [
+            f"    SELECT * FROM {config['db_path'].replace('.sqlite', '')}.inflight_taskactivations"
+            for config in consumer_configs.values()
+        ]
     )
     query = f"""
-{query_prelude}
-SELECT
-    partition,
-    (max(offset) - min(offset)) + 1 AS offset_diff,
-    count(*) AS occ,
-    (max(offset) - min(offset)) + 1 - count(offset) AS delta
-FROM (
-{from_stmt}
-)
-GROUP BY partition
-ORDER BY partition;
+        SELECT
+            partition,
+            (max(offset) - min(offset)) + 1 AS offset_diff,
+            count(*) AS occ,
+            (max(offset) - min(offset)) + 1 - count(offset) AS delta
+        FROM (
+        {from_stmt}
+        )
+        GROUP BY partition
+        ORDER BY partition;
     """
-    print(f"DONE!!!\nUse the following query to validate sqlite integrity:\n{query}")
+
+    con = sqlite3.connect(consumer_configs["config_0.yml"]["db_path"])
+    cur = con.cursor()
+    cur.executescript(attach_db_stmt)
+    res = cur.execute(query)
+    assert all(
+        [res[3] == 0 for res in res.fetchall()]
+    )  # Assert that each value in the delta (fourth) column is 0
+    print("Taskbroker integration test completed successfully.")
 
 
 @run.command()
