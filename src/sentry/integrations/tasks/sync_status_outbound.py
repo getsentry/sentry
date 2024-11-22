@@ -2,6 +2,11 @@ from sentry import analytics, features
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+    ProjectManagementHaltReason,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group, GroupStatus
 from sentry.silo.base import SiloMode
@@ -43,14 +48,28 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
     installation = integration.get_installation(organization_id=external_issue.organization_id)
     if not (hasattr(installation, "should_sync") and hasattr(installation, "sync_status_outbound")):
         return None
-    if installation.should_sync("outbound_status"):
-        installation.sync_status_outbound(
-            external_issue, group.status == GroupStatus.RESOLVED, group.project_id
-        )
-        analytics.record(
-            "integration.issue.status.synced",
-            provider=integration.provider,
-            id=integration.id,
-            organization_id=external_issue.organization_id,
-        )
+
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.OUTBOUND_STATUS_SYNC, integration=integration
+    ).capture() as lifecycle:
+        lifecycle.add_extra("sync_task", "sync_status_outbound")
+        if installation.should_sync("outbound_status"):
+            installation.sync_status_outbound(
+                external_issue, group.status == GroupStatus.RESOLVED, group.project_id
+            )
+            analytics.record(
+                "integration.issue.status.synced",
+                provider=integration.provider,
+                id=integration.id,
+                organization_id=external_issue.organization_id,
+            )
+        else:
+            # Find a way to pass further context to this in the future
+            lifecycle.record_halt(
+                ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
+                extra={
+                    "organization_id": external_issue.organization_id,
+                    "group_id": group.id,
+                },
+            )
     return None

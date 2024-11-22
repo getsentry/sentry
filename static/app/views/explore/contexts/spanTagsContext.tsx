@@ -21,20 +21,21 @@ export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefine
 interface SpanTagsProviderProps {
   children: React.ReactNode;
   dataset: DiscoverDatasets;
+  enabled: boolean;
 }
 
-export function SpanTagsProvider({children, dataset}: SpanTagsProviderProps) {
+export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderProps) {
   const {data: indexedTags} = useSpanFieldCustomTags({
-    enabled: dataset === DiscoverDatasets.SPANS_INDEXED,
+    enabled: dataset === DiscoverDatasets.SPANS_INDEXED && enabled,
   });
 
   const numberTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP,
+    enabled: dataset === DiscoverDatasets.SPANS_EAP && enabled,
     type: 'number',
   });
 
   const stringTags: TagCollection = useTypedSpanTags({
-    enabled: dataset === DiscoverDatasets.SPANS_EAP,
+    enabled: dataset === DiscoverDatasets.SPANS_EAP && enabled,
     type: 'string',
   });
 
