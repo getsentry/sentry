@@ -192,7 +192,11 @@ function Controls({
               }}
               icon={<IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
-              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+              title={
+                !hasEditAccess
+                  ? t('You do not have permission to edit this dashboard')
+                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+              }
               priority="default"
               size="sm"
             >
@@ -226,6 +230,10 @@ function Controls({
                       });
                       onAddWidget(defaultDataset);
                     }}
+                    title={
+                      !hasEditAccess &&
+                      t('You do not have permission to edit this dashboard')
+                    }
                   >
                     {t('Add Widget')}
                   </Button>

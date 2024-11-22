@@ -143,6 +143,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         maxVisibleAvatars={1}
         avatarSize={25}
         renderUsersFirst
+        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
@@ -152,6 +153,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={25}
+        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
       />
     );
 
@@ -227,13 +229,14 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       options={allDropdownOptions}
       value={selectedOptions}
       triggerLabel={[
-        t('Edit Access:'),
-        triggerAvatars,
-        <FeatureBadge
+        <StyledFeatureBadge
           key="beta-badge"
           type="beta"
           title={t('This feature is available for early adopters and may change')}
+          tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
         />,
+        t('Edit Access:'),
+        triggerAvatars,
       ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
@@ -248,10 +251,11 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     />
   );
 
-  return isCurrentUserDashboardOwner ? (
-    dropdownMenu
-  ) : (
-    <Tooltip title={t('Only the creator of the dashboard can edit permissions')}>
+  return (
+    <Tooltip
+      title={t('Only the creator of the dashboard can edit permissions')}
+      disabled={isCurrentUserDashboardOwner || isMenuOpen}
+    >
       {dropdownMenu}
     </Tooltip>
   );
@@ -280,6 +284,11 @@ const StyledDisplayName = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
   margin-right: -3px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: 0px;
+  margin-right: 6px;
 `;
 
 const StyledBadge = styled(Badge)`
