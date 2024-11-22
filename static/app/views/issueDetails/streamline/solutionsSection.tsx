@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import useDrawer from 'sentry/components/globalDrawer';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
@@ -15,15 +14,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
-import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import {
-  hasStacktraceWithFrames,
-  SolutionsHubDrawer,
-} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
-import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({
   group,
@@ -34,7 +29,6 @@ export default function SolutionsSection({
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const {openDrawer} = useDrawer();
@@ -66,62 +60,39 @@ export default function SolutionsSection({
     );
   };
 
-  const hasGenAIConsent = organization.genAIConsent;
   const {
     data: summaryData,
     isPending: isSummaryLoading,
     isError: isSummaryError,
-  } = useGroupSummary(group.id, group.issueCategory);
-  const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
-    groupId: group.id,
-  });
+  } = useGroupSummary(group, event, project);
 
-  const isSampleError = useIsSampleEvent();
-  const hasStacktrace = event && hasStacktraceWithFrames(event);
+  const aiConfig = useAiConfig(group, event, project);
 
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures &&
-    getRegionDataFromOrganization(organization)?.name !== 'de';
-
-  const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
-  const isAutofixEnabled = issueTypeConfig.autofix;
-  const hasResources = issueTypeConfig.resources;
-
-  const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
-  const hasAutofix =
-    isAutofixEnabled && areAiFeaturesAllowed && hasStacktrace && !isSampleError;
-
-  const needsGenAIConsent =
-    !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
-
-  const needsAutofixSetup =
-    isAutofixEnabled &&
-    !isAutofixSetupLoading &&
-    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok) &&
-    areAiFeaturesAllowed;
-
-  const showCtaButton = needsGenAIConsent || hasAutofix || (hasSummary && hasResources);
-  const isButtonLoading = isAutofixSetupLoading;
+  const showCtaButton =
+    aiConfig.needsGenAIConsent ||
+    aiConfig.hasAutofix ||
+    (aiConfig.hasSummary && aiConfig.hasResources);
+  const isButtonLoading = aiConfig.isAutofixSetupLoading;
 
   const getButtonText = () => {
-    if (needsGenAIConsent) {
+    if (aiConfig.needsGenAIConsent) {
       return t('Set up Sentry AI');
     }
 
-    if (isAutofixEnabled) {
-      if (needsAutofixSetup) {
+    if (aiConfig.hasAutofix) {
+      if (aiConfig.needsAutofixSetup) {
         return t('Set up Autofix');
       }
-      return hasResources ? t('Open Resources & Autofix') : t('Open Autofix');
+      return aiConfig.hasResources ? t('Open Resources & Autofix') : t('Open Autofix');
     }
 
     return t('Open Resources');
   };
 
   const renderContent = () => {
-    if (needsGenAIConsent) {
+    if (aiConfig.needsGenAIConsent) {
       return (
         <Summary>
           <HeadlineText
@@ -135,7 +106,8 @@ export default function SolutionsSection({
       );
     }
 
-    if (hasSummary) {
+    // Show the summary's loading state if we're still loading the autofix setup
+    if (aiConfig.hasSummary) {
       return (
         <Summary>
           <GroupSummary
@@ -148,7 +120,7 @@ export default function SolutionsSection({
       );
     }
 
-    if (!hasSummary && hasResources) {
+    if (!aiConfig.hasSummary && issueTypeConfig.resources) {
       return (
         <ResourcesWrapper isExpanded={isExpanded}>
           <ResourcesContent isExpanded={isExpanded}>
@@ -173,7 +145,7 @@ export default function SolutionsSection({
       <SidebarSectionTitle style={{marginTop: 0}}>
         <HeaderContainer>
           {t('Solutions Hub')}
-          {hasSummary && (
+          {aiConfig.hasSummary && (
             <StyledFeatureBadge
               type="beta"
               title={tct(
