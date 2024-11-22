@@ -7,7 +7,10 @@ from sentry.integrations.github.integration import GitHubIntegration, build_repo
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SourceCodeSearchEndpointHaltReason,
+)
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -40,7 +43,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
                 response = installation.search_issues(query=f"repo:{repo} {query}")
             except ApiError as err:
                 if err.code == 403:
-                    lifecycle.record_halt()
+                    lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.RATE_LIMITED))
                     return Response({"detail": "Rate limit exceeded"}, status=429)
                 raise
 
@@ -65,10 +68,12 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
                 response = installation.get_client().search_repositories(full_query)
             except ApiError as err:
                 if err.code == 403:
-                    lifecyle.record_halt()
+                    lifecyle.record_halt(str(SourceCodeSearchEndpointHaltReason.RATE_LIMITED))
                     return Response({"detail": "Rate limit exceeded"}, status=429)
                 if err.code == 422:
-                    lifecyle.record_halt()
+                    lifecyle.record_halt(
+                        str(SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_OR_NO_ACCESS)
+                    )
                     return Response(
                         {
                             "detail": "Repositories could not be searched because they do not exist, or you do not have access to them."

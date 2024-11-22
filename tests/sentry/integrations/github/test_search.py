@@ -5,10 +5,12 @@ import responses
 from django.urls import reverse
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
+from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 
 @control_silo_test
@@ -148,6 +150,9 @@ class GithubSearchTest(APITestCase):
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(
+            mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_OR_NO_ACCESS.value
+        )
         # NOTE: handle_search_repositories returns without raising an API error, so for the
         # purposes of logging the GET request completes successfully
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
@@ -197,6 +202,7 @@ class GithubSearchTest(APITestCase):
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.RATE_LIMITED.value)
         # NOTE: handle_search_issues returns without raising an API error, so for the
         # purposes of logging the GET request completes successfully
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
@@ -220,6 +226,7 @@ class GithubSearchTest(APITestCase):
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.RATE_LIMITED.value)
         # NOTE: handle_search_repositories returns without raising an API error, so for the
         # purposes of logging the GET request completes successfully
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
@@ -234,6 +241,7 @@ class GithubSearchTest(APITestCase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_missing_query(self, mock_record):
@@ -244,6 +252,20 @@ class GithubSearchTest(APITestCase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS.value)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_missing_repository(self, mock_record):
+        resp = self.client.get(self.url, data={"field": "externalIssue", "query": "XYZ"})
+
+        assert resp.status_code == 400
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(
+            mock_record, SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_FIELD.value
+        )
 
     def test_invalid_field(self):
         resp = self.client.get(self.url, data={"field": "invalid-field", "query": "nope"})
@@ -270,6 +292,9 @@ class GithubSearchTest(APITestCase):
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
         assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(
+            mock_record, SourceCodeSearchEndpointHaltReason.MISSING_INTEGRATION.value
+        )
 
     def test_missing_installation(self):
         # remove organization integration aka "uninstalling" installation

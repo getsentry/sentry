@@ -9,7 +9,10 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SourceCodeSearchEndpointHaltReason,
+)
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -48,7 +51,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
                 response = installation.search_issues(query=full_query, repo=repo)
             except ApiError as e:
                 if "no issue tracker" in str(e):
-                    lifecycle.record_halt()
+                    lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER))
                     logger.info(
                         "bitbucket.issue-search-no-issue-tracker",
                         extra={"installation_id": installation.model.id, "repo": repo},

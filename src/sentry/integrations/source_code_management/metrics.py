@@ -71,9 +71,25 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
 
 class LinkAllReposHaltReason(StrEnum):
-    """Common reasons why a link all repos task may halt without success/failure."""
+    """
+    Common reasons why a link all repos task may halt without success/failure.
+    """
 
     MISSING_INTEGRATION = "missing_integration"
     MISSING_ORGANIZATION = "missing_organization"
     RATE_LIMITED = "rate_limited"
     REPOSITORY_NOT_CREATED = "repository_not_created"
+
+
+class SourceCodeSearchEndpointHaltReason(StrEnum):
+    """
+    Reasons why a SourceCodeSearchEndpoint method (handle_search_issues,
+    handle_search_repositories, or get) may halt without success/failure.
+    """
+
+    NO_ISSUE_TRACKER = "no_issue_tracker"
+    RATE_LIMITED = "rate_limited"
+    MISSING_REPOSITORY_OR_NO_ACCESS = "missing_repository_or_no_access"
+    MISSING_INTEGRATION = "missing_integration"
+    SERIALIZER_ERRORS = "serializer_errors"
+    MISSING_REPOSITORY_FIELD = "missing_repository_field"

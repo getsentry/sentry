@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    SourceCodeSearchEndpointHaltReason,
 )
 from sentry.organizations.services.organization import RpcOrganization
 
@@ -87,12 +88,12 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
             try:
                 integration: Integration = Integration.objects.get(integration_query)
             except Integration.DoesNotExist:
-                lifecycle.record_halt()
+                lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.MISSING_INTEGRATION))
                 return Response(status=404)
 
             serializer = SourceCodeSearchSerializer(data=request.query_params)
             if not serializer.is_valid():
-                lifecycle.record_halt()
+                lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.SERIALIZER_ERRORS))
                 return self.respond(serializer.errors, status=400)
 
             field = serializer.validated_data["field"]
@@ -110,7 +111,9 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
                 if self.repository_field:  # only fetch repository
                     repo = request.GET.get(self.repository_field)
                     if repo is None:
-                        lifecycle.record_halt()
+                        lifecycle.record_halt(
+                            str(SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_FIELD)
+                        )
                         return Response(
                             {"detail": f"{self.repository_field} is a required parameter"},
                             status=400,

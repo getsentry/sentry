@@ -3,9 +3,11 @@ from unittest.mock import patch
 import responses
 from django.urls import reverse
 
+from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
+from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 
 @control_silo_test
@@ -107,6 +109,7 @@ class BitbucketSearchEndpointTest(APITestCase):
         assert start1.args[0] == EventLifecycleOutcome.STARTED
         assert start2.args[0] == EventLifecycleOutcome.STARTED
         assert halt1.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, SourceCodeSearchEndpointHaltReason.NO_ISSUE_TRACKER.value)
         # NOTE: handle_search_issues returns without raising an API error, so for the
         # purposes of logging the GET request completes successfully
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
