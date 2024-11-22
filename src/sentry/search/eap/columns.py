@@ -256,6 +256,11 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="transaction.span_id",
+            internal_name="sentry.segment_id",
+            search_type="string",
+        ),
+        ResolvedColumn(
             public_alias="replay.id",
             internal_name="sentry.replay_id",
             search_type="string",
