@@ -351,7 +351,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.SPAN_INDEXED]: {
     name: DataCategoryExact.SPAN_INDEXED,
     apiName: 'span_indexed',
-    plural: 'spans_indexed',
+    plural: 'spansIndexed',
     displayName: 'stored span',
     titleName: t('Stored Spans'),
     productName: t('Tracing'),
