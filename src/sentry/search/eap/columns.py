@@ -285,6 +285,7 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("sdk.version"),
         simple_sentry_field("span.status_code"),
         simple_sentry_field("span_id"),
+        simple_sentry_field("timestamp"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),
