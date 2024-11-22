@@ -399,7 +399,6 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
-        assert chart_data["rule"]["dataset"] == "events_analytics_platform"
         assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
         series_data = chart_data["timeseriesData"][0]["data"]
         assert len(series_data) > 0
@@ -454,6 +453,7 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
+        assert chart_data["rule"]["dataset"] == "events_analytics_platform"
         assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
         series_data = chart_data["timeseriesData"][0]["data"]
         assert len(series_data) > 0
