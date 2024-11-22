@@ -457,7 +457,7 @@ def get_incident_aggregates(
                 "incidents.get_incident_aggregates.snql.query.error",
                 tags={
                     "dataset": snuba_query.dataset,
-                    "entity": EntityKey.EAPSpans,
+                    "entity": EntityKey.EAPSpans.value,
                 },
             )
             raise
