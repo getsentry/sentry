@@ -2656,7 +2656,7 @@ describe('WidgetBuilder', function () {
       });
       renderTestComponent({
         dashboard,
-        orgFeatures: [...defaultOrgFeatures],
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
         params: {
           widgetIndex: '0',
         },

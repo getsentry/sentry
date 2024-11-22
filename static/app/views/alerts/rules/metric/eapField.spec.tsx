@@ -2,7 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 
 describe('EAPField', () => {
   const organization = OrganizationFixture();
@@ -16,7 +18,11 @@ describe('EAPField', () => {
   });
 
   it('renders', () => {
-    render(<EAPField aggregate={'count(span.duration)'} onChange={() => {}} />);
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'count(span.duration)'} onChange={() => {}} />
+      </SpanTagsProvider>
+    );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/spans/fields/`,
       expect.objectContaining({
@@ -35,7 +41,11 @@ describe('EAPField', () => {
 
   it('should call onChange with the new aggregate string when switching aggregates', async () => {
     const onChange = jest.fn();
-    render(<EAPField aggregate={'count(span.duration)'} onChange={onChange} />);
+    render(
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+        <EAPField aggregate={'count(span.duration)'} onChange={onChange} />
+      </SpanTagsProvider>
+    );
     expect(fieldsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/spans/fields/`,
       expect.objectContaining({

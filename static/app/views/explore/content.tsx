@@ -149,7 +149,7 @@ export function ExploreContent(props: ExploreContentProps) {
   const [dataset] = useDataset();
 
   return (
-    <SpanTagsProvider dataset={dataset}>
+    <SpanTagsProvider dataset={dataset} enabled>
       <ExploreContentImpl {...props} />
     </SpanTagsProvider>
   );
