@@ -30,6 +30,7 @@ interface SpanSearchQueryBuilderProps {
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
@@ -59,6 +60,7 @@ export function SpanSearchQueryBuilder({
   searchSource,
   datetime,
   onSearch,
+  onBlur,
   placeholder,
   projects,
 }: SpanSearchQueryBuilderProps) {
@@ -135,6 +137,7 @@ export function SpanSearchQueryBuilder({
       initialQuery={initialQuery}
       fieldDefinitionGetter={getSpanFieldDefinition}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
@@ -155,6 +158,7 @@ export function EAPSpanSearchQueryBuilder({
   initialQuery,
   placeholder,
   onSearch,
+  onBlur,
   searchSource,
   numberTags,
   stringTags,
@@ -226,6 +230,7 @@ export function EAPSpanSearchQueryBuilder({
       initialQuery={initialQuery}
       fieldDefinitionGetter={getSpanFieldDefinition}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
