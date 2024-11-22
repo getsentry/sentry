@@ -294,6 +294,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     if is_frames_truncated and not app_hash:
         logger_extra = {
             "project_id": data.get("project_id", ""),
+            "event_id": data.get("event_id", ""),
             "hash": system_hash,
             "stacktrace_str": stacktrace_str.strip(),
         }
