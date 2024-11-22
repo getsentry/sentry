@@ -355,6 +355,10 @@ def get_events_from_nodestore(
         event._project_cache = project
         if event and event.data and event_content_has_stacktrace(event):
             grouping_info = get_grouping_info(None, project=project, event=event)
+            # Temporarily add project and event id to this for logging purposes
+            # TODO: Remove when grouping.similarity.over_threshold_system_only_frames is removed
+            grouping_info["project_id"] = project.id
+            grouping_info["event_id"] = event.event_id  # type: ignore[assignment]
             stacktrace_string = get_stacktrace_string(grouping_info)
             if stacktrace_string == "":
                 invalid_event_group_ids.append(group_id)

@@ -1,11 +1,13 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
+    MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
@@ -710,7 +712,53 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_over_30_contributing_frames(self):
+    @patch("sentry.seer.similarity.utils.logger")
+    def test_too_many_system_frames_single_exception(self, mock_logger):
+        data_system = copy.deepcopy(self.BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["system"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
+        data_system["project_id"] = self.project.id
+        data_system["event_id"] = "39485673049520"
+
+        get_stacktrace_string(data_system)
+
+        mock_logger.info.assert_called_with(
+            "grouping.similarity.over_threshold_system_only_frames",
+            extra={
+                "project_id": self.project.id,
+                "event_id": data_system["event_id"],
+                "hash": data_system["system"]["hash"],
+            },
+        )
+
+    @patch("sentry.seer.similarity.utils.logger")
+    def test_too_many_system_frames_chained_exception(self, mock_logger):
+        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["project_id"] = self.project.id
+        data_system["event_id"] = "39485673049520"
+        # Split MAX_FRAME_COUNT across the two exceptions
+        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+
+        get_stacktrace_string(data_system)
+
+        mock_logger.info.assert_called_with(
+            "grouping.similarity.over_threshold_system_only_frames",
+            extra={
+                "project_id": self.project.id,
+                "event_id": data_system["event_id"],
+                "hash": data_system["system"]["hash"],
+            },
+        )
+
+    def test_too_many_in_app_contributing_frames(self):
         """Check that when there are over 30 contributing frames, the last 30 are included."""
 
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
