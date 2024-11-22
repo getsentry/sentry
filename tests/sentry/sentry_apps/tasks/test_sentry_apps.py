@@ -120,7 +120,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        send_alert_event_v2(
+        send_alert_webhook(
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
