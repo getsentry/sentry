@@ -34,7 +34,7 @@ describe('useGroupBys', function () {
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <TestPage />
       </SpanTagsProvider>,
       {disableRouterMocks: true}

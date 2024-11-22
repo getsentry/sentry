@@ -26,7 +26,10 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
         </Layout.Page>
       )}
     >
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider
+        dataset={DiscoverDatasets.SPANS_EAP}
+        enabled={organization.features.includes('dashboards-eap')}
+      >
         <WidgetBuilder
           {...props}
           organization={organization}
