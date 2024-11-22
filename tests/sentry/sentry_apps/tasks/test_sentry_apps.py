@@ -31,7 +31,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     notify_sentry_app,
     process_resource_change_bound,
     send_alert_event,
-    send_alert_event_v2,
+    send_alert_webhook,
     send_webhooks,
     workflow_notification,
 )
