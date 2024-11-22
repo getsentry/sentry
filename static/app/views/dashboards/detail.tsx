@@ -14,6 +14,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -180,6 +181,7 @@ export function checkUserHasEditAccess(
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
+    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
     dashboardCreator?.id === currentUser.id
