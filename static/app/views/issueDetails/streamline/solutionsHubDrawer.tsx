@@ -13,7 +13,6 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -22,18 +21,15 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -102,34 +98,6 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 }
 
-const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
-  return (
-    organization.features.includes('gen-ai-features') &&
-    organization.genAIConsent &&
-    !organization.hideAiFeatures &&
-    getRegionDataFromOrganization(organization)?.name !== 'de'
-  );
-};
-
-// Autofix requires the event to have stack trace frames in order to work correctly.
-export function hasStacktraceWithFrames(event: Event) {
-  for (const entry of event.entries) {
-    if (entry.type === EntryType.EXCEPTION) {
-      if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
-        return true;
-      }
-    }
-
-    if (entry.type === EntryType.THREADS) {
-      if (entry.data.values?.some(thread => thread.stacktrace?.frames?.length)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 interface SolutionsHubDrawerProps {
   event: Event;
   group: Group;
@@ -147,30 +115,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     data: summaryData,
     isError,
     isPending: isSummaryLoading,
-  } = useGroupSummary(group.id, group.issueCategory);
-  const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
-    groupId: group.id,
-  });
+  } = useGroupSummary(group, event, project);
+  const aiConfig = useAiConfig(group, event, project);
 
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
   });
 
   const config = getConfigForIssueType(group, project);
-
-  const hasConsent = Boolean(setupData?.genAIConsent.ok);
-  const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
-
-  const hasSummary = (summaryData || isSummaryLoading) && !isError && hasConsent;
-
-  const organization = useOrganization();
-  const isSampleError = useIsSampleEvent();
-
-  const displayAiAutofix =
-    shouldDisplayAiAutofixForOrganization(organization) &&
-    config.autofix &&
-    hasStacktraceWithFrames(event) &&
-    !isSampleError;
 
   return (
     <SolutionsDrawerContainer className="solutions-drawer-container">
@@ -240,15 +192,15 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {isSetupLoading ? (
+        {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
           </div>
-        ) : !hasConsent ? (
+        ) : aiConfig.needsGenAIConsent ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
-            {hasSummary && (
+            {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary
                   data={summaryData}
@@ -257,9 +209,9 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                 />
               </StyledCard>
             )}
-            {displayAiAutofix && (
+            {aiConfig.hasAutofix && (
               <Fragment>
-                {!isAutofixSetupComplete ? (
+                {aiConfig.needsAutofixSetup ? (
                   <AutofixSetupContent groupId={group.id} projectId={project.id} />
                 ) : !autofixData ? (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
