@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconDashboard} from 'sentry/icons';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -87,7 +87,7 @@ export function AddToDashboardButton({visualizeIndex}: AddToDashboardButtonProps
     <Tooltip title={t('Add to Dashboard')}>
       <Button
         size="sm"
-        icon={<IconDashboard />}
+        icon={<IconEllipsis />}
         onClick={handleAddToDashboard}
         aria-label={t('Add to Dashboard')}
         borderless
