@@ -20,10 +20,15 @@ import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
-  dashboard: DashboardDetails;
+  dashboard: DashboardDetails | DashboardListItem;
+  listOnly?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
@@ -31,7 +36,11 @@ interface EditAccessSelectorProps {
  * Dropdown multiselect button to enable selective Dashboard editing access to
  * specific users and teams
  */
-function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorProps) {
+function EditAccessSelector({
+  dashboard,
+  onChangeEditAccess,
+  listOnly = false,
+}: EditAccessSelectorProps) {
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
   const isCurrentUserDashboardOwner = dashboardCreator?.id === currentUser.id;
@@ -124,7 +133,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" text={'All'} />
+      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
@@ -133,7 +142,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         users={[dashboardCreator]}
         teams={[teams.find(team => team.id === selectedOptions[1])!]}
         maxVisibleAvatars={1}
-        avatarSize={25}
+        avatarSize={listOnly ? 30 : 25}
         renderUsersFirst
       />
     ) : (
@@ -143,7 +152,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
-        avatarSize={25}
+        avatarSize={listOnly ? 30 : 25}
       />
     );
 
@@ -218,15 +227,20 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={[
-        t('Edit Access:'),
-        triggerAvatars,
-        <FeatureBadge
-          key="beta-badge"
-          type="beta"
-          title={t('This feature is available for early adopters and may change')}
-        />,
-      ]}
+      triggerLabel={
+        listOnly
+          ? [triggerAvatars]
+          : [
+              t('Edit Access:'),
+              triggerAvatars,
+              <FeatureBadge
+                key="beta-badge"
+                type="beta"
+                title={t('This feature is available for early adopters and may change')}
+              />,
+            ]
+      }
+      triggerProps={{borderless: listOnly}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -273,12 +287,15 @@ const StyledAvatarList = styled(AvatarList)`
   margin-right: -3px;
 `;
 
-const StyledBadge = styled(Badge)`
+const StyledBadge = styled(Badge)<{size: number}>`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
   padding: 0;
-  height: 20px;
-  width: 20px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const FilterButtons = styled(ButtonBar)`
