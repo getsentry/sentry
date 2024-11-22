@@ -21,5 +21,5 @@ __all__ = (
     "send_resource_change_webhook",
     "workflow_notification",
     "process_service_hook",
-    "send_alert_event_v2",
+    "send_alert_webhook",
 )
