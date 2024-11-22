@@ -32,7 +32,8 @@ MOCKED_DERIVED_METRICS.update(
             ],
             unit="percentage",
             snql=lambda crashed_count, errored_set, entity, metric_ids, alias=None: complement(
-                division_float(crashed_count, errored_set, alias=alias), alias="crash_free_fake"
+                division_float(crashed_count, errored_set, alias=alias),
+                alias="crash_free_fake",
             ),
         )
     }
@@ -54,7 +55,6 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 
 
 class OrganizationMetricsPermissionTest(APITestCase):
-
     endpoints = (
         (
             "get",
@@ -73,7 +73,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
             "post",
             "sentry-api-0-organization-metrics-query",
         ),
-        ("get", "sentry-api-0-organization-metrics-samples"),
     )
 
     def setUp(self):
