@@ -443,9 +443,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                         raise AuthenticationFailed("Unauthorized organization access.")
                 else:
                     # We want to limit org scoped tokens access to org level endpoints only
-                    raise AuthenticationFailed(
-                        "This token access is limited to organization endpoints."
-                    )
+                    # Or none org level endpoints that we added special treatments for
+                    if resolved_url.url_name not in ["sentry-api-0-organizations"]:
+                        raise AuthenticationFailed(
+                            "This token access is limited to organization endpoints."
+                        )
             else:
                 sentry_sdk.capture_message(
                     "Could not resolve organization for organization scoped token", level="warning"
