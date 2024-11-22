@@ -1208,6 +1208,10 @@ class EventView {
       }
     ) as EventQuery & LocationQuery;
 
+    if (eventQuery.useRpc !== '1') {
+      delete eventQuery.useRpc;
+    }
+
     if (eventQuery.team && !eventQuery.team.length) {
       delete eventQuery.team;
     }
