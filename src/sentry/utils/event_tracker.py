@@ -2,11 +2,7 @@ import logging
 from enum import StrEnum
 
 from sentry import options
-
-
-class EventType(StrEnum):
-    TRANSACTION = "transaction"
-    ERROR = "error"
+from sentry.ingest.types import ConsumerType
 
 
 class TransactionStageStatus(StrEnum):
@@ -14,10 +10,10 @@ class TransactionStageStatus(StrEnum):
     REDIS_PUT = "redis_put"
 
     # a save_transactions task is kicked off
-    SAVE_TRX_STARTED = "save_trx_started"
+    SAVE_TXN_STARTED = "save_txn_started"
 
     # a save_transactions task is finished
-    SAVE_TRX_FINISHED = "save_trx_finished"
+    SAVE_TXN_FINISHED = "save_txn_finished"
 
     # the transaction is published to the `events` topic for snuba/sbc consumers to consume
     SNUBA_TOPIC_PUT = "snuba_topic_put"
@@ -35,13 +31,15 @@ class TransactionStageStatus(StrEnum):
 logger = logging.getLogger("EventTracker")
 
 
-def track_sampled_event(event_id: str, event_type: str, status: TransactionStageStatus) -> None:
+def track_sampled_event(
+    event_id: str, consumer_type: ConsumerType, status: TransactionStageStatus
+) -> None:
     """
     Records how far an event has made it through the ingestion pipeline.
     Each event type will pick up its sampling rate from its registered option.
     """
 
-    sample_rate = options.get(f"performance.event-tracker.sample-rate.{event_type}")
+    sample_rate = options.get(f"performance.event-tracker.sample-rate.{consumer_type}")
     if sample_rate == 0:
         return
 
@@ -49,7 +47,7 @@ def track_sampled_event(event_id: str, event_type: str, status: TransactionStage
     if event_float < sample_rate:
         extra = {
             "event_id": event_id,
-            "event_type": getattr(EventType, event_type.upper(), None),
+            "consumer_type": consumer_type,
             "status": status,
         }
         _do_record(extra)
