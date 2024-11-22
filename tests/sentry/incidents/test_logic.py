@@ -72,7 +72,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
 )
 from sentry.incidents.models.incident import (
     Incident,
@@ -2373,7 +2372,6 @@ class CreateAlertRuleTriggerTest(TestCase):
         trigger = create_alert_rule_trigger(self.alert_rule, label, alert_threshold)
         assert trigger.label == label
         assert trigger.alert_threshold == alert_threshold
-        assert not AlertRuleTriggerExclusion.objects.filter(alert_rule_trigger=trigger).exists()
 
     def test_existing_label(self):
         name = "uh oh"
