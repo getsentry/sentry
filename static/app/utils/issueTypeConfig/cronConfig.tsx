@@ -23,7 +23,6 @@ const cronConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: false},
     autofix: false,
-    aiSuggestedSolution: false,
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
