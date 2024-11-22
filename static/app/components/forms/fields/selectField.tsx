@@ -125,6 +125,11 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
               <SelectControl
+                controlShouldRenderValue={!showTempNoneOption}
+                isOptionDisabled={option => {
+                  // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
+                  return option.label === NONE_SELECTED_LABEL;
+                }}
                 {...props}
                 value={showTempNoneOption ? undefined : props.value}
                 options={
@@ -142,11 +147,6 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                 inputId={id}
                 clearable={allowClear}
                 multiple={multiple}
-                controlShouldRenderValue={!showTempNoneOption}
-                isOptionDisabled={option => {
-                  // We need to notify react-select about the disabled options here as well; otherwise, they will remain clickable.
-                  return option.label === NONE_SELECTED_LABEL;
-                }}
                 components={{
                   IndicatorsContainer: ({
                     children,
