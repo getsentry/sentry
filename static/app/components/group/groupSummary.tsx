@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import Placeholder from 'sentry/components/placeholder';
 import {IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types/group';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
 
 interface GroupSummaryData {
   groupId: string;
@@ -18,14 +20,6 @@ interface GroupSummaryData {
   whatsWrong?: string | null;
 }
 
-const isSummaryEnabled = (
-  hasGenAIConsent: boolean,
-  hideAiFeatures: boolean,
-  groupCategory: IssueCategory
-) => {
-  return hasGenAIConsent && !hideAiFeatures && groupCategory === IssueCategory.ERROR;
-};
-
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
@@ -34,30 +28,26 @@ export const makeGroupSummaryQueryKey = (
   {method: 'POST'},
 ];
 
-export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
+export function useGroupSummary(
+  group: Group,
+  event: Event | null | undefined,
+  project: Project
+) {
   const organization = useOrganization();
-  // We piggyback and use autofix's genai consent check for now.
-  const {
-    data: autofixSetupData,
-    isPending: isAutofixSetupLoading,
-    isError: isAutofixSetupError,
-  } = useAutofixSetup({groupId});
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
-  const hideAiFeatures = organization.hideAiFeatures;
+  const aiConfig = useAiConfig(group, event, project);
 
   const queryData = useApiQuery<GroupSummaryData>(
-    makeGroupSummaryQueryKey(organization.slug, groupId),
+    makeGroupSummaryQueryKey(organization.slug, group.id),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, hideAiFeatures, groupCategory),
+      enabled: aiConfig.hasSummary,
     }
   );
   return {
     ...queryData,
-    isPending: isAutofixSetupLoading || queryData.isPending,
-    isError: queryData.isError || isAutofixSetupError,
-    hasGenAIConsent,
+    isPending: aiConfig.isAutofixSetupLoading || queryData.isPending,
+    isError: queryData.isError,
   };
 }
 
