@@ -11,6 +11,7 @@ import {
   IconFlag,
   IconGithub,
   IconGitlab,
+  IconGlobe,
   IconGraph,
   IconJira,
   IconLock,
@@ -53,7 +54,7 @@ export const groupActivityTypeIconMapping: Record<
   },
   [GroupActivityType.SET_UNRESOLVED]: {Component: IconClose, defaultProps: {}},
   [GroupActivityType.SET_IGNORED]: {Component: IconMute, defaultProps: {}},
-  [GroupActivityType.SET_PUBLIC]: {Component: IconLock, defaultProps: {}},
+  [GroupActivityType.SET_PUBLIC]: {Component: IconGlobe, defaultProps: {}},
   [GroupActivityType.SET_PRIVATE]: {Component: IconLock, defaultProps: {locked: true}},
   [GroupActivityType.SET_REGRESSION]: {Component: IconFire, defaultProps: {}},
   [GroupActivityType.CREATE_ISSUE]: {
