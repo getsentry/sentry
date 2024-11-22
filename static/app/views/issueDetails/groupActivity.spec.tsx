@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -8,7 +7,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  act,
   render,
   renderGlobalModal,
   screen,
@@ -23,7 +21,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 
@@ -46,10 +43,8 @@ describe('GroupActivity', function () {
 
   function createWrapper({
     activity,
-    organization: additionalOrg,
   }: {
     activity?: Group['activity'];
-    organization?: Organization;
   } = {}) {
     const group = GroupFixture({
       id: '1337',
@@ -65,28 +60,30 @@ describe('GroupActivity', function () {
       ],
       project,
     });
-    const {organization, routerProps, router} = initializeOrg({
-      organization: additionalOrg,
-    });
     GroupStore.add([group]);
+
+    const {organization, router} = initializeOrg({
+      router: {
+        params: {orgId: 'org-slug', groupId: group.id},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
+
     TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
-    return render(
-      <GroupActivity
-        {...routerProps}
-        params={{orgId: 'org-slug', groupId: group.id}}
-        group={group}
-      />,
-      {router, organization}
-    );
+    return render(<GroupActivity />, {router, organization});
   }
 
-  it('renders a NoteInput', function () {
+  it('renders a NoteInput', async function () {
     createWrapper();
-    expect(screen.getByTestId('activity-note-body')).toBeInTheDocument();
+    expect(await screen.findByTestId('activity-note-body')).toBeInTheDocument();
   });
 
-  it('renders a marked reviewed activity', function () {
+  it('renders a marked reviewed activity', async function () {
     const user = UserFixture({name: 'Samwise'});
     createWrapper({
       activity: [
@@ -100,11 +97,11 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getByText('marked this issue as reviewed')).toBeInTheDocument();
+    expect(await screen.findByText('marked this issue as reviewed')).toBeInTheDocument();
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
-  it('renders a pr activity', function () {
+  it('renders a pr activity', async function () {
     const user = UserFixture({name: 'Test User'});
     const repository = RepositoryFixture();
     createWrapper({
@@ -126,12 +123,12 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    expect((await screen.findAllByTestId('activity-item')).at(-1)).toHaveTextContent(
       'Test User has created a PR for this issue:'
     );
   });
 
-  it('renders a assigned to self activity', function () {
+  it('renders a assigned to self activity', async function () {
     const user = UserFixture({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
@@ -150,12 +147,12 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    expect((await screen.findAllByTestId('activity-item')).at(-1)).toHaveTextContent(
       /Mark assigned this issue to themselves/
     );
   });
 
-  it('renders an assigned via codeowners activity', function () {
+  it('renders an assigned via codeowners activity', async function () {
     createWrapper({
       activity: [
         {
@@ -175,12 +172,12 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    expect((await screen.findAllByTestId('activity-item')).at(-1)).toHaveTextContent(
       /Sentry auto-assigned this issue to anotheruser@sentry.io/
     );
   });
 
-  it('renders an assigned via slack activity', function () {
+  it('renders an assigned via slack activity', async function () {
     const user = UserFixture({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
@@ -200,12 +197,12 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    const item = screen.getAllByTestId('activity-item').at(-1);
+    const item = (await screen.findAllByTestId('activity-item')).at(-1);
     expect(item).toHaveTextContent(/Mark assigned this issue to anotheruser@sentry.io/);
     expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
-  it('renders an assigned via suspect commit activity', function () {
+  it('renders an assigned via suspect commit activity', async function () {
     createWrapper({
       activity: [
         {
@@ -224,14 +221,14 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    const activity = screen.getAllByTestId('activity-item').at(-1);
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
     expect(activity).toHaveTextContent(
       /Sentry auto-assigned this issue to anotheruser@sentry.io/
     );
     expect(activity).toHaveTextContent(/Assigned via Suspect Commit/);
   });
 
-  it('does not render undefined when integration is not recognized', function () {
+  it('does not render undefined when integration is not recognized', async function () {
     createWrapper({
       activity: [
         // @ts-ignore-next-line -> committing type crimes on `integration`
@@ -252,14 +249,14 @@ describe('GroupActivity', function () {
       ],
     });
 
-    const activity = screen.getAllByTestId('activity-item').at(-1);
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
     expect(activity).toHaveTextContent(
       /Sentry assigned this issue to anotheruser@sentry.io/
     );
     expect(activity).not.toHaveTextContent(/Assigned via Suspect Commit/);
   });
 
-  it('resolved in commit with no releases', function () {
+  it('resolved in commit with no releases', async function () {
     createWrapper({
       activity: [
         {
@@ -280,12 +277,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Foo Bar marked this issue as resolved in komal-commit'
     );
   });
 
-  it('resolved in commit with one release', function () {
+  it('resolved in commit with one release', async function () {
     createWrapper({
       activity: [
         {
@@ -312,12 +310,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Foo Bar marked this issue as resolved in komal-commit This commit was released in random'
     );
   });
 
-  it('resolved in commit with multiple releases', function () {
+  it('resolved in commit with multiple releases', async function () {
     createWrapper({
       activity: [
         {
@@ -359,7 +358,8 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Foo Bar marked this issue as resolved in komal-commit This commit was released in oldest-release and 3 others'
     );
   });
@@ -397,7 +397,7 @@ describe('GroupActivity', function () {
   });
 
   describe('Delete', function () {
-    let deleteMock;
+    let deleteMock: jest.Mock;
 
     beforeEach(function () {
       deleteMock = MockApiClient.addMockResponse({
@@ -407,29 +407,12 @@ describe('GroupActivity', function () {
       ConfigStore.set('user', UserFixture({id: '123', isSuperuser: true}));
     });
 
-    it('should do nothing if not present in GroupStore', async function () {
-      createWrapper();
-      renderGlobalModal();
-      act(() => {
-        // Remove note from group activity
-        GroupStore.removeActivity('1337', 'note-1');
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
-      expect(
-        screen.getByText('Are you sure you wish to delete this comment?')
-      ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      expect(deleteMock).not.toHaveBeenCalled();
-    });
-
     it('should remove remove the item from the GroupStore make a DELETE API request', async function () {
       createWrapper();
       renderGlobalModal();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+      const commentActions = await screen.findByRole('button', {name: 'Comment Actions'});
+      await userEvent.click(commentActions);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove'}));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
@@ -440,7 +423,7 @@ describe('GroupActivity', function () {
     });
   });
 
-  it('renders archived until escalating', function () {
+  it('renders archived until escalating', async function () {
     createWrapper({
       activity: [
         {
@@ -454,14 +437,12 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture(),
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar archived this issue until it escalates'
-    );
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent('Foo Bar archived this issue until it escalates');
   });
 
-  it('renders escalating with forecast and plural events', function () {
+  it('renders escalating with forecast and plural events', async function () {
     createWrapper({
       activity: [
         {
@@ -485,17 +466,17 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: OrganizationFixture(),
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activities = await screen.findAllByTestId('activity-item');
+    expect(activities.at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
     );
-    expect(screen.getAllByTestId('activity-item').at(-2)).toHaveTextContent(
+    expect(activities.at(-2)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 200 events happened in an hour'
     );
   });
 
-  it('renders escalating with forecast and singular event', function () {
+  it('renders escalating with forecast and singular event', async function () {
     createWrapper({
       activity: [
         {
@@ -509,14 +490,14 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture(),
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
     );
   });
 
-  it('renders issue unresvoled via jira', function () {
+  it('renders issue unresvoled via jira', async function () {
     createWrapper({
       activity: [
         {
@@ -533,12 +514,11 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Sentry marked this issue as unresolved via Jira'
-    );
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent('Sentry marked this issue as unresolved via Jira');
   });
 
-  it('renders issue resolved via jira', function () {
+  it('renders issue resolved via jira', async function () {
     createWrapper({
       activity: [
         {
@@ -555,12 +535,11 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Sentry marked this issue as resolved via Jira'
-    );
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent('Sentry marked this issue as resolved via Jira');
   });
 
-  it('renders escalating since it happened x times in time window', function () {
+  it('renders escalating since it happened x times in time window', async function () {
     createWrapper({
       activity: [
         {
@@ -580,12 +559,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Sentry flagged this issue as escalating because 400 events happened in 1 minute'
     );
   });
 
-  it('renders escalating since x users were affected in time window', function () {
+  it('renders escalating since x users were affected in time window', async function () {
     createWrapper({
       activity: [
         {
@@ -605,12 +585,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Sentry flagged this issue as escalating because 1 user was affected in 1 minute'
     );
   });
 
-  it('renders escalating since until date passed', function () {
+  it('renders escalating since until date passed', async function () {
     const date = new Date('2018-10-30');
     createWrapper({
       activity: [
@@ -631,12 +612,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Sentry flagged this issue as escalating because Oct 30, 2018 12:00 AM passed'
     );
   });
 
-  it('renders archived forever', function () {
+  it('renders archived forever', async function () {
     createWrapper({
       activity: [
         {
@@ -648,14 +630,12 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: OrganizationFixture(),
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar archived this issue forever'
-    );
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent('Foo Bar archived this issue forever');
   });
 
-  it('renders resolved in release with semver information', function () {
+  it('renders resolved in release with semver information', async function () {
     createWrapper({
       activity: [
         {
@@ -670,12 +650,13 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Foo Bar marked this issue as resolved in 1.0.0 (semver)'
     );
   });
 
-  it('renders resolved in next release with semver information', function () {
+  it('renders resolved in next release with semver information', async function () {
     createWrapper({
       activity: [
         {
@@ -690,13 +671,14 @@ describe('GroupActivity', function () {
         },
       ],
     });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+    const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+    expect(activity).toHaveTextContent(
       'Foo Bar marked this issue as resolved in releases greater than 1.0.0 (semver)'
     );
   });
 
   describe('regression', function () {
-    it('renders basic regression', function () {
+    it('renders basic regression', async function () {
       createWrapper({
         activity: [
           {
@@ -708,11 +690,11 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-        'Sentry marked this issue as a regression'
-      );
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+      expect(activity).toHaveTextContent('Sentry marked this issue as a regression');
     });
-    it('renders regression with version', function () {
+
+    it('renders regression with version', async function () {
       createWrapper({
         activity: [
           {
@@ -726,11 +708,13 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+      expect(activity).toHaveTextContent(
         'Sentry marked this issue as a regression in 1.0.0'
       );
     });
-    it('renders regression with semver description', function () {
+
+    it('renders regression with semver description', async function () {
       createWrapper({
         activity: [
           {
@@ -746,7 +730,7 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      const activity = screen.getAllByTestId('activity-item').at(-1);
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
       expect(activity).toHaveTextContent(
         'Sentry marked this issue as a regression in 2.0.0'
       );
@@ -754,7 +738,8 @@ describe('GroupActivity', function () {
         '2.0.0 is greater than or equal to 1.0.0 compared via semver'
       );
     });
-    it('renders regression with non-semver description', function () {
+
+    it('renders regression with non-semver description', async function () {
       createWrapper({
         activity: [
           {
@@ -770,7 +755,7 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      const activity = screen.getAllByTestId('activity-item').at(-1);
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
       expect(activity).toHaveTextContent(
         'Sentry marked this issue as a regression in abc1'
       );
@@ -779,7 +764,7 @@ describe('GroupActivity', function () {
       );
     });
 
-    it('renders a set priority activity for escalating issues', function () {
+    it('renders a set priority activity for escalating issues', async function () {
       createWrapper({
         activity: [
           {
@@ -794,11 +779,13 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+      expect(activity).toHaveTextContent(
         'Sentry updated the priority value of this issue to be high after it escalated'
       );
     });
-    it('renders a set priority activity for ongoing issues', function () {
+
+    it('renders a set priority activity for ongoing issues', async function () {
       createWrapper({
         activity: [
           {
@@ -813,12 +800,13 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+      expect(activity).toHaveTextContent(
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
       );
     });
 
-    it('renders a deleted attachment activity', function () {
+    it('renders a deleted attachment activity', async function () {
       createWrapper({
         activity: [
           {
@@ -831,9 +819,8 @@ describe('GroupActivity', function () {
           },
         ],
       });
-      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-        'deleted an attachment'
-      );
+      const activity = (await screen.findAllByTestId('activity-item')).at(-1);
+      expect(activity).toHaveTextContent('deleted an attachment');
     });
   });
 });

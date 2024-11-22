@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Timeline from 'sentry/components/timeline';
@@ -20,7 +20,9 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -28,6 +30,8 @@ import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline
 import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 function TimelineItem({
   item,
@@ -45,13 +49,15 @@ function TimelineItem({
   const {title, message} = getGroupActivityItem(
     item,
     organization,
-    group.project.id,
+    group.project,
     <strong>{authorName}</strong>,
     teams
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const Icon = iconMapping?.Component ?? null;
+  const Icon = iconMapping?.componentFunction
+    ? iconMapping.componentFunction(item.data)
+    : iconMapping?.Component ?? null;
 
   return (
     <ActivityTimelineItem
@@ -87,12 +93,24 @@ function TimelineItem({
   );
 }
 
-export default function StreamlinedActivitySection({group}: {group: Group}) {
+interface StreamlinedActivitySectionProps {
+  group: Group;
+  /**
+   * Whether the activity section is being rendered in the activity drawer.
+   * Disables collapse feature, and hides headers
+   */
+  isDrawer?: boolean;
+}
+
+export default function StreamlinedActivitySection({
+  group,
+  isDrawer,
+}: StreamlinedActivitySectionProps) {
   const organization = useOrganization();
   const {teams} = useTeamsById();
-  const [showAll, setShowAll] = useState(false);
-
-  const [inputId, setInputId] = useState(uniqueId());
+  const {baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const [inputId, setInputId] = useState(() => uniqueId());
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -100,7 +118,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
     minHeight: 140,
     group,
     projectSlugs,
-    placeholder: t('Add a comment...'),
+    placeholder: t('Add a comment\u2026'),
   };
 
   const mutators = useMutateActivity({
@@ -125,12 +143,13 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
+            trackAnalytics('issue_details.comment_deleted', {organization});
             addSuccessMessage(t('Comment removed'));
           },
         }
       );
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   const handleCreate = useCallback(
@@ -144,23 +163,40 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
+          trackAnalytics('issue_details.comment_created', {organization});
           addSuccessMessage(t('Comment posted'));
         },
       });
     },
-    [group.activity, mutators, group.id]
+    [group.activity, mutators, group.id, organization]
   );
 
   return (
     <div>
-      <Flex justify="space-between" align="center">
-        <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
-        {showAll && (
-          <TextButton borderless size="zero" onClick={() => setShowAll(false)}>
-            {t('Collapse')}
-          </TextButton>
-        )}
-      </Flex>
+      {!isDrawer && (
+        <Flex justify="space-between" align="center">
+          <SidebarSectionTitle>{t('Activity')}</SidebarSectionTitle>
+          <TextLinkButton
+            borderless
+            size="zero"
+            aria-label={t('Open activity drawer')}
+            to={{
+              pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+              query: {
+                ...location.query,
+                cursor: undefined,
+              },
+            }}
+            analyticsEventKey="issue_details.activity_drawer_opened"
+            analyticsEventName="Issue Details: Activity Drawer Opened"
+            analyticsParams={{
+              num_activities: group.activity.length,
+            }}
+          >
+            {t('View')}
+          </TextLinkButton>
+        </Flex>
+      )}
       <Timeline.Container>
         <NoteInputWithStorage
           key={inputId}
@@ -173,7 +209,7 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
           source="issue-details"
           {...noteProps}
         />
-        {(group.activity.length < 5 || showAll) &&
+        {(group.activity.length < 5 || isDrawer) &&
           group.activity.map(item => {
             return (
               <TimelineItem
@@ -185,9 +221,9 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
               />
             );
           })}
-        {!showAll && group.activity.length >= 5 && (
+        {!isDrawer && group.activity.length >= 5 && (
           <Fragment>
-            {group.activity.slice(0, 2).map(item => {
+            {group.activity.slice(0, 3).map(item => {
               return (
                 <TimelineItem
                   item={item}
@@ -200,23 +236,26 @@ export default function StreamlinedActivitySection({group}: {group: Group}) {
             })}
             <ActivityTimelineItem
               title={
-                <TextButton
-                  aria-label={t('Show all activity')}
-                  onClick={() => setShowAll(true)}
-                  borderless
-                  size="zero"
+                <LinkButton
+                  aria-label={t('View all activity')}
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
+                    query: {
+                      ...location.query,
+                      cursor: undefined,
+                    },
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.activity_expanded"
+                  analyticsEventName="Issue Details: Activity Expanded"
+                  analyticsParams={{
+                    num_activities_hidden: group.activity.length - 3,
+                  }}
                 >
-                  {t('%s activities hidden', group.activity.length - 3)}
-                </TextButton>
+                  {t('View %s more', group.activity.length - 3)}
+                </LinkButton>
               }
               icon={<RotatedEllipsisIcon direction={'up'} />}
-            />
-            <TimelineItem
-              item={group.activity[group.activity.length - 1]}
-              handleDelete={handleDelete}
-              group={group}
-              teams={teams}
-              key={group.activity[group.activity.length - 1].id}
             />
           </Fragment>
         )}
@@ -246,7 +285,7 @@ const Timestamp = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const TextButton = styled(Button)`
+const TextLinkButton = styled(LinkButton)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};

@@ -159,7 +159,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const onProjectClick = useCallback(
     (projectSlug: string) => {
-      dispatch({type: 'set query', query: `project:${projectSlug}`});
+      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
     },
     [dispatch]
   );
@@ -233,7 +233,7 @@ const ProjectsRendererWrapper = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout.Header)`
-  padding: ${space(2)} ${space(2)} !important;
+  padding: ${space(2)} ${space(2)} 0 !important;
 `;
 
 const HeaderRow = styled('div')`

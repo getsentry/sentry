@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -54,77 +55,79 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   return (
     <Fragment>
-      <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
-      <OverflowPanelItem ref={overflowRef}>
-        <Section>
-          <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
-        </Section>
+      <AnalyticsArea name="details">
+        <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
+        <OverflowPanelItem ref={overflowRef}>
+          <Section>
+            <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
+          </Section>
 
-        {!crashReportId || (crashReportId && url) ? (
-          <Section icon={<IconLink size="xs" />} title={t('URL')}>
-            <TextCopyInput
-              style={urlIsLink ? {color: theme.blue400} : undefined}
-              onClick={
-                urlIsLink
-                  ? e => {
-                      e.preventDefault();
-                      openNavigateToExternalLinkModal({linkText: displayUrl});
-                    }
-                  : () => {}
+          {!crashReportId || (crashReportId && url) ? (
+            <Section icon={<IconLink size="xs" />} title={t('URL')}>
+              <TextCopyInput
+                style={urlIsLink ? {color: theme.blue400} : undefined}
+                onClick={
+                  urlIsLink
+                    ? e => {
+                        e.preventDefault();
+                        openNavigateToExternalLinkModal({linkText: displayUrl});
+                      }
+                    : () => {}
+                }
+              >
+                {displayUrl}
+              </TextCopyInput>
+            </Section>
+          ) : null}
+
+          {crashReportId && feedbackItem.project ? (
+            <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
+              <ErrorBoundary mini>
+                <CrashReportSection
+                  organization={organization}
+                  crashReportId={crashReportId}
+                  projectSlug={feedbackItem.project.slug}
+                />
+              </ErrorBoundary>
+            </Section>
+          ) : null}
+
+          <FeedbackReplay
+            eventData={eventData}
+            feedbackItem={feedbackItem}
+            organization={organization}
+          />
+
+          {eventData ? (
+            <ErrorBoundary mini>
+              <TraceDataSection eventData={eventData} crashReportId={crashReportId} />
+            </ErrorBoundary>
+          ) : null}
+
+          <Section icon={<IconTag size="xs" />} title={t('Tags')}>
+            <TagsSection tags={tags} />
+          </Section>
+
+          {feedbackItem.project ? (
+            <Section
+              icon={<IconChat size="xs" />}
+              title={
+                <Fragment>
+                  {t('Internal Activity')}
+                  <QuestionTooltip
+                    size="xs"
+                    title={t(
+                      'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
+                    )}
+                  />
+                </Fragment>
               }
             >
-              {displayUrl}
-            </TextCopyInput>
-          </Section>
-        ) : null}
-
-        {crashReportId && feedbackItem.project ? (
-          <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
-            <ErrorBoundary mini>
-              <CrashReportSection
-                organization={organization}
-                crashReportId={crashReportId}
-                projectSlug={feedbackItem.project.slug}
-              />
-            </ErrorBoundary>
-          </Section>
-        ) : null}
-
-        <FeedbackReplay
-          eventData={eventData}
-          feedbackItem={feedbackItem}
-          organization={organization}
-        />
-
-        {eventData ? (
-          <ErrorBoundary mini>
-            <TraceDataSection eventData={eventData} crashReportId={crashReportId} />
-          </ErrorBoundary>
-        ) : null}
-
-        <Section icon={<IconTag size="xs" />} title={t('Tags')}>
-          <TagsSection tags={tags} />
-        </Section>
-
-        {feedbackItem.project ? (
-          <Section
-            icon={<IconChat size="xs" />}
-            title={
-              <Fragment>
-                {t('Internal Activity')}
-                <QuestionTooltip
-                  size="xs"
-                  title={t(
-                    'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
-                  )}
-                />
-              </Fragment>
-            }
-          >
-            <FeedbackActivitySection feedbackItem={feedbackItem as unknown as Group} />
-          </Section>
-        ) : null}
-      </OverflowPanelItem>
+              <FeedbackActivitySection feedbackItem={feedbackItem as unknown as Group} />
+            </Section>
+          ) : null}
+        </OverflowPanelItem>
+      </AnalyticsArea>
     </Fragment>
   );
 }

@@ -28,7 +28,7 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
-from sentry.monitors.clock_dispatch import try_monitor_clock_tick, update_check_in_volume
+from sentry.monitors.clock_dispatch import try_monitor_clock_tick
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
@@ -64,6 +64,7 @@ from sentry.monitors.processing_errors.errors import (
     ProcessingErrorType,
 )
 from sentry.monitors.processing_errors.manager import handle_processing_errors
+from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     get_new_timeout_at,
@@ -877,9 +878,9 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
                 # Note: We use `start_time` for received here since it's the time that this
                 # checkin was received by relay. Potentially, `ts` should be the client
                 # timestamp. If we change that, leave `received` the same.
-                mark_failed(check_in, ts=start_time, received=start_time)
+                mark_failed(check_in, failed_at=start_time, received=start_time)
             else:
-                mark_ok(check_in, ts=start_time)
+                mark_ok(check_in, succeeded_at=start_time)
 
             # track how much time it took for the message to make it through
             # relay into kafka. This should help us understand when missed
@@ -1012,8 +1013,7 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]):
         ts = message.value.timestamp
         partition = message.value.partition.index
 
-        if wrapper["message_type"] != "clock_pulse":
-            update_check_in_volume([ts])
+        update_check_in_volume([ts])
 
         try:
             try_monitor_clock_tick(ts, partition)

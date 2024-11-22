@@ -25,7 +25,7 @@ describe('ShortIdBreadcrumb', function () {
     render(<ShortIdBreadcrumb {...{organization, project, group}} />);
 
     async function clickMenuItem(name: string) {
-      await userEvent.click(screen.getByRole('button', {name: 'Short-ID copy actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Issue copy actions'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name}));
     }
 

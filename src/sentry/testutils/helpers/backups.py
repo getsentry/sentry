@@ -31,6 +31,7 @@ from sentry.backup.dependencies import (
     sorted_dependencies,
 )
 from sentry.backup.exports import (
+    ExportCheckpointer,
     export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
@@ -147,7 +148,12 @@ class ValidationError(Exception):
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
+def export_to_file(
+    path: Path,
+    scope: ExportScope,
+    filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -157,13 +163,31 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_global_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Config:
-            export_in_config_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_config_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_organization_scope(
+                tmp_file,
+                org_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_user_scope(
+                tmp_file,
+                user_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -193,7 +217,9 @@ def export_to_encrypted_tarball(
     path: Path,
     scope: ExportScope,
     *,
+    rsa_key_pair: tuple[bytes, bytes],
     filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
 ) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
@@ -201,7 +227,7 @@ def export_to_encrypted_tarball(
     """
 
     # Generate a public-private key pair.
-    (private_key_pem, public_key_pem) = generate_rsa_key_pair()
+    (private_key_pem, public_key_pem) = rsa_key_pair
     public_key_fp = io.BytesIO(public_key_pem)
 
     # Run the appropriate `export_in_...` command with encryption enabled.
@@ -211,11 +237,17 @@ def export_to_encrypted_tarball(
         # case that ever changes.
         if scope == ExportScope.Global:
             export_in_global_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Config:
             export_in_config_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Organization:
             export_in_organization_scope(
@@ -223,6 +255,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 org_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.User:
             export_in_user_scope(
@@ -230,6 +263,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 user_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
@@ -487,8 +521,9 @@ class ExhaustiveFixtures(Fixtures):
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
+        assert alert.snuba_query is not None
         AlertRuleTriggerExclusion.objects.create(
-            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.first()
+            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.get()
         )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
@@ -544,7 +579,10 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardPermissions.objects.create(is_creator_only_editable=False, dashboard=dashboard)
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
@@ -621,7 +659,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        detector = self.create_detector(organization=org)
+        detector = self.create_detector(project=project)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 

@@ -1,18 +1,16 @@
 import {cloneElement, Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import DeprecatedLine from '../../frame/deprecatedLine';
@@ -41,6 +39,7 @@ type Props = {
   hideIcon?: boolean;
   hideSourceMapDebugger?: boolean;
   isHoverPreviewed?: boolean;
+  isStackTracePreview?: boolean;
   lockAddress?: string;
   maxDepth?: number;
   mechanism?: StackTraceMechanism | null;
@@ -68,7 +67,6 @@ function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
@@ -302,37 +300,37 @@ function Content({
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper hasIconMargin={!hideIcon && hasStreamlinedUI}>
-      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
+    <Wrapper>
+      {hideIcon ? null : <StacktracePlatformIcon platform={platformIcon} />}
       <StackTraceContentPanel
         className={wrapperClassName}
         data-test-id="stack-trace-content"
+        hideIcon={hideIcon}
       >
-        <GuideAnchor target="stack_trace">
-          <StyledList data-test-id="frames">
-            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-          </StyledList>
-        </GuideAnchor>
+        <StyledList data-test-id="frames">
+          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+        </StyledList>
       </StackTraceContentPanel>
     </Wrapper>
   );
 }
 
-const Wrapper = styled('div')<{hasIconMargin: boolean}>`
+const Wrapper = styled('div')`
   position: relative;
-  margin-left: ${p => (p.hasIconMargin ? space(2) : 0)};
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-left: 0;
-  }
 `;
 
-export const StackTraceContentPanel = styled(Panel)`
+export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
   position: relative;
-  border-top-left-radius: 0;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    border-top-left-radius: ${p => p.theme.borderRadius};
-  }
   overflow: hidden;
+
+  ${p =>
+    !p.hideIcon &&
+    css`
+      border-top-left-radius: 0;
+      @media (max-width: ${p.theme.breakpoints.medium}) {
+        border-top-left-radius: ${p.theme.borderRadius};
+      }
+    `}
 `;
 
 const StyledList = styled('ul')`

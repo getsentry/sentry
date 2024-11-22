@@ -1,180 +1,61 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  GroupSummary,
-  makeGroupSummaryQueryKey,
-} from 'sentry/components/group/groupSummary';
-import {IssueCategory} from 'sentry/types/group';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 
 describe('GroupSummary', function () {
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
+  const mockSummaryData = {
+    groupId: '1',
+    whatsWrong: 'Test whats wrong',
+    trace: 'Test trace',
+    possibleCause: 'Test possible cause',
+    headline: 'Test headline',
+  };
+
+  it('renders the summary with all sections', function () {
+    render(<GroupSummary data={mockSummaryData} isError={false} isPending={false} />);
+
+    expect(screen.getByText("What's wrong")).toBeInTheDocument();
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('renders the collapsed group summary', async function () {
-    const groupId = '1';
-    const organizationSlug = 'org-slug';
+  it('shows loading state', function () {
+    render(<GroupSummary data={undefined} isError={false} isPending />);
 
-    MockApiClient.addMockResponse({
-      url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
-      method: 'POST',
-      body: {
-        groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
-        headline: 'Test headline',
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-            },
-          ],
-        },
-      },
-    });
-
-    render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
-
-    // Verify the summary loads and renders the collapsed view
-    expect(await screen.findByText('Test headline')).toBeInTheDocument();
-    expect(screen.getByText('Details: Test summary')).toBeInTheDocument();
-    expect(screen.queryByText('Impact: Test impact')).not.toBeInTheDocument();
+    // Should show loading placeholders
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // 3 placeholder cards
   });
 
-  it('expands the summary when clicked', async function () {
-    const groupId = '1';
-    const organizationSlug = 'org-slug';
+  it('shows error state', function () {
+    render(<GroupSummary data={undefined} isError isPending={false} />);
 
-    MockApiClient.addMockResponse({
-      url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
-      method: 'POST',
-      body: {
-        groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
-        headline: 'Test headline',
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-            },
-          ],
-        },
-      },
-    });
-
-    render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
-    expect(await screen.findByText('Test headline')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Test headline'));
-    expect(screen.getByText('Test summary')).toBeInTheDocument();
+    expect(screen.getByText('Error loading summary')).toBeInTheDocument();
   });
 
-  it('does not render the summary if no consent', async function () {
-    const groupId = '1';
-    const organizationSlug = 'org-slug';
+  it('hides cards with no content', function () {
+    const dataWithNulls = {
+      ...mockSummaryData,
+      trace: null,
+    };
 
-    MockApiClient.addMockResponse({
-      url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
-      method: 'POST',
-      body: {
-        groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
-        headline: 'Test headline',
-      },
-    });
+    render(<GroupSummary data={dataWithNulls} isError={false} isPending={false} />);
 
-    const setupCall = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: false},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-            },
-          ],
-        },
-      },
-    });
-
-    render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.ERROR} />);
-
-    await waitFor(() => {
-      expect(setupCall).toHaveBeenCalled();
-    });
-
-    expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+    expect(screen.getByText("What's wrong")).toBeInTheDocument();
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
-  it('does not render the summary if the issue is not in the error category', function () {
-    const groupId = '1';
-    const organizationSlug = 'org-slug';
+  it('renders in preview mode', function () {
+    render(
+      <GroupSummary data={mockSummaryData} isError={false} isPending={false} preview />
+    );
 
-    MockApiClient.addMockResponse({
-      url: makeGroupSummaryQueryKey(organizationSlug, groupId)[0],
-      method: 'POST',
-      body: {
-        groupId,
-        summary: 'Test summary',
-        impact: 'Test impact',
-        headline: 'Test headline',
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/autofix/setup/`,
-      body: {
-        genAIConsent: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          ok: true,
-          repos: [
-            {
-              provider: 'integrations:github',
-              owner: 'getsentry',
-              name: 'sentry',
-              external_id: '123',
-            },
-          ],
-        },
-      },
-    });
-
-    render(<GroupSummary groupId={groupId} groupCategory={IssueCategory.PERFORMANCE} />);
-
-    expect(screen.queryByText('Test headline')).not.toBeInTheDocument();
-    expect(screen.queryByText('Test summary')).not.toBeInTheDocument();
+    expect(screen.getByText("What's wrong")).toBeInTheDocument();
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
   });
 });

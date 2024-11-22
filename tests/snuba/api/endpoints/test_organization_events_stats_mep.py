@@ -993,6 +993,50 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         for item in data["data"]:
             assert item[1][0]["count"] == 111
 
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+        # Store an error
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "user": {"email": self.user.email},
+                "timestamp": before_now(days=1, minutes=1).isoformat(),
+                "tags": {"notMetrics": "this makes it not metrics"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store a transaction
+        transaction_data = load_data("transaction")
+        self.store_event(
+            {
+                **transaction_data,
+                "tags": {"notMetrics": "this makes it not metrics"},
+                "start_timestamp": before_now(days=1, minutes=1).isoformat(),
+                "timestamp": before_now(days=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        features = {
+            "organizations:performance-discover-dataset-selector": True,
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["count()"],
+            "query": 'notMetrics:"this makes it not metrics"',
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+
+        # First bucket, where the transaction should be
+        assert response.data["data"][0][1][0]["count"] == 1
+
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
@@ -2018,8 +2062,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "fields": {"time": "date", "epm_900": "rate"},
-            "units": {"time": None, "epm_900": None},
+            "fields": {"time": "date", "epm": "rate"},
+            "units": {"time": None, "epm": None},
             "isMetricsData": True,
             "isMetricsExtractedData": False,
             "tips": {},

@@ -165,6 +165,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
               tooltipProps={{overlayStyle: {maxWidth: 300}}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
+              aria-label={t('Event timestamp')}
             />
             {hasEventError && (
               <Fragment>
@@ -190,8 +191,8 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
           </EventInfo>
           {eventSectionConfigs.length > 0 && (
             <JumpTo>
-              <div>{t('Jump to:')}</div>
-              <ScrollCarousel gap={0.25}>
+              <div aria-hidden>{t('Jump to:')}</div>
+              <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
                 {eventSectionConfigs.map(config => (
                   <EventNavigationLink
                     key={config.key}
@@ -235,6 +236,9 @@ function EventNavigationLink({
       borderless
       size="xs"
       css={propCss}
+      analyticsEventName="Issue Details: Jump To Clicked"
+      analyticsEventKey="issue_details.jump_to_clicked"
+      analyticsParams={{section: config.key}}
     >
       {sectionLabels[config.key]}
     </LinkButton>
@@ -259,7 +263,7 @@ const EventInfoJumpToWrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: nowrap;
   }
-  box-shadow: ${p => p.theme.translucentBorder} 0 1px;
+  border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
 
 const EventInfo = styled('div')`

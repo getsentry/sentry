@@ -30,6 +30,8 @@ import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -50,8 +52,8 @@ export const BACKEND_COLUMN_TITLES = [
   'operation',
   'project',
   'tpm',
-  'p50',
-  'p95',
+  'p50()',
+  'p95()',
   'failure rate',
   'apdex',
   'users',
@@ -83,14 +85,23 @@ function BackendOverviewPage() {
     {field: 'transaction.op'},
     {field: 'project'},
     {field: 'tpm()'},
-    {field: 'p50(transaction.duration)'},
-    {field: 'p95(transaction.duration)'},
+    {field: 'p50()'},
+    {field: 'p95()'},
     {field: 'failure_rate()'},
     {field: 'apdex()'},
     {field: 'count_unique(user)'},
     {field: 'count_miserable(user)'},
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
+  const disallowedOps = [
+    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
+  ];
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addFilterValues('!transaction.op', disallowedOps);
+  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -200,6 +211,7 @@ function BackendOverviewPage() {
                     <DoubleChartRow
                       allowedCharts={doubleChartRowCharts}
                       {...sharedProps}
+                      eventView={doubleChartRowEventView}
                     />
                     <TripleChartRow
                       allowedCharts={tripleChartRowCharts}

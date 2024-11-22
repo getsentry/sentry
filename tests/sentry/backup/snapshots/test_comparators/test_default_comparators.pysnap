@@ -1,5 +1,5 @@
 ---
-created: '2024-10-30T19:48:46.854616+00:00'
+created: '2024-11-21T21:10:04.656611+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -15,6 +15,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization_id
   model_name: flags.flagauditlogmodel
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - created_by
+    - organization
+  model_name: flags.flagwebhooksigningsecretmodel
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -363,6 +369,12 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - dashboard
   model_name: sentry.dashboardpermissions
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - permissions
+    - team
+  model_name: sentry.dashboardpermissionsteam
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1242,7 +1254,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - organization
     - owner_id
-    - project_id
   model_name: sentry.release
 - comparators:
   - class: ForeignKeyComparator
@@ -1650,7 +1661,8 @@ source: tests/sentry/backup/test_comparators.py
     - date_added
     - date_updated
   - class: ForeignKeyComparator
-    fields: []
+    fields:
+    - integration_id
   model_name: workflow_engine.action
 - comparators:
   - class: DateUpdatedComparator
@@ -1706,9 +1718,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
     - organization
     - owner_team
     - owner_user_id
+    - project
     - workflow_condition_group
   model_name: workflow_engine.detector
 - comparators:
@@ -1737,7 +1751,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
+    - environment
     - organization
+    - owner_team
+    - owner_user_id
     - when_condition_group
   model_name: workflow_engine.workflow
 - comparators:

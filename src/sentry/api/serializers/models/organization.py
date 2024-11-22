@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import JSONField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -35,6 +37,7 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -57,11 +60,17 @@ from sentry.constants import (
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
@@ -474,6 +483,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
     aiSuggestedSolution: bool
+    hideAiFeatures: bool
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
@@ -592,6 +602,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
+                "hideAiFeatures": bool(
+                    obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+                ),
                 "githubPRBot": bool(
                     obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
@@ -601,7 +614,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
-                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "genAIConsent": bool(
+                    obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
+                ),
                 "aggregatedDataConsent": bool(
                     obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
                 ),
@@ -653,10 +668,30 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
 
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
-        context["isDynamicallySampled"] = (
-            has_dynamic_sampling(obj) and sample_rate is not None and sample_rate < 1.0
-        )
+        is_dynamically_sampled = False
+        sample_rate = None
+        if has_custom_dynamic_sampling(obj):
+            if is_organization_mode_sampling(obj):
+                sample_rate = obj.get_option(
+                    "sentry:target_sample_rate",
+                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
+                )
+                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+            elif is_project_mode_sampling(obj):
+                is_dynamically_sampled = (
+                    ProjectOption.objects.filter(
+                        project__organization=obj,
+                        key="sentry:target_sample_rate",
+                    )
+                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
+                    .filter(value_as_json__lt=1.0)
+                    .exists()
+                )
+        elif has_dynamic_sampling(obj):
+            sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
+            is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        context["isDynamicallySampled"] = is_dynamically_sampled
 
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:

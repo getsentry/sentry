@@ -99,8 +99,6 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -110,6 +108,8 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -2386,6 +2386,7 @@ class ProfilesSnubaTestCase(
             }
             for function in functions
         ]
+
         functions_payload = {
             "functions": functions,
             # the transaction platform doesn't quite match the
@@ -2397,6 +2398,7 @@ class ProfilesSnubaTestCase(
             "retention_days": 90,
             "timestamp": int(timestamp),
             "transaction_name": transaction["transaction"],
+            "materialization_version": 1,
         }
 
         if extras is not None:
@@ -2410,6 +2412,67 @@ class ProfilesSnubaTestCase(
 
         return {
             "transaction": transaction,
+            "functions": functions,
+        }
+
+    def store_functions_chunk(
+        self,
+        functions,
+        project,
+        profiler_id=None,
+        extras=None,
+        timestamp=None,
+    ):
+        if profiler_id is None:
+            profiler_id = uuid4().hex
+
+        # TODO: also write to chunks dataset
+        chunk_id = uuid4().hex
+
+        functions = [
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
+            for function in functions
+        ]
+
+        timestamp = (timestamp or timezone.now()).timestamp()
+
+        max_duration = max(
+            duration for function in functions for duration in function["self_times_ns"]
+        )
+
+        start = timestamp
+        end = timestamp + max_duration / 1e9
+
+        functions_payload = {
+            "functions": functions,
+            "platform": "",
+            "transaction_name": "",
+            "profile_id": profiler_id,
+            "project_id": project.id,
+            "received": int(timestamp),
+            "retention_days": 90,
+            "timestamp": int(timestamp),
+            "start_timestamp": start,
+            "end_timestamp": end,
+            "profiling_type": "continuous",
+            "materialization_version": 1,
+        }
+        if extras is not None:
+            functions_payload.update(extras)
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
+            json=[functions_payload],
+        )
+        assert response.status_code == 200
+
+        return {
+            "profiler_id": profiler_id,
+            "chunk_id": chunk_id,
             "functions": functions,
         }
 

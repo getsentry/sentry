@@ -21,12 +21,16 @@ from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsE
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.organization_sampling_project_span_counts import (
+    OrganizationSamplingProjectSpanCountsEndpoint,
+)
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
+from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
     ProjectBackfillSimilarIssuesEmbeddingsRecords,
 )
@@ -79,6 +83,7 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
+from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -95,23 +100,10 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
 )
-from sentry.incidents.endpoints.organization_incident_activity_index import (
-    OrganizationIncidentActivityIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_details import (
-    OrganizationIncidentCommentDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_index import (
-    OrganizationIncidentCommentIndexEndpoint,
-)
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from sentry.incidents.endpoints.organization_incident_subscription_index import (
-    OrganizationIncidentSubscriptionIndexEndpoint,
-)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
@@ -521,6 +513,7 @@ from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
+    OrganizationProfilingHasChunksEndpoint,
 )
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
@@ -577,12 +570,6 @@ from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
-from .endpoints.project_autofix_codebase_index_status import (
-    ProjectAutofixCodebaseIndexStatusEndpoint,
-)
-from .endpoints.project_autofix_create_codebase_index import (
-    ProjectAutofixCreateCodebaseIndexEndpoint,
-)
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
@@ -1206,21 +1193,6 @@ ORGANIZATION_URLS = [
     ),
     # Incidents
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
-        OrganizationIncidentActivityIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-activity",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$",
-        OrganizationIncidentCommentIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comments",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/(?P<activity_id>[^\/]+)/$",
-        OrganizationIncidentCommentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comment-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
         OrganizationIncidentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-incident-details",
@@ -1229,16 +1201,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/$",
         OrganizationIncidentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$",
-        OrganizationIncidentSeenEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-seen",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
-        OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-subscription-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/chunk-upload/$",
@@ -1413,6 +1375,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-rates/$",
         OrganizationSamplingProjectRatesEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-project-rates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/sampling/project-root-counts/$",
+        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
+        name="sentry-api-0-organization-sampling-root-counts",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/sdk-updates/$",
@@ -1936,6 +1903,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-user-feedback",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/user-rollback/$",
+        OrganizationRollbackUserEndpoint.as_view(),
+        name="sentry-api-0-organization-user-rollback",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/user-teams/$",
         OrganizationUserTeamsEndpoint.as_view(),
         name="sentry-api-0-organization-user-teams",
@@ -2048,9 +2020,14 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-log",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/token/(?P<token>.+)/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/$",
         OrganizationFlagsHooksEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
     # Replays
     re_path(
@@ -2168,6 +2145,11 @@ ORGANIZATION_URLS = [
                     r"^chunks/$",
                     OrganizationProfilingChunksEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-chunks",
+                ),
+                re_path(
+                    r"^has-chunks/$",
+                    OrganizationProfilingHasChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-has-chunks",
                 ),
             ],
         ),
@@ -2806,16 +2788,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/stats/$",
         ProjectMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-project-monitor-stats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/status/$",
-        ProjectAutofixCodebaseIndexStatusEndpoint.as_view(),
-        name="sentry-api-0-project-autofix-codebase-index-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/autofix/codebase-index/create/$",
-        ProjectAutofixCreateCodebaseIndexEndpoint.as_view(),
-        name="sentry-api-0-project-autofix-codebase-index-create",
     ),
     # Uptime
     re_path(

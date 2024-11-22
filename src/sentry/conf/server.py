@@ -25,6 +25,7 @@ from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
+from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
 from sentry.utils.types import Type, type_from_value
@@ -400,6 +401,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
+    "sentry.notifications",
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
@@ -672,6 +674,10 @@ SILO_DEVSERVER = os.environ.get("SENTRY_SILO_DEVSERVER", False)
 # Which silo this instance runs as (CONTROL|REGION|MONOLITH|None) are the expected values
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 
+# This supersedes SENTRY_SINGLE_TENANT and SENTRY_SELF_HOSTED.
+# An enum is better because there shouldn't be multiple "modes".
+SENTRY_MODE = SentryMode.SELF_HOSTED
+
 # If this instance is a region silo, which region is it running in?
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 
@@ -917,28 +923,13 @@ CELERY_QUEUES_REGION = [
     Queue(
         "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
     ),
-    Queue(
-        "events.reprocessing.symbolicate_event_low_priority",
-        routing_key="events.reprocessing.symbolicate_event_low_priority",
-    ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
     Queue("events.save_event_transaction", routing_key="events.save_event_transaction"),
     Queue("events.save_event_attachments", routing_key="events.save_event_attachments"),
     Queue("events.symbolicate_event", routing_key="events.symbolicate_event"),
-    Queue(
-        "events.symbolicate_event_low_priority", routing_key="events.symbolicate_event_low_priority"
-    ),
     Queue("events.symbolicate_js_event", routing_key="events.symbolicate_js_event"),
-    Queue(
-        "events.symbolicate_js_event_low_priority",
-        routing_key="events.symbolicate_js_event_low_priority",
-    ),
     Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
-    Queue(
-        "events.symbolicate_jvm_event_low_priority",
-        routing_key="events.symbolicate_jvm_event_low_priority",
-    ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
@@ -1307,15 +1298,12 @@ PROCESSING_QUEUES = [
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
-    "events.reprocessing.symbolicate_event_low_priority",
     "events.save_event",
     "events.save_event_highcpu",
     "events.save_event_attachments",
     "events.save_event_transaction",
     "events.symbolicate_event",
-    "events.symbolicate_event_low_priority",
     "events.symbolicate_js_event",
-    "events.symbolicate_js_event_low_priority",
     "post_process_errors",
     "post_process_issue_platform",
     "post_process_transactions",
@@ -1339,6 +1327,14 @@ BGTASKS = {
         "roles": ["worker"],
     },
 }
+
+# Taskworker settings #
+# The list of modules that workers will import after starting up
+# Like celery, taskworkers need to import task modules to make tasks
+# accessible to the worker.
+TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTES: dict[str, str] = {}
 
 # Sentry logs to two major places: stdout, and its internal project.
 # To disable logging to the internal project, add a logger whose only
@@ -1474,6 +1470,7 @@ if os.environ.get("OPENAPIGENERATE", False):
     }
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
+
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
@@ -2417,7 +2414,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "bigtable": lambda settings, options: (
         {
-            "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
+            "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
             "ports": {"8086/tcp": 8086},
             # NEED_BIGTABLE is set by CI so we don't have to pass
             # --skip-only-if when compiling which services to run.
@@ -2490,11 +2487,13 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
-SENTRY_SELF_HOSTED = True
+# For compatibility only. Prefer using SENTRY_MODE.
+SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
+
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.10.0"
+SELF_HOSTED_STABLE_VERSION = "24.11.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2903,6 +2902,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "monitors-incident-occurrences": "default",
     "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
@@ -2956,9 +2956,7 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # The `url` of the different Symbolicator pools.
 # We want to route different workloads to a different set of Symbolicator pools.
 # This can be as fine-grained as using a different pool for normal "native"
-# symbolication, `js` symbolication, `jvm` symbolication,
-# and `lpq` variants`of each of them.
-# (See `SENTRY_LPQ_OPTIONS` and related settings)
+# symbolication, `js` symbolication, and `jvm` symbolication.
 # The keys here should match the `SymbolicatorPools` enum
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
@@ -2970,9 +2968,6 @@ SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
     # "jvm": "...",
-    # "lpq": "...",
-    # "lpq_js": "...",
-    # "lpq_jvm": "...",
 }
 
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
@@ -3072,6 +3067,7 @@ ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
+ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+
@@ -3282,6 +3278,7 @@ SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
     "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
+    "processing-store-transactions": {},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},
 }

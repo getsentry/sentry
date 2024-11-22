@@ -29,6 +29,8 @@ const cronConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
+    issueSummary: {enabled: false},
+    filterAndSearchHeader: {enabled: false},
   },
 };
 

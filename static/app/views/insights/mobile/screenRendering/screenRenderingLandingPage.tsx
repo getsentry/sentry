@@ -29,7 +29,7 @@ export function ScreenRenderingModule() {
           headerActions={isProjectCrossPlatform && <PlatformSelector />}
         />
 
-        <ModuleBodyUpsellHook moduleName={ModuleName.APP_START}>
+        <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_RENDERING}>
           <Layout.Body>
             <Layout.Main fullWidth>
               <Container>
@@ -57,7 +57,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="screen_load"
       features={MODULE_FEATURE_MAP[ModuleName.SCREEN_RENDERING]}
-      analyticEventName="insight.page_loads.screen_load"
+      analyticEventName="insight.page_loads.screen_rendering"
     >
       <ScreenRenderingModule />
     </ModulePageProviders>

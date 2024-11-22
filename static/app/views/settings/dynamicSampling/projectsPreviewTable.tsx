@@ -1,74 +1,112 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import {space} from 'sentry/styles/space';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
+import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
+import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';
-import {useProjectSampleCounts} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const {useFormField} = organizationSamplingForm;
 
 interface Props {
-  period: '24h' | '30d';
+  isLoading: boolean;
+  sampleCounts: ProjectSampleCount[];
 }
 
-export function ProjectsPreviewTable({period}: Props) {
+export function ProjectsPreviewTable({isLoading, sampleCounts}: Props) {
   const {value: targetSampleRate, initialValue: initialTargetSampleRate} =
     useFormField('targetSampleRate');
-
-  const {data, isPending, isError, refetch} = useProjectSampleCounts({period});
 
   const debouncedTargetSampleRate = useDebouncedValue(
     targetSampleRate,
     // For longer lists we debounce the input to avoid too many re-renders
-    data.length > 100 ? 200 : 0
+    sampleCounts.length > 100 ? 200 : 0
+  );
+
+  const balancingItems = useMemo(
+    () =>
+      sampleCounts.map(item => ({
+        ...item,
+        // Add properties to match the BalancingItem type of the balanceSampleRate function
+        id: item.project.id,
+        sampleRate: 1,
+      })),
+    [sampleCounts]
   );
 
   const {balancedItems} = useMemo(() => {
-    const targetRate = Math.min(100, Math.max(0, Number(debouncedTargetSampleRate) || 0));
+    const targetRate = parsePercent(debouncedTargetSampleRate);
     return balanceSampleRate({
-      targetSampleRate: targetRate / 100,
-      items: data,
+      targetSampleRate: targetRate,
+      items: balancingItems,
     });
-  }, [debouncedTargetSampleRate, data]);
+  }, [debouncedTargetSampleRate, balancingItems]);
 
-  const initialSampleRatesBySlug = useMemo(() => {
-    const targetRate = Math.min(100, Math.max(0, Number(initialTargetSampleRate) || 0));
+  const initialSampleRateById = useMemo(() => {
+    const targetRate = parsePercent(initialTargetSampleRate);
     const {balancedItems: initialBalancedItems} = balanceSampleRate({
-      targetSampleRate: targetRate / 100,
-      items: data,
+      targetSampleRate: targetRate,
+      items: balancingItems,
     });
     return initialBalancedItems.reduce((acc, item) => {
       acc[item.id] = item.sampleRate;
       return acc;
     }, {});
-  }, [initialTargetSampleRate, data]);
+  }, [initialTargetSampleRate, balancingItems]);
 
   const itemsWithFormattedNumbers = useMemo(() => {
     return balancedItems.map(item => ({
       ...item,
-      sampleRate: formatNumberWithDynamicDecimalPoints(item.sampleRate * 100, 2),
-      initialSampleRate: formatNumberWithDynamicDecimalPoints(
-        initialSampleRatesBySlug[item.project.slug] * 100,
-        2
-      ),
+      sampleRate: formatPercent(item.sampleRate),
+      initialSampleRate: formatPercent(initialSampleRateById[item.id]),
     }));
-  }, [balancedItems, initialSampleRatesBySlug]);
+  }, [balancedItems, initialSampleRateById]);
 
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
+  const breakdownSampleRates = balancedItems.reduce((acc, item) => {
+    acc[item.id] = item.sampleRate;
+    return acc;
+  }, {});
 
   return (
-    <ProjectsTable
-      stickyHeaders
-      emptyMessage={t('No active projects found in the selected period.')}
-      isEmpty={!data.length}
-      isLoading={isPending}
-      items={itemsWithFormattedNumbers}
-    />
+    <Fragment>
+      <BreakdownPanel>
+        {isLoading ? (
+          <LoadingIndicator
+            css={css`
+              margin: ${space(4)} 0;
+            `}
+          />
+        ) : (
+          <SamplingBreakdown
+            sampleCounts={sampleCounts}
+            sampleRates={breakdownSampleRates}
+          />
+        )}
+      </BreakdownPanel>
+
+      <ProjectsTable
+        stickyHeaders
+        rateHeader={t('Estimated Rate')}
+        inputTooltip={t('To edit project sample rates, switch to manual sampling mode.')}
+        emptyMessage={t('No active projects found in the selected period.')}
+        isEmpty={!sampleCounts.length}
+        isLoading={isLoading}
+        items={itemsWithFormattedNumbers}
+      />
+    </Fragment>
   );
 }
+
+const BreakdownPanel = styled(Panel)`
+  margin-bottom: ${space(3)};
+  padding: ${space(2)};
+`;

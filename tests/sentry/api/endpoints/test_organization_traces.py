@@ -32,6 +32,12 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         duration,
         **kwargs,
     ):
+        kwargs.setdefault("measurements", {})
+        if "lcp" not in kwargs["measurements"]:
+            kwargs["measurements"]["lcp"] = duration
+        if "client_sample_rate" not in kwargs["measurements"]:
+            kwargs["measurements"]["client_sample_rate"] = 0.1
+
         # first write to the transactions dataset
         end_timestamp = timestamp + timedelta(microseconds=duration * 1000)
         data = load_data(
@@ -43,7 +49,10 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             spans=[],
             event_id=transaction_id,
         )
-        data["measurements"] = {"lcp": {"value": duration}}
+
+        for measurement, value in kwargs.get("measurements", {}).items():
+            data["measurements"][measurement] = {"value": value}
+
         if tags := kwargs.get("tags", {}):
             data["tags"] = [[key, val] for key, val in tags.items()]
 
@@ -410,6 +419,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [],
             },
             {
@@ -423,6 +433,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [],
             },
         ]
@@ -469,9 +480,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60100,
+                        "duration": 60_100,
                         "start": timestamp,
-                        "end": timestamp + 60100,
+                        "end": timestamp + 60_100,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -481,8 +492,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60100,
-                "end": timestamp + 60100,
+                "duration": 60_100,
+                "end": timestamp + 60_100,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -491,6 +502,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60_100,
             },
         ]
 
@@ -521,8 +533,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             parent_span_id=span_id_1,
             timestamp=ts,
             transaction="foo",
-            duration=15000,
-            exclusive_time=15000,
+            duration=15_000,
+            exclusive_time=15_000,
             sdk_name="sentry.javascript.node",
             op="pageload",
         )
@@ -543,9 +555,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60000,
+                        "duration": 60_000,
                         "start": timestamp,
-                        "end": timestamp + 60000,
+                        "end": timestamp + 60_000,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -555,9 +567,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.remix",
                     },
                     {
-                        "duration": 15000,
+                        "duration": 15_000,
                         "start": timestamp,
-                        "end": timestamp + 15000,
+                        "end": timestamp + 15_000,
                         "sliceStart": 0,
                         "sliceEnd": 10,
                         "sliceWidth": 10,
@@ -567,8 +579,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60000,
-                "end": timestamp + 60000,
+                "duration": 60_000,
+                "end": timestamp + 60_000,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -577,6 +589,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60_000,
             },
         ]
 
@@ -617,9 +630,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             {
                 "breakdowns": [
                     {
-                        "duration": 60100,
+                        "duration": 60_100,
                         "start": timestamp,
-                        "end": timestamp + 60100,
+                        "end": timestamp + 60_100,
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
@@ -629,8 +642,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sdkName": "sentry.javascript.node",
                     },
                 ],
-                "duration": 60100,
-                "end": timestamp + 60100,
+                "duration": 60_100,
+                "end": timestamp + 60_100,
                 "name": "foo",
                 "numErrors": 0,
                 "numOccurrences": 0,
@@ -639,6 +652,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "project": self.project.slug,
                 "start": timestamp,
                 "trace": trace_id,
+                "rootDuration": 60_100,
             },
         ]
 
@@ -737,6 +751,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 60_100,
                         "start": timestamps[0],
                         "end": timestamps[0] + 60_100,
+                        "rootDuration": 60_100,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -775,6 +790,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "duration": 90_123,
                         "start": timestamps[4],
                         "end": timestamps[4] + 90_123,
+                        "rootDuration": 90_123,
                         "breakdowns": [
                             {
                                 "project": project_1.slug,
@@ -803,7 +819,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         ],
                     },
                 ]
-
+                
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
@@ -1048,7 +1064,11 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
 
-        assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
+        if self.is_eap:
+            # When using EAP, this is extrapolated
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 20
+        else:
+            assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
@@ -2423,6 +2443,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 60_100,
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
+                "rootDuration": 60_100,
                 "breakdowns": [
                     {
                         "project": project_1.slug,
@@ -2461,6 +2482,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 "duration": 90_123,
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
+                "rootDuration": 90_123,
                 "breakdowns": [
                     {
                         "project": project_1.slug,

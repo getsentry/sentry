@@ -65,7 +65,14 @@ describe('StreamlinedActivitySection', function () {
 
     const commentInput = screen.getByRole('textbox', {name: 'Add a comment'});
     expect(commentInput).toBeInTheDocument();
-    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    expect(
+      screen.queryByRole('button', {name: 'Submit comment'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(commentInput);
+
+    // Button appears after input is focused
+    const submitButton = await screen.findByRole('button', {name: 'Submit comment'});
     expect(submitButton).toBeInTheDocument();
 
     expect(submitButton).toBeDisabled();
@@ -165,11 +172,35 @@ describe('StreamlinedActivitySection', function () {
 
     render(<StreamlinedActivitySection group={updatedActivityGroup} />);
     expect(await screen.findByText('Test Note 1')).toBeInTheDocument();
-    expect(await screen.findByText('Test Note 7')).toBeInTheDocument();
-    expect(screen.queryByText('Test Note 6')).not.toBeInTheDocument();
-    expect(await screen.findByText('4 activities hidden')).toBeInTheDocument();
+    expect(await screen.findByText('Test Note 3')).toBeInTheDocument();
+    expect(screen.queryByText('Test Note 7')).not.toBeInTheDocument();
+    expect(await screen.findByText('View 4 more')).toBeInTheDocument();
+  });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Show all activity'}));
-    expect(await screen.findByText('Test Note 6')).toBeInTheDocument();
+  it('does not collapse activity when rendered in the drawer', function () {
+    const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
+      type: GroupActivityType.NOTE,
+      id: `note-${index + 1}`,
+      data: {text: `Test Note ${index + 1}`},
+      dateCreated: '2020-01-01T00:00:00',
+      user: UserFixture({id: '2'}),
+      project,
+    }));
+
+    const updatedActivityGroup = GroupFixture({
+      id: '1338',
+      activity: activities,
+      project,
+    });
+
+    render(<StreamlinedActivitySection group={updatedActivityGroup} isDrawer />);
+
+    for (const activity of activities) {
+      expect(
+        screen.getByText((activity.data as {text: string}).text)
+      ).toBeInTheDocument();
+    }
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

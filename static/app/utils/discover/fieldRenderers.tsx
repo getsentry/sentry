@@ -302,15 +302,27 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
           ? data[field]
           : emptyValue;
+
       if (isUrl(value)) {
         return (
-          <Container>
-            <ExternalLink href={value} data-test-id="group-tag-url">
-              {value}
-            </ExternalLink>
-          </Container>
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>
+              <ExternalLink href={value} data-test-id="group-tag-url">
+                {value}
+              </ExternalLink>
+            </Container>
+          </Tooltip>
         );
       }
+
+      if (value && typeof value === 'string') {
+        return (
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>{nullableValue(value)}</Container>
+          </Tooltip>
+        );
+      }
+
       return <Container>{nullableValue(value)}</Container>;
     },
   },
@@ -352,6 +364,7 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.description': SpecialField;
   'span.status_code': SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
@@ -466,6 +479,29 @@ const SPECIAL_FIELDS: SpecialFields = {
       }
 
       return <Container>{getShortEventId(id)}</Container>;
+    },
+  },
+  'span.description': {
+    sortField: 'span.description',
+    renderFunc: data => {
+      const value = data['span.description'];
+
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
     },
   },
   trace: {

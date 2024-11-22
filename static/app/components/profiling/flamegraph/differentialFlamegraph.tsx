@@ -176,6 +176,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
   return (
     <FlamegraphZoomView
+      scheduler={props.scheduler}
       profileGroup={props.profileGroup}
       disableGrid
       disableCallOrderSort
