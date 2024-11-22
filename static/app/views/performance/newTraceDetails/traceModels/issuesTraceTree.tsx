@@ -1,5 +1,5 @@
 import {
-  isParentAutogroupedNode,
+  isCollapsedNode,
   isTraceErrorNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -10,7 +10,7 @@ import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import type {TraceTreeNode} from './traceTreeNode';
 
-const MAX_ISSUES = 20;
+const MAX_ISSUES = 10;
 
 export class IssuesTraceTree extends TraceTree {
   static FromTrace(
@@ -91,33 +91,35 @@ export class IssuesTraceTree extends TraceTree {
   }
 
   build() {
-    const queue: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    super.build();
 
-    if (this.root.expanded || isParentAutogroupedNode(this.root)) {
-      const children = TraceTree.DirectVisibleChildren(this.root);
-
-      for (let i = children.length - 1; i >= 0; i--) {
-        queue.push(children[i]);
+    // Since we only collapsed sibling nodes, it means that it is possible for the list to contain
+    // sibling collapsed nodes. We'll do a second pass to flatten these nodes and replace them with
+    // a single fake collapsed node.
+    for (let i = 0; i < this.list.length; i++) {
+      if (!isCollapsedNode(this.list[i])) {
+        continue;
       }
-    }
 
-    while (queue.length > 0) {
-      const node = queue.pop()!;
+      const start = i;
+      while (i < this.list.length && isCollapsedNode(this.list[i])) {
+        i++;
+      }
 
-      visibleChildren.push(node);
+      if (i - start > 0) {
+        const newNode = new CollapsedNode(
+          this.list[start].parent!,
+          {type: 'collapsed'},
+          this.list[start].metadata
+        );
 
-      // iterate in reverse to ensure nodes are processed in order
-      if (node.expanded || isParentAutogroupedNode(node)) {
-        const children = TraceTree.DirectVisibleChildren(node);
+        const removed = this.list.splice(start, i - start, newNode);
 
-        for (let i = children.length - 1; i >= 0; i--) {
-          queue.push(children[i]);
+        for (const node of removed) {
+          newNode.children = newNode.children.concat(node.children);
         }
       }
     }
-
-    this.list = visibleChildren;
     return this;
   }
 }

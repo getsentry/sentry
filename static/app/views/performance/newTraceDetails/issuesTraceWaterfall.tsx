@@ -164,7 +164,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       (eventId && TraceTree.FindByID(props.tree.root, eventId)) ||
       null;
 
-    // @TODO Scrolling to a node is not yet supported for issues, so always pin to the top
     const index = -1;
 
     if (index === -1 || !node) {
@@ -239,18 +238,20 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         organization={organization}
       />
       <IssuesTraceGrid layout={traceState.preferences.layout}>
-        <Trace
-          trace={props.tree}
-          rerender={rerender}
-          trace_id={props.traceSlug}
-          onRowClick={onRowClick}
-          onTraceSearch={noopTraceSearch}
-          previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-          manager={viewManager}
-          scheduler={traceScheduler}
-          forceRerender={forceRender}
-          isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-        />
+        <IssuesPointerDisabled>
+          <Trace
+            trace={props.tree}
+            rerender={rerender}
+            trace_id={props.traceSlug}
+            onRowClick={onRowClick}
+            onTraceSearch={noopTraceSearch}
+            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+            manager={viewManager}
+            scheduler={traceScheduler}
+            forceRerender={forceRender}
+            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
+          />
+        </IssuesPointerDisabled>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
           <TraceWaterfallState.Loading />
@@ -263,6 +264,12 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     </Fragment>
   );
 }
+
+const IssuesPointerDisabled = styled('div')`
+  position: relative;
+  height: 100%;
+  width: 100%;
+`;
 
 const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';

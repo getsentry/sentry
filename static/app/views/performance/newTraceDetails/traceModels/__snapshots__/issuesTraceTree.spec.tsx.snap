@@ -9,19 +9,19 @@ trace root
 "
 `;
 
+exports[`IssuesTraceTree collapses sibling collapsed nodes 1`] = `
+"
+trace root
+  transaction 1 - transaction.op
+    collapsed
+    transaction 2 - transaction.op
+    collapsed
+"
+`;
+
 exports[`IssuesTraceTree errors only 1`] = `
 "
 trace root
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
   error
   error
   error
