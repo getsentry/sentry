@@ -7,9 +7,7 @@ from sentry.integrations.github.integration import GitHubIntegration, build_repo
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeSearchEndpointInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -34,7 +32,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         with self.record_event(
-            SourceCodeSearchEndpointInteractionType.HANDLE_SEARCH_ISSUES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES
         ).capture() as lifecycle:
             assert repo
 
@@ -58,7 +56,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
         self, integration: Integration, installation: T, query: str
     ) -> Response:
         with self.record_event(
-            SourceCodeSearchEndpointInteractionType.HANDLE_SEARCH_REPOSITORIES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES
         ).capture() as lifecyle:
             assert isinstance(installation, self.installation_class)
 

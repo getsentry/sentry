@@ -9,9 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeSearchEndpointInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -41,7 +39,7 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         with self.record_event(
-            SourceCodeSearchEndpointInteractionType.HANDLE_SEARCH_ISSUES
+            SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES
         ).capture() as lifecycle:
             assert repo
 
@@ -71,8 +69,6 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
     def handle_search_repositories(
         self, integration: Integration, installation: T, query: str
     ) -> Response:
-        with self.record_event(
-            SourceCodeSearchEndpointInteractionType.HANDLE_SEARCH_REPOSITORIES
-        ).capture():
+        with self.record_event(SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES).capture():
             result = installation.get_repositories(query)
             return Response([{"label": i["name"], "value": i["name"]} for i in result])

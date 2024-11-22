@@ -4,9 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeSearchEndpointInteractionType,
-)
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
 from sentry.integrations.vsts.integration import VstsIntegration
 
@@ -24,9 +22,7 @@ class VstsSearchEndpoint(SourceCodeSearchEndpoint):
         return VstsIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
-        with self.record_event(
-            SourceCodeSearchEndpointInteractionType.HANDLE_SEARCH_ISSUES
-        ).capture():
+        with self.record_event(SCMIntegrationInteractionType.HANDLE_SEARCH_ISSUES).capture():
             if not query:
                 return Response([])
 

@@ -44,7 +44,7 @@ class SCMIntegrationInteractionType(Enum):
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
     """
-    An instance to be recorded of a RepositoryIntegration feature call.
+    An instance to be recorded of an SCM integration feature call.
     """
 
     interaction_type: SCMIntegrationInteractionType

@@ -14,8 +14,8 @@ from sentry.integrations.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.source_code_management.metrics import (
-    SourceCodeSearchEndpointInteractionEvent,
-    SourceCodeSearchEndpointInteractionType,
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
 )
 from sentry.organizations.services.organization import RpcOrganization
 
@@ -59,11 +59,11 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
         raise NotImplementedError
 
-    def record_event(self, event: SourceCodeSearchEndpointInteractionType):
+    def record_event(self, event: SCMIntegrationInteractionType):
         # XXX (mifu67): self.integration_provider is None for the GithubSharedSearchEndpoint,
         # which is used by both GitHub and GitHub Enterprise.
         provider_name = "github" if self.integration_provider is None else self.integration_provider
-        return SourceCodeSearchEndpointInteractionEvent(
+        return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=provider_name,
         )
@@ -77,7 +77,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
-        with self.record_event(SourceCodeSearchEndpointInteractionType.GET).capture() as lifecycle:
+        with self.record_event(SCMIntegrationInteractionType.GET).capture() as lifecycle:
             integration_query = Q(
                 organizationintegration__organization_id=organization.id, id=integration_id
             )
