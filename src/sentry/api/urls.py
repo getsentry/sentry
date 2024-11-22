@@ -337,6 +337,7 @@ from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndp
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
 from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
+from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -2794,6 +2795,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
     ),
+    *workflow_urls.urlpatterns,
 ]
 
 TEAM_URLS = [
