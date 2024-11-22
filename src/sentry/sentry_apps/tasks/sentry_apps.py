@@ -554,7 +554,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
             }
 
         if in_random_rollout("sentryapps.send_alert_event.use-eventid"):
-            send_alert_event_v2.delay(
+            send_alert_webhook.delay(
                 instance_id=event.event_id,
                 group_id=event.group_id,
                 occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
