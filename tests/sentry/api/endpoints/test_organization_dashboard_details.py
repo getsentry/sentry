@@ -2335,7 +2335,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_manager_or_owner_can_update_dashboard_edit_perms(self):
-        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=self.dashboard)
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
 
         user = self.create_user(id=28193)
         self.create_member(user=user, organization=self.organization, role="manager")
