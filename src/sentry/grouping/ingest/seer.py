@@ -182,7 +182,12 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    # Temporarily add project and event id to this for logging purposes
+    # TODO: Remove when grouping.similarity.over_threshold_system_only_frames is removed
+    grouping_info = get_grouping_info_from_variants(variants)
+    grouping_info["project_id"] = event.project.id  # type: ignore[assignment]
+    grouping_info["event_id"] = event.event_id  # type: ignore[assignment]
+    stacktrace_string = get_stacktrace_string(grouping_info)
     if stacktrace_string == "":
         metrics.incr(
             "grouping.similarity.did_call_seer",
