@@ -44,7 +44,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
             try:
                 response = installation.search_issues(query=full_query, project_id=repo, iids=iids)
             except ApiError as e:
-                lifecycle.record_failure(str(e))
+                lifecycle.record_failure(e)
                 return Response({"detail": str(e)}, status=400)
 
             assert isinstance(response, list)
@@ -68,7 +68,7 @@ class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
             try:
                 response = installation.search_projects(query)
             except ApiError as e:
-                lifecyle.record_failure(str(e))
+                lifecyle.record_failure(e)
                 return Response({"detail": str(e)}, status=400)
             return Response(
                 [
