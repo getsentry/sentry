@@ -16,9 +16,17 @@
     {% script %}
     <script>
       (function() {
+        const orgSlug = '{{ organization_slug|escape }}';
         const delay = {{ delay_ms|escapejs }};
         const cookie = '{{ cookie|escapejs }}';
         const token = '{{ token|escapejs }}';
+
+        if (window.location.origin === 'https://sentry.io') {
+          // User was already logged in and didn't get a redirect to the
+          // subdomained origin. Do that redirect now.
+          window.location.replace(`https://${orgSlug}.sentry.io${window.location.pathname}${window.location.search}`);
+          return;
+        }
 
         document.getElementById('close-popup').addEventListener('click', () => {
           window.close();

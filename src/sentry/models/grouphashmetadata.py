@@ -57,7 +57,9 @@ class GroupHashMetadata(Model):
     # Most recent config to produce this hash
     latest_grouping_config = models.CharField(null=True)
     # The primary grouping method (message, stacktrace, fingerprint, etc.)
-    hash_basis = models.CharField(choices=HashBasis, null=True)
+    hash_basis: models.Field[HashBasis | None, HashBasis | None] = models.CharField(
+        choices=HashBasis, null=True
+    )
     # Metadata about the inputs to the hashing process and the hashing process itself (what
     # fingerprinting rules were matched? did we parameterize the message? etc.). For the specific
     # data stored, see the class definitions of the `HashingMetadata` subtypes.
