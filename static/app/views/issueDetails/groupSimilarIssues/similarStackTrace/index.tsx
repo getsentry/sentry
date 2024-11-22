@@ -193,7 +193,7 @@ function SimilarStackTrace({project}: Props) {
       {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
         <Panel>
           <EmptyStateWarning>
-            <p>{t("There don't seem to be any similar issues.")}</p>
+            <Title>{t("There don't seem to be any similar issues.")}</Title>
           </EmptyStateWarning>
         </Panel>
       )}
