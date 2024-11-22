@@ -103,8 +103,13 @@ export function SpansTable({setError}: SpansTableProps) {
     userQuery: query,
   });
 
+  const visibleFields = useMemo(
+    () => (fields.includes('id') ? fields : ['id', ...fields]),
+    [fields]
+  );
+
   const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
+    items: visibleFields.map(field => {
       return {
         label: field,
         value: field,
@@ -122,7 +127,7 @@ export function SpansTable({setError}: SpansTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => {
+            {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
@@ -176,7 +181,7 @@ export function SpansTable({setError}: SpansTableProps) {
           ) : result.isFetched && result.data?.length ? (
             result.data?.slice(0, 50)?.map((row, i) => (
               <TableRow key={i}>
-                {fields.map((field, j) => {
+                {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
