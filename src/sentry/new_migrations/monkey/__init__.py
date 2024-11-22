@@ -1,5 +1,4 @@
 from django import VERSION
-from django.db import models
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
@@ -81,6 +80,8 @@ else:
 
 
 def monkey_migrations():
+    from django.db import models
+
     # This import needs to be below the other imports for `executor` and `writer` so
     # that we can successfully monkeypatch them.
     from django.db.migrations import executor, migration, writer

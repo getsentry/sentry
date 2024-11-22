@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import FieldDoesNotExist
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import override_settings
@@ -234,7 +235,7 @@ class LockTimeoutTest(BaseSafeMigrationTest):
             ]
 
 
-class DeletionBadDeleteModelWithoutPendingTest(BaseSafeMigrationTest):
+class DeletionModelBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
     app = "bad_flow_delete_model_without_pending_app"
     migrate_from = "0001"
     migrate_to = "0002"
@@ -247,7 +248,7 @@ class DeletionBadDeleteModelWithoutPendingTest(BaseSafeMigrationTest):
             self.run_migration()
 
 
-class DeletionBadDeleteModelDoublePendingTest(BaseSafeMigrationTest):
+class DeletionModelBadDeleteDoublePendingTest(BaseSafeMigrationTest):
     app = "bad_flow_delete_model_double_pending_app"
     migrate_from = "0001"
     migrate_to = "0003"
@@ -260,7 +261,7 @@ class DeletionBadDeleteModelDoublePendingTest(BaseSafeMigrationTest):
             self.run_migration()
 
 
-class DeletionBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
+class DeletionModelBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
     app = "bad_flow_delete_pending_with_fk_constraints_app"
     migrate_from = "0001"
     migrate_to = "0002"
@@ -275,7 +276,7 @@ class DeletionBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
             self.run_migration()
 
 
-class DeletionGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
+class DeletionModelGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
     app = "good_flow_delete_pending_with_fk_constraints_app"
     migrate_from = "0001"
     migrate_to = "0003"
@@ -290,7 +291,7 @@ class DeletionGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
         assert f"{self.app}_testtable" not in connection.introspection.table_names()
 
 
-class DeletionGoodDeleteSimple(BaseSafeMigrationTest):
+class DeletionModelGoodDeleteSimple(BaseSafeMigrationTest):
     app = "good_flow_delete_simple_app"
     migrate_from = "0001"
     migrate_to = "0003"
@@ -302,3 +303,134 @@ class DeletionGoodDeleteSimple(BaseSafeMigrationTest):
         assert f"{self.app}_testtable" in connection.introspection.table_names()
         self._run_migration(self.app, "0003_delete")
         assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class DeletionFieldBadDeleteWithoutPendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_without_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Field must be in the pending deletion state before full deletion",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeleteDoublePendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_double_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with pytest.raises(
+            FieldDoesNotExist,
+            match="TestTable has no field named 'field'",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeletePendingWithFKConstraint(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_pending_with_fk_constraint_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Foreign key db constraint must be removed before dropping "
+            "bad_flow_delete_field_pending_with_fk_constraint_app.testtable.fk_table",
+        ):
+            self.run_migration()
+
+
+class DeletionFieldBadDeletePendingWithNotNull(BaseSafeMigrationTest):
+    app = "bad_flow_delete_field_pending_with_not_null_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Field bad_flow_delete_field_pending_with_not_null_app.testtable.field "
+            "must either be nullable or have a db_default before dropping",
+        ):
+            self.run_migration()
+
+
+class ColExistsMixin:
+    app = ""
+
+    def col_exists(self, col_name):
+        with connection.cursor() as cursor:
+            table_name = f"{self.app}_testtable"
+            columns = connection.introspection.get_table_description(cursor, table_name)
+            return any(c for c in columns if c.name == col_name)
+
+
+class DeletionFieldGoodDeletePendingWithFKConstraint(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_pending_with_fk_constraint_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("fk_table_id")
+        self._run_migration(self.app, "0002_remove_constraints_and_pending")
+        assert self.col_exists("fk_table_id")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("fk_table_id")
+
+
+class DeletionFieldGoodDeletePendingWithNotNull(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_pending_with_not_null_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0002_remove_not_null_and_pending")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("field")
+
+
+class DeletionFieldGoodDeleteSimple(BaseSafeMigrationTest, ColExistsMixin):
+    app = "good_flow_delete_field_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0002_set_pending")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0003_delete")
+        assert not self.col_exists("field")
+
+
+class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
+    app = "good_flow_delete_field_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with override_settings(
+            ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="5s",
+            ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT="5s",
+        ):
+            self._run_migration(self.app, "0001_initial")
+            migration_sql = self.sql_migrate(self.app, "0002_set_pending")
+            assert split_sql_queries(migration_sql) == []
+            self._run_migration(self.app, "0002_set_pending")
+            migration_sql = self.sql_migrate(self.app, "0003_delete")
+            # This should set both the lock and statement timeouts
+            assert split_sql_queries(migration_sql) == [
+                "SET statement_timeout TO '5s';",
+                "SET lock_timeout TO '5s';",
+                'ALTER TABLE "good_flow_delete_field_simple_app_testtable" DROP COLUMN "field" CASCADE;',
+                "SET statement_timeout TO '0ms';",
+                "SET lock_timeout TO '0ms';",
+            ]
