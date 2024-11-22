@@ -381,6 +381,15 @@ class DeletionFieldBadDeletePendingWithNotNull(BaseSafeMigrationTest):
             self.run_migration()
 
 
+class DeletionFieldGoodDeletePendingWithNotNullM2M(BaseSafeMigrationTest):
+    app = "good_flow_delete_field_pending_with_not_null_m2m_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        self.run_migration()
+
+
 class ColExistsMixin:
     app = ""
 
