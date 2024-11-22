@@ -206,7 +206,7 @@ describe('AutofixMessageBox', () => {
 
   it('shows "Create PR" button when "Approve changes" is selected', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -229,7 +229,7 @@ describe('AutofixMessageBox', () => {
 
   it('shows "Create PRs" button with correct text for multiple changes', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -285,7 +285,7 @@ describe('AutofixMessageBox', () => {
 
   it('shows "Create PRs" button that opens setup modal when setup is incomplete', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -295,6 +295,14 @@ describe('AutofixMessageBox', () => {
             {ok: false, provider: 'github', owner: 'owner', name: 'hello-world', id: 100},
           ],
         },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/setup/',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
       },
     });
 
