@@ -167,7 +167,7 @@ $checkInId = \\Sentry\\captureCheckIn(
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
 \\Sentry\\captureCheckIn(
     slug: '${slug}',
-    status: CheckInStatus::error()
+    status: CheckInStatus::error(),
     checkInId: $checkInId,
 );`;
 
