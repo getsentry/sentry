@@ -16,6 +16,7 @@ from google.api_core.exceptions import ServiceUnavailable
 from sentry import features, projectoptions
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
+from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -480,6 +481,17 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     )
 
 
+def _get_event_id_from_cache_key(cache_key: str) -> str | None:
+    """
+    format is "e:{}:{}",event_id,project_id
+    """
+
+    try:
+        return cache_key.split(":")[1]
+    except IndexError:
+        return None
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -527,6 +539,18 @@ def post_process_group(
             # need to rewind history.
             data = processing_store.get(cache_key)
             if not data:
+                event_id = _get_event_id_from_cache_key(cache_key)
+                if event_id:
+                    if in_rollout_group(
+                        "transactions.do_post_process_in_save",
+                        event_id,
+                    ):
+                        # if we're doing the work for transactions in save_event_transaction
+                        # instead of here, this is expected, so simply increment a metric
+                        # instead of logging
+                        metrics.incr("post_process.skipped_do_post_process_in_save")
+                        return
+
                 logger.info(
                     "post_process.skipped",
                     extra={"cache_key": cache_key, "reason": "missing_cache"},
