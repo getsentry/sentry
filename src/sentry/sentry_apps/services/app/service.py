@@ -60,16 +60,6 @@ class AppService(RpcService):
     ) -> RpcSentryAppInstallation | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def get_installed_for_organization(
-        self,
-        *,
-        organization_id: int,
-    ) -> list[RpcSentryAppInstallation]:
-        # Deprecated use installations_for_organization instead.
-        pass
-
     def installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
