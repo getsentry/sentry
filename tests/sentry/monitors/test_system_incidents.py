@@ -133,7 +133,7 @@ def test_process_clock_tick_for_system_incident(
 
     # Metrics and logs are recorded
     assert mock_logger.info.call_args_list[0] == mock.call(
-        "monitors.system_incidents.process_clock_tick",
+        "process_clock_tick",
         extra={
             "decision": TickAnomalyDecision.ABNORMAL,
             "transition": AnomalyTransition.ABNORMALITY_STARTED,
@@ -195,7 +195,7 @@ def test_record_clock_tick_volume_metric_simple(metrics, logger):
     record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -249,7 +249,7 @@ def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
 
     # Note that the pct_deviation and z_score are extremes
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -296,8 +296,12 @@ def test_record_clock_tick_volume_metric_low_history(metrics, logger):
 
     # We should do nothing because there was not enough daata to make any
     # calculation
-    assert not logger.info.called
+    logger.info.assert_called_with(
+        "history_volume_low",
+        extra={"reference_datetime": tick},
+    )
     assert not metrics.gauge.called
+
     assert get_clock_tick_volume_metric(past_ts) is None
 
 
@@ -324,7 +328,7 @@ def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
