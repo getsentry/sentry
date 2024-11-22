@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
+import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconCheckmark} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,12 +62,33 @@ export default function OnboardingIntegrationSection({
       <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
       <IntegrationSection>
         <SubSection>
-          <InputTitle>{t('Signing Secret')}</InputTitle>
+          <div>
+            {tct(
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
+              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+            )}
+          </div>
+          <InputTitle>{t('Webhook URL')}</InputTitle>
+          <TextCopyInput
+            style={{padding: '20px'}}
+            aria-label={t('Webhook URL')}
+            size="sm"
+          >
+            {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}
+          </TextCopyInput>
+        </SubSection>
+        <SubSection>
+          <div>
+            {t(
+              "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
+            )}
+          </div>
+          <InputTitle>{t('Secret')}</InputTitle>
           <InputArea>
             <Input
               value={secret}
               type="text"
-              placeholder={t('Signing Secret')}
+              placeholder={t('Secret')}
               onChange={e => setSecret(e.target.value)}
             />
             <Button
@@ -76,7 +99,7 @@ export default function OnboardingIntegrationSection({
               }}
               disabled={secret === ''}
             >
-              {t('Save')}
+              {t('Save Secret')}
             </Button>
           </InputArea>
           {tokenSaved ? (
@@ -84,19 +107,6 @@ export default function OnboardingIntegrationSection({
               {t('Secret token verified.')}
             </StyledAlert>
           ) : null}
-        </SubSection>
-        <SubSection>
-          {t(
-            'Once the token is saved, go back to your feature flag service and create a webhook integration using the URL provided below.'
-          )}
-          <InputTitle>{t('Webhook URL')}</InputTitle>
-          <TextCopyInput
-            style={{padding: '20px'}}
-            aria-label={t('Webhook URL')}
-            size="sm"
-          >
-            {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}
-          </TextCopyInput>
         </SubSection>
       </IntegrationSection>
     </Fragment>
