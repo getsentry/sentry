@@ -5,16 +5,12 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {
   DEFAULT_EAP_FIELD,
   DEFAULT_EAP_METRICS_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
-import {
-  SpanTagsProvider,
-  useSpanTags,
-} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 interface Props {
   aggregate: string;
@@ -30,11 +26,7 @@ const OPERATIONS = [
 ];
 
 function EAPFieldWrapper({aggregate, onChange}: Props) {
-  return (
-    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
-      <EAPField aggregate={aggregate} onChange={onChange} />
-    </SpanTagsProvider>
-  );
+  return <EAPField aggregate={aggregate} onChange={onChange} />;
 }
 
 function EAPField({aggregate, onChange}: Props) {
