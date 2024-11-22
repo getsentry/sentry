@@ -193,8 +193,8 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
             },
         )
         return True
-    # Store the stacktrace string in the event so we only calculate it once. (We don't need to worry about it being
-    # accidentally stored in the database because only the data in `event.data.data` gets stored.)
+    # Store the stacktrace string in the event so we only calculate it once. We need to pop it
+    # later so it isn't stored in the database.
     event.data["stacktrace_string"] = stacktrace_string
     return False
 

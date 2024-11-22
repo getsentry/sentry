@@ -165,6 +165,7 @@ class ShouldCallSeerTest(TestCase):
             (custom_fingerprint_event, False),
             (built_in_fingerprint_event, False),
         ]:
+
             assert (
                 should_call_seer_for_grouping(event, event.get_grouping_variants())
                 is expected_result
