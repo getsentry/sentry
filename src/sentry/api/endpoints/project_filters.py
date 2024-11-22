@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -36,7 +37,8 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         responses={
             200: inline_sentry_response_serializer(
                 "ProjectFilterResponse", list[ProjectFilterResponse]
-            )
+            ),
+            403: RESPONSE_FORBIDDEN,
         },
         examples=ProjectExamples.GET_PROJECT_FILTERS,
     )
