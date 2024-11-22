@@ -1,6 +1,7 @@
 import {type CSSProperties, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
@@ -87,6 +88,24 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     },
   });
 
+  const noQueryEventView = eventView.clone();
+  noQueryEventView.query = `issue:${group.shortId}`;
+  noQueryEventView.environment = [];
+
+  const isUnfilteredStatsEnabled =
+    eventView.query !== noQueryEventView.query || eventView.environment.length > 0;
+  const {data: unfilteredGroupStats} =
+    useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+      options: {
+        enabled: isUnfilteredStatsEnabled,
+      },
+      params: {
+        route: 'events-stats',
+        eventView: noQueryEventView,
+        referrer: 'issue_details.streamline_graph',
+      },
+    });
+
   const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
     data: Array<{count_unique: number}>;
   }>(
@@ -118,6 +137,19 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     }
     return createSeriesAndCount(groupStats['count()']);
   }, [groupStats]);
+  const {series: unfilteredEventSeries} = useMemo(() => {
+    if (!unfilteredGroupStats?.['count()']) {
+      return {series: []};
+    }
+
+    return createSeriesAndCount(unfilteredGroupStats['count()']);
+  }, [unfilteredGroupStats]);
+  const {series: unfilteredUserSeries} = useMemo(() => {
+    if (!unfilteredGroupStats?.['count_unique(user)']) {
+      return {series: []};
+    }
+    return createSeriesAndCount(unfilteredGroupStats['count_unique(user)']);
+  }, [unfilteredGroupStats]);
   const userSeries = useMemo(() => {
     if (!groupStats['count_unique(user)']) {
       return [];
@@ -142,29 +174,56 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
+    const translucentGray300 = Color(theme.gray300).alpha(0.3).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
+      if (isUnfilteredStatsEnabled) {
+        seriesData.push({
+          seriesName: t('Total users'),
+          itemStyle: {
+            borderRadius: [2, 2, 0, 0],
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
+          },
+          barGap: '-100%', // Makes bars overlap completely
+          data: unfilteredUserSeries,
+          animation: false,
+        });
+      }
+
       seriesData.push({
-        seriesName: t('Users'),
+        seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
           color: theme.purple200,
         },
-        stack: 'stats',
         data: userSeries,
         animation: false,
       });
     }
     if (visibleSeries === EventGraphSeries.EVENT) {
+      if (isUnfilteredStatsEnabled) {
+        seriesData.push({
+          seriesName: t('Total events'),
+          itemStyle: {
+            borderRadius: [2, 2, 0, 0],
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
+          },
+          barGap: '-100%', // Makes bars overlap completely
+          data: unfilteredEventSeries,
+          animation: false,
+        });
+      }
+
       seriesData.push({
-        seriesName: t('Events'),
+        seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: theme.gray200,
+          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
         },
-        stack: 'stats',
         data: eventSeries,
         animation: false,
       });
@@ -187,6 +246,9 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     flagSeries,
     theme,
     hasFeatureFlagFeature,
+    isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    unfilteredUserSeries,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;

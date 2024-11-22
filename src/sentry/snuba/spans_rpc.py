@@ -39,18 +39,28 @@ def run_table_query(
     meta = resolver.resolve_meta(referrer=referrer)
     query = resolver.resolve_query(query_string)
     columns, contexts = resolver.resolve_columns(selected_columns)
+    # We allow orderby function_aliases if they're a selected_column
+    # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
+    orderby_aliases = {
+        get_function_alias(column_name): resolved_column
+        for resolved_column, column_name in zip(columns, selected_columns)
+    }
     # Orderby is only applicable to TraceItemTableRequest
-    resolved_orderby = (
-        [
+    resolved_orderby = []
+    orderby_columns = orderby if orderby is not None else []
+    for orderby_column in orderby_columns:
+        stripped_orderby = orderby_column.lstrip("-")
+        if stripped_orderby in orderby_aliases:
+            resolved_column = orderby_aliases[stripped_orderby]
+        else:
+            resolved_column = resolver.resolve_column(stripped_orderby)[0]
+        resolved_orderby.append(
             TraceItemTableRequest.OrderBy(
-                column=categorize_column(resolver.resolve_column(orderby_column.lstrip("-"))[0]),
+                column=categorize_column(resolved_column),
                 descending=orderby_column.startswith("-"),
             )
-            for orderby_column in orderby
-        ]
-        if orderby
-        else []
-    )
+        )
+
     labeled_columns = [categorize_column(col) for col in columns]
 
     """Run the query"""
@@ -64,6 +74,7 @@ def run_table_query(
             if isinstance(col.proto_definition, AttributeKey)
         ],
         order_by=resolved_orderby,
+        limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.table_rpc(rpc_request)

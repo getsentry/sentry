@@ -823,6 +823,7 @@ export function constructAddQueryToDashboardLink({
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       dataset: widgetType,
+      field: eventView.getFields(),
       limit:
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N

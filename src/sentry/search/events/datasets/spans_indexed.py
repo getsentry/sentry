@@ -44,7 +44,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
+    ) -> dict[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "message": self._message_filter_converter,
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
@@ -915,6 +915,14 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         }
         existing_field_aliases.update(field_alias_converter)
         return existing_field_aliases
+
+    @property
+    def search_filter_converter(
+        self,
+    ) -> dict[str, Callable[[SearchFilter], WhereType | None]]:
+        existing_search_filters = super().search_filter_converter
+        del existing_search_filters[constants.SPAN_STATUS]
+        return existing_search_filters
 
     def _resolve_sum_weighted(
         self,
