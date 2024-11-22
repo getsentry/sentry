@@ -1,8 +1,12 @@
+import type {Client} from 'sentry/api';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {
   isCollapsedNode,
   isTraceErrorNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
@@ -20,14 +24,43 @@ export class IssuesTraceTree extends TraceTree {
       replay: ReplayRecord | null;
     }
   ): IssuesTraceTree {
-    const tree = TraceTree.FromTrace(trace, options);
+    const tree = super.FromTrace(trace, options);
     const issuesTree = new IssuesTraceTree();
+    IssuesTraceTree.CollapseNodes(tree.root);
+    issuesTree.root = tree.root;
+    return issuesTree;
+  }
 
+  static FromSpans(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    spans: TraceTree.Span[],
+    event: EventTransaction | null
+  ): [TraceTreeNode<TraceTree.NodeValue>, [number, number]] {
+    const [root, space] = super.FromSpans(node, spans, event);
+    IssuesTraceTree.CollapseNodes(root);
+    return [root, space];
+  }
+
+  async zoom(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    zoomedIn: boolean,
+    options: {
+      api: Client;
+      organization: Organization;
+      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
+  ): Promise<Event | null> {
+    const result = await super.zoom(node, zoomedIn, options);
+    IssuesTraceTree.CollapseNodes(this.root);
+    return result;
+  }
+
+  static CollapseNodes(root: TraceTreeNode) {
     // Collect all nodes with errors and their path to the root. None of these nodes should be collapsed
     // because we want to preserve the path to the error node so that the user can see the chain that lead
     // to it.
     const errorNodes = TraceTree.FindAll(
-      tree.root,
+      root,
       node => node.hasErrors || isTraceErrorNode(node)
     ).slice(0, MAX_ISSUES);
 
@@ -40,7 +73,7 @@ export class IssuesTraceTree extends TraceTree {
       }
     }
 
-    const queue: TraceTreeNode[] = [tree.root];
+    const queue: TraceTreeNode[] = [root];
 
     while (queue.length > 0) {
       const node = queue.pop();
@@ -85,9 +118,6 @@ export class IssuesTraceTree extends TraceTree {
         }
       }
     }
-
-    issuesTree.root = tree.root;
-    return issuesTree;
   }
 
   build() {
@@ -120,6 +150,7 @@ export class IssuesTraceTree extends TraceTree {
         }
       }
     }
+
     return this;
   }
 }
