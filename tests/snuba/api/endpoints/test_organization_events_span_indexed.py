@@ -730,6 +730,47 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_orderby_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description", "sum(span.self_time)"],
+                "query": "",
+                "orderby": "sum_span_self_time",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.description": "foo",
+                "sum(span.self_time)": 1000,
+            },
+            {
+                "span.description": "bar",
+                "sum(span.self_time)": 2000,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
     def test_span_status(self):
         self.store_spans(
             [
