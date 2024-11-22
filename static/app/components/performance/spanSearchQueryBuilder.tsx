@@ -50,9 +50,11 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string, kind?: FieldKind) => {
-  return getFieldDefinition(key, 'span', kind);
-};
+function getSpanFieldDefinitionFunction(tags: TagCollection) {
+  return (key: string) => {
+    return getFieldDefinition(key, 'span', tags[key]?.kind);
+  };
+}
 
 export function SpanSearchQueryBuilder({
   initialQuery,
@@ -133,7 +135,7 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
@@ -224,7 +226,7 @@ export function EAPSpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={tags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
       onSearch={onSearch}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
