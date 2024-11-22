@@ -1,5 +1,4 @@
 from django import VERSION
-from django.db import models
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
@@ -19,6 +18,10 @@ monkeypatching still works as expected. Currently the main things to check are:
     is copied and modified from `Queryset.update()` to add `RETURNING <fields>` to
     the update query. Verify that the `update` code hasn't significantly changed,
     and if it has update as needed.
+ - We monkeypatch `SentryProjectState` over `ProjectState` in a few places. Check where
+    Django is importing it and make sure that we're still patching correctly.
+    We also need to verify that the patched `SentryProjectState` isn't missing new
+    features added by Django.
 
 When you're happy that these changes are good to go, update
 `LAST_VERIFIED_DJANGO_VERSION` to the version of Django you're upgrading to. If the
@@ -77,6 +80,8 @@ else:
 
 
 def monkey_migrations():
+    from django.db import models
+
     # This import needs to be below the other imports for `executor` and `writer` so
     # that we can successfully monkeypatch them.
     from django.db.migrations import executor, migration, writer
@@ -86,3 +91,11 @@ def monkey_migrations():
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
     models.Field.deconstruct = deconstruct  # type: ignore[method-assign]
+
+    from django.db.migrations import graph, state
+
+    from sentry.new_migrations.monkey.state import SentryProjectState
+
+    state.ProjectState = SentryProjectState  # type: ignore[misc]
+    graph.ProjectState = SentryProjectState  # type: ignore[attr-defined]
+    executor.ProjectState = SentryProjectState  # type: ignore[attr-defined]
