@@ -21,7 +21,7 @@ export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefine
 interface SpanTagsProviderProps {
   children: React.ReactNode;
   dataset: DiscoverDatasets;
-  enabled?: boolean;
+  enabled: boolean;
 }
 
 export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderProps) {
