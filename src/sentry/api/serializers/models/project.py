@@ -78,6 +78,9 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
+    "similarity-embeddings",
+    "similarity-embeddings-delete-by-hash",
+    "similarity-embeddings-backfill",
 }
 
 
