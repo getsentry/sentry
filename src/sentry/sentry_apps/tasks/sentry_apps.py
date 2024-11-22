@@ -109,7 +109,7 @@ def _webhook_event_data(
     return event_context
 
 
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event_v2", **TASK_OPTIONS)
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_event_v2(
     rule: str,
