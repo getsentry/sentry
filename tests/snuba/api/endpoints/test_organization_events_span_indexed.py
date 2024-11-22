@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -754,7 +755,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "dataset": self.dataset,
             }
         )
-
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
@@ -769,6 +769,58 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "sum(span.self_time)": 2000,
             },
         ]
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.querybuilder
+    def test_explore_sample_query(self):
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.nine_mins_ago,
+            ),
+        ]
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "project",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "timestamp",
+                    "trace",
+                    "transaction.span_id",
+                ],
+                # This is to skip INP spans
+                "query": "!transaction.span_id:00",
+                "orderby": "timestamp",
+                "statsPeriod": "1h",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for source, result in zip(spans, data):
+            assert result["id"] == source["span_id"], "id"
+            assert result["span.duration"] == 1000.0, "duration"
+            assert result["span.op"] == "", "op"
+            assert result["span.description"] == source["description"], "description"
+            assert datetime.fromisoformat(result["timestamp"]).timestamp() == pytest.approx(
+                source["end_timestamp_precise"], abs=5
+            ), "timestamp"
+            assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
+            assert result["project"] == result["project.name"] == self.project.slug, "project"
         assert meta["dataset"] == self.dataset
 
     def test_span_status(self):
