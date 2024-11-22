@@ -1,5 +1,17 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`IssuesTraceTree FromSpans collapses spans 1`] = `
+"
+trace root
+  collapsed
+  transaction 1 - transaction.op
+    transaction 2 - transaction.op
+      collapsed
+      http - GET /
+      collapsed
+"
+`;
+
 exports[`IssuesTraceTree collapsed nodes without errors 1`] = `
 "
 trace root
