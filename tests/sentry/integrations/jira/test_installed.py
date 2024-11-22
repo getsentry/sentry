@@ -10,6 +10,7 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
@@ -80,7 +81,9 @@ class JiraInstalledTest(APITestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-        mock_record_failure.assert_called_with("state-missing-from-installation-request")
+        mock_record_failure.assert_called_with(
+            ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
+        )
 
     def test_missing_token(self):
         self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
