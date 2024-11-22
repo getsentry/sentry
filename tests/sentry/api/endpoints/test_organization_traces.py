@@ -819,7 +819,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         ],
                     },
                 ]
-                
+
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
