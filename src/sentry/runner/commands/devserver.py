@@ -353,7 +353,10 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        if "sentry_kafka" not in containers and "shared-kafka-kafka-1" not in containers:
+        kafka_container_name = (
+            "kafka-kafka-1" if os.environ.get("USE_NEW_DEVSERVICES") == "1" else "sentry_kafka"
+        )
+        if kafka_container_name not in containers:
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
