@@ -182,8 +182,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: translucentGray300,
-            color: theme.gray100,
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -208,8 +208,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: translucentGray300,
-            color: theme.gray100,
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
