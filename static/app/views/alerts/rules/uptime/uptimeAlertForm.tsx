@@ -201,7 +201,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               min={1000}
               max={30_000}
               step={250}
-              tickValues={[1_000, 5_000, 10_000, 20_000, 30_000]}
+              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
               defaultValue={5_000}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
