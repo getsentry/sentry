@@ -5,7 +5,7 @@ from .sentry_apps import (
     installation_webhook,
     process_resource_change_bound,
     send_alert_event,
-    send_alert_event_v2,
+    send_alert_webhook,
     send_resource_change_webhook,
     workflow_notification,
 )
