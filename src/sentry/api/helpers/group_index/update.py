@@ -402,7 +402,6 @@ def handle_resolve_in_release(
         activity_data = {}
         new_status_details = {}
 
-    now = django_timezone.now()
     metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
     # if we've specified a commit, let's see if its already been released
@@ -424,160 +423,20 @@ def handle_resolve_in_release(
             release = None
     for group in group_list:
         with transaction.atomic(router.db_for_write(Group)):
-            resolution = None
-            created = None
-            if release:
-                resolution_params = {
-                    "release": release,
-                    "type": res_type,
-                    "status": res_status,
-                    "actor_id": user.id if user.is_authenticated else None,
-                }
-
-                # We only set `current_release_version` if GroupResolution type is
-                # in_next_release, because we need to store information about the latest/most
-                # recent release that was associated with a group and that is required for
-                # release comparisons (i.e. handling regressions)
-                if res_type == GroupResolution.Type.in_next_release:
-                    # Check if semver versioning scheme is followed
-                    follows_semver = follows_semver_versioning_scheme(
-                        org_id=group.organization.id,
-                        project_id=group.project.id,
-                        release_version=release.version,
-                    )
-
-                    current_release_version = get_current_release_version_of_group(
-                        group, follows_semver
-                    )
-
-                    if current_release_version:
-                        resolution_params.update(
-                            {"current_release_version": current_release_version}
-                        )
-
-                        # Sets `current_release_version` for activity, since there is no point
-                        # waiting for when a new release is created i.e.
-                        # clear_expired_resolutions task to be run.
-                        # Activity should look like "... resolved in version
-                        # >current_release_version" in the UI
-                        if follows_semver:
-                            activity_data.update(
-                                {"current_release_version": current_release_version}
-                            )
-
-                            # In semver projects, and thereby semver releases, we determine
-                            # resolutions by comparing against an expression rather than a
-                            # specific release (i.e. >current_release_version). Consequently,
-                            # at this point we can consider this GroupResolution as resolved
-                            # in release
-                            resolution_params.update(
-                                {
-                                    "type": GroupResolution.Type.in_release,
-                                    "status": GroupResolution.Status.resolved,
-                                }
-                            )
-                        else:
-                            # If we already know the `next` release in date based ordering
-                            # when clicking on `resolvedInNextRelease` because it is already
-                            # been released, there is no point in setting GroupResolution to
-                            # be of type in_next_release but rather in_release would suffice
-
-                            try:
-                                # Get current release object from current_release_version
-                                current_release_obj = Release.objects.get(
-                                    version=current_release_version,
-                                    organization_id=projects[0].organization_id,
-                                )
-
-                                date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
-                                    date_added=current_release_obj.date_added,
-                                    id__gt=current_release_obj.id,
-                                )
-
-                                # Find the next release after the current_release_version
-                                # i.e. the release that resolves the issue
-                                resolved_in_release = (
-                                    Release.objects.filter(
-                                        date_order_q,
-                                        projects=projects[0],
-                                        organization_id=projects[0].organization_id,
-                                    )
-                                    .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                                    .order_by("sort", "id")[:1]
-                                    .get()
-                                )
-
-                                # If we get here, we assume it exists and so we update
-                                # GroupResolution and Activity
-                                resolution_params.update(
-                                    {
-                                        "release": resolved_in_release,
-                                        "type": GroupResolution.Type.in_release,
-                                        "status": GroupResolution.Status.resolved,
-                                    }
-                                )
-                                activity_data.update({"version": resolved_in_release.version})
-                            except Release.DoesNotExist:
-                                # If it gets here, it means we don't know the upcoming
-                                # release yet because it does not exist, and so we should
-                                # fall back to our current model
-                                ...
-
-                resolution, created = GroupResolution.objects.get_or_create(
-                    group=group, defaults=resolution_params
-                )
-                if not created:
-                    resolution.update(datetime=django_timezone.now(), **resolution_params)
-
-            if commit:
-                GroupLink.objects.create(
-                    group_id=group.id,
-                    project_id=group.project_id,
-                    linked_type=GroupLink.LinkedType.commit,
-                    relationship=GroupLink.Relationship.resolves,
-                    linked_id=commit.id,
-                )
-
-            affected = Group.objects.filter(id=group.id).update(
-                status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
+            process_group_resolution(
+                group,
+                group_list,
+                release,
+                commit,
+                res_type,
+                res_status,
+                acting_user,
+                user,
+                self_assign_issue,
+                activity_type,
+                activity_data,
+                result,
             )
-            if not resolution:
-                created = affected
-
-            group.status = GroupStatus.RESOLVED
-            group.substatus = None
-            group.resolved_at = now
-            if affected and not options.get("groups.enable-post-update-signal"):
-                post_save.send(
-                    sender=Group,
-                    instance=group,
-                    created=False,
-                    update_fields=["resolved_at", "status", "substatus"],
-                )
-            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
-            result["inbox"] = None
-
-            assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
-            if assigned_to is not None:
-                result["assignedTo"] = assigned_to
-
-            if created:
-                activity = Activity.objects.create(
-                    project=project_lookup[group.project_id],
-                    group=group,
-                    type=activity_type,
-                    user_id=acting_user.id,
-                    ident=resolution.id if resolution else None,
-                    data=activity_data,
-                )
-                record_group_history_from_activity_type(group, activity_type, actor=acting_user)
-
-                # TODO(dcramer): we need a solution for activity rollups
-                # before sending notifications on bulk changes
-                if not len(group_list) > 1:
-                    transaction.on_commit(
-                        lambda: activity.send_notification(), router.db_for_write(Group)
-                    )
 
         issue_resolved.send_robust(
             organization_id=projects[0].organization_id,
@@ -595,6 +454,169 @@ def handle_resolve_in_release(
     result.update({"status": "resolved", "statusDetails": new_status_details})
 
     return result, res_type
+
+
+def process_group_resolution(
+    group: Group,
+    group_list: Sequence[Group],
+    release: Release | None,
+    commit: Commit | None,
+    res_type: GroupResolution.Type,
+    res_status: GroupResolution.Status,
+    acting_user: User | None,
+    user: User | RpcUser,
+    self_assign_issue: str,
+    activity_type: ActivityType,
+    activity_data: Mapping[str, Any],
+    result: MutableMapping[str, Any],
+):
+    now = django_timezone.now()
+    resolution = None
+    created = None
+    if release:
+        resolution_params = {
+            "release": release,
+            "type": res_type,
+            "status": res_status,
+            "actor_id": user.id if user.is_authenticated else None,
+        }
+
+        # We only set `current_release_version` if GroupResolution type is
+        # in_next_release, because we need to store information about the latest/most
+        # recent release that was associated with a group and that is required for
+        # release comparisons (i.e. handling regressions)
+        if res_type == GroupResolution.Type.in_next_release:
+            # Check if semver versioning scheme is followed
+            follows_semver = follows_semver_versioning_scheme(
+                org_id=group.project.organization_id,
+                project_id=group.project_id,
+                release_version=release.version,
+            )
+
+            current_release_version = get_current_release_version_of_group(group, follows_semver)
+
+            if current_release_version:
+                resolution_params.update({"current_release_version": current_release_version})
+
+                # Sets `current_release_version` for activity, since there is no point
+                # waiting for when a new release is created i.e.
+                # clear_expired_resolutions task to be run.
+                # Activity should look like "... resolved in version
+                # >current_release_version" in the UI
+                if follows_semver:
+                    activity_data.update({"current_release_version": current_release_version})
+
+                    # In semver projects, and thereby semver releases, we determine
+                    # resolutions by comparing against an expression rather than a
+                    # specific release (i.e. >current_release_version). Consequently,
+                    # at this point we can consider this GroupResolution as resolved
+                    # in release
+                    resolution_params.update(
+                        {
+                            "type": GroupResolution.Type.in_release,
+                            "status": GroupResolution.Status.resolved,
+                        }
+                    )
+                else:
+                    # If we already know the `next` release in date based ordering
+                    # when clicking on `resolvedInNextRelease` because it is already
+                    # been released, there is no point in setting GroupResolution to
+                    # be of type in_next_release but rather in_release would suffice
+
+                    try:
+                        # Get current release object from current_release_version
+                        current_release_obj = Release.objects.get(
+                            version=current_release_version,
+                            organization_id=group.project.organization_id,
+                        )
+
+                        date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
+                            date_added=current_release_obj.date_added,
+                            id__gt=current_release_obj.id,
+                        )
+
+                        # Find the next release after the current_release_version
+                        # i.e. the release that resolves the issue
+                        resolved_in_release = (
+                            Release.objects.filter(
+                                date_order_q,
+                                projects=group.project,
+                                organization_id=group.project.organization_id,
+                            )
+                            .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                            .order_by("sort", "id")[:1]
+                            .get()
+                        )
+
+                        # If we get here, we assume it exists and so we update
+                        # GroupResolution and Activity
+                        resolution_params.update(
+                            {
+                                "release": resolved_in_release,
+                                "type": GroupResolution.Type.in_release,
+                                "status": GroupResolution.Status.resolved,
+                            }
+                        )
+                        activity_data.update({"version": resolved_in_release.version})
+                    except Release.DoesNotExist:
+                        # If it gets here, it means we don't know the upcoming
+                        # release yet because it does not exist, and so we should
+                        # fall back to our current model
+                        ...
+
+        resolution, created = GroupResolution.objects.get_or_create(
+            group=group, defaults=resolution_params
+        )
+        if not created:
+            resolution.update(datetime=django_timezone.now(), **resolution_params)
+
+    if commit:
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+
+    affected = Group.objects.filter(id=group.id).update(
+        status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
+    )
+    if not resolution:
+        created = affected
+
+    group.status = GroupStatus.RESOLVED
+    group.substatus = None
+    group.resolved_at = now
+    if affected and not options.get("groups.enable-post-update-signal"):
+        post_save.send(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["resolved_at", "status", "substatus"],
+        )
+    remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
+    result["inbox"] = None
+
+    assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
+    if assigned_to is not None:
+        result["assignedTo"] = assigned_to
+
+    if created:
+        activity = Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=activity_type,
+            user_id=acting_user.id,
+            ident=resolution.id if resolution else None,
+            data=activity_data,
+        )
+        record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
+        # TODO(dcramer): we need a solution for activity rollups
+        # before sending notifications on bulk changes
+        if not len(group_list) > 1:
+            transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
 
 
 def merge_groups(
