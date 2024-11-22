@@ -21,6 +21,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0756_grouprelease_represented_in_django"),
     ]
