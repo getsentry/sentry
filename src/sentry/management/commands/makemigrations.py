@@ -71,7 +71,7 @@ class Command(makemigrations.Command):
         if options.get("check_changes"):
             validate(migrations_filepath, latest_migration_by_app)
         else:
-            result = "\n".join(
+            result = "\n\n".join(
                 f"{app_label}: {name}"
                 for app_label, name in sorted(latest_migration_by_app.items())
             )

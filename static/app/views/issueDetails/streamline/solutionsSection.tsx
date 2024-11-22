@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import useDrawer from 'sentry/components/globalDrawer';
-import {GroupSummaryBody, useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -14,19 +15,15 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
+import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const isSummaryEnabled = (
-  hasGenAIConsent: boolean,
-  hasIssueSummary: boolean,
-  hideAiFeatures: boolean
-) => {
-  return hasGenAIConsent && hasIssueSummary && !hideAiFeatures;
-};
+import {
+  hasStacktraceWithFrames,
+  SolutionsHubDrawer,
+} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {useHasStreamlinedUI, useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({
   group,
@@ -70,22 +67,109 @@ export default function SolutionsSection({
   };
 
   const hasGenAIConsent = organization.genAIConsent;
-  const {data: summaryData} = useGroupSummary(group.id, group.issueCategory);
+  const {
+    data: summaryData,
+    isPending: isSummaryLoading,
+    isError: isSummaryError,
+  } = useGroupSummary(group.id, group.issueCategory);
+  const {data: autofixSetupData, isPending: isAutofixSetupLoading} = useAutofixSetup({
+    groupId: group.id,
+  });
+
+  const isSampleError = useIsSampleEvent();
+  const hasStacktrace = event && hasStacktraceWithFrames(event);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const hasSummary = isSummaryEnabled(
-    hasGenAIConsent,
-    issueTypeConfig.issueSummary.enabled,
-    organization.hideAiFeatures
-  );
-  const aiNeedsSetup =
-    !hasGenAIConsent &&
-    issueTypeConfig.issueSummary.enabled &&
-    !organization.hideAiFeatures;
+
+  const areAiFeaturesAllowed =
+    !organization.hideAiFeatures &&
+    getRegionDataFromOrganization(organization)?.name !== 'de';
+
+  const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
+  const isAutofixEnabled = issueTypeConfig.autofix;
   const hasResources = issueTypeConfig.resources;
 
+  const hasSummary = hasGenAIConsent && isSummaryEnabled && areAiFeaturesAllowed;
+  const hasAutofix =
+    isAutofixEnabled && areAiFeaturesAllowed && hasStacktrace && !isSampleError;
+
+  const needsGenAIConsent =
+    !hasGenAIConsent && (isSummaryEnabled || isAutofixEnabled) && areAiFeaturesAllowed;
+
+  const needsAutofixSetup =
+    isAutofixEnabled &&
+    !isAutofixSetupLoading &&
+    (!autofixSetupData?.genAIConsent.ok || !autofixSetupData?.integration.ok) &&
+    areAiFeaturesAllowed;
+
+  const showCtaButton = needsGenAIConsent || hasAutofix || (hasSummary && hasResources);
+  const isButtonLoading = isAutofixSetupLoading;
+
+  const getButtonText = () => {
+    if (needsGenAIConsent) {
+      return t('Set up Sentry AI');
+    }
+
+    if (isAutofixEnabled) {
+      if (needsAutofixSetup) {
+        return t('Set up Autofix');
+      }
+      return hasResources ? t('Open Resources & Autofix') : t('Open Autofix');
+    }
+
+    return t('Open Resources');
+  };
+
+  const renderContent = () => {
+    if (needsGenAIConsent) {
+      return (
+        <Summary>
+          <HeadlineText
+            dangerouslySetInnerHTML={{
+              __html: singleLineRenderer(
+                'Explore potential root causes and solutions with Sentry AI.'
+              ),
+            }}
+          />
+        </Summary>
+      );
+    }
+
+    if (hasSummary) {
+      return (
+        <Summary>
+          <GroupSummary
+            data={summaryData ?? undefined}
+            isError={isSummaryError}
+            isPending={isSummaryLoading}
+            preview
+          />
+        </Summary>
+      );
+    }
+
+    if (!hasSummary && hasResources) {
+      return (
+        <ResourcesWrapper isExpanded={isExpanded}>
+          <ResourcesContent isExpanded={isExpanded}>
+            <Resources
+              configResources={issueTypeConfig.resources!}
+              eventPlatform={event?.platform}
+              group={group}
+            />
+          </ResourcesContent>
+          <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
+            {isExpanded ? t('SHOW LESS') : t('READ MORE')}
+          </ExpandButton>
+        </ResourcesWrapper>
+      );
+    }
+
+    return null;
+  };
+
   return (
-    <div>
+    <SolutionsSectionContainer>
       <SidebarSectionTitle style={{marginTop: 0}}>
         <HeaderContainer>
           {t('Solutions Hub')}
@@ -102,49 +186,10 @@ export default function SolutionsSection({
           )}
         </HeaderContainer>
       </SidebarSectionTitle>
-      {hasSummary && !summaryData && (
-        <Placeholder
-          height="12rem"
-          style={{marginBottom: space(1)}}
-          testId="loading-placeholder"
-        />
-      )}
-      {hasSummary && summaryData && (
-        <Summary>
-          <GroupSummaryBody
-            data={summaryData}
-            isError={false}
-            isPending={false}
-            preview
-          />
-        </Summary>
-      )}
-      {aiNeedsSetup && (
-        <Summary>
-          <HeadlineText
-            dangerouslySetInnerHTML={{
-              __html: singleLineRenderer(
-                'Explore potential root causes and solutions with Sentry AI.'
-              ),
-            }}
-          />
-        </Summary>
-      )}
-      {!hasSummary && hasResources && !aiNeedsSetup && (
-        <ResourcesWrapper isExpanded={isExpanded}>
-          <ResourcesContent isExpanded={isExpanded}>
-            <Resources
-              configResources={issueTypeConfig.resources!}
-              eventPlatform={event?.platform}
-              group={group}
-            />
-          </ResourcesContent>
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)} size="zero">
-            {isExpanded ? t('SHOW LESS') : t('READ MORE')}
-          </ExpandButton>
-        </ResourcesWrapper>
-      )}
-      {(hasSummary || aiNeedsSetup) && (
+      {renderContent()}
+      {isButtonLoading ? (
+        <ButtonPlaceholder />
+      ) : showCtaButton ? (
         <StyledButton
           ref={openButtonRef}
           onClick={() => openSolutionsDrawer()}
@@ -154,13 +199,20 @@ export default function SolutionsSection({
             has_streamlined_ui: hasStreamlinedUI,
           }}
         >
-          {t('Open Solutions Hub')}
-          <IconChevron direction="right" size="xs" />
+          {getButtonText()}
+          <ChevronContainer>
+            <Chevron direction="right" size="large" />
+          </ChevronContainer>
         </StyledButton>
-      )}
-    </div>
+      ) : null}
+    </SolutionsSectionContainer>
   );
 }
+
+const SolutionsSectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -220,13 +272,26 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.pink400};
 `;
 
+const ChevronContainer = styled('div')`
+  margin-left: ${space(0.5)};
+  height: 16px;
+  width: 16px;
+`;
+
 const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
   padding-bottom: 3px;
+`;
+
+const ButtonPlaceholder = styled(Placeholder)`
+  width: 100%;
+  height: 38px;
+  border-radius: ${p => p.theme.borderRadius};
+  margin-top: ${space(1)};
 `;

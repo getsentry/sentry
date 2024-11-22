@@ -80,7 +80,9 @@ describe('AutofixMessageBox', () => {
     render(<AutofixMessageBox {...defaultProps} />);
 
     expect(screen.getByText('Test display text')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Share helpful context or feedback...')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
@@ -88,7 +90,7 @@ describe('AutofixMessageBox', () => {
     const onSendMock = jest.fn();
     render(<AutofixMessageBox {...defaultProps} onSend={onSendMock} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -104,7 +106,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -125,7 +127,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Test message');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
@@ -196,13 +198,15 @@ describe('AutofixMessageBox', () => {
   it('shows feedback input when "Give feedback" is selected', () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Share helpful context or feedback...')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Send'})).toBeInTheDocument();
   });
 
   it('shows "Create PR" button when "Approve changes" is selected', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -225,7 +229,7 @@ describe('AutofixMessageBox', () => {
 
   it('shows "Create PRs" button with correct text for multiple changes', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -281,7 +285,7 @@ describe('AutofixMessageBox', () => {
 
   it('shows "Create PRs" button that opens setup modal when setup is incomplete', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -291,6 +295,14 @@ describe('AutofixMessageBox', () => {
             {ok: false, provider: 'github', owner: 'owner', name: 'hello-world', id: 100},
           ],
         },
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/setup/',
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
       },
     });
 

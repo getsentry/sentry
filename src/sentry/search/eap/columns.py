@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -33,6 +33,9 @@ class ResolvedAttribute:
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
     validator: Callable[[Any], bool] | None = None
+    # Indicates this attribute is a secondary alias for the attribute.
+    # It exists for compatibility or convenience reasons and should NOT be preferred.
+    secondary_alias: bool = False
 
     def process_column(self, value: Any) -> Any:
         """Given the value from results, return a processed value if a processor is defined otherwise return it"""
@@ -161,7 +164,7 @@ SPAN_COLUMN_DEFINITIONS = {
         ),
         ResolvedColumn(
             public_alias="parent_span",
-            internal_name="sentry.sentry,parent_span_id",
+            internal_name="sentry.parent_span_id",
             search_type="string",
             validator=is_span_id,
         ),
@@ -181,6 +184,7 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="sentry.project_id",
             internal_type=constants.INT,
             search_type="string",
+            secondary_alias=True,
         ),
         ResolvedColumn(
             public_alias="span.action",
@@ -196,12 +200,14 @@ SPAN_COLUMN_DEFINITIONS = {
             public_alias="description",
             internal_name="sentry.name",
             search_type="string",
+            secondary_alias=True,
         ),
         # Message maps to description, this is to allow wildcard searching
         ResolvedColumn(
             public_alias="message",
             internal_name="sentry.name",
             search_type="string",
+            secondary_alias=True,
         ),
         ResolvedColumn(
             public_alias="span.domain",
@@ -248,7 +254,6 @@ SPAN_COLUMN_DEFINITIONS = {
             public_alias="transaction",
             internal_name="sentry.segment_name",
             search_type="string",
-            validator=is_event_id,
         ),
         ResolvedColumn(
             public_alias="replay.id",
@@ -271,14 +276,18 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
+        simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
         simple_sentry_field("messaging.message.id"),
+        simple_sentry_field("platform"),
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
+        simple_sentry_field("sdk.version"),
         simple_sentry_field("span.status_code"),
         simple_sentry_field("span_id"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
+        simple_sentry_field("transaction.op"),
         simple_sentry_field("user"),
         simple_sentry_field("user.email"),
         simple_sentry_field("user.geo.country_code"),
@@ -326,9 +335,35 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_measurements_field("messaging.message.body.size"),
         simple_measurements_field("messaging.message.receive.latency"),
         simple_measurements_field("messaging.message.retry.count"),
-        simple_measurements_field("http.response_content_length"),
     ]
 }
+
+
+INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_COLUMN_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_COLUMN_DEFINITIONS.values()
+        if not definition.secondary_alias
+        and (definition.search_type == "number" or definition.search_type == "duration")
+    },
+}
+
+
+def translate_internal_to_public_alias(
+    internal_alias: str,
+    type: Literal["string", "number"],
+) -> str | None:
+    mappings = INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS.get(type, {})
+    return mappings.get(internal_alias)
 
 
 def project_context_constructor(column_name: str) -> Callable[[SnubaParams], VirtualColumnContext]:

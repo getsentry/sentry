@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -14,9 +15,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
-  formatParsedFunction,
   getAggregateAlias,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,9 +49,11 @@ export function formatSort(sort: Sort): string {
   return `${direction}${getAggregateAlias(sort.field)}`;
 }
 
-interface AggregatesTableProps {}
+interface AggregatesTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function AggregatesTable({}: AggregatesTableProps) {
+export function AggregatesTable({setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
@@ -93,6 +96,10 @@ export function AggregatesTable({}: AggregatesTableProps) {
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table',
   });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
 
   useAnalytics({
     resultLength: result.data?.length,
@@ -140,7 +147,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
 
               const func = parseFunction(field);
               if (func) {
-                label = formatParsedFunction(func);
+                label = prettifyParsedFunction(func);
               }
 
               const direction = sorts.find(s => s.field === field)?.kind;

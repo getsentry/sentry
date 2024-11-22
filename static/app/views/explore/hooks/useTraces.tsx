@@ -1,7 +1,11 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -61,6 +65,10 @@ interface UseTracesOptions {
   sort?: 'timestamp' | '-timestamp';
 }
 
+type UseTracesResult = Omit<UseApiQueryResult<TraceResults, RequestError>, 'error'> & {
+  error: QueryError | null;
+};
+
 export function useTraces({
   cursor,
   dataset,
@@ -69,7 +77,7 @@ export function useTraces({
   limit,
   query,
   sort,
-}: UseTracesOptions) {
+}: UseTracesOptions): UseTracesResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -89,7 +97,7 @@ export function useTraces({
     },
   };
 
-  const result = useApiQuery<TraceResults>([path, endpointOptions], {
+  const {error, ...rest} = useApiQuery<TraceResults>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -97,5 +105,8 @@ export function useTraces({
     enabled,
   });
 
-  return result;
+  return {
+    ...rest,
+    error: parseError(error),
+  };
 }

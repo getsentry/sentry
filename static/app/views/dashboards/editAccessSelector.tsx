@@ -1,10 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -12,11 +14,13 @@ import {CheckWrap} from 'sentry/components/compactSelect/styles';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
@@ -34,10 +38,15 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
   const isCurrentUserDashboardOwner = dashboardCreator?.id === currentUser.id;
-  const {teams} = useTeamsById();
-  const teamIds: string[] = Object.values(teams).map(team => team.id);
+
+  // Retrieves teams from the team store, which may contain only a subset of all teams
+  const {teams: teamsToRender} = useTeamsById();
+  const {onSearch} = useTeams();
+  const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
+
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+  const {teams: selectedTeam} = useTeamsById({ids: [selectedOptions[1]]});
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -127,21 +136,24 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
-        key="avatar-list"
+        key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
-        teams={[teams.find(team => team.id === selectedOptions[1])!]}
+        teams={selectedTeam ? selectedTeam : []}
         maxVisibleAvatars={1}
         avatarSize={25}
+        renderUsersFirst
+        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
-        key="avatar-list"
+        key="avatar-list-many-teams"
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={25}
+        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
       />
     );
 
@@ -160,7 +172,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
     {
       value: '_teams',
       label: t('Teams'),
-      options: teams.map(makeTeamOption),
+      options: teamsToRender.map(makeTeamOption),
       showToggleAllButton: isCurrentUserDashboardOwner,
       disabled: !isCurrentUserDashboardOwner,
     },
@@ -216,7 +228,16 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={[t('Edit Access:'), triggerAvatars]}
+      triggerLabel={[
+        <StyledFeatureBadge
+          key="beta-badge"
+          type="beta"
+          title={t('This feature is available for early adopters and may change')}
+          tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
+        />,
+        t('Edit Access:'),
+        triggerAvatars,
+      ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -226,13 +247,15 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         }
       }}
       menuFooter={dropdownFooterButtons}
+      onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
     />
   );
 
-  return isCurrentUserDashboardOwner ? (
-    dropdownMenu
-  ) : (
-    <Tooltip title={t('Only the creator of the dashboard can edit permissions')}>
+  return (
+    <Tooltip
+      title={t('Only the creator of the dashboard can edit permissions')}
+      disabled={isCurrentUserDashboardOwner || isMenuOpen}
+    >
       {dropdownMenu}
     </Tooltip>
   );
@@ -260,12 +283,17 @@ const StyledDisplayName = styled('div')`
 
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
+  margin-right: -3px;
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin-left: 0px;
+  margin-right: 6px;
 `;
 
 const StyledBadge = styled(Badge)`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
-  margin-right: 3px;
   padding: 0;
   height: 20px;
   width: 20px;
