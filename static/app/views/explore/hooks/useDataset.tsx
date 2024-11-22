@@ -9,27 +9,39 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 interface Options {
   location: Location;
   navigate: ReturnType<typeof useNavigate>;
+  allowRPC?: boolean;
 }
 
-export function useDataset(): [DiscoverDatasets, (dataset: DiscoverDatasets) => void] {
+interface UseDatasetOptions {
+  allowRPC?: boolean;
+}
+
+export function useDataset(
+  options?: UseDatasetOptions
+): [DiscoverDatasets, (dataset: DiscoverDatasets) => void] {
   const location = useLocation();
   const navigate = useNavigate();
-  const options = {location, navigate};
 
-  return useDatasetImpl(options);
+  return useDatasetImpl({location, navigate, allowRPC: options?.allowRPC});
 }
 
 function useDatasetImpl({
   location,
   navigate,
+  allowRPC,
 }: Options): [DiscoverDatasets, (dataset: DiscoverDatasets) => void] {
   const dataset: DiscoverDatasets = useMemo(() => {
     const rawDataset = decodeScalar(location.query.dataset);
     if (rawDataset === 'spansIndexed') {
       return DiscoverDatasets.SPANS_INDEXED;
     }
+
+    if (allowRPC && rawDataset === 'spansRpc') {
+      return DiscoverDatasets.SPANS_EAP_RPC;
+    }
+
     return DiscoverDatasets.SPANS_EAP;
-  }, [location.query.dataset]);
+  }, [location.query.dataset, allowRPC]);
 
   const setDataset = useCallback(
     (newDataset: DiscoverDatasets) => {

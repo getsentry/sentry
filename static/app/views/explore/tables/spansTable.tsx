@@ -43,7 +43,7 @@ interface SpansTableProps {
 export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
@@ -174,7 +174,7 @@ export function SpansTable({setError}: SpansTableProps) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
+            result.data?.slice(0, 50)?.map((row, i) => (
               <TableRow key={i}>
                 {fields.map((field, j) => {
                   return (

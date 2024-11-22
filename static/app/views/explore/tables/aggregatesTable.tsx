@@ -57,7 +57,7 @@ export function AggregatesTable({setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
