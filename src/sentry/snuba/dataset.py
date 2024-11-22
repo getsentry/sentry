@@ -54,12 +54,6 @@ class Dataset(Enum):
 
     EventsAnalyticsPlatform = "events_analytics_platform"
 
-    MetricsSummaries = "metrics_summaries"
-    """
-    Summaries of all metrics within a span. Used to correlate indexed
-    spans to a metric.
-    """
-
 
 @unique
 class EntityKey(Enum):
@@ -79,7 +73,6 @@ class EntityKey(Enum):
     GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"
     Functions = "functions"
-    MetricsSummaries = "metrics_summaries"
 
 
 @unique
