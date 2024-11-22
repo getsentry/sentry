@@ -18,9 +18,6 @@ export type AutofixSetupResponse = {
     ok: boolean;
     reason: string | null;
   };
-  subprocessorConsent: {
-    ok: boolean;
-  };
   githubWriteIntegration?: {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];

@@ -17,7 +17,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleExcludedProjects,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
@@ -40,7 +39,6 @@ logger = logging.getLogger(__name__)
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     environment: str | None
     projects: list[str] | None
-    excludedProjects: list[dict] | None
     queryType: int | None
     resolveThreshold: float | None
     dataset: str | None
@@ -63,8 +61,6 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "status",
         "resolution",
         "thresholdPeriod",
-        "includeAllProjects",
-        "excludedProjects",
         "weeklyAvg",
         "totalThisWeek",
         "latestIncident",
@@ -89,7 +85,6 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     resolution: float
     thresholdPeriod: int
     triggers: list[dict]
-    includeAllProjects: bool
     dateModified: datetime
     dateCreated: datetime
     createdBy: dict
@@ -309,7 +304,6 @@ class AlertRuleSerializer(Serializer):
             "thresholdPeriod": obj.threshold_period,
             "triggers": attrs.get("triggers", []),
             "projects": sorted(attrs.get("projects", [])),
-            "includeAllProjects": obj.include_all_projects,
             "owner": attrs.get("owner", None),
             "originalAlertRuleId": attrs.get("originalAlertRuleId", None),
             "comparisonDelta": obj.comparison_delta / 60 if obj.comparison_delta else None,
@@ -343,13 +337,6 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         self, item_list: Sequence[Any], user: User | RpcUser, **kwargs: Any
     ) -> defaultdict[AlertRule, Any]:
         result = super().get_attrs(item_list, user, **kwargs)
-        alert_rules = {item.id: item for item in item_list}
-        for alert_rule_id, project_slug in AlertRuleExcludedProjects.objects.filter(
-            alert_rule__in=item_list
-        ).values_list("alert_rule_id", "project__slug"):
-            exclusions = result[alert_rules[alert_rule_id]].setdefault("excluded_projects", [])
-            exclusions.append(project_slug)
-
         query_to_alert_rule = {ar.snuba_query_id: ar for ar in item_list}
 
         for event_type in SnubaQueryEventType.objects.filter(
@@ -366,7 +353,6 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs
     ) -> AlertRuleSerializerResponse:
         data = super().serialize(obj, attrs, user)
-        data["excludedProjects"] = sorted(attrs.get("excluded_projects", []))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         data["snooze"] = False
         return data

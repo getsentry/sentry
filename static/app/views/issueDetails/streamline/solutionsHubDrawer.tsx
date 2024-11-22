@@ -13,7 +13,6 @@ import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -22,18 +21,15 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDocs} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -43,6 +39,24 @@ interface AutofixStartBoxProps {
 function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   const [message, setMessage] = useState('');
 
+  const stars = [
+    {size: 10, left: 20, top: 5, rotation: 30, opacity: 0.15},
+    {size: 12, left: 50, top: 8, rotation: 45, opacity: 0.2},
+    {size: 10, left: 80, top: 12, rotation: 15, opacity: 0.2},
+    {size: 14, left: 15, top: 20, rotation: 60, opacity: 0.3},
+    {size: 16, left: 45, top: 25, rotation: 30, opacity: 0.35},
+    {size: 14, left: 75, top: 22, rotation: 45, opacity: 0.3},
+    {size: 18, left: 25, top: 35, rotation: 20, opacity: 0.4},
+    {size: 20, left: 60, top: 38, rotation: 50, opacity: 0.45},
+    {size: 18, left: 85, top: 42, rotation: 35, opacity: 0.4},
+    {size: 22, left: 15, top: 55, rotation: 25, opacity: 0.5},
+    {size: 24, left: 40, top: 58, rotation: 40, opacity: 0.55},
+    {size: 22, left: 70, top: 52, rotation: 30, opacity: 0.5},
+    {size: 26, left: 30, top: 70, rotation: 35, opacity: 0.65},
+    {size: 28, left: 50, top: 75, rotation: 45, opacity: 0.7},
+    {size: 26, left: 80, top: 72, rotation: 25, opacity: 0.7},
+  ];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSend(message);
@@ -51,13 +65,18 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   return (
     <StartBox>
       <StarTrail>
-        {[...Array(8)].map((_, i) => (
+        {stars.map((star, i) => (
           <TrailStar
             key={i}
             src={starImage}
-            index={i}
-            size={14 + i * 2}
-            offset={(i % 2) * 50 - 15}
+            style={{
+              left: `${star.left}%`,
+              top: `${star.top}%`,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              opacity: star.opacity,
+              transform: `rotate(${star.rotation}deg)`,
+            }}
           />
         ))}
       </StarTrail>
@@ -102,34 +121,6 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 }
 
-const shouldDisplayAiAutofixForOrganization = (organization: Organization) => {
-  return (
-    organization.features.includes('gen-ai-features') &&
-    organization.genAIConsent &&
-    !organization.hideAiFeatures &&
-    getRegionDataFromOrganization(organization)?.name !== 'de'
-  );
-};
-
-// Autofix requires the event to have stack trace frames in order to work correctly.
-export function hasStacktraceWithFrames(event: Event) {
-  for (const entry of event.entries) {
-    if (entry.type === EntryType.EXCEPTION) {
-      if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
-        return true;
-      }
-    }
-
-    if (entry.type === EntryType.THREADS) {
-      if (entry.data.values?.some(thread => thread.stacktrace?.frames?.length)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
 interface SolutionsHubDrawerProps {
   event: Event;
   group: Group;
@@ -147,30 +138,14 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
     data: summaryData,
     isError,
     isPending: isSummaryLoading,
-  } = useGroupSummary(group.id, group.issueCategory);
-  const {data: setupData, isPending: isSetupLoading} = useAutofixSetup({
-    groupId: group.id,
-  });
+  } = useGroupSummary(group, event, project);
+  const aiConfig = useAiConfig(group, event, project);
 
   useRouteAnalyticsParams({
     autofix_status: autofixData?.status ?? 'none',
   });
 
   const config = getConfigForIssueType(group, project);
-
-  const hasConsent = Boolean(setupData?.genAIConsent.ok);
-  const isAutofixSetupComplete = setupData?.integration.ok && hasConsent;
-
-  const hasSummary = (summaryData || isSummaryLoading) && !isError && hasConsent;
-
-  const organization = useOrganization();
-  const isSampleError = useIsSampleEvent();
-
-  const displayAiAutofix =
-    shouldDisplayAiAutofixForOrganization(organization) &&
-    config.autofix &&
-    hasStacktraceWithFrames(event) &&
-    !isSampleError;
 
   return (
     <SolutionsDrawerContainer className="solutions-drawer-container">
@@ -240,15 +215,15 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           )}
         </HeaderText>
-        {isSetupLoading ? (
+        {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
           </div>
-        ) : !hasConsent ? (
+        ) : aiConfig.needsGenAIConsent ? (
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
-            {hasSummary && (
+            {aiConfig.hasSummary && (
               <StyledCard>
                 <GroupSummary
                   data={summaryData}
@@ -257,9 +232,9 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
                 />
               </StyledCard>
             )}
-            {displayAiAutofix && (
+            {aiConfig.hasAutofix && (
               <Fragment>
-                {!isAutofixSetupComplete ? (
+                {aiConfig.needsAutofixSetup ? (
                   <AutofixSetupContent groupId={group.id} projectId={project.id} />
                 ) : !autofixData ? (
                   <AutofixStartBox onSend={triggerAutofix} groupId={group.id} />
@@ -437,26 +412,21 @@ const ResourcesHeader = styled('div')`
 `;
 
 const StarTrail = styled('div')`
-  height: 400px;
+  height: 450px;
   width: 100%;
-  display: flex;
-  justify-content: center;
   position: absolute;
-  bottom: 7rem;
+  bottom: 5rem;
   left: 0;
   right: 0;
   z-index: -1;
   pointer-events: none;
+  overflow: hidden;
 `;
 
-const TrailStar = styled('img')<{index: number; offset: number; size: number}>`
+const TrailStar = styled('img')`
   position: absolute;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
-  top: ${p => p.index * 50}px;
-  transform: translateX(${p => p.offset}px) rotate(${p => p.index * 40}deg);
-  opacity: ${p => Math.min(1, 0.2 + p.index * 0.1)};
   filter: sepia(1) saturate(3) hue-rotate(290deg);
+  transition: all 0.2s ease-in-out;
 `;
 
 const HeaderContainer = styled('div')`

@@ -69,7 +69,7 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
     name = serializers.CharField(
         required=True,
         max_length=128,
-        help_text="Name of the uptime monitor",
+        help_text="Name of the uptime monitor.",
     )
     owner = ActorField(
         required=False,
@@ -80,24 +80,40 @@ class UptimeMonitorValidator(CamelSnakeSerializer):
         max_length=64,
         required=False,
         allow_null=True,
-        help_text="Name of the environment",
+        help_text="Name of the environment to create uptime issues in.",
     )
     url = URLField(required=True, max_length=255)
     interval_seconds = serializers.ChoiceField(
-        required=True, choices=UptimeSubscription.IntervalSeconds.choices
+        required=True,
+        choices=UptimeSubscription.IntervalSeconds.choices,
+        help_text="Time in seconds between uptime checks.",
     )
     timeout_ms = serializers.IntegerField(
         required=True,
         min_value=1000,
         max_value=30_000,
+        help_text="The number of milliseconds the request will wait for a response before timing-out.",
     )
     mode = serializers.IntegerField(required=False)
     method = serializers.ChoiceField(
-        required=False, choices=UptimeSubscription.SupportedHTTPMethods.choices
+        required=False,
+        choices=UptimeSubscription.SupportedHTTPMethods.choices,
+        help_text="The HTTP method used to make the check request.",
     )
-    headers = serializers.JSONField(required=False)
-    trace_sampling = serializers.BooleanField(required=False, default=False)
-    body = serializers.CharField(required=False, allow_null=True)
+    headers = serializers.JSONField(
+        required=False,
+        help_text="Additional headers to send with the check request.",
+    )
+    trace_sampling = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="When enabled allows check requets to be considered for dowstream performance tracing.",
+    )
+    body = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The body to send with the check request.",
+    )
 
     def validate(self, attrs):
         headers = []
