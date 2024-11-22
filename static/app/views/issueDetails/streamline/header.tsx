@@ -14,7 +14,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconLock} from 'sentry/icons';
+import {IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -101,8 +101,7 @@ export default function StreamlinedGroupHeader({
                 })}
                 tooltipProps={{isHoverable: true}}
                 icon={
-                  <IconLock
-                    locked={false}
+                  <IconGlobe
                     size="xs"
                     color="subText"
                     onClick={() =>
