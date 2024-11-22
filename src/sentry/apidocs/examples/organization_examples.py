@@ -310,7 +310,6 @@ class OrganizationExamples:
                 "allowJoinRequests": True,
                 "relayPiiConfig": None,
                 "codecovAccess": False,
-                "aiSuggestedSolution": True,
                 "hideAiFeatures": False,
                 "githubPRBot": True,
                 "githubOpenPRBot": True,
