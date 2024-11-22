@@ -544,17 +544,8 @@ def resolve_in_release_helper(
     Commit | None,
     Release | None,
 ]:
-    # The default values for the resolution
-    res_type_str = "now"
-    activity_type = ActivityType.SET_RESOLVED.value
-    activity_data = {}
-    new_status_details = {}
-
     commit = None
     release = None
-    serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-    if serialized_user:
-        new_status_details["actor"] = serialized_user[0]
 
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # may not be a release yet
@@ -591,6 +582,12 @@ def resolve_in_release_helper(
         new_status_details = {"inCommit": serialize(commit, user)}
         res_type_str = "in_commit"
 
+    else:
+        res_type_str = "now"
+        activity_type = ActivityType.SET_RESOLVED.value
+        activity_data = {}
+        new_status_details = {}
+
     # if we've specified a commit, let's see if its already been released
     # this will allow us to associate the resolution to a release as if we
     # were simply using 'inRelease' above
@@ -608,6 +605,10 @@ def resolve_in_release_helper(
             res_status = GroupResolution.Status.resolved
         except IndexError:
             release = None
+
+    serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+    if serialized_user:
+        new_status_details["actor"] = serialized_user[0]
 
     return (
         activity_type,
