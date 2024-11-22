@@ -31,6 +31,7 @@ describe('HTTPSnippet', function () {
       'POST /test?query=value HTTP/1.1',
       'Host: example.com',
       'X-Something: Header Value',
+      'User-Agent: SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
       'Sentry-Trace: sentry-trace-value',
       'Content-Size: 18',
       ``,
