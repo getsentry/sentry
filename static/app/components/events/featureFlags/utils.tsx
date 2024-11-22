@@ -112,3 +112,17 @@ export const sortedFlags = ({
       return flags;
   }
 };
+
+export enum ProviderOptions {
+  LAUNCHDARKLY = 'LaunchDarkly',
+}
+
+export enum IntegrationOptions {
+  LAUNCHDARKLY = 'LaunchDarkly',
+  OPENFEATURE = 'OpenFeature',
+}
+
+export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string> = {
+  [ProviderOptions.LAUNCHDARKLY]:
+    'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
+};

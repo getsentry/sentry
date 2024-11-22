@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
@@ -147,7 +148,11 @@ def expose_fingerprint_dict(values, info):
 
     matched_rule = info.get("matched_rule")
     if matched_rule:
-        rv["matched_rule"] = matched_rule["text"]
+        # TODO: Before late October 2024, we didn't store the rule text along with the matched rule,
+        # meaning there are still events out there whose `_fingerprint_info` entry doesn't have it.
+        # Once those events have aged out (in February or so), we can remove the default value here
+        # and the `test_old_event_with_no_fingerprint_rule_text` test in `test_variants.py`.
+        rv["matched_rule"] = matched_rule.get("text", FingerprintRule.from_json(matched_rule).text)
 
     return rv
 
