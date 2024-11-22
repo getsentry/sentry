@@ -550,38 +550,65 @@ def resolve_in_release_helper(
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # may not be a release yet
         release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": ""}  # no version yet
-        new_status_details = {"inNextRelease": True}
+        activity_data = {
+            # no version yet
+            "version": ""
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inNextRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
         res_type = GroupResolution.Type.in_next_release
         res_type_str = "in_next_release"
         res_status = GroupResolution.Status.pending
-
     elif status_details.get("inUpcomingRelease"):
         release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
-        new_status_details = {"inUpcomingRelease": True}
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inUpcomingRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
         res_type = GroupResolution.Type.in_upcoming_release
         res_type_str = "in_upcoming_release"
         res_status = GroupResolution.Status.pending
-
     elif status_details.get("inRelease"):
         release = status_details["inRelease"]
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": release.version}
-        new_status_details = {"inRelease": release.version}
+        activity_data = {
+            # no version yet
+            "version": release.version
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inRelease": release.version,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
         res_type = GroupResolution.Type.in_release
         res_type_str = "in_release"
         res_status = GroupResolution.Status.resolved
-
     elif status_details.get("inCommit"):
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
-        new_status_details = {"inCommit": serialize(commit, user)}
-        res_type_str = "in_commit"
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
 
+        new_status_details = {
+            "inCommit": serialize(commit, user),
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type_str = "in_commit"
     else:
         res_type_str = "now"
         activity_type = ActivityType.SET_RESOLVED.value
@@ -605,10 +632,6 @@ def resolve_in_release_helper(
             res_status = GroupResolution.Status.resolved
         except IndexError:
             release = None
-
-    serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-    if serialized_user:
-        new_status_details["actor"] = serialized_user[0]
 
     return (
         activity_type,
