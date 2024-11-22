@@ -583,8 +583,10 @@ def _do_save_event(
             raise
 
         finally:
-            if consumer_type == ConsumerType.Transactions and in_rollout_group(
-                "transactions.do_post_process_in_save", project_id
+            if (
+                consumer_type == ConsumerType.Transactions
+                and event_id
+                and in_rollout_group("transactions.do_post_process_in_save", event_id)
             ):
                 # we won't use the transaction data in post_process
                 # so we can delete it from the cache now.

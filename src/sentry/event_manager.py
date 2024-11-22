@@ -2519,39 +2519,29 @@ def _detect_performance_problems(
 
 
 @sentry_sdk.tracing.trace
-def _sample_transactions_in_save(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    """
+    this function does what we do in post_process for transactions. if this option is
+    turned on, we do the actions here instead of in post_process, with the goal
+    eventually being to not run transactions through post_process
+    """
     for job in jobs:
         try:
-            if not in_rollout_group(
-                "transactions.do_post_process_in_save", job["event"].project_id
-            ):
-                continue
-            project = job["event"].project
-            record_transaction_name_for_clustering(project, job["event"].data)
-        except Exception:
-            sentry_sdk.capture_exception()
-
-
-@sentry_sdk.tracing.trace
-def _do_transaction_processed_signal_receivers(
-    jobs: Sequence[Job], projects: ProjectsMapping
-) -> None:
-    for job in jobs:
-        try:
-            if not in_rollout_group(
-                "transactions.do_post_process_in_save", job["event"].project_id
-            ):
+            event = job["event"]
+            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
                 continue
 
-            project = job["event"].project
+            project = event.project
+            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+                record_transaction_name_for_clustering(project, event.data)
+
             # these are what the "transaction_processed" signal hooked into
             # we should not use signals here, so call the recievers directly
             # instead of sending a signal. we should consider potentially
             # deleting these
-            record_event_processed(project, job["event"])
-            record_user_context_received(project, job["event"])
-            record_release_received(project, job["event"])
-
+            record_event_processed(project, event)
+            record_user_context_received(project, event)
+            record_release_received(project, event)
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -2681,11 +2671,8 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
         _send_occurrence_to_platform(jobs, projects)
 
-    with metrics.timer("save_transaction_events.sample_transactions"):
-        _sample_transactions_in_save(jobs, projects)
-
-    with metrics.timer("save_transaction_events.do_transaction_processed_signal_receivers"):
-        _do_transaction_processed_signal_receivers(jobs, projects)
+    with metrics.timer("save_transaction_events.record_transaction_info"):
+        _record_transaction_info(jobs, projects)
 
     return jobs
 
