@@ -138,7 +138,9 @@ function InviteMembersModal({
               headerInfo={headerInfo}
               invites={invites}
               inviteStatus={inviteStatus}
-              isOverMemberLimit={isOverMemberLimit}
+              isOverMemberLimit={
+                isOverMemberLimit && organization.features?.includes('invite-billing')
+              }
               member={memberResult.data}
               pendingInvites={pendingInvites}
               removeInviteRow={removeInviteRow}

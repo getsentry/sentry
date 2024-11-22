@@ -130,17 +130,15 @@ export default function InviteMembersModalView({
           />
         ))}
       </Rows>
-      {!isOverMemberLimit && (
-        <AddButton
-          disabled={disableInputs}
-          size="sm"
-          borderless
-          onClick={addInviteRow}
-          icon={<IconAdd isCircled />}
-        >
-          {t('Add another')}
-        </AddButton>
-      )}
+      <AddButton
+        disabled={disableInputs}
+        size="sm"
+        borderless
+        onClick={addInviteRow}
+        icon={<IconAdd isCircled />}
+      >
+        {t('Add another')}
+      </AddButton>
       <Footer>
         <FooterContent>
           <div>
@@ -152,15 +150,12 @@ export default function InviteMembersModalView({
               willInvite={willInvite}
             />
           </div>
-
           <ButtonBar gap={1}>
             {complete ? (
               <Fragment>
-                {!isOverMemberLimit && (
-                  <Button data-test-id="send-more" size="sm" onClick={reset}>
-                    {t('Send more invites')}
-                  </Button>
-                )}
+                <Button data-test-id="send-more" size="sm" onClick={reset}>
+                  {t('Send more invites')}
+                </Button>
                 <Button
                   data-test-id="close"
                   priority="primary"
