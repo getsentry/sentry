@@ -16,7 +16,7 @@ type TypedSpanTags = {
   string: TagCollection;
 };
 
-const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
+export const SpanTagsContext = createContext<TypedSpanTags | undefined>(undefined);
 
 interface SpanTagsProviderProps {
   children: React.ReactNode;
