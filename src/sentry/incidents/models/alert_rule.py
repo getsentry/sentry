@@ -251,7 +251,7 @@ class AlertRuleExcludedProjects(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False, db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -490,8 +490,10 @@ class AlertRuleTriggerExclusion(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
+    alert_rule_trigger = FlexibleForeignKey(
+        "sentry.AlertRuleTrigger", related_name="exclusions", db_constraint=False
+    )
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

@@ -22,7 +22,6 @@ export const errorConfig: IssueCategoryConfigMapping = {
     },
     attachments: {enabled: true},
     autofix: true,
-    aiSuggestedSolution: true,
     mergedIssues: {enabled: true},
     replays: {enabled: true},
     similarIssues: {enabled: true},

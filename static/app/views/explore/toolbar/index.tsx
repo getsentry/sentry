@@ -19,7 +19,7 @@ interface ExploreToolbarProps {
 }
 
 export function ExploreToolbar({extras}: ExploreToolbarProps) {
-  const [dataset, setDataset] = useDataset();
+  const [dataset, setDataset] = useDataset({allowRPC: true});
   const [resultMode, setResultMode] = useResultMode();
 
   const [sampleFields] = useSampleFields();

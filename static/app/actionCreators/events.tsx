@@ -175,6 +175,7 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
+  useRpc?: '1';
 };
 
 export type TagSegment = {
