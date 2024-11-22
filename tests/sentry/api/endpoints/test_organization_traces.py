@@ -319,22 +319,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ),
         }
 
-    def test_unsupported_mri(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 1,
-            "mri": "d:spans/made_up@none",
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="Unsupported MRI: d:spans/made_up@none", code="parse_error"
-            ),
-        }
-
     def test_no_traces(self):
         query = {
             "project": [self.project.id],
