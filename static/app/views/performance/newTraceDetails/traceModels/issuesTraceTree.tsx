@@ -1,4 +1,7 @@
-import {isTraceErrorNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isCollapsedNode,
+  isTraceErrorNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -6,6 +9,8 @@ import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
 import type {TraceTreeNode} from './traceTreeNode';
+
+const MAX_ISSUES = 10;
 
 export class IssuesTraceTree extends TraceTree {
   static FromTrace(
@@ -24,13 +29,13 @@ export class IssuesTraceTree extends TraceTree {
     const errorNodes = TraceTree.FindAll(
       tree.root,
       node => node.hasErrors || isTraceErrorNode(node)
-    );
+    ).slice(0, MAX_ISSUES);
 
-    const preservePaths = new Set<TraceTreeNode>();
+    const preserveNodes = new Set<TraceTreeNode>();
     for (const node of errorNodes) {
       let current: TraceTreeNode | null = node;
       while (current) {
-        preservePaths.add(current);
+        preserveNodes.add(current);
         current = current.parent;
       }
     }
@@ -52,11 +57,7 @@ export class IssuesTraceTree extends TraceTree {
       while (index < node.children.length) {
         const start = index;
 
-        while (
-          node.children[index] &&
-          !node.children[index]?.hasErrors &&
-          !preservePaths.has(node.children[index])
-        ) {
+        while (node.children[index] && !preserveNodes.has(node.children[index])) {
           index++;
         }
 
@@ -91,6 +92,34 @@ export class IssuesTraceTree extends TraceTree {
 
   build() {
     super.build();
+
+    // Since we only collapsed sibling nodes, it means that it is possible for the list to contain
+    // sibling collapsed nodes. We'll do a second pass to flatten these nodes and replace them with
+    // a single fake collapsed node.
+    for (let i = 0; i < this.list.length; i++) {
+      if (!isCollapsedNode(this.list[i])) {
+        continue;
+      }
+
+      const start = i;
+      while (i < this.list.length && isCollapsedNode(this.list[i])) {
+        i++;
+      }
+
+      if (i - start > 0) {
+        const newNode = new CollapsedNode(
+          this.list[start].parent!,
+          {type: 'collapsed'},
+          this.list[start].metadata
+        );
+
+        const removed = this.list.splice(start, i - start, newNode);
+
+        for (const node of removed) {
+          newNode.children = newNode.children.concat(node.children);
+        }
+      }
+    }
     return this;
   }
 }

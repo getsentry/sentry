@@ -59,8 +59,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
-  const hasNoTransactions = meta.data?.transactions === 0;
-  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
 
@@ -79,7 +78,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     return {eventId: firstTransactionEventId};
   }, [trace.data]);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
+  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
     return null;
   }
 
@@ -151,7 +150,7 @@ const TraceContentWrapper = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const MAX_HEIGHT = 500;
+const MAX_HEIGHT = 12 * ROW_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 const HEADER_HEIGHT = 26;
 
