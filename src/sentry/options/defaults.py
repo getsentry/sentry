@@ -2916,7 +2916,7 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.event-tracker.sample-rate.transaction",
+    "performance.event-tracker.sample-rate.transactions",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
