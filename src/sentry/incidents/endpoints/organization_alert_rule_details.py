@@ -212,9 +212,6 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
     monitorType = serializers.IntegerField(
         required=False,
