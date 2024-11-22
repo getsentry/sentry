@@ -307,10 +307,6 @@ def handle_resolve_in_release(
         if user_options:
             self_assign_issue = user_options[0].value
 
-    res_type_str = "now"
-    activity_type = ActivityType.SET_RESOLVED.value
-    activity_data = {}
-    new_status_details = {}
     if (
         status == "resolvedInNextRelease"
         or status_details.get("inNextRelease")
@@ -322,16 +318,16 @@ def handle_resolve_in_release(
             return Response(
                 {"detail": "Cannot set resolve in release for multiple projects."}, status=400
             )
-        (
-            activity_type,
-            activity_data,
-            new_status_details,
-            res_type,
-            res_type_str,
-            res_status,
-            commit,
-            release,
-        ) = resolve_in_release_helper(status, status_details, projects, user)
+    (
+        activity_type,
+        activity_data,
+        new_status_details,
+        res_type,
+        res_type_str,
+        res_status,
+        commit,
+        release,
+    ) = resolve_in_release_helper(status, status_details, projects, user)
 
     metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
@@ -385,9 +381,14 @@ def resolve_in_release_helper(
     Commit | None,
     Release | None,
 ]:
+    # The default values for the resolution
+    res_type_str = "now"
+    activity_type = ActivityType.SET_RESOLVED.value
+    activity_data = {}
+    new_status_details = {}
+
     commit = None
     release = None
-    new_status_details = {}
     serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
     if serialized_user:
         new_status_details["actor"] = serialized_user[0]
