@@ -567,7 +567,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             permissions = data.get("permissions")
             if permissions and self.instance:
                 currentUser = self.context["request"].user
-                if self.instance.created_by_id != currentUser.id:
+                # managers and owners
+                has_write_access = self.context["request"].access.has_scope("org:write")
+                if self.instance.created_by_id != currentUser.id and not has_write_access:
                     raise serializers.ValidationError(
                         "Only the Dashboard Creator may modify Dashboard Edit Access"
                     )
