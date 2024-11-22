@@ -14,7 +14,6 @@ const uptimeConfig: IssueCategoryConfigMapping = {
     attachments: {enabled: false},
     resources: null,
     autofix: false,
-    aiSuggestedSolution: false,
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},

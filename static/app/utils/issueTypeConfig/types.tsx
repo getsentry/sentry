@@ -25,10 +25,6 @@ export type IssueTypeConfig = {
     share: DisabledWithReasonConfig;
   };
   /**
-   * Should show AI Suggested Fix for this issue type
-   */
-  aiSuggestedSolution: boolean;
-  /**
    * Is the Attachments tab shown for this issue
    */
   attachments: DisabledWithReasonConfig;
