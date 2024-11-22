@@ -1,6 +1,7 @@
 import {type CSSProperties, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
@@ -173,6 +174,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
+    const translucentGray300 = Color(theme.gray300).alpha(0.3).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -180,7 +182,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           seriesName: t('Total users'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: translucentGray300,
             color: theme.gray100,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -206,7 +208,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           seriesName: t('Total events'),
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
-            borderColor: theme.translucentGray200,
+            borderColor: translucentGray300,
             color: theme.gray100,
           },
           barGap: '-100%', // Makes bars overlap completely
@@ -220,7 +222,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : theme.gray200,
+          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
         },
         data: eventSeries,
         animation: false,
