@@ -9,6 +9,10 @@ from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
@@ -114,27 +118,36 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 },
             )
             return
-        try:
-            response = installation.create_issue(data)
-        except Exception as e:
-            logger.info(
-                "%s.rule_trigger.create_ticket.failure",
-                provider,
-                extra={
-                    "rule_id": rule_id,
-                    "provider": provider,
-                    "integration_id": integration.id,
-                    "error_message": str(e),
-                    "exception_type": type(e).__name__,
-                },
-            )
-            metrics.incr(
-                f"{provider}.rule_trigger.create_ticket.failure",
-                tags={
-                    "provider": provider,
-                },
-            )
 
-            raise
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("provider", provider)
+            lifecycle.add_extra("integration_id", integration.id)
+            lifecycle.add_extra("rule_id", rule_id)
+
+            try:
+                response = installation.create_issue(data)
+            except Exception as e:
+                logger.info(
+                    "%s.rule_trigger.create_ticket.failure",
+                    provider,
+                    extra={
+                        "rule_id": rule_id,
+                        "provider": provider,
+                        "integration_id": integration.id,
+                        "error_message": str(e),
+                        "exception_type": type(e).__name__,
+                    },
+                )
+                metrics.incr(
+                    f"{provider}.rule_trigger.create_ticket.failure",
+                    tags={
+                        "provider": provider,
+                    },
+                )
+
+                raise
 
         create_link(integration, installation, event, response)

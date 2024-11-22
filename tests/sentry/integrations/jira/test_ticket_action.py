@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
@@ -7,7 +8,9 @@ from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -15,14 +18,30 @@ from sentry.types.rules import RuleFuture
 pytestmark = [requires_snuba]
 
 
+class BrokenJiraMock(MockJira):
+    """
+    Subclass of MockJira client, which implements a broken create_issue method
+    to simulate a misconfigured alert rule for Jira.
+    """
+
+    def create_issue(self, raw_form_data):
+        raise ApiInvalidRequestError("Invalid data entered")
+
+
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = JiraCreateTicketAction
     mock_jira = None
+    broken_mock_jira = None
 
     def get_client(self):
         if not self.mock_jira:
             self.mock_jira = MockJira()
         return self.mock_jira
+
+    def get_broken_client(self):
+        if not self.broken_mock_jira:
+            self.broken_mock_jira = BrokenJiraMock()
+        return self.broken_mock_jira
 
     def setUp(self):
         super().setUp()
@@ -57,40 +76,44 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "key", flat=True
         )[0]
 
-    def test_ticket_rules(self):
+    def configure_valid_alert_rule(self):
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-project-rules",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
+                },
+            ),
+            format="json",
+            data={
+                "name": "hello world",
+                "owner": self.user.id,
+                "environment": None,
+                "actionMatch": "any",
+                "frequency": 5,
+                "actions": [
+                    {
+                        "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+                        "integration": self.integration.id,
+                        "dynamic_form_fields": [{"name": "project"}],
+                        "issuetype": "1",
+                        "name": "Create a Jira ticket in the Jira Cloud account",
+                        "project": "10000",
+                    }
+                ],
+                "conditions": [],
+            },
+        )
+        assert response.status_code == 200
+        return response
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_ticket_rules(self, mock_record_event):
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
-            # Create a new Rule
-            response = self.client.post(
-                reverse(
-                    "sentry-api-0-project-rules",
-                    kwargs={
-                        "organization_id_or_slug": self.organization.slug,
-                        "project_id_or_slug": self.project.slug,
-                    },
-                ),
-                format="json",
-                data={
-                    "name": "hello world",
-                    "owner": self.user.id,
-                    "environment": None,
-                    "actionMatch": "any",
-                    "frequency": 5,
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                            "integration": self.integration.id,
-                            "dynamic_form_fields": [{"name": "project"}],
-                            "issuetype": "1",
-                            "name": "Create a Jira ticket in the Jira Cloud account",
-                            "project": "10000",
-                        }
-                    ],
-                    "conditions": [],
-                },
-            )
-            assert response.status_code == 200
+            response = self.configure_valid_alert_rule()
 
             # Get the rule from DB
             rule_object = Rule.objects.get(id=response.data["id"])
@@ -114,6 +137,30 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_misconfigured_ticket_rule(self, mock_record_failure):
+        with mock.patch(
+            "sentry.integrations.jira.integration.JiraIntegration.get_client",
+            self.get_broken_client,
+        ):
+            response = self.configure_valid_alert_rule()
+
+            rule_object = Rule.objects.get(id=response.data["id"])
+            event = self.get_event()
+
+            with pytest.raises(IntegrationError):
+                # Trigger its `after`, but with a broken client which should raise
+                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
+                self.trigger(event, rule_object)
+
+            assert mock_record_failure.call_count == 1
+            mock_record_event_args = mock_record_failure.call_args_list[0][0]
+            assert mock_record_event_args[0] is not None
+
+            metric_exception = mock_record_event_args[0]
+            assert isinstance(metric_exception, IntegrationError)
 
     def test_fails_validation(self):
         """

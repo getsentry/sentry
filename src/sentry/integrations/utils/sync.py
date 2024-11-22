@@ -6,6 +6,11 @@ from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+    ProjectManagementHaltReason,
+)
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
@@ -77,48 +82,54 @@ def sync_group_assignee_inbound(
 
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
-    orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
-    affected_groups = Group.objects.get_groups_by_external_issue(
-        integration,
-        orgs_with_sync_enabled,
-        external_issue_key,
-    )
-    log_context = {
-        "integration_id": integration.id,
-        "email": email,
-        "issue_key": external_issue_key,
-    }
-    if not affected_groups:
-        logger.info("no-affected-groups", extra=log_context)
-        return []
+    with ProjectManagementEvent(
+        action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
+    ).capture() as lifecycle:
+        orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
+        affected_groups = Group.objects.get_groups_by_external_issue(
+            integration,
+            orgs_with_sync_enabled,
+            external_issue_key,
+        )
+        log_context = {
+            "integration_id": integration.id,
+            "email": email,
+            "issue_key": external_issue_key,
+        }
+        if not affected_groups:
+            logger.info("no-affected-groups", extra=log_context)
+            return []
 
-    if not assign:
+        if not assign:
+            for group in affected_groups:
+                GroupAssignee.objects.deassign(
+                    group,
+                    assignment_source=AssignmentSource.from_integration(integration),
+                )
+
+            return affected_groups
+
+        users = user_service.get_many_by_email(emails=[email], is_verified=True)
+        users_by_id = {user.id: user for user in users}
+        projects_by_user = Project.objects.get_by_users(users)
+
+        groups_assigned = []
         for group in affected_groups:
-            GroupAssignee.objects.deassign(
-                group,
-                assignment_source=AssignmentSource.from_integration(integration),
-            )
-
-        return affected_groups
-
-    users = user_service.get_many_by_email(emails=[email], is_verified=True)
-    users_by_id = {user.id: user for user in users}
-    projects_by_user = Project.objects.get_by_users(users)
-
-    groups_assigned = []
-    for group in affected_groups:
-        user_id = get_user_id(projects_by_user, group)
-        user = users_by_id.get(user_id)
-        if user:
-            GroupAssignee.objects.assign(
-                group,
-                user,
-                assignment_source=AssignmentSource.from_integration(integration),
-            )
-            groups_assigned.append(group)
-        else:
-            logger.info("assignee-not-found-inbound", extra=log_context)
-    return groups_assigned
+            user_id = get_user_id(projects_by_user, group)
+            user = users_by_id.get(user_id)
+            if user:
+                GroupAssignee.objects.assign(
+                    group,
+                    user,
+                    assignment_source=AssignmentSource.from_integration(integration),
+                )
+                groups_assigned.append(group)
+            else:
+                lifecycle.record_halt(
+                    ProjectManagementHaltReason.SYNC_INBOUND_ASSIGNEE_NOT_FOUND, extra=log_context
+                )
+                logger.info("inbound-assignee-not-found", extra=log_context)
+        return groups_assigned
 
 
 def sync_group_assignee_outbound(
