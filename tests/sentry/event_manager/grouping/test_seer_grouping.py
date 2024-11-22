@@ -65,7 +65,14 @@ class SeerEventManagerGroupingTest(TestCase):
 
             # Project option set
             self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-            new_event = save_new_event({"message": "Maisey is silly"}, self.project)
+            new_event = save_new_event(
+                {
+                    "exception": {
+                        "values": [{"type": "DogsAreNeverAnError", "value": "Dogs are great!"}],
+                    },
+                },
+                self.project,
+            )
             expected_metadata = {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "results": [asdict(seer_result_data)],

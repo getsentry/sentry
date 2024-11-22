@@ -634,8 +634,16 @@ class Fixtures:
             condition_group=condition_group,
         )
 
-    def create_detector(self, *args, **kwargs) -> Detector:
-        return Factories.create_detector(*args, **kwargs)
+    def create_detector(
+        self,
+        *args,
+        project=None,
+        **kwargs,
+    ) -> Detector:
+        if project is None:
+            project = self.create_project(organization=self.organization)
+
+        return Factories.create_detector(*args, project=project, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
