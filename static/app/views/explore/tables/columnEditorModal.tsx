@@ -162,7 +162,7 @@ function ColumnEditorRow({
       if (defined(tag)) {
         return (
           <TriggerLabel>
-            {tag.label}
+            <TriggerLabelText>{tag.label}</TriggerLabelText>
             {tag.trailingItems &&
               (typeof tag.trailingItems === 'function'
                 ? tag.trailingItems({
@@ -232,13 +232,19 @@ const RowContainer = styled('div')`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  flex-grow: 1;
+  flex: 1 1;
+  min-width: 0;
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
   text-align: left;
   line-height: 20px;
   display: flex;
   justify-content: space-between;
+  flex: 1 1;
+  min-width: 0;
+`;
+
+const TriggerLabelText = styled('span')`
+  ${p => p.theme.overflowEllipsis}
 `;
