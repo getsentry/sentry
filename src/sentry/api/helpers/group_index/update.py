@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 import rest_framework
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
@@ -876,7 +876,7 @@ def greatest_semver_release(project: Project) -> Release | None:
     return get_semver_releases(project).first()
 
 
-def get_semver_releases(project: Project) -> Release:
+def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter_to_semver()
