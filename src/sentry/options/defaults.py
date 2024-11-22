@@ -2921,6 +2921,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# migrating send_alert_event task to not pass Event
+register(
+    "sentryapps.send_alert_event.use-eventid",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "transactions.do_post_process_in_save",
     default=0.0,
