@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request):

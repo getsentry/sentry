@@ -36,12 +36,16 @@ import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
+import {
+  handleAddQueryToDashboard,
+  SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
+} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
 
 import {
   getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleResetHomepageQuery,
@@ -449,6 +453,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             query: savedQuery,
             yAxis,
             router,
+            widgetType: hasDatasetSelector(organization)
+              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                  getSavedQueryDataset(organization, location, savedQuery)
+                ]
+              : undefined,
           })
         }
       >
@@ -568,6 +577,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             query: savedQuery,
             yAxis,
             router,
+            widgetType: hasDatasetSelector(organization)
+              ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[
+                  getSavedQueryDataset(organization, location, savedQuery)
+                ]
+              : undefined,
           });
         },
       });

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from attr import dataclass
@@ -28,6 +28,9 @@ class SCMIntegrationInteractionType(Enum):
     # CommitContextIntegration
     CREATE_COMMENT = "CREATE_COMMENT"
     UPDATE_COMMENT = "UPDATE_COMMENT"
+
+    # Tasks
+    LINK_ALL_REPOS = "LINK_ALL_REPOS"
 
     def __str__(self) -> str:
         return self.value.lower()
@@ -60,3 +63,12 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
             "organization_id": (self.organization.id if self.organization else None),
             "org_integration_id": (self.org_integration.id if self.org_integration else None),
         }
+
+
+class LinkAllReposHaltReason(StrEnum):
+    """Common reasons why a link all repos task may halt without success/failure."""
+
+    MISSING_INTEGRATION = "missing_integration"
+    MISSING_ORGANIZATION = "missing_organization"
+    RATE_LIMITED = "rate_limited"
+    REPOSITORY_NOT_CREATED = "repository_not_created"

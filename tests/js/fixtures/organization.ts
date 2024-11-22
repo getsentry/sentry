@@ -37,7 +37,6 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     scrapeJavaScript: true,
     features: [],
     onboardingTasks: [],
-    aiSuggestedSolution: false,
     alertsMemberWrite: false,
     allowJoinRequests: false,
     allowMemberInvite: true,

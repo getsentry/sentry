@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import Placeholder from 'sentry/components/placeholder';
 import {IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types/group';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
 
 interface GroupSummaryData {
   groupId: string;
@@ -18,14 +20,6 @@ interface GroupSummaryData {
   whatsWrong?: string | null;
 }
 
-const isSummaryEnabled = (
-  hasGenAIConsent: boolean,
-  hideAiFeatures: boolean,
-  groupCategory: IssueCategory
-) => {
-  return hasGenAIConsent && !hideAiFeatures && groupCategory === IssueCategory.ERROR;
-};
-
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
   groupId: string
@@ -34,30 +28,26 @@ export const makeGroupSummaryQueryKey = (
   {method: 'POST'},
 ];
 
-export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
+export function useGroupSummary(
+  group: Group,
+  event: Event | null | undefined,
+  project: Project
+) {
   const organization = useOrganization();
-  // We piggyback and use autofix's genai consent check for now.
-  const {
-    data: autofixSetupData,
-    isPending: isAutofixSetupLoading,
-    isError: isAutofixSetupError,
-  } = useAutofixSetup({groupId});
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
-  const hideAiFeatures = organization.hideAiFeatures;
+  const aiConfig = useAiConfig(group, event, project);
 
   const queryData = useApiQuery<GroupSummaryData>(
-    makeGroupSummaryQueryKey(organization.slug, groupId),
+    makeGroupSummaryQueryKey(organization.slug, group.id),
     {
       staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, hideAiFeatures, groupCategory),
+      enabled: aiConfig.hasSummary,
     }
   );
   return {
     ...queryData,
-    isPending: isAutofixSetupLoading || queryData.isPending,
-    isError: queryData.isError || isAutofixSetupError,
-    hasGenAIConsent,
+    isPending: aiConfig.isAutofixSetupLoading || queryData.isPending,
+    isError: queryData.isError,
   };
 }
 
@@ -94,10 +84,10 @@ export function GroupSummary({
   ];
 
   return (
-    <Body preview={preview} data-testid="group-summary">
+    <div data-testid="group-summary">
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
-        <InsightGrid preview={preview}>
+        <InsightGrid>
           {insightCards.map(card => {
             // Hide the card if we're not loading and there's no insight
             if (!isPending && !card.insight) {
@@ -110,35 +100,36 @@ export function GroupSummary({
                   <CardTitleIcon>{card.icon}</CardTitleIcon>
                   <CardTitleText>{card.title}</CardTitleText>
                 </CardTitle>
-                {isPending ? (
-                  <CardContent>
-                    <Placeholder height="1.5rem" />
-                  </CardContent>
-                ) : (
-                  card.insight && (
-                    <CardContent
-                      dangerouslySetInnerHTML={{
-                        __html: marked(
-                          preview
-                            ? card.insight.replace(/\*\*/g, '') ?? ''
-                            : card.insight ?? ''
-                        ),
-                      }}
-                    />
-                  )
-                )}
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    card.insight && (
+                      <CardContent
+                        dangerouslySetInnerHTML={{
+                          __html: marked(
+                            preview
+                              ? card.insight.replace(/\*\*/g, '') ?? ''
+                              : card.insight ?? ''
+                          ),
+                        }}
+                      />
+                    )
+                  )}
+                </CardContentContainer>
               </InsightCard>
             );
           })}
         </InsightGrid>
       </Content>
-    </Body>
+    </div>
   );
 }
-
-const Body = styled('div')<{preview?: boolean}>`
-  padding: ${p => (p.preview ? 0 : `0 ${space(2)} ${space(0.5)} ${space(2)}`)};
-`;
 
 const Content = styled('div')`
   display: flex;
@@ -146,17 +137,15 @@ const Content = styled('div')`
   gap: ${space(1)};
 `;
 
-const InsightGrid = styled('div')<{preview?: boolean}>`
+const InsightGrid = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  margin-top: ${p => (p.preview ? 0 : space(1))};
 `;
 
 const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)};
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   width: 100%;
@@ -174,6 +163,7 @@ const CardTitle = styled('div')<{preview?: boolean}>`
 const CardTitleText = styled('p')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const CardTitleIcon = styled('div')`
@@ -182,12 +172,30 @@ const CardTitleIcon = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 2px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
 const CardContent = styled('div')`
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: 14px;
-  border-left: 1px solid ${p => p.theme.border};
-  margin-left: ${space(0.75)};
   p {
     margin: 0;
     white-space: pre-wrap;
@@ -195,4 +203,5 @@ const CardContent = styled('div')`
   code {
     word-break: break-all;
   }
+  flex: 1;
 `;

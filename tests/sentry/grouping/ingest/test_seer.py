@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from time import time
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -8,7 +8,6 @@ from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -149,7 +148,14 @@ class ShouldCallSeerTest(TestCase):
             data={
                 **self.event_data,
                 "fingerprint": ["failedtofetcherror"],
-                "_fingerprint_info": {"matched_rule": {"is_builtin": True}},
+                "_fingerprint_info": {
+                    "matched_rule": {
+                        "is_builtin": True,
+                        "matchers": [["type", "FailedToFetchError"]],
+                        "fingerprint": ["failedtofetcherror"],
+                        "text": 'type:"FailedToFetchError" -> "failedtofetcherror"',
+                    }
+                },
             },
         )
 
@@ -164,6 +170,43 @@ class ShouldCallSeerTest(TestCase):
                 should_call_seer_for_grouping(event, event.get_grouping_variants())
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
+
+    @patch("sentry.grouping.ingest.seer.metrics")
+    def test_obeys_empty_stacktrace_string_check(self, mock_metrics: Mock) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": "title",
+                "platform": "python",
+                "stacktrace": {"frames": [{}]},
+            },
+        )
+
+        assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=sample_rate,
+            tags={
+                "call_made": False,
+                "blocker": "empty-stacktrace-string",
+            },
+        )
+
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    def test_stacktrace_string_not_saved_in_event(
+        self, mock_get_similarity_data: MagicMock
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", 1)
+        event = save_new_event(self.event_data, self.project)
+        assert mock_get_similarity_data.call_count == 1
+        assert "raise FailedToFetchError('Charlie didn't bring the ball back')" in (
+            mock_get_similarity_data.call_args.args[0]["stacktrace"]
+        )
+
+        assert event.data.get("stacktrace_string") is None
 
 
 class GetSeerSimilarIssuesTest(TestCase):
@@ -263,54 +306,3 @@ class GetSeerSimilarIssuesTest(TestCase):
                 expected_metadata,
                 None,
             )
-
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames(self, mock_metrics: Mock) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
-        new_event = Event(
-            project_id=self.project.id,
-            event_id="22312012112120120908201304152013",
-            data={
-                "title": f"{type}('{value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": type,
-                            "value": value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": f"play_fetch_{i}",
-                                        "filename": f"dogpark{i}.py",
-                                        "context_line": context_line,
-                                    }
-                                    for i in range(MAX_FRAME_COUNT + 1)
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "python",
-            },
-        )
-        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
-
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        expected_metrics_calls = [
-            call(
-                "grouping.similarity.over_threshold_only_system_frames",
-                sample_rate=sample_rate,
-                tags={"platform": "python", "referrer": "ingest"},
-            ),
-            call(
-                "grouping.similarity.did_call_seer",
-                sample_rate=1.0,
-                tags={
-                    "call_made": False,
-                    "blocker": "over-threshold-only-system-frames",
-                },
-            ),
-        ]
-        assert mock_metrics.incr.call_args_list == expected_metrics_calls

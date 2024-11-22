@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import useDrawer from 'sentry/components/globalDrawer';
 import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
-import {IconChevron} from 'sentry/icons';
+import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -13,19 +14,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import useOrganization from 'sentry/utils/useOrganization';
 import Resources from 'sentry/views/issueDetails/streamline/resources';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const isSummaryEnabled = (
-  hasGenAIConsent: boolean,
-  hasIssueSummary: boolean,
-  hideAiFeatures: boolean
-) => {
-  return hasGenAIConsent && hasIssueSummary && !hideAiFeatures;
-};
 
 export default function SolutionsSection({
   group,
@@ -36,7 +29,6 @@ export default function SolutionsSection({
   group: Group;
   project: Project;
 }) {
-  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const openButtonRef = useRef<HTMLButtonElement>(null);
   const {openDrawer} = useDrawer();
@@ -68,54 +60,40 @@ export default function SolutionsSection({
     );
   };
 
-  const hasGenAIConsent = organization.genAIConsent;
   const {
     data: summaryData,
     isPending: isSummaryLoading,
     isError: isSummaryError,
-  } = useGroupSummary(group.id, group.issueCategory);
+  } = useGroupSummary(group, event, project);
 
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const hasSummary = isSummaryEnabled(
-    hasGenAIConsent,
-    issueTypeConfig.issueSummary.enabled,
-    organization.hideAiFeatures
-  );
-  const aiNeedsSetup =
-    !hasGenAIConsent &&
-    issueTypeConfig.issueSummary.enabled &&
-    !organization.hideAiFeatures;
-  const hasResources = issueTypeConfig.resources;
+  const aiConfig = useAiConfig(group, event, project);
 
-  return (
-    <div>
-      <SidebarSectionTitle style={{marginTop: 0}}>
-        <HeaderContainer>
-          {t('Solutions Hub')}
-          {hasSummary && (
-            <StyledFeatureBadge
-              type="beta"
-              title={tct(
-                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-                {
-                  email: <a href="mailto:autofix@sentry.io" />,
-                }
-              )}
-            />
-          )}
-        </HeaderContainer>
-      </SidebarSectionTitle>
-      {hasSummary && (
-        <Summary>
-          <GroupSummary
-            data={summaryData ?? undefined}
-            isError={isSummaryError}
-            isPending={isSummaryLoading}
-            preview
-          />
-        </Summary>
-      )}
-      {aiNeedsSetup && (
+  const issueTypeConfig = getConfigForIssueType(group, project);
+
+  const showCtaButton =
+    aiConfig.needsGenAIConsent ||
+    aiConfig.hasAutofix ||
+    (aiConfig.hasSummary && aiConfig.hasResources);
+  const isButtonLoading = aiConfig.isAutofixSetupLoading;
+
+  const getButtonText = () => {
+    if (aiConfig.needsGenAIConsent) {
+      return t('Set up Sentry AI');
+    }
+
+    if (aiConfig.hasAutofix) {
+      if (aiConfig.needsAutofixSetup) {
+        return t('Set up Autofix');
+      }
+      return aiConfig.hasResources ? t('Open Resources & Autofix') : t('Open Autofix');
+    }
+
+    return t('Open Resources');
+  };
+
+  const renderContent = () => {
+    if (aiConfig.needsGenAIConsent) {
+      return (
         <Summary>
           <HeadlineText
             dangerouslySetInnerHTML={{
@@ -125,8 +103,25 @@ export default function SolutionsSection({
             }}
           />
         </Summary>
-      )}
-      {!hasSummary && hasResources && !aiNeedsSetup && (
+      );
+    }
+
+    // Show the summary's loading state if we're still loading the autofix setup
+    if (aiConfig.hasSummary) {
+      return (
+        <Summary>
+          <GroupSummary
+            data={summaryData ?? undefined}
+            isError={isSummaryError}
+            isPending={isSummaryLoading}
+            preview
+          />
+        </Summary>
+      );
+    }
+
+    if (!aiConfig.hasSummary && issueTypeConfig.resources) {
+      return (
         <ResourcesWrapper isExpanded={isExpanded}>
           <ResourcesContent isExpanded={isExpanded}>
             <Resources
@@ -139,8 +134,34 @@ export default function SolutionsSection({
             {isExpanded ? t('SHOW LESS') : t('READ MORE')}
           </ExpandButton>
         </ResourcesWrapper>
-      )}
-      {(hasSummary || aiNeedsSetup) && (
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <SolutionsSectionContainer>
+      <SidebarSectionTitle style={{marginTop: 0}}>
+        <HeaderContainer>
+          {t('Solutions Hub')}
+          {aiConfig.hasSummary && (
+            <StyledFeatureBadge
+              type="beta"
+              title={tct(
+                'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {
+                  email: <a href="mailto:autofix@sentry.io" />,
+                }
+              )}
+            />
+          )}
+        </HeaderContainer>
+      </SidebarSectionTitle>
+      {renderContent()}
+      {isButtonLoading ? (
+        <ButtonPlaceholder />
+      ) : showCtaButton ? (
         <StyledButton
           ref={openButtonRef}
           onClick={() => openSolutionsDrawer()}
@@ -150,13 +171,20 @@ export default function SolutionsSection({
             has_streamlined_ui: hasStreamlinedUI,
           }}
         >
-          {t('Open Solutions Hub')}
-          <IconChevron direction="right" size="xs" />
+          {getButtonText()}
+          <ChevronContainer>
+            <Chevron direction="right" size="large" />
+          </ChevronContainer>
         </StyledButton>
-      )}
-    </div>
+      ) : null}
+    </SolutionsSectionContainer>
   );
 }
+
+const SolutionsSectionContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
 
 const Summary = styled('div')`
   margin-bottom: ${space(0.5)};
@@ -216,13 +244,26 @@ const StyledButton = styled(Button)`
   color: ${p => p.theme.pink400};
 `;
 
+const ChevronContainer = styled('div')`
+  margin-left: ${space(0.5)};
+  height: 16px;
+  width: 16px;
+`;
+
 const HeaderContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin-left: ${space(0.25)};
   padding-bottom: 3px;
+`;
+
+const ButtonPlaceholder = styled(Placeholder)`
+  width: 100%;
+  height: 38px;
+  border-radius: ${p => p.theme.borderRadius};
+  margin-top: ${space(1)};
 `;
