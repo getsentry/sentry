@@ -220,7 +220,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             />
             <BooleanField
               name="traceSampling"
-              label={t('Allow Tracing')}
+              label={t('Allow Sampling')}
               showHelpInTooltip
               help={t(
                 'Allows uptime checks to trigger traces if the checked service is configured with a Sentry SDK.'
