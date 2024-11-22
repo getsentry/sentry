@@ -536,19 +536,26 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         get_event_stats = get_event_stats_factory(dataset)
 
         try:
-            return Response(
-                self.get_event_stats_data(
-                    request,
-                    organization,
-                    get_event_stats,
-                    top_events,
-                    allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
-                    comparison_delta=comparison_delta,
-                    dataset=dataset,
+            events_stats_data = self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                top_events,
+                allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=not (
+                    request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                 ),
+                comparison_delta=comparison_delta,
+                dataset=dataset,
+            )
+            for [_, value] in events_stats_data["data"]:
+                if value[0]["count"] > 100:
+                    value[0]["confidence"] = "HIGH"
+                else:
+                    value[0]["confidence"] = "LOW"
+
+            return Response(
+                events_stats_data,
                 status=200,
             )
         except ValidationError:
