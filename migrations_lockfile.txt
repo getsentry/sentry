@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0792_add_unique_index_apiauthorization
+sentry: 0793_remove_db_constraint_alert_rule_exclusion
 
 social_auth: 0002_default_auto_field
 

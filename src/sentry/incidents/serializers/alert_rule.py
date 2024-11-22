@@ -76,9 +76,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         required=False,
         max_length=1,
     )
-    excluded_projects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     triggers = serializers.ListField(required=True)
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=False)
@@ -123,8 +120,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "comparison_delta",
             "aggregate",
             "projects",
-            "include_all_projects",
-            "excluded_projects",
             "triggers",
             "event_types",
             "monitor_type",
@@ -136,7 +131,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
-            "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
