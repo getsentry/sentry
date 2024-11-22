@@ -37,22 +37,24 @@ class BaseSafeMigrationTest(TestCase):
         self._run_migration(self.app, self.migrate_from)
         self._run_migration(self.app, self.migrate_to)
 
-    def _run_migration(self, app, migration):
+    def _run_migration(self, app, migration_name):
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
             executor = MigrationExecutor(connection)
+            migration = executor.loader.get_migration_by_prefix(app, migration_name)
             executor.loader.build_graph()
-            target = [(app, migration)]
+            target = [(migration.app_label, migration.name)]
             executor.loader.project_state(target).apps
             executor.migrate(target)
 
-    def sql_migrate(self, app_label, migration_name):
+    def sql_migrate(self, app, migration_name):
         with override_settings(
             INSTALLED_APPS=(f"{self.BASE_PATH}.{self.app}",), MIGRATION_MODULES={}
         ):
-            target = (app_label, migration_name)
             executor = MigrationExecutor(connection)
+            migration = executor.loader.get_migration_by_prefix(app, migration_name)
+            target = (app, migration.name)
             plan = [(executor.loader.graph.nodes[target], None)]
             sql_statements = executor.loader.collect_sql(plan)  # type: ignore[attr-defined]
             return "\n".join(sql_statements)
@@ -230,3 +232,73 @@ class LockTimeoutTest(BaseSafeMigrationTest):
                 "SET statement_timeout TO '0ms';",
                 "SET lock_timeout TO '0ms';",
             ]
+
+
+class DeletionBadDeleteModelWithoutPendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_model_without_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Model must be in the pending deletion state before full deletion",
+        ):
+            self.run_migration()
+
+
+class DeletionBadDeleteModelDoublePendingTest(BaseSafeMigrationTest):
+    app = "bad_flow_delete_model_double_pending_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        with pytest.raises(
+            LookupError,
+            match="App 'bad_flow_delete_model_double_pending_app' doesn't have a 'TestTable' model",
+        ):
+            self.run_migration()
+
+
+class DeletionBadDeletePendingWithFKConstraints(BaseSafeMigrationTest):
+    app = "bad_flow_delete_pending_with_fk_constraints_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Foreign key db constraints must be removed before dropping "
+            "bad_flow_delete_pending_with_fk_constraints_app.TestTable. "
+            "Fields with constraints: \\['fk_table'\\]",
+        ):
+            self.run_migration()
+
+
+class DeletionGoodDeleteRemoveFKConstraints(BaseSafeMigrationTest):
+    app = "good_flow_delete_pending_with_fk_constraints_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+
+        self._run_migration(self.app, "0001_initial")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0002_remove_constraints_and_pending")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0003_delete")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class DeletionGoodDeleteSimple(BaseSafeMigrationTest):
+    app = "good_flow_delete_simple_app"
+    migrate_from = "0001"
+    migrate_to = "0003"
+
+    def test(self):
+        self._run_migration(self.app, "0001_initial")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0002_set_pending")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0003_delete")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()

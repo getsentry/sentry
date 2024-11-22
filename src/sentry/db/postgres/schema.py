@@ -88,14 +88,16 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
         )
 
-    def delete_model(self, model):
+    def delete_model(self, model, is_safe=False):
         """
         It's never safe to delete a model using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Deleting the {model.__name__} model is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Deleting the {model.__name__} model is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
+            )
+        super(DatabaseSchemaEditorMixin, self).delete_model(model)
 
     def remove_field(self, model, field):
         """
