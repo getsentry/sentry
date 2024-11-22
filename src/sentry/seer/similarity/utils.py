@@ -296,7 +296,6 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             "project_id": data.get("project_id", ""),
             "event_id": data.get("event_id", ""),
             "hash": system_hash,
-            "stacktrace_str": stacktrace_str.strip(),
         }
         logger.info("grouping.similarity.over_threshold_system_only_frames", extra=logger_extra)
 
