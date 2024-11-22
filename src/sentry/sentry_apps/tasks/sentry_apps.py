@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from celery import Task, current_task
@@ -13,8 +13,10 @@ from sentry import analytics, nodestore
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import BaseEvent, Event, GroupEvent
+from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.caching import region_caching_service
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -34,6 +36,7 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -75,6 +78,8 @@ TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 def _webhook_event_data(
     event: Event | GroupEvent, group_id: int, project_id: int
 ) -> dict[str, Any]:
+    from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
     project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -91,6 +96,10 @@ def _webhook_event_data(
             "sentry-organization-event-detail", args=[organization.slug, group_id, event.event_id]
         )
     )
+    if hasattr(event, "occurrence") and event.occurrence is not None:
+        event_context["occurrence"] = convert_dict_key_case(
+            event.occurrence.to_dict(), snake_to_camel_case
+        )
 
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
@@ -98,6 +107,104 @@ def _webhook_event_data(
     event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
     event_context["issue_id"] = str(group_id)
     return event_context
+
+
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
+@retry_decorator
+def send_alert_webhook(
+    rule: str,
+    sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+):
+    group = Group.objects.get_from_cache(id=group_id)
+    assert group, "Group must exist to get related attributes"
+    project = Project.objects.get_from_cache(id=group.project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    extra = {
+        "sentry_app_id": sentry_app_id,
+        "project_slug": project.slug,
+        "organization_slug": organization.slug,
+        "rule": rule,
+    }
+
+    sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+    if sentry_app is None:
+        logger.info("event_alert_webhook.missing_sentry_app", extra=extra)
+        return
+
+    installations = app_service.get_many(
+        filter=dict(
+            organization_id=organization.id,
+            app_ids=[sentry_app.id],
+            status=SentryAppInstallationStatus.INSTALLED,
+        )
+    )
+    if not installations:
+        logger.info("event_alert_webhook.missing_installation", extra=extra)
+        return
+    (install,) = installations
+
+    nodedata = nodestore.backend.get(
+        BaseEvent.generate_node_id(project_id=project.id, event_id=instance_id)
+    )
+
+    if not nodedata:
+        extra = {
+            "event_id": instance_id,
+            "occurrence_id": occurrence_id,
+            "rule": rule,
+            "sentry_app": sentry_app.slug,
+            "group_id": group_id,
+        }
+        logger.info("send_alert_event.missing_event", extra=extra)
+        return
+
+    occurrence = None
+    if occurrence_id:
+        occurrence = IssueOccurrence.fetch(occurrence_id, project_id=project.id)
+
+        if not occurrence:
+            logger.info(
+                "send_alert_event.missing_occurrence",
+                extra={"occurrence_id": occurrence_id, "project_id": project.id},
+            )
+            return
+
+    group_event = GroupEvent(
+        project_id=project.id,
+        event_id=instance_id,
+        group=group,
+        data=nodedata,
+        occurrence=occurrence,
+    )
+
+    event_context = _webhook_event_data(group_event, group.id, project.id)
+
+    data = {"event": event_context, "triggered_rule": rule}
+
+    # Attach extra payload to the webhook
+    if additional_payload_key and additional_payload:
+        data[additional_payload_key] = additional_payload
+
+    request_data = AppPlatformEvent(
+        resource="event_alert", action="triggered", install=install, data=data
+    )
+
+    send_and_save_webhook_request(sentry_app, request_data)
+
+    # On success, record analytic event for Alert Rule UI Component
+    if request_data.data.get("issue_alert"):
+        analytics.record(
+            "alert_rule_ui_component_webhook.sent",
+            organization_id=organization.id,
+            sentry_app_id=sentry_app_id,
+            event=f"{request_data.resource}.{request_data.action}",
+        )
 
 
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
@@ -426,7 +533,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: Event | GroupEvent, futures):
+def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             continue
@@ -446,12 +553,22 @@ def notify_sentry_app(event: Event | GroupEvent, futures):
                 "settings": settings,
             }
 
-        send_alert_event.delay(
-            event=event,
-            rule=f.rule.label,
-            sentry_app_id=f.kwargs["sentry_app"].id,
-            **extra_kwargs,
-        )
+        if in_random_rollout("sentryapps.send_alert_event.use-eventid"):
+            send_alert_webhook.delay(
+                instance_id=event.event_id,
+                group_id=event.group_id,
+                occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
+                rule=f.rule.label,
+                sentry_app_id=f.kwargs["sentry_app"].id,
+                **extra_kwargs,
+            )
+        else:
+            send_alert_event.delay(
+                event=event,
+                rule=f.rule.label,
+                sentry_app_id=f.kwargs["sentry_app"].id,
+                **extra_kwargs,
+            )
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
