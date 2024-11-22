@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -41,6 +41,9 @@ describe('Uptime Alert Form', function () {
     await screen.findByText('Configure Request');
 
     await selectEvent.select(input('Environment'), 'prod');
+
+    const timeout = screen.getByRole('slider', {name: 'Timeout'});
+    fireEvent.change(timeout, {target: {value: '10000'}});
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
@@ -82,6 +85,7 @@ describe('Uptime Alert Form', function () {
           body: '{"key": "value"}',
           traceSampling: true,
           intervalSeconds: 60,
+          timeoutMs: 10_000,
         }),
       })
     );
@@ -100,6 +104,7 @@ describe('Uptime Alert Form', function () {
       ],
       body: '{"key": "value"}',
       traceSampling: true,
+      timeoutMs: 7500,
       owner: ActorFixture(),
     });
     render(
@@ -120,6 +125,7 @@ describe('Uptime Alert Form', function () {
     await selectEvent.openMenu(input('Environment'));
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
+    expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
   });
 
   it('handles simple edits', async function () {
@@ -179,6 +185,9 @@ describe('Uptime Alert Form', function () {
     await selectEvent.select(input('Interval'), 'Every 10 minutes');
     await selectEvent.select(input('Environment'), 'dev');
 
+    const timeout = screen.getByRole('slider', {name: 'Timeout'});
+    fireEvent.change(timeout, {target: {value: '7500'}});
+
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://another-url.com');
 
@@ -225,6 +234,7 @@ describe('Uptime Alert Form', function () {
           body: '{"different": "value"}',
           intervalSeconds: 60 * 10,
           traceSampling: true,
+          timeoutMs: 7500,
         }),
       })
     );
