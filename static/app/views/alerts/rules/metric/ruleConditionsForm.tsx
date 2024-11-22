@@ -30,6 +30,7 @@ import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';
@@ -42,8 +43,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -63,6 +70,10 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {
+  SpanTagsContext,
+  SpanTagsProvider,
+} from 'sentry/views/explore/contexts/spanTagsContext';
 
 import {getProjectOptions} from '../utils';
 
@@ -732,6 +743,29 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         onChange(query, {});
                       }}
                     />
+                  ) : alertType === 'eap_metrics' ? (
+                    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+                      <SpanTagsContext.Consumer>
+                        {tags => (
+                          <EAPSpanSearchQueryBuilder
+                            numberTags={tags?.number ?? {}}
+                            stringTags={tags?.string ?? {}}
+                            initialQuery={initialData?.query ?? ''}
+                            searchSource="alerts"
+                            onSearch={(query, {parsedQuery}) => {
+                              onFilterSearch(query, parsedQuery);
+                              onChange(query, {});
+                            }}
+                            onBlur={(query, {parsedQuery}) => {
+                              onFilterSearch(query, parsedQuery);
+                              onBlur(query);
+                            }}
+                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+                            projects={[parseInt(project.id, 10)]}
+                          />
+                        )}
+                      </SpanTagsContext.Consumer>
+                    </SpanTagsProvider>
                   ) : (
                     <SearchContainer>
                       <SearchQueryBuilder

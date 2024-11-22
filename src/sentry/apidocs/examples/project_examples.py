@@ -526,3 +526,30 @@ class ProjectExamples:
             response_only=True,
         ),
     ]
+
+    GET_PROJECT_FILTERS = [
+        OpenApiExample(
+            "List a project's filters",
+            value=[
+                {"id": "browser-extensions", "active": False},
+                {"id": "filtered-transaction", "active": True},
+                {
+                    "id": "legacy-browsers",
+                    "active": [
+                        "opera",
+                        "edge",
+                        "safari",
+                        "chrome",
+                        "ie",
+                        "opera_mini",
+                        "firefox",
+                        "android",
+                    ],
+                },
+                {"id": "localhost", "active": False},
+                {"id": "web-crawlers", "active": True},
+            ],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]

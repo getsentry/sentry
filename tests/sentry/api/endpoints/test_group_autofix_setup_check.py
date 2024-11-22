@@ -32,19 +32,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         )
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
 
-    @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
-        return_value=[
-            {
-                "provider": "github",
-                "owner": "getsentry",
-                "name": "seer",
-                "external_id": "123",
-                "ok": True,
-            }
-        ],
-    )
-    def test_successful_setup(self, mock_get_repos_and_access):
+    def test_successful_setup(self):
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -63,18 +51,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
                 "ok": True,
                 "reason": None,
             },
-            "githubWriteIntegration": {
-                "ok": True,
-                "repos": [
-                    {
-                        "provider": "github",
-                        "owner": "getsentry",
-                        "name": "seer",
-                        "external_id": "123",
-                        "ok": True,
-                    }
-                ],
-            },
+            "githubWriteIntegration": None,
         }
 
     @patch(
@@ -89,13 +66,13 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             }
         ],
     )
-    def test_successful_with_codebase_indexing_disabled_flag(self, mock_get_repos_and_access):
+    def test_successful_with_write_access(self, mock_get_repos_and_access):
         """
         Everything is set up correctly, should respond with OKs.
         """
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -192,7 +169,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_repo_write_access_not_ready(self, mock_get_repos_and_access):
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -223,7 +200,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def test_repo_write_access_no_repos(self, mock_get_repos_and_access):
         group = self.create_group()
         self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        url = f"/api/0/issues/{group.id}/autofix/setup/?check_write_access=true"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200

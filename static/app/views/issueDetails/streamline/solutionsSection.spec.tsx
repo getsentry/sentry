@@ -56,7 +56,6 @@ describe('SolutionsSection', () => {
         resolveInRelease: {enabled: false},
         share: {enabled: false},
       },
-      aiSuggestedSolution: false,
       attachments: {enabled: false},
       autofix: true,
       discover: {enabled: false},

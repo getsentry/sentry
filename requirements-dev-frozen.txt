@@ -146,7 +146,7 @@ pyflakes==3.2.0
 pyjwt==2.4.0
 pymemcache==4.0.0
 pysocks==1.7.1
-pytest==8.3.3
+pytest==8.1.2
 pytest-cov==4.0.0
 pytest-django==4.9.0
 pytest-fail-slow==0.3.0
