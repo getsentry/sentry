@@ -347,8 +347,8 @@ class GetSeerSimilarIssuesTest(TestCase):
         mock_logger.info.assert_called_with(
             "grouping.similarity.over_threshold_system_only_frames",
             extra={
-                "project_id": self.project.id,
-                "event_id": new_event.event_id,
+                "project_id": "",
+                "event_id": "",
                 "hash": grouping_info["system"]["hash"],
             },
         )
