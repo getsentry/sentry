@@ -54,7 +54,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('Name of header 1'), 'X-Something');
     await userEvent.type(input('Value of X-Something'), 'Header Value');
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Tracing'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
@@ -119,7 +119,7 @@ describe('Uptime Alert Form', function () {
     expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
     await selectEvent.openMenu(input('Environment'));
     expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: 'Allow Tracing'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
   });
 
   it('handles simple edits', async function () {
@@ -194,7 +194,7 @@ describe('Uptime Alert Form', function () {
     await userEvent.type(input('Name of header 2'), 'X-Another');
     await userEvent.type(input('Value of X-Another'), 'Second Value');
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Tracing'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Allow Sampling'}));
 
     const name = input('Uptime rule name');
     await userEvent.clear(name);
