@@ -1143,7 +1143,7 @@ class NumericColumn(ColumnArg):
         if match and match.group("type") == "number":
             return value
         if not snuba_column:
-            raise InvalidFunctionArgument(f"{value} is not a valid column")
+            raise InvalidFunctionArgument(f"{value} is not a valid column?")
         elif snuba_column not in ["time", "timestamp", "duration"]:
             raise InvalidFunctionArgument(f"{value} is not a numeric column")
         return snuba_column
