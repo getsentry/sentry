@@ -5,11 +5,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.utils import translate_threshold
-from sentry.incidents.models.alert_rule import (
-    AlertRuleTrigger,
-    AlertRuleTriggerAction,
-    AlertRuleTriggerExclusion,
-)
+from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
 
 
 @register(AlertRuleTrigger)
@@ -45,20 +41,3 @@ class AlertRuleTriggerSerializer(Serializer):
             "dateCreated": obj.date_added,
             "actions": attrs.get("actions", []),
         }
-
-
-class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        triggers = {item.id: item for item in item_list}
-        result: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
-        for trigger_id, project_slug in AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger__in=item_list
-        ).values_list("alert_rule_trigger_id", "query_subscription__project__slug"):
-            if project_slug is not None:
-                result[triggers[trigger_id]]["excludedProjects"].append(project_slug)
-        return result
-
-    def serialize(self, obj, attrs, user, **kwargs):
-        data = super().serialize(obj, attrs, user, **kwargs)
-        data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
-        return data
