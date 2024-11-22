@@ -140,6 +140,8 @@ def send_incident_alert_notification(
             "incident_id": incident.id,
             "incident_status": new_status,
             "attachments": attachments,
+            "channel_id": channel,
+            "channel_name": action.target_display,
         }
         _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         metrics.incr(
