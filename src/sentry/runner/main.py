@@ -68,7 +68,6 @@ for cmd in map(
         "sentry.runner.commands.performance.performance",
         "sentry.runner.commands.spans.spans",
         "sentry.runner.commands.spans.write_hashes",
-        "sentry.runner.commands.openai.openai",
         "sentry.runner.commands.llm.llm",
         "sentry.runner.commands.workstations.workstations",
     ),
