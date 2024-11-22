@@ -43,7 +43,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a list of filters for a given project.
-        `active` will be either a boolean or list for the legacy browser filters
+        `active` will be either a boolean or a list for the legacy browser filters.
         """
         results = []
         for flt in inbound_filters.get_all_filter_specs():
