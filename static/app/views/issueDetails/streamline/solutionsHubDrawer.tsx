@@ -57,7 +57,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
     {size: 24, left: 40, top: 58, rotation: 40, opacity: 0.55},
     {size: 22, left: 70, top: 52, rotation: 30, opacity: 0.5},
     {size: 26, left: 30, top: 70, rotation: 35, opacity: 0.65},
-    {size: 28, left: 55, top: 75, rotation: 45, opacity: 0.7},
+    {size: 28, left: 50, top: 75, rotation: 45, opacity: 0.7},
     {size: 26, left: 80, top: 72, rotation: 25, opacity: 0.7},
   ];
 
