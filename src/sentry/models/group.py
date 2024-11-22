@@ -221,9 +221,9 @@ class EventOrdering(Enum):
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
         "-replay.id",
-        "-profile.id",
-        "num_processing_errors",
         "-trace.sampled",
+        "num_processing_errors",
+        "-profile.id",
         "-timestamp",
         "-event_id",
     ]
