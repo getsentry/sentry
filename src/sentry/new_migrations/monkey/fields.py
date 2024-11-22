@@ -1,5 +1,5 @@
 from django.db.migrations import RemoveField
-from django.db.models import Field
+from django.db.models import Field, ManyToManyField
 from django.db.models.fields import NOT_PROVIDED
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
@@ -37,7 +37,11 @@ class SafeRemoveField(RemoveField):
                     f"Foreign key db constraint must be removed before dropping {app_label}.{self.model_name_lower}.{self.name}. "
                     "More info: https://develop.sentry.dev/api-server/application-domains/database-migrations/#deleting-columns"
                 )
-            if not field.null and field.db_default is NOT_PROVIDED:
+            if (
+                not isinstance(field, ManyToManyField)
+                and not field.null
+                and field.db_default is NOT_PROVIDED
+            ):
                 raise UnsafeOperationException(
                     f"Field {app_label}.{self.model_name_lower}.{self.name} must either be nullable or have a db_default before dropping. "
                     "More info: https://develop.sentry.dev/api-server/application-domains/database-migrations/#deleting-columns"
