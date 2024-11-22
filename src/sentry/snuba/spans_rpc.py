@@ -64,6 +64,7 @@ def run_table_query(
             if isinstance(col.proto_definition, AttributeKey)
         ],
         order_by=resolved_orderby,
+        limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.table_rpc(rpc_request)
