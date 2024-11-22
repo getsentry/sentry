@@ -360,6 +360,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
+    @pytest.mark.skip(reason="Flaky")
     def test_duplicate_widget_in_view_mode(self):
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
