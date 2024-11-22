@@ -1366,7 +1366,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               ].includes(aggregate)}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               isLowConfidenceChartData={isLowConfidenceChartData}
-              monitorType={monitorType}
               onComparisonDeltaChange={value =>
                 this.handleFieldChange('comparisonDelta', value)
               }
