@@ -4,7 +4,7 @@ from copy import deepcopy
 from enum import Enum
 
 from django.db.migrations.state import ProjectState
-from django.db.models import Model
+from django.db.models import Field, Model
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 
@@ -17,7 +17,7 @@ class SentryProjectState(ProjectState):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pending_deletion_models: dict[tuple[str, str], type[Model]] = {}
-        self.pending_deletion_fields = {}
+        self.pending_deletion_fields: dict[tuple[str, str, str], type[Field]] = {}
 
     def get_pending_deletion_model(self, app_label: str, model_name: str) -> type[Model]:
         model_key = (app_label.lower(), model_name.lower())
@@ -28,7 +28,9 @@ class SentryProjectState(ProjectState):
             )
         return self.pending_deletion_models[model_key]
 
-    def get_pending_deletion_field(self, app_label: str, model_name: str, field_name: str):
+    def get_pending_deletion_field(
+        self, app_label: str, model_name: str, field_name: str
+    ) -> type[Field]:
         field_key = (app_label.lower(), model_name.lower(), field_name.lower())
         if field_key not in self.pending_deletion_fields:
             raise UnsafeOperationException(
@@ -59,9 +61,13 @@ class SentryProjectState(ProjectState):
         super().remove_model(app_label, model_name)
 
     def remove_field(
-        self, app_label, model_name, name, deletion_action: DeletionAction | None = None
+        self,
+        app_label: str,
+        model_name: str,
+        name: str,
+        deletion_action: DeletionAction | None = None,
     ):
-        field_key = app_label, model_name, name
+        field_key = app_label.lower(), model_name.lower(), name.lower()
         if deletion_action == DeletionAction.DELETE:
             if field_key not in self.pending_deletion_fields:
                 raise UnsafeOperationException(
