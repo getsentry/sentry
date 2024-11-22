@@ -2334,6 +2334,21 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             in response.content.decode()
         )
 
+    def test_manager_or_owner_can_update_dashboard_edit_perms(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=True, dashboard=self.dashboard)
+
+        user = self.create_user(id=28193)
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"permissions": {"is_editable_by_everyone": False}},
+            )
+        assert response.status_code == 200
+
     def test_update_dashboard_permissions_with_new_teams(self):
         mock_project = self.create_project()
         permission = DashboardPermissions.objects.create(
