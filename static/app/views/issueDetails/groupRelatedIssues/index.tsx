@@ -118,9 +118,7 @@ function RelatedIssuesSection({
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
-            withPagination
-            narrowGroups
-            withColumns={[]}
+            withColumns={['event']}
           />
         </Fragment>
       ) : null}
