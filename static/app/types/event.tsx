@@ -336,17 +336,17 @@ export interface EntryRequestDataDefault {
   apiTarget: null;
   method: string;
   url: string;
-  cookies?: [key: string, value: string][];
+  cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | [key: string, value: any][];
   env?: Record<string, string>;
   fragment?: string | null;
-  headers?: [key: string, value: string][];
+  headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: [key: string, value: string][] | string;
+  query?: Array<[key: string, value: string] | null> | string;
 }
 
 export interface EntryRequestDataGraphQl
