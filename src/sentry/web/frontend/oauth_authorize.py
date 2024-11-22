@@ -171,7 +171,9 @@ class OAuthAuthorizeView(AuthLoginView):
         if not request.user.is_authenticated:
             return super().get(request, application=application)
 
-        if not force_prompt:
+        # If the application expects org level access, we need to prompt the user to choose which
+        # organization they want to give access to every time. We should not presume the user intention
+        if not (force_prompt or application.requires_org_level_access):
             try:
                 existing_auth = ApiAuthorization.objects.get(
                     user_id=request.user.id, application=application
