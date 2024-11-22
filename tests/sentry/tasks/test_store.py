@@ -398,6 +398,7 @@ def test_store_consumer_type(
         )
 
     mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_not_called()
 
 
 @django_db_all
