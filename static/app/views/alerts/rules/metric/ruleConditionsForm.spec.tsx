@@ -7,11 +7,32 @@ import {AlertRuleComparisonType, Dataset} from 'sentry/views/alerts/rules/metric
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 describe('RuleConditionsForm', () => {
-  it('searches with new searchbar (search-query-builder-alerts)', async () => {
-    const {organization, projects, router} = initializeOrg({
-      organization: {features: ['search-query-builder-alerts']},
-    });
-    ProjectsStore.loadInitialData(projects);
+  const {organization, projects, router} = initializeOrg({
+    organization: {
+      features: ['search-query-builder-alerts', 'alerts-eap'],
+    },
+  });
+  ProjectsStore.loadInitialData(projects);
+
+  const mockSearch = jest.fn();
+
+  const props = {
+    aggregate: 'foo',
+    alertType: 'errors' as AlertType,
+    comparisonType: AlertRuleComparisonType.COUNT,
+    dataset: Dataset.ERRORS,
+    disabled: false,
+    isEditing: true,
+    onComparisonDeltaChange: _ => {},
+    onFilterSearch: mockSearch,
+    onMonitorTypeSelect: _ => {},
+    onTimeWindowChange: _ => {},
+    project: projects[0],
+    thresholdChart: <div>chart</div>,
+    timeWindow: 30,
+  };
+
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
@@ -31,24 +52,14 @@ describe('RuleConditionsForm', () => {
       url: '/projects/org-slug/project-slug/environments/',
       body: [],
     });
+  });
 
-    const mockSearch = jest.fn();
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
 
-    const props = {
-      aggregate: 'foo',
-      alertType: 'errors' as AlertType,
-      comparisonType: AlertRuleComparisonType.COUNT,
-      dataset: Dataset.ERRORS,
-      disabled: false,
-      isEditing: true,
-      onComparisonDeltaChange: _ => {},
-      onFilterSearch: mockSearch,
-      onMonitorTypeSelect: _ => {},
-      onTimeWindowChange: _ => {},
-      project: projects[0],
-      thresholdChart: <div>chart</div>,
-      timeWindow: 30,
-    };
+  it('searches with new searchbar (search-query-builder-alerts)', async () => {
     render(
       <RuleConditionsForm {...props} organization={organization} router={router} />,
       {
@@ -66,5 +77,31 @@ describe('RuleConditionsForm', () => {
 
     expect(mockSearch).toHaveBeenCalledTimes(1);
     expect(mockSearch).toHaveBeenCalledWith('a', true);
+  });
+
+  it('renders low confidence warning', async () => {
+    render(
+      <RuleConditionsForm
+        {...props}
+        organization={organization}
+        router={router}
+        isLowConfidenceChartData
+      />,
+      {
+        router,
+        organization: {
+          ...organization,
+          features: ['search-query-builder-alerts', 'alerts-eap'],
+        },
+      }
+    );
+    await screen.findByPlaceholderText(
+      'Filter events by level, message, and other properties\u2026'
+    );
+    expect(
+      screen.getByText(
+        'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+      )
+    ).toBeInTheDocument();
   });
 });

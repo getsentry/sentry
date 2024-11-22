@@ -8,6 +8,7 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
@@ -74,6 +75,7 @@ import {
   SpanTagsContext,
   SpanTagsProvider,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getProjectOptions} from '../utils';
 
@@ -125,6 +127,7 @@ type Props = {
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isForLlmMetric?: boolean;
+  isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
   monitorType?: number;
@@ -651,6 +654,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       aggregate,
       project,
       comparisonType,
+      isLowConfidenceChartData,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -664,6 +668,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       ...(environments?.map(env => ({value: env.name, label: getDisplayName(env)})) ??
         []),
     ];
+
+    const confidenceEnabled = hasEAPAlerts(organization);
 
     return (
       <Fragment>
@@ -691,6 +697,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     'The chart data above is an estimate based on the stored transactions that match the filters specified.'
                   )}
                 />
+              )}
+              {confidenceEnabled && isLowConfidenceChartData && (
+                <Alert showIcon type="warning">
+                  {t(
+                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                  )}
+                </Alert>
               )}
               {hasActivatedAlerts && this.renderMonitorTypeSelect()}
               {!isErrorMigration && this.renderInterval()}

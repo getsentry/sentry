@@ -293,7 +293,12 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
 };
 
-export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type Confidence = 'HIGH' | 'LOW';
+
+export type EventsStatsData = [
+  number,
+  {count: number; comparisonCount?: number; confidence?: Confidence}[],
+][];
 
 // API response format for a single series
 export type EventsStats = {
