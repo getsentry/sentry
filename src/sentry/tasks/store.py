@@ -27,6 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -650,6 +651,9 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
+    track_sampled_event(
+        event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
+    )
     _do_save_event(
         cache_key,
         data,
@@ -658,6 +662,9 @@ def save_event_transaction(
         project_id,
         consumer_type=ConsumerType.Transactions,
         **kwargs,
+    )
+    track_sampled_event(
+        event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
     )
 
 

@@ -27,10 +27,12 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.store import ConsumerType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
@@ -558,7 +560,11 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 processing_store.delete_by_key(cache_key)
-
+            if eventstream_type == EventStreamEventType.Transaction.value:
+                event_id = _get_event_id_from_cache_key(cache_key)
+                track_sampled_event(
+                    event_id, ConsumerType.Transactions, TransactionStageStatus.REDIS_DELETED
+                )
             occurrence = None
             event = process_event(data, group_id)
         else:
@@ -643,6 +649,10 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
+            event_id = _get_event_id_from_cache_key(cache_key)
+            track_sampled_event(
+                event_id, ConsumerType.Transactions, TransactionStageStatus.POST_PROCESS_STARTED
+            )
 
         metric_tags = {}
         if group_id:
