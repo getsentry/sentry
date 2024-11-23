@@ -65,3 +65,4 @@ class OnCallIntegrationsHaltReason(StrEnum):
 
     INVALID_TEAM = "invalid_team"
     INVALID_SERVICE = "invalid_service"
+    INVALID_KEY = "invalid_key"
