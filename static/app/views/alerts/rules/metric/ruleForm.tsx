@@ -1,4 +1,4 @@
-import type {ComponentProps, ReactNode} from 'react';
+import type {ComponentProps, ReactElement, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -22,6 +22,7 @@ import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
@@ -54,7 +55,7 @@ import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompati
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
-import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
+import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
@@ -1188,16 +1189,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartErrorMessage,
     } = this.state;
 
-    if (chartError) {
-      return (
-        <ErrorChart
-          style={{marginTop: 0}}
-          errorMessage={`${chartErrorMessage}`}
-          isAllowIndexed
-          isQueryValid
-        />
-      );
-    }
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
     let formattedAggregate = aggregate;
@@ -1244,8 +1235,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       formattedQuery = '';
     }
 
-    const wizardBuilderChart = (
+    const wizardBuilderChart: ReactElement[] = [];
+    if (chartError) {
+      wizardBuilderChart.push(
+        <PanelAlert key="chart-error" type="error" style={{marginTop: 0}}>
+          {chartErrorMessage}
+        </PanelAlert>
+      );
+    }
+
+    wizardBuilderChart.push(
       <TriggersChart
+        key="trigger-chart"
         {...chartProps}
         header={
           <ChartHeader>
