@@ -233,7 +233,7 @@ class CommitContextIntegration(ABC):
                 return
 
             pr = pr_query.first()
-            lifecycle.add_extra("pull_request_id", pr.id)
+            lifecycle.add_extra("pull_request_id", pr.id if pr else None)
             assert pr is not None
             # need to query explicitly for merged PR comments since we can have multiple comments per PR
             merged_pr_comment_query = PullRequestComment.objects.filter(

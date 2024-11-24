@@ -12,12 +12,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
-    CommitContextHaltReason,
     CommitContextIntegration,
     CommitInfo,
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import CommitContextHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
