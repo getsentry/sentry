@@ -199,7 +199,7 @@ export function AutofixSetupContent({
       organization,
       setup_gen_ai_consent: data.genAIConsent.ok,
       setup_integration: data.integration.ok,
-      setup_write_integration: data.githubWriteIntegration.ok,
+      setup_write_integration: data.githubWriteIntegration?.ok,
     });
   }, [data, groupId, organization, projectId]);
 
