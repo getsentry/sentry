@@ -45,7 +45,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={tag.kind} />,
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -53,7 +53,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={tag.kind} />,
         };
       }),
     ];
