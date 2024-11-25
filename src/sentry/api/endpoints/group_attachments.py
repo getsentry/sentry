@@ -77,6 +77,11 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         :pparam string issue_id: the ID of the issue to retrieve.
         :pparam list   types:    a list of attachment types to filter for.
+        :qparam string start: Beginning date. You must also provide ``end``.
+        :qparam string end: End date. You must also provide ``start``.
+        :qparam string statsPeriod: An optional stat period (defaults to ``"90d"``).
+        :qparam string query: If set, will filter to only attachments from events matching that query.
+        :qparam string environment: If set, will filter to only attachments from events within a specific environment.
         :auth: required
         """
 
