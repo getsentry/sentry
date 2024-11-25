@@ -286,7 +286,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
           ]}
           offset={[-2, 1]}
-          trigger={triggerProps =>
+          trigger={(triggerProps, isOpen) =>
             hideDropdownButton ? (
               <NavigationLabel>
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
@@ -294,6 +294,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             ) : (
               <NavigationDropdownButton
                 {...triggerProps}
+                isOpen={isOpen}
                 borderless
                 size="sm"
                 disabled={hideDropdownButton}
