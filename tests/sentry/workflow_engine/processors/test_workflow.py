@@ -7,9 +7,11 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors.workflow import process_workflows
+from sentry.workflow_engine.types import DetectorType
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
-class TestProcessWorkflows(TestCase):
+class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
     def create_snuba_query(self, **kwargs):
         return SnubaQuery.objects.create(
             type=SnubaQuery.Type.ERROR.value,
@@ -60,22 +62,25 @@ class TestProcessWorkflows(TestCase):
         self.workflow = self.create_workflow(name="test_workflow")
         self.workflow_two = self.create_workflow(name="test_workflow2")
 
-        self.detector = self.create_detector(name="test_detector1")
-        self.detector_two = self.create_detector(name="test_detector2")
+        self.detector = self.create_detector(
+            name="test_detector",
+            type="TestDetector",
+            project=self.project,
+        )
+        self.error_detector = self.create_detector(
+            name="test_error_detector",
+            type=DetectorType.ERROR,
+            project=self.project,
+        )
 
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector,
             workflow=self.workflow,
         )
 
-        self.detector_workflow_two = self.create_detector_workflow(
-            detector=self.detector,
+        self.detector_workflow_error = self.create_detector_workflow(
+            detector=self.error_detector,
             workflow=self.workflow_two,
-        )
-
-        self.detector_workflow_unused = self.create_detector_workflow(
-            detector=self.detector_two,
-            workflow=self.workflow,
         )
 
         self.group = self.create_group(self.project)
@@ -93,6 +98,15 @@ class TestProcessWorkflows(TestCase):
             self.event._snuba_data,
         )
 
-    def test_single_workflow(self):
+    def test_error_event(self):
+        # pdb.set_trace()
+        process_workflows(self.packet, self.group_event)
+        pass
+
+    def test_issue_occurrence_event(self):
+        issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
+        self.group_event.occurrence = issue_occurrence
+
+        # pdb.set_trace()
         process_workflows(self.packet, self.group_event)
         pass

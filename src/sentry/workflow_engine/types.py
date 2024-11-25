@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 from typing import Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -28,3 +28,7 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         raise NotImplementedError
+
+
+class DetectorType(StrEnum):
+    ERROR = "ErrorDetector"
