@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -48,6 +48,18 @@ function EditAccessSelector({
   const teamIds: string[] = Object.values(teams).map(team => team.id);
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
+
+  // Effect to update selectedOptions whenever the dashboard changes
+  useEffect(() => {
+    const teamIdsList: string[] = Object.values(teams).map(team => team.id);
+    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
+      setSelectedOptions(['_creator', '_allUsers', ...teamIdsList]);
+    } else {
+      const permittedTeamIds =
+        dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
+      setSelectedOptions(['_creator', ...permittedTeamIds]);
+    }
+  }, [dashboard, teams]);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
