@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from enum import Enum, StrEnum
+from enum import StrEnum
 from typing import Any
 
 from attr import dataclass
@@ -8,11 +8,14 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcOrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.models.commit import Commit
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganization
 
 
-class SCMIntegrationInteractionType(Enum):
+class SCMIntegrationInteractionType(StrEnum):
     """
     SCM integration features
     """
@@ -31,14 +34,13 @@ class SCMIntegrationInteractionType(Enum):
     GET = "GET"
 
     # CommitContextIntegration
+    GET_BLAME_FOR_FILES = "GET_BLAME_FOR_FILES"
     CREATE_COMMENT = "CREATE_COMMENT"
     UPDATE_COMMENT = "UPDATE_COMMENT"
+    QUEUE_COMMENT_TASK = "QUEUE_COMMENT_TASK"
 
     # Tasks
     LINK_ALL_REPOS = "LINK_ALL_REPOS"
-
-    def __str__(self) -> str:
-        return self.value.lower()
 
 
 @dataclass
@@ -68,6 +70,38 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
             "organization_id": (self.organization.id if self.organization else None),
             "org_integration_id": (self.org_integration.id if self.org_integration else None),
         }
+
+
+@dataclass
+class CommitContextIntegrationInteractionEvent(SCMIntegrationInteractionEvent):
+    """
+    An instance to be recorded of a CommitContextIntegration feature call.
+    """
+
+    project: Project | None = None
+    commit: Commit | None = None
+    repository: Repository | None = None
+    pull_request_id: int | None = None
+
+    def get_extras(self) -> Mapping[str, Any]:
+        parent_extras = super().get_extras()
+        return {
+            **parent_extras,
+            "project_id": (self.project.id if self.project else None),
+            "commit_id": (self.commit.id if self.commit else None),
+            "repository_id": (self.repository.id if self.repository else None),
+            "pull_request_id": self.pull_request_id,
+        }
+
+
+class CommitContextHaltReason(StrEnum):
+    """Common reasons why a commit context integration may halt without success/failure."""
+
+    PR_BOT_DISABLED = "pr_bot_disabled"
+    INCORRECT_REPO_CONFIG = "incorrect_repo_config"
+    COMMIT_NOT_IN_DEFAULT_BRANCH = "commit_not_in_default_branch"
+    MISSING_PR = "missing_pr"
+    ALREADY_QUEUED = "already_queued"
 
 
 class LinkAllReposHaltReason(StrEnum):
