@@ -1,11 +1,14 @@
+import abc
 import logging
 import operator
 from enum import StrEnum
+from typing import Any
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.utils.registry import Registry
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
@@ -103,3 +106,18 @@ class DataCondition(DefaultFieldsModel):
             return self.get_condition_result()
 
         return None
+
+
+class Condition(abc.abc):
+    @classmethod
+    @abc.abstractmethod
+    def apply(cls, data: dict[str, Any]) -> Any:
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def get_value(data_packet: dict[str, Any], data_condition: DataCondition):
+        pass
+
+
+condition_registry = Registry[Condition]()

@@ -137,6 +137,8 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+from sentry.workflow_engine.detectors.error import ErrorDetectorConfigType, ErrorDetectorHandler
+from sentry.workflow_engine.models.detector import Detector
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -535,7 +537,21 @@ class EventManager:
             attachments = []
 
         try:
-            group_info = assign_event_to_group(event=job["event"], job=job, metric_tags=metric_tags)
+            use_workflow_engine = False
+
+            if use_workflow_engine:
+                error_detector_handler: ErrorDetectorHandler = Detector.objects.get_from_cache(
+                    project=project, type=ErrorGroupType.slug
+                ).detector_handler
+
+                data_dict = {"event": job["event"], "job": job, "metric_tags": metric_tags}
+                group_info = error_detector_handler.apply(
+                    ErrorDetectorConfigType.GROUPING, data_dict
+                )
+            else:
+                group_info = assign_event_to_group(
+                    event=job["event"], job=job, metric_tags=metric_tags
+                )
 
         except HashDiscarded:
             discard_event(job, attachments)

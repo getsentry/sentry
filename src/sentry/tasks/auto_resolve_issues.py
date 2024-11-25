@@ -21,6 +21,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.auto_ongoing_issues import log_error_if_queue_has_items
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.detectors.error import ErrorDetectorConfigType, ErrorDetectorHandler
+from sentry.workflow_engine.models.detector import Detector
 
 ONE_HOUR = 3600
 
@@ -42,18 +44,34 @@ def schedule_auto_resolution():
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     cutoff = time() - ONE_HOUR
+
+    use_workflow_engine = False
+
     for project_id, options in opts_by_project.items():
-        if not options.get("sentry:resolve_age"):
-            # kill the option to avoid it coming up in the future
-            ProjectOption.objects.filter(
-                key__in=["sentry:_last_auto_resolve", "sentry:resolve_age"], project=project_id
-            ).delete()
-            continue
+        if use_workflow_engine:
+            error_detector_handler: ErrorDetectorHandler = Detector.objects.get_from_cache(
+                project_id=project_id, type=grouptype.ErrorGroupType.slug
+            ).detector_handler
 
-        if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
-            continue
+            should_resolve_project_issues = error_detector_handler.check_auto_resolve_project(
+                project_id, options, cutoff
+            )
 
-        auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+            if should_resolve_project_issues:
+                auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
+
+        else:
+            if not options.get("sentry:resolve_age"):
+                # kill the option to avoid it coming up in the future
+                ProjectOption.objects.filter(
+                    key__in=["sentry:_last_auto_resolve", "sentry:resolve_age"], project=project_id
+                ).delete()
+                continue
+
+            if int(options.get("sentry:_last_auto_resolve", 0)) > cutoff:
+                continue
+
+            auto_resolve_project_issues.delay(project_id=project_id, expires=ONE_HOUR)
 
 
 @instrumented_task(
@@ -65,6 +83,24 @@ def schedule_auto_resolution():
 )
 @log_error_if_queue_has_items
 def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwargs):
+    use_workflow_engine = False
+
+    if use_workflow_engine:
+        error_detector_handler: ErrorDetectorHandler = Detector.objects.get_from_cache(
+            project_id=project_id, type=grouptype.ErrorGroupType.detector
+        ).detector_handler
+
+        might_have_more = error_detector_handler.apply(
+            ErrorDetectorConfigType.RESOLVE, {"project_id": project_id, "chunk_size": int}
+        )
+
+        if might_have_more:
+            auto_resolve_project_issues.delay(
+                project_id=project_id, cutoff=int(cutoff.strftime("%s")), chunk_size=chunk_size
+            )
+
+        return
+
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
     if not age:
