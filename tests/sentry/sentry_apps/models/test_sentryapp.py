@@ -90,10 +90,10 @@ class SentryAppTest(TestCase):
         self.create_sentry_app_installation(
             organization=self.us_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installation() == {"us"}
+        assert self.sentry_app.regions_with_installations() == {"us"}
 
         self.eu_org = self.create_organization(name="eu test name", region="eu")
         self.create_sentry_app_installation(
             organization=self.eu_org, slug=self.sentry_app.slug, prevent_token_exchange=True
         )
-        assert self.sentry_app.regions_with_installation() == {"us", "eu"}
+        assert self.sentry_app.regions_with_installations() == {"us", "eu"}
