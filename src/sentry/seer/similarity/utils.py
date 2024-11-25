@@ -179,7 +179,6 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     html_frame_count = 0  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
-    is_frames_truncated = False
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
@@ -187,14 +186,11 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal found_non_snipped_context_line
-        nonlocal is_frames_truncated
         frame_strings = []
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
         ]
-        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
-            is_frames_truncated = True
         contributing_frames = _discard_excess_frames(
             contributing_frames, MAX_FRAME_COUNT, frame_count
         )
@@ -290,14 +286,6 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             )
         },
     )
-
-    if is_frames_truncated and not app_hash:
-        logger_extra = {
-            "project_id": data.get("project_id", ""),
-            "event_id": data.get("event_id", ""),
-            "hash": system_hash,
-        }
-        logger.info("grouping.similarity.over_threshold_system_only_frames", extra=logger_extra)
 
     return stacktrace_str.strip()
 
