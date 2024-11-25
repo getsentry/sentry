@@ -108,7 +108,7 @@ class DataCondition(DefaultFieldsModel):
         return None
 
 
-class Condition(abc.abc):
+class Condition(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def apply(cls, data: dict[str, Any]) -> Any:
