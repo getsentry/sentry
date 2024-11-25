@@ -9,17 +9,15 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import Generic, NamedTuple, TypeVar
+from typing import Any, NamedTuple
 
 import sentry_sdk
 import sentry_sdk.scope
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 
-
-def execute(function: Callable[..., T], daemon=True):
+def execute[T](function: Callable[..., T], daemon=True) -> Future[T]:
     future: Future[T] = Future()
 
     def run():
@@ -41,7 +39,7 @@ def execute(function: Callable[..., T], daemon=True):
 
 
 @functools.total_ordering
-class PriorityTask(NamedTuple, Generic[T]):
+class PriorityTask[T](NamedTuple):
     priority: int
     item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
@@ -52,7 +50,7 @@ class PriorityTask(NamedTuple, Generic[T]):
         return self.priority < b.priority
 
 
-class TimedFuture(Future[T]):
+class TimedFuture[T](Future[T]):
     _condition: threading.Condition
     _state: str
 
@@ -124,7 +122,7 @@ class TimedFuture(Future[T]):
             return super().set_exception(*args, **kwargs)
 
 
-class Executor(Generic[T]):
+class Executor:
     """
     This class provides an API for executing tasks in different contexts
     (immediately, or asynchronously.)
@@ -136,9 +134,15 @@ class Executor(Generic[T]):
     to allow controlling whether or not queue insertion should be blocking.
     """
 
-    Future = TimedFuture
-
-    def submit(self, callable, priority=0, block=True, timeout=None) -> TimedFuture[T]:
+    def submit[
+        T
+    ](
+        self,
+        callable: Callable[[], T],
+        priority: int = 0,
+        block: bool = True,
+        timeout=None,
+    ) -> TimedFuture[T]:
         """
         Enqueue a task to be executed, returning a ``TimedFuture``.
 
@@ -149,7 +153,7 @@ class Executor(Generic[T]):
         raise NotImplementedError
 
 
-class SynchronousExecutor(Executor[T]):
+class SynchronousExecutor(Executor):
     """
     This executor synchronously executes callables in the current thread.
 
@@ -160,11 +164,11 @@ class SynchronousExecutor(Executor[T]):
     # TODO: The ``Future`` implementation here could be replaced with a
     # lock-free future for efficiency.
 
-    def submit(self, callable, *args, **kwargs):
+    def submit[T](self, callable: Callable[[], T], *args, **kwargs) -> TimedFuture[T]:
         """
         Immediately execute a callable, returning a ``TimedFuture``.
         """
-        future: Future[T] = self.Future()
+        future: TimedFuture[T] = TimedFuture()
         assert future.set_running_or_notify_cancel()
         try:
             result = callable()
@@ -175,7 +179,7 @@ class SynchronousExecutor(Executor[T]):
         return future
 
 
-class ThreadedExecutor(Executor[T]):
+class ThreadedExecutor(Executor):
     """\
     This executor provides a method of executing callables in a threaded worker
     pool. The number of outstanding requests can be limited by the ``maxsize``
@@ -190,7 +194,7 @@ class ThreadedExecutor(Executor[T]):
         self.__worker_count = worker_count
         self.__workers = set()
         self.__started = False
-        self.__queue: PriorityQueue[PriorityTask[T]] = PriorityQueue(maxsize)
+        self.__queue: PriorityQueue[PriorityTask[Any]] = PriorityQueue(maxsize)
         self.__lock = threading.Lock()
 
     def __worker(self):
@@ -223,7 +227,9 @@ class ThreadedExecutor(Executor[T]):
 
             self.__started = True
 
-    def submit(self, callable, priority=0, block=True, timeout=None):
+    def submit[
+        T
+    ](self, callable: Callable[[], T], priority=0, block=True, timeout=None) -> TimedFuture[T]:
         """\
         Enqueue a task to be executed, returning a ``TimedFuture``.
 
@@ -237,7 +243,7 @@ class ThreadedExecutor(Executor[T]):
         if not self.__started:
             self.start()
 
-        future: Future[T] = self.Future()
+        future: TimedFuture[T] = TimedFuture()
         task = PriorityTask(
             priority,
             (
