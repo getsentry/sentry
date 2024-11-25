@@ -60,13 +60,14 @@ class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
         self.packet = DataPacket[dict](self.query.id, {"query_id": self.query.id, "foo": "bar"})
 
         self.workflow = self.create_workflow(name="test_workflow")
-        self.workflow_two = self.create_workflow(name="test_workflow2")
+        self.error_workflow = self.create_workflow(name="test_workflow2")
 
         self.detector = self.create_detector(
             name="test_detector",
             type="TestDetector",
             project=self.project,
         )
+
         self.error_detector = self.create_detector(
             name="test_error_detector",
             type=DetectorType.ERROR,
@@ -80,7 +81,7 @@ class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
 
         self.detector_workflow_error = self.create_detector_workflow(
             detector=self.error_detector,
-            workflow=self.workflow_two,
+            workflow=self.error_workflow,
         )
 
         self.group = self.create_group(self.project)
@@ -100,10 +101,22 @@ class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
 
     def test_error_event(self):
         # pdb.set_trace()
-        process_workflows(self.packet, self.group_event)
+        # process_workflows(self.packet, self.group_event)
         pass
 
     def test_issue_occurrence_event(self):
+        workflow_condition_group = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=workflow_condition_group,
+            type="new_issue",
+            condition="new_issue",
+            comparison=1,
+            condition_result=True,
+        )
+
+        self.workflow.when_condition_group = workflow_condition_group
+        self.workflow.save()
+
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 

@@ -1,12 +1,11 @@
-from typing import Any
-
 from sentry.eventstore.models import GroupEvent
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorWorkflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 from sentry.workflow_engine.types import DetectorType
 
 
 def get_detector_by_event(evt: GroupEvent) -> Detector:
     issue_occurrence = evt.occurrence
+
     if issue_occurrence is None:
         # TODO - Don't hardcode the type as a string, make an enum
         detector = Detector.objects.get(project_id=evt.project_id, type=DetectorType.ERROR)
@@ -16,10 +15,18 @@ def get_detector_by_event(evt: GroupEvent) -> Detector:
     return detector
 
 
-def process_workflows(
-    data_packet: DataPacket,
-    evt: GroupEvent,
-):
+def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set[Workflow]:
+    triggered_workflows: set[Workflow] = set()
+
+    for workflow in workflows:
+        if workflow.evaluate_trigger_conditions(evt):
+            triggered_workflows.add(workflow)
+
+    return triggered_workflows
+
+
+# TODO - should this return the list of actions or actually invoke them? :thinking:
+def process_workflows(evt: GroupEvent):
     """
     The process_workflows method will:
     - take a data packet and the results
@@ -32,16 +39,14 @@ def process_workflows(
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
 
-    # gather all the workflows based on the detector_id
-    detector_workflows = DetectorWorkflow.objects.filter(detector_id=detector.id).prefetch_related(
-        "workflow"
-    )
+    # gather all the workflows based on the detector_id and dedupe the workflows
+    dws = DetectorWorkflow.objects.filter(detector_id=detector.id).prefetch_related("workflow")
+    workflows = {dw.workflow for dw in dws}
 
-    triggered_workflows: list[Any] = []
-    workflows = [detector_workflow.workflow for detector_workflow in detector_workflows]
+    # evaluate if the workflows should be triggered based on the event
+    triggered_workflows = evaluate_workflow_triggers(workflows, evt)
 
-    for workflow in workflows:
-        if workflow.evaluate_trigger_conditions(evt):
-            triggered_workflows.append(workflow)
+    # get all of the data condition groups associated with the workflows in the action table.
+    # TODO - create evaluate_workflow_actions(data_condition_groups, evt)
 
     return triggered_workflows

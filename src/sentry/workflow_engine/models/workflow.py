@@ -50,8 +50,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
-    # TODO should the value here _only_ be trigger conditions?
-    # How can we limit it to that? Trigger conditions should be: new issue created, issue state change, etc
     def evaluate_trigger_conditions(self, evt: GroupEvent) -> bool:
         """
         Evaluate the conditions for the workflow trigger and return the results.
@@ -60,6 +58,5 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
-        # Hmm need to figure out what data to pass each condition group to be evaluated...
         evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
         return evaluation
