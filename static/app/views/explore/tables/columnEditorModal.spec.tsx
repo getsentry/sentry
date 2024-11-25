@@ -182,7 +182,7 @@ describe('ColumnEditorModal', function () {
       ['span.duration', 'number'],
       ['span.op', 'string'],
     ];
-    await userEvent.click(screen.getByRole('button', {name: 'Column project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Column project string'}));
     const columnOptions = await screen.findAllByRole('option');
     columnOptions.forEach((option, i) => {
       expect(option).toHaveTextContent(options[i][0]);
