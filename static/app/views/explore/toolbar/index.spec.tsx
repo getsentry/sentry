@@ -219,9 +219,9 @@ describe('ExploreToolbar', function () {
     const fields = [
       'id',
       'project',
-      'span.op',
       'span.description',
       'span.duration',
+      'span.op',
       'timestamp',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));

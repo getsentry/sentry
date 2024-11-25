@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -151,7 +151,7 @@ export function SpansTable({setError}: SpansTableProps) {
                   isFirst={i === 0}
                   onClick={updateSort}
                 >
-                  <span>{tag?.name ?? field}</span>
+                  <span>{tag?.name ?? prettifyTagKey(field)}</span>
                   {defined(direction) && (
                     <IconArrow
                       size="xs"
