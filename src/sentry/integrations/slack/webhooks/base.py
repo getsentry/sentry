@@ -166,7 +166,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         response = self.endpoint.link_user(self.request)
         if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(response.data):
             return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.HALTED,
+                interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
                 outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
                 context_data={
@@ -182,7 +182,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         response = self.endpoint.unlink_user(self.request)
         if NOT_LINKED_MESSAGE in str(response.data):
             return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.HALTED,
+                interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
                 outcome_reason=str(MessageCommandHaltReason.NOT_LINKED),
                 context_data={
@@ -200,7 +200,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         for message, reason in self.TEAM_HALT_MAPPINGS.items():
             if message in str(response.data):
                 return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
+                    interaction_result=EventLifecycleOutcome.SUCCESS,
                     response=response,
                     outcome_reason=str(reason),
                 )
@@ -215,7 +215,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         for message, reason in self.TEAM_HALT_MAPPINGS.items():
             if message in str(response.data):
                 return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.HALTED,
+                    interaction_result=EventLifecycleOutcome.SUCCESS,
                     response=response,
                     outcome_reason=str(reason),
                 )
