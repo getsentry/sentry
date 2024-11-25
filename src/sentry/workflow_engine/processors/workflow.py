@@ -1,6 +1,19 @@
+from typing import Any
+
 from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorWorkflow
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorType
+
+
+def get_detector_by_event(evt: GroupEvent) -> Detector:
+    issue_occurrence = evt.occurrence
+    if issue_occurrence is None:
+        # TODO - Don't hardcode the type as a string, make an enum
+        detector = Detector.objects.get(project_id=evt.project_id, type=DetectorType.ERROR)
+    else:
+        detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
+
+    return detector
 
 
 def process_workflows(
@@ -17,38 +30,18 @@ def process_workflows(
     with the correct IssueOccurrence information
     """
     # Check to see if the GroupEvent has an issue occurrence
-    issue_occurrence = evt.occurrence
-
-    if issue_occurrence is None:
-        # If there isn't an occurrence, it's an error event. This will lookup the detector based on the
-        # project_id and the type of detector.
-
-        # TODO - Don't hardcode the type as a string, make an enum
-        detector_id = Detector.objects.get(project_id=evt.project_id, type="ErrorDetector").id
-    else:
-        detector_id = issue_occurrence.evidence_data.get("detector_id", None)
-
-    if detector_id is None:
-        raise ValueError("Issue Occurence does not have a detector_id")
+    detector = get_detector_by_event(evt)
 
     # gather all the workflows based on the detector_id
-    detector_workflows = DetectorWorkflow.objects.filter(detector_id=detector_id).prefetch_related(
+    detector_workflows = DetectorWorkflow.objects.filter(detector_id=detector.id).prefetch_related(
         "workflow"
     )
+
+    triggered_workflows: list[Any] = []
     workflows = [detector_workflow.workflow for detector_workflow in detector_workflows]
-    triggered_workflows = []
 
     for workflow in workflows:
-        # TODO think about what this should evaluate,
-        # - detector state, the state of the detector
-        # - evt.state?
-        # - (issue occurence / error) state?
-        # - lookup detector_state?
-        # - DetectorEvaluationResult has `result` property
-
-        priority: DetectorPriorityLevel = DetectorPriorityLevel(evt.data["priority"])
-
-        if workflow.evaluate_trigger_conditions(priority):
+        if workflow.evaluate_trigger_conditions(evt):
             triggered_workflows.append(workflow)
 
     return triggered_workflows

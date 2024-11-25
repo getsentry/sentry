@@ -6,9 +6,9 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.eventstore.models import GroupEvent
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 from .json_config import JSONConfigBase
 
@@ -52,7 +52,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     # TODO should the value here _only_ be trigger conditions?
     # How can we limit it to that? Trigger conditions should be: new issue created, issue state change, etc
-    def evaluate_trigger_conditions(self, detector_status: DetectorPriorityLevel) -> bool:
+    def evaluate_trigger_conditions(self, evt: GroupEvent) -> bool:
         """
         Evaluate the conditions for the workflow trigger and return the results.
         If there isn't a when_condition_group, the workflow should always trigger.
@@ -60,5 +60,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
-        evaluation, _ = evaluate_condition_group(self.when_condition_group, detector_status)
+        # Hmm need to figure out what data to pass each condition group to be evaluated...
+        evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
         return evaluation
