@@ -1,3 +1,4 @@
+import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -13,6 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {EventGraph} from 'sentry/views/issueDetails/streamline/eventGraph';
 import {
   EventSearch,
@@ -23,6 +25,9 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
+const TABS_WITH_SEARCH = [Tab.DETAILS, Tab.EVENTS];
+const TABS_WITH_DATE_FILTER = [Tab.DETAILS, Tab.EVENTS];
+
 export function EventDetailsHeader({
   group,
   event,
@@ -32,11 +37,13 @@ export function EventDetailsHeader({
   group: Group;
   project: Project;
 }) {
+  const organization = useOrganization();
+  const params = useParams<{groupId: string}>();
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery({group});
-  const {baseUrl} = useGroupDetailsRoute();
+  const {baseUrl, currentTab} = useGroupDetailsRoute();
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -62,17 +69,25 @@ export function EventDetailsHeader({
               borderRadius: 0,
             },
           }}
+          disabled={!TABS_WITH_DATE_FILTER.includes(currentTab)}
         />
         <Flex style={{gridArea: 'search'}}>
           <SearchFilter
             group={group}
             handleSearch={query => {
-              navigate({...location, query: {...location.query, query}}, {replace: true});
+              navigate(
+                {
+                  pathname: `/organizations/${organization.slug}/issues/${params.groupId}/events/`,
+                  query: {...location.query, query},
+                },
+                {replace: true}
+              );
             }}
             environments={environments}
             query={searchQuery}
             queryBuilderProps={{
               disallowFreeText: true,
+              disabled: !TABS_WITH_SEARCH.includes(currentTab),
             }}
           />
           <ToggleSidebar />
