@@ -50,9 +50,14 @@ export function SpansTable({setError}: SpansTableProps) {
   const [visualizes] = useVisualizes();
   const organization = useOrganization();
 
+  const visibleFields = useMemo(
+    () => (fields.includes('id') ? fields : ['id', ...fields]),
+    [fields]
+  );
+
   const eventView = useMemo(() => {
     const queryFields = [
-      ...fields,
+      ...visibleFields,
       'project',
       'trace',
       'transaction.span_id',
@@ -78,7 +83,7 @@ export function SpansTable({setError}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, sorts, query, selection, visibleFields]);
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -102,11 +107,6 @@ export function SpansTable({setError}: SpansTableProps) {
     columns: fields,
     userQuery: query,
   });
-
-  const visibleFields = useMemo(
-    () => (fields.includes('id') ? fields : ['id', ...fields]),
-    [fields]
-  );
 
   const {tableStyles} = useTableStyles({
     items: visibleFields.map(field => {
