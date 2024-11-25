@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from time import time
-from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
-from sentry.event_manager import assign_event_to_group
+from sentry.eventstore.models import Event
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.metrics.middleware import MutableTags
@@ -21,12 +21,12 @@ from sentry.models.project import Project
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.models.data_condition import Condition, condition_registry
+from sentry.workflow_engine.models.data_condition import (
+    DetectorWorkflowCondition,
+    condition_registry,
+)
 from sentry.workflow_engine.processors.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.types import DetectorGroupKey
-
-if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
 
 T = TypeVar("T")
 
@@ -70,7 +70,7 @@ Job = MutableMapping[str, Any]
 
 @condition_registry.register("ErrorGroupingCondition")
 @dataclass
-class ErrorGroupingCondition(Condition):
+class ErrorGroupingCondition(DetectorWorkflowCondition):
     data_dict = TypedDict(
         "ErrorGroupingDict", {"event": Event, "job": Job, "metric_tags": MutableTags}
     )
@@ -79,13 +79,15 @@ class ErrorGroupingCondition(Condition):
     def apply(cls, data: dict[str, Any]):
         data_dict = cls.data_dict(**data)
 
+        from sentry.event_manager import assign_event_to_group
+
         # nothing to do with getting the DataCondition here...
         return assign_event_to_group(**data_dict)
 
 
 @condition_registry.register("ErrorResolveCondition")
 @dataclass
-class ErrorResolveCondition(Condition):
+class ErrorResolveCondition(DetectorWorkflowCondition):
     # for a project
     data_dict = TypedDict("ErrorResolveDict", {"project_id": int, "chunk_size": int, "cutoff": Any})
 

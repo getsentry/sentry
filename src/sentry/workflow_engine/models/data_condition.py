@@ -108,7 +108,7 @@ class DataCondition(DefaultFieldsModel):
         return None
 
 
-class Condition(abc.ABC):
+class DetectorWorkflowCondition(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def apply(cls, data: dict[str, Any]) -> Any:
