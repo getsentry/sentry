@@ -14,8 +14,8 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -34,7 +34,6 @@ interface Props {
   isWidgetInvalid: boolean;
   location: Location;
   onChange: (displayType: DisplayType) => void;
-  organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -45,7 +44,6 @@ interface Props {
 }
 
 export function VisualizationStep({
-  organization,
   pageFilters,
   displayType,
   error,
@@ -58,6 +56,7 @@ export function VisualizationStep({
   onWidgetSplitDecision,
   widgetLegendState,
 }: Props) {
+  const organization = useOrganization();
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
   const previousWidget = usePrevious(widget);
