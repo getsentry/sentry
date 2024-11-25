@@ -560,9 +560,6 @@ from .endpoints.organization_traces import (
     OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
 )
-from .endpoints.organization_transaction_anomaly_detection import (
-    OrganizationTransactionAnomalyDetectionEndpoint,
-)
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
@@ -1996,11 +1993,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/join-request/$",
         OrganizationJoinRequestEndpoint.as_view(),
         name="sentry-api-0-organization-join-request",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/transaction-anomaly-detection/$",
-        OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
-        name="sentry-api-0-organization-transaction-anomaly-detection",
     ),
     # relay usage
     re_path(
