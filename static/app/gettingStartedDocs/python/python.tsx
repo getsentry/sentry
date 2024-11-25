@@ -68,11 +68,11 @@ sentry_sdk.init(
 
 def slow_function():
     time.sleep(0.1)
-    return "done"
+    return
 
 def fast_function():
     time.sleep(0.05)
-    return "done"
+    return
 
 # Manually call start_profiler and stop_profiler
 # to profile the code in between
