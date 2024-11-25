@@ -1,14 +1,24 @@
 import logging
 import operator
 from enum import StrEnum
+from typing import Any
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+
+# TODO figure out a better place for these methods to live
+def evaluate_new_issue(evt: GroupEvent, comparison: Any) -> bool:
+    if comparison is None:
+        return evt.group.times_seen == 1
+
+    return evt.group.times_seen == int(comparison)
 
 
 class Condition(StrEnum):
@@ -18,6 +28,7 @@ class Condition(StrEnum):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+    NEW_ISSUE = "new_issue"
 
 
 condition_ops = {
@@ -27,6 +38,7 @@ condition_ops = {
     Condition.LESS_OR_EQUAL: operator.le,
     Condition.LESS: operator.lt,
     Condition.NOT_EQUAL: operator.ne,
+    Condition.NEW_ISSUE: evaluate_new_issue,
 }
 
 
@@ -74,7 +86,7 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def evaluate_value(self, value: float | int) -> DataConditionResult:
+    def evaluate_value(self, value: Any) -> DataConditionResult:
         # TODO: This logic should be in a condition class that we get from `self.type`
         # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
         # class from this model
@@ -91,15 +103,7 @@ class DataCondition(DefaultFieldsModel):
             logger.error("Invalid condition", extra={"condition": self.condition, "id": self.id})
             return None
 
-        try:
-            comparison = float(self.comparison)
-        except ValueError:
-            logger.exception(
-                "Invalid comparison value", extra={"comparison": self.comparison, "id": self.id}
-            )
-            return None
-
-        if op(value, comparison):
+        if op(value, self.comparison):
             return self.get_condition_result()
 
         return None
