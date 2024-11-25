@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -36,6 +37,8 @@ function DashboardCard({
   return (
     <Link data-test-id={`card-${title}`} onClick={onClick} to={to} aria-label={title}>
       <StyledDashboardCard>
+        <InteractionStateLayer as="div" />
+
         <CardHeader>
           <CardContent>
             <Title>{title}</Title>
@@ -49,7 +52,9 @@ function DashboardCard({
             )}
           </AvatarWrapper>
         </CardHeader>
+
         <CardBody>{renderWidgets()}</CardBody>
+
         <CardFooter>
           <DateSelected>
             {dateStatus ? (
@@ -80,6 +85,7 @@ const CardContent = styled('div')`
 `;
 
 const StyledDashboardCard = styled(Card)`
+  color: ${p => p.theme.textColor};
   justify-content: space-between;
   height: 100%;
   cursor: pointer;
