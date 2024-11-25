@@ -94,7 +94,7 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   );
 }
 
-interface EventTraceViewProps extends EventTraceViewInnerProps {
+interface EventTraceViewProps extends Omit<EventTraceViewInnerProps, 'traceId'> {
   group: Group;
 }
 
