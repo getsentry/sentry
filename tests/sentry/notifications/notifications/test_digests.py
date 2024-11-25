@@ -163,7 +163,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         backend = RedisBackend()
         digests.backend.digest = backend.digest
         digests.enabled.return_value = True
-        timestamp_raw = before_now(days=1)
+        timestamp_raw = before_now(days=1).replace(microsecond=0)
         timestamp_secs = int(timestamp_raw.timestamp())
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
