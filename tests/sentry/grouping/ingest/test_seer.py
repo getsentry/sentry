@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, Mock, patch
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
@@ -309,8 +308,8 @@ class GetSeerSimilarIssuesTest(TestCase):
                 None,
             )
 
-    @patch("sentry.seer.similarity.utils.logger")
-    def test_too_many_only_system_frames(self, mock_logger: Mock) -> None:
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_only_system_frames(self, mock_metrics: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -340,15 +339,19 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "platform": "python",
             },
         )
-        variants = new_event.get_grouping_variants()
-        get_seer_similar_issues(new_event, variants)
+        get_seer_similar_issues(new_event, new_event.get_grouping_variants())
 
-        grouping_info = get_grouping_info_from_variants(variants)
-        mock_logger.info.assert_called_with(
-            "grouping.similarity.over_threshold_system_only_frames",
-            extra={
-                "project_id": "",
-                "event_id": "",
-                "hash": grouping_info["system"]["hash"],
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "ingest"},
+        )
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={
+                "call_made": False,
+                "blocker": "over-threshold-only-system-frames",
             },
         )
