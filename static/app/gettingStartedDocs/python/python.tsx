@@ -35,14 +35,30 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
 
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
+const getProfilingVerifySnippet = () => `
+import time
+
+def slow_function():
+    time.sleep(0.1)
+    return
+
+def fast_function():
+    time.sleep(0.05)
+    return
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+for i in range(0, 10):
+    slow_function()
+    fast_function()
+
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`;
+
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
-${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? 'import time'
-    : ''
-}
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
       params.isPerformanceSelected
@@ -61,31 +77,7 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
-
-def slow_function():
-    time.sleep(0.1)
-    return
-
-def fast_function():
-    time.sleep(0.05)
-    return
-
-# Manually call start_profiler and stop_profiler
-# to profile the code in between
-sentry_sdk.profiler.start_profiler()
-for i in range(0, 10):
-    slow_function()
-    fast_function()
-#
-# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
-# your application until the process exits or stop_profiler is called.
-sentry_sdk.profiler.stop_profiler()`
-    : ''
-}`;
+)`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -129,7 +121,7 @@ const onboarding: OnboardingConfig = {
         ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -145,6 +137,23 @@ const onboarding: OnboardingConfig = {
         },
       ],
     },
+    ...(params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode === 'continuous'
+      ? [
+          {
+            type: StepType.VERIFYPROFILING,
+            description: t(
+              'One way to verify your profiling setup is to run functions with different durations.'
+            ),
+            configurations: [
+              {
+                language: 'python',
+                code: getProfilingVerifySnippet(),
+              },
+            ],
+          },
+        ]
+      : []),
   ],
 };
 
