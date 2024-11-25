@@ -8,7 +8,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_list
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
@@ -61,16 +60,6 @@ class AppService(RpcService):
     ) -> RpcSentryAppInstallation | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def get_installed_for_organization(
-        self,
-        *,
-        organization_id: int,
-    ) -> list[RpcSentryAppInstallation]:
-        # Deprecated use installations_for_organization instead.
-        pass
-
     def installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
@@ -79,10 +68,7 @@ class AppService(RpcService):
 
         This is a cached wrapper around get_installations_for_organization
         """
-        if in_random_rollout("app_service.installations_for_org.cached"):
-            return get_installations_for_organization(organization_id)
-        else:
-            return self.get_installed_for_organization(organization_id=organization_id)
+        return get_installations_for_organization(organization_id)
 
     @rpc_method
     @abc.abstractmethod
