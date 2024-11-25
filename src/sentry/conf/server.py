@@ -2421,6 +2421,20 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "platform": "linux/amd64",
         }
     ),
+    "taskbroker": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/taskbroker:latest",
+            "ports": {"50051/tcp": 50051},
+            "environment": {
+                "TASKBROKER_KAFKA_CLUSTER": "sentry_kafka:9093",
+            },
+            "only_if": options.get("taskbroker.enabled"),
+            # we don't build linux/arm64 snuba images anymore
+            # apple silicon users should have working emulation under colima 0.6.2
+            # or docker desktop
+            "platform": "linux/amd64",
+        }
+    ),
     "bigtable": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",

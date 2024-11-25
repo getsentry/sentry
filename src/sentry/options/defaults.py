@@ -411,6 +411,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Taskbroker
+register(
+    "taskbroker.enabled",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Configuration Options
 register(
     "configurations.storage.backend",
