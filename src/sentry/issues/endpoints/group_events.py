@@ -51,7 +51,7 @@ class GroupEventsError(Exception):
 
 
 def get_event_search_query(
-    self, request: Request, group: Group, environments: Sequence[Environment]
+    request: Request, group: Group, environments: Sequence[Environment]
 ) -> str | None:
     raw_query = request.GET.get("query")
 

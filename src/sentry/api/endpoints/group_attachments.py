@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING
+from datetime import datetime, timedelta
 
+from django.utils import timezone
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,10 +19,8 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.group_events import get_event_search_query
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
+from sentry.models.group import Group
 from sentry.search.events.types import ParamsType
-
-if TYPE_CHECKING:
-    from sentry.models.group import Group
 
 
 def get_event_ids_from_filters(
@@ -36,7 +34,7 @@ def get_event_ids_from_filters(
     try:
         environments = get_environments(request, group.project.organization)
     except ResourceDoesNotExist:
-        environments = None
+        environments = []
     query = get_event_search_query(request, group, environments)
 
     # Exit early if no query or environment is specified
@@ -54,9 +52,11 @@ def get_event_ids_from_filters(
         params["environment"] = [env.name for env in environments]
 
     snuba_query = get_query_builder_for_group(
-        query=query,
+        query=query if query else "",
         snuba_params=params,
         group=group,
+        limit=10000,
+        offset=0,
     )
     referrer = f"api.group-attachments.{group.issue_category.name.lower()}"
     results = snuba_query.run_query(referrer=referrer)
