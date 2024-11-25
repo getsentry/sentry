@@ -217,6 +217,7 @@ SPAN_EAP_COLUMN_MAP = {
     "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
     "messaging.message.id": "attr_str[sentry.messaging.message.id]",
     "span.status_code": "attr_str[sentry.status_code]",
+    "profile.id": "attr_str[sentry.profile_id]",
     "replay.id": "attr_str[sentry.replay_id]",
     "span.ai.pipeline.group": "attr_str[sentry.ai_pipeline_group]",
     "trace.status": "attr_str[sentry.trace.status]",
