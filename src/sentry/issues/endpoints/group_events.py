@@ -50,6 +50,20 @@ class GroupEventsError(Exception):
     pass
 
 
+def get_event_search_query(
+    self, request: Request, group: Group, environments: Sequence[Environment]
+) -> str | None:
+    raw_query = request.GET.get("query")
+
+    if raw_query:
+        query_kwargs = parse_query([group.project], raw_query, request.user, environments)
+        query = query_kwargs.pop("query", None)
+    else:
+        query = None
+
+    return query
+
+
 @extend_schema(tags=["Events"])
 @region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
@@ -108,7 +122,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         try:
             environments = get_environments(request, group.project.organization)
-            query = self._get_search_query(request, group, environments)
+            query = get_event_search_query(request, group, environments)
         except InvalidQuery as exc:
             return Response({"detail": str(exc)}, status=400)
         except (NoResults, ResourceDoesNotExist):
@@ -197,16 +211,3 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             on_results=lambda results: serialize(results, request.user, serializer),
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
-
-    def _get_search_query(
-        self, request: Request, group: Group, environments: Sequence[Environment]
-    ) -> str | None:
-        raw_query = request.GET.get("query")
-
-        if raw_query:
-            query_kwargs = parse_query([group.project], raw_query, request.user, environments)
-            query = query_kwargs.pop("query", None)
-        else:
-            query = None
-
-        return query
