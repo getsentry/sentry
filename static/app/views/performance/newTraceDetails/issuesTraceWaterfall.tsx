@@ -264,7 +264,11 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       />
       <IssuesTraceGrid
         layout={traceState.preferences.layout}
-        rowCount={props.tree.type === 'trace' ? props.tree.list.length : 8}
+        rowCount={
+          props.tree.type === 'trace' && onLoadScrollStatus === 'success'
+            ? props.tree.list.length
+            : 8
+        }
       >
         <IssuesPointerDisabled>
           <Trace
