@@ -15,7 +15,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.snuba import discover, errors, transactions
+from sentry.snuba import discover, errors, spans_eap, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
@@ -406,6 +406,108 @@ class UnfurlTest(TestCase):
         assert type(series_data[0]["name"]) is int
         assert type(series_data[0]["value"]) is float
         assert chart_data["incidents"][0]["id"] == str(incident.id)
+
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart):
+        # Using the transactions dataset
+        alert_rule = self.create_alert_rule(
+            query="span.op:foo", dataset=Dataset.EventsAnalyticsPlatform
+        )
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:performance-view",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, incident, chart_url="chart-url").build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(alert_rule.id)
+        assert chart_data["rule"]["dataset"] == "events_analytics_platform"
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+        # Validate format of timeseries
+        assert type(series_data[0]["name"]) is int
+        assert type(series_data[0]["value"]) is float
+        assert chart_data["incidents"][0]["id"] == str(incident.id)
+
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
+        self, mock_generate_chart, mock_get_event_stats_data
+    ):
+        # Using the transactions dataset
+        alert_rule = self.create_alert_rule(
+            query="span.op:foo", dataset=Dataset.EventsAnalyticsPlatform
+        )
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:performance-view",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
+        assert dataset == spans_eap
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
