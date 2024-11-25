@@ -1229,11 +1229,11 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert mock_comment_workflow.call_count == 1
 
-        start_1, failure_1, start_2, failure_2 = mock_record.mock_calls
+        start_1, success_1, start_2, halt_2 = mock_record.mock_calls
         assert start_1.args[0] == EventLifecycleOutcome.STARTED
-        assert failure_1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert success_1.args[0] == EventLifecycleOutcome.SUCCESS
         assert start_2.args[0] == EventLifecycleOutcome.STARTED
-        assert failure_2.args[0] == EventLifecycleOutcome.HALTED
+        assert halt_2.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, CommitContextHaltReason.ALREADY_QUEUED)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -1289,9 +1289,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             )
             assert mock_comment_workflow.call_count == 1
 
-        start_1, failure_1, start_2, failure_2 = mock_record.mock_calls
+        start_1, success_1, start_2, halt_2 = mock_record.mock_calls
         assert start_1.args[0] == EventLifecycleOutcome.STARTED
-        assert failure_1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert success_1.args[0] == EventLifecycleOutcome.SUCCESS
         assert start_2.args[0] == EventLifecycleOutcome.STARTED
-        assert failure_2.args[0] == EventLifecycleOutcome.HALTED
+        assert halt_2.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, CommitContextHaltReason.ALREADY_QUEUED)
