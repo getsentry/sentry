@@ -1,6 +1,7 @@
 import {type CSSProperties, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
@@ -25,12 +26,12 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
+} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 
 export const enum EventGraphSeries {
   EVENT = 'event',
@@ -173,6 +174,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
+    const translucentGray300 = Color(theme.gray300).alpha(0.3).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
       if (isUnfilteredStatsEnabled) {
@@ -181,7 +183,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: theme.gray100,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -207,7 +209,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.translucentGray200,
-            color: theme.gray100,
+            color: translucentGray300,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredEventSeries,
@@ -220,7 +222,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: isUnfilteredStatsEnabled ? theme.purple200 : theme.gray200,
+          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
         },
         data: eventSeries,
         animation: false,

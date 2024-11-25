@@ -43,16 +43,21 @@ interface SpansTableProps {
 export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
   const [visualizes] = useVisualizes();
   const organization = useOrganization();
 
+  const visibleFields = useMemo(
+    () => (fields.includes('id') ? fields : ['id', ...fields]),
+    [fields]
+  );
+
   const eventView = useMemo(() => {
     const queryFields = [
-      ...fields,
+      ...visibleFields,
       'project',
       'trace',
       'transaction.span_id',
@@ -78,7 +83,7 @@ export function SpansTable({setError}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, sorts, query, selection, visibleFields]);
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -104,7 +109,7 @@ export function SpansTable({setError}: SpansTableProps) {
   });
 
   const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
+    items: visibleFields.map(field => {
       return {
         label: field,
         value: field,
@@ -122,7 +127,7 @@ export function SpansTable({setError}: SpansTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => {
+            {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
@@ -174,9 +179,9 @@ export function SpansTable({setError}: SpansTableProps) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
+            result.data?.slice(0, 50)?.map((row, i) => (
               <TableRow key={i}>
-                {fields.map((field, j) => {
+                {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer

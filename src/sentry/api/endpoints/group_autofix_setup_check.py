@@ -119,8 +119,14 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                 organization=org, project=group.project
             )
 
-        repos = get_repos_and_access(group.project)
-        write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
+        write_integration_check = None
+        if request.query_params.get("check_write_access", False):
+            repos = get_repos_and_access(group.project)
+            write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
+            write_integration_check = {
+                "ok": write_access_ok,
+                "repos": repos,
+            }
 
         return Response(
             {
@@ -132,9 +138,6 @@ class GroupAutofixSetupCheck(GroupEndpoint):
                     "ok": integration_check is None,
                     "reason": integration_check,
                 },
-                "githubWriteIntegration": {
-                    "ok": write_access_ok,
-                    "repos": repos,
-                },
+                "githubWriteIntegration": write_integration_check,
             }
         )
