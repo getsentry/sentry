@@ -16,7 +16,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 

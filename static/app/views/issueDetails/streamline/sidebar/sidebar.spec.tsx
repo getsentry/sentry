@@ -11,7 +11,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {GroupActivityType} from 'sentry/types/group';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
+import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 describe('StreamlinedSidebar', function () {
   const user = UserFixture();

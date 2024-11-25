@@ -10,7 +10,7 @@ import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface GroupSummaryData {
   groupId: string;

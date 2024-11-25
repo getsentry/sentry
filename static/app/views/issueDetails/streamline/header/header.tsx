@@ -30,10 +30,10 @@ import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/sh
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/assigneeSelector';
-import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/attachmentsBadge';
-import {ReplayBadge} from 'sentry/views/issueDetails/streamline/replayBadge';
-import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/userFeedbackBadge';
+import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
+import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
+import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
+import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 

@@ -26,10 +26,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/groupActivityIcons';
-import getGroupActivityItem from 'sentry/views/issueDetails/streamline/groupActivityItem';
-import {NoteDropdown} from 'sentry/views/issueDetails/streamline/noteDropdown';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
+import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
+import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
