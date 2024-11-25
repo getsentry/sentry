@@ -42,6 +42,7 @@ export {IconFocus} from './iconFocus';
 export {IconGeneric} from './iconGeneric';
 export {IconGithub} from './iconGithub';
 export {IconGitlab} from './iconGitlab';
+export {IconGlobe} from './iconGlobe';
 export {IconGoogle} from './iconGoogle';
 export {IconGrabbable} from './iconGrabbable';
 export {IconGraph} from './iconGraph';

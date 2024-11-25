@@ -38,7 +38,7 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -53,7 +53,7 @@ describe('ExploreToolbar', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -80,7 +80,7 @@ describe('ExploreToolbar', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -98,7 +98,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -202,7 +202,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -217,7 +217,7 @@ describe('ExploreToolbar', function () {
 
     // check the default field options
     const fields = [
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -259,7 +259,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}

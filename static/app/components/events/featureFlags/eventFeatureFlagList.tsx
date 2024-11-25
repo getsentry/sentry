@@ -27,11 +27,12 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -76,7 +77,12 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
+  const {setParamValue: setProjectId} = useUrlParams('project');
+
+  useEffect(() => {
+    setProjectId(event.projectID);
+  }, [setProjectId, event.projectID]);
 
   const {
     suspectFlags,
@@ -185,7 +191,7 @@ export function EventFeatureFlagList({
           <Button
             aria-label={t('Set Up Integration')}
             size="xs"
-            onClick={activateSidebar}
+            onClick={activateSidebarSkipConfigure}
           >
             {t('Set Up Integration')}
           </Button>

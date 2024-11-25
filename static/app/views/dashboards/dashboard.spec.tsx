@@ -2,6 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -292,6 +293,72 @@ describe('Dashboards > Dashboard', () => {
       expect(mockOnUpdate).toHaveBeenCalled();
       expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
     });
+  });
+
+  it('handles duplicate widget in view mode', async () => {
+    const mockOnUpdate = jest.fn();
+    const mockHandleUpdateWidgetList = jest.fn();
+
+    const dashboardWithOneWidget = {
+      ...mockDashboard,
+      widgets: [
+        WidgetFixture({
+          id: '1',
+          layout: {
+            h: 1,
+            w: 1,
+            x: 0,
+            y: 0,
+            minH: 1,
+          },
+        }),
+      ],
+    };
+
+    render(
+      <OrganizationContext.Provider value={initialData.organization}>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            paramDashboardId="1"
+            dashboard={dashboardWithOneWidget}
+            organization={initialData.organization}
+            isEditingDashboard={false}
+            onUpdate={mockOnUpdate}
+            handleUpdateWidgetList={mockHandleUpdateWidgetList}
+            handleAddCustomWidget={() => undefined}
+            router={initialData.router}
+            location={initialData.router.location}
+            widgetLimitReached={false}
+            onSetNewWidget={() => undefined}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
+      </OrganizationContext.Provider>
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(await screen.findByText('Duplicate Widget'));
+
+    // The new widget is inserted before the duplicated widget
+    const expectedWidgets = [
+      // New Widget
+      expect.objectContaining(
+        WidgetFixture({
+          id: undefined,
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
+        })
+      ),
+      // Duplicated Widget
+      expect.objectContaining(
+        WidgetFixture({
+          id: '1',
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 1, minH: 1}),
+        })
+      ),
+    ];
+
+    expect(mockHandleUpdateWidgetList).toHaveBeenCalledWith(expectedWidgets);
+    expect(mockOnUpdate).toHaveBeenCalledWith(expectedWidgets);
   });
 
   describe('Issue Widgets', () => {
