@@ -126,9 +126,11 @@ export function PerformanceLanding(props: Props) {
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
   const showOnboarding = onboardingProject !== undefined;
 
-  if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-    setPageInfo(performanceMovingAlert);
-  }
+  useEffect(() => {
+    if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
+      setPageInfo(performanceMovingAlert);
+    }
+  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
 
   useEffect(() => {
     if (hasMounted.current) {
