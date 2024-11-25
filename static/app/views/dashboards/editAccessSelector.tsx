@@ -241,6 +241,7 @@ function EditAccessSelector({
 
   const dropdownMenu = (
     <StyledCompactSelect
+      data-test-id={'edit-access-dropdown'}
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
