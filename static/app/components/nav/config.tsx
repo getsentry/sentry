@@ -15,8 +15,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
-import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
-import {MODULE_SIDEBAR_TITLE as MODULE_TITLE_HTTP} from 'sentry/views/insights/http/settings';
 import {
   AI_LANDING_SUB_PATH,
   AI_LANDING_TITLE,
@@ -34,7 +32,6 @@ import {
   MOBILE_LANDING_TITLE,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
-import {INSIGHTS_BASE_URL, MODULE_TITLES} from 'sentry/views/insights/settings';
 import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
 
 /**
@@ -45,52 +42,6 @@ import {getSearchForIssueGroup, IssueGroup} from 'sentry/views/issueList/utils';
  */
 export function createNavConfig({organization}: {organization: Organization}): NavConfig {
   const prefix = `organizations/${organization.slug}`;
-  const insightsPrefix = `${prefix}/${INSIGHTS_BASE_URL}`;
-  const hasPerfDomainViews = organization.features.includes('insights-domain-view');
-
-  const insights: NavSidebarItem = {
-    label: t('Insights'),
-    icon: <IconGraph />,
-    feature: {features: 'insights-entry-points'},
-    analyticsKey: 'insights',
-    submenu: [
-      {
-        label: MODULE_TITLE_HTTP,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.http}/`,
-      },
-      {label: MODULE_TITLES.db, to: `/${insightsPrefix}/${MODULE_BASE_URLS.db}/`},
-      {
-        label: MODULE_TITLES.resource,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.resource}/`,
-      },
-      {
-        label: MODULE_TITLES.app_start,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.app_start}/`,
-      },
-      {
-        label: MODULE_TITLES['mobile-screens'],
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS['mobile-screens']}/`,
-        feature: {features: 'insights-mobile-screens-module'},
-      },
-      {
-        label: MODULE_TITLES.vital,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.vital}/`,
-      },
-      {
-        label: MODULE_TITLES.cache,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.cache}/`,
-      },
-      {
-        label: MODULE_TITLES.queue,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.queue}/`,
-      },
-      {
-        label: MODULE_TITLES.ai,
-        to: `/${insightsPrefix}/${MODULE_BASE_URLS.ai}/`,
-        feature: {features: 'insights-entry-points'},
-      },
-    ],
-  };
 
   const perf: NavSidebarItem = {
     label: t('Perf.'),
@@ -104,10 +55,10 @@ export function createNavConfig({organization}: {organization: Organization}): N
   };
 
   const perfDomainViews: NavSidebarItem = {
-    label: t('Perf.'),
-    icon: <IconLightning />,
+    label: t('Insights'),
+    icon: <IconGraph />,
     analyticsKey: 'insights-domains',
-    feature: {features: ['insights-domain-view', 'performance-view']},
+    feature: {features: ['performance-view']},
     submenu: [
       {
         label: FRONTEND_LANDING_TITLE,
@@ -208,7 +159,8 @@ export function createNavConfig({organization}: {organization: Organization}): N
           {label: t('Crons'), to: `/${prefix}/crons/`},
         ],
       },
-      ...(hasPerfDomainViews ? [perfDomainViews, perf] : [insights, perf]),
+      perfDomainViews,
+      perf,
       {
         label: t('Boards'),
         analyticsKey: 'customizable-dashboards',
