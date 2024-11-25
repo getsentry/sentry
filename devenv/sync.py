@@ -96,7 +96,7 @@ Then, use it to run sync this one time.
 
 
 def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.14.0")
+    check_minimum_version("1.14.1")
 
     repo = context["repo"]
     reporoot = context["reporoot"]
@@ -130,7 +130,7 @@ def main(context: dict[str, str]) -> int:
     venv.ensure(venv_dir, python_version, url, sha256)
 
     if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
-        # `devenv update`ing to 1.14.0 will install global colima
+        # `devenv update`ing to >=1.14.0 will install global colima
         # so if it's there, uninstall the repo local stuff
         binroot = f"{reporoot}/.devenv/bin"
         colima.uninstall(binroot)
