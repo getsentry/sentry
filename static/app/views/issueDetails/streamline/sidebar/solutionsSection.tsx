@@ -14,10 +14,10 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import Resources from 'sentry/views/issueDetails/streamline/resources';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
-import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/solutionsHubDrawer';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export default function SolutionsSection({

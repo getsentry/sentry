@@ -6,7 +6,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {ActivityDrawer} from 'sentry/views/issueDetails/streamline/activityDrawer';
+import {ActivityDrawer} from 'sentry/views/issueDetails/streamline/sidebar/activityDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface UseIssueActivityDrawerProps {

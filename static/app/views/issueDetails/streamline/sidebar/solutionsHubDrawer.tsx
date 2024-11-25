@@ -28,8 +28,8 @@ import {getShortEventId} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
-import Resources from 'sentry/views/issueDetails/streamline/resources';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 
 interface AutofixStartBoxProps {
   groupId: string;

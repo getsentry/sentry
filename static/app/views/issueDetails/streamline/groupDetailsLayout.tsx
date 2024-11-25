@@ -13,9 +13,9 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar';
-import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/toggleSidebar';
+import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
+import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {getGroupReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
 interface GroupDetailsLayoutProps {

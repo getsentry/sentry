@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 
 export default function PeopleSection({
   userParticipants,
