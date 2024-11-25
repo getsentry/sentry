@@ -138,7 +138,7 @@ class TaskWorker:
         metrics.incr("taskworker.worker.get_task.success")
         return activation
 
-    def _get_known_task(self, activation: TaskActivation) -> Task | None:
+    def _get_known_task(self, activation: TaskActivation) -> Task[Any, Any] | None:
         if not taskregistry.contains(activation.namespace):
             logger.error(
                 "taskworker.invalid_namespace",
