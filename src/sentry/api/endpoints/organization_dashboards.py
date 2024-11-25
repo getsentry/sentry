@@ -48,25 +48,40 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, Dashboard):
-            # 1. Dashboard contains certain projects
-            if obj.projects.exists():
-                return request.access.has_projects_access(obj.projects.all())
+            if features.has(
+                "organizations:dashboards-edit-access", obj.organization, actor=request.user
+            ):
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
 
-            # 2. Dashboard covers all projects or all my projects
+                # check if user is restricted from editing dashboard
+                if hasattr(obj, "permissions"):
+                    return obj.permissions.has_edit_permissions(request.user.id)
 
-            # allow when Open Membership
-            if obj.organization.flags.allow_joinleave:
+                # if no permissions are assigned, it is considered accessible to all users
                 return True
 
-            # allow for Managers and Owners
-            if request.access.has_scope("org:write"):
-                return True
+            else:
+                # 1. Dashboard contains certain projects
+                if obj.projects.exists():
+                    return request.access.has_projects_access(obj.projects.all())
 
-            # allow for creator
-            if request.user.id == obj.created_by_id:
-                return True
+                # 2. Dashboard covers all projects or all my projects
 
-            return False
+                # allow when Open Membership
+                if obj.organization.flags.allow_joinleave:
+                    return True
+
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
+
+                # allow for creator
+                if request.user.id == obj.created_by_id:
+                    return True
+
+                return False
 
         return True
 
