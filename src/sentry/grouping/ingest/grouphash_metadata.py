@@ -94,7 +94,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
-def create_or_update_grouphash_metadata(
+def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
     grouphash: GroupHash,
