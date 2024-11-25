@@ -4,7 +4,6 @@ exports[`IssuesTraceTree FromSpans collapses spans 1`] = `
 "
 trace root
   collapsed
-  transaction 1 - transaction.op
     transaction 2 - transaction.op
       collapsed
       http - GET /
@@ -24,8 +23,7 @@ trace root
 exports[`IssuesTraceTree collapses sibling collapsed nodes 1`] = `
 "
 trace root
-  transaction 1 - transaction.op
-    collapsed
+  collapsed
     transaction 2 - transaction.op
     collapsed
 "
@@ -51,7 +49,6 @@ exports[`IssuesTraceTree preserves path to child error 1`] = `
 "
 trace root
   collapsed
-  transaction 2 - transaction.op
     transaction - transaction.op
   collapsed
 "

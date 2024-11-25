@@ -53,7 +53,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   // Assuming profile exists, should be checked in the parent component
   const traceId = event.contexts.trace!.trace_id!;
   const trace = useTrace({
-    traceSlug: traceId ? traceId : undefined,
+    traceSlug: traceId,
     limit: 10000,
   });
   const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
@@ -62,7 +62,6 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('issue-details-trace-view-preferences') ||
@@ -72,11 +71,6 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
 
   const params = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceId, params);
-
-  const scrollToNode = useMemo(() => {
-    const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
-    return {eventId: firstTransactionEventId};
-  }, [trace.data]);
 
   if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
     return null;
@@ -97,8 +91,8 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
           traceEventView={traceEventView}
           meta={meta}
           source="issues"
-          scrollToNode={scrollToNode}
           replay={null}
+          event={event}
         />
       </TraceViewWaterfallWrapper>
     </TraceStateProvider>
@@ -150,9 +144,9 @@ const TraceContentWrapper = styled('div')`
 
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
-const MAX_HEIGHT = 12 * ROW_HEIGHT;
+const HEADER_HEIGHT = 28;
+const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
-const HEADER_HEIGHT = 26;
 
 const TraceViewWaterfallWrapper = styled('div')<{rowCount: number}>`
   display: flex;

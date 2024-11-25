@@ -1270,7 +1270,7 @@ const TraceStylingWrapper = styled('div')`
       border-top: 1px solid ${p => p.theme.border};
 
       .TraceLeftColumn {
-        padding-left: 12px;
+        padding-left: 14px;
         width: 100%;
         color: ${p => p.theme.subText};
 

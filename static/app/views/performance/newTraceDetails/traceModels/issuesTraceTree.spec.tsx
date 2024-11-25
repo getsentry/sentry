@@ -80,6 +80,8 @@ describe('IssuesTraceTree', () => {
       replay: null,
     });
 
+    IssuesTraceTree.CollapseNodes(tree.root);
+
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -88,6 +90,8 @@ describe('IssuesTraceTree', () => {
       meta: null,
       replay: null,
     });
+
+    IssuesTraceTree.CollapseNodes(tree.root);
 
     expect(tree.build().serialize()).toMatchSnapshot();
   });
@@ -99,6 +103,8 @@ describe('IssuesTraceTree', () => {
       replay: null,
     });
 
+    IssuesTraceTree.CollapseNodes(tree.root);
+
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
@@ -107,6 +113,8 @@ describe('IssuesTraceTree', () => {
       meta: null,
       replay: null,
     });
+
+    IssuesTraceTree.CollapseNodes(tree.root);
 
     expect(tree.build().serialize()).toMatchSnapshot();
   });
@@ -163,6 +171,8 @@ describe('IssuesTraceTree', () => {
         organization: OrganizationFixture(),
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
+
+      IssuesTraceTree.CollapseNodes(tree.root);
 
       expect(tree.build().serialize()).toMatchSnapshot();
     });
