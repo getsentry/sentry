@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0794_rm_excluded_included_projects_alertrule
+sentry: 0795_drop_included_excluded_projects
 
 social_auth: 0002_default_auto_field
 
