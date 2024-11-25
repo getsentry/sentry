@@ -14,7 +14,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 describe('StreamlinedActivitySection', function () {
   const project = ProjectFixture();

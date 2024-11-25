@@ -9,7 +9,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
 jest.mock('sentry/utils/issueTypeConfig');
 
