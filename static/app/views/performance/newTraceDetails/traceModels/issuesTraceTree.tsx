@@ -1,8 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {
-  isCollapsedNode,
-  isParentAutogroupedNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -13,11 +11,34 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {CollapsedNode} from '../traceModels/traceCollapsedNode';
 
+import {makeExampleTrace} from './makeExampleTrace';
 import type {TraceTreeNode} from './traceTreeNode';
 
-const MAX_ISSUES = 10;
-
 export class IssuesTraceTree extends TraceTree {
+  static Empty() {
+    const tree = new IssuesTraceTree().build();
+    tree.type = 'empty';
+    return tree;
+  }
+
+  static Loading(metadata: TraceTree.Metadata): IssuesTraceTree {
+    const t = makeExampleTrace(metadata);
+    const tree = new IssuesTraceTree();
+    tree.root = t.root;
+    tree.type = 'loading';
+    tree.build();
+    return tree;
+  }
+
+  static Error(metadata: TraceTree.Metadata): IssuesTraceTree {
+    const t = makeExampleTrace(metadata);
+    const tree = new IssuesTraceTree();
+    tree.root = t.root;
+    tree.type = 'error';
+    tree.build();
+    return tree;
+  }
+
   static FromTrace(
     trace: TraceTree.Trace,
     options: {
@@ -29,71 +50,6 @@ export class IssuesTraceTree extends TraceTree {
     const issuesTree = new IssuesTraceTree();
     issuesTree.root = tree.root;
     return issuesTree;
-  }
-
-  static CollapseNodes(root: TraceTreeNode) {
-    // Collect all nodes with errors and their path to the root. None of these nodes should be collapsed
-    // because we want to preserve the path to the error node so that the user can see the chain that lead
-    // to it.
-    const errorNodes = TraceTree.FindAll(
-      root,
-      node =>
-        node.errors.size > 0 || node.performance_issues.size > 0 || isTraceErrorNode(node)
-    ).slice(0, MAX_ISSUES);
-
-    const preserveNodes = new Set<TraceTreeNode>();
-
-    for (const node of errorNodes) {
-      let current: TraceTreeNode | null = node;
-      while (current) {
-        preserveNodes.add(current);
-        current = current.parent;
-      }
-    }
-
-    const queue: TraceTreeNode[] = [root];
-
-    while (queue.length > 0) {
-      const node = queue.pop();
-
-      if (!node) {
-        continue;
-      }
-
-      const children = isParentAutogroupedNode(node) ? [node.head] : node.children;
-
-      for (const child of children) {
-        queue.push(child);
-      }
-
-      let index = 0;
-      while (index < children.length) {
-        const start = index;
-
-        while (children[index] && !preserveNodes.has(children[index])) {
-          index++;
-        }
-
-        if (index - start > 0) {
-          const collapsedNode = new CollapsedNode(
-            node,
-            {type: 'collapsed'},
-            node.metadata
-          );
-
-          collapsedNode.children = children.splice(start, index - start, collapsedNode);
-
-          for (const child of collapsedNode.children) {
-            child.parent = collapsedNode;
-          }
-
-          // Skip the section we collapsed so we dont collapse or process it again
-          index = start + 1;
-        } else {
-          index++;
-        }
-      }
-    }
   }
 
   static ExpandToEvent(
@@ -136,48 +92,37 @@ export class IssuesTraceTree extends TraceTree {
     return Promise.resolve();
   }
 
-  build() {
-    super.build();
+  collapseList(preserveLeafNodes: TraceTreeNode[]) {
+    const preserveNodes = new Set(preserveLeafNodes);
 
-    for (let i = 0; i < this.list.length; i++) {
-      if (
-        this.list[i].errors.size === 0 &&
-        this.list[i].performance_issues.size === 0 &&
-        !isTraceErrorNode(this.list[i])
-      ) {
-        const start = i;
-        while (
-          i < this.list.length &&
-          !this.list[i].errors.size &&
-          !this.list[i].performance_issues.size &&
-          !isTraceErrorNode(this.list[i])
-        ) {
-          i++;
-        }
-
-        if (i - start > 0) {
-          const newNode = new CollapsedNode(
-            this.list[start].parent!,
-            {type: 'collapsed'},
-            this.list[start].metadata
-          );
-
-          const removed = this.list.splice(start, i - start, newNode);
-          newNode.children = [removed[0]];
-        }
-      }
-    }
-
-    // Since we only collapsed sibling nodes, it means that it is possible for the list to contain
-    // sibling collapsed nodes. We'll do a second pass to flatten these nodes and replace them with
-    // a single fake collapsed node.
-    for (let i = 0; i < this.list.length; i++) {
-      if (!isCollapsedNode(this.list[i])) {
+    for (const node of preserveLeafNodes) {
+      const index = this.list.indexOf(node);
+      if (index === -1) {
         continue;
       }
 
+      // Preserve the previous 3 nodes
+      let i = index - 1;
+      while (i > index - 4) {
+        if (this.list[i]) {
+          preserveNodes.add(this.list[i]);
+        }
+        i--;
+      }
+
+      // Preserve the next 2 nodes
+      let j = index + 1;
+      while (j < index + 3) {
+        if (this.list[j]) {
+          preserveNodes.add(this.list[j]);
+        }
+        j++;
+      }
+    }
+
+    for (let i = 0; i < this.list.length; i++) {
       const start = i;
-      while (i < this.list.length && isCollapsedNode(this.list[i])) {
+      while (this.list[i] && !preserveNodes.has(this.list[i])) {
         i++;
       }
 
@@ -190,9 +135,15 @@ export class IssuesTraceTree extends TraceTree {
 
         const removed = this.list.splice(start, i - start, newNode);
         newNode.children = removed;
+
+        i -= start;
       }
     }
+    return this;
+  }
 
+  build() {
+    super.build();
     return this;
   }
 }
