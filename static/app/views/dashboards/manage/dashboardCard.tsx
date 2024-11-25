@@ -35,7 +35,7 @@ function DashboardCard({
 
   return (
     <Link data-test-id={`card-${title}`} onClick={onClick} to={to} aria-label={title}>
-      <StyledDashboardCard interactive>
+      <StyledDashboardCard>
         <CardHeader>
           <CardContent>
             <Title>{title}</Title>
@@ -82,10 +82,7 @@ const CardContent = styled('div')`
 const StyledDashboardCard = styled(Card)`
   justify-content: space-between;
   height: 100%;
-  &:focus,
-  &:hover {
-    top: -1px;
-  }
+  cursor: pointer;
 `;
 
 const CardHeader = styled('div')`
