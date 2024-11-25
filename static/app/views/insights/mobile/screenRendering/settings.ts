@@ -14,4 +14,4 @@ export const SUMMARY_PAGE_BASE_URL = 'details';
 
 export const SUMMARY_PAGE_TITLE = t('Render Summary');
 
-export const MODULE_FEATURES = ['insights-addon-modules', 'insights-domain-view'];
+export const MODULE_FEATURES = ['insights-addon-modules'];
