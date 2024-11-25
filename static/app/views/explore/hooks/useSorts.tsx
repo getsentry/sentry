@@ -30,7 +30,7 @@ function useSortsImpl({
   location,
   navigate,
 }: ImplOptions): [Sort[], (newSorts: Sort[]) => void] {
-  const sorts = useMemo(() => calculateSorts(fields, location), [fields, location]);
+  const sorts = useMemo(() => getSorts(fields, location), [fields, location]);
 
   const setSort = useCallback(
     (newSorts: Sort[]) => {
@@ -51,7 +51,7 @@ function useSortsImpl({
   return [sorts, setSort];
 }
 
-export function calculateSorts(fields: Field[], location: Location) {
+export function getSorts(fields: Field[], location: Location) {
   const rawSorts = decodeSorts(location.query.sort);
 
   // Try to assign a default sort if possible

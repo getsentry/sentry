@@ -15,7 +15,7 @@ import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {calculateSorts} from 'sentry/views/explore/hooks/useSorts';
+import {getSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
@@ -45,7 +45,7 @@ export function useAddToDashboard() {
       }
 
       const search = new MutableSearch(query);
-      const sorts = calculateSorts(fields, location);
+      const sorts = getSorts(fields, location);
 
       const discoverQuery: NewQuery = {
         name: t('Custom Explore Widget'),
