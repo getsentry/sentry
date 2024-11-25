@@ -12,7 +12,9 @@ export interface TraceViewQueryParams {
   useSpans: number;
 }
 
-export function useTraceQueryParams(): TraceViewQueryParams {
+export function useTraceQueryParams(
+  params?: Partial<TraceViewQueryParams>
+): TraceViewQueryParams {
   return useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
       allowAbsolutePageDatetime: true,
@@ -23,6 +25,12 @@ export function useTraceQueryParams(): TraceViewQueryParams {
     const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
     const numberTimestamp = timestamp ? Number(timestamp) : undefined;
 
-    return {start, end, statsPeriod, timestamp: numberTimestamp, useSpans: 1};
-  }, []);
+    return {
+      start: start ?? params?.start,
+      end: end ?? params?.end,
+      statsPeriod: statsPeriod ?? params?.statsPeriod,
+      timestamp: numberTimestamp ?? params?.timestamp,
+      useSpans: 1,
+    };
+  }, [params]);
 }

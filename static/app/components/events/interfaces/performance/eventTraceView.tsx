@@ -49,11 +49,17 @@ interface EventTraceViewInnerProps {
 }
 
 function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
+  const timestamp = new Date(event.dateReceived).getTime() / 1e3;
+
   const trace = useTrace({
+    timestamp,
     traceSlug: traceId,
     limit: 10000,
   });
-  const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
+  const params = useTraceQueryParams({
+    timestamp,
+  });
+  const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
   const tree = useIssuesTraceTree({trace, meta, replay: null});
 
   const shouldLoadTraceRoot = !trace.isPending && trace.data;
@@ -66,7 +72,6 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
     []
   );
 
-  const params = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceId, params);
 
   if (!traceId) {
