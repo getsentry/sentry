@@ -100,23 +100,10 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
 )
-from sentry.incidents.endpoints.organization_incident_activity_index import (
-    OrganizationIncidentActivityIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_details import (
-    OrganizationIncidentCommentDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_index import (
-    OrganizationIncidentCommentIndexEndpoint,
-)
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from sentry.incidents.endpoints.organization_incident_subscription_index import (
-    OrganizationIncidentSubscriptionIndexEndpoint,
-)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
@@ -350,6 +337,7 @@ from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndp
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
 from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
+from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -385,7 +373,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.event_ai_suggested_fix import EventAiSuggestedFixEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -511,7 +498,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
 from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
@@ -1207,21 +1193,6 @@ ORGANIZATION_URLS = [
     ),
     # Incidents
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
-        OrganizationIncidentActivityIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-activity",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$",
-        OrganizationIncidentCommentIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comments",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/(?P<activity_id>[^\/]+)/$",
-        OrganizationIncidentCommentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comment-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
         OrganizationIncidentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-incident-details",
@@ -1230,16 +1201,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/$",
         OrganizationIncidentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$",
-        OrganizationIncidentSeenEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-seen",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
-        OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-subscription-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/chunk-upload/$",
@@ -2152,11 +2113,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-query",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/samples/$",
-        OrganizationMetricsSamplesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-samples",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
@@ -2321,11 +2277,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$",
         EventGroupingInfoEndpoint.as_view(),
         name="sentry-api-0-event-grouping-info",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/ai-fix-suggest/$",
-        EventAiSuggestedFixEndpoint.as_view(),
-        name="sentry-api-0-event-ai-fix-suggest",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/apple-crash-report$",
@@ -2844,6 +2795,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
     ),
+    *workflow_urls.urlpatterns,
 ]
 
 TEAM_URLS = [

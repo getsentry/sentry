@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
@@ -28,7 +29,7 @@ import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsA
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: AlertType};
+type MenuOption = {label: React.ReactNode; value: AlertType};
 type GroupedMenuOption = {label: string; options: Array<MenuOption>};
 
 type Props = Omit<FormFieldProps, 'children'> & {
@@ -131,7 +132,12 @@ export default function WizardField({
         ...(hasEAPAlerts(organization)
           ? [
               {
-                label: AlertWizardAlertNames.eap_metrics,
+                label: (
+                  <span>
+                    {AlertWizardAlertNames.eap_metrics}
+                    <FeatureBadge type="experimental" />
+                  </span>
+                ),
                 value: 'eap_metrics' as const,
               },
             ]

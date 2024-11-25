@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -32,6 +32,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
+import type {MonitorBucket} from './components/timeline/types';
 import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
@@ -110,6 +111,17 @@ function MonitorDetails({params, location}: Props) {
     refetchErrors();
   }
 
+  // Only display the unknown legend when there are visible unknown check-ins
+  // in the timeline
+  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
+
+  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
+    const hasUnknown = stats.some(bucket =>
+      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
+    );
+    setShowUnknownLegend(hasUnknown);
+  }, []);
+
   if (isError) {
     return (
       <LoadingError message={t('The monitor you were looking for was not found.')} />
@@ -169,7 +181,7 @@ function MonitorDetails({params, location}: Props) {
               <MonitorOnboarding monitor={monitor} />
             ) : (
               <Fragment>
-                <DetailsTimeline organization={organization} monitor={monitor} />
+                <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
                 <MonitorStats
                   orgSlug={organization.slug}
                   monitor={monitor}
@@ -194,6 +206,7 @@ function MonitorDetails({params, location}: Props) {
             <DetailsSidebar
               monitorEnv={envsSortedByLastCheck[envsSortedByLastCheck.length - 1]}
               monitor={monitor}
+              showUnknownLegend={showUnknownLegend}
             />
           </Layout.Side>
         </Layout.Body>

@@ -19,6 +19,9 @@ export function NewIssueExperienceButton() {
   const user = useUser();
   const organization = useOrganization();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
+  const hasEnforceStreamlinedUIFlag = organization.features.includes(
+    'issue-details-streamline-enforce'
+  );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
@@ -31,7 +34,8 @@ export function NewIssueExperienceButton() {
     });
   }, [mutate, organization, hasStreamlinedUI]);
 
-  if (!hasStreamlinedUIFlag) {
+  // We hide the toggle if the org doesn't have the 'opt-in' flag, or has the 'remove opt-out' flag.
+  if (!hasStreamlinedUIFlag || hasEnforceStreamlinedUIFlag) {
     return null;
   }
 

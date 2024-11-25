@@ -1,3 +1,5 @@
+import {generateSentryTraceHeader} from '@sentry/utils';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
@@ -15,13 +17,21 @@ describe('HTTPSnippet', function () {
         method="POST"
         body={'{"key": "value"}'}
         headers={[['X-Something', 'Header Value']]}
+        traceSampling={false}
       />
+    );
+
+    expect(jest.mocked(generateSentryTraceHeader)).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      false
     );
 
     const expected = [
       'POST /test?query=value HTTP/1.1',
       'Host: example.com',
       'X-Something: Header Value',
+      'User-Agent: SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
       'Sentry-Trace: sentry-trace-value',
       'Content-Size: 18',
       ``,

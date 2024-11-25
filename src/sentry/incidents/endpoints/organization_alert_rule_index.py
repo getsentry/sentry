@@ -409,9 +409,6 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
     monitorType = serializers.IntegerField(
         required=False,
@@ -442,10 +439,14 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
         in their request.
         """
-        #
-        if request.access.has_scope("alerts:write"):
+        # if the requesting user has any of these org-level permissions, then they can create an alert
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
             return
-        # team admins should be able to crete alerts for the projects they have access to
+        # team admins should be able to create alerts for the projects they have access to
         projects = self.get_projects(request, organization)
         # team admins will have alerts:write scoped to their projects, members will not
         team_admin_has_access = all(

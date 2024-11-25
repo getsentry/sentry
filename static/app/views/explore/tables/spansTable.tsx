@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -35,25 +36,32 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 
 import {FieldRenderer} from './fieldRenderer';
 
-interface SpansTableProps {}
+interface SpansTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function SpansTable({}: SpansTableProps) {
+export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
   const [visualizes] = useVisualizes();
   const organization = useOrganization();
 
+  const visibleFields = useMemo(
+    () => (fields.includes('id') ? fields : ['id', ...fields]),
+    [fields]
+  );
+
   const eventView = useMemo(() => {
     const queryFields = [
-      ...fields,
+      ...visibleFields,
       'project',
       'trace',
       'transaction.span_id',
-      'span_id',
+      'id',
       'timestamp',
     ];
 
@@ -75,7 +83,7 @@ export function SpansTable({}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, sorts, query, selection, visibleFields]);
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -85,6 +93,10 @@ export function SpansTable({}: SpansTableProps) {
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
   });
+
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
 
   useAnalytics({
     resultLength: result.data?.length,
@@ -97,7 +109,7 @@ export function SpansTable({}: SpansTableProps) {
   });
 
   const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
+    items: visibleFields.map(field => {
       return {
         label: field,
         value: field,
@@ -115,7 +127,7 @@ export function SpansTable({}: SpansTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => {
+            {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
@@ -167,9 +179,9 @@ export function SpansTable({}: SpansTableProps) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
+            result.data?.slice(0, 50)?.map((row, i) => (
               <TableRow key={i}>
-                {fields.map((field, j) => {
+                {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
