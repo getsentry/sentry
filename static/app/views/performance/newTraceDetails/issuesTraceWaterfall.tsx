@@ -9,13 +9,14 @@ import {
   useRef,
 } from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
+import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
@@ -35,24 +36,18 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
-import {useTraceOnLoad} from './useTraceOnLoad';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {useTraceIssuesOnLoad} from './useTraceOnLoad';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const noopTraceSearch = () => {};
 
 interface IssuesTraceWaterfallProps extends TraceWaterfallProps {
-  /**
-   * Ignore eventId or path query parameters and use the provided node.
-   * Must be set at component mount, no reactivity
-   */
-  scrollToNode: {eventId?: string; path?: TraceTree.NodePath[]};
+  event: Event;
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const {projects} = useProjects();
   const organization = useOrganization();
-
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
 
@@ -63,8 +58,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
-
-  const scrollQueueRef = useTraceScrollToPath(props.scrollToNode);
 
   useEffect(() => {
     trackAnalytics('performance_views.trace_view_v1_page_load', {
@@ -138,43 +131,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
     traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
-    // The tree has the data fetched, but does not yet respect the user preferences.
-    // We will autogroup and inject missing instrumentation if the preferences are set.
-    // and then we will perform a search to find the node the user is interested in.
-    if (traceStateRef.current.preferences.missing_instrumentation) {
-      TraceTree.DetectMissingInstrumentation(props.tree.root);
-    }
-    if (traceStateRef.current.preferences.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
-    }
-    if (traceStateRef.current.preferences.autogroup.parent) {
-      TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
-    }
-
     // Construct the visual representation of the tree
+    IssuesTraceTree.CollapseNodes(props.tree.root);
     props.tree.build();
 
-    const eventId = scrollQueueRef.current?.eventId;
-    const [_, path] = scrollQueueRef.current?.path?.[0]?.split('-') ?? [];
-    scrollQueueRef.current = null;
-
-    const node =
-      (path === 'root' && props.tree.root.children[0]) ||
-      (path && TraceTree.FindByID(props.tree.root, path)) ||
-      (eventId && TraceTree.FindByID(props.tree.root, eventId)) ||
-      null;
-
+    // @TODO: if there is a node, find its index in the list
     const index = -1;
-
-    if (index === -1 || !node) {
-      const hasScrollComponent = !!(path || eventId);
-      if (hasScrollComponent) {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-scroll-to-node-error']);
-          scope.captureMessage('Failed to scroll to node in trace tree');
-        });
-      }
-
+    const node = null;
+    if (!node || index === -1) {
       return;
     }
 
@@ -202,14 +166,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         action_source: 'load',
       });
     });
-  }, [
-    traceDispatch,
-    viewManager,
-    traceScheduler,
-    scrollQueueRef,
-    props.tree,
-    props.organization,
-  ]);
+  }, [traceDispatch, viewManager, traceScheduler, props.tree, props.organization]);
 
   useTraceTimelineChangeSync({
     tree: props.tree,
@@ -224,9 +181,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   useDividerResizeSync(traceScheduler);
 
-  const onLoadScrollStatus = useTraceOnLoad({
+  const onLoadScrollStatus = useTraceIssuesOnLoad({
     onTraceLoad,
-    pathToNodeOrEventId: scrollQueueRef.current,
+    event: props.event,
     tree: props.tree,
   });
 
@@ -269,6 +226,7 @@ const IssuesPointerDisabled = styled('div')`
   position: relative;
   height: 100%;
   width: 100%;
+  pointer-events: none;
 `;
 
 const IssuesTraceGrid = styled(TraceGrid)<{

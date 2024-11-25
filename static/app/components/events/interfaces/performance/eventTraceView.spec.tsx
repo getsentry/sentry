@@ -93,7 +93,7 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace')).toBeInTheDocument();
-    expect(await screen.findByText('2 hidden spans')).toBeInTheDocument();
+    expect(await screen.findByText('1 hidden span')).toBeInTheDocument();
   });
 
   it('does not render the trace preview if it has no transactions', async () => {

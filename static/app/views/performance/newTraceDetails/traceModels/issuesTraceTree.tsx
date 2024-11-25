@@ -1,9 +1,10 @@
 import type {Client} from 'sentry/api';
-import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {
   isCollapsedNode,
+  isParentAutogroupedNode,
   isTraceErrorNode,
+  isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -26,33 +27,8 @@ export class IssuesTraceTree extends TraceTree {
   ): IssuesTraceTree {
     const tree = super.FromTrace(trace, options);
     const issuesTree = new IssuesTraceTree();
-    IssuesTraceTree.CollapseNodes(tree.root);
     issuesTree.root = tree.root;
     return issuesTree;
-  }
-
-  static FromSpans(
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    spans: TraceTree.Span[],
-    event: EventTransaction | null
-  ): [TraceTreeNode<TraceTree.NodeValue>, [number, number]] {
-    const [root, space] = super.FromSpans(node, spans, event);
-    IssuesTraceTree.CollapseNodes(root);
-    return [root, space];
-  }
-
-  async zoom(
-    node: TraceTreeNode<TraceTree.NodeValue>,
-    zoomedIn: boolean,
-    options: {
-      api: Client;
-      organization: Organization;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-    }
-  ): Promise<Event | null> {
-    const result = await super.zoom(node, zoomedIn, options);
-    IssuesTraceTree.CollapseNodes(this.root);
-    return result;
   }
 
   static CollapseNodes(root: TraceTreeNode) {
@@ -61,10 +37,12 @@ export class IssuesTraceTree extends TraceTree {
     // to it.
     const errorNodes = TraceTree.FindAll(
       root,
-      node => node.hasErrors || isTraceErrorNode(node)
+      node =>
+        node.errors.size > 0 || node.performance_issues.size > 0 || isTraceErrorNode(node)
     ).slice(0, MAX_ISSUES);
 
     const preserveNodes = new Set<TraceTreeNode>();
+
     for (const node of errorNodes) {
       let current: TraceTreeNode | null = node;
       while (current) {
@@ -82,15 +60,17 @@ export class IssuesTraceTree extends TraceTree {
         continue;
       }
 
-      for (const child of node.children) {
+      const children = isParentAutogroupedNode(node) ? [node.head] : node.children;
+
+      for (const child of children) {
         queue.push(child);
       }
 
       let index = 0;
-      while (index < node.children.length) {
+      while (index < children.length) {
         const start = index;
 
-        while (node.children[index] && !preserveNodes.has(node.children[index])) {
+        while (children[index] && !preserveNodes.has(children[index])) {
           index++;
         }
 
@@ -101,11 +81,7 @@ export class IssuesTraceTree extends TraceTree {
             node.metadata
           );
 
-          collapsedNode.children = node.children.splice(
-            start,
-            index - start,
-            collapsedNode
-          );
+          collapsedNode.children = children.splice(start, index - start, collapsedNode);
 
           for (const child of collapsedNode.children) {
             child.parent = collapsedNode;
@@ -120,8 +96,77 @@ export class IssuesTraceTree extends TraceTree {
     }
   }
 
+  static ExpandToEvent(
+    tree: IssuesTraceTree,
+    eventId: string,
+    options: {
+      api: Client;
+      organization: Organization;
+      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    }
+  ): Promise<void> {
+    const node = TraceTree.Find(tree.root, n => {
+      if (isTraceErrorNode(n)) {
+        return n.value.event_id === eventId;
+      }
+      if (isTransactionNode(n)) {
+        if (n.value.event_id === eventId) {
+          return true;
+        }
+
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+
+    if (node && isTransactionNode(node)) {
+      return tree.zoom(node, true, options).then(() => {});
+    }
+
+    return Promise.resolve();
+  }
+
   build() {
     super.build();
+
+    for (let i = 0; i < this.list.length; i++) {
+      if (
+        this.list[i].errors.size === 0 &&
+        this.list[i].performance_issues.size === 0 &&
+        !isTraceErrorNode(this.list[i])
+      ) {
+        const start = i;
+        while (
+          i < this.list.length &&
+          !this.list[i].errors.size &&
+          !this.list[i].performance_issues.size &&
+          !isTraceErrorNode(this.list[i])
+        ) {
+          i++;
+        }
+
+        if (i - start > 0) {
+          const newNode = new CollapsedNode(
+            this.list[start].parent!,
+            {type: 'collapsed'},
+            this.list[start].metadata
+          );
+
+          const removed = this.list.splice(start, i - start, newNode);
+          newNode.children = [removed[0]];
+        }
+      }
+    }
 
     // Since we only collapsed sibling nodes, it means that it is possible for the list to contain
     // sibling collapsed nodes. We'll do a second pass to flatten these nodes and replace them with
@@ -144,10 +189,7 @@ export class IssuesTraceTree extends TraceTree {
         );
 
         const removed = this.list.splice(start, i - start, newNode);
-
-        for (const node of removed) {
-          newNode.children = newNode.children.concat(node.children);
-        }
+        newNode.children = removed;
       }
     }
 
