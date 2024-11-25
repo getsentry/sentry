@@ -37,7 +37,12 @@ const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
-
+${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? 'import time'
+    : ''
+}
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
       params.isPerformanceSelected
@@ -62,12 +67,10 @@ sentry_sdk.init(
     ? `
 
 def slow_function():
-    import time
     time.sleep(0.1)
     return "done"
 
 def fast_function():
-    import time
     time.sleep(0.05)
     return "done"
 
