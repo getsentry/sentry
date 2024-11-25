@@ -1043,3 +1043,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201, response.content
         assert response.data["permissions"]["isEditableByEveryone"] is False
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
+
+    def test_gets_dashboard_permissions_with_dashboard_list(self):
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) > 1
+        # Ensure the "permissions" field exists in each dashboard
+        for dashboard in response.data:
+            assert (
+                "permissions" in dashboard
+            ), f"Permissions field not found in dashboard: {dashboard}"
+        self.assert_equal_dashboards(self.dashboard, response.data[1])
+        assert response.data[1]["permissions"] is None
+
+    def test_dasboard_list_permissions_is_valid(self):
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+
+        data = {
+            "title": "New Dashboard 7",
+            "permissions": {
+                "isEditableByEveryone": "false",
+                "teamsWithEditAccess": [str(team1.id), str(team2.id)],
+            },
+            "createdBy": {"id": "23516"},
+            "id": "7136",
+        }
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 201
+
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+        assert response.data[3]["permissions"]["isEditableByEveryone"] is False
+        assert response.data[3]["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
