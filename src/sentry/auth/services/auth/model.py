@@ -40,6 +40,7 @@ class RpcApiToken(RpcModel):
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
+    scoping_organization_id: int | None = None
 
 
 class RpcMemberSsoState(RpcModel):
