@@ -9,12 +9,18 @@ import {
   useRef,
 } from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  isSpanNode,
+  isTraceErrorNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
@@ -135,10 +141,65 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     IssuesTraceTree.CollapseNodes(props.tree.root);
     props.tree.build();
 
-    // @TODO: if there is a node, find its index in the list
-    const index = -1;
-    const node = null;
-    if (!node || index === -1) {
+    // Find all the nodes that match the event id from the error so that we can try and
+    // link the user to the most specific one.
+    const nodes = IssuesTraceTree.FindAll(props.tree.root, n => {
+      if (isTraceErrorNode(n)) {
+        return n.value.event_id === props.event.eventID;
+      }
+      if (isTransactionNode(n)) {
+        if (n.value.event_id === props.event.eventID) {
+          return true;
+        }
+
+        for (const e of n.errors) {
+          if (e.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+
+        for (const p of n.performance_issues) {
+          if (p.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+      }
+      if (isSpanNode(n)) {
+        if (n.value.span_id === props.event.eventID) {
+          return true;
+        }
+        for (const e of n.errors) {
+          if (e.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === props.event.eventID) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+
+    // By order of priority, we want to find the error node, then the span node, then the transaction node.
+    // This is because the error node as standalone is the most specific one, otherwise we look for the span that
+    // the error may have been attributed to, otherwise we look at the transaction.
+    const node =
+      nodes?.find(n => isTraceErrorNode(n)) ||
+      nodes?.find(n => isSpanNode(n)) ||
+      nodes?.find(n => isTransactionNode(n));
+
+    const index = node ? props.tree.list.indexOf(node) : -1;
+    if (index === -1 || !node) {
+      const hasScrollComponent = !!props.event.eventID;
+      if (hasScrollComponent) {
+        Sentry.withScope(scope => {
+          scope.setFingerprint(['trace-view-issesu-scroll-to-node-error']);
+          scope.captureMessage('Failed to scroll to node in issues trace tree');
+        });
+      }
+
       return;
     }
 
@@ -166,7 +227,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         action_source: 'load',
       });
     });
-  }, [traceDispatch, viewManager, traceScheduler, props.tree, props.organization]);
+  }, [
+    traceDispatch,
+    viewManager,
+    traceScheduler,
+    props.tree,
+    props.organization,
+    props.event,
+  ]);
 
   useTraceTimelineChangeSync({
     tree: props.tree,
@@ -194,7 +262,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         traceSlug={props.traceSlug}
         organization={organization}
       />
-      <IssuesTraceGrid layout={traceState.preferences.layout}>
+      <IssuesTraceGrid
+        layout={traceState.preferences.layout}
+        rowCount={
+          props.tree.type === 'trace' && onLoadScrollStatus === 'success'
+            ? props.tree.list.length
+            : 8
+        }
+      >
         <IssuesPointerDisabled>
           <Trace
             trace={props.tree}
@@ -223,14 +298,26 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 }
 
 const IssuesPointerDisabled = styled('div')`
+  pointer-events: none;
   position: relative;
   height: 100%;
   width: 100%;
-  pointer-events: none;
 `;
+
+const ROW_HEIGHT = 24;
+const MIN_ROW_COUNT = 1;
+const HEADER_HEIGHT = 28;
+const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
+const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 
 const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+  rowCount: number;
 }>`
   display: block;
+  flex-grow: 1;
+  max-height: ${MAX_HEIGHT}px;
+  height: ${p =>
+    Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
+    HEADER_HEIGHT}px;
 `;

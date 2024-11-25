@@ -1,9 +1,7 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -47,11 +45,10 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
+  traceId: string;
 }
 
-function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
-  // Assuming profile exists, should be checked in the parent component
-  const traceId = event.contexts.trace!.trace_id!;
+function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
   const trace = useTrace({
     traceSlug: traceId,
     limit: 10000,
@@ -72,7 +69,7 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
   const params = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceId, params);
 
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data) {
+  if (!traceId) {
     return null;
   }
 
@@ -81,31 +78,29 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
       initialPreferences={preferences}
       preferencesStorageKey="issue-details-view-preferences"
     >
-      <TraceViewWaterfallWrapper rowCount={tree.type === 'trace' ? tree.list.length : 6}>
-        <IssuesTraceWaterfall
-          tree={tree}
-          trace={trace}
-          traceSlug={traceId}
-          rootEvent={rootEvent}
-          organization={organization}
-          traceEventView={traceEventView}
-          meta={meta}
-          source="issues"
-          replay={null}
-          event={event}
-        />
-      </TraceViewWaterfallWrapper>
+      <IssuesTraceWaterfall
+        tree={tree}
+        trace={trace}
+        traceSlug={traceId}
+        rootEvent={rootEvent}
+        organization={organization}
+        traceEventView={traceEventView}
+        meta={meta}
+        source="issues"
+        replay={null}
+        event={event}
+      />
     </TraceStateProvider>
   );
 }
 
-interface EventTraceViewProps extends EventTraceViewInnerProps {
+interface EventTraceViewProps extends Omit<EventTraceViewInnerProps, 'traceId'> {
   group: Group;
 }
 
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
-  // Check trace id exists
-  if (!event || !event.contexts.trace?.trace_id) {
+  const traceId = event.contexts.trace?.trace_id;
+  if (!traceId) {
     return null;
   }
 
@@ -123,36 +118,15 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   return (
     <ErrorBoundary mini>
       <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
-        <TraceContentWrapper>
-          <div>
-            <TraceDataSection event={event} />
-          </div>
-          {hasTracePreviewFeature && (
-            <EventTraceViewInner event={event} organization={organization} />
-          )}
-        </TraceContentWrapper>
+        <TraceDataSection event={event} />
+        {hasTracePreviewFeature && (
+          <EventTraceViewInner
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        )}
       </InterimSection>
     </ErrorBoundary>
   );
 }
-
-const TraceContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const ROW_HEIGHT = 24;
-const MIN_ROW_COUNT = 1;
-const HEADER_HEIGHT = 28;
-const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
-const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
-
-const TraceViewWaterfallWrapper = styled('div')<{rowCount: number}>`
-  display: flex;
-  flex-direction: column;
-  max-height: ${MAX_HEIGHT}px;
-  height: ${p =>
-    Math.min(Math.max(p.rowCount, MIN_ROW_COUNT), MAX_ROW_COUNT) * ROW_HEIGHT +
-    HEADER_HEIGHT}px;
-`;
