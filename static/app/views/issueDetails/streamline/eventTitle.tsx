@@ -8,7 +8,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -118,51 +117,41 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
       <div {...props} ref={ref}>
         <EventInfoJumpToWrapper>
           <EventInfo>
-            <EventIdInfo>
-              <DropdownMenu
-                trigger={(triggerProps, isOpen) => (
-                  // Tooltip split from button to prevent re-opening w/ focus event on close
-                  <Tooltip
-                    title={event.id}
-                    delay={500}
-                    overlayStyle={{maxWidth: 'max-content'}}
-                    disabled={isOpen}
-                  >
-                    <DropdownButton
-                      {...triggerProps}
-                      aria-label={t('Event actions')}
-                      size="zero"
-                      borderless
-                      isOpen={isOpen}
-                    >
-                      {getShortEventId(event.id)}
-                    </DropdownButton>
-                  </Tooltip>
-                )}
-                position="bottom"
-                size="xs"
-                items={[
-                  {
-                    key: 'copy-event-id',
-                    label: t('Copy Event ID'),
-                    onAction: copyEventId,
-                  },
-                  {
-                    key: 'copy-event-link',
-                    label: t('Copy Event Link'),
-                    onAction: copyLink,
-                  },
-                  {
-                    key: 'view-json',
-                    label: t('View JSON'),
-                    onAction: downloadJson,
-                  },
-                ]}
-              />
-            </EventIdInfo>
+            <DropdownMenu
+              trigger={(triggerProps, isOpen) => (
+                <EventIdDropdownButton
+                  {...triggerProps}
+                  aria-label={t('Event actions')}
+                  size="sm"
+                  borderless
+                  isOpen={isOpen}
+                >
+                  {getShortEventId(event.id)}
+                </EventIdDropdownButton>
+              )}
+              position="bottom"
+              size="xs"
+              items={[
+                {
+                  key: 'copy-event-id',
+                  label: t('Copy Event ID'),
+                  onAction: copyEventId,
+                },
+                {
+                  key: 'copy-event-link',
+                  label: t('Copy Event Link'),
+                  onAction: copyLink,
+                },
+                {
+                  key: 'view-json',
+                  label: t('View JSON'),
+                  onAction: downloadJson,
+                },
+              ]}
+            />
             <StyledTimeSince
               tooltipBody={<EventCreatedTooltip event={event} />}
-              tooltipProps={{overlayStyle: {maxWidth: 300}}}
+              tooltipProps={{maxWidth: 300}}
               date={event.dateCreated ?? event.dateReceived}
               css={grayText}
               aria-label={t('Event timestamp')}
@@ -257,7 +246,7 @@ const EventInfoJumpToWrapper = styled('div')`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(2)};
+  padding: 0 ${space(2)} 0 ${space(0.5)};
   flex-wrap: wrap;
   min-height: ${MIN_NAV_HEIGHT}px;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -266,9 +255,13 @@ const EventInfoJumpToWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.translucentBorder};
 `;
 
+const EventIdDropdownButton = styled(DropdownButton)`
+  padding-right: ${space(0.5)};
+`;
+
 const EventInfo = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   flex-direction: row;
   align-items: center;
   line-height: 1.2;
@@ -286,13 +279,6 @@ const JumpTo = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 50%;
   }
-`;
-
-const EventIdInfo = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.25)};
-  line-height: 1.2;
 `;
 
 const ProcessingErrorButton = styled(Button)`
