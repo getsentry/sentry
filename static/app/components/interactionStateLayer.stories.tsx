@@ -50,6 +50,7 @@ export default storyBook(InteractionStateLayer, story => {
 
 const StyledPanel = styled(Panel)`
   padding: ${space(1)};
+  max-width: 300px;
 `;
 
 function Activity() {
