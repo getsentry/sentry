@@ -20,6 +20,7 @@ from sentry.types.region import (
     RegionResolutionError,
     find_all_multitenant_region_names,
     find_all_region_names,
+    find_regions_for_sentry_app,
     find_regions_for_user,
     get_local_region,
     get_region_by_name,
@@ -188,6 +189,32 @@ class RegionDirectoryTest(TestCase):
             pytest.raises(SiloLimit.AvailabilityError),
         ):
             find_regions_for_user(user_id=user.id)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_find_regions_for_sentry_app(self) -> None:
+        with override_settings(SENTRY_MONOLITH_REGION="us"):
+            directory = load_from_config(self._INPUTS)
+        with self._in_global_state(directory):
+            organization = self.create_organization(name="test name", region="us")
+
+            sentry_app = self.create_sentry_app(
+                organization=self.organization,
+                scopes=["project:write"],
+            )
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=organization)
+            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
+            assert actual_regions == {"us"}
+
+            eu_organization = self.create_organization(name="eu test name", region="eu")
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_organization)
+            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
+            assert actual_regions == {"us", "eu"}
+
+        with (
+            override_settings(SILO_MODE=SiloMode.REGION),
+            pytest.raises(SiloLimit.AvailabilityError),
+        ):
+            find_regions_for_sentry_app(sentry_app=sentry_app)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_region_names(self) -> None:
