@@ -1,5 +1,5 @@
 ---
-created: '2024-11-21T21:10:04.656611+00:00'
+created: '2024-11-25T20:44:29.207064+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -33,6 +33,7 @@ source: tests/sentry/backup/test_comparators.py
     - apitoken_id
     - application_id
     - organization
+    - scoping_organization_id
     - user_id
   model_name: hybridcloud.apitokenreplica
 - comparators:

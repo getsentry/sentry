@@ -119,6 +119,11 @@
         "model": "sentry.organization",
         "nullable": true
       },
+      "scoping_organization_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
       "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",

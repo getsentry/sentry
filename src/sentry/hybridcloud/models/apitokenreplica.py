@@ -24,6 +24,9 @@ class ApiTokenReplica(Model, HasApiScopes):
     expires_at = models.DateTimeField(null=True)
     allowed_origins = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=True, on_delete="CASCADE"
+    )
 
     class Meta:
         app_label = "hybridcloud"
