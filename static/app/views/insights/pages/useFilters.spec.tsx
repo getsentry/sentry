@@ -23,16 +23,7 @@ describe('useDomainViewFilters', () => {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: `/${DOMAIN_VIEW_BASE_URL}/${FRONTEND_LANDING_SUB_PATH}`})
     );
-    mockUseOrganization.mockReturnValue(
-      OrganizationFixture({features: ['insights-domain-view']})
-    );
-  });
-
-  it('should return isInDomainView as false without feature', function () {
     mockUseOrganization.mockReturnValue(OrganizationFixture());
-    const {isInDomainView, view} = useDomainViewFilters();
-    expect(isInDomainView).toBe(false);
-    expect(view).toBeUndefined();
   });
 
   it('should return correct domain view based on the url', function () {

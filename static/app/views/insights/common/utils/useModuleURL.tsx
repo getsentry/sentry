@@ -18,7 +18,6 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
-import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_BASE_URLS: Record<ModuleName, string> = {
@@ -66,7 +65,6 @@ export function useModuleURLBuilder(
   detectDomainView: boolean = true
 ): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
-  const hasDomainViewFeature = organization?.features.includes('insights-domain-view');
   const {view: currentView} = useDomainViewFilters();
 
   if (!organization) {
@@ -76,28 +74,17 @@ export function useModuleURLBuilder(
 
   const {slug} = organization;
 
-  if (hasDomainViewFeature) {
-    return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
-      let view = detectDomainView ? currentView : currentView ?? domainView;
+  return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
+    let view = detectDomainView ? currentView : currentView ?? domainView;
 
-      if (!view) {
-        view = getModuleView(moduleName as ModuleName);
-      }
+    if (!view) {
+      view = getModuleView(moduleName as ModuleName);
+    }
 
-      return bare
-        ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
-        : normalizeUrl(
-            `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
-          );
-    };
-  }
-
-  // TODO - delete this block once the domain view feature is fully rolled out
-  return function (moduleName: RoutableModuleNames) {
     return bare
-      ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+      ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
       : normalizeUrl(
-          `/organizations/${slug}/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+          `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
         );
   };
 }

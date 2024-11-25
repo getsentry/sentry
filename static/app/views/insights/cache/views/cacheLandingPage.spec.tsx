@@ -253,7 +253,7 @@ describe('CacheLandingPage', function () {
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'my-transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
+      '/organizations/org-slug/insights/backend/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
     );
 
     expect(screen.getByRole('columnheader', {name: 'Project'})).toBeInTheDocument();

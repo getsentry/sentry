@@ -52,7 +52,6 @@ function UserStats({
   const webVitalsUrl = useModuleURL(ModuleName.VITAL, false, 'frontend');
 
   const hasWebVitalsFlag = organization.features.includes('insights-initial-modules');
-  const hasDomainViewFlag = organization.features.includes('insights-domain-view');
 
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 
@@ -84,7 +83,7 @@ function UserStats({
     query: location.query,
   });
 
-  if (hasWebVitalsFlag && hasDomainViewFlag) {
+  if (hasWebVitalsFlag) {
     webVitalsTarget = {
       pathname: `${webVitalsUrl}/overview/`,
       query: {
@@ -93,7 +92,7 @@ function UserStats({
     };
   }
 
-  const showLink = !hasDomainViewFlag || (hasDomainViewFlag && hasWebVitalsFlag);
+  const showLink = hasWebVitalsFlag;
 
   const mepSetting = useMEPSettingContext();
   const mepCardinalityContext = useMetricsCardinalityContext();
