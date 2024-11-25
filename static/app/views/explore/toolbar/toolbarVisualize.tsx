@@ -10,7 +10,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
@@ -58,13 +58,30 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   }, [visualizes]);
 
   const fieldOptions: SelectOption<string>[] = useMemo(() => {
-    const options = Object.values(numberTags).map(tag => {
-      return {
-        label: tag.name,
-        value: tag.key,
-        textValue: tag.name,
-      };
-    });
+    const unknownOptions = parsedVisualizeGroups
+      .flatMap(group =>
+        group.flatMap(entry => {
+          return entry.func.arguments;
+        })
+      )
+      .filter(option => {
+        return !numberTags.hasOwnProperty(option);
+      });
+
+    const options = [
+      ...Object.values(numberTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+        };
+      }),
+      ...unknownOptions.map(option => ({
+        label: prettifyTagKey(option),
+        value: option,
+        textValue: option,
+      })),
+    ];
 
     options.sort((a, b) => {
       if (a.label < b.label) {
@@ -79,7 +96,7 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
     });
 
     return options;
-  }, [numberTags]);
+  }, [numberTags, parsedVisualizeGroups]);
 
   const aggregateOptions: SelectOption<string>[] = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
