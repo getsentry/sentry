@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {DragNDropContext} from '../contexts/dragNDropContext';
@@ -45,7 +46,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -53,7 +54,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
