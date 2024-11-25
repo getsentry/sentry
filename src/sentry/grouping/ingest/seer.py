@@ -17,10 +17,9 @@ from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
-    ReferrerOptions,
     event_content_is_seer_eligible,
     filter_null_from_string,
-    get_stacktrace_string_with_metrics,
+    get_stacktrace_string,
     killswitch_enabled,
 )
 from sentry.utils import metrics
@@ -183,9 +182,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 
 def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVariant]) -> bool:
-    stacktrace_string = get_stacktrace_string_with_metrics(
-        get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
-    )
+    stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
     if stacktrace_string == "":
         metrics.incr(
             "grouping.similarity.did_call_seer",
@@ -220,10 +217,7 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": event.data.get(
-            "stacktrace_string",
-            get_stacktrace_string_with_metrics(
-                get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
-            ),
+            "stacktrace_string", get_stacktrace_string(get_grouping_info_from_variants(variants))
         ),
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
