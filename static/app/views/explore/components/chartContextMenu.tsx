@@ -1,4 +1,4 @@
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,10 +48,30 @@ function ChartContextMenu({
       }))
     : undefined;
 
-  if (
-    !organization.features.includes('alerts-eap') &&
-    !organization.features.includes('dashboards-eap')
-  ) {
+  const items: MenuItemProps[] = [];
+
+  if (organization.features.includes('alerts-eap')) {
+    items.push({
+      key: 'create-alert',
+      label: t('Create an alert for'),
+      children: alertsUrls ?? [],
+      tooltip: !singleProject
+        ? t('Cannot create an alert when multiple projects are selected')
+        : undefined,
+      disabled: !alertsUrls || alertsUrls.length === 0 || !singleProject,
+      isSubmenu: true,
+    });
+  }
+
+  if (organization.features.includes('dashboards-eap')) {
+    items.push({
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () => addToDashboard(visualizeIndex),
+    });
+  }
+
+  if (items.length === 0) {
     return null;
   }
 
@@ -64,31 +84,7 @@ function ChartContextMenu({
         icon: <IconEllipsis />,
       }}
       position="bottom-end"
-      items={[
-        ...(organization.features.includes('alerts-eap')
-          ? [
-              {
-                key: 'create-alert',
-                label: t('Create an alert for'),
-                children: alertsUrls ?? [],
-                tooltip: !singleProject
-                  ? t('Cannot create an alert when multiple projects are selected')
-                  : undefined,
-                disabled: !alertsUrls || alertsUrls.length === 0 || !singleProject,
-                isSubmenu: true,
-              },
-            ]
-          : []),
-        ...(organization.features.includes('dashboards-eap')
-          ? [
-              {
-                key: 'add-to-dashboard',
-                label: t('Add to Dashboard'),
-                onAction: () => addToDashboard(visualizeIndex),
-              },
-            ]
-          : []),
-      ]}
+      items={items}
     />
   );
 }
