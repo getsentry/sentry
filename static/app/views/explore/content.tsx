@@ -75,9 +75,11 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
+  const maxPickableDays = 7;
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -100,7 +102,8 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  maxPickableDays={7}
+                  defaultPeriod="7d"
+                  maxPickableDays={maxPickableDays}
                   relativeOptions={({arbitraryOptions}) => ({
                     ...arbitraryOptions,
                     '1h': t('Last 1 hour'),
