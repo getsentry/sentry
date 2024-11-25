@@ -17,7 +17,6 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
-from sentry.issues.endpoints.group_events import get_event_search_query
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.models.group import Group
 from sentry.search.events.types import ParamsType
@@ -35,7 +34,7 @@ def get_event_ids_from_filters(
         environments = get_environments(request, group.project.organization)
     except ResourceDoesNotExist:
         environments = []
-    query = get_event_search_query(request, group, environments)
+    query = request.GET.get("query", "")
 
     # Exit early if no query or environment is specified
     if not query and not environments:
@@ -52,7 +51,7 @@ def get_event_ids_from_filters(
         params["environment"] = [env.name for env in environments]
 
     snuba_query = get_query_builder_for_group(
-        query=query if query else "",
+        query=query,
         snuba_params=params,
         group=group,
         limit=10000,
