@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.db import router, transaction
 
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.serializers import ProjectSerializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
@@ -125,6 +126,8 @@ class DatabaseBackedProjectService(ProjectService):
                 #  but doesn't block if one doesn't exist.
                 if team:
                     project.add_team(team)
+
+            set_default_symbol_sources(project)
 
             project_created.send(
                 project=project,
