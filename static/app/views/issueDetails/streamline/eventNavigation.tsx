@@ -20,7 +20,6 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -29,6 +28,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
+import {
+  type ReplayCount,
+  useIssueDetailsReplayCount,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -136,11 +140,10 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       notifyOnChangeProps: [],
     }
   );
+  const eventCount = useIssueDetailsEventCount({group});
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
-  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
+  const {data: replayData} = useIssueDetailsReplayCount<ReplayCount>({group});
+  const replaysCount = replayData?.[group.id] ?? 0;
 
   const attachments = useGroupEventAttachments({
     groupId: group.id,
@@ -201,7 +204,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               key: Tab.DETAILS,
               label: (
                 <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
-                  {TabName[Tab.DETAILS]} <ItemCount value={group.count} />
+                  {TabName[Tab.DETAILS]} <ItemCount value={eventCount} />
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.DETAILS],

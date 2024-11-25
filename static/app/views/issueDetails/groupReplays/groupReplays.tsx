@@ -15,12 +15,16 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
+import {
+  type ReplayCount,
+  useIssueDetailsReplayCount,
+} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
@@ -177,9 +181,6 @@ function GroupReplaysTable({
 }) {
   const location = useLocation();
   const urlParams = useUrlParams();
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const replayListData = useReplayList({
@@ -206,10 +207,13 @@ function GroupReplaysTable({
     },
     [location]
   );
+  const eventCount = useIssueDetailsEventCount({group});
 
   const selectedReplay = replays?.[selectedReplayIndex];
+  const {data: replayData} = useIssueDetailsReplayCount<ReplayCount>({group});
 
-  const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
+  const replayCount = replayData?.[group.id] ?? 0;
+
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
     ? `${nextReplay.user.display_name || t('Anonymous User')}`
@@ -271,16 +275,16 @@ function GroupReplaysTable({
     <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
       <ReplayCountHeader>
         <IconUser size="sm" />
-        {replayCount ?? 0 > 50
+        {(replayCount ?? 0) > 50
           ? tn(
               'There are 50+ replays for this issue across %s event',
               'There are 50+ replays for this issue across %s events',
-              group.count
+              eventCount
             )
           : t(
               'There %s for this issue across %s.',
               tn('is %s replay', 'are %s replays', replayCount ?? 0),
-              tn('%s event', '%s events', group.count)
+              tn('%s event', '%s events', eventCount)
             )}
       </ReplayCountHeader>
       {inner}
