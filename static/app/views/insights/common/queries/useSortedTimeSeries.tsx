@@ -116,7 +116,7 @@ export const useSortedTimeSeries = <
   };
 };
 
-function isEventsStats(
+export function isEventsStats(
   obj: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats
 ): obj is EventsStats {
   return typeof obj === 'object' && obj !== null && typeof obj.data === 'object';
