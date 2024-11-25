@@ -41,6 +41,7 @@ from sentry.types.grouphash_metadata import (
     TemplateHashingMetadata,
 )
 from sentry.utils import metrics
+from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
-def create_or_update_grouphash_metadata(
+def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
     grouphash: GroupHash,
@@ -105,7 +106,12 @@ def create_or_update_grouphash_metadata(
     # we'll have to override the metadata creation date for them.
 
     if created:
-        hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
+        with metrics.timer(
+            "grouping.grouphashmetadata.get_hash_basis_and_metadata"
+        ) as metrics_timer_tags:
+            hash_basis, hashing_metadata = get_hash_basis_and_metadata(
+                event, project, variants, metrics_timer_tags
+            )
 
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
@@ -121,7 +127,10 @@ def create_or_update_grouphash_metadata(
 
 
 def get_hash_basis_and_metadata(
-    event: Event, project: Project, variants: dict[str, BaseVariant]
+    event: Event,
+    project: Project,
+    variants: dict[str, BaseVariant],
+    metrics_timer_tags: MutableTags,
 ) -> tuple[HashBasis, HashingMetadata]:
     hashing_metadata: HashingMetadata = {}
 
@@ -167,6 +176,8 @@ def get_hash_basis_and_metadata(
             extra={"project": project.id, "event": event.event_id},
         )
         return (HashBasis.UNKNOWN, {})
+
+    metrics_timer_tags["hash_basis"] = hash_basis
 
     # Gather different metadata depending on the grouping method
 
