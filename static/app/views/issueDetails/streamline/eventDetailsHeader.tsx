@@ -1,4 +1,3 @@
-import {useParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -38,7 +37,6 @@ export function EventDetailsHeader({
   project: Project;
 }) {
   const organization = useOrganization();
-  const params = useParams<{groupId: string}>();
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
@@ -77,7 +75,7 @@ export function EventDetailsHeader({
             handleSearch={query => {
               navigate(
                 {
-                  pathname: `/organizations/${organization.slug}/issues/${params.groupId}/events/`,
+                  pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
                   query: {...location.query, query},
                 },
                 {replace: true}
