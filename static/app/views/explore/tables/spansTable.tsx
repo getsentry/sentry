@@ -179,7 +179,7 @@ export function SpansTable({setError}: SpansTableProps) {
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </TableStatus>
           ) : result.isFetched && result.data?.length ? (
-            result.data?.slice(0, 50)?.map((row, i) => (
+            result.data?.map((row, i) => (
               <TableRow key={i}>
                 {visibleFields.map((field, j) => {
                   return (
