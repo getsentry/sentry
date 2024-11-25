@@ -513,6 +513,108 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 204
 
+    def test_allow_delete_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_all_projects_dashboard_when_no_open_membership(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        dashboard = Dashboard.objects.create(
+            title="Dashboard For All Projects",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            filters={"all_projects": True},
+        )
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_my_projects_dashboard_when_no_open_membership(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        dashboard = Dashboard.objects.create(
+            title="Dashboard For My Projects",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            # no 'filter' field means the dashboard covers all available projects
+        )
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204
+
+    def test_disallow_delete_when_no_project_access_and_no_edit_perms(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_as_superuser_but_no_edit_perms(self):
+        self.create_user(id=12333)
+        dashboard = Dashboard.objects.create(
+            id=67,
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+
+        # Create and login as superuser
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204, response.content
+
     def test_dashboard_does_not_exist(self):
         response = self.do_request("delete", self.url(1234567890))
         assert response.status_code == 404
@@ -730,6 +832,102 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_allow_put_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 200, response.data
+
+    def test_disallow_put_when_no_project_access_and_no_edit_perms(self):
+        # set dashboard edit perms to be editable only by creator
+        self.dashboard.permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=self.dashboard
+        )
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_disallow_put_when_has_project_access_and_no_edit_perms(self):
+        # set dashboard edit perms to be editable only by creator
+        self.dashboard.permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=self.dashboard
+        )
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has access to the above project
+        user = self.create_user(id=3456)
+        team = self.create_team(organization=self.organization)
+        self.create_member(user=user, organization=self.organization, teams=[team])
+        self.project.add_team(team)
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_allow_put_as_superuser_but_no_edit_perms(self):
+        self.create_user(id=12333)
+        dashboard = Dashboard.objects.create(
+            id=67,
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+
+        # Create and login as superuser
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(dashboard.id), data={"title": "New Dashboard 9"}
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["title"] == "New Dashboard 9"
 
     def test_add_widget(self):
         data: dict[str, Any] = {
@@ -2135,6 +2333,21 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "Only the Dashboard Creator may modify Dashboard Edit Access"
             in response.content.decode()
         )
+
+    def test_manager_or_owner_can_update_dashboard_edit_perms(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+
+        user = self.create_user(id=28193)
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"permissions": {"is_editable_by_everyone": False}},
+            )
+        assert response.status_code == 200
 
     def test_update_dashboard_permissions_with_new_teams(self):
         mock_project = self.create_project()
