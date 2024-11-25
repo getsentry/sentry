@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import rest_framework
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
@@ -107,7 +108,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
+    acting_user: RpcUser | User | None, group: Group, self_assign_issue: str
 ) -> Actor | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -153,7 +154,9 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
             except Release.DoesNotExist:
                 pass
         else:
-            current_release_version = greatest_semver_release(group.project).version
+            semver_releases = greatest_semver_release(group.project)
+            if semver_releases:
+                current_release_version = semver_releases.version
 
     else:
         # This sets current_release_version to the most recent release associated with a group
@@ -171,7 +174,7 @@ def update_groups(
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None = None,
-    user: RpcUser | User | None = None,
+    user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
@@ -195,7 +198,8 @@ def update_groups(
     serializer = validate_request(request, projects, data)
 
     if serializer is None:
-        return
+        # XXX: I do not know what the right code should be here.
+        return Response(status=500)
 
     result = dict(serializer.validated_data)
 
