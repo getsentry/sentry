@@ -23,7 +23,6 @@ import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
@@ -48,6 +47,7 @@ import {
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {
@@ -142,7 +142,6 @@ interface QueryData {
 interface Props extends RouteComponentProps<RouteParams, {}> {
   dashboard: DashboardDetails;
   onSave: (widgets: Widget[]) => void;
-  organization: Organization;
   selection: PageFilters;
   widgetLegendState: WidgetLegendSelectionState;
   displayType?: DisplayType;
@@ -177,7 +176,6 @@ function WidgetBuilder({
   dashboard,
   params,
   location,
-  organization,
   selection,
   start,
   end,
@@ -187,6 +185,7 @@ function WidgetBuilder({
   updateDashboardSplitDecision,
   widgetLegendState,
 }: Props) {
+  const organization = useOrganization();
   const {widgetIndex, orgId, dashboardId} = params;
   const {source, displayType, defaultTitle, limit, dataset} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
@@ -341,7 +340,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
-          organization: organization,
+          organization,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -354,7 +353,7 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? defaultWidgetType,
-          organization: organization,
+          organization,
         });
       }
 
@@ -448,7 +447,7 @@ function WidgetBuilder({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(defaultWidgetType).defaultWidgetQuery}],
             widgetType: defaultWidgetType,
-            organization: organization,
+            organization,
           })
         );
         set(newState, 'dataSet', defaultDataset);
@@ -460,7 +459,7 @@ function WidgetBuilder({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
-        organization: organization,
+        organization,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
@@ -1219,7 +1218,6 @@ function WidgetBuilder({
                                     onDataFetched={handleWidgetDataFetched}
                                     widget={currentWidget}
                                     dashboardFilters={dashboard.filters}
-                                    organization={organization}
                                     pageFilters={pageFilters}
                                     displayType={state.displayType}
                                     error={state.errors?.displayType}
@@ -1262,7 +1260,6 @@ function WidgetBuilder({
                                           )}
                                           explodedFields={explodedFields}
                                           tags={tags}
-                                          organization={organization}
                                           isOnDemandWidget={isOnDemandWidget}
                                         />
                                       )}
@@ -1282,14 +1279,12 @@ function WidgetBuilder({
                                         state.queries[0].selectedAggregate
                                       }
                                       tags={tags}
-                                      organization={organization}
                                     />
                                   )}
                                   <FilterResultsStep
                                     queries={state.queries}
                                     hideLegendAlias={hideLegendAlias}
                                     canAddSearchConditions={canAddSearchConditions}
-                                    organization={organization}
                                     queryErrors={state.errors?.queries}
                                     onAddSearchConditions={handleAddSearchConditions}
                                     onQueryChange={handleQueryChange}
@@ -1312,7 +1307,6 @@ function WidgetBuilder({
                                           })
                                         )}
                                       onGroupByChange={handleGroupByChange}
-                                      organization={organization}
                                       validatedWidgetResponse={validatedWidgetResponse}
                                       tags={tags}
                                       dataSet={state.dataSet}
@@ -1327,7 +1321,6 @@ function WidgetBuilder({
                                       error={state.errors?.orderby}
                                       onSortByChange={handleSortByChange}
                                       onLimitChange={handleLimitChange}
-                                      organization={organization}
                                       widgetType={widgetType}
                                       tags={tags}
                                     />
@@ -1355,7 +1348,6 @@ function WidgetBuilder({
                             </MainWrapper>
                             <Side>
                               <WidgetLibrary
-                                organization={organization}
                                 selectedWidgetId={
                                   state.userHasModified ? null : state.prebuiltWidgetId
                                 }

@@ -1,28 +1,22 @@
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
 
 interface Props {
   onClose: SearchBarProps['onClose'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
 }
 
-export function EventsSearchBar({
-  organization,
-  pageFilters,
-  onClose,
-  widgetQuery,
-  dataset,
-}: Props) {
+export function EventsSearchBar({pageFilters, onClose, widgetQuery, dataset}: Props) {
+  const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
   const fields = eventView.hasAggregateField()

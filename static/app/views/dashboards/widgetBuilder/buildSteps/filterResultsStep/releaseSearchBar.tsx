@@ -7,8 +7,8 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
@@ -31,17 +31,12 @@ const invalidMessages = {
 
 interface Props {
   onClose: SearchBarProps['onClose'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 }
 
-export function ReleaseSearchBar({
-  organization,
-  pageFilters,
-  widgetQuery,
-  onClose,
-}: Props) {
+export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
+  const organization = useOrganization();
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
 
