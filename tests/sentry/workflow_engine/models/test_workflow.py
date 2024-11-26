@@ -1,5 +1,5 @@
 from sentry.workflow_engine.types import DetectorType
-from tests.sentry.workflow_engine.testutils.test_base import BaseWorkflowTest
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class WorkflowTest(BaseWorkflowTest):
