@@ -38,45 +38,50 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const stringTags = useSpanTags('string');
 
   const fieldOptions: SelectOption<Field>[] = useMemo(() => {
-    const options = [
-      ...new Set(fields).keys().map(field => {
-        const tag = stringTags[field] ?? numberTags[field] ?? null;
-        if (tag) {
-          return {
-            label: tag.name,
-            value: field,
-            textValue: tag.name,
-            trailingItems: <TypeBadge kind={tag?.kind} />,
-          };
-        }
+    const uniqFields: Field[] = [];
+    for (const field of fields) {
+      if (!uniqFields.includes(field)) {
+        uniqFields.push(field);
+      }
+    }
 
-        const func = parseFunction(field);
-        if (func) {
-          const formatted = prettifyParsedFunction(func);
-          return {
-            label: formatted,
-            value: field,
-            textValue: formatted,
-            trailingItems: <TypeBadge func={func} />,
-          };
-        }
-
-        const result = field.match(TYPED_TAG_KEY_RE);
-        const kind =
-          result?.[2] === 'string'
-            ? FieldKind.TAG
-            : result?.[2] === 'number'
-              ? FieldKind.MEASUREMENT
-              : undefined;
-
+    const options = uniqFields.map(field => {
+      const tag = stringTags[field] ?? numberTags[field] ?? null;
+      if (tag) {
         return {
-          label: prettifyTagKey(field),
+          label: tag.name,
           value: field,
-          textValue: field,
-          trailingItems: <TypeBadge kind={kind} />,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={tag?.kind} />,
         };
-      }),
-    ];
+      }
+
+      const func = parseFunction(field);
+      if (func) {
+        const formatted = prettifyParsedFunction(func);
+        return {
+          label: formatted,
+          value: field,
+          textValue: formatted,
+          trailingItems: <TypeBadge func={func} />,
+        };
+      }
+
+      const result = field.match(TYPED_TAG_KEY_RE);
+      const kind =
+        result?.[2] === 'string'
+          ? FieldKind.TAG
+          : result?.[2] === 'number'
+            ? FieldKind.MEASUREMENT
+            : undefined;
+
+      return {
+        label: prettifyTagKey(field),
+        value: field,
+        textValue: field,
+        trailingItems: <TypeBadge kind={kind} />,
+      };
+    });
 
     options.sort((a, b) => {
       if (a.label < b.label) {
