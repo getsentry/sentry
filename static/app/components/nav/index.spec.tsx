@@ -107,7 +107,9 @@ describe('Nav', function () {
     beforeEach(() => {
       render(<Nav />, {
         router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/insights/http/'}),
+          location: LocationFixture({
+            pathname: '/organizations/org-slug/insights/backend/',
+          }),
         }),
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
       });
@@ -122,17 +124,8 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const links = getAllByRole(container, 'link');
-      expect(links).toHaveLength(8);
-      [
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Web Vitals',
-        'Caches',
-        'Queues',
-        'LLM Monitoring',
-      ].forEach((title, index) => {
+      expect(links).toHaveLength(4);
+      ['Frontend', 'Backend', 'Mobile', 'AI'].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
     });
