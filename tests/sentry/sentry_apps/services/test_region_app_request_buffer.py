@@ -1,4 +1,7 @@
-from sentry.sentry_apps.services.region_app import SentryAppRequestFilterArgs, region_app_service
+from sentry.sentry_apps.services.region_app_request_buffer import (
+    SentryAppRequestFilterArgs,
+    region_app_service,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all

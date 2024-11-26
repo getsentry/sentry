@@ -3,7 +3,7 @@ import abc
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp
-from sentry.sentry_apps.services.region_app.model import (
+from sentry.sentry_apps.services.region_app_request_buffer.model import (
     RpcSentryAppRequest,
     SentryAppRequestFilterArgs,
 )
@@ -16,7 +16,9 @@ class RegionAppService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.sentry_apps.services.region_app.impl import DatabaseBackedRegionAppService
+        from sentry.sentry_apps.services.region_app_request_buffer.impl import (
+            DatabaseBackedRegionAppService,
+        )
 
         return DatabaseBackedRegionAppService()
 
