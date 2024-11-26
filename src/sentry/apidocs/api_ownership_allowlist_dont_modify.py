@@ -42,7 +42,6 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/api/0/sentry-apps/{sentry_app_id_or_slug}/features/",
     "/api/0/organizations/{organization_id_or_slug}/monitors/",
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/filters/{filter_id}/",
-    "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/unreleased-commits/",
     "/api/0/sentry-apps/{sentry_app_id_or_slug}/api-tokens/",
     "/api/0/internal/quotas/",
     "/api/0/sentry-apps/{sentry_app_id_or_slug}/stats/",
