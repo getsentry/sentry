@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -66,7 +66,7 @@ def infer_substatus(
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     new_status: int,
     new_substatus: int | None,
     is_bulk: bool,
