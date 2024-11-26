@@ -195,18 +195,25 @@ class RegionDirectoryTest(TestCase):
         with override_settings(SENTRY_MONOLITH_REGION="us"):
             directory = load_from_config(self._INPUTS)
         with self._in_global_state(directory):
-            organization = self.create_organization(name="test name", region="us")
+            us_org_1 = self.create_organization(name="us test name 1", region="us")
+            us_org_2 = self.create_organization(name="us test name 2", region="us")
 
             sentry_app = self.create_sentry_app(
                 organization=self.organization,
                 scopes=["project:write"],
             )
-            self.create_sentry_app_installation(slug=sentry_app.slug, organization=organization)
+            actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
+            assert actual_regions == set()
+
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=us_org_1)
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=us_org_2)
             actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
             assert actual_regions == {"us"}
 
-            eu_organization = self.create_organization(name="eu test name", region="eu")
-            self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_organization)
+            eu_org_1 = self.create_organization(name="eu test name", region="eu")
+            eu_org_2 = self.create_organization(name="eu test name", region="eu")
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_1)
+            self.create_sentry_app_installation(slug=sentry_app.slug, organization=eu_org_2)
             actual_regions = find_regions_for_sentry_app(sentry_app=sentry_app)
             assert actual_regions == {"us", "eu"}
 
