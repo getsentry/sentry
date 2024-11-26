@@ -42,7 +42,7 @@ class TestRegionApp(TestCase):
         requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=self.app.id, region_name="us"
         )
-        assert len(requests) == 1
+        assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
     def test_get_buffer_requests_for_region_with_error_request(self):
@@ -58,7 +58,7 @@ class TestRegionApp(TestCase):
         requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=self.app.id, region_name="us"
         )
-        assert len(requests) == 1
+        assert requests and len(requests) == 1
         assert requests[0].error_id == "d5111da2c28645c5889d072017e3445d"
         assert requests[0].project_id == 1
 
@@ -80,7 +80,7 @@ class TestRegionApp(TestCase):
         requests = app_request_service.get_buffer_requests_for_region(
             sentry_app_id=self.app.id, region_name="us", filter=filter
         )
-        assert len(requests) == 1
+        assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
     def test_invalid_app_id(self):
