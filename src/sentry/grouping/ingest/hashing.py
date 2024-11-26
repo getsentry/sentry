@@ -233,9 +233,14 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            create_or_update_grouphash_metadata_if_needed(
-                event, project, grouphash, created, grouping_config, variants
-            )
+            try:
+                # We don't expect this to throw any errors, but collecting this metadata
+                # shouldn't ever derail ingestion, so better to be safe
+                create_or_update_grouphash_metadata_if_needed(
+                    event, project, grouphash, created, grouping_config, variants
+                )
+            except Exception as exc:
+                sentry_sdk.capture_exception(exc)
 
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata)
