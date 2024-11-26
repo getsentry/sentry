@@ -51,16 +51,21 @@ export function useSentryAppExternalIssues({
     const externalIssue = externalIssues.find(
       i => i.serviceType === component.sentryApp.slug
     );
-    const displayName = component.sentryApp.name;
+    const appDisplayName = component.sentryApp.name;
     const displayIcon = (
       <SentryAppComponentIcon sentryAppComponent={component} size={14} />
     );
     if (externalIssue) {
       result.linkedIssues.push({
         key: externalIssue.id,
-        displayName: `${displayName} Issue`,
+        displayName: externalIssue.displayName,
         url: externalIssue.webUrl,
-        title: externalIssue.displayName,
+        // Some display names look like PROJ#1234
+        // Others look like ClickUp: Title
+        // Add the integration name if it's not already included
+        title: externalIssue.displayName.includes(appDisplayName)
+          ? externalIssue.displayName
+          : `${appDisplayName}: ${externalIssue.displayName}`,
         displayIcon,
         onUnlink: () => {
           deleteExternalIssue(api, group.id, externalIssue.id)
@@ -76,10 +81,10 @@ export function useSentryAppExternalIssues({
     } else {
       result.integrations.push({
         key: component.sentryApp.slug,
-        displayName,
+        displayName: appDisplayName,
         displayIcon,
         disabled: Boolean(component.error),
-        disabledText: t('Unable to connect to %s', displayName),
+        disabledText: t('Unable to connect to %s', appDisplayName),
         actions: [
           {
             id: component.sentryApp.slug,
