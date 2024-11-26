@@ -257,18 +257,41 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 @log_options()
 @configuration
 @click.option(
-    "--num-messages",
+    "--repeat",
     type=int,
     help="Number of messages to send to the kafka topic",
     default=100,
     show_default=True,
 )
-def taskbroker_create_tasks(num_messages: int) -> None:
-    from sentry.taskdemo import demotasks, say_hello
+@click.option(
+    "--task-function",
+    type=str,
+    help="The function name of the task to execute located in the module",
+    required=True,
+)
+@click.option(
+    "--path",
+    type=str,
+    help="The path to the task module",
+    required=True,
+)
+def taskbroker_send_tasks(
+    path: str,
+    task_function: str,
+    repeat: int,
+) -> None:
+    import importlib
 
-    for i in range(num_messages):
-        say_hello.delay("hello world")
-    click.echo(message=f"Successfully sent {num_messages} messages to {demotasks.topic.name} topic")
+    try:
+        module = importlib.import_module(path)
+        func = getattr(module, task_function)
+    except Exception as e:
+        click.echo(f"Error: {e}")
+        raise click.Abort()
+
+    for i in range(repeat):
+        func.delay("hello world")
+    click.echo(message=f"Successfully sent {repeat} messages.")
 
 
 @run.command()
