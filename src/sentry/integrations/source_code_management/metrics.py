@@ -42,6 +42,9 @@ class SCMIntegrationInteractionType(StrEnum):
     # Tasks
     LINK_ALL_REPOS = "LINK_ALL_REPOS"
 
+    # GitHub only
+    DERIVE_CODEMAPPINGS = "DERIVE_CODEMAPPINGS"
+
 
 @dataclass
 class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
