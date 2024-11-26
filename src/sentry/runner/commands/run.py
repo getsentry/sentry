@@ -254,6 +254,24 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 
 
 @run.command()
+@log_options()
+@configuration
+@click.option(
+    "--num-messages",
+    type=int,
+    help="Number of messages to send to the kafka topic",
+    default=100,
+    show_default=True,
+)
+def taskbroker_create_tasks(num_messages: int) -> None:
+    from sentry.taskdemo import demotasks, say_hello
+
+    for i in range(num_messages):
+        say_hello.delay("hello world")
+    click.echo(message=f"Successfully sent {num_messages} messages to {demotasks.topic.name} topic")
+
+
+@run.command()
 @click.option(
     "--pidfile",
     help=(
