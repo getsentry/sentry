@@ -173,10 +173,10 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
 
     """Process the results"""
-    result: None | list[dict[str, Any]] = None
+    result: list[dict[str, Any]] = []
     for timeseries in rpc_response.result_timeseries:
         processed = _process_timeseries(timeseries, params, granularity_secs)
-        if result is None:
+        if len(result) == 0:
             result = processed
         else:
             for existing, new in zip(result, processed):
