@@ -13,12 +13,20 @@ from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
+from sentry.tasks.derive_code_mappings import (
+    DeriveCodeMappingsErrorReason,
+    derive_code_mappings,
+    identify_stacktrace_paths,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_halt_metric,
+)
 
 pytestmark = [requires_snuba]
 
@@ -43,58 +51,56 @@ class BaseDeriveCodeMappings(TestCase):
         return self.store_event(data=test_data, project_id=self.project.id).data
 
 
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class TestTaskBehavior(BaseDeriveCodeMappings):
     """Test task behavior that is not language specific."""
 
     def setUp(self):
         super().setUp()
-        self.platform = "any"
         self.event_data = self.generate_data(
             [{"filename": "foo.py", "in_app": True}],
-            platform="any",
+            platform="javascript",
         )
 
-    def test_does_not_raise_installation_removed(self):
+    def test_does_not_raise_installation_removed(self, mock_record):
+        error = ApiError(
+            '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
+        )
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-            side_effect=ApiError(
-                '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
-            ),
+            side_effect=error,
         ):
             assert derive_code_mappings(self.project.id, self.event_data) is None
+            assert_halt_metric(mock_record, error)
 
     @patch("sentry.tasks.derive_code_mappings.logger")
-    def test_raises_other_api_errors(self, mock_logger):
-        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
-            with patch(
-                "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-                side_effect=ApiError("foo"),
-            ):
-                derive_code_mappings(self.project.id, self.event_data)
-                assert mock_logger.error.call_count == 1
+    def test_raises_other_api_errors(self, mock_logger, mock_record):
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            side_effect=ApiError("foo"),
+        ):
+            derive_code_mappings(self.project.id, self.event_data)
+            assert mock_logger.error.call_count == 1
+            assert_halt_metric(mock_record, ApiError("foo"))
 
-    def test_unable_to_get_lock(self):
-        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
-            with patch(
-                "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-                side_effect=UnableToAcquireLock,
-            ):
-                derive_code_mappings(self.project.id, self.event_data)
-                assert not RepositoryProjectPathConfig.objects.exists()
+    def test_unable_to_get_lock(self, mock_record):
+        error = UnableToAcquireLock()
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            side_effect=UnableToAcquireLock(),
+        ):
+            derive_code_mappings(self.project.id, self.event_data)
+            assert not RepositoryProjectPathConfig.objects.exists()
+            assert_failure_metric(mock_record, error)
 
     @patch("sentry.tasks.derive_code_mappings.logger")
-    def test_raises_generic_errors(self, mock_logger):
-        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
-            with patch(
-                "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-                side_effect=Exception("foo"),
-            ):
-                derive_code_mappings(self.project.id, self.event_data)
-                assert mock_logger.exception.call_count == 1
-                assert (
-                    mock_logger.exception.call_args.args[0]
-                    == "Unexpected error type while calling `get_trees_for_org()`."
-                )
+    def test_raises_generic_errors(self, mock_logger, mock_record):
+        with patch(
+            "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
+            side_effect=Exception("foo"),
+        ):
+            derive_code_mappings(self.project.id, self.event_data)
+            assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):

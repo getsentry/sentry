@@ -1,8 +1,10 @@
 from time import time
+from unittest.mock import patch
 
 import responses
 
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
@@ -57,7 +59,8 @@ class VstsSearchTest(APITestCase):
         )
 
     @responses.activate
-    def test_search_issues(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_search_issues(self, mock_record):
         responses.add(
             responses.POST,
             f"https://{self.vsts_account_name.lower()}.almsearch.visualstudio.com/_apis/search/workitemsearchresults",
@@ -84,3 +87,11 @@ class VstsSearchTest(APITestCase):
         assert resp.data == [
             {"label": "(2) Title", "value": "2"},
         ]
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, halt1, halt2 = (
+            mock_record.mock_calls
+        )  # calls get, which calls handle_search_issues
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS

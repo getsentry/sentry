@@ -187,6 +187,28 @@ class RemoveFieldTest(BaseSafeMigrationTest):
             self.run_migration()
 
 
+class RunSqlDisabledTest(BaseSafeMigrationTest):
+    app = "bad_flow_run_sql_disabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        with pytest.raises(
+            UnsafeOperationException,
+            match="Using RunSQL is unsafe because our migrations safety framework can't detect problems with the migration.",
+        ):
+            self.run_migration()
+
+
+class RunSqlEnabledTest(BaseSafeMigrationTest):
+    app = "good_flow_run_sql_enabled_app"
+    migrate_from = "0001_initial"
+    migrate_to = "0001_initial"
+
+    def test(self):
+        self.run_migration()
+
+
 class DeleteModelCorrectTest(BaseSafeMigrationTest):
     app = "good_flow_delete_model_state_app"
     migrate_from = "0001_initial"
@@ -357,6 +379,15 @@ class DeletionFieldBadDeletePendingWithNotNull(BaseSafeMigrationTest):
             "must either be nullable or have a db_default before dropping",
         ):
             self.run_migration()
+
+
+class DeletionFieldGoodDeletePendingWithNotNullM2M(BaseSafeMigrationTest):
+    app = "good_flow_delete_field_pending_with_not_null_m2m_app"
+    migrate_from = "0001"
+    migrate_to = "0002"
+
+    def test(self):
+        self.run_migration()
 
 
 class ColExistsMixin:
