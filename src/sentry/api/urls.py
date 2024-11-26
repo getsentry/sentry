@@ -337,6 +337,7 @@ from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndp
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
 from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
+from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -372,7 +373,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.event_ai_suggested_fix import EventAiSuggestedFixEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -498,7 +498,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
 from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
@@ -560,9 +559,6 @@ from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
-)
-from .endpoints.organization_transaction_anomaly_detection import (
-    OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
@@ -1998,11 +1994,6 @@ ORGANIZATION_URLS = [
         OrganizationJoinRequestEndpoint.as_view(),
         name="sentry-api-0-organization-join-request",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/transaction-anomaly-detection/$",
-        OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
-        name="sentry-api-0-organization-transaction-anomaly-detection",
-    ),
     # relay usage
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/relay_usage/$",
@@ -2112,11 +2103,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/query/$",
         OrganizationMetricsQueryEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-query",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/samples/$",
-        OrganizationMetricsSamplesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-samples",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
@@ -2283,11 +2269,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$",
         EventGroupingInfoEndpoint.as_view(),
         name="sentry-api-0-event-grouping-info",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/ai-fix-suggest/$",
-        EventAiSuggestedFixEndpoint.as_view(),
-        name="sentry-api-0-event-ai-fix-suggest",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/apple-crash-report$",
@@ -2806,6 +2787,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
     ),
+    *workflow_urls.urlpatterns,
 ]
 
 TEAM_URLS = [

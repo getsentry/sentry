@@ -32,7 +32,14 @@ export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) 
     : urlObject.pathname;
 
   const appendedBody = body ? `\r\n${body}` : '';
-  const additionaLheaders = [...headers, ['Sentry-Trace', exampleTrace]];
+  const additionaLheaders = [
+    ...headers,
+    [
+      'User-Agent',
+      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
+    ],
+    ['Sentry-Trace', exampleTrace],
+  ];
 
   if (appendedBody !== '') {
     additionaLheaders.push(['Content-Size', new Blob([appendedBody]).size.toString()]);

@@ -22,7 +22,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest.config import is_in_transition
 from sentry.grouping.ingest.grouphash_metadata import (
-    create_or_update_grouphash_metadata,
+    create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
 )
 from sentry.grouping.variants import BaseVariant
@@ -233,10 +233,9 @@ def get_or_create_grouphashes(
         if options.get("grouping.grouphash_metadata.ingestion_writes_enabled") and features.has(
             "organizations:grouphash-metadata-creation", project.organization
         ):
-            with metrics.timer("grouping.grouphashmetadata.create_or_update_grouphash_metadata"):
-                create_or_update_grouphash_metadata(
-                    event, project, grouphash, created, grouping_config, variants
-                )
+            create_or_update_grouphash_metadata_if_needed(
+                event, project, grouphash, created, grouping_config, variants
+            )
 
         if grouphash.metadata:
             record_grouphash_metadata_metrics(grouphash.metadata)

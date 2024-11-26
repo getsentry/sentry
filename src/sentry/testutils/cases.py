@@ -1407,43 +1407,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_metrics_summary(self, span):
-        common_fields = {
-            "duration_ms": span["duration_ms"],
-            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
-            "group": span["sentry_tags"].get("group", "0"),
-            "is_segment": span["is_segment"],
-            "project_id": span["project_id"],
-            "received": span["received"],
-            "retention_days": span["retention_days"],
-            "segment_id": span.get("segment_id", "0"),
-            "span_id": span["span_id"],
-            "trace_id": span["trace_id"],
-        }
-        rows = []
-        for mri, summaries in span.get("_metrics_summary", {}).items():
-            for summary in summaries:
-                rows.append(
-                    {
-                        **common_fields,
-                        **{
-                            "count": summary.get("count", 0),
-                            "max": summary.get("max", 0.0),
-                            "mri": mri,
-                            "min": summary.get("min", 0.0),
-                            "sum": summary.get("sum", 0.0),
-                            "tags": summary.get("tags", {}),
-                        },
-                    }
-                )
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps(rows),
-            ).status_code
-            == 200
-        )
-
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1531,7 +1494,6 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
@@ -1570,8 +1532,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
@@ -1582,9 +1542,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["status"] = status
 
         self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1602,7 +1559,6 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
@@ -1644,8 +1600,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
@@ -1655,9 +1609,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
