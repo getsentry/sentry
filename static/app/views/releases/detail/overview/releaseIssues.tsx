@@ -24,7 +24,7 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import type {ReleaseBounds} from '../../utils';
 import {getReleaseParams} from '../../utils';
-import EmptyState from '../commitsAndFiles/emptyState';
+import {EmptyState} from '../commitsAndFiles/emptyState';
 
 enum IssuesType {
   NEW = 'new',
