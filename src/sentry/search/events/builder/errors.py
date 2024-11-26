@@ -88,6 +88,9 @@ class ErrorsQueryBuilderMixin:
                 aliased_col, exp=self._apply_column_entity(aliased_col.exp.name)
             )
         elif isinstance(aliased_col, Column):
+            if self.config.use_entity_prefix_for_fields:
+                return self._apply_column_entity(aliased_col.name)
+
             # Map the column with the entity name back to the original resolved name
             return AliasedExpression(
                 self._apply_column_entity(aliased_col.name), alias=aliased_col.name

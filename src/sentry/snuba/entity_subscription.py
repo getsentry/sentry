@@ -213,6 +213,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
                 skip_time_conditions=True,
                 parser_config_overrides=parser_config_overrides,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
+                use_entity_prefix_for_fields=True,
             ),
         )
 
