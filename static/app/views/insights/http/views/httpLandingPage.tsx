@@ -170,18 +170,7 @@ export function HTTPLandingPage() {
   return (
     <React.Fragment>
       {view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {moduleTitle}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.HTTP}
-        />
+        <FrontendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
       {view === BACKEND_LANDING_SUB_PATH && (
