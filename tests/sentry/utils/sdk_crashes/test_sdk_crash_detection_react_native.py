@@ -42,23 +42,15 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 
 
 @pytest.mark.parametrize(
-    ["filename", "is_synthetic", "expected_stripped_filename", "detected"],
+    ["filename", "expected_stripped_filename", "detected"],
     [
         (
             "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
-            False,
             "/sentry-react-native/dist/js/client.js",
             True,
         ),
         (
             "/Users/sentry.user/git-repos/sentry-react-native/samples/react-native/src/Screens/HomeScreen.tsx",
-            False,
-            "empty_on_purpose",
-            False,
-        ),
-        (
-            "/Users/sentry.user/git-repos/plant_store/node_modules/@sentry/integrations/cjs/captureconsole.js",
-            True,
             "empty_on_purpose",
             False,
         ),
@@ -71,11 +63,10 @@ def test_sdk_crash_is_reported_development_paths(
     store_event,
     configs,
     filename,
-    is_synthetic,
     expected_stripped_filename,
     detected,
 ):
-    event = store_event(data=get_crash_event(filename=filename, is_synthetic=is_synthetic))
+    event = store_event(data=get_crash_event(filename=filename))
 
     configs[1].organization_allowlist = [event.project.organization_id]
 

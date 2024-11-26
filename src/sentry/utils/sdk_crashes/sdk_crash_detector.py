@@ -48,13 +48,6 @@ class SDKCrashDetector:
         if not self.is_sdk_supported(sdk_name, sdk_version):
             return False
 
-        # Synthetic exceptions are mostly (can be supplied by the) created by Sentry SDKs and are not SDK crashes.
-        is_synthetic_exception = (
-            get_path(event_data, "exception", "values", -1, "mechanism", "synthetic") is True
-        )
-        if is_synthetic_exception:
-            return False
-
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
