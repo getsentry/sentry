@@ -310,6 +310,7 @@ function AddToDashboardModal({
                         ? {selected: unselectedReleasesForCharts}
                         : undefined
                     }
+                    disableFullscreen
                   />
 
                   <IndexedEventsSelectionAlert widget={widget} />

@@ -68,6 +68,7 @@ type Props = WithRouterProps & {
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
+  disableFullscreen?: boolean;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -129,6 +130,7 @@ function WidgetCard(props: Props) {
     onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
+    disableFullscreen,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -289,7 +291,9 @@ function WidgetCard(props: Props) {
                   actionsDisabled={actionsDisabled}
                   actionsMessage={actionsMessage}
                   actions={actions}
-                  onFullScreenViewClick={onFullScreenViewClick}
+                  onFullScreenViewClick={
+                    disableFullscreen ? undefined : onFullScreenViewClick
+                  }
                   isLoading={loading}
                   thresholds={widget.thresholds ?? undefined}
                   value={value}
@@ -311,7 +315,7 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
-            onFullScreenViewClick={onFullScreenViewClick}
+            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
           >
             <WidgetCardChartContainer
               location={location}

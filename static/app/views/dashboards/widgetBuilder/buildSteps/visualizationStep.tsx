@@ -146,6 +146,7 @@ export function VisualizationStep({
               : undefined
           }
           widgetLegendState={widgetLegendState}
+          disableFullscreen
         />
 
         <IndexedEventsSelectionAlert widget={widget} />
