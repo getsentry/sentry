@@ -9,6 +9,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -75,6 +76,15 @@ export function FieldRenderer({data, meta, unit, column}: FieldProps) {
       source: TraceViewSources.TRACES,
     });
 
+    rendered = <Link to={target}>{rendered}</Link>;
+  }
+
+  if (field === 'profile.id') {
+    const target = generateProfileFlamechartRouteWithQuery({
+      orgSlug: organization.slug,
+      projectSlug: data.project,
+      profileId: data['profile.id'],
+    });
     rendered = <Link to={target}>{rendered}</Link>;
   }
 
