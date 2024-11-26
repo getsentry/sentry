@@ -260,7 +260,7 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
     "--repeat",
     type=int,
     help="Number of messages to send to the kafka topic",
-    default=100,
+    default=1,
     show_default=True,
 )
 @click.option(
@@ -274,36 +274,28 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
     help="Task function arguments",
 )
 @click.option(
-    "--task-function",
+    "--task-function-path",
     type=str,
-    help="The function name of the task to execute located in the module",
-    required=True,
-)
-@click.option(
-    "--path",
-    type=str,
-    help="The path to the task module",
+    help="The path to the function name of the task to execute",
     required=True,
 )
 def taskbroker_send_tasks(
-    path: str,
-    task_function: str,
+    task_function_path: str,
     args: str,
     kwargs: str,
     repeat: int,
 ) -> None:
-    import importlib
+    from sentry.utils.imports import import_string
 
     try:
-        module = importlib.import_module(path)
-        func = getattr(module, task_function)
+        func = import_string(task_function_path)
     except Exception as e:
         click.echo(f"Error: {e}")
         raise click.Abort()
+    task_args = [] if not args else eval(args)
+    task_kwargs = {} if not kwargs else eval(kwargs)
 
     for _ in range(repeat):
-        task_args = [] if not args else eval(args)
-        task_kwargs = {} if not kwargs else eval(kwargs)
         func.delay(*task_args, **task_kwargs)
     click.echo(message=f"Successfully sent {repeat} messages.")
 
