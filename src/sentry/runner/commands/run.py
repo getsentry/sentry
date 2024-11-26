@@ -264,6 +264,16 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
     show_default=True,
 )
 @click.option(
+    "--kwargs",
+    type=str,
+    help="Task function keyword arguments",
+)
+@click.option(
+    "--args",
+    type=str,
+    help="Task function arguments",
+)
+@click.option(
     "--task-function",
     type=str,
     help="The function name of the task to execute located in the module",
@@ -278,6 +288,8 @@ def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
 def taskbroker_send_tasks(
     path: str,
     task_function: str,
+    args: str,
+    kwargs: str,
     repeat: int,
 ) -> None:
     import importlib
@@ -289,8 +301,10 @@ def taskbroker_send_tasks(
         click.echo(f"Error: {e}")
         raise click.Abort()
 
-    for i in range(repeat):
-        func.delay("hello world")
+    for _ in range(repeat):
+        task_args = [] if not args else eval(args)
+        task_kwargs = {} if not kwargs else eval(kwargs)
+        func.delay(*task_args, **task_kwargs)
     click.echo(message=f"Successfully sent {repeat} messages.")
 
 
