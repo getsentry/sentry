@@ -3,7 +3,7 @@ import countBy from 'lodash/countBy';
 
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
-  getSpanBarColours,
+  getSpanBarColors,
   ROW_HEIGHT,
 } from 'sentry/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -150,7 +150,7 @@ export function SpanDescendantGroupBar(props: SpanDescendantGroupBarProps) {
     return (
       <RowRectangle
         style={{
-          backgroundColor: getSpanBarColours(spanBarType, theme).primary,
+          backgroundColor: getSpanBarColors(spanBarType, theme).primary,
           left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
           width: toPercent(bounds.width || 0),
         }}
