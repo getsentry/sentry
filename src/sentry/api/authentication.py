@@ -5,7 +5,6 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
@@ -441,17 +440,14 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                         and organization.id != target_org_id_or_slug
                     ):
                         raise AuthenticationFailed("Unauthorized organization access.")
-                else:
-                    # We want to limit org scoped tokens access to org level endpoints only
-                    # Or none org level endpoints that we added special treatments for
-                    if resolved_url.url_name not in ["sentry-api-0-organizations"]:
-                        raise AuthenticationFailed(
-                            "This token access is limited to organization endpoints."
-                        )
+                # We want to limit org scoped tokens access to org level endpoints only
+                # Except some none-org level endpoints that we added special treatments for
+                elif resolved_url.url_name not in ["sentry-api-0-organizations"]:
+                    raise AuthenticationFailed(
+                        "This token access is limited to organization endpoints."
+                    )
             else:
-                sentry_sdk.capture_message(
-                    "Could not resolve organization for organization scoped token", level="warning"
-                )
+                raise AuthenticationFailed("Cannot resolve organization from token.")
 
         return self.transform_auth(
             user,
