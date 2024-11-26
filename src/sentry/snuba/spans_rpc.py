@@ -193,11 +193,18 @@ def build_top_event_conditions(
         row_conditions = []
         other_row_conditions = []
         for key in groupby_columns:
+            if key == "project.id":
+                key = "project.id"
+                value = resolver.params.project_slug_map[
+                    event.get("project", event.get("project.slug"))
+                ]
+            else:
+                value = event[key]
             resolved_term = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
-                    value=SearchValue(raw_value=event[key]),
+                    value=SearchValue(raw_value=value),
                 )
             )
             if resolved_term is not None:
@@ -206,7 +213,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
-                    value=SearchValue(raw_value=event[key]),
+                    value=SearchValue(raw_value=value),
                 )
             )
             if other_term is not None:
@@ -223,7 +230,7 @@ def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
     y_axes: list[str],
-    groupby: list[str],
+    raw_groupby: list[str],
     orderby: list[str] | None,
     limit: int,
     referrer: str,
@@ -239,7 +246,7 @@ def run_top_events_timeseries_query(
     top_events = run_table_query(
         params,
         query_string,
-        groupby + y_axes,
+        raw_groupby + y_axes,
         orderby,
         0,
         limit,
@@ -247,16 +254,20 @@ def run_top_events_timeseries_query(
         config,
         search_resolver=search_resolver,
     )
-    groupby_columns = [col for col in groupby if not is_function(col)]
+    # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
+    groupby_columns = [col for col in raw_groupby if not is_function(col)]
+    groupby_columns_without_project = [
+        col if col not in ["project", "project.name"] else "project.id" for col in groupby_columns
+    ]
     top_conditions, other_conditions = build_top_event_conditions(
-        search_resolver, top_events, groupby_columns
+        search_resolver, top_events, groupby_columns_without_project
     )
     """Make the query"""
     rpc_request = get_timeseries_query(
         params,
         query_string,
         y_axes,
-        groupby,
+        groupby_columns_without_project,
         referrer,
         config,
         granularity_secs,
@@ -266,7 +277,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        groupby,
+        groupby_columns_without_project,
         referrer,
         config,
         granularity_secs,
@@ -284,10 +295,14 @@ def run_top_events_timeseries_query(
         remapped_groupby = {}
         # Remap internal attrs back to public ones
         for col in groupby_columns:
-            resolved_groupby, _ = search_resolver.resolve_attribute(col)
-            remapped_groupby[resolved_groupby.public_alias] = groupby_attributes[
-                resolved_groupby.internal_name
-            ]
+            if col in ["project", "project.slug"]:
+                resolved_groupby, _ = search_resolver.resolve_attribute("project.id")
+                remapped_groupby[col] = params.project_id_map[
+                    int(groupby_attributes[resolved_groupby.internal_name])
+                ]
+            else:
+                resolved_groupby, _ = search_resolver.resolve_attribute(col)
+                remapped_groupby[col] = groupby_attributes[resolved_groupby.internal_name]
         result_key = create_result_key(remapped_groupby, groupby_columns, {})
         map_result_key_to_timeseries[result_key] = timeseries
     final_result = {}
