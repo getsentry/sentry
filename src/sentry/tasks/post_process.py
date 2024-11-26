@@ -13,7 +13,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
 from sentry.features.rollout import in_rollout_group
@@ -1229,6 +1229,8 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
+    if not options.get("sentry.similarity.indexing.enabled"):
+        return
     if job["is_reprocessed"] or job["event"].group.project.get_option(
         "sentry:similarity_backfill_completed"
     ):

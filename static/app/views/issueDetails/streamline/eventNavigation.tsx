@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -286,7 +286,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
           ]}
           offset={[-2, 1]}
-          trigger={triggerProps =>
+          trigger={(triggerProps, isOpen) =>
             hideDropdownButton ? (
               <NavigationLabel>
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
@@ -294,6 +294,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             ) : (
               <NavigationDropdownButton
                 {...triggerProps}
+                isOpen={isOpen}
                 borderless
                 size="sm"
                 disabled={hideDropdownButton}

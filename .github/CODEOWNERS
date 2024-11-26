@@ -228,8 +228,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py     @getsentry/data
-
 /src/sentry/spans/                                                          @getsentry/visibility
 /tests/sentry/spans/                                                        @getsentry/visibility
 

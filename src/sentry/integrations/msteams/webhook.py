@@ -669,7 +669,7 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
 
         if has_linked_identity:
             return IntegrationResponse(
-                interaction_result=EventLifecycleOutcome.HALTED,
+                interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=build_already_linked_identity_command_card(),
                 outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
                 context_data={

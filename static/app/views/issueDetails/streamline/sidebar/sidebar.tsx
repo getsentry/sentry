@@ -13,12 +13,12 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/activitySection';
-import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/firstLastSeenSection';
-import PeopleSection from 'sentry/views/issueDetails/streamline/peopleSection';
+import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
+import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
 type Props = {
   group: Group;
@@ -55,10 +55,10 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (
-        <Fragment>
+        <ErrorBoundary mini>
           <SolutionsSection group={group} project={project} event={event} />
           <StyledBreak />
-        </Fragment>
+        </ErrorBoundary>
       )}
       {event && (
         <ErrorBoundary mini>
