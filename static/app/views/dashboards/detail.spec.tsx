@@ -1902,7 +1902,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      const currentUser = UserFixture({id: '781629'});
+      const currentUser = UserFixture({id: '781629', isSuperuser: false});
       ConfigStore.set('user', currentUser);
 
       render(
@@ -1911,6 +1911,7 @@ describe('Dashboards > Detail', function () {
           organization={{
             ...initialData.organization,
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -1922,6 +1923,7 @@ describe('Dashboards > Detail', function () {
           router: initialData.router,
           organization: {
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           },
         }
       );
@@ -1973,6 +1975,7 @@ describe('Dashboards > Detail', function () {
           organization={{
             ...initialData.organization,
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -1984,6 +1987,7 @@ describe('Dashboards > Detail', function () {
           router: initialData.router,
           organization: {
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           },
         }
       );
