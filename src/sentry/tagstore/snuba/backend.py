@@ -311,7 +311,9 @@ class SnubaTagStorage(TagStorage):
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
 
-            with sentry_sdk.start_span(op="cache.get", name="tagstore.cache") as span:
+            with sentry_sdk.start_span(
+                op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+            ) as span:
                 result = cache.get(cache_key, None)
 
                 span.set_data("cache.key", [cache_key])
@@ -339,7 +341,9 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                with sentry_sdk.start_span(op="cache.put", name="tagstore.cache") as span:
+                with sentry_sdk.start_span(
+                    op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+                ) as span:
                     cache.set(cache_key, result, 300)
                     span.set_data("cache.key", [cache_key])
                     span.set_data("cache.item_size", len(str(result)))
