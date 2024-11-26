@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
@@ -34,6 +36,8 @@ from sentry.services.organization import (
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -120,6 +124,20 @@ class OrganizationIndexEndpoint(Endpoint):
                     "organization"
                 )
             )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # TODO: @athena Remove the temporary logging
+                # If a token is limitted to one organization, this case should not happen
+                # So ideally here we should limit the query set to that one org
+                # Adding some logging to verify if this is going to be a breaking change
+                logger.info(
+                    "organization_index.unexpected_results",
+                    extra={
+                        "token_org": request.auth.organization_id,
+                        "org_count": queryset.count(),
+                        "user_id": request.auth.user_id,
+                        "app_id": request.auth.application_id,
+                    },
+                )
 
         query = request.GET.get("query")
         if query:
