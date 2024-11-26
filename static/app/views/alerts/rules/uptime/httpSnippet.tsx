@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {generateSentryTraceHeader} from '@sentry/utils';
 
@@ -10,12 +10,15 @@ interface Props {
   body: string | null;
   headers: Array<[key: string, value: string]>;
   method: string;
+  traceSampling: boolean;
   url: string;
 }
 
-export function HTTPSnippet({body, headers, method, url}: Props) {
-  const [exampleTrace] = useState(() =>
-    generateSentryTraceHeader(undefined, undefined, true)
+export function HTTPSnippet({body, headers, method, url, traceSampling}: Props) {
+  const exampleTrace = useMemo(
+    () =>
+      generateSentryTraceHeader(undefined, undefined, traceSampling ? undefined : false),
+    [traceSampling]
   );
 
   const urlObject = safeURL(url);
@@ -29,7 +32,14 @@ export function HTTPSnippet({body, headers, method, url}: Props) {
     : urlObject.pathname;
 
   const appendedBody = body ? `\r\n${body}` : '';
-  const additionaLheaders = [...headers, ['Sentry-Trace', exampleTrace]];
+  const additionaLheaders = [
+    ...headers,
+    [
+      'User-Agent',
+      'SentryUptimeBot/1.0 (+http://docs.sentry.io/product/alerts/uptime-monitoring/',
+    ],
+    ['Sentry-Trace', exampleTrace],
+  ];
 
   if (appendedBody !== '') {
     additionaLheaders.push(['Content-Size', new Blob([appendedBody]).size.toString()]);

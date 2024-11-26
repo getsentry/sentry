@@ -26,6 +26,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0724_discover_saved_query_dataset"),
     ]

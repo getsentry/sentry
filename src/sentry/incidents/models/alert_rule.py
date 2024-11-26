@@ -251,7 +251,7 @@ class AlertRuleExcludedProjects(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False, db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -301,15 +301,6 @@ class AlertRule(Model):
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
-
-    excluded_projects = models.ManyToManyField(
-        "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )  # NOTE: This feature is not currently utilized.
-    # Determines whether we include all current and future projects from this
-    # organization in this rule.
-    include_all_projects = models.BooleanField(
-        default=False
-    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
@@ -490,8 +481,10 @@ class AlertRuleTriggerExclusion(Model):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
+    alert_rule_trigger = FlexibleForeignKey(
+        "sentry.AlertRuleTrigger", related_name="exclusions", db_constraint=False
+    )
+    query_subscription = FlexibleForeignKey("sentry.QuerySubscription", db_constraint=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
