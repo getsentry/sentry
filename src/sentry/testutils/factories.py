@@ -2074,7 +2074,7 @@ class Factories:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name)
+        return Workflow.objects.create(organization=organization, name=name, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
