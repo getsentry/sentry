@@ -6,7 +6,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
 import type {SpanBarType} from './constants';
-import {getSpanBarColours} from './constants';
+import {getSpanBarColors} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,
@@ -30,7 +30,7 @@ export const getBackgroundColor = ({
 
 export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
   if (spanBarType) {
-    const {primary, alternate} = getSpanBarColours(spanBarType, theme);
+    const {primary, alternate} = getSpanBarColors(spanBarType, theme);
 
     return css`
       background-image: linear-gradient(
@@ -81,7 +81,7 @@ export const getDurationPillAlignment = ({
   }
 };
 
-export const getDurationPillColours = ({
+export const getDurationPillColors = ({
   durationDisplay,
   theme,
   showDetail,
@@ -93,8 +93,8 @@ export const getDurationPillColours = ({
   spanBarType?: SpanBarType;
 }) => {
   if (durationDisplay === 'inset') {
-    const {alternate, insetTextColour} = getSpanBarColours(spanBarType, theme);
-    return `background: ${alternate}; color: ${insetTextColour};`;
+    const {alternate, insetTextColor} = getSpanBarColors(spanBarType, theme);
+    return `background: ${alternate}; color: ${insetTextColor};`;
   }
 
   return `color: ${showDetail ? theme.gray200 : theme.gray300};`;
@@ -116,7 +116,7 @@ export const getToggleTheme = ({
   spanBarType?: SpanBarType;
 }) => {
   if (spanBarType) {
-    const {primary} = getSpanBarColours(spanBarType, theme);
+    const {primary} = getSpanBarColors(spanBarType, theme);
     return css`
       background: ${primary};
       border: 2px solid ${theme.button.default.border};
