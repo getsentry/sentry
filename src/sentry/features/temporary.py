@@ -203,6 +203,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:messaging-integration-onboarding-project-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable metric alert migration
+    manager.add("organizations:metric-alert-aci-migration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Migrate Orgs to new Azure DevOps Integration
     manager.add("organizations:migrate-azure-devops-integration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Session Stats down to a minute resolution
