@@ -97,13 +97,18 @@ def run_table_query(
         resolved_column = columns_by_name[attribute]
         final_meta["fields"][attribute] = resolved_column.meta_type
 
+        # When there's no aggregates reliabilities is an empty array
+        has_reliability = len(column_value.reliabilities) > 0
+        if has_reliability:
+            assert len(column_value.results) == len(column_value.reliabilities), Exception(
+                "Length of rpc results do not match length of rpc reliabilities"
+            )
+
         while len(final_data) < len(column_value.results):
             final_data.append({})
             final_confidence.append({})
 
-        for index, (result, reliability) in enumerate(
-            zip(column_value.results, column_value.reliabilities)
-        ):
+        for index, result in enumerate(column_value.results):
             result_value: str | int | float
             if resolved_column.proto_type == STRING:
                 result_value = result.val_str
@@ -112,7 +117,10 @@ def run_table_query(
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
             final_data[index][attribute] = resolved_column.process_column(result_value)
-            final_confidence[index][attribute] = CONFIDENCES.get(reliability, None)
+            if has_reliability:
+                final_confidence[index][attribute] = CONFIDENCES.get(
+                    column_value.reliabilities[index], None
+                )
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
