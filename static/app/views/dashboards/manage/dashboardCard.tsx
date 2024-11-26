@@ -34,8 +34,13 @@ function DashboardCard({
   }
 
   return (
-    <Link data-test-id={`card-${title}`} onClick={onClick} to={to} aria-label={title}>
-      <StyledDashboardCard interactive>
+    <CardWithoutMargin interactive>
+      <CardLink
+        data-test-id={`card-${title}`}
+        onClick={onClick}
+        to={to}
+        aria-label={title}
+      >
         <CardHeader>
           <CardContent>
             <Title>{title}</Title>
@@ -60,10 +65,11 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-          {renderContextMenu?.()}
         </CardFooter>
-      </StyledDashboardCard>
-    </Link>
+      </CardLink>
+
+      <ContextMenuWrapper>{renderContextMenu?.()}</ContextMenuWrapper>
+    </CardWithoutMargin>
   );
 }
 
@@ -79,9 +85,15 @@ const CardContent = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const StyledDashboardCard = styled(Card)`
-  justify-content: space-between;
-  height: 100%;
+const CardWithoutMargin = styled(Card)`
+  margin: 0;
+`;
+
+const CardLink = styled(Link)`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
   &:focus,
   &:hover {
     top: -1px;
@@ -122,6 +134,7 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  height: 42px;
 `;
 
 const DateSelected = styled('div')`
@@ -135,6 +148,12 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.subText};
   padding-left: ${space(1)};
+`;
+
+const ContextMenuWrapper = styled('div')`
+  position: absolute;
+  right: ${space(2)};
+  bottom: ${space(1)};
 `;
 
 export default DashboardCard;
