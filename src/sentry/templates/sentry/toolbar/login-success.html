@@ -1,56 +1,57 @@
-{# Auth redirect template for Dev Toolbar. Returned after successfully logging in to a requested organization. #}
+{% extends "sentry/bases/auth.html" %}
+
 {% load sentry_assets %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Sentry - Login Success</title>
-    <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
-  </head>
-  <body>
-    <div>
-      <p>You are logged in!</p>
-      <p>This window will automatically close after {{ delay_sec }} seconds. If not then check the console for errors.</p>
-      <button type="button" id="close-popup">Close Popup</button>
-    </div>
+{% load i18n %}
 
-    {% script %}
-    <script>
-      (function() {
-        const orgSlug = '{{ organization_slug|escape }}';
-        const delay = {{ delay_ms|escapejs }};
-        const cookie = '{{ cookie|escapejs }}';
-        const token = '{{ token|escapejs }}';
+{% block title %}{% trans "Sentry Toolbar - Login Success" %} | {{ block.super }}{% endblock %}
 
-        if (window.location.origin === 'https://sentry.io') {
-          // User was already logged in and didn't get a redirect to the
-          // subdomained origin. Do that redirect now.
-          window.location.replace(`https://${orgSlug}.sentry.io${window.location.pathname}${window.location.search}`);
-          return;
+{% block auth_main %}
+  <div>
+    <h4>You're logged in!</h4>
+    {% if delay_sec %}
+    <p>This window will automatically close after {{ delay_sec }} seconds.</p>
+    <p>If not then check the console for errors.</p>
+    {% endif %}
+    <button type="button" id="close-popup" class="btn btn-primary">Close Popup</button>
+  </div>
+{% endblock %}
+
+{% block scripts_bottom %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    (function() {
+      const orgSlug = '{{ organization_slug|escape }}';
+      const delay = {{ delay_ms|escapejs }};
+      const cookie = '{{ cookie|escapejs }}';
+      const token = '{{ token|escapejs }}';
+
+      if (window.location.origin === 'https://sentry.io') {
+        // User was already logged in and didn't get a redirect to the
+        // subdomained origin. Do that redirect now.
+        window.location.replace(`https://${orgSlug}.sentry.io${window.location.pathname}${window.location.search}`);
+        return;
+      }
+
+      document.getElementById('close-popup').addEventListener('click', () => {
+        window.close();
+      });
+
+      if (window.opener) {
+        window.opener.postMessage({
+          source: 'sentry-toolbar',
+          message: 'did-login',
+          cookie,
+          token,
+        }, window.location.origin);
+
+        if (delay && typeof delay === 'number') {
+          setTimeout(() => {
+            window.close();
+          }, delay);
         }
-
-        document.getElementById('close-popup').addEventListener('click', () => {
-          window.close();
-        });
-
-        if (window.opener) {
-          window.opener.postMessage({
-            source: 'sentry-toolbar',
-            message: 'did-login',
-            cookie,
-            token,
-          }, window.location.origin);
-
-          if (delay && typeof delay === 'number') {
-            setTimeout(() => {
-              window.close();
-            }, delay);
-          }
-        }
-      })();
-    </script>
-    {% endscript %}
-
-{% comment %}
-No need to close `body`. If we do then middleware will inject some extra markup
-we don't need. Browsers can figure out when it missing and deal with it.
-{% endcomment %}
+      }
+    })();
+  </script>
+  {% endscript %}
+{% endblock %}
