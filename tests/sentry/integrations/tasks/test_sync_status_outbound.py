@@ -4,7 +4,6 @@ import pytest
 
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
-from sentry.integrations.project_management.metrics import ProjectManagementHaltReason
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
@@ -45,22 +44,22 @@ class TestSyncStatusOutbound(TestCase):
         mock_sync_status.assert_called_once_with(external_issue, False, self.group.project_id)
         mock_record_event.assert_any_call(EventLifecycleOutcome.SUCCESS, None)
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
     @mock.patch.object(ExampleIntegration, "should_sync")
-    def test_should_not_sync(self, mock_should_sync, mock_sync_status, mock_record_halt):
+    def test_should_not_sync(self, mock_should_sync, mock_sync_status, mock_record_event):
         mock_should_sync.return_value = False
         external_issue: ExternalIssue = self.create_integration_external_issue(
             group=self.group, key="foo_integration", integration=self.example_integration
         )
 
         sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
-        mock_record_halt.assert_called_with(
-            ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
-            extra={"organization_id": self.organization.id, "group_id": self.group.id},
-        )
-
         mock_sync_status.assert_not_called()
+
+        assert mock_record_event.call_count == 2
+        start, success = mock_record_event.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
 
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
     def test_missing_external_issue(self, mock_sync_status):

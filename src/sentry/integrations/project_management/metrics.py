@@ -23,7 +23,6 @@ class ProjectManagementActionType(StrEnum):
 class ProjectManagementHaltReason(StrEnum):
     SYNC_INBOUND_ASSIGNEE_NOT_FOUND = "inbound-assignee-not-found"
     SYNC_NON_SYNC_INTEGRATION_PROVIDED = "sync-non-sync-integration-provided"
-    SYNC_INBOUND_SYNC_SKIPPED = "sync-skipped"
     SYNC_INBOUND_MISSING_CHANGELOG_STATUS = "missing-changelog-status"
 
 
