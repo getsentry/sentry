@@ -229,7 +229,7 @@ describe('EventFeatureFlagList', function () {
       screen.queryByRole('button', {name: 'Set Up Integration'})
     ).not.toBeInTheDocument();
 
-    // wait for the CTA
+    // wait for the CTA to be rendered
     expect(await screen.findByText('Feature Flags')).toBeInTheDocument();
     expect(screen.getByText('Set Up Feature Flags')).toBeInTheDocument();
   });
