@@ -189,11 +189,7 @@ function ResourceSummary() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="resource"
-      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
       <ResourceSummary />
     </ModulePageProviders>
   );

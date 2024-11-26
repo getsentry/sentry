@@ -299,7 +299,7 @@ export function PageOverview() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+    <ModulePageProviders moduleName="vital">
       <PageOverview />
     </ModulePageProviders>
   );

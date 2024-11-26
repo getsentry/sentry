@@ -149,11 +149,7 @@ export function ScreenSummaryContent() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="mobile-ui"
-      pageTitle={t('Screen Summary')}
-      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
-    >
+    <ModulePageProviders moduleName="mobile-ui" pageTitle={t('Screen Summary')}>
       <ScreenSummary />
     </ModulePageProviders>
   );

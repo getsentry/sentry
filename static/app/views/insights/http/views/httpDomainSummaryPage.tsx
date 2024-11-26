@@ -400,11 +400,7 @@ const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      pageTitle={t('Domain Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="http" pageTitle={t('Domain Summary')}>
       <HTTPDomainSummaryPage />
     </ModulePageProviders>
   );

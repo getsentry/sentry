@@ -203,11 +203,7 @@ function WebVitalMetersPlaceholder() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="vital"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.vital"
-    >
+    <ModulePageProviders moduleName="vital" analyticEventName="insight.page_loads.vital">
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
