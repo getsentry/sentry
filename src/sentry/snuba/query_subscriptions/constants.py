@@ -7,7 +7,6 @@ dataset_to_logical_topic = {
     Dataset.Transactions: "transactions-subscription-results",
     Dataset.PerformanceMetrics: "generic-metrics-subscription-results",
     Dataset.Metrics: "metrics-subscription-results",
-    Dataset.EventsAnalyticsPlatform: "eap-spans-subscription-results",
 }
 
 topic_to_dataset = {
