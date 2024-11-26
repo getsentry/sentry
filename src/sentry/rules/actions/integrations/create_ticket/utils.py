@@ -16,6 +16,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
@@ -130,17 +131,11 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             try:
                 response = installation.create_issue(data)
             except Exception as e:
-                logger.info(
-                    "%s.rule_trigger.create_ticket.failure",
-                    provider,
-                    extra={
-                        "rule_id": rule_id,
-                        "provider": provider,
-                        "integration_id": integration.id,
-                        "error_message": str(e),
-                        "exception_type": type(e).__name__,
-                    },
-                )
+                if isinstance(e, IntegrationFormError):
+                    # Most of the time, these aren't explicit failures, they're
+                    # some misconfiguration of an issue field - typically Jira.
+                    lifecycle.record_halt(e)
+
                 metrics.incr(
                     f"{provider}.rule_trigger.create_ticket.failure",
                     tags={

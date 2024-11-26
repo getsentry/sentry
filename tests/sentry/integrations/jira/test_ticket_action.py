@@ -10,22 +10,17 @@ from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
-from sentry.shared_integrations.exceptions import ApiInvalidRequestError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiInvalidRequestError,
+    IntegrationError,
+    IntegrationFormError,
+)
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from sentry.utils import json
 
 pytestmark = [requires_snuba]
-
-
-class BrokenJiraMock(MockJira):
-    """
-    Subclass of MockJira client, which implements a broken create_issue method
-    to simulate a misconfigured alert rule for Jira.
-    """
-
-    def create_issue(self, raw_form_data):
-        raise ApiInvalidRequestError("Invalid data entered")
 
 
 class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
@@ -37,11 +32,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         if not self.mock_jira:
             self.mock_jira = MockJira()
         return self.mock_jira
-
-    def get_broken_client(self):
-        if not self.broken_mock_jira:
-            self.broken_mock_jira = BrokenJiraMock()
-        return self.broken_mock_jira
 
     def setUp(self):
         super().setUp()
@@ -140,10 +130,14 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
-    def test_misconfigured_ticket_rule(self, mock_record_failure):
+    @mock.patch.object(MockJira, "create_issue")
+    def test_misconfigured_ticket_rule(self, mock_create_issue, mock_record_failure):
+        def raise_api_error(*args, **kwargs):
+            raise ApiInvalidRequestError("Invalid data entered")
+
+        mock_create_issue.side_effect = raise_api_error
         with mock.patch(
-            "sentry.integrations.jira.integration.JiraIntegration.get_client",
-            self.get_broken_client,
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
         ):
             response = self.configure_valid_alert_rule()
 
@@ -195,3 +189,32 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
         assert response.status_code == 400
         assert response.data["actions"][0] == "Must configure issue link settings."
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch.object(MockJira, "create_issue")
+    def test_fails_with_field_configuration_error(self, mock_create_issue, mock_record_halt):
+        # Mock an error from the client response that cotains a field
+
+        def raise_api_error_with_payload(*args, **kwargs):
+            raise ApiInvalidRequestError(json.dumps({"errors": {"foo": "bar"}}))
+
+        mock_create_issue.side_effect = raise_api_error_with_payload
+        with mock.patch(
+            "sentry.integrations.jira.integration.JiraIntegration.get_client", self.get_client
+        ):
+            response = self.configure_valid_alert_rule()
+
+            rule_object = Rule.objects.get(id=response.data["id"])
+            event = self.get_event()
+
+            with pytest.raises(IntegrationFormError):
+                # Trigger its `after`, but with a broken client which should raise
+                # an ApiInvalidRequestError, which is reraised as an IntegrationError.
+                self.trigger(event, rule_object)
+
+            assert mock_record_halt.call_count == 1
+            mock_record_event_args = mock_record_halt.call_args_list[0][0]
+            assert mock_record_event_args[0] is not None
+
+            metric_exception = mock_record_event_args[0]
+            assert isinstance(metric_exception, IntegrationError)
