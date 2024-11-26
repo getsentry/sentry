@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -33,14 +35,20 @@ function DashboardCard({
     onEventClick?.();
   }
 
+  // Fetch the theme to set the `InteractionStateLayer` color. Otherwise it will
+  // use the `currentColor` of the `Link`, which is blue, and not correct
+  const theme = useTheme();
+
   return (
-    <CardWithoutMargin interactive>
+    <CardWithoutMargin>
       <CardLink
         data-test-id={`card-${title}`}
         onClick={onClick}
         to={to}
         aria-label={title}
       >
+        <InteractionStateLayer as="div" color={theme.textColor} />
+
         <CardHeader>
           <CardContent>
             <Title>{title}</Title>
@@ -89,27 +97,33 @@ const CardWithoutMargin = styled(Card)`
   margin: 0;
 `;
 
+const Title = styled('div')`
+  ${p => p.theme.text.cardTitle};
+  color: ${p => p.theme.headingColor};
+  ${p => p.theme.overflowEllipsis};
+  font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
 const CardLink = styled(Link)`
   position: relative;
   display: flex;
   flex-direction: column;
 
+  color: ${p => p.theme.textColor};
+
   &:focus,
   &:hover {
-    top: -1px;
+    color: ${p => p.theme.textColor};
+
+    ${Title} {
+      text-decoration: underline;
+    }
   }
 `;
 
 const CardHeader = styled('div')`
   display: flex;
   padding: ${space(1.5)} ${space(2)};
-`;
-
-const Title = styled('div')`
-  ${p => p.theme.text.cardTitle};
-  color: ${p => p.theme.headingColor};
-  ${p => p.theme.overflowEllipsis};
-  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const Detail = styled('div')`
