@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
@@ -9,8 +10,13 @@ from sentry_sdk import set_tag, set_user
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.node import NodeData
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.utils.code_mapping import CodeMapping, CodeMappingTreesHelper
 from sentry.locks import locks
 from sentry.models.organization import Organization
@@ -27,6 +33,12 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
+
+
+class DeriveCodeMappingsErrorReason(StrEnum):
+    UNEXPECTED_ERROR = "Unexpected error type while calling `get_trees_for_org()`."
+    LOCK_FAILED = "Failed to acquire lock"
+    EMPTY_TREES = "The trees are empty."
 
 
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
@@ -115,24 +127,30 @@ def derive_code_mappings(
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(key=f"get_trees_for_org:{org.slug}", duration=60 * 10, name="process_pending")
 
-    try:
-        with lock.acquire():
-            # This method is specific to the GithubIntegration
-            trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
-    except ApiError as error:
-        process_error(error, extra)
-        return
-    except UnableToAcquireLock as error:
-        extra["error"] = error
-        logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
-        return
-    except Exception:
-        logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
-        return
+    with SCMIntegrationInteractionEvent(
+        SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS, provider_key=installation.model.provider
+    ).capture() as lifecycle:
+        try:
+            with lock.acquire():
+                # This method is specific to the GithubIntegration
+                if not isinstance(installation, GitHubIntegration):
+                    return
+                trees = installation.get_trees_for_org()
+        except ApiError as error:
+            process_error(error, extra)
+            lifecycle.record_halt(error, extra)
+            return
+        except UnableToAcquireLock as error:
+            extra["error"] = error
+            lifecycle.record_failure(error, extra)
+            return
+        except Exception:
+            lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
+            return
 
-    if not trees:
-        logger.warning("The trees are empty.", extra=extra)
-        return
+        if not trees:
+            lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
+            return
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
