@@ -6,7 +6,7 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
@@ -65,7 +65,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
         return VALID_TEAM
 
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
-        with record_event(OnCallInteractionType.VERIFY_TEAM).capture():
+        with record_event(OnCallInteractionType.VERIFY_TEAM).capture() as lifecyle:
             params = {
                 "account": dict(self.fields["account"].choices).get(integration_id),
                 "team": dict(self.fields["team"].choices).get(team_id),
@@ -78,6 +78,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
                 organization_id=self.org_id,
             )
             if integration is None or org_integration is None:
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
                 raise forms.ValidationError(
                     _("The Opsgenie integration does not exist."),
                     code="invalid_integration",
@@ -86,6 +87,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
             team_status = self._get_team_status(team_id=team_id, org_integration=org_integration)
             if team_status == INVALID_TEAM:
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
                 raise forms.ValidationError(
                     _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
                     code="invalid_team",

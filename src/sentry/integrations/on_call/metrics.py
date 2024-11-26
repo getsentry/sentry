@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 from attr import dataclass
 
@@ -56,3 +56,13 @@ class OnCallInteractionEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+
+class OnCallIntegrationsHaltReason(StrEnum):
+    """
+    Reasons why on on call integration method may halt without success/failure.
+    """
+
+    INVALID_TEAM = "invalid_team"
+    INVALID_SERVICE = "invalid_service"
+    INVALID_KEY = "invalid_key"
