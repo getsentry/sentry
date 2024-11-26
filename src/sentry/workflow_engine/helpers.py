@@ -1,12 +1,12 @@
 from sentry.workflow_engine.models import (
-	DataSource, 
+	DataSource,
 	Detector,
-	DataConditionGroup, 
-	Workflow, 
-	DetectorState, 
-	DataCondition, 
-	DataSourceDetector, 
-	DetectorWorkflow, 
+	DataConditionGroup,
+	Workflow,
+	DetectorState,
+	DataCondition,
+	DataSourceDetector,
+	DetectorWorkflow,
 	WorkflowDataConditionGroup
 )
 from sentry.snuba.models import QuerySubscription
@@ -28,7 +28,7 @@ def create_aci_metric_alert_models(organization_id, snuba_query, name, project, 
         organization_id=organization_id,
         when_condition_group=data_condition_group.id,
         enabled=True,
-        created_by_id=user.id, 
+        created_by_id=user.id,
     )
     detector = Detector.update_or_create(
         project_id=project.id,
@@ -46,5 +46,5 @@ def create_aci_metric_alert_models(organization_id, snuba_query, name, project, 
 	        "sensitivity": sensitivity,
 	        "seasonality": seasonality,
 	        "comparison_delta": comparison_delta,
-        },  
+        },
     )
