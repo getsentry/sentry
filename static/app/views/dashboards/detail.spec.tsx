@@ -101,6 +101,10 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/meta/',
         body: [],
       });
@@ -366,6 +370,10 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
       MockApiClient.addMockResponse({

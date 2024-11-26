@@ -297,7 +297,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
-      organization,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -524,8 +523,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
-          return organization.features.includes('dashboards-releases-on-charts') &&
-            widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+          return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
             <ReleaseSeries
               end={end}
               start={start}

@@ -121,8 +121,7 @@ class WidgetLegendSelectionState {
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget) &&
-          this.organization.features.includes('dashboards-releases-on-charts')
+      : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
@@ -148,8 +147,7 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    return this.organization.features.includes('dashboards-releases-on-charts') &&
-      this.widgetRequiresLegendUnselection(widget)
+    return this.widgetRequiresLegendUnselection(widget)
       ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }

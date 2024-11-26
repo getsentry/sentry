@@ -49,7 +49,6 @@ describe('WidgetLegend functions util', () => {
       };
       organization = {
         ...OrganizationFixture(),
-        features: ['dashboards-releases-on-charts'],
       };
 
       dashboard = {
