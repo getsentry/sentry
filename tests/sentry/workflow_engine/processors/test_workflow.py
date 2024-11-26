@@ -6,6 +6,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
 from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import DetectorType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -59,7 +60,19 @@ class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
         self.query = self.create_snuba_query()
         self.packet = DataPacket[dict](self.query.id, {"query_id": self.query.id, "foo": "bar"})
 
-        self.workflow = self.create_workflow(name="test_workflow")
+        self.workflow_triggers = self.create_data_condition_group()
+
+        self.create_data_condition(
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_COMPARISON,
+            condition="group.times_seen",
+            comparison=1,
+            condition_result=True,
+        )
+
+        self.workflow = self.create_workflow(
+            name="test_workflow", when_condition_group=self.workflow_triggers
+        )
         self.error_workflow = self.create_workflow(name="test_workflow2")
 
         self.detector = self.create_detector(
@@ -100,26 +113,12 @@ class TestProcessWorkflows(TestCase, OccurrenceTestMixin):
         )
 
     def test_error_event(self):
-        # pdb.set_trace()
-        # process_workflows(self.packet, self.group_event)
-        pass
+        triggered_workflows = process_workflows(self.group_event)
+        assert triggered_workflows == {self.error_workflow}
 
     def test_issue_occurrence_event(self):
-        workflow_condition_group = self.create_data_condition_group()
-        self.create_data_condition(
-            condition_group=workflow_condition_group,
-            type="new_issue",
-            condition="new_issue",
-            comparison=1,
-            condition_result=True,
-        )
-
-        self.workflow.when_condition_group = workflow_condition_group
-        self.workflow.save()
-
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
-        # pdb.set_trace()
-        process_workflows(self.packet, self.group_event)
-        pass
+        triggered_workflows = process_workflows(self.group_event)
+        assert triggered_workflows == {self.workflow}

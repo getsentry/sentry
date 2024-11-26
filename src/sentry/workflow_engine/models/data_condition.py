@@ -7,18 +7,24 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
 
-# TODO figure out a better place for these methods to live
-def evaluate_new_issue(evt: GroupEvent, comparison: Any) -> bool:
-    if comparison is None:
-        return evt.group.times_seen == 1
-
-    return evt.group.times_seen == int(comparison)
+def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
+    try:
+        value = data
+        for part in path.split("."):
+            if hasattr(value, part):
+                value = getattr(value, part)
+            elif hasattr(value, "get"):
+                value = value.get(part)
+            else:
+                return default
+        return value
+    except Exception:
+        return default
 
 
 class Condition(StrEnum):
@@ -28,7 +34,7 @@ class Condition(StrEnum):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
-    NEW_ISSUE = "new_issue"
+    EVENT_COMPARISON = "event_comparison"
 
 
 condition_ops = {
@@ -38,8 +44,11 @@ condition_ops = {
     Condition.LESS_OR_EQUAL: operator.le,
     Condition.LESS: operator.lt,
     Condition.NOT_EQUAL: operator.ne,
-    Condition.NEW_ISSUE: evaluate_new_issue,
+    Condition.EVENT_COMPARISON: operator.eq,
 }
+
+
+FILTER_VALUE_BY_CONDITIONS = {Condition.EVENT_COMPARISON}
 
 
 @region_silo_model
@@ -91,17 +100,20 @@ class DataCondition(DefaultFieldsModel):
         # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
         # class from this model
         try:
-            condition = Condition(self.condition)
+            condition_op_key = Condition(self.type)
         except ValueError:
             logger.exception(
                 "Invalid condition", extra={"condition": self.condition, "id": self.id}
             )
             return None
 
-        op = condition_ops.get(condition)
+        op = condition_ops.get(condition_op_key)
         if op is None:
             logger.error("Invalid condition", extra={"condition": self.condition, "id": self.id})
             return None
+
+        if self.type in FILTER_VALUE_BY_CONDITIONS:
+            value = get_nested_value(value, self.condition)
 
         if op(value, self.comparison):
             return self.get_condition_result()
