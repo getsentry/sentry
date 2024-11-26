@@ -37,7 +37,6 @@ import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  MODULE_FEATURE,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
@@ -291,7 +290,7 @@ export function ScreensLandingPage() {
   };
 
   return (
-    <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
+    <ModulePageProviders moduleName="mobile-screens">
       <Layout.Page>
         <PageAlertProvider>
           {!isInDomainView && (

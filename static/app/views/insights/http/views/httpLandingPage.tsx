@@ -292,11 +292,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.http"
-    >
+    <ModulePageProviders moduleName="http" analyticEventName="insight.page_loads.http">
       <HTTPLandingPage />
     </ModulePageProviders>
   );

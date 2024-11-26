@@ -118,7 +118,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="screen_load"
-      features="insights-initial-modules"
       analyticEventName="insight.page_loads.screen_load"
     >
       <PageloadModule />

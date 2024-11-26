@@ -118,7 +118,6 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="resource"
-      features="insights-initial-modules"
       analyticEventName="insight.page_loads.assets"
     >
       <ResourcesLandingPage />
