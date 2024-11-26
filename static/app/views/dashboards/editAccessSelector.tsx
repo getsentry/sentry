@@ -235,14 +235,14 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       options={allDropdownOptions}
       value={selectedOptions}
       triggerLabel={[
-        t('Edit Access:'),
-        triggerAvatars,
         <StyledFeatureBadge
           key="beta-badge"
           type="beta"
           title={t('This feature is available for early adopters and may change')}
           tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
         />,
+        t('Edit Access:'),
+        triggerAvatars,
       ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
