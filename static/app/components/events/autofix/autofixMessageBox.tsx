@@ -8,6 +8,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixCodebaseChange,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
@@ -125,7 +126,7 @@ function CreatePRsButton({
             ...data,
             autofix: {
               ...data.autofix,
-              status: 'PROCESSING',
+              status: AutofixStatus.PROCESSING,
             },
           };
         }
