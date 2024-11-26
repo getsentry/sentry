@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {LinkButton} from 'sentry/components/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -23,7 +24,12 @@ export default function DynamicSamplingSettings() {
     <Fragment>
       <SentryDocumentTitle title={t('Dynamic Sampling')} orgSlug={organization.slug} />
       <SettingsPageHeader
-        title={t('Dynamic Sampling')}
+        title={
+          <Fragment>
+            {t('Dynamic Sampling')}
+            <FeatureBadge type="alpha" />
+          </Fragment>
+        }
         action={
           <LinkButton
             external
