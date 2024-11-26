@@ -73,7 +73,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "access": request.access,
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=organization.id
             ),
         },
@@ -211,9 +211,6 @@ Metric alert rule trigger actions follow the following structure:
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
-    )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
     monitorType = serializers.IntegerField(

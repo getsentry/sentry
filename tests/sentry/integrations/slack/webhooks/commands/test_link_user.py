@@ -34,14 +34,24 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    def test_link_command(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_command(self, mock_record):
         data = self.send_slack_message("link")
         assert "Link your Slack identity" in get_response_text(data)
 
-    def test_link_command_already_linked(self):
+        start, success = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_command_already_linked(self, mock_record):
         self.link_user()
         data = self.send_slack_message("link")
         assert "You are already linked as" in get_response_text(data)
+
+        start, success = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
 
 @control_silo_test
@@ -112,10 +122,15 @@ class SlackCommandsUnlinkUserTest(SlackCommandsTest):
         assert "to unlink your identity" in get_response_text(data)
 
         assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    def test_unlink_command_already_unlinked(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_command_already_unlinked(self, mock_record):
         data = self.send_slack_message("unlink")
         assert NOT_LINKED_MESSAGE in get_response_text(data)
+
+        start, success = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS

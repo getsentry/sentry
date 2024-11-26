@@ -40,7 +40,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/solutionsSection';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -259,7 +259,7 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      {((organization.features.includes('ai-summary') &&
+      {((organization.features.includes('gen-ai-features') &&
         issueTypeConfig.issueSummary.enabled &&
         !organization.hideAiFeatures) ||
         issueTypeConfig.resources) && (

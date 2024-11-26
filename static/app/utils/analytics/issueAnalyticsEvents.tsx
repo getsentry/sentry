@@ -53,7 +53,7 @@ export type IssueEventParameters = {
     projectId: string;
     setup_gen_ai_consent: boolean;
     setup_integration: boolean;
-    setup_write_integration: boolean;
+    setup_write_integration?: boolean;
   };
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
@@ -90,6 +90,7 @@ export type IssueEventParameters = {
   };
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
+  'issue.share_from_icon': {};
   'issue.shared_publicly': {};
   'issue_details.comment_created': {};
   'issue_details.comment_deleted': {};
@@ -422,6 +423,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
+  'issue.share_from_icon': 'Issue Share Opened from Icon',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',

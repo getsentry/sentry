@@ -347,6 +347,13 @@ class StorageBackedCheckpointExporter(ExportCheckpointer):
     def get(self, model_name: NormalizedModelName) -> RpcExportOk | None:
         logger_data: dict[str, Any] = {"uuid": str(self.__uuid), "model": str(model_name)}
         path_name = self._get_path_name(model_name)
+        if not self.__storage.exists(path_name):
+            logger.info(
+                "Export checkpointer: miss",
+                extra=logger_data,
+            )
+            return None
+
         try:
             with self.__storage.open(path_name, "rb") as fp:
                 logger_data["encrypted_contents_size"] = fp.tell()

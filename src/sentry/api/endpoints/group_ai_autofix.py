@@ -111,11 +111,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     else None
                 ),
                 "options": {
-                    "disable_codebase_indexing": features.has(
-                        "organizations:autofix-disable-codebase-indexing",
-                        group.organization,
-                        actor=user,
-                    ),
                     "comment_on_pr_with_url": pr_to_comment_on_url,
                 },
             },
@@ -161,9 +156,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
         created_at = datetime.now().isoformat()
 
         if not (
-            features.has("projects:ai-autofix", group.project)
-            or features.has("organizations:autofix", group.organization)
-            or group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+            features.has("organizations:gen-ai-features", group.organization, actor=request.user)
+            and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
         ):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 

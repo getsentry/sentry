@@ -33,6 +33,7 @@ export enum CheckInStatus {
   IN_PROGRESS = 'in_progress',
   MISSED = 'missed',
   TIMEOUT = 'timeout',
+  UNKNOWN = 'unknown',
 }
 
 interface BaseConfig {

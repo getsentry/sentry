@@ -68,10 +68,6 @@
     "sentry.alertrule",
     "sentry.user"
   ],
-  "sentry.alertruleexcludedprojects": [
-    "sentry.alertrule",
-    "sentry.project"
-  ],
   "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
@@ -83,10 +79,6 @@
     "sentry.alertruletrigger",
     "sentry.integration",
     "sentry.sentryapp"
-  ],
-  "sentry.alertruletriggerexclusion": [
-    "sentry.alertruletrigger",
-    "sentry.querysubscription"
   ],
   "sentry.apiapplication": [
     "sentry.user"
@@ -899,6 +891,7 @@
   ],
   "workflow_engine.detector": [
     "sentry.organization",
+    "sentry.project",
     "sentry.team",
     "sentry.user",
     "workflow_engine.dataconditiongroup"
@@ -911,7 +904,10 @@
     "workflow_engine.workflow"
   ],
   "workflow_engine.workflow": [
+    "sentry.environment",
     "sentry.organization",
+    "sentry.team",
+    "sentry.user",
     "workflow_engine.dataconditiongroup"
   ],
   "workflow_engine.workflowdataconditiongroup": [

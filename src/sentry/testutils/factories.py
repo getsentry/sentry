@@ -99,13 +99,6 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationaction import (
-    ActionService,
-    ActionTarget,
-    ActionTrigger,
-    NotificationAction,
-)
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -127,6 +120,13 @@ from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -2126,21 +2126,14 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_detector(
-        organization: Organization | None = None,
         name: str | None = None,
-        owner_user_id: int | None = None,
-        owner_team: Team | None = None,
         **kwargs,
     ) -> Detector:
-        if organization is None:
-            organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
+
         return Detector.objects.create(
-            organization=organization,
             name=name,
-            owner_user_id=owner_user_id,
-            owner_team=owner_team,
             **kwargs,
         )
 

@@ -133,7 +133,7 @@ def test_process_clock_tick_for_system_incident(
 
     # Metrics and logs are recorded
     assert mock_logger.info.call_args_list[0] == mock.call(
-        "monitors.system_incidents.process_clock_tick",
+        "process_clock_tick",
         extra={
             "decision": TickAnomalyDecision.ABNORMAL,
             "transition": AnomalyTransition.ABNORMALITY_STARTED,
@@ -174,7 +174,7 @@ def test_process_clock_tick_for_system_incident(
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.tick_volume_anomaly_detection": True})
+@override_options({"crons.system_incidents.collect_metrics": True})
 def test_record_clock_tick_volume_metric_simple(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
@@ -195,7 +195,7 @@ def test_record_clock_tick_volume_metric_simple(metrics, logger):
     record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -227,7 +227,7 @@ def test_record_clock_tick_volume_metric_simple(metrics, logger):
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.tick_volume_anomaly_detection": True})
+@override_options({"crons.system_incidents.collect_metrics": True})
 def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
@@ -249,7 +249,7 @@ def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
 
     # Note that the pct_deviation and z_score are extremes
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -281,7 +281,7 @@ def test_record_clock_tick_volume_metric_volume_drop(metrics, logger):
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.tick_volume_anomaly_detection": True})
+@override_options({"crons.system_incidents.collect_metrics": True})
 def test_record_clock_tick_volume_metric_low_history(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
@@ -296,14 +296,18 @@ def test_record_clock_tick_volume_metric_low_history(metrics, logger):
 
     # We should do nothing because there was not enough daata to make any
     # calculation
-    assert not logger.info.called
+    logger.info.assert_called_with(
+        "history_volume_low",
+        extra={"reference_datetime": tick},
+    )
     assert not metrics.gauge.called
+
     assert get_clock_tick_volume_metric(past_ts) is None
 
 
 @mock.patch("sentry.monitors.system_incidents.logger")
 @mock.patch("sentry.monitors.system_incidents.metrics")
-@override_options({"crons.tick_volume_anomaly_detection": True})
+@override_options({"crons.system_incidents.collect_metrics": True})
 def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     tick = timezone.now().replace(second=0, microsecond=0)
 
@@ -324,7 +328,7 @@ def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     record_clock_tick_volume_metric(tick)
 
     logger.info.assert_called_with(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -354,7 +358,7 @@ def test_record_clock_tick_volume_metric_uniform(metrics, logger):
     assert get_clock_tick_volume_metric(past_ts) == 0.0
 
 
-@override_options({"crons.tick_volume_anomaly_detection": True})
+@override_options({"crons.system_incidents.collect_metrics": True})
 def test_prune_incident_check_in_volume():
     now = timezone.now().replace(second=0, microsecond=0)
 
@@ -383,7 +387,7 @@ def test_prune_incident_check_in_volume():
 @django_db_all
 @override_options(
     {
-        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.collect_metrics": True,
         "crons.system_incidents.tick_decision_window": 5,
         "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
         "crons.system_incidents.pct_deviation_incident_threshold": -25,
@@ -442,7 +446,7 @@ def test_tick_decision_anomaly_recovery():
 @django_db_all
 @override_options(
     {
-        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.collect_metrics": True,
         "crons.system_incidents.tick_decision_window": 5,
         "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
         "crons.system_incidents.pct_deviation_incident_threshold": -25,
@@ -520,7 +524,7 @@ def test_tick_decisions_simple_incident():
 @django_db_all
 @override_options(
     {
-        "crons.tick_volume_anomaly_detection": True,
+        "crons.system_incidents.collect_metrics": True,
         "crons.system_incidents.tick_decision_window": 5,
         "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
         "crons.system_incidents.pct_deviation_incident_threshold": -25,

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import Literal
 
 import sentry_sdk
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -7,15 +8,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1alpha.endpoint_tags_list_pb2 import (
-    AttributeValuesRequest,
-    AttributeValuesResponse,
-    TraceItemAttributesRequest,
-    TraceItemAttributesResponse,
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
+    TraceItemAttributeValuesRequest,
 )
-from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta, TraceItemName
-from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey as AlphaAttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Op
 
@@ -29,6 +26,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.columns import translate_internal_to_public_alias
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
@@ -39,15 +37,23 @@ from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
 from sentry.utils import snuba_rpc
 
-# This causes problems if a user sends an attribute with any of these values
-# but the meta table currently can't handle that anyways
-# More users will see the 3 of these since they're on everything so lets try to make
-# the common usecase more reasonable
-TAG_NAME_MAPPING = {
-    "segment_name": "transaction",
-    "name": "span.description",
-    "service": "project",
-}
+
+def as_tag_key(name: str, type: Literal["string", "number"]):
+    key = translate_internal_to_public_alias(name, type)
+
+    if key is not None:
+        name = key
+    elif type == "number":
+        key = f"tags[{name},number]"
+    else:
+        key = name
+
+    return {
+        # key is what will be used to query the API
+        "key": key,
+        # name is what will be used to display the tag nicely in the UI
+        "name": name,
+    }
 
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
@@ -62,13 +68,7 @@ class OrganizationSpansFieldsEndpointSerializer(serializers.Serializer):
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
     type = serializers.ChoiceField(["string", "number"], required=False)
-
-    def validate_type(self, value):
-        if value == "string":
-            return AlphaAttributeKey.Type.TYPE_STRING
-        if value == "number":
-            return AlphaAttributeKey.Type.TYPE_FLOAT
-        raise NotImplementedError
+    process = serializers.BooleanField(required=False)
 
     def validate(self, attrs):
         if attrs["dataset"] == "spans" and attrs.get("type") is None:
@@ -102,39 +102,39 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
         max_span_tags = options.get("performance.spans-tags-key.max")
 
         if serialized["dataset"] == "spans":
-            start_timestamp = Timestamp()
-            start_timestamp.FromDatetime(
-                snuba_params.start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            snuba_params.start = snuba_params.start_date.replace(
+                hour=0, minute=0, second=0, microsecond=0
             )
+            snuba_params.end = snuba_params.end_date.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
 
-            end_timestamp = Timestamp()
-            end_timestamp.FromDatetime(
-                snuba_params.end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                + timedelta(days=1)
-            )
+            resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
+            meta = resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value)
 
-            rpc_request = TraceItemAttributesRequest(
-                meta=RequestMeta(
-                    organization_id=organization.id,
-                    cogs_category="performance",
-                    referrer=Referrer.API_SPANS_TAG_KEYS_RPC.value,
-                    project_ids=snuba_params.project_ids,
-                    start_timestamp=start_timestamp,
-                    end_timestamp=end_timestamp,
-                    trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
-                ),
+            rpc_request = TraceItemAttributeNamesRequest(
+                meta=meta,
                 limit=max_span_tags,
                 offset=0,
-                type=serialized["type"],
+                type=(
+                    AttributeKey.Type.TYPE_FLOAT
+                    if serialized["type"] == "number"
+                    else AttributeKey.Type.TYPE_STRING
+                ),
             )
-            rpc_response = snuba_rpc.rpc(rpc_request, TraceItemAttributesResponse)
+
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
 
             paginator = ChainPaginator(
                 [
                     [
-                        TagKey(TAG_NAME_MAPPING.get(tag.name, tag.name))
-                        for tag in rpc_response.tags
-                        if tag.name
+                        (
+                            as_tag_key(attribute.name, serialized["type"])
+                            if serialized["process"]
+                            else TagKey(attribute.name)
+                        )
+                        for attribute in rpc_response.attributes
+                        if attribute.name
                     ],
                 ],
                 max_limit=max_span_tags,
@@ -404,11 +404,11 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         max_span_tag_values: int,
     ):
         super().__init__(organization, snuba_params, key, query, max_span_tag_values)
+        self.resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
         self.attribute_key = self.resolve_attribute_key(key, snuba_params)
 
     def resolve_attribute_key(self, key: str, snuba_params: SnubaParams) -> AttributeKey | None:
-        resolver = SearchResolver(params=snuba_params, config=SearchResolverConfig())
-        resolved, _ = resolver.resolve_attribute(key)
+        resolved, _ = self.resolver.resolve_attribute(key)
         if resolved.search_type != "string":
             return None
         return resolved.proto_definition
@@ -438,31 +438,24 @@ class EAPSpanFieldValuesAutocompletionExecutor(BaseSpanFieldValuesAutocompletion
         )
 
         query = translate_escape_sequences(self.query)
-        rpc_request = AttributeValuesRequest(
-            meta=RequestMeta(
-                organization_id=self.organization.id,
-                cogs_category="performance",
-                referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value,
-                project_ids=self.snuba_params.project_ids,
-                start_timestamp=start_timestamp,
-                end_timestamp=end_timestamp,
-                trace_item_name=TraceItemName.TRACE_ITEM_NAME_EAP_SPANS,
-            ),
-            name=self.attribute_key.name,
+
+        meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
+        rpc_request = TraceItemAttributeValuesRequest(
+            meta=meta,
+            key=self.attribute_key,
             value_substring_match=query,
             limit=self.max_span_tag_values,
-            offset=0,
         )
-        rpc_response = snuba_rpc.rpc(rpc_request, AttributeValuesResponse)
+        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
 
         return [
             TagValue(
                 key=self.key,
-                value=tag_value,
+                value=value,
                 times_seen=None,
                 first_seen=None,
                 last_seen=None,
             )
-            for tag_value in rpc_response.values
-            if tag_value
+            for value in rpc_response.values
+            if value
         ]

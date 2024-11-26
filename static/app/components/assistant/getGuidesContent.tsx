@@ -359,7 +359,7 @@ function getDemoModeGuides(): GuidesContent {
       requiredTargets: ['release_version'],
       steps: [
         {
-          title: t('Release-specfic trends'),
+          title: t('Release-specific trends'),
           target: 'release_version',
           description: t(
             `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`

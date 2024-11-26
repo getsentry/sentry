@@ -2021,14 +2021,6 @@ register(
 
 # Enables recording tick volume metrics and tick decisions based on those
 # metrics. Decisions are used to delay notifications in a system incident.
-#
-# TODO(epurkhiser): This should be renamed to something like
-#                   `crons.system_incidents.collect_metrics`
-register(
-    "crons.tick_volume_anomaly_detection",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "crons.system_incidents.collect_metrics",
     default=False,
@@ -2922,4 +2914,30 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.event-tracker.sample-rate.transactions",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# migrating send_alert_event task to not pass Event
+register(
+    "sentryapps.send_alert_event.use-eventid",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "transactions.do_post_process_in_save",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+
+# allows us to disable indexing during maintenance events
+register(
+    "sentry.similarity.indexing.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

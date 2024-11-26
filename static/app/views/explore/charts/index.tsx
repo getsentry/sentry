@@ -1,27 +1,24 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconClock, IconGraph, IconSubscribed} from 'sentry/icons';
+import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   aggregateOutputType,
-  formatParsedFunction,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -31,7 +28,6 @@ import Chart, {
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {useGroupBys} from '../hooks/useGroupBys';
@@ -42,6 +38,7 @@ import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
 const exploreChartTypeOptions = [
@@ -62,11 +59,8 @@ const exploreChartTypeOptions = [
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
-export function ExploreCharts({query}: ExploreChartsProps) {
+export function ExploreCharts({query, setError}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -119,11 +113,28 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     dataset
   );
 
+  useEffect(() => {
+    setError(timeSeriesResult.error?.message ?? '');
+  }, [setError, timeSeriesResult.error?.message]);
+
   const getSeries = useCallback(
-    (dedupedYAxes: string[]) => {
-      return dedupedYAxes.flatMap(yAxis => {
-        const series = timeSeriesResult.data[yAxis];
-        return series !== undefined ? series : [];
+    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+      return dedupedYAxes.flatMap((yAxis, i) => {
+        const series = timeSeriesResult.data[yAxis] ?? [];
+        return series.map(s => {
+          // We replace the series name with the formatted series name here
+          // when possible as it's cleaner to read.
+          //
+          // We can't do this in top N mode as the series name uses the row
+          // values instead of the aggregate function.
+          if (s.seriesName === yAxis) {
+            return {
+              ...s,
+              seriesName: formattedYAxes[i] ?? yAxis,
+            };
+          }
+          return s;
+        });
       });
     },
     [timeSeriesResult]
@@ -151,12 +162,10 @@ export function ExploreCharts({query}: ExploreChartsProps) {
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
 
-        const formattedYAxes = dedupedYAxes
-          .map(yaxis => {
-            const func = parseFunction(yaxis);
-            return func ? formatParsedFunction(func) : undefined;
-          })
-          .filter(Boolean);
+        const formattedYAxes = dedupedYAxes.map(yaxis => {
+          const func = parseFunction(yaxis);
+          return func ? prettifyParsedFunction(func) : undefined;
+        });
 
         const {chartType, label, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
@@ -166,35 +175,18 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               ? 'area'
               : 'bar';
 
-        const project =
-          projects.length === 1
-            ? projects[0]
-            : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
-        const singleProject =
-          (pageFilters.selection.projects.length === 1 || projects.length === 1) &&
-          project;
-        const alertsUrls = singleProject
-          ? visualizeYAxes.map(yAxis => ({
-              key: yAxis,
-              label: yAxis,
-              to: getAlertsUrl({
-                project,
-                query,
-                pageFilters: pageFilters.selection,
-                aggregate: yAxis,
-                orgSlug: organization.slug,
-                dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-                interval,
-              }),
-            }))
-          : undefined;
+        const data = getSeries(dedupedYAxes, formattedYAxes);
+
+        const outputTypes = new Set(
+          formattedYAxes.filter(Boolean).map(aggregateOutputType)
+        );
 
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
                 {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
-                <ChartTitle>{formattedYAxes.join(', ')}</ChartTitle>
+                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
                 <Tooltip
                   title={t('Type of chart displayed in this visualization (ex. line)')}
                 >
@@ -227,29 +219,12 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     options={intervalOptions}
                   />
                 </Tooltip>
-                <Feature features="organizations:alerts-eap">
-                  <Tooltip
-                    title={
-                      singleProject
-                        ? t('Create an alert for this chart')
-                        : t('Cannot create an alert when multiple projects are selected')
-                    }
-                  >
-                    <DropdownMenu
-                      triggerProps={{
-                        'aria-label': t('Create Alert'),
-                        size: 'sm',
-                        borderless: true,
-                        showChevron: false,
-                        icon: <IconSubscribed />,
-                      }}
-                      position="bottom-end"
-                      items={alertsUrls ?? []}
-                      menuTitle={t('Create an alert for')}
-                      isDisabled={!alertsUrls || alertsUrls.length === 0}
-                    />
-                  </Tooltip>
-                </Feature>
+                <ChartContextMenu
+                  visualizeYAxes={visualizeYAxes}
+                  query={query}
+                  interval={interval}
+                  visualizeIndex={index}
+                />
               </ChartHeader>
               <Chart
                 height={CHART_HEIGHT}
@@ -260,15 +235,17 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
-                data={getSeries(dedupedYAxes)}
+                data={data}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
                 chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
-                // for now, use the first y axis unit
-                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                aggregateOutputFormat={
+                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                }
+                showLegend
               />
             </ChartPanel>
           </ChartContainer>
@@ -288,7 +265,6 @@ const ChartContainer = styled('div')`
 const ChartHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const ChartTitle = styled('div')`
@@ -306,4 +282,5 @@ const ChartLabel = styled('div')`
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
+  margin-right: ${space(1)};
 `;

@@ -19,6 +19,9 @@ export function ToolbarDataset({dataset, setDataset}: ToolbarDatasetProps) {
         <SegmentedControl.Item key={DiscoverDatasets.SPANS_EAP}>
           {t('EAP Spans')}
         </SegmentedControl.Item>
+        <SegmentedControl.Item key={DiscoverDatasets.SPANS_EAP_RPC}>
+          {t('EAP RPC Spans')}
+        </SegmentedControl.Item>
         <SegmentedControl.Item key={DiscoverDatasets.SPANS_INDEXED}>
           {t('Indexed Spans')}
         </SegmentedControl.Item>

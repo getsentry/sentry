@@ -26,6 +26,7 @@ from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
 from sentry.utils.types import Type, type_from_value
@@ -401,6 +402,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
+    "sentry.notifications",
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
@@ -2492,7 +2494,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.10.0"
+SELF_HOSTED_STABLE_VERSION = "24.11.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3066,6 +3068,7 @@ ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
+ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+
@@ -3159,12 +3162,12 @@ SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
-SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
 
-SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
+SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
@@ -3242,7 +3245,7 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # lost as a result of toggling this setting.
 SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP = True
 
-SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
+SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }

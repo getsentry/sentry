@@ -1,5 +1,6 @@
 from django.test import override_settings
 from django.urls import reverse
+from django.utils.html import escapejs
 
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.views.iframe_view import TEMPLATE
@@ -26,8 +27,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        # TODO: 'missing-project' is the full string to check for
-        assert "const state = 'missing" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('missing-project')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_default_no_allowed_origins(self):
@@ -41,8 +41,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        # TODO: 'invalid-domain' is the full string to check for
-        assert "const state = 'invalid" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_allowed_origins_basic(self):
@@ -57,7 +56,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert "const state = 'success';" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_allowed_origins_wildcard_subdomain(self):
@@ -72,7 +71,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert "const state = 'success';" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_only_single_wildcard_subdomain(self):
@@ -87,8 +86,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        # TODO: 'invalid-domain' is the full string to check for
-        assert "const state = 'invalid" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_no_referrer(self):
@@ -102,8 +100,7 @@ class IframeViewTest(APITestCase):
 
         self.assertTemplateUsed(res, TEMPLATE)
         assert "const referrer = '';" in res.content.decode("utf-8")
-        # TODO: 'invalid-domain' is the full string to check for
-        assert "const state = 'invalid" in res.content.decode("utf-8")
+        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
 
 def _get_csp_parts(response):

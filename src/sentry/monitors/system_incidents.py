@@ -22,7 +22,7 @@ from django.conf import settings
 from sentry import options
 from sentry.utils import metrics, redis
 
-logger = logging.getLogger("sentry")
+logger = logging.getLogger(__name__)
 
 # This key is used to record historical date about the volume of check-ins.
 MONITOR_VOLUME_HISTORY = "sentry.monitors.volume_history:{ts}"
@@ -90,7 +90,7 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
     result = make_clock_tick_decision(tick)
 
     logger.info(
-        "monitors.system_incidents.process_clock_tick",
+        "process_clock_tick",
         extra={"decision": result.decision, "transition": result.transition},
     )
 
@@ -116,7 +116,7 @@ def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
         if start := get_last_incident_ts():
             prune_incident_check_in_volume(start, result.ts)
         else:
-            logger.error("monitors.system_incidents.recovered_without_start_ts")
+            logger.error("recovered_without_start_ts")
 
     return result
 
@@ -178,7 +178,7 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
     NOTE that this records a metric for the tick timestamp that we just ticked
     over. So when ticking at 12:01 the metric is recorded for 12:00.
     """
-    if not options.get("crons.tick_volume_anomaly_detection"):
+    if not options.get("crons.system_incidents.collect_metrics"):
         return
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -207,10 +207,12 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
 
     # Can't make any decisions if we didn't have data for the past minute
     if past_minute_volume is None:
+        logger.info("past_minute_volume_missing", extra={"reference_datetime": tick})
         return
 
     # We need AT LEAST two data points to calculate standard deviation
     if len(historic_volume) < 2:
+        logger.info("history_volume_low", extra={"reference_datetime": tick})
         return
 
     # Record some statistics about the past_minute_volume volume in comparison
@@ -242,7 +244,7 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
     metrics.gauge("monitors.task.volume_history.pct_deviation", pct_deviation, sample_rate=1.0)
 
     logger.info(
-        "monitors.system_incidents.volume_history",
+        "volume_history",
         extra={
             "reference_datetime": str(tick),
             "evaluation_minute": past_ts.strftime("%H:%M"),
@@ -461,7 +463,7 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
     # Alias TickAnomalyDecision to improve code readability
     Decision = TickAnomalyDecision
 
-    if not options.get("crons.tick_volume_anomaly_detection"):
+    if not options.get("crons.system_incidents.collect_metrics"):
         return DecisionResult(tick, Decision.NORMAL)
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
@@ -511,7 +513,7 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
         pipeline.execute()
 
         logger.info(
-            "monitors.system_incidents.decision",
+            "clock_tick_decision",
             extra={
                 "reference_datetime": str(tick),
                 "decision": decision,
@@ -631,7 +633,7 @@ def _make_backfill(start: datetime, until_not: TickAnomalyDecision) -> Generator
 
     # If we've iterated through the entire BACKFILL_CUTOFF we have a
     # "decision runaway" and should report this as an error
-    logger.error("sentry.system_incidents.decision_backfill_runaway")
+    logger.error("decision_backfill_runaway")
 
 
 def _backfill_decisions(

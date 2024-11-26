@@ -44,7 +44,10 @@ export function getDocsLinkForEventType(
     case DataCategoryExact.TRANSACTION || 'transaction':
       // For pre-AM3 plans prior to June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/legacy-manage-transaction-quota/';
-    case DataCategoryExact.SPAN || 'span':
+    case DataCategoryExact.SPAN ||
+      DataCategoryExact.SPAN_INDEXED ||
+      'span' ||
+      'span_indexed':
       // For post-AM3 plans after June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/manage-transaction-quota/';
     case DataCategoryExact.ATTACHMENT || 'attachment':
