@@ -1,9 +1,9 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import PanelAlert from 'sentry/components/panels/panelAlert';
+import type {User} from 'sentry/types/user';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
