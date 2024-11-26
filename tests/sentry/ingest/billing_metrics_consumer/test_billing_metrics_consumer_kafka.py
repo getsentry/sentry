@@ -266,22 +266,11 @@ def test_outcomes_consumed(track_outcome, factories):
                     category=DataCategory.TRANSACTION,
                     quantity=1,
                 ),
-                mock.call(
-                    org_id=organization.id,
-                    project_id=missing_project_id,
-                    key_id=None,
-                    outcome=Outcome.ACCEPTED,
-                    reason=None,
-                    timestamp=mock.ANY,
-                    event_id=None,
-                    category=DataCategory.PROFILE,
-                    quantity=1,
-                ),
             ]
             # We double-check that the project does not exist.
             assert not Project.objects.filter(id=2).exists()
         else:
-            assert track_outcome.mock_calls[3:] == [
+            assert track_outcome.mock_calls[2:] == [
                 mock.call(
                     org_id=organization.id,
                     project_id=project_2.id,
