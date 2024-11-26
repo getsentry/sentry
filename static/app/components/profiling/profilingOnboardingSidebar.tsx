@@ -312,7 +312,11 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   };
 
   const doc = docs.profilingOnboarding ?? docs.onboarding;
-  const steps = [...doc.install(docParams), ...doc.configure(docParams)];
+  const steps = [
+    ...doc.install(docParams),
+    ...doc.configure(docParams),
+    ...doc.verify(docParams),
+  ];
 
   return (
     <Wrapper>
