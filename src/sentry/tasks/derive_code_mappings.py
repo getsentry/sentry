@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
@@ -32,6 +33,12 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
+
+
+class DeriveCodeMappingsErrorReason(StrEnum):
+    UNEXPECTED_ERROR = "Unexpected error type while calling `get_trees_for_org()`."
+    LOCK_FAILED = "Failed to acquire lock"
+    EMPTY_TREES = "The trees are empty."
 
 
 def process_error(error: ApiError, extra: dict[str, str]) -> None:
@@ -135,19 +142,14 @@ def derive_code_mappings(
             return
         except UnableToAcquireLock as error:
             extra["error"] = error
-            logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
             lifecycle.record_failure(error, extra)
             return
         except Exception:
-            logger.exception(
-                "Unexpected error type while calling `get_trees_for_org()`.", extra=extra
-            )
-            lifecycle.record_failure(extra=extra)
+            lifecycle.record_failure(DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR, extra=extra)
             return
 
         if not trees:
-            logger.warning("The trees are empty.", extra=extra)
-            lifecycle.record_halt(extra=extra)
+            lifecycle.record_halt(DeriveCodeMappingsErrorReason.EMPTY_TREES, extra=extra)
             return
 
     trees_helper = CodeMappingTreesHelper(trees)

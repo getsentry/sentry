@@ -9,17 +9,24 @@ import responses
 from sentry.db.models.fields.node import NodeData
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.code_mapping import CodeMapping, Repo, RepoTree
 from sentry.models.organization import OrganizationStatus
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
+from sentry.tasks.derive_code_mappings import (
+    DeriveCodeMappingsErrorReason,
+    derive_code_mappings,
+    identify_stacktrace_paths,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_halt_metric,
+)
 
 pytestmark = [requires_snuba]
 
@@ -43,11 +50,6 @@ class BaseDeriveCodeMappings(TestCase):
         test_data = {"platform": platform or self.platform, "stacktrace": {"frames": frames}}
         return self.store_event(data=test_data, project_id=self.project.id).data
 
-    def assert_slo_metric(self, mock_record, outcome=EventLifecycleOutcome.FAILURE, error_msg=None):
-        (events,) = (call for call in mock_record.mock_calls if call.args[0] == outcome)
-        if error_msg:
-            assert events.args[1] == error_msg
-
 
 @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
 class TestTaskBehavior(BaseDeriveCodeMappings):
@@ -61,14 +63,15 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         )
 
     def test_does_not_raise_installation_removed(self, mock_record):
+        error = ApiError(
+            '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
+        )
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-            side_effect=ApiError(
-                '{"message":"Not Found","documentation_url":"https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app"}'
-            ),
+            side_effect=error,
         ):
             assert derive_code_mappings(self.project.id, self.event_data) is None
-            self.assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+            assert_halt_metric(mock_record, error)
 
     @patch("sentry.tasks.derive_code_mappings.logger")
     def test_raises_other_api_errors(self, mock_logger, mock_record):
@@ -78,16 +81,17 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
         ):
             derive_code_mappings(self.project.id, self.event_data)
             assert mock_logger.error.call_count == 1
-            self.assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+            assert_halt_metric(mock_record, ApiError("foo"))
 
     def test_unable_to_get_lock(self, mock_record):
+        error = UnableToAcquireLock()
         with patch(
             "sentry.integrations.github.client.GitHubBaseClient.get_trees_for_org",
-            side_effect=UnableToAcquireLock,
+            side_effect=UnableToAcquireLock(),
         ):
             derive_code_mappings(self.project.id, self.event_data)
             assert not RepositoryProjectPathConfig.objects.exists()
-            self.assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+            assert_failure_metric(mock_record, error)
 
     @patch("sentry.tasks.derive_code_mappings.logger")
     def test_raises_generic_errors(self, mock_logger, mock_record):
@@ -96,12 +100,7 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
             side_effect=Exception("foo"),
         ):
             derive_code_mappings(self.project.id, self.event_data)
-            assert mock_logger.exception.call_count == 1
-            assert (
-                mock_logger.exception.call_args.args[0]
-                == "Unexpected error type while calling `get_trees_for_org()`."
-            )
-            self.assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+            assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
 
 
 class TestBackSlashDeriveCodeMappings(BaseDeriveCodeMappings):
