@@ -126,14 +126,14 @@ describe('StreamlinedExternalIssueList', () => {
     );
 
     expect(
-      await screen.findByRole('button', {name: 'Clickup Issue'})
+      await screen.findByRole('button', {name: 'ClickUp: hello#1'})
     ).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('button', {name: 'Clickup Issue'}));
+    await userEvent.hover(screen.getByRole('button', {name: 'ClickUp: hello#1'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Unlink issue'}));
 
     await waitFor(() => {
       expect(
-        screen.queryByRole('button', {name: 'Clickup Issue'})
+        screen.queryByRole('button', {name: 'ClickUp: hello#1'})
       ).not.toBeInTheDocument();
     });
     expect(unlinkMock).toHaveBeenCalledTimes(1);
