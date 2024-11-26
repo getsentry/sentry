@@ -319,12 +319,9 @@ class SnubaTagStorage(TagStorage):
                 if result is not None:
                     span.set_data("cache.hit", True)
                     span.set_data("cache.item_size", len(str(result)))
-                else:
-                    span.set_data("cache.hit", False)
-
-                if result is not None:
                     metrics.incr("testing.tagstore.cache_tag_key.hit")
                 else:
+                    span.set_data("cache.hit", False)
                     metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
@@ -346,8 +343,7 @@ class SnubaTagStorage(TagStorage):
                     cache.set(cache_key, result, 300)
                     span.set_data("cache.key", cache_key.split(":", 2))
                     span.set_data("cache.item_size", len(str(result)))
-
-                metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
+                    metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group is None:
             ctor = TagKey

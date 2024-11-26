@@ -1679,8 +1679,12 @@ SENTRY_TRANSACTION_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
 # TODO(dcramer): convert uses over to Sentry's backend
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}}
-
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": "/var/tmp/django_cache",
+    }
+}
 # The cache version affects both Django's internal cache (at runtime) as well
 # as Sentry's cache. This automatically overrides VERSION on the default
 # CACHES backend.
