@@ -47,6 +47,8 @@ class SDKCrashDetectionConfig:
     """Whether to report fatal errors. If true, both unhandled and fatal errors are reported.
     If false, only unhandled errors are reported."""
     report_fatal_errors: bool
+    """The mechanism types to ignore. For example, {"console", "unhandledrejection"}. If empty, all mechanism types are captured."""
+    ignore_mechanism_type: set[str]
     """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
     min_sdk_version: str
     """The system library path patterns to detect system frames. For example, `System/Library/*` """
@@ -90,6 +92,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # Therefore, we require at least sentry-cocoa 8.2.0.
             min_sdk_version="8.2.0",
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
@@ -123,6 +126,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # We require at least sentry-react-native 4.0.0 to only detect SDK crashes for not too old versions.
             min_sdk_version="4.0.0",
             report_fatal_errors=False,
+            ignore_mechanism_type={"console"},
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
                 r"**/react-native-community/**",
@@ -188,6 +192,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # 7.0.0 was released in Nov 2023, see https://github.com/getsentry/sentry-java/releases/tag/7.0.0
             min_sdk_version="7.0.0",
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 r"java.**",
                 r"javax.**",
@@ -231,6 +236,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # 0.6.0 was released in Feb 2023, see https://github.com/getsentry/sentry-native/releases/tag/0.6.0.
             min_sdk_version="0.6.0",
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 # well known locations for unix paths
                 r"/lib/**",
@@ -277,6 +283,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             # see https://github.com/getsentry/sentry-dart/releases/tag/8.2.0
             min_sdk_version="8.2.1",
             report_fatal_errors=True,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 # Dart
                 r"org-dartlang-sdk:///**",
