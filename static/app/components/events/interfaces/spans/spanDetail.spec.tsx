@@ -164,7 +164,7 @@ describe('SpanDetail', function () {
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'View Query Summary'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/database/spans/span/a7ebd21614897/?project=2'
+        '/organizations/org-slug/insights/backend/database/spans/span/a7ebd21614897/?project=2'
       );
     });
   });
