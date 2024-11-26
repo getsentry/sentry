@@ -213,7 +213,10 @@ class OpsgenieIntegration(IntegrationInstallation):
                         raise
 
             if invalid_keys:
-                lifecycle.record_halt(OnCallIntegrationsHaltReason.INVALID_KEY)
+                lifecycle.record_halt(
+                    OnCallIntegrationsHaltReason.INVALID_KEY,
+                    extra={"invalid_keys": invalid_keys, "integration_id": integration.id},
+                )
                 raise ApiUnauthorized(f"Invalid integration key: {str(invalid_keys)}")
 
         return super().update_organization_config(data)

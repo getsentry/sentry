@@ -78,7 +78,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
                 organization_id=self.org_id,
             )
             if integration is None or org_integration is None:
-                lifecyle.record_halt(str(OnCallIntegrationsHaltReason.INVALID_TEAM))
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
                 raise forms.ValidationError(
                     _("The Opsgenie integration does not exist."),
                     code="invalid_integration",
@@ -87,7 +87,7 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
             team_status = self._get_team_status(team_id=team_id, org_integration=org_integration)
             if team_status == INVALID_TEAM:
-                lifecyle.record_halt(str(OnCallIntegrationsHaltReason.INVALID_TEAM))
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
                 raise forms.ValidationError(
                     _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
                     code="invalid_team",

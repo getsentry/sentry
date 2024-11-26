@@ -66,7 +66,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
             ):
                 # We need to make sure that the service actually belongs to that integration,
                 # meaning that it belongs under the appropriate account in PagerDuty.
-                lifecycle.record_halt(str(OnCallIntegrationsHaltReason.INVALID_SERVICE))
+                lifecycle.record_halt(OnCallIntegrationsHaltReason.INVALID_SERVICE)
                 raise forms.ValidationError(
                     _(
                         'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'
