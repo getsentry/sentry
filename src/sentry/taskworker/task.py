@@ -32,6 +32,7 @@ class Task(Generic[P, R]):
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
+        at_most_once: bool = False,
     ):
         # TODO(taskworker) Implement task execution deadlines
         self.name = name
@@ -42,6 +43,7 @@ class Task(Generic[P, R]):
         self._processing_deadline_duration = (
             processing_deadline_duration or DEFAULT_PROCESSING_DEADLINE
         )
+        self.at_most_once = at_most_once
         update_wrapper(self, func)
 
     @property
@@ -92,8 +94,11 @@ class Task(Generic[P, R]):
                 attempts=0,
                 kind="sentry.taskworker.retry.Retry",
                 discard_after_attempt=1,
+                at_most_once=self.at_most_once,
             )
-        return retry.initial_state()
+        retry_state = retry.initial_state()
+        retry_state.at_most_once = self.at_most_once
+        return retry_state
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No retry policy means no retries.

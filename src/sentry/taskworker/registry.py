@@ -71,6 +71,7 @@ class TaskNamespace:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
+        at_most_once: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """register a task, used as a decorator"""
 
@@ -84,6 +85,7 @@ class TaskNamespace:
                 processing_deadline_duration=(
                     processing_deadline_duration or self.default_processing_deadline_duration
                 ),
+                at_most_once=at_most_once,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique

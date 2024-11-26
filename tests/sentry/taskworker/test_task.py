@@ -110,6 +110,22 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         processing_deadline_duration=30,
     )
 
+    at_most_once_task = Task(
+        name="test.at_most_once",
+        func=do_things,
+        namespace=task_namespace,
+        at_most_once=True,
+    )
+
+    retry = Retry(times=3, times_exceeded=LastAction.Deadletter)
+    retry_at_most_once_task = Task(
+        name="test.with_retry_at_most_once",
+        func=do_things,
+        namespace=task_namespace,
+        retry=retry,
+        at_most_once=True,
+    )
+
     # No retries will be made as there is no retry policy on the task or namespace.
     activation = no_retry_task.create_activation()
     assert activation.taskname == "test.no_retry"
@@ -135,6 +151,21 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.taskname == "test.with_int_expires"
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
+
+    activation = at_most_once_task.create_activation()
+    assert activation.taskname == "test.at_most_once"
+    assert activation.namespace == task_namespace.name
+    assert activation.retry_state
+    assert activation.retry_state.at_most_once is True
+
+    activation = retry_at_most_once_task.create_activation()
+    assert activation.taskname == "test.with_retry_at_most_once"
+    assert activation.namespace == task_namespace.name
+    assert activation.retry_state
+    assert activation.retry_state.at_most_once is True
+    assert activation.retry_state.attempts == 0
+    assert activation.retry_state.discard_after_attempt == 0
+    assert activation.retry_state.deadletter_after_attempt == 3
 
 
 def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
