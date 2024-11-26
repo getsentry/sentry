@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
@@ -20,6 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -46,7 +48,11 @@ function EditAccessSelector({
 }: EditAccessSelectorProps) {
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
-  const isCurrentUserDashboardOwner = dashboardCreator?.id === currentUser.id;
+
+  const organization = useOrganization();
+  const userCanEditDashboardPermissions =
+    dashboardCreator?.id === currentUser.id ||
+    hasEveryAccess(['org:write'], {organization});
 
   // Retrieves teams from the team store, which may contain only a subset of all teams
   const {teams: teamsToRender} = useTeamsById();
@@ -164,7 +170,7 @@ function EditAccessSelector({
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         renderUsersFirst
-        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
+        tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
       />
     ) : (
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
@@ -174,7 +180,7 @@ function EditAccessSelector({
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
-        tooltipOptions={{disabled: !isCurrentUserDashboardOwner}}
+        tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
       />
     );
 
@@ -186,7 +192,7 @@ function EditAccessSelector({
         {
           value: '_allUsers',
           label: t('All users'),
-          disabled: !isCurrentUserDashboardOwner,
+          disabled: !userCanEditDashboardPermissions,
         },
       ],
     },
@@ -194,8 +200,8 @@ function EditAccessSelector({
       value: '_teams',
       label: t('Teams'),
       options: teamsToRender.map(makeTeamOption),
-      showToggleAllButton: isCurrentUserDashboardOwner,
-      disabled: !isCurrentUserDashboardOwner,
+      showToggleAllButton: userCanEditDashboardPermissions,
+      disabled: !userCanEditDashboardPermissions,
     },
   ];
 
@@ -210,7 +216,7 @@ function EditAccessSelector({
             setSelectedOptions(getSelectedOptions());
           }
         }}
-        disabled={!isCurrentUserDashboardOwner}
+        disabled={!userCanEditDashboardPermissions}
       >
         {t('Cancel')}
       </Button>
@@ -230,7 +236,7 @@ function EditAccessSelector({
         }}
         priority="primary"
         disabled={
-          !isCurrentUserDashboardOwner ||
+          !userCanEditDashboardPermissions ||
           isEqual(getDashboardPermissions(), dashboard.permissions)
         }
       >
@@ -281,7 +287,7 @@ function EditAccessSelector({
   return (
     <Tooltip
       title={t('Only the creator of the dashboard can edit permissions')}
-      disabled={isCurrentUserDashboardOwner || isMenuOpen}
+      disabled={userCanEditDashboardPermissions || isMenuOpen}
     >
       {dropdownMenu}
     </Tooltip>

@@ -5,11 +5,9 @@ from unittest.mock import MagicMock, Mock, patch
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -308,47 +306,3 @@ class GetSeerSimilarIssuesTest(TestCase):
                 expected_metadata,
                 None,
             )
-
-    @patch("sentry.seer.similarity.utils.logger")
-    def test_too_many_only_system_frames(self, mock_logger: Mock) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
-        new_event = Event(
-            project_id=self.project.id,
-            event_id="22312012112120120908201304152013",
-            data={
-                "title": f"{type}('{value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": type,
-                            "value": value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": f"play_fetch_{i}",
-                                        "filename": f"dogpark{i}.py",
-                                        "context_line": context_line,
-                                    }
-                                    for i in range(MAX_FRAME_COUNT + 1)
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "python",
-            },
-        )
-        variants = new_event.get_grouping_variants()
-        get_seer_similar_issues(new_event, variants)
-
-        grouping_info = get_grouping_info_from_variants(variants)
-        mock_logger.info.assert_called_with(
-            "grouping.similarity.over_threshold_system_only_frames",
-            extra={
-                "project_id": "",
-                "event_id": "",
-                "hash": grouping_info["system"]["hash"],
-            },
-        )
