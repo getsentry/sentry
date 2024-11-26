@@ -210,6 +210,72 @@ class TestTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@control_silo_test
+class TestOrgScopedAppTokenAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = UserAuthTokenAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.another_org = self.create_organization(owner=self.user)
+        self.api_token = ApiToken.objects.create(
+            token_type=AuthTokenType.USER,
+            user=self.user,
+            scoping_organization_id=self.org.id,
+        )
+        self.token = self.api_token.plaintext_token
+
+    def test_authenticate_correct_org(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.path_info = f"/api/0/organizations/{self.org.slug}/projects/"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
+
+    def test_authenticate_incorrect_org(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.path_info = f"/api/0/organizations/{self.another_org}/projects/"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_authenticate_user_level_endpoints(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.path_info = "/api/0/projects/"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_authenticate_allowlist_endpoint(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+        request.path_info = "/api/0/organizations/"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
+
+    def test_no_match(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
+        request.path_info = f"/api/0/organizations/{self.another_org}/projects/"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
