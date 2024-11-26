@@ -134,7 +134,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 if isinstance(e, IntegrationFormError):
                     # Most of the time, these aren't explicit failures, they're
                     # some misconfiguration of an issue field - typically Jira.
-                    lifecycle.record_halt(e)
+                    lifecycle.record_halt(str(e))
 
                 metrics.incr(
                     f"{provider}.rule_trigger.create_ticket.failure",
@@ -142,6 +142,10 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                         "provider": provider,
                     },
                 )
+
+                # Don't pass the full exception here, as it can contain a
+                # massive request response along with its stacktrace
+                lifecycle.record_failure(str(e))
 
                 raise
 
