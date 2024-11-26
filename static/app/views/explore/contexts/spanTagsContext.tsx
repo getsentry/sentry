@@ -70,6 +70,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
       // as we're moving toward span ids
 
       'id', // SpanIndexedField.SPAN_OP is actually `span_id`
+      'profile.id', // SpanIndexedField.PROFILE_ID is actually `profile_id`
       SpanIndexedField.BROWSER_NAME,
       SpanIndexedField.ENVIRONMENT,
       SpanIndexedField.ORIGIN_TRANSACTION,
