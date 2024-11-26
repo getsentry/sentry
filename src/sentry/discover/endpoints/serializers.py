@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
+from sentry import features
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -16,9 +17,12 @@ from sentry.discover.models import (
     TeamKeyTransaction,
 )
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.users.models import User
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
@@ -253,6 +257,33 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
+    def get_metrics_features(
+        self, organization: Organization | None, user: User | None
+    ) -> dict[str, bool | None]:
+        if organization is None or user is None:
+            return {}
+
+        feature_names = [
+            "organizations:mep-rollout-flag",
+            "organizations:dynamic-sampling",
+            "organizations:performance-use-metrics",
+            "organizations:dashboards-mep",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=user,
+        )
+
+        return (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {
+                feature_name: features.has(feature_name, organization=organization, actor=user)
+                for feature_name in feature_names
+            }
+        )
+
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
 
@@ -305,6 +336,18 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     0,
                 )
             try:
+                batch_features = self.get_metrics_features(
+                    self.context.get("organization"), self.context.get("user")
+                )
+                use_metrics = bool(
+                    (
+                        batch_features.get("organizations:mep-rollout-flag", False)
+                        and batch_features.get("organizations:dynamic-sampling", False)
+                    )
+                    or batch_features.get("organizations:performance-use-metrics", False)
+                    or batch_features.get("organizations:dashboards-mep", False)
+                )
+
                 equations, columns = categorize_columns(query["fields"])
                 builder = DiscoverQueryBuilder(
                     dataset=Dataset.Discover,
@@ -313,6 +356,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     selected_columns=columns,
                     equations=equations,
                     orderby=query.get("orderby"),
+                    config=QueryBuilderConfig(has_metrics=use_metrics),
                 )
                 builder.get_snql_query().validate()
             except (InvalidSearchQuery, ArithmeticError) as err:
