@@ -314,7 +314,7 @@ class SnubaTagStorage(TagStorage):
             with sentry_sdk.start_span(op="cache.get", name="tagstore.cache") as span:
                 result = cache.get(cache_key, None)
 
-                span.set_data("cache.key", cache_key)
+                span.set_data("cache.key", cache_key.split(":"))
 
                 if result is not None:
                     span.set_data("cache.hit", True)
@@ -344,7 +344,7 @@ class SnubaTagStorage(TagStorage):
             if should_cache:
                 with sentry_sdk.start_span(op="cache.put", name="tagstore.cache") as span:
                     cache.set(cache_key, result, 300)
-                    span.set_data("cache.key", cache_key)
+                    span.set_data("cache.key", cache_key.split(":"))
                     span.set_data("cache.item_size", len(str(result)))
 
                 metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
