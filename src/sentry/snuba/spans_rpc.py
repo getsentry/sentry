@@ -8,9 +8,9 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias
-from sentry.search.events.types import EventsMeta, EventsResponse, SnubaData, SnubaParams
+from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -33,7 +33,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
-) -> EventsResponse:
+) -> EAPResponse:
     """Make the query"""
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
@@ -81,6 +81,7 @@ def run_table_query(
 
     """Process the results"""
     final_data: SnubaData = []
+    final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(fields={})
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
@@ -98,8 +99,11 @@ def run_table_query(
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
+            final_confidence.append({})
 
-        for index, result in enumerate(column_value.results):
+        for index, (result, reliability) in enumerate(
+            zip(column_value.results, column_value.reliabilities)
+        ):
             result_value: str | int | float
             if resolved_column.proto_type == STRING:
                 result_value = result.val_str
@@ -108,8 +112,9 @@ def run_table_query(
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
             final_data[index][attribute] = resolved_column.process_column(result_value)
+            final_confidence[index][attribute] = CONFIDENCES.get(reliability, None)
 
-    return {"data": final_data, "meta": final_meta}
+    return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
 
 def get_timeseries_query(

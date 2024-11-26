@@ -1388,10 +1388,20 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 start_ts=self.ten_mins_ago,
             )
         )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["count()"],
+                "field": ["description", "count()"],
+                "orderby": "-count()",
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -1400,8 +1410,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 1
+        confidence = response.data["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
         assert data[0]["count()"] == 10
+        assert confidence[0]["count()"] == "low"
+        assert data[1]["count()"] == 1
+        # Skipping this assert for now, IMO confidence for "bar" should be high, but checking with sns
+        # assert confidence[1]["count()"] == "high"
 
     def test_span_duration(self):
         spans = [
