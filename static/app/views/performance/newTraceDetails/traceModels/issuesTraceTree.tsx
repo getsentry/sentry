@@ -102,7 +102,7 @@ export class IssuesTraceTree extends TraceTree {
       }
 
       // Preserve the previous 3 nodes
-      let i = index - 1;
+      let i = Math.max(index - 1, 0);
       while (i > index - 4) {
         if (this.list[i]) {
           preserveNodes.add(this.list[i]);
@@ -111,7 +111,7 @@ export class IssuesTraceTree extends TraceTree {
       }
 
       // Preserve the next 2 nodes
-      let j = index + 1;
+      let j = Math.min(index + 1, this.list.length - 1);
       while (j < index + 3) {
         if (this.list[j]) {
           preserveNodes.add(this.list[j]);
@@ -120,25 +120,30 @@ export class IssuesTraceTree extends TraceTree {
       }
     }
 
-    for (let i = 0; i < this.list.length; i++) {
+    let i = 0;
+    while (i < this.list.length) {
       const start = i;
       while (this.list[i] && !preserveNodes.has(this.list[i])) {
         i++;
       }
 
       if (i - start > 0) {
-        const newNode = new CollapsedNode(
+        const collapsedNode = new CollapsedNode(
           this.list[start].parent!,
           {type: 'collapsed'},
           this.list[start].metadata
         );
 
-        const removed = this.list.splice(start, i - start, newNode);
-        newNode.children = removed;
+        const removed = this.list.splice(start, i - start, collapsedNode);
+        collapsedNode.children = removed;
 
-        i -= start;
+        i = start + 1;
+        continue;
       }
+
+      i++;
     }
+
     return this;
   }
 

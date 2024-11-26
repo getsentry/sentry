@@ -30,6 +30,7 @@ describe('EventTraceView', () => {
         trace_id: traceId,
       },
     },
+    eventID: 'issue-5',
   });
   const issuePlatformBody: TraceEventResponse = {
     data: [],
@@ -52,16 +53,18 @@ describe('EventTraceView', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
-        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
+        transaction_child_count_map: new Array(20)
+          .fill(0)
+          .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
       body: {
-        transactions: [
+        transactions: new Array(20).fill(0).map((_, i) => [
           {
             project_slug: project.slug,
-            event_id: '1',
+            event_id: i.toString(),
             children: [],
             sdk_name: '',
             start_timestamp: 0,
@@ -70,9 +73,9 @@ describe('EventTraceView', () => {
             'transaction.op': '',
             'transaction.status': '',
             performance_issues: [],
-            errors: [],
+            errors: i === 5 ? [makeTraceError({event_id: 'issue-5'})] : [],
           },
-        ],
+        ]),
         orphan_errors: [makeTraceError()],
       },
     });
@@ -93,7 +96,9 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace')).toBeInTheDocument();
-    expect(await screen.findByText('1 hidden span')).toBeInTheDocument();
+    expect(
+      await screen.findByText('MaybeEncodingError: Error sending result')
+    ).toBeInTheDocument();
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
