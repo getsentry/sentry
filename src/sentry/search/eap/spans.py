@@ -210,9 +210,7 @@ class SearchResolver:
         parsed_terms = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                resolved_term = self.resolve_term(cast(event_search.SearchFilter, item))
-                if resolved_term is not None:
-                    parsed_terms.append(resolved_term)
+                parsed_terms.append(self.resolve_term(cast(event_search.SearchFilter, item)))
             else:
                 if self.config.use_aggregate_conditions:
                     raise NotImplementedError("Can't filter on aggregates yet")
@@ -224,7 +222,7 @@ class SearchResolver:
         else:
             return None
 
-    def resolve_term(self, term: event_search.SearchFilter) -> TraceItemFilter | None:
+    def resolve_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
         resolved_column, context = self.resolve_column(term.key.name)
         raw_value = term.value.raw_value
         if term.value.is_wildcard():
