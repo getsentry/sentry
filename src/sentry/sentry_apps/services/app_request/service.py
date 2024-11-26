@@ -29,7 +29,7 @@ class SentryAppRequestService(RpcService):
         sentry_app_id: str,
         region_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
-    ) -> list[RpcSentryAppRequest]:
+    ) -> list[RpcSentryAppRequest] | None:
         pass
 
 

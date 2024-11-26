@@ -82,3 +82,10 @@ class TestRegionApp(TestCase):
         )
         assert len(requests) == 1
         assert requests[0].organization_id == self.org.id
+
+    def test_invalid_app_id(self):
+        requests = app_request_service.get_buffer_requests_for_region(
+            sentry_app_id=-1,
+            region_name="us",
+        )
+        assert requests is None

@@ -15,8 +15,10 @@ class DatabaseBackedSentryAppRequestService(SentryAppRequestService):
         sentry_app_id: str,
         region_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
-    ) -> list[RpcSentryAppRequest]:
+    ) -> list[RpcSentryAppRequest] | None:
         sentry_app = app_service.get_sentry_app_by_id(id=sentry_app_id)
+        if not sentry_app:
+            return None
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
         event = filter.get("event", None) if filter else None
