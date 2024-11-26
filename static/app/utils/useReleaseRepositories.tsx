@@ -14,7 +14,9 @@ function getReleaseRepositoriesQueryKey({
   projectSlug: string;
   release: string;
 }): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/releases/${release}/repositories/`];
+  return [
+    `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(release)}/repositories/`,
+  ];
 }
 
 interface UseReleaseReposProps {
@@ -34,7 +36,7 @@ export function useReleaseRepositories({
     getReleaseRepositoriesQueryKey({
       orgSlug,
       projectSlug,
-      release: encodeURIComponent(release),
+      release,
     }),
     {
       staleTime: Infinity,
