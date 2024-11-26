@@ -426,7 +426,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             # We need to make sure the organization to which the token has access is the same as the one in the URL
             organization = None
             organization_context = organization_service.get_organization_by_id(
-                id=token.organization_id
+                id=token.organization_id, include_projects=False, include_teams=False
             )
             if organization_context:
                 organization = organization_context.organization
