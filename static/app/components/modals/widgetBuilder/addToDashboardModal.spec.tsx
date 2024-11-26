@@ -97,6 +97,11 @@ describe('add to dashboard modal', () => {
       body: testDashboard,
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+
     eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
