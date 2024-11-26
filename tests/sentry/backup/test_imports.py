@@ -687,13 +687,12 @@ class SignalingTests(ImportTestCase):
 
         assert OrganizationMember.objects.count() == 3
 
-        # The exhaustive org has 2 projects which automatically get 1 key and 3 options each.
-        assert Project.objects.count() == 2
+        # The exhaustive org has 1 project which automatically gets 1 key and 3 options.
+        assert Project.objects.count() == 1
         assert Project.objects.filter(name="project-some-org").exists()
-        assert Project.objects.filter(name="other-project-some-org").exists()
 
-        assert ProjectKey.objects.count() == 2
-        assert ProjectOption.objects.count() == 2
+        assert ProjectKey.objects.count() == 1
+        assert ProjectOption.objects.count() == 1
         assert ProjectOption.objects.filter(key="sentry:option-epoch").exists()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1514,7 +1513,7 @@ class CollisionTests(ImportTestCase):
             with open(tmp_path, "rb") as tmp_file:
                 import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
 
-            assert ProjectKey.objects.count() == 4
+            assert ProjectKey.objects.count() == 3
             assert ProjectKey.objects.filter(public_key=colliding.public_key).count() == 1
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 

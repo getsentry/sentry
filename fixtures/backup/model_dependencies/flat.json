@@ -68,10 +68,6 @@
     "sentry.alertrule",
     "sentry.user"
   ],
-  "sentry.alertruleexcludedprojects": [
-    "sentry.alertrule",
-    "sentry.project"
-  ],
   "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
@@ -83,10 +79,6 @@
     "sentry.alertruletrigger",
     "sentry.integration",
     "sentry.sentryapp"
-  ],
-  "sentry.alertruletriggerexclusion": [
-    "sentry.alertruletrigger",
-    "sentry.querysubscription"
   ],
   "sentry.apiapplication": [
     "sentry.user"
