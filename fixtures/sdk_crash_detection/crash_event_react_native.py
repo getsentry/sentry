@@ -47,12 +47,18 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
 
 
 def get_crash_event(
-    filename="/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js", **kwargs
+    filename="/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+    is_synthetic=False,
+    **kwargs,
 ) -> dict[str, object]:
-    return get_crash_event_with_frames(get_frames(filename=filename), **kwargs)
+    return get_crash_event_with_frames(
+        get_frames(filename=filename), is_synthetic=is_synthetic, **kwargs
+    )
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, str]], is_synthetic=False, **kwargs
+) -> dict[str, object]:
     result = {
         "event_id": "150d5b0b4f3a4797a3cd1345374ac484",
         "release": "com.samplenewarchitecture@1.0+1",
@@ -66,7 +72,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
                     "type": "Error",
                     "value": "Uncaught Thrown Error",
                     "stacktrace": {"frames": frames},
-                    "mechanism": {"type": "onerror", "handled": False},
+                    "mechanism": {"type": "onerror", "handled": False, "synthetic": is_synthetic},
                 }
             ]
         },
