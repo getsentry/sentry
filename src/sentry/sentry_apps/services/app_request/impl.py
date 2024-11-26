@@ -1,4 +1,4 @@
-from sentry.receivers import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app_request.model import (
     RpcSentryAppRequest,
     SentryAppRequestFilterArgs,
