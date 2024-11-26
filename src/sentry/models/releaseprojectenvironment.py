@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -15,60 +14,14 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.manager.base import BaseManager
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-
-if TYPE_CHECKING:
-    from sentry.models.environment import Environment
-    from sentry.models.project import Project
-    from sentry.models.release import Release
-    from sentry.snuba.models import QuerySubscription
 
 
 class ReleaseStages(str, Enum):
     ADOPTED = "adopted"
     LOW_ADOPTION = "low_adoption"
     REPLACED = "replaced"
-
-
-class ReleaseProjectEnvironmentManager(BaseManager["ReleaseProjectEnvironment"]):
-    @staticmethod
-    def subscribe_project_to_alert_rule(
-        project: Project, release: Release, environment: Environment, trigger: str
-    ) -> list[QuerySubscription]:
-        """
-        TODO: potentially enable custom query_extra to be passed on ReleaseProject creation (on release/deploy)
-
-        NOTE: import AlertRule model here to avoid circular dependency
-        """
-        from sentry.incidents.models.alert_rule import AlertRule
-
-        query_extra = f"release:{release.version} and environment:{environment.name}"
-        # TODO: parse activator on the client to derive release version / environment name
-        activator = f"release:{release.version} and environment:{environment.name}"
-        return AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
-            project=project,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-            query_extra=query_extra,
-            origin=trigger,
-            activator=activator,
-        )
-
-    def post_save(
-        self, *, instance: ReleaseProjectEnvironment, created: bool, **kwargs: object
-    ) -> None:
-        if created:
-            release = instance.release
-            project = instance.project
-            environment = instance.environment
-            self.subscribe_project_to_alert_rule(
-                project=project,
-                release=release,
-                environment=environment,
-                trigger="releaseprojectenvironment.post_save",
-            )
 
 
 @region_silo_model
@@ -85,8 +38,6 @@ class ReleaseProjectEnvironment(Model):
 
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)
-
-    objects: ClassVar[ReleaseProjectEnvironmentManager] = ReleaseProjectEnvironmentManager()
 
     class Meta:
         app_label = "sentry"
