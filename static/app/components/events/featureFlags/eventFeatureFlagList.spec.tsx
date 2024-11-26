@@ -219,7 +219,6 @@ describe('EventFeatureFlagList', function () {
 
   it('renders cta if event.contexts.flags is not set and should show cta', async function () {
     render(<EventFeatureFlagList {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />);
-    screen.logTestingPlaygroundURL();
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
@@ -230,8 +229,8 @@ describe('EventFeatureFlagList', function () {
     ).not.toBeInTheDocument();
 
     // wait for the CTA to be rendered
-    expect(await screen.findByText('Feature Flags')).toBeInTheDocument();
-    expect(screen.getByText('Set Up Feature Flags')).toBeInTheDocument();
+    expect(await screen.findByText('Set Up Feature Flags')).toBeInTheDocument();
+    expect(screen.getByText('Feature Flags')).toBeInTheDocument();
   });
 
   it('renders nothing if event.contexts.flags is not set and should not show cta', function () {
