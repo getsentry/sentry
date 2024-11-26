@@ -339,9 +339,6 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
-            "monitor_type": 0,
-            "activator": "",
-            "condition_type": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
