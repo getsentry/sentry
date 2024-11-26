@@ -1,7 +1,4 @@
-from sentry.sentry_apps.services.region_app_request_buffer import (
-    SentryAppRequestFilterArgs,
-    region_app_service,
-)
+from sentry.sentry_apps.services.app_request import SentryAppRequestFilterArgs, app_request_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -42,8 +39,8 @@ class TestRegionApp(TestCase):
             event="issue.assigned",
             url=self.app.webhook_url,
         )
-        requests = region_app_service.get_buffer_requests_for_region(
-            sentry_app=self.app, region_name="us"
+        requests = app_request_service.get_buffer_requests_for_region(
+            sentry_app_id=self.app.id, region_name="us"
         )
         assert len(requests) == 1
         assert requests[0].organization_id == self.org.id
@@ -58,8 +55,8 @@ class TestRegionApp(TestCase):
             error_id="d5111da2c28645c5889d072017e3445d",
             project_id=1,
         )
-        requests = region_app_service.get_buffer_requests_for_region(
-            sentry_app=self.app, region_name="us"
+        requests = app_request_service.get_buffer_requests_for_region(
+            sentry_app_id=self.app.id, region_name="us"
         )
         assert len(requests) == 1
         assert requests[0].error_id == "d5111da2c28645c5889d072017e3445d"
@@ -80,8 +77,8 @@ class TestRegionApp(TestCase):
             url=self.app.webhook_url,
         )
         filter: SentryAppRequestFilterArgs = {"event": "issue.assigned"}
-        requests = region_app_service.get_buffer_requests_for_region(
-            sentry_app=self.app, region_name="us", filter=filter
+        requests = app_request_service.get_buffer_requests_for_region(
+            sentry_app_id=self.app.id, region_name="us", filter=filter
         )
         assert len(requests) == 1
         assert requests[0].organization_id == self.org.id

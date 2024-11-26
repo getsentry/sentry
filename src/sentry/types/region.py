@@ -348,17 +348,21 @@ def find_regions_for_user(user_id: int) -> set[str]:
 
 @control_silo_function
 def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
+    from sentry.models.organizationmapping import OrganizationMapping
     from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
 
-    org_ids = set(
-        SentryAppInstallation.objects.filter(sentry_app=sentry_app).values_list(
-            "organization_id", flat=True
-        )
+    organizations_with_installations = SentryAppInstallation.objects.filter(
+        sentry_app=sentry_app
+    ).values_list("organization_id")
+    regions = (
+        OrganizationMapping.objects.filter(organization_id__in=organizations_with_installations)
+        .distinct("region_name")
+        .values_list("region_name")
     )
-    return find_regions_for_orgs(org_ids)
+    return {r[0] for r in regions}
 
 
 def find_all_region_names() -> Iterable[str]:

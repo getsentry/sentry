@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.sentry_apps.services.region_app_request_buffer.model import (
+from sentry.sentry_apps.services.app_request.model import (
     RpcSentryAppRequest,
     RpcSentryAppRequestHeaders,
 )
