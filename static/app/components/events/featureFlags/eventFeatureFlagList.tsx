@@ -99,9 +99,7 @@ export function EventFeatureFlagList({
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
   const showCTA =
-    !hasFlagContext &&
-    ['javascript', 'python'].includes(group.project.platform ?? '') &&
-    true; // TODO: make this last condition a feature flag for users who have LD integrated
+    !hasFlagContext && ['javascript', 'python'].includes(project.platform ?? '') && true; // TODO: make this last condition a feature flag for users who have LD integrated
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending

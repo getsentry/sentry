@@ -41,11 +41,22 @@ export const EMPTY_STATE_SECTION_PROPS = {
   group: GroupFixture(),
 };
 
-export const NO_FLAG_CONTEXT_SECTION_PROPS = {
+export const NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA = {
   event: EventFixture({
     id: 'abc123def456ghi789jkl',
     contexts: {other: {}},
+    platform: 'javascript-react',
   }),
-  project: ProjectFixture(),
-  group: GroupFixture(),
+  project: ProjectFixture({platform: 'javascript-react'}),
+  group: GroupFixture({platform: 'javascript-react'}),
+};
+
+export const NO_FLAG_CONTEXT_SECTION_PROPS_CTA = {
+  event: EventFixture({
+    id: 'abc123def456ghi789jkl',
+    contexts: {other: {}},
+    platform: 'javascript',
+  }),
+  project: ProjectFixture({platform: 'javascript'}),
+  group: GroupFixture({platform: 'javascript'}),
 };

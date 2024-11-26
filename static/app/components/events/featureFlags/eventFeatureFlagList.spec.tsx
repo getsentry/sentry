@@ -12,7 +12,8 @@ import {
   EMPTY_STATE_SECTION_PROPS,
   MOCK_DATA_SECTION_PROPS,
   MOCK_FLAGS,
-  NO_FLAG_CONTEXT_SECTION_PROPS,
+  NO_FLAG_CONTEXT_SECTION_PROPS_CTA,
+  NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA,
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
@@ -30,6 +31,10 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 
 describe('EventFeatureFlagList', function () {
   beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {}},
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
@@ -212,8 +217,25 @@ describe('EventFeatureFlagList', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders nothing if event.contexts.flags is not set', function () {
-    render(<EventFeatureFlagList {...NO_FLAG_CONTEXT_SECTION_PROPS} />);
+  it('renders cta if event.contexts.flags is not set and should show cta', async function () {
+    render(<EventFeatureFlagList {...NO_FLAG_CONTEXT_SECTION_PROPS_CTA} />);
+    screen.logTestingPlaygroundURL();
+
+    const control = screen.queryByRole('button', {name: 'Sort Flags'});
+    expect(control).not.toBeInTheDocument();
+    const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
+    expect(search).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Set Up Integration'})
+    ).not.toBeInTheDocument();
+
+    // wait for the CTA
+    expect(await screen.findByText('Feature Flags')).toBeInTheDocument();
+    expect(screen.getByText('Set Up Feature Flags')).toBeInTheDocument();
+  });
+
+  it('renders nothing if event.contexts.flags is not set and should not show cta', function () {
+    render(<EventFeatureFlagList {...NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA} />);
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
@@ -223,5 +245,6 @@ describe('EventFeatureFlagList', function () {
       screen.queryByRole('button', {name: 'Set Up Integration'})
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Feature Flags')).not.toBeInTheDocument();
+    expect(screen.queryByText('Set Up Feature Flags')).not.toBeInTheDocument();
   });
 });
