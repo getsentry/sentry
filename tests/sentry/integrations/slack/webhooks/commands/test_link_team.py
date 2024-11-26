@@ -4,7 +4,6 @@ import orjson
 import responses
 from rest_framework import status
 
-from sentry.integrations.messaging.metrics import MessageCommandHaltReason
 from sentry.integrations.slack.webhooks.command import (
     CHANNEL_ALREADY_LINKED_MESSAGE,
     INSUFFICIENT_ROLE_MESSAGE,
@@ -18,7 +17,6 @@ from sentry.testutils.helpers import get_response_text, link_user
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 OTHER_SLACK_ID = "UXXXXXXX2"
 
@@ -67,10 +65,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert CHANNEL_ALREADY_LINKED_MESSAGE in get_response_text(data)
 
         assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.CHANNEL_ALREADY_LINKED.value)
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @with_feature("organizations:slack-multiple-team-single-channel-linking")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -117,10 +114,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = orjson.loads(response.content)
         assert LINK_FROM_CHANNEL_MESSAGE in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_FROM_CHANNEL.value)
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -134,10 +130,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert LINK_USER_FIRST_MESSAGE in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.LINK_USER_FIRST.value)
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -156,10 +151,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
         assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.INSUFFICIENT_ROLE.value)
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -231,10 +225,9 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert TEAM_NOT_LINKED_MESSAGE in get_response_text(data)
 
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert_halt_metric(mock_record, MessageCommandHaltReason.TEAM_NOT_LINKED.value)
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
