@@ -73,7 +73,7 @@ export type AutofixData = {
 export type AutofixProgressItem = {
   message: string;
   timestamp: string;
-  type: AutofixStatus;
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
 };
 
