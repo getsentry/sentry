@@ -5,7 +5,6 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
