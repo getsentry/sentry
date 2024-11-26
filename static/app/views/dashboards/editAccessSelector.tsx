@@ -40,15 +40,15 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
 
-  // Retrieves teams from the team store, which may contain only a subset of all teams
-  const {teams: teamsToRender} = useTeamsById();
-  const {onSearch} = useTeams();
-  const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
-
   const organization = useOrganization();
   const userCanEditDashboardPermissions =
     dashboardCreator?.id === currentUser.id ||
     hasEveryAccess(['org:write'], {organization});
+
+  // Retrieves teams from the team store, which may contain only a subset of all teams
+  const {teams: teamsToRender} = useTeamsById();
+  const {onSearch} = useTeams();
+  const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
@@ -243,8 +243,6 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
           title={t('This feature is available for early adopters and may change')}
           tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
         />,
-        t('Edit Access:'),
-        triggerAvatars,
       ]}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
