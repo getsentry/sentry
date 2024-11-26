@@ -5,8 +5,8 @@ import {
   getCurrentThread,
   getThreadById,
   objectToSortedTupleArray,
-  removeFilterMaskedEntries,
   stringifyQueryList,
+  userContextToActor,
 } from 'sentry/components/events/interfaces/utils';
 import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
 import {FILTER_MASK} from 'sentry/constants';
@@ -268,12 +268,21 @@ describe('components/interfaces/utils', function () {
       email: FILTER_MASK,
     };
     it('should remove filtered values', function () {
-      const result = removeFilterMaskedEntries(rawData);
+      const result = userContextToActor(rawData);
+      expect(result).not.toHaveProperty('name');
+      expect(result).not.toHaveProperty('email');
+    });
+    it('should remove boolean values', function () {
+      const result = userContextToActor({
+        ...rawData,
+        name: true,
+        email: false,
+      });
       expect(result).not.toHaveProperty('name');
       expect(result).not.toHaveProperty('email');
     });
     it('should preserve unfiltered values', function () {
-      const result = removeFilterMaskedEntries(rawData);
+      const result = userContextToActor(rawData);
       expect(result).toHaveProperty('id');
       expect(result.id).toEqual('26');
       expect(result).toHaveProperty('username');

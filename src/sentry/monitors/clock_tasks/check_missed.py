@@ -161,4 +161,9 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         monitor.schedule,
     )
 
-    mark_failed(checkin, ts=most_recent_expected_ts)
+    mark_failed(
+        checkin,
+        failed_at=most_recent_expected_ts,
+        received=ts,
+        clock_tick=ts,
+    )

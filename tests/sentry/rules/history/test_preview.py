@@ -24,7 +24,7 @@ from sentry.rules.history.preview import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils.samples import load_data
@@ -71,7 +71,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             project_id=self.project.id,
             data={
-                "timestamp": iso_format(timezone.now() - timedelta(hours=1)),
+                "timestamp": (timezone.now() - timedelta(hours=1)).isoformat(),
                 **data,
             },
         )
@@ -679,7 +679,7 @@ class FrequencyConditionTest(
 
         event_data.update(
             {
-                "start_timestamp": iso_format(prev_hour - timedelta(minutes=1)),
+                "start_timestamp": (prev_hour - timedelta(minutes=1)).isoformat(),
                 "timestamp": prev_hour.isoformat(),
                 "tags": {"foo": "bar"},
             }

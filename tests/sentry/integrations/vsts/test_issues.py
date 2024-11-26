@@ -199,6 +199,16 @@ class VstsIssueSyncTest(VstsIssueBase):
         ]
 
     @responses.activate
+    def test_create_issue_failure(self):
+        form_data = {
+            "title": "rip",
+            "description": "Goodnight, sweet prince",
+        }
+
+        with pytest.raises(ValueError):
+            self.integration.create_issue(form_data)
+
+    @responses.activate
     def test_get_issue(self):
         responses.add(
             responses.GET,

@@ -19,7 +19,10 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_request,
+)
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -266,7 +269,7 @@ class VerifyInstallation(PipelineView):
                     request, BitbucketIntegrationProvider.key
                 )
             except AtlassianConnectValidationError as e:
-                lifecycle.record_failure({"failure_reason": str(e)})
+                lifecycle.record_failure(str(e))
                 return pipeline.error("Unable to verify installation.")
 
             pipeline.bind_state("external_id", integration.external_id)

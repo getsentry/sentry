@@ -1016,6 +1016,13 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
+    def test_monitor_update_check_in_volumne(self, update_check_in_volume):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        self.send_checkin(monitor.slug)
+        assert update_check_in_volume.call_count == 1
+
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
     def test_monitor_tasks_trigger(self, try_monitor_clock_tick):
         monitor = self._create_monitor(slug="my-monitor")
@@ -1037,6 +1044,34 @@ class MonitorConsumerTest(TestCase):
             assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
             logger.exception.assert_called_with("Failed to trigger monitor tasks")
             try_monitor_clock_tick.side_effect = None
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.update_check_in_volume")
+    def test_parallel_monitor_update_check_in_volume(self, update_check_in_volume):
+        factory = StoreMonitorCheckInStrategyFactory(mode="parallel", max_batch_size=4)
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        monitor = self._create_monitor(slug="my-monitor")
+
+        now = datetime.now().replace(second=5)
+
+        # Send enough check-ins to process the batch
+        self.send_checkin(monitor.slug, consumer=consumer, ts=now)
+        self.send_checkin(monitor.slug, consumer=consumer, ts=now + timedelta(seconds=10))
+        self.send_checkin(monitor.slug, consumer=consumer, ts=now + timedelta(seconds=30))
+        self.send_checkin(monitor.slug, consumer=consumer, ts=now + timedelta(minutes=1))
+
+        # One final check-in will trigger the batch to process (but will not
+        # yet be processed itself)
+        self.send_checkin(monitor.slug, consumer=consumer, ts=now + timedelta(minutes=2))
+
+        assert update_check_in_volume.call_count == 1
+        assert list(update_check_in_volume.call_args_list[0][0][0]) == [
+            now,
+            now + timedelta(seconds=10),
+            now + timedelta(seconds=30),
+            now + timedelta(minutes=1),
+        ]
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
     def test_parallel_monitor_task_triggers(self, try_monitor_clock_tick):

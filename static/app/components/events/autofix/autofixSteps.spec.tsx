@@ -59,7 +59,7 @@ describe('AutofixSteps', () => {
 
     expect(screen.getByText('Root cause 1')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Provide any instructions for the fix...')
+      screen.getByPlaceholderText('(Optional) Provide any instructions for the fix...')
     ).toBeInTheDocument();
   });
 
@@ -72,7 +72,9 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...defaultProps} />);
 
-    const input = screen.getByPlaceholderText('Provide any instructions for the fix...');
+    const input = screen.getByPlaceholderText(
+      '(Optional) Provide any instructions for the fix...'
+    );
     await userEvent.type(input, 'Custom root cause');
     await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
 
@@ -105,7 +107,7 @@ describe('AutofixSteps', () => {
     render(<AutofixSteps {...defaultProps} />);
 
     const messageBox = screen.getByPlaceholderText(
-      'Provide any instructions for the fix...'
+      '(Optional) Provide any instructions for the fix...'
     );
     expect(messageBox).toBeInTheDocument();
 
@@ -147,7 +149,6 @@ describe('AutofixSteps', () => {
       url: '/issues/group1/autofix/setup/',
       body: {
         genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [],
@@ -159,6 +160,9 @@ describe('AutofixSteps', () => {
       method: 'POST',
       body: {},
     });
+
+    const changeData = AutofixCodebaseChangeData();
+    changeData.pull_request = undefined;
 
     const propsWithChanges = {
       ...defaultProps,
@@ -178,7 +182,7 @@ describe('AutofixSteps', () => {
             type: AutofixStepType.CHANGES,
             status: 'COMPLETED',
             progress: [],
-            changes: [AutofixCodebaseChangeData()],
+            changes: [changeData],
           }),
         ],
       },
@@ -186,12 +190,12 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...propsWithChanges} />);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Feedback on changes');
     await userEvent.click(screen.getByRole('button', {name: 'Send'}));
 
     await waitFor(() => {
-      expect(addSuccessMessage).toHaveBeenCalledWith("Thanks, I'll rethink this...");
+      expect(addSuccessMessage).toHaveBeenCalledWith('Thanks, rethinking this...');
     });
   });
 });

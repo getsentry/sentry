@@ -4,10 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
-import {hasQuickStartUpdatesFeature} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -19,7 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -48,12 +46,13 @@ export default function OnboardingStatus({
   const {shouldAccordionFloat} = useContext(ExpandedContext);
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const walkthrough = isDemoWalkthrough();
+  const walkthrough = isDemoModeEnabled();
 
   const handleToggle = useCallback(() => {
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
         organization: org,
+        new_experience: false,
       });
     }
     onShowPanel();
@@ -65,9 +64,7 @@ export default function OnboardingStatus({
     onboardingContext,
   });
 
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
+  const allDisplayedTasks = tasks.filter(task => task.display);
 
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
@@ -89,6 +86,7 @@ export default function OnboardingStatus({
     trackAnalytics('quick_start.completed', {
       organization: org,
       referrer: 'onboarding_sidebar',
+      new_experience: false,
     });
   }, [isActive, allTasksCompleted, org]);
 
@@ -127,20 +125,13 @@ export default function OnboardingStatus({
           </div>
         )}
       </Container>
-      {isActive &&
-        (hasQuickStartUpdatesFeature(org) ? (
-          <NewOnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-          />
-        ) : (
-          <OnboardingSidebar
-            orientation={orientation}
-            collapsed={collapsed}
-            onClose={hidePanel}
-          />
-        ))}
+      {isActive && (
+        <OnboardingSidebar
+          orientation={orientation}
+          collapsed={collapsed}
+          onClose={hidePanel}
+        />
+      )}
     </Fragment>
   );
 }

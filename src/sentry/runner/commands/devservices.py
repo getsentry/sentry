@@ -125,15 +125,13 @@ def get_docker_client() -> Generator[docker.DockerClient]:
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["network"], name: str
-) -> docker.models.networks.Network:
-    ...
+) -> docker.models.networks.Network: ...
 
 
 @overload
 def get_or_create(
     client: docker.DockerClient, thing: Literal["volume"], name: str
-) -> docker.models.volumes.Volume:
-    ...
+) -> docker.models.volumes.Volume: ...
 
 
 def get_or_create(
@@ -426,8 +424,7 @@ def _start_service(
     project: str,
     always_start: Literal[False] = ...,
     recreate: bool = False,
-) -> docker.models.containers.Container:
-    ...
+) -> docker.models.containers.Container: ...
 
 
 @overload
@@ -438,8 +435,7 @@ def _start_service(
     project: str,
     always_start: bool = False,
     recreate: bool = False,
-) -> docker.models.containers.Container | None:
-    ...
+) -> docker.models.containers.Container | None: ...
 
 
 def _start_service(

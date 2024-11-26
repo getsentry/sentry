@@ -1,4 +1,5 @@
 """split out from sentry.utils.services to handle mypy plugin specialization"""
+
 from __future__ import annotations
 
 import enum

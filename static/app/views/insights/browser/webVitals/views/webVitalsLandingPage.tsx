@@ -34,6 +34,7 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -42,6 +43,8 @@ import {
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
+
+const WEB_VITALS_COUNT = 5;
 
 export function WebVitalsLandingPage() {
   const location = useLocation();
@@ -95,69 +98,85 @@ export function WebVitalsLandingPage() {
         </Layout.Header>
       )}
 
-      {isInDomainView && <FrontendHeader module={ModuleName.VITAL} />}
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <TopMenuContainer>
-            <ModulePageFilterBar
-              moduleName={ModuleName.VITAL}
-              extraFilters={
-                <Fragment>
-                  <BrowserTypeSelector />
-                </Fragment>
-              }
-            />
-          </TopMenuContainer>
-          <MainContentContainer>
-            <ModulesOnboarding moduleName={ModuleName.VITAL}>
-              <PerformanceScoreChartContainer>
-                <PerformanceScoreChart
-                  projectScore={projectScore}
-                  isProjectScoreLoading={isPending || isProjectScoresLoading}
-                  webVital={state.webVital}
-                  browserTypes={browserTypes}
-                  subregions={subregions}
-                />
-              </PerformanceScoreChartContainer>
-              <WebVitalMetersContainer>
-                <WebVitalMeters
-                  projectData={projectData}
-                  projectScore={projectScore}
-                  onClick={webVital => setState({...state, webVital})}
-                />
-              </WebVitalMetersContainer>
-              <PagePerformanceTable />
-              <PagesTooltipContainer>
-                <Tooltip
-                  isHoverable
-                  title={
-                    <div>
+      {isInDomainView && (
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {MODULE_TITLE}
+              <PageHeadingQuestionTooltip
+                docsUrl={MODULE_DOC_LINK}
+                title={MODULE_DESCRIPTION}
+              />
+            </Fragment>
+          }
+          module={ModuleName.VITAL}
+        />
+      )}
+      <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <TopMenuContainer>
+              <ModulePageFilterBar
+                moduleName={ModuleName.VITAL}
+                extraFilters={
+                  <Fragment>
+                    <BrowserTypeSelector />
+                  </Fragment>
+                }
+              />
+            </TopMenuContainer>
+            <MainContentContainer>
+              <ModulesOnboarding moduleName={ModuleName.VITAL}>
+                <PerformanceScoreChartContainer>
+                  <PerformanceScoreChart
+                    projectScore={projectScore}
+                    isProjectScoreLoading={isPending || isProjectScoresLoading}
+                    webVital={state.webVital}
+                    browserTypes={browserTypes}
+                    subregions={subregions}
+                  />
+                </PerformanceScoreChartContainer>
+                <WebVitalMetersContainer>
+                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
+                  <WebVitalMeters
+                    projectData={projectData}
+                    projectScore={projectScore}
+                    onClick={webVital => setState({...state, webVital})}
+                  />
+                </WebVitalMetersContainer>
+                <PagePerformanceTable />
+                <PagesTooltipContainer>
+                  <Tooltip
+                    isHoverable
+                    title={
                       <div>
-                        {tct(
-                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
-                          {
-                            link: (
-                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
-                            ),
-                          }
-                        )}
+                        <div>
+                          {tct(
+                            'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
+                            {
+                              link: (
+                                <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
+                              ),
+                            }
+                          )}
+                        </div>
+                        <br />
+                        <div>
+                          {t(
+                            'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
+                          )}
+                        </div>
                       </div>
-                      <br />
-                      <div>
-                        {t(
-                          'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
-                        )}
-                      </div>
-                    </div>
-                  }
-                >
-                  <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
-                </Tooltip>
-              </PagesTooltipContainer>
-            </ModulesOnboarding>
-          </MainContentContainer>
-        </Layout.Main>
-      </Layout.Body>
+                    }
+                  >
+                    <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
+                  </Tooltip>
+                </PagesTooltipContainer>
+              </ModulesOnboarding>
+            </MainContentContainer>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
       <WebVitalsDetailPanel
         webVital={state.webVital}
         onClose={() => {
@@ -169,6 +188,16 @@ export function WebVitalsLandingPage() {
         }}
       />
     </React.Fragment>
+  );
+}
+
+function WebVitalMetersPlaceholder() {
+  return (
+    <LoadingBoxContainer>
+      {[...Array(WEB_VITALS_COUNT)].map((_, index) => (
+        <LoadingBox key={index} />
+      ))}
+    </LoadingBoxContainer>
   );
 }
 
@@ -201,6 +230,26 @@ const MainContentContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const LoadingBoxContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  gap: ${space(1)};
+  align-items: center;
+  flex-wrap: wrap;
+
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingBox = styled('div')`
+  flex: 1;
+  min-width: 140px;
+  height: 90px;
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export const AlertContent = styled('div')`

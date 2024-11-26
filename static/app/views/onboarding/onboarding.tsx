@@ -130,6 +130,8 @@ function Onboarding(props: Props) {
           category: frameworkCategory,
           language: platform.language,
           type: platform.type,
+          link: platform.link,
+          name: platform.name,
         },
       });
     }

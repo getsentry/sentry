@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -132,16 +133,24 @@ const JobTick = styled('div')<{
 
   ${p =>
     p.roundedLeft &&
-    `
-    border-top-left-radius: 2px;
-    border-bottom-left-radius: 2px;
-  `};
+    css`
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    `};
   ${p =>
     p.roundedRight &&
-    `
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
-  `}
-  ${p => !p.roundedLeft && 'border-left-width: 0'};
-  ${p => !p.roundedRight && 'border-right-width: 0'};
+    css`
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    `}
+  ${p =>
+    !p.roundedLeft &&
+    css`
+      border-left-width: 0;
+    `};
+  ${p =>
+    !p.roundedRight &&
+    css`
+      border-right-width: 0;
+    `};
 `;

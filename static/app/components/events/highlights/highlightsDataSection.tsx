@@ -159,7 +159,7 @@ function HighlightsData({
   const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
-  const replayId =
+  const replayId: string | undefined =
     contextReplayId !== EMPTY_HIGHLIGHT_DEFAULT
       ? contextReplayId
       : tagReplayId !== EMPTY_HIGHLIGHT_DEFAULT

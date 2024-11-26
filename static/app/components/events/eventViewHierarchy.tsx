@@ -45,7 +45,7 @@ function EventViewHierarchyContent({event, project}: Props) {
         ? getAttachmentUrl({
             attachment: hierarchyMeta,
             eventId: hierarchyMeta.event_id,
-            orgId: organization.slug,
+            orgSlug: organization.slug,
             projectSlug: project.slug,
           })
         : '',

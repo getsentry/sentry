@@ -1,8 +1,7 @@
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
 from django.utils.http import url_has_allowed_host_and_scheme
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.models.group import Group
@@ -15,7 +14,9 @@ from sentry.web.frontend.base import ProjectView, region_silo_view
 class GroupPluginActionView(ProjectView):
     required_scope = "event:read"
 
-    def handle(self, request: Request, organization, project, group_id, slug) -> Response:
+    def handle(
+        self, request: HttpRequest, organization, project, group_id, slug
+    ) -> HttpResponseBase:
         group = get_object_or_404(Group, pk=group_id, project=project)
 
         try:

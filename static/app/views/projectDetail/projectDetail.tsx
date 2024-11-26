@@ -10,6 +10,7 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
@@ -206,7 +207,9 @@ export default function ProjectDetail({router, location, organization}: Props) {
             </Layout.Header>
 
             <Layout.Body noRowGap>
-              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
+              <ErrorBoundary customComponent={null}>
+                {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
+              </ErrorBoundary>
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters

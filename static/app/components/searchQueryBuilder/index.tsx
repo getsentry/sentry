@@ -145,7 +145,7 @@ function SearchIndicator({
 
 const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
   ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled} = useSearchQueryBuilder();
+    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
     if (disabled) {
       return null;
@@ -154,16 +154,18 @@ const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNod
     return (
       <ButtonsWrapper ref={ref}>
         {trailingItems}
-        <ActionButton
-          aria-label={t('Clear search query')}
-          size="zero"
-          icon={<IconClose />}
-          borderless
-          onClick={() => {
-            dispatch({type: 'CLEAR'});
-            handleSearch('');
-          }}
-        />
+        {query === '' ? null : (
+          <ActionButton
+            aria-label={t('Clear search query')}
+            size="zero"
+            icon={<IconClose />}
+            borderless
+            onClick={() => {
+              dispatch({type: 'CLEAR'});
+              handleSearch('');
+            }}
+          />
+        )}
       </ButtonsWrapper>
     );
   }

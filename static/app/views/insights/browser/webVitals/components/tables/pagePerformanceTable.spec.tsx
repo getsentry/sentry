@@ -147,11 +147,11 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/browser/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+      '/organizations/org-slug/insights/frontend/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
     );
 
-    expect(screen.getByRole('cell', {name: 'frontend'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'frontend'})).toHaveAttribute(
+    expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Project Details'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/frontend/?project=11276'
     );

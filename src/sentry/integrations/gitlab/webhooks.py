@@ -314,9 +314,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
             logger.info("We only support these kinds of events: %s", supported_events)
-            extra[
-                "reason"
-            ] = "The customer has edited the webhook in Gitlab to include other types of events."
+            extra["reason"] = (
+                "The customer has edited the webhook in Gitlab to include other types of events."
+            )
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 

@@ -20,7 +20,7 @@ import type {TraceTreeNode} from '../../../traceModels/traceTreeNode';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -79,11 +79,11 @@ export function GeneralInfo(props: GeneralInfoProps) {
 
   const isLoading = useMemo(() => {
     return (
-      props.metaResults.isLoading ||
+      props.meta.status === 'pending' ||
       (props.rootEventResults.isPending && props.rootEventResults.fetchStatus !== 'idle')
     );
   }, [
-    props.metaResults.isLoading,
+    props.meta.status,
     props.rootEventResults.isPending,
     props.rootEventResults.fetchStatus,
   ]);
@@ -129,8 +129,8 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'events',
       subject: t('Events'),
-      value: props.metaResults.data
-        ? props.metaResults.data.transactions + props.metaResults.data.errors
+      value: props.meta.data
+        ? props.meta.data.transactions + props.meta.data.errors
         : '\u2014',
     },
     {

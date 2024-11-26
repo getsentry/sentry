@@ -1,8 +1,10 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -10,12 +12,13 @@ import {space} from 'sentry/styles/space';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   aggregateOutputType,
-  formatParsedFunction,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
@@ -35,6 +38,7 @@ import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
 const exploreChartTypeOptions = [
@@ -55,9 +59,8 @@ const exploreChartTypeOptions = [
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 // TODO: Update to support aggregate mode and multiple queries / visualizations
-export function ExploreCharts({query}: ExploreChartsProps) {
+export function ExploreCharts({query, setError}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
-
   const [dataset] = useDataset();
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -90,9 +93,16 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     return deduped;
   }, [visualizes]);
 
+  const search = new MutableSearch(query);
+
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  search.addFilterValues('!transaction.span_id', ['00']);
+
   const timeSeriesResult = useSortedTimeSeries(
     {
-      search: new MutableSearch(query ?? ''),
+      search,
       yAxis: yAxes,
       interval: interval ?? getInterval(pageFilters.selection.datetime, 'metrics'),
       fields,
@@ -103,11 +113,28 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     dataset
   );
 
+  useEffect(() => {
+    setError(timeSeriesResult.error?.message ?? '');
+  }, [setError, timeSeriesResult.error?.message]);
+
   const getSeries = useCallback(
-    (dedupedYAxes: string[]) => {
-      return dedupedYAxes.flatMap(yAxis => {
-        const series = timeSeriesResult.data[yAxis];
-        return series !== undefined ? series : [];
+    (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
+      return dedupedYAxes.flatMap((yAxis, i) => {
+        const series = timeSeriesResult.data[yAxis] ?? [];
+        return series.map(s => {
+          // We replace the series name with the formatted series name here
+          // when possible as it's cleaner to read.
+          //
+          // We can't do this in top N mode as the series name uses the row
+          // values instead of the aggregate function.
+          if (s.seriesName === yAxis) {
+            return {
+              ...s,
+              seriesName: formattedYAxes[i] ?? yAxis,
+            };
+          }
+          return s;
+        });
       });
     },
     [timeSeriesResult]
@@ -128,19 +155,19 @@ export function ExploreCharts({query}: ExploreChartsProps) {
     EXPLORE_CHART_GROUP
   );
 
+  const shouldRenderLabel = visualizes.length > 1;
+
   return (
     <Fragment>
       {visualizes.map((visualize, index) => {
         const dedupedYAxes = dedupeArray(visualize.yAxes);
 
-        const formattedYAxes = dedupedYAxes
-          .map(yaxis => {
-            const func = parseFunction(yaxis);
-            return func ? formatParsedFunction(func) : undefined;
-          })
-          .filter(Boolean);
+        const formattedYAxes = dedupedYAxes.map(yaxis => {
+          const func = parseFunction(yaxis);
+          return func ? prettifyParsedFunction(func) : undefined;
+        });
 
-        const {chartType} = visualize;
+        const {chartType, label, yAxes: visualizeYAxes} = visualize;
         const chartIcon =
           chartType === ChartType.LINE
             ? 'line'
@@ -148,14 +175,22 @@ export function ExploreCharts({query}: ExploreChartsProps) {
               ? 'area'
               : 'bar';
 
+        const data = getSeries(dedupedYAxes, formattedYAxes);
+
+        const outputTypes = new Set(
+          formattedYAxes.filter(Boolean).map(aggregateOutputType)
+        );
+
         return (
           <ChartContainer key={index}>
             <ChartPanel>
               <ChartHeader>
-                <ChartTitle>{formattedYAxes.join(',')}</ChartTitle>
-                <ChartSettingsContainer>
+                {shouldRenderLabel && <ChartLabel>{label}</ChartLabel>}
+                <ChartTitle>{formattedYAxes.filter(Boolean).join(', ')}</ChartTitle>
+                <Tooltip
+                  title={t('Type of chart displayed in this visualization (ex. line)')}
+                >
                   <CompactSelect
-                    triggerLabel=""
                     triggerProps={{
                       icon: <IconGraph type={chartIcon} />,
                       borderless: true,
@@ -167,8 +202,11 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     options={exploreChartTypeOptions}
                     onChange={option => handleChartTypeChange(option.value, index)}
                   />
+                </Tooltip>
+                <Tooltip
+                  title={t('Time interval displayed in this visualization (ex. 5m)')}
+                >
                   <CompactSelect
-                    triggerLabel=""
                     value={interval}
                     onChange={({value}) => setInterval(value)}
                     triggerProps={{
@@ -180,7 +218,13 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                     menuTitle="Interval"
                     options={intervalOptions}
                   />
-                </ChartSettingsContainer>
+                </Tooltip>
+                <ChartContextMenu
+                  visualizeYAxes={visualizeYAxes}
+                  query={query}
+                  interval={interval}
+                  visualizeIndex={index}
+                />
               </ChartHeader>
               <Chart
                 height={CHART_HEIGHT}
@@ -191,15 +235,17 @@ export function ExploreCharts({query}: ExploreChartsProps) {
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
-                data={getSeries(dedupedYAxes)}
+                data={data}
                 error={timeSeriesResult.error}
                 loading={timeSeriesResult.isPending}
                 chartGroup={EXPLORE_CHART_GROUP}
                 // TODO Abdullah: Make chart colors dynamic, with changing topN events count and overlay count.
                 chartColors={CHART_PALETTE[TOP_EVENTS_LIMIT - 1]}
                 type={chartType}
-                // for now, use the first y axis unit
-                aggregateOutputFormat={aggregateOutputType(dedupedYAxes[0])}
+                aggregateOutputFormat={
+                  outputTypes.size === 1 ? outputTypes.keys().next().value : undefined
+                }
+                showLegend
               />
             </ChartPanel>
           </ChartContainer>
@@ -218,14 +264,23 @@ const ChartContainer = styled('div')`
 
 const ChartHeader = styled('div')`
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
 `;
 
 const ChartTitle = styled('div')`
   ${p => p.theme.text.cardTitle}
+  line-height: 32px;
+  flex: 1;
 `;
 
-const ChartSettingsContainer = styled('div')`
-  display: flex;
+const ChartLabel = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  min-width: 32px;
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
+  margin-right: ${space(1)};
 `;

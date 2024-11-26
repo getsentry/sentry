@@ -16,15 +16,11 @@ Required context variables:
     <link rel="icon" type="image/png" href="{% absolute_asset_url "sentry" "images/favicon.png" %}">
   </head>
   <body>
-    <form id="login-form">
-      <button type="submit">Log in</button>
-    </form>
-
     {% script %}
     <script>
       (function() {
         const referrer = '{{ referrer|escapejs }}';
-        const state = '{{ state|escapejs }}';
+        const state = '{{ state|escapejs }}'; // enum of: logged-out, missing-project, invalid-domain, logged-in
         const logging = '{{ logging|escapejs }}';
         const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
@@ -35,19 +31,24 @@ Required context variables:
           }
         }
 
-        function setupLoginForm() {
-          log('setupLoginForm()');
-          const form = document.getElementById('login-form');
-          form.addEventListener('submit', submitEvent => {
-            submitEvent.preventDefault();
-            window.open(
-              `/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/`,
-              'sentry-toolbar-auth-popup',
-              'popup=true,innerWidth=800,innerHeight=550,noopener=false'
-            );
-          });
+        function requestAuthn(delay_ms) {
+          const origin = window.location.origin.endsWith('.sentry.io')
+            ? 'https://sentry.io'
+            : window.location.origin;
+
+          window.open(
+            `${origin}/toolbar/${organizationSlug}/${projectIdOrSlug}/login-success/?delay=${delay_ms ?? '0'}`,
+            'sentry-toolbar-auth-popup',
+            'popup=true,innerWidth=800,innerHeight=550,noopener=false'
+          );
         }
 
+        /**
+         * This should only be called on pageload, which is when the server has
+         * checked for auth, project validity, and domain config first.
+         *
+         * Also to be called when we clear auth tokens.
+         */
         function sendStateMessage(state) {
           log('sendStateMessage(state)', { state });
           window.parent.postMessage({
@@ -65,26 +66,65 @@ Required context variables:
             log('window.onMessage', messageEvent.data, messageEvent);
             if (messageEvent.data.message === 'did-login') {
               saveAccessToken(messageEvent.data);
-              setupMessageChannel();
+              window.location.reload();
             }
           });
+        }
+
+        function getCookieValue(cookie) {
+          return `${cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
         }
 
         function saveAccessToken(data) {
           log('saveAccessToken', data)
           if (data.cookie) {
-            const value = `${data.cookie}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
-            document.cookie = value
-            log('Saved a cookie', document.cookie.indexOf(cookie) >= 0, cookie);
-            localStorage.setItem('cookie', data.cookie);
+            document.cookie = getCookieValue(data.cookie);
+            log('Saved a cookie', document.cookie.indexOf(data.cookie) >= 0);
           }
           if (data.token) {
             localStorage.setItem('accessToken', data.token);
-            log('Saved an accessToken to localStorage', data.token);
+            log('Saved an accessToken to localStorage');
           }
           if (!data.cookie && !data.token) {
             log('Unexpected: No access token found!');
           }
+        }
+
+        function clearAuthn() {
+          document.cookie = getCookieValue(document.cookie.split('=').at(0) + '=');
+          log('Cleared the current cookie');
+          const accessToken = localStorage.removeItem('accessToken')
+          log('Removed accessToken from localStorage');
+
+          sendStateMessage('logged-out');
+        }
+
+        async function fetchProxy(url, init) {
+          // If we have an accessToken lets use it. Otherwise we presume a cookie will be set.
+          const accessToken = localStorage.getItem('accessToken');
+          const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+
+          // If either of these is invalid, or both are missing, we will
+          // forward the resulting 401 to the application, which will request
+          // tokens be destroyed and reload the iframe in an unauth state.
+          log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
+
+          const initWithCreds = {
+            ...init,
+            headers: { ...init.headers, ...bearer },
+            credentials: 'same-origin',
+          };
+          log({ initWithCreds });
+
+          const response = await fetch(url, initWithCreds);
+          return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url,
+            headers: Object.fromEntries(response.headers.entries()),
+            text: await response.text(),
+          };
         }
 
         function setupMessageChannel() {
@@ -93,30 +133,9 @@ Required context variables:
 
           const messageDispatch = {
             'log': log,
-            'fetch': async (url, init) => {
-              // For mock/test purposes we're fetching the accessToken and injecting it
-              const accessToken = localStorage.getItem('accessToken')
-              const bearer = accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
-
-              log('Found access info', {cookie: document.cookie, accessToken, lsCookie: localStorage.getItem('cookie')});
-
-              const initWithCreds = {
-                ...init,
-                headers: { ...init.headers, ...bearer },
-                credentials: 'same-origin',
-              };
-              log({initWithCreds});
-
-              const response = await fetch(url, initWithCreds);
-              return {
-                ok: response.ok,
-                status: response.status,
-                statusText: response.statusText,
-                url: response.url,
-                headers: Object.fromEntries(response.headers.entries()),
-                text: await response.text(),
-              };
-            },
+            'request-authn': requestAuthn,
+            'clear-authn': clearAuthn,
+            'fetch': fetchProxy,
           };
 
           port1.addEventListener('message', messageEvent => {
@@ -127,12 +146,12 @@ Required context variables:
               return; // MessageEvent is malformed, missing $id
             }
 
-            if (!message.$function || !(message.$function in messageDispatch)) {
+            if (!message.$function || !(Object.hasOwn(messageDispatch, message.$function))) {
               return; // No-op without a $function to call
             }
 
-            messageDispatch[message.$function]
-              .apply(undefined, message.$args || [])
+            Promise.resolve(messageDispatch[message.$function]
+              .apply(undefined, message.$args || []))
               .then($result => port1.postMessage({ $id, $result }))
               .catch(error => port1.postMessage({ $id, $error: error }));
           });
@@ -148,14 +167,9 @@ Required context variables:
 
         log('Init', { referrer, state });
 
-        if (state === 'success') {
-          setupMessageChannel();
-        } else {
-          setupLoginForm();
-          // enum of: logged-out, missing-project, invalid-domain
-          sendStateMessage(state);
-          listenForLoginSuccess();
-        }
+        setupMessageChannel();
+        listenForLoginSuccess();
+        sendStateMessage(state);
       })();
     </script>
     {% endscript %}

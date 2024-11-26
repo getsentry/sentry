@@ -251,8 +251,8 @@ def get_chunks_from_spans_metadata(
     for row in data:
         intervals = [
             {
-                "start": str(int(datetime.fromisoformat(el["start"]).timestamp() * 10**9)),
-                "end": str(int(datetime.fromisoformat(el["end"]).timestamp() * 10**9)),
+                "start": str(int(datetime.fromisoformat(el["start"]).timestamp() * 1e9)),
+                "end": str(int(datetime.fromisoformat(el["end"]).timestamp() * 1e9)),
                 "active_thread_id": el["active_thread_id"],
             }
             for el in spans[row["profiler_id"]]
@@ -295,7 +295,7 @@ class ProfilerMeta:
     thread_id: str
     start: float
     end: float
-    transaction_id: str
+    transaction_id: str | None = None
 
     def as_condition(self) -> Condition:
         return And(
@@ -341,14 +341,13 @@ class FlamegraphExecutor:
         raise NotImplementedError
 
     def get_profile_candidates_from_functions(self) -> ProfileCandidates:
-        # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
         builder = ProfileFunctionsQueryBuilder(
             dataset=Dataset.Functions,
             params={},
             snuba_params=self.snuba_params,
-            selected_columns=["project.id", "timestamp", "unique_examples()"],
+            selected_columns=["project.id", "timestamp", "all_examples()"],
             query=self.query,
             limit=max_profiles,
             config=QueryBuilderConfig(
@@ -365,22 +364,34 @@ class FlamegraphExecutor:
         results = builder.process_results(results)
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
+        profiler_metas: list[ProfilerMeta] = []
 
         for row in results["data"]:
             project = row["project.id"]
-            for example in row["unique_examples()"]:
+            for example in row["all_examples()"]:
                 if len(transaction_profile_candidates) > max_profiles:
                     break
-                transaction_profile_candidates.append(
-                    {
-                        "project_id": project,
-                        "profile_id": example,
-                    }
-                )
+                if "profile_id" in example:
+                    transaction_profile_candidates.append(
+                        {
+                            "project_id": project,
+                            "profile_id": example["profile_id"],
+                        }
+                    )
+                elif "profiler_id" in example:
+                    profiler_metas.append(
+                        ProfilerMeta(
+                            project_id=project,
+                            profiler_id=example["profiler_id"],
+                            thread_id=example["thread_id"],
+                            start=example["start"],
+                            end=example["end"],
+                        )
+                    )
 
         return {
             "transaction": transaction_profile_candidates,
-            "continuous": [],
+            "continuous": self.get_chunks_for_profilers(profiler_metas),
         }
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
@@ -391,21 +402,21 @@ class FlamegraphExecutor:
         )
         results = builder.process_results(results)
 
-        continuous_profile_candidates: list[
-            ContinuousProfileCandidate
-        ] = self.get_chunks_for_profilers(
-            [
-                ProfilerMeta(
-                    project_id=row["project.id"],
-                    profiler_id=row["profiler.id"],
-                    thread_id=row["thread.id"],
-                    start=row["precise.start_ts"],
-                    end=row["precise.finish_ts"],
-                    transaction_id=row["id"],
-                )
-                for row in results["data"]
-                if row["profiler.id"] is not None and row["thread.id"]
-            ]
+        continuous_profile_candidates: list[ContinuousProfileCandidate] = (
+            self.get_chunks_for_profilers(
+                [
+                    ProfilerMeta(
+                        project_id=row["project.id"],
+                        profiler_id=row["profiler.id"],
+                        thread_id=row["thread.id"],
+                        start=row["precise.start_ts"],
+                        end=row["precise.finish_ts"],
+                        transaction_id=row["id"],
+                    )
+                    for row in results["data"]
+                    if row["profiler.id"] is not None and row["thread.id"]
+                ]
+            )
         )
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = [
@@ -499,17 +510,19 @@ class FlamegraphExecutor:
                     if start > profiler_meta.end or end < profiler_meta.start:
                         continue
 
-                    continuous_profile_candidates.append(
-                        {
-                            "project_id": profiler_meta.project_id,
-                            "profiler_id": profiler_meta.profiler_id,
-                            "chunk_id": row["chunk_id"],
-                            "thread_id": profiler_meta.thread_id,
-                            "start": str(int(profiler_meta.start * 1.0e9)),
-                            "end": str(int(profiler_meta.end * 1.0e9)),
-                            "transaction_id": profiler_meta.transaction_id,
-                        }
-                    )
+                    candidate: ContinuousProfileCandidate = {
+                        "project_id": profiler_meta.project_id,
+                        "profiler_id": profiler_meta.profiler_id,
+                        "chunk_id": row["chunk_id"],
+                        "thread_id": profiler_meta.thread_id,
+                        "start": str(int(profiler_meta.start * 1e9)),
+                        "end": str(int(profiler_meta.end * 1e9)),
+                    }
+
+                    if profiler_meta.transaction_id is not None:
+                        candidate["transaction_id"] = profiler_meta.transaction_id
+
+                    continuous_profile_candidates.append(candidate)
 
         return continuous_profile_candidates
 
@@ -684,6 +697,10 @@ class FlamegraphExecutor:
                     "project_id": row["project_id"],
                     "profiler_id": row["profiler_id"],
                     "chunk_id": row["chunk_id"],
+                    "start": str(
+                        int(datetime.fromisoformat(row["start_timestamp"]).timestamp() * 1e9)
+                    ),
+                    "end": str(int(datetime.fromisoformat(row["end_timestamp"]).timestamp() * 1e9)),
                 }
                 for row in continuous_profile_results["data"]
             ]

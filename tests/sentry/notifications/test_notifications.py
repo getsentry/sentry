@@ -14,11 +14,12 @@ from sentry_relay.processing import parse_release
 from slack_sdk.web import SlackResponse
 
 from sentry.event_manager import EventManager
+from sentry.eventstream.types import EventStreamEventType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.rule import Rule
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.silo.base import SiloMode
@@ -548,6 +549,7 @@ class ActivityNotificationTest(APITestCase):
                     group_id=event.group_id,
                     cache_key=cache_key,
                     project_id=self.project.id,
+                    eventstream_type=EventStreamEventType.Error,
                 )
 
         msg = mail.outbox[0]

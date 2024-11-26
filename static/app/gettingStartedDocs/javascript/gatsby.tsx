@@ -184,7 +184,7 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     getConfigureStep(params),
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
       ...params,
     }),
   ],
@@ -309,12 +309,18 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

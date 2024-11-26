@@ -305,12 +305,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User:
-        ...
+    def get_interface(self, name: Literal["user"]) -> User: ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None:
-        ...
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)

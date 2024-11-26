@@ -66,8 +66,8 @@ describe('ContinuousProfile', () => {
     );
 
     expect(Math.round(profile.duration)).toBe(10);
-    expect(profile.startedAt).toBe(1508208080);
-    expect(profile.endedAt).toBe(1508208080.01);
+    expect(profile.startedAt).toBe(1508208080 * 1e3);
+    expect(profile.endedAt).toBe(1508208080.01 * 1e3);
   });
 
   it('rebuilds the stack', () => {

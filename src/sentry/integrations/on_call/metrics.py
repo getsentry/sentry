@@ -1,10 +1,10 @@
-from enum import Enum
+from enum import Enum, StrEnum
 
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.on_call.spec import OnCallSpec
-from sentry.integrations.utils.metrics import EventLifecycleMetric, EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.users.models import User
@@ -36,7 +36,7 @@ class OnCallInteractionType(Enum):
 
 
 @dataclass
-class OnCallInteractionEvent(EventLifecycleMetric):
+class OnCallInteractionEvent(IntegrationEventLifecycleMetric):
     """
     An instance to be recorded of a user interacting with Sentry through an on-call app.
     """
@@ -48,10 +48,21 @@ class OnCallInteractionEvent(EventLifecycleMetric):
     user: User | RpcUser | None = None
     organization: Organization | RpcOrganization | None = None
 
-    def get_key(self, outcome: EventLifecycleOutcome) -> str:
-        return self.get_standard_key(
-            domain=IntegrationDomain.ON_CALL_SCHEDULING,
-            integration_name=self.spec.provider_slug,
-            interaction_type=str(self.interaction_type),
-            outcome=outcome,
-        )
+    def get_integration_domain(self) -> IntegrationDomain:
+        return IntegrationDomain.ON_CALL_SCHEDULING
+
+    def get_integration_name(self) -> str:
+        return self.spec.provider_slug
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
+
+
+class OnCallIntegrationsHaltReason(StrEnum):
+    """
+    Reasons why on on call integration method may halt without success/failure.
+    """
+
+    INVALID_TEAM = "invalid_team"
+    INVALID_SERVICE = "invalid_service"
+    INVALID_KEY = "invalid_key"

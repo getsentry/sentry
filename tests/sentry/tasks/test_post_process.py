@@ -17,6 +17,7 @@ from django.utils import timezone
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.integration import Integration
@@ -59,6 +60,7 @@ from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import (
     HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
+    _get_event_id_from_cache_key,
     feedback_filter_decorator,
     locks,
     post_process_group,
@@ -685,7 +687,8 @@ class ResourceChangeBoundsTestMixin(BasePostProgressGroupMixin):
             action="created",
             sender="Error",
             instance_id=event.event_id,
-            instance=EventMatcher(event),
+            group_id=event.group_id,
+            project_id=self.project.id,
         )
 
     @with_feature("organizations:integrations-event-hooks")
@@ -2405,6 +2408,64 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert group.substatus == GroupSubStatus.NEW
 
 
+class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_process_similarity(self, mock_safe_execute):
+        from sentry import similarity
+
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+
+    def assert_not_called_with(self, mock_function: Mock):
+        """
+        Helper function to check that safe_execute isn't called with similarity.record
+        It can/will be called with other parameters
+        """
+        from sentry import similarity
+
+        try:
+            mock_function.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        except AssertionError:
+            return
+        raise AssertionError("Expected safe_execute to not be called with similarity.record")
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    def test_skip_process_similarity(self, mock_safe_execute):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options({"sentry.similarity.indexing.enabled": False})
+    def test_skip_process_similarity_global(self, mock_safe_execute):
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
+
 class PostProcessGroupErrorTest(
     TestCase,
     AssignmentTestMixin,
@@ -2422,6 +2483,7 @@ class PostProcessGroupErrorTest(
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
+    ProcessSimilarityTestMixin,
 ):
     def setUp(self):
         super().setUp()
@@ -2442,6 +2504,7 @@ class PostProcessGroupErrorTest(
             cache_key=cache_key,
             group_id=event.group_id,
             project_id=event.project_id,
+            eventstream_type=EventStreamEventType.Error,
         )
         return cache_key
 
@@ -2516,6 +2579,7 @@ class PostProcessGroupPerformanceTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2551,6 +2615,7 @@ class PostProcessGroupPerformanceTest(
             group_id=None,
             group_states=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2595,6 +2660,7 @@ class PostProcessGroupPerformanceTest(
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Error,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2641,6 +2707,7 @@ class PostProcessGroupAggregateEventTest(
                 cache_key=cache_key,
                 group_id=event.group_id,
                 project_id=event.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -2675,11 +2742,66 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             cache_key=cache_key,
             group_id=None,
             project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
         )
 
         assert mock_store_transaction_name.mock_calls == [
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
         ]
+
+
+class ProcessingStoreTransactionEmptyTestcase(TestCase):
+    @patch("sentry.tasks.post_process.logger")
+    def test_logger_called_when_empty(self, mock_logger):
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key="e:1:2",
+            group_id=None,
+            project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
+        )
+        assert mock_logger.info.called
+        mock_logger.info.assert_called_with(
+            "post_process.skipped", extra={"cache_key": "e:1:2", "reason": "missing_cache"}
+        )
+
+    @patch("sentry.tasks.post_process.logger")
+    @patch("sentry.utils.metrics.incr")
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    def test_logger_called_when_empty_option_on(self, mock_metric_incr, mock_logger):
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key="e:1:2",
+            group_id=None,
+            project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
+        )
+        assert not mock_logger.info.called
+        mock_metric_incr.assert_called_with("post_process.skipped_do_post_process_in_save")
+
+    @patch("sentry.tasks.post_process.logger")
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    def test_logger_called_when_empty_option_on_invalid_cache_key(self, mock_logger):
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key="invalidhehe",
+            group_id=None,
+            project_id=self.project.id,
+            eventstream_type=EventStreamEventType.Transaction,
+        )
+        mock_logger.info.assert_called_with(
+            "post_process.skipped", extra={"cache_key": "invalidhehe", "reason": "missing_cache"}
+        )
+
+    def test_get_event_id_from_cache_key(self):
+        assert _get_event_id_from_cache_key("e:1:2") == "1"
+        assert _get_event_id_from_cache_key("invalid") is None
 
 
 class PostProcessGroupGenericTest(
@@ -2717,6 +2839,7 @@ class PostProcessGroupGenericTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Generic,
             )
         return cache_key
 
@@ -2871,6 +2994,7 @@ class PostProcessGroupFeedbackTest(
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
+                eventstream_type=EventStreamEventType.Error,
             )
         return cache_key
 
@@ -3026,8 +3150,7 @@ class PostProcessGroupFeedbackTest(
     @pytest.mark.skip(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
-    def test_issueless(self):
-        ...
+    def test_issueless(self): ...
 
     def test_no_cache_abort(self):
         # We don't use the cache for generic issues, so skip this test

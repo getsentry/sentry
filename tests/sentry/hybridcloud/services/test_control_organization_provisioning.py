@@ -129,8 +129,11 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             )
 
         # De-register the conflicting organization to create the collision
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(
                 organization_id=region_only_organization.id
@@ -281,8 +284,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         new_user = self.create_user()
         unregistered_org = self.create_organization(slug=conflicting_slug, owner=new_user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
             assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()
@@ -320,8 +326,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         new_user = self.create_user()
         unregistered_org = self.create_organization(slug=desired_primary_slug, owner=new_user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
             assert not OrganizationSlugReservation.objects.filter(

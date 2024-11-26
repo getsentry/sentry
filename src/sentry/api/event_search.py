@@ -137,15 +137,16 @@ text_filter = negation? text_key sep operator? search_value
 key                    = ~r"[a-zA-Z0-9_.-]+"
 quoted_key             = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key       = "tags" open_bracket search_key closed_bracket
-explicit_typed_tag_key = "tags" open_bracket search_key spaces comma spaces search_type closed_bracket
+explicit_string_tag_key = "tags" open_bracket search_key spaces comma spaces "string" closed_bracket
+explicit_number_tag_key = "tags" open_bracket search_key spaces comma spaces "number" closed_bracket
 aggregate_key          = key open_paren spaces function_args? spaces closed_paren
 function_args          = aggregate_param (spaces comma spaces !comma aggregate_param?)*
 aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
-search_key             = key / quoted_key
+search_key             = explicit_number_tag_key / key / quoted_key
 search_type            = "number" / "string"
-text_key               = explicit_tag_key / explicit_typed_tag_key / search_key
+text_key               = explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -571,7 +572,14 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, config=None, params=None, builder=None, get_field_type=None):
+    def __init__(
+        self,
+        config=None,
+        params=None,
+        builder=None,
+        get_field_type=None,
+        get_function_result_type=None,
+    ):
         super().__init__()
 
         if config is None:
@@ -595,6 +603,10 @@ class SearchVisitor(NodeVisitor):
             self.get_field_type = self.builder.get_field_type
         else:
             self.get_field_type = get_field_type
+        if get_function_result_type is None:
+            self.get_function_result_type = self.builder.get_function_result_type
+        else:
+            self.get_function_result_type = get_function_result_type
 
     @cached_property
     def key_mappings_lookup(self):
@@ -1053,8 +1065,11 @@ class SearchVisitor(NodeVisitor):
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
 
-    def visit_explicit_typed_tag_key(self, node, children):
-        return SearchKey(f"tags[{children[2].name},{children[6]}]")
+    def visit_explicit_string_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name},string]")
+
+    def visit_explicit_number_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name},number]")
 
     def visit_search_type(self, node, children):
         return node.text
@@ -1095,6 +1110,8 @@ class SearchVisitor(NodeVisitor):
             or key in self.config.blocked_keys
         ):
             raise InvalidSearchQuery(f"Invalid key for this search: {key}")
+        if isinstance(key, SearchKey):
+            return key
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -1246,7 +1263,13 @@ QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
 def parse_search_query(
-    query, config=None, params=None, builder=None, config_overrides=None, get_field_type=None
+    query,
+    config=None,
+    params=None,
+    builder=None,
+    config_overrides=None,
+    get_field_type=None,
+    get_function_result_type=None,
 ) -> list[
     SearchFilter
 ]:  # TODO: use the `Sequence[QueryToken]` type and update the code that fails type checking.
@@ -1270,5 +1293,9 @@ def parse_search_query(
         config = SearchConfig.create_from(config, **config_overrides)
 
     return SearchVisitor(
-        config, params=params, builder=builder, get_field_type=get_field_type
+        config,
+        params=params,
+        builder=builder,
+        get_field_type=get_field_type,
+        get_function_result_type=get_function_result_type,
     ).visit(tree)

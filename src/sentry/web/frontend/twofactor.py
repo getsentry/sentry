@@ -2,7 +2,7 @@ import logging
 import time
 from base64 import b64encode
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -132,7 +132,7 @@ class TwoFactorAuthView(BaseView):
         )
         msg.send_async([email])
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         user = auth.get_pending_2fa_user(request)
         if user is None:
             return HttpResponseRedirect(auth.get_login_url())

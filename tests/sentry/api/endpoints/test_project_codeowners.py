@@ -522,9 +522,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.external_delete_user2 = self.create_external_user(
             user=self.member_user_delete, external_name="@delete2", integration=self.integration
         )
-        self.data[
-            "raw"
-        ] = "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
+        self.data["raw"] = (
+            "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
+        )
 
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)

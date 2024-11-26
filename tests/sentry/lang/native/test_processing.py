@@ -2,6 +2,7 @@
 This file is intended for unit tests that don't require fixtures or a live
 service. Most tests live in tests/symbolicator/
 """
+
 from __future__ import annotations
 
 from typing import Any

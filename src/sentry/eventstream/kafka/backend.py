@@ -12,8 +12,9 @@ from confluent_kafka import Producer
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.eventstream.base import EventStreamEventType, GroupStates
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
+from sentry.eventstream.types import EventStreamEventType
 from sentry.killswitches import killswitch_matches_context
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -122,6 +123,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
 
@@ -169,6 +171,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             received_timestamp,
             skip_consume,
             group_states,
+            eventstream_type=eventstream_type,
             **kwargs,
         )
 

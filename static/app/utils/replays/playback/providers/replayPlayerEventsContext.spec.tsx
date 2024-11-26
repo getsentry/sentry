@@ -24,6 +24,7 @@ describe('replayPlayerEventsContext', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture(),
     });
 
@@ -42,6 +43,7 @@ describe('replayPlayerEventsContext', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture(),
     });
     const mockRRwebFrames: any[] = [];

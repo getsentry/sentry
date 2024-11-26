@@ -176,7 +176,9 @@ def get_results_from_saving_event(
         secondary_hash_calculated = calculate_secondary_hash_spy.call_count == 1
 
         primary_hash = return_values["_calculate_primary_hashes_and_variants"][0][0][0]
-        primary_hash_found = bool(hash_search_result) and hash_search_result.hash == primary_hash
+        primary_hash_found = (
+            hash_search_result is not None and hash_search_result.hash == primary_hash
+        )
 
         new_group_created = create_group_spy.call_count == 1
 
@@ -203,7 +205,7 @@ def get_results_from_saving_event(
             secondary_hash = return_values["_calculate_secondary_hashes"][0][0]
             hashes_different = secondary_hash != primary_hash
             secondary_hash_found = (
-                bool(hash_search_result) and hash_search_result.hash == secondary_hash
+                hash_search_result is not None and hash_search_result.hash == secondary_hash
             )
             secondary_grouphash_existed_already = secondary_hash in existing_grouphashes
             secondary_grouphash_exists_now = secondary_hash in post_save_grouphashes

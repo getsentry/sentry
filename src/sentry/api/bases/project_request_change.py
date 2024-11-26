@@ -3,7 +3,6 @@ from __future__ import annotations
 from rest_framework.request import Request
 
 from sentry.api.bases import ProjectEndpoint, ProjectPermission
-from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 
 
 class ProjectRequestChangeEndpointPermission(ProjectPermission):
@@ -12,9 +11,7 @@ class ProjectRequestChangeEndpointPermission(ProjectPermission):
         "POST": ["org:read"],
     }
 
-    def is_member_disabled_from_limit(
-        self, request: Request, organization: RpcOrganization | RpcUserOrganizationContext
-    ):
+    def is_member_disabled_from_limit(self, request: Request, organization: object) -> bool:
         # disabled members need to be able to make requests
         return False
 

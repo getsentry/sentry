@@ -20,6 +20,7 @@ const NavContainer = styled('div')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.sidebarPanel};
+  user-select: none;
 
   @media screen and (min-width: ${p => p.theme.breakpoints.medium}) {
     bottom: 0;

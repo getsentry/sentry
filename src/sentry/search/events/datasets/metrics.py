@@ -768,9 +768,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     "spm",
                     snql_distribution=self._resolve_spm,
                     optional_args=[
-                        fields.NullColumn("interval")
-                        if self.should_skip_interval_calculation
-                        else fields.IntervalDefault("interval", 1, None)
+                        (
+                            fields.NullColumn("interval")
+                            if self.should_skip_interval_calculation
+                            else fields.IntervalDefault("interval", 1, None)
+                        )
                     ],
                     default_result_type="rate",
                 ),
@@ -2068,6 +2070,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition)
 
     def _resolve_spm(
@@ -2076,6 +2080,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(60, args, alias, extra_condition, "span.self_time")
 
     def _resolve_eps(
@@ -2084,6 +2090,8 @@ class MetricsDatasetConfig(DatasetConfig):
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
+        if hasattr(self.builder, "interval"):
+            args["interval"] = self.builder.interval
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(

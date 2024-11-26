@@ -672,9 +672,11 @@ def massage_sessions_result_summary(
         if not category_stats:
             category_stats = {
                 "category": category,
-                "outcomes": {o.api_name(): 0 for o in Outcome}
-                if not outcome_query
-                else {o: 0 for o in outcome_query},
+                "outcomes": (
+                    {o.api_name(): 0 for o in Outcome}
+                    if not outcome_query
+                    else {o: 0 for o in outcome_query}
+                ),
                 "totals": {},
             }
             if not outcome_query or any([o in dropped_outcomes for o in outcome_query]):

@@ -56,6 +56,13 @@ import {
   MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
 import {
+  DATA_TYPE as SCREEN_RENDERING_DATA_TYPE,
+  DATA_TYPE_PLURAL as SCREEN_RENDERING_DATA_TYPE_PLURAL,
+  MODULE_DOC_LINK as SCREEN_RENDERING_MODULE_DOC_LINK,
+  MODULE_FEATURES as SCREEN_RENDERING_MODULE_FEATURES,
+  MODULE_TITLE as SCREEN_RENDERING_MODULE_TITLE,
+} from 'sentry/views/insights/mobile/screenRendering/settings';
+import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
@@ -81,6 +88,8 @@ export const INSIGHTS_BASE_URL = 'insights';
 
 export const DEFAULT_INTERVAL = '10m';
 
+export const QUERY_DATE_RANGE_LIMIT = 7; // Maximum number of days that can be queried for, enabled by the `insights-query-date-range-limit` feature flag
+
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
   [ModuleName.HTTP]: HTTP_MODULE_TITLE,
@@ -93,6 +102,7 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_MODULE_TITLE,
+  [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
@@ -108,6 +118,7 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE,
+  [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE,
   [ModuleName.OTHER]: '',
 };
 
@@ -123,6 +134,7 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_DATA_TYPE_PLURAL,
+  [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_DATA_TYPE_PLURAL,
   [ModuleName.OTHER]: '',
 };
 
@@ -138,10 +150,11 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.AI]: AI_MODULE_DOC_LINK,
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
   [ModuleName.MOBILE_SCREENS]: MODULE_SCREENS_DOC_LINK,
+  [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_DOC_LINK,
   [ModuleName.OTHER]: '',
 };
 
-export const MODULE_FEATURE_MAP: Partial<Record<ModuleName, string[]>> = {
+export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.DB]: DB_MODULE_FEATURES,
   [ModuleName.APP_START]: APP_STARTS_MODULE_FEATURES,
   [ModuleName.HTTP]: HTTP_MODULE_FEATURES,
@@ -153,4 +166,6 @@ export const MODULE_FEATURE_MAP: Partial<Record<ModuleName, string[]>> = {
   [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_FEATURES,
   [ModuleName.MOBILE_SCREENS]: [MOBILE_SCREENS_MODULE_FEATURE],
+  [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
+  [ModuleName.OTHER]: [],
 };

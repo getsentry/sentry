@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -77,6 +79,41 @@ describe('Nest.js onboarding docs', function () {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('continuous profiling', () => {
+    const organization = OrganizationFixture({
+      features: ['continuous-profiling'],
+    });
+
+    renderWithOnboardingLayout(
+      docs,
+      {},
+      {
+        organization,
+      }
+    );
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /import \{ nodeProfilingIntegration } from "@sentry\/profiling-node"/
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Profiles sample rate should not be set for continuous profiling
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).not.toBeInTheDocument();
+
+    // Should have start and stop profiling calls
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
     ).toBeInTheDocument();
   });
 });

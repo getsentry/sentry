@@ -492,6 +492,8 @@ def manage_issue_states(
     snooze_details: Mapping[str, Any] | None = None,
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
+    from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+
     """
     Handles the downstream changes to the status/substatus of GroupInbox and Group for each GroupInboxReason
 
@@ -516,6 +518,9 @@ def manage_issue_states(
                 )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
+            kick_off_status_syncs.apply_async(
+                kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
 
             has_forecast = (
                 True if data and activity_data and "forecast" in activity_data.keys() else False
@@ -585,6 +590,9 @@ def manage_issue_states(
             record_group_history(group, GroupHistoryStatus.UNIGNORED)
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
+            )
+            kick_off_status_syncs.apply_async(
+                kwargs={"project_id": group.project_id, "group_id": group.id}
             )
 
     else:

@@ -142,6 +142,7 @@ SPAN_COLUMN_MAP = {
     "user.id": "sentry_tags[user.id]",
     "user.email": "sentry_tags[user.email]",
     "user.username": "sentry_tags[user.username]",
+    "user.ip": "sentry_tags[user.ip]",
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
     "transaction.method": "sentry_tags[transaction.method]",
@@ -164,6 +165,7 @@ SPAN_COLUMN_MAP = {
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
     "sdk.name": "sentry_tags[sdk.name]",
+    "sdk.version": "sentry_tags[sdk.version]",
     "trace.status": "sentry_tags[trace.status]",
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
@@ -181,7 +183,7 @@ SPAN_EAP_COLUMN_MAP = {
     "project": "project_id",
     "project.id": "project_id",
     "project_id": "project_id",
-    "span.action": "attr_str[action]",
+    "span.action": "attr_str[sentry.action]",
     # For some reason the decision was made to store description as name? its called description everywhere else though
     "span.description": "name",
     "description": "name",
@@ -191,51 +193,48 @@ SPAN_EAP_COLUMN_MAP = {
     # These sample columns are for debugging only and shouldn't be used
     "sampling_weight": "sampling_weight",
     "sampling_factor": "sampling_factor",
-    "span.domain": "attr_str[domain]",
-    "span.group": "attr_str[group]",
-    "span.op": "attr_str[op]",
-    "span.category": "attr_str[category]",
+    "span.domain": "attr_str[sentry.domain]",
+    "span.group": "attr_str[sentry.group]",
+    "span.op": "attr_str[sentry.op]",
+    "span.category": "attr_str[sentry.category]",
     "span.self_time": "exclusive_time_ms",
-    "span.status": "attr_str[status]",
+    "span.status": "attr_str[sentry.status]",
     "timestamp": "timestamp",
     "trace": "trace_id",
     "transaction": "segment_name",
+    "transaction.op": "attr_str[sentry.transaction.op]",
     # `transaction.id` and `segment.id` is going to be replaced by `transaction.span_id` please do not use
     # transaction.id is "wrong", its pointing to segment_id to return something for the transistion, but represents the
     # txn event id(32 char uuid). EAP will no longer be storing this.
     "transaction.id": "segment_id",
     "transaction.span_id": "segment_id",
-    "transaction.method": "attr_str[transaction.method]",
+    "transaction.method": "attr_str[sentry.transaction.method]",
     "is_transaction": "is_segment",
     "segment.id": "segment_id",
     # We should be able to delete origin.transaction and just use transaction
     "origin.transaction": "segment_name",
     # Copy paste, unsure if this is truth in production
-    "messaging.destination.name": "attr_str[messaging.destination.name]",
-    "messaging.message.id": "attr_str[messaging.message.id]",
-    "span.status_code": "attr_str[status_code]",
-    "replay.id": "attr_str[replay_id]",
-    "span.ai.pipeline.group": "attr_str[ai_pipeline_group]",
-    "trace.status": "attr_str[trace.status]",
-    "browser.name": "attr_str[browser.name]",
+    "messaging.destination.name": "attr_str[sentry.messaging.destination.name]",
+    "messaging.message.id": "attr_str[sentry.messaging.message.id]",
+    "span.status_code": "attr_str[sentry.status_code]",
+    "profile.id": "attr_str[sentry.profile_id]",
+    "replay.id": "attr_str[sentry.replay_id]",
+    "span.ai.pipeline.group": "attr_str[sentry.ai_pipeline_group]",
+    "trace.status": "attr_str[sentry.trace.status]",
+    "browser.name": "attr_str[sentry.browser.name]",
     "ai.total_tokens.used": "attr_num[ai_total_tokens_used]",
     "ai.total_cost": "attr_num[ai_total_cost]",
-}
-
-METRICS_SUMMARIES_COLUMN_MAP = {
-    "project": "project_id",
-    "project.id": "project_id",
-    "id": "span_id",
-    "trace": "trace_id",
-    "metric": "metric_mri",
-    "timestamp": "end_timestamp",
-    "segment.id": "segment_id",
-    "span.duration": "duration_ms",
-    "span.group": "group",
-    "min_metric": "min",
-    "max_metric": "max",
-    "sum_metric": "sum",
-    "count_metric": "count",
+    "sdk.name": "attr_str[sentry.sdk.name]",
+    "sdk.version": "attr_str[sentry.sdk.version]",
+    "release": "attr_str[sentry.release]",
+    "environment": "attr_str[sentry.environment]",
+    "user": "attr_str[sentry.user]",
+    "user.id": "attr_str[sentry.user.id]",
+    "user.email": "attr_str[sentry.user.email]",
+    "user.username": "attr_str[sentry.user.username]",
+    "user.ip": "attr_str[sentry.user.ip]",
+    "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
+    "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -288,7 +287,6 @@ DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
-    Dataset.MetricsSummaries: METRICS_SUMMARIES_COLUMN_MAP,
     Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
     Dataset.SpansIndexed: SPAN_COLUMN_MAP,
     Dataset.EventsAnalyticsPlatform: SPAN_EAP_COLUMN_MAP,
@@ -307,7 +305,6 @@ DATASET_FIELDS = {
     Dataset.IssuePlatform: list(ISSUE_PLATFORM_MAP.values()),
     Dataset.SpansIndexed: list(SPAN_COLUMN_MAP.values()),
     Dataset.EventsAnalyticsPlatform: list(SPAN_EAP_COLUMN_MAP.values()),
-    Dataset.MetricsSummaries: list(METRICS_SUMMARIES_COLUMN_MAP.values()),
 }
 
 SNUBA_OR = "or"
@@ -487,7 +484,13 @@ class RetrySkipTimeout(urllib3.Retry):
     """
 
     def increment(
-        self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
+        self,
+        method=None,
+        url=None,
+        response=None,
+        error=None,
+        _pool=None,
+        _stacktrace=None,
     ):
         """
         Just rely on the parent class unless we have a read timeout. In that case
@@ -626,7 +629,9 @@ def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
     return organization_id
 
 
-def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> list[int]:
+def infer_project_ids_from_related_models(
+    filter_keys: Mapping[str, Sequence[int]],
+) -> list[int]:
     ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
     return list(set.union(*ids))
 
@@ -946,7 +951,10 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries(
-        requests=[request], referrer=referrer, use_cache=use_cache, query_source=query_source
+        requests=[request],
+        referrer=referrer,
+        use_cache=use_cache,
+        query_source=query_source,
     )[0]
 
 
@@ -1085,7 +1093,9 @@ def _apply_cache_and_build_results(
         for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
             if opt_cache_key:
                 cache.set(
-                    opt_cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS
+                    opt_cache_key,
+                    json.dumps(result),
+                    settings.SENTRY_SNUBA_CACHE_TTL_SECONDS,
                 )
             results.append((query_pos, result))
 
@@ -1154,7 +1164,8 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
             except ValueError:
                 if response.status != 200:
                     logger.exception(
-                        "snuba.query.invalid-json", extra={"response.data": response.data}
+                        "snuba.query.invalid-json",
+                        extra={"response.data": response.data},
                     )
                     raise SnubaError("Failed to parse snuba error response")
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
@@ -1431,13 +1442,13 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
-
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif dataset == Dataset.EventsAnalyticsPlatform:
             if isinstance(col, str) and col.startswith("sentry_tags["):
                 # Replace the first instance of sentry tags with attr str instead
-                return col.replace("sentry_tags", "attr_str", 1)
+                # And sentry tags are always prefixed with `sentry.`
+                return col.replace("sentry_tags[", "attr_str[sentry.", 1)
             if isinstance(col, str) and col.startswith("tags["):
                 # Replace the first instance of sentry tags with attr str instead
                 return col.replace("tags", "attr_str", 1)
@@ -1663,6 +1674,9 @@ JSON_TYPE_MAP = {
     "UInt16": "integer",
     "UInt32": "integer",
     "UInt64": "integer",
+    "Int16": "integer",
+    "Int32": "integer",
+    "Int64": "integer",
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
@@ -1810,7 +1824,11 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     reverse = compose(
         reverse,
         lambda row: (
-            replace(row, "bucketed_end", int(parse_datetime(row["bucketed_end"]).timestamp()))
+            replace(
+                row,
+                "bucketed_end",
+                int(parse_datetime(row["bucketed_end"]).timestamp()),
+            )
             if "bucketed_end" in row
             else row
         ),
@@ -1911,8 +1929,6 @@ def is_duration_measurement(key):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
-        "measurements.time_to_initial_display",
-        "measurements.time_to_full_display",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
         "measurements.time_to_full_display",

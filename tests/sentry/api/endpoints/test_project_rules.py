@@ -822,7 +822,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "interval": "1h",
             "value": 50,
         }
-        actions = [
+        actions: list[dict[str, object]] = [
             {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
         ]
         self.run_test(

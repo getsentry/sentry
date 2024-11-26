@@ -130,6 +130,7 @@ function BaseAvatar({
       suggested={!!suggested}
       style={{...sizeStyle, ...style}}
       title={title}
+      hasTooltip={hasTooltip}
       {...props}
     >
       {hasError ? backup : imageAvatar}
@@ -150,6 +151,7 @@ export {BaseAvatar, type BaseAvatarProps};
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
 const StyledBaseAvatar = styled('span')<{
+  hasTooltip: boolean;
   round: boolean;
   suggested: boolean;
 }>`
@@ -157,6 +159,9 @@ const StyledBaseAvatar = styled('span')<{
   border-radius: ${p => (p.round ? '50%' : '3px')};
   border: ${p => (p.suggested ? `1px dashed ${p.theme.subText}` : 'none')};
   background-color: ${p => (p.suggested ? p.theme.background : 'none')};
+  :hover {
+    pointer-events: ${p => (p.hasTooltip ? 'none' : 'auto')};
+  }
 `;
 
 const ImageAvatar = styled('img')<ImageStyleProps>`

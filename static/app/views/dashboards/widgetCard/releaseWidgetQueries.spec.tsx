@@ -553,6 +553,12 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
                 release: 'string',
                 'session.status': 'string',
                 'sum(session)': 'integer',
+                fields: {
+                  'count_unique(user)': 'integer',
+                  release: 'string',
+                  'session.status': 'string',
+                  'sum(session)': 'integer',
+                },
               },
               title: 'sessions',
             },
@@ -599,7 +605,10 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           tableResults: [
             {
               data: [{'count_unique(user)': 51292.95404741901, id: '0'}],
-              meta: {'count_unique(user)': 'integer'},
+              meta: {
+                'count_unique(user)': 'integer',
+                fields: {'count_unique(user)': 'integer'},
+              },
               title: 'sessions',
             },
           ],

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T10:11:52.004400Z'
+created: '2024-10-24T14:22:52.962304+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app:
           value (ignored because stacktrace takes precedence)
             "hello world"
         exception*
-          stacktrace
+          stacktrace (ignored because it contains no in-app frames)
             frame (non app frame)
               filename*
                 "baz.py"

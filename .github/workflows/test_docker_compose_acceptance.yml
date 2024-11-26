@@ -4,7 +4,7 @@
 name: test-docker-compose-acceptance
 on:
   schedule:
-    - cron: '30,0 * * * *'
+    - cron: '0 0 * * *'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -20,7 +20,7 @@ env:
 jobs:
   docker-compose-acceptance:
     name: docker-compose-acceptance
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -135,7 +135,7 @@ jobs:
     if: always()
     name: Docker Compose Acceptance
     needs: [docker-compose-acceptance]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - name: Check for failures

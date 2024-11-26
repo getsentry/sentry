@@ -1,6 +1,6 @@
-import {Component} from 'react';
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import isEqual from 'lodash/isEqual';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -8,125 +8,104 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {space} from 'sentry/styles/space';
-import type {Group, UserReport} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useGroupUserFeedback} from 'sentry/views/issueDetails/useGroupUserFeedback';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
-import {fetchGroupUserReports} from './utils';
+function GroupUserFeedback() {
+  const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const location = useLocation();
+  const params = useParams<{groupId: string}>();
 
-type RouteParams = {
-  groupId: string;
-  orgId: string;
-};
+  const {
+    data: group,
+    isPending: isPendingGroup,
+    isError: isErrorGroup,
+    refetch: refetchGroup,
+  } = useGroup({
+    groupId: params.groupId,
+  });
 
-type Props = Pick<RouteComponentProps<RouteParams, {}>, 'params' | 'location'> & {
-  environments: string[];
-  group: Group;
-  organization: Organization;
-  project: Project;
-};
+  const {
+    data: reportList,
+    isPending,
+    isError,
+    refetch,
+    getResponseHeader,
+  } = useGroupUserFeedback({
+    groupId: params.groupId,
+    query: {
+      cursor: location.query.cursor as string | undefined,
+    },
+  });
 
-type State = {
-  error: boolean;
-  loading: boolean;
-  reportList: UserReport[];
-  pageLinks?: string | null;
-};
-
-class GroupUserFeedback extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    error: false,
-    reportList: [],
-    pageLinks: '',
-  };
-
-  componentDidMount() {
-    this.fetchData();
+  if (isError || isErrorGroup) {
+    return (
+      <LoadingError
+        onRetry={() => {
+          refetch();
+          refetchGroup();
+        }}
+      />
+    );
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (
-      !isEqual(prevProps.params, this.props.params) ||
-      prevProps.location.pathname !== this.props.location.pathname ||
-      prevProps.location.search !== this.props.location.search
-    ) {
-      this.fetchData();
-    }
+  if (isPending || isPendingGroup) {
+    return (
+      <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+        <Layout.Main fullWidth>
+          <LoadingIndicator />
+        </Layout.Main>
+      </StyledLayoutBody>
+    );
   }
 
-  fetchData = () => {
-    const {group, location, organization, params} = this.props;
-    this.setState({
-      loading: true,
-      error: false,
-    });
+  const pageLinks = getResponseHeader?.('Link');
 
-    fetchGroupUserReports(organization.slug, group.id, {
-      ...params,
-      cursor: location.query.cursor || '',
-    })
-      .then(([data, _, resp]) => {
-        this.setState({
-          error: false,
-          loading: false,
-          reportList: data,
-          pageLinks: resp?.getResponseHeader('Link'),
-        });
-      })
-      .catch(() => {
-        this.setState({
-          error: true,
-          loading: false,
-        });
-      });
-  };
-
-  render() {
-    const {reportList, loading, error} = this.state;
-    const {organization, group} = this.props;
-
-    if (loading) {
-      return <LoadingIndicator />;
-    }
-
-    if (error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
-
-    if (reportList.length) {
-      return (
-        <Layout.Body>
-          <Layout.Main>
+  return (
+    <StyledLayoutBody hasStreamlinedUI={hasStreamlinedUI}>
+      <Layout.Main fullWidth>
+        {reportList.length === 0 ? (
+          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
+        ) : (
+          <Fragment>
             {reportList.map((item, idx) => (
               <StyledEventUserFeedback
                 key={idx}
                 report={item}
                 orgSlug={organization.slug}
-                issueId={group.id}
+                issueId={params.groupId}
               />
             ))}
-            <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-          </Layout.Main>
-        </Layout.Body>
-      );
-    }
-
-    return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <UserFeedbackEmpty projectIds={[group.project.id]} issueTab />
-        </Layout.Main>
-      </Layout.Body>
-    );
-  }
+            <Pagination pageLinks={pageLinks} />
+          </Fragment>
+        )}
+      </Layout.Main>
+    </StyledLayoutBody>
+  );
 }
 
 const StyledEventUserFeedback = styled(EventUserFeedback)`
   margin-bottom: ${space(2)};
 `;
 
-export default withOrganization(GroupUserFeedback);
+const StyledLayoutBody = styled(Layout.Body)<{hasStreamlinedUI?: boolean}>`
+  ${p =>
+    p.hasStreamlinedUI &&
+    css`
+      border: 1px solid ${p.theme.border};
+      border-radius: ${p.theme.borderRadius};
+      padding: ${space(2)} 0;
+
+      @media (min-width: ${p.theme.breakpoints.medium}) {
+        padding: ${space(2)} ${space(2)};
+      }
+    `}
+`;
+
+export default GroupUserFeedback;

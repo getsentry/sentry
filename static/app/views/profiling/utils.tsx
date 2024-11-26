@@ -5,6 +5,10 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {
+  isContinuousProfileReference,
+  isTransactionProfileReference,
+} from 'sentry/utils/profiling/guards/profile';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 type ColorEncoding =
@@ -75,3 +79,13 @@ export const DEFAULT_PROFILING_DATETIME_SELECTION = {
   utc: false,
   period: '24h',
 };
+
+export function getProfileTargetId(reference: Profiling.BaseProfileReference): string {
+  if (isTransactionProfileReference(reference)) {
+    return reference.profile_id;
+  }
+  if (isContinuousProfileReference(reference)) {
+    return reference.profiler_id;
+  }
+  return reference;
+}

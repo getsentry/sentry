@@ -167,21 +167,16 @@ def test_report_rage_click_issue_with_replay_event(mock_new_issue_occurrence, de
 def test_report_rage_click_long_url(default_project):
     replay_id = "b58a67446c914f44a4e329763420047b"
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
-    with Feature(
-        {
-            "organizations:replay-click-rage-ingest": True,
-        }
-    ):
-        report_rage_click_issue_with_replay_event(
-            project_id=default_project.id,
-            replay_id=replay_id,
-            selector="div.xyz > a",
-            timestamp=seq1_timestamp.timestamp(),
-            url=f"https://www.sentry.io{'a' * 300}",
-            node={"tagName": "a"},
-            component_name="SmartSearchBar",
-            replay_event=mock_replay_event(),
-        )
+    report_rage_click_issue_with_replay_event(
+        project_id=default_project.id,
+        replay_id=replay_id,
+        selector="div.xyz > a",
+        timestamp=seq1_timestamp.timestamp(),
+        url=f"https://www.sentry.io{'a' * 300}",
+        node={"tagName": "a"},
+        component_name="SmartSearchBar",
+        replay_event=mock_replay_event(),
+    )
 
     # test that the Issue gets created with the truncated url
     assert Group.objects.get(message__contains="div.xyz > a")
@@ -195,21 +190,16 @@ def test_report_rage_click_no_environment(default_project):
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
     replay_event = mock_replay_event()
     del replay_event["environment"]
-    with Feature(
-        {
-            "organizations:replay-click-rage-ingest": True,
-        }
-    ):
-        report_rage_click_issue_with_replay_event(
-            project_id=default_project.id,
-            replay_id=replay_id,
-            selector="div.xyz > a",
-            timestamp=seq1_timestamp.timestamp(),
-            url="https://www.sentry.io",
-            node={"tagName": "a"},
-            component_name="SmartSearchBar",
-            replay_event=mock_replay_event(),
-        )
+    report_rage_click_issue_with_replay_event(
+        project_id=default_project.id,
+        replay_id=replay_id,
+        selector="div.xyz > a",
+        timestamp=seq1_timestamp.timestamp(),
+        url="https://www.sentry.io",
+        node={"tagName": "a"},
+        component_name="SmartSearchBar",
+        replay_event=mock_replay_event(),
+    )
 
     assert Group.objects.get(message__contains="div.xyz > a")
 
@@ -219,21 +209,16 @@ def test_report_rage_click_no_environment(default_project):
 def test_report_rage_click_no_trace(default_project):
     replay_id = "b58a67446c914f44a4e329763420047b"
     seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
-    with Feature(
-        {
-            "organizations:replay-click-rage-ingest": True,
-        }
-    ):
-        report_rage_click_issue_with_replay_event(
-            project_id=default_project.id,
-            replay_id=replay_id,
-            selector="div.xyz > a",
-            timestamp=seq1_timestamp.timestamp(),
-            url="https://www.sentry.io",
-            node={"tagName": "a"},
-            component_name="SmartSearchBar",
-            replay_event=mock_replay_event(trace_ids=[]),
-        )
+    report_rage_click_issue_with_replay_event(
+        project_id=default_project.id,
+        replay_id=replay_id,
+        selector="div.xyz > a",
+        timestamp=seq1_timestamp.timestamp(),
+        url="https://www.sentry.io",
+        node={"tagName": "a"},
+        component_name="SmartSearchBar",
+        replay_event=mock_replay_event(trace_ids=[]),
+    )
 
     # test that the Issue gets created
     assert Group.objects.get(message__contains="div.xyz > a")

@@ -21,7 +21,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import get_path
 
-SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go"]
+SUPPORTED_LANGUAGES = ["javascript", "python", "node", "ruby", "php", "go", "csharp"]
 
 logger = logging.getLogger(__name__)
 

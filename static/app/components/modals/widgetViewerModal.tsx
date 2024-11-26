@@ -3,6 +3,7 @@ import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import type {User} from '@sentry/types';
 import {truncate} from '@sentry/utils';
 import type {DataZoomComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -54,13 +55,20 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
+import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
+import type {
+  DashboardFilters,
+  DashboardPermissions,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getColoredWidgetIndicator,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -68,7 +76,10 @@ import {
   getWidgetMetricsUrl,
   getWidgetReleasesUrl,
   hasDatasetSelector,
+  isUsingPerformanceScore,
+  performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -84,6 +95,7 @@ import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQu
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -99,7 +111,10 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
+  dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
+  dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -117,6 +132,7 @@ interface Props extends ModalRenderProps, WidgetViewerModalOptions {
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
 const HALF_CONTAINER_HEIGHT = 300;
+const BIG_NUMBER_HEIGHT = 160;
 const EMPTY_QUERY_NAME = '(Empty Query Condition)';
 
 const shouldWidgetCardChartMemo = (prevProps, props) => {
@@ -187,6 +203,9 @@ function WidgetViewerModal(props: Props) {
     pageLinks: defaultPageLinks,
     seriesResultsType,
     dashboardFilters,
+    widgetLegendState,
+    dashboardPermissions,
+    dashboardCreator,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -243,19 +262,7 @@ function WidgetViewerModal(props: Props) {
     }
   }, [end, location, locationPageFilter, start]);
 
-  // Get legends toggle settings from location
-  // We use the legend query params for just the initial state
-  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
-    decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
-      acc[legend] = false;
-      return acc;
-    }, {})
-  );
   const [totalResults, setTotalResults] = useState<string | undefined>();
-
-  // Get query selection settings from location
-  const selectedQueryIndex =
-    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
 
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
@@ -270,6 +277,15 @@ function WidgetViewerModal(props: Props) {
   const sortedQueries = cloneDeep(
     sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
   );
+
+  // The table under the widget visualization can only show one query, but widgets might have multiple. Choose the query based on a URL parameter.
+  // Note that the URL parameter might be incorrect or invalid, in which case we drop down to the first query
+  let selectedQueryIndex =
+    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+
+  if (defined(widget) && !defined(sortedQueries[selectedQueryIndex])) {
+    selectedQueryIndex = 0;
+  }
 
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
@@ -473,19 +489,7 @@ function WidgetViewerModal(props: Props) {
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
-    setDisabledLegends(selected);
-    navigate(
-      {
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [WidgetViewerQueryField.LEGEND]: Object.keys(selected).filter(
-            key => !selected[key]
-          ),
-        },
-      },
-      {replace: true}
-    );
+    widgetLegendState.setWidgetSelectionState(selected, widget);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
       widget_type: widget.widgetType ?? WidgetType.DISCOVER,
@@ -851,6 +855,18 @@ function WidgetViewerModal(props: Props) {
     }
   }
 
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    );
+  }
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -869,7 +885,7 @@ function WidgetViewerModal(props: Props) {
                   ].includes(widget.displayType)
                     ? SLIDER_HEIGHT
                     : 0)
-                : null
+                : BIG_NUMBER_HEIGHT
             }
           >
             {(!!seriesData || !!tableData) && chartUnmodified ? (
@@ -885,11 +901,14 @@ function WidgetViewerModal(props: Props) {
                 organization={organization}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                widgetLegendState={widgetLegendState}
               />
             ) : (
               <MemoizedWidgetCardChartContainer
@@ -902,11 +921,14 @@ function WidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{selected: disabledLegends}}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
                 expandNumbers
                 showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
+                widgetLegendState={widgetLegendState}
               />
             )}
           </Container>
@@ -1030,9 +1052,7 @@ function WidgetViewerModal(props: Props) {
                     <WidgetHeader>
                       <WidgetTitleRow>
                         <h3>{widget.title}</h3>
-                        {widget.thresholds &&
-                          tableData &&
-                          getColoredWidgetIndicator(widget.thresholds, tableData)}
+                        <DiscoverSplitAlert widget={widget} />
                       </WidgetTitleRow>
                       {widget.description && (
                         <Tooltip
@@ -1063,6 +1083,11 @@ function WidgetViewerModal(props: Props) {
                                 display_type: widget.displayType,
                               });
                             }}
+                            disabled={!hasEditAccess}
+                            title={
+                              !hasEditAccess &&
+                              t('You do not have permission to edit this widget')
+                            }
                           >
                             {t('Edit Widget')}
                           </Button>
@@ -1073,6 +1098,12 @@ function WidgetViewerModal(props: Props) {
                             organization={organization}
                             selection={modalTableSelection}
                             selectedQueryIndex={selectedQueryIndex}
+                            disabled={isUsingPerformanceScore(widget)}
+                            disabledTooltip={
+                              isUsingPerformanceScore(widget)
+                                ? performanceScoreTooltip
+                                : undefined
+                            }
                           />
                         )}
                       </ButtonBar>
@@ -1093,6 +1124,8 @@ interface OpenButtonProps {
   selectedQueryIndex: number;
   selection: PageFilters;
   widget: Widget;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 function OpenButton({
@@ -1100,6 +1133,8 @@ function OpenButton({
   selection,
   organization,
   selectedQueryIndex,
+  disabled,
+  disabledTooltip,
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
@@ -1117,6 +1152,10 @@ function OpenButton({
     case WidgetType.METRICS:
       openLabel = t('Open in Metrics');
       path = getWidgetMetricsUrl(widget, selection, organization);
+      break;
+    case WidgetType.SPANS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
@@ -1136,15 +1175,18 @@ function OpenButton({
 
   return (
     <Tooltip
-      title={t(
-        'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
-      )}
-      disabled={!buttonDisabled}
+      title={
+        disabledTooltip ??
+        t(
+          'We are splitting datasets to make them easier to digest. Please confirm the dataset for this widget by clicking Edit Widget.'
+        )
+      }
+      disabled={defined(disabled) ? !disabled : !buttonDisabled}
     >
       <LinkButton
         to={path}
         priority="primary"
-        disabled={buttonDisabled}
+        disabled={disabled || buttonDisabled}
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
@@ -1193,6 +1235,8 @@ export const modalCss = css`
 `;
 
 const Container = styled('div')<{height?: number | null}>`
+  display: flex;
+  flex-direction: column;
   height: ${p => (p.height ? `${p.height}px` : 'auto')};
   position: relative;
   padding-bottom: ${space(3)};

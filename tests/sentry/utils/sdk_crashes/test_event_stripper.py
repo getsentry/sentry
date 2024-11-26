@@ -332,15 +332,15 @@ def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, confi
 
     sentry_sdk_frame = frames[-1]
 
-    sentry_sdk_frame[
-        "module"
-    ] = "Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative"
-    sentry_sdk_frame[
-        "filename"
-    ] = "/Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
-    sentry_sdk_frame[
-        "abs_path"
-    ] = "app:///Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    sentry_sdk_frame["module"] = (
+        "Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative"
+    )
+    sentry_sdk_frame["filename"] = (
+        "/Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    )
+    sentry_sdk_frame["abs_path"] = (
+        "app:///Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    )
 
     event_data = get_crash_event_with_frames(frames)
 

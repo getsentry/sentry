@@ -82,6 +82,7 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.angular':
     case 'sentry.javascript.angular-ivy':
     case 'sentry.javascript.nextjs':
+    case 'sentry.javascript.nuxt':
     case 'sentry.javascript.electron':
     case 'sentry.javascript.remix':
     case 'sentry.javascript.svelte':
@@ -135,4 +136,10 @@ export function getPageloadTransactionChildCount(
     }
   }
   return count;
+}
+
+export function isTracePerformanceIssue(
+  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
+): issue is TraceTree.TracePerformanceIssue {
+  return 'suspect_spans' in issue;
 }

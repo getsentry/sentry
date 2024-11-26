@@ -577,6 +577,77 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
         assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
+    def test_dashboard_split_transaction_status_error_events_dataset(self):
+        transaction_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": ["transaction", "p75(transaction.duration)", "total.count"],
+                "query": "event.type:transaction transaction.status:ok",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(transaction_query, self.dry_run)
+        transaction_query.refresh_from_db()
+        assert transaction_query.dataset == 0 if self.dry_run else transaction_query.dataset == 2
+        if not self.dry_run:
+            assert transaction_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_unhandled_filter_sets_error_events_dataset(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": [
+                    "equation|count() / total.count * 100",
+                    "release",
+                    "error_event",
+                    "count()",
+                    "total.count",
+                ],
+                "query": "error.unhandled:false",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_empty_equation_is_filtered_out(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "fields": [
+                    "count()",
+                    "equation|",
+                ],
+                "query": 'message:"Testing"',
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.INFERRED.value
+
 
 class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
     def setUp(self):
@@ -585,12 +656,12 @@ class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSpli
 
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner: User) -> None:
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 

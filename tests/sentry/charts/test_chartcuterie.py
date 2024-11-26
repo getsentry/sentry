@@ -83,8 +83,9 @@ class ChartcuterieTest(TestCase):
             "chart-rendering.chartcuterie": {"url": service_url},
         }
 
-        with self.options(options), pytest.raises(
-            RuntimeError, match="Chartcuterie responded with 500: Service down"
+        with (
+            self.options(options),
+            pytest.raises(RuntimeError, match="Chartcuterie responded with 500: Service down"),
         ):
             charts.generate_chart(ChartType.SLACK_DISCOVER_TOTAL_PERIOD, chart_data)
 

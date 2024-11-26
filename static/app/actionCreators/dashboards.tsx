@@ -217,6 +217,37 @@ export function validateWidgetRequest(
   ] as const;
 }
 
+export function updateDashboardPermissions(
+  api: Client,
+  orgId: string,
+  dashboard: DashboardDetails
+): Promise<DashboardDetails> {
+  const {permissions} = dashboard;
+  const data = {
+    permissions,
+  };
+  const promise: Promise<DashboardDetails> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    {
+      method: 'PUT',
+      data,
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else {
+      addErrorMessage(t('Unable to update dashboard permissions'));
+    }
+  });
+
+  return promise;
+}
+
 export function validateWidget(
   api: Client,
   orgId: string,

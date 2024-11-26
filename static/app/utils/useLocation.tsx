@@ -19,10 +19,10 @@ export function useLocation<Q extends Query = DefaultQuery>(): Location<Q> {
     return legacyRouterContext.location;
   }
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const router6Location = useReactRouter6Location();
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const location = useMemo(
     () => location6ToLocation3<Q>(router6Location),
     [router6Location]

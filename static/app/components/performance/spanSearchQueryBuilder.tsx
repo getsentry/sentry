@@ -30,13 +30,13 @@ interface SpanSearchQueryBuilderProps {
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
-  supportedAggregates?: AggregationKey[];
 }
 
-const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -51,26 +51,28 @@ const getFunctionTags = (supportedAggregates: AggregationKey[] | undefined) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string) => {
-  return getFieldDefinition(key, 'span');
-};
+function getSpanFieldDefinitionFunction(tags: TagCollection) {
+  return (key: string) => {
+    return getFieldDefinition(key, 'span', tags[key]?.kind);
+  };
+}
 
 export function SpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
   onSearch,
+  onBlur,
   placeholder,
   projects,
-  supportedAggregates,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const functionTags = useMemo(() => {
-    return getFunctionTags(supportedAggregates);
-  }, [supportedAggregates]);
+    return getFunctionTags();
+  }, []);
 
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
@@ -135,8 +137,9 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
@@ -150,15 +153,18 @@ export function SpanSearchQueryBuilder({
 interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  supportedAggregates?: AggregationKey[];
 }
 
 export function EAPSpanSearchQueryBuilder({
   initialQuery,
   placeholder,
   onSearch,
+  onBlur,
   searchSource,
   numberTags,
   stringTags,
+  supportedAggregates = [],
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -166,16 +172,25 @@ export function EAPSpanSearchQueryBuilder({
 
   const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
 
+  const functionTags = useMemo(() => {
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
+
   const tags = useMemo(() => {
-    return {...numberTags, ...stringTags};
-  }, [numberTags, stringTags]);
+    return {...functionTags, ...numberTags, ...stringTags};
+  }, [numberTags, stringTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     const predefined = new Set(
       SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
     );
     return [
-      ...SPANS_FILTER_KEY_SECTIONS,
+      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
+        return {
+          ...section,
+          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
+        };
+      }),
       {
         value: 'custom_fields',
         label: 'Custom Tags',
@@ -215,8 +230,9 @@ export function EAPSpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={tags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}

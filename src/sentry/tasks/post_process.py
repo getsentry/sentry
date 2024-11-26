@@ -13,8 +13,10 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
+from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
+from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -479,6 +481,17 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     )
 
 
+def _get_event_id_from_cache_key(cache_key: str) -> str | None:
+    """
+    format is "e:{}:{}",event_id,project_id
+    """
+
+    try:
+        return cache_key.split(":")[1]
+    except IndexError:
+        return None
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -494,6 +507,7 @@ def post_process_group(
     occurrence_id: str | None = None,
     *,
     project_id: int,
+    eventstream_type: str | None = None,
     **kwargs,
 ):
     """
@@ -503,7 +517,10 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
+        from sentry.eventstore.processing import (
+            event_processing_store,
+            transaction_processing_store,
+        )
         from sentry.ingest.transaction_clusterer.datasource.redis import (
             record_transaction_name as record_transaction_name_for_clustering,
         )
@@ -512,19 +529,35 @@ def post_process_group(
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
 
+        if eventstream_type == EventStreamEventType.Transaction.value:
+            processing_store = transaction_processing_store
+        else:
+            processing_store = event_processing_store
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
             # to ensure that we don't duplicate work should the forwarding consumers
             # need to rewind history.
-            data = event_processing_store.get(cache_key)
+            data = processing_store.get(cache_key)
             if not data:
+                event_id = _get_event_id_from_cache_key(cache_key)
+                if event_id:
+                    if in_rollout_group(
+                        "transactions.do_post_process_in_save",
+                        event_id,
+                    ):
+                        # if we're doing the work for transactions in save_event_transaction
+                        # instead of here, this is expected, so simply increment a metric
+                        # instead of logging
+                        metrics.incr("post_process.skipped_do_post_process_in_save")
+                        return
+
                 logger.info(
                     "post_process.skipped",
                     extra={"cache_key": cache_key, "reason": "missing_cache"},
                 )
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
+                processing_store.delete_by_key(cache_key)
 
             occurrence = None
             event = process_event(data, group_id)
@@ -1165,7 +1198,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
         process_resource_change_bound.delay(
-            action="created", sender="Error", instance_id=event.event_id, instance=event
+            action="created",
+            sender="Error",
+            instance_id=event.event_id,
+            project_id=event.project_id,
+            group_id=event.group_id,
         )
     if is_new:
         process_resource_change_bound.delay(
@@ -1192,7 +1229,11 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
+    if not options.get("sentry.similarity.indexing.enabled"):
+        return
+    if job["is_reprocessed"] or job["event"].group.project.get_option(
+        "sentry:similarity_backfill_completed"
+    ):
         return
 
     from sentry import similarity

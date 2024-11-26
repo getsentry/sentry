@@ -23,7 +23,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 
@@ -66,7 +65,14 @@ class SeerEventManagerGroupingTest(TestCase):
 
             # Project option set
             self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-            new_event = save_new_event({"message": "Maisey is silly"}, self.project)
+            new_event = save_new_event(
+                {
+                    "exception": {
+                        "values": [{"type": "DogsAreNeverAnError", "value": "Dogs are great!"}],
+                    },
+                },
+                self.project,
+            )
             expected_metadata = {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                 "results": [asdict(seer_result_data)],
@@ -158,7 +164,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=existing_event.get_primary_hash(),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 
@@ -211,7 +216,6 @@ class SeerEventManagerGroupingTest(TestCase):
             parent_hash=NonNone(existing_event.get_primary_hash()),
             parent_group_id=NonNone(existing_event.group_id),
             stacktrace_distance=0.01,
-            message_distance=0.05,
             should_group=True,
         )
 

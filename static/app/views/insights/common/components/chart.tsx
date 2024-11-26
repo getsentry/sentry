@@ -239,17 +239,29 @@ function Chart({
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
   }, [bucketSize, lastBucketTimestamp]);
 
-  // TODO: Support area and bar charts
+  // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
     const metricChartType =
       type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
-    const seriesToShow = series.map(serie =>
-      createIngestionSeries(serie as MetricSeries, ingestionBuckets, metricChartType)
-    );
+    const seriesToShow = series.map(serie => {
+      const ingestionSeries = createIngestionSeries(
+        serie as MetricSeries,
+        ingestionBuckets,
+        metricChartType
+      );
+      // this helper causes all the incomplete series to stack, here we remove the stacking
+      if (!stacked) {
+        for (const s of ingestionSeries) {
+          delete s.stack;
+        }
+      }
+      return ingestionSeries;
+    });
     [series, incompleteSeries] = seriesToShow.reduce(
       (acc, serie, index) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+
         return [
           [...trimmed, {...serie[0], color: colors[index]}],
           [
@@ -274,7 +286,7 @@ function Chart({
           return axisLabelFormatter(
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-            undefined,
+            true,
             durationUnit ?? getDurationUnit(data),
             rateUnit
           );
@@ -322,6 +334,7 @@ function Chart({
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      truncate: true,
       utc: utc ?? false,
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
@@ -442,16 +455,10 @@ function Chart({
     if (type === ChartType.BAR) {
       return (
         <BarChart
+          {...zoomRenderProps}
           height={height}
           series={series}
-          xAxis={{
-            type: 'category',
-            axisTick: {show: true},
-            truncate: Infinity, // Show axis labels
-            axisLabel: {
-              interval: 0, // Show _all_ axis labels
-            },
-          }}
+          xAxis={xAxis}
           yAxis={{
             minInterval: durationUnit ?? getDurationUnit(data),
             splitNumber: definedAxisTicks,
@@ -462,7 +469,7 @@ function Chart({
                 return axisLabelFormatter(
                   value,
                   aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-                  undefined,
+                  true,
                   durationUnit ?? getDurationUnit(data),
                   rateUnit
                 );

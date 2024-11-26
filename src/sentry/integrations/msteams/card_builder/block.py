@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from enum import Enum
-from typing import Literal, NotRequired, TypeAlias, TypedDict
-
-from typing_extensions import Unpack
+from typing import Literal, NotRequired, TypeAlias, TypedDict, Unpack
 
 from sentry.integrations.msteams.card_builder.utils import escape_markdown_special_chars
 from sentry.utils.assets import get_asset_url

@@ -127,9 +127,9 @@ function CustomViewsIssueListHeader({
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
-        <Tabs>
+        <StyledTabs>
           <CustomViewsIssueListHeaderTabsContent {...props} views={groupSearchViews} />
-        </Tabs>
+        </StyledTabs>
       ) : (
         <div style={{height: 33}} />
       )}
@@ -337,6 +337,14 @@ function CustomViewsIssueListHeaderTabsContent({
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
+        setTempTab({
+          id: TEMPORARY_TAB_KEY,
+          key: TEMPORARY_TAB_KEY,
+          label: t('Unsaved'),
+          query: query,
+          querySort: sort ?? IssueSortOptions.DATE,
+          isCommitted: true,
+        });
         navigate(
           normalizeUrl({
             ...location,
@@ -474,6 +482,10 @@ function CustomViewsIssueListHeaderTabsContent({
 }
 
 export default CustomViewsIssueListHeader;
+
+const StyledTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+`;
 
 const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
   grid-column: 1/-1;

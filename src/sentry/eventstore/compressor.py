@@ -5,6 +5,7 @@ debug_meta.
 
 This is not used in production yet, we are still collecting metrics there.
 """
+
 from __future__ import annotations
 
 import hashlib

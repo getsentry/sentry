@@ -160,6 +160,7 @@ export enum TimePeriod {
   // limitations.
   SEVEN_DAYS = '9998m',
   FOURTEEN_DAYS = '14d',
+  TWENTY_EIGHT_DAYS = '28d',
 }
 
 export enum TimeWindow {

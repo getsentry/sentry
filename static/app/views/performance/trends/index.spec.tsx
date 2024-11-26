@@ -19,6 +19,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
 import {
@@ -30,6 +31,9 @@ import {
 const trendsViewQuery = {
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment-timezone');
@@ -133,6 +137,16 @@ function initializeTrendsData(
 
   const newQuery = {...(includeDefaultQuery ? trendsViewQuery : {}), ...query};
 
+  mockUseLocation.mockReturnValue({
+    pathname: '/organizations/org-slug/performance/trends/',
+    action: 'PUSH',
+    hash: '',
+    key: '',
+    query: newQuery,
+    search: '',
+    state: undefined,
+  });
+
   const initialData = initializeOrg({
     organization,
     router: {
@@ -152,6 +166,16 @@ function initializeTrendsData(
 describe('Performance > Trends', function () {
   let trendsStatsMock: jest.Mock;
   beforeEach(function () {
+    mockUseLocation.mockReturnValue({
+      pathname: '/organizations/org-slug/performance/trends/',
+      action: 'PUSH',
+      hash: '',
+      key: '',
+      query: {},
+      search: '',
+      state: undefined,
+    });
+
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -397,10 +421,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[2];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[2];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -456,10 +485,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[0];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[0];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -487,10 +521,15 @@ describe('Performance > Trends', function () {
     expect(transactions).toHaveLength(2);
     const firstTransaction = transactions[0];
 
-    const menuActions = within(firstTransaction).getAllByTestId('menu-action');
-    expect(menuActions).toHaveLength(3);
+    await userEvent.click(
+      within(firstTransaction).getByRole('button', {name: 'Actions'})
+    );
+    await waitFor(() => {
+      const menuActions = within(firstTransaction).getAllByRole('menuitemradio');
+      expect(menuActions).toHaveLength(3);
+    });
 
-    const menuAction = menuActions[1];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[1];
     await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({

@@ -28,7 +28,7 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -115,9 +115,6 @@ export function Actions(props: Props) {
   const getDiscoverUrl = () => {
     const {title, type, shortId} = group;
 
-    const groupIsOccurrenceBacked =
-      group.issueCategory === IssueCategory.PERFORMANCE && !!event?.occurrence;
-
     const discoverQuery = {
       id: undefined,
       name: title || type,
@@ -127,10 +124,7 @@ export function Actions(props: Props) {
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
-      dataset:
-        config.usesIssuePlatform || groupIsOccurrenceBacked
-          ? DiscoverDatasets.ISSUE_PLATFORM
-          : undefined,
+      dataset: config.usesIssuePlatform ? DiscoverDatasets.ISSUE_PLATFORM : undefined,
     };
 
     const discoverView = EventView.fromSavedQuery(discoverQuery);
@@ -384,7 +378,7 @@ export function Actions(props: Props) {
             </ResolvedWrapper>
             <Divider />
             <Button
-              size="xs"
+              size="sm"
               disabled={disabled || isAutoResolved}
               onClick={() =>
                 onUpdate({
@@ -399,55 +393,55 @@ export function Actions(props: Props) {
           </ResolvedActionWapper>
         ) : (
           <Fragment>
-            <GuideAnchor target="resolve" position="bottom" offset={20}>
-              <ResolveActions
-                disableResolveInRelease={!resolveInReleaseCap.enabled}
-                disabled={disabled}
-                disableDropdown={disabled}
-                hasRelease={hasRelease}
-                latestRelease={project.latestRelease}
-                onUpdate={onUpdate}
-                projectSlug={project.slug}
-                isResolved={isResolved}
-                isAutoResolved={isAutoResolved}
-                size="xs"
-                priority="primary"
-              />
-            </GuideAnchor>
+            <ResolveActions
+              disableResolveInRelease={!resolveInReleaseCap.enabled}
+              disabled={disabled}
+              disableDropdown={disabled}
+              hasRelease={hasRelease}
+              latestRelease={project.latestRelease}
+              onUpdate={onUpdate}
+              projectSlug={project.slug}
+              isResolved={isResolved}
+              isAutoResolved={isAutoResolved}
+              size="sm"
+              priority="primary"
+            />
             <ArchiveActions
-              className="hidden-xs"
-              size="xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
+              size="sm"
               isArchived={isIgnored}
               onUpdate={onUpdate}
               disabled={disabled}
               disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
             />
             <SubscribeAction
-              className="hidden-xs"
+              className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               disabled={disabled}
               disablePriority
               group={group}
               onClick={handleClick(onToggleSubscribe)}
               icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-              size="xs"
+              size="sm"
             />
           </Fragment>
         ))}
-      {hasStreamlinedUI && <NewIssueExperienceButton />}
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
           icon: <IconEllipsis />,
           showChevron: false,
-          size: hasStreamlinedUI ? 'xs' : 'sm',
+          size: 'sm',
         }}
         items={[
-          ...(isIgnored
+          // XXX: Never show for streamlined UI
+          ...(isIgnored || hasStreamlinedUI
             ? []
             : [
                 {
                   key: 'Archive',
-                  className: 'hidden-sm hidden-md hidden-lg',
+                  className: hasStreamlinedUI
+                    ? undefined
+                    : 'hidden-sm hidden-md hidden-lg',
                   label: t('Archive'),
                   isSubmenu: true,
                   disabled,
@@ -456,18 +450,24 @@ export function Actions(props: Props) {
               ]),
           {
             key: 'open-in-discover',
-            className: 'hidden-sm hidden-md hidden-lg',
+            // XXX: Always show for streamlined UI
+            className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
             label: t('Open in Discover'),
             to: disabled ? '' : getDiscoverUrl(),
             onAction: () => trackIssueAction('open_in_discover'),
           },
-          {
-            key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
-            className: 'hidden-sm hidden-md hidden-lg',
-            label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
-            disabled: disabled || group.subscriptionDetails?.disabled,
-            onAction: onToggleSubscribe,
-          },
+          // We don't hide the subscribe button for streamlined UI
+          ...(hasStreamlinedUI
+            ? []
+            : [
+                {
+                  key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+                  disabled: disabled || group.subscriptionDetails?.disabled,
+                  onAction: onToggleSubscribe,
+                },
+              ]),
           {
             key: 'mark-review',
             label: t('Mark reviewed'),
@@ -541,9 +541,7 @@ export function Actions(props: Props) {
                 onClick={() => trackIssueAction('open_in_discover')}
                 size="sm"
               >
-                <GuideAnchor target="open_in_discover">
-                  {t('Open in Discover')}
-                </GuideAnchor>
+                {t('Open in Discover')}
               </LinkButton>
             </Feature>
           )}

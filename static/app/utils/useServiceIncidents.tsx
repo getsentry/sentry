@@ -9,9 +9,9 @@ interface UseServiceIncidentsOptions {
    */
   componentFilter?: StatusPageComponent[];
   /**
-   * Should we load all incidents or just unresolved incidents
+   * Should we include resolved incidents
    */
-  statusFilter?: 'unresolved' | 'resolved';
+  includeResolved?: boolean;
 }
 
 /**
@@ -22,13 +22,13 @@ interface UseServiceIncidentsOptions {
  * endpoint, efficiently only loading unresolved incidents.
  */
 export function useServiceIncidents({
-  statusFilter,
+  includeResolved,
   componentFilter,
 }: UseServiceIncidentsOptions = {}) {
   const {statuspage} = useLegacyStore(ConfigStore);
 
   return useQuery<StatuspageIncident[] | null>({
-    queryKey: ['statuspage-incidents', statusFilter],
+    queryKey: ['statuspage-incidents', includeResolved],
     gcTime: 60 * 5,
     queryFn: async () => {
       const {api_host, id} = statuspage ?? {};
@@ -38,11 +38,10 @@ export function useServiceIncidents({
       }
 
       // We can avoid fetching lots of data by only querying the unresolved API
-      // when we filter to only unresolvedf incidents
-      const sttusPageUrl =
-        statusFilter === 'unresolved'
-          ? `https://${id}.${api_host}/api/v2/incidents/unresolved.json`
-          : `https://${id}.${api_host}/api/v2/incidents.json`;
+      // when we filter to only unresolved incidents
+      const sttusPageUrl = includeResolved
+        ? `https://${id}.${api_host}/api/v2/incidents.json`
+        : `https://${id}.${api_host}/api/v2/incidents/unresolved.json`;
 
       let resp: Response;
       try {
@@ -64,8 +63,8 @@ export function useServiceIncidents({
     select: incidents => {
       let filteredIncidents = incidents;
 
-      if (statusFilter) {
-        filteredIncidents = incidents?.filter(inc => inc.status === statusFilter) ?? null;
+      if (!includeResolved) {
+        filteredIncidents = incidents?.filter(inc => inc.status !== 'resolved') ?? null;
       }
       if (componentFilter) {
         filteredIncidents =

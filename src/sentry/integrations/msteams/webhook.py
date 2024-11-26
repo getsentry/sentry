@@ -24,12 +24,14 @@ from sentry.identity.services.identity import identity_service
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.messaging import commands
 from sentry.integrations.messaging.commands import (
+    CommandHandler,
     CommandInput,
     CommandNotMatchedError,
     MessagingIntegrationCommand,
     MessagingIntegrationCommandDispatcher,
 )
 from sentry.integrations.messaging.metrics import (
+    MessageCommandHaltReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -37,6 +39,7 @@ from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.spec import PROVIDER, MsTeamsMessagingSpec
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
@@ -85,8 +88,8 @@ class MsTeamsIntegrationResolve(MsTeamsIntegrationAnalytics):
     type = "integrations.msteams.resolve"
 
 
-class MsTeamsIntegrationIgnore(MsTeamsIntegrationAnalytics):
-    type = "integrations.msteams.ignore"
+class MsTeamsIntegrationArchive(MsTeamsIntegrationAnalytics):
+    type = "integrations.msteams.archive"
 
 
 class MsTeamsIntegrationUnresolve(MsTeamsIntegrationAnalytics):
@@ -99,7 +102,7 @@ class MsTeamsIntegrationUnassign(MsTeamsIntegrationAnalytics):
 
 analytics.register(MsTeamsIntegrationAssign)
 analytics.register(MsTeamsIntegrationResolve)
-analytics.register(MsTeamsIntegrationIgnore)
+analytics.register(MsTeamsIntegrationArchive)
 analytics.register(MsTeamsIntegrationUnresolve)
 analytics.register(MsTeamsIntegrationUnassign)
 
@@ -446,8 +449,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
                     action_data.update({"statusDetails": {"inNextRelease": True}})
                 elif resolve_type == "inCurrentRelease":
                     action_data.update({"statusDetails": {"inRelease": "latest"}})
-        elif action_type == ACTION_TYPE.IGNORE:
-            ignore_count = data.get("ignoreInput")
+        # ignore has been renamed to archive, but ignore is still used in the payload
+        elif action_type == ACTION_TYPE.ARCHIVE:
+            ignore_count = data.get("archiveInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
                 if int(ignore_count) > 0:
@@ -463,7 +467,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     _ACTION_TYPES = {
         ACTION_TYPE.RESOLVE: ("resolve", MessagingInteractionType.RESOLVE),
-        ACTION_TYPE.IGNORE: ("ignore", MessagingInteractionType.IGNORE),
+        ACTION_TYPE.ARCHIVE: ("archive", MessagingInteractionType.ARCHIVE),
         ACTION_TYPE.ASSIGN: ("assign", MessagingInteractionType.ASSIGN),
         ACTION_TYPE.UNRESOLVE: ("unresolve", MessagingInteractionType.UNRESOLVE),
         ACTION_TYPE.UNASSIGN: ("unassign", MessagingInteractionType.UNASSIGN),
@@ -651,26 +655,49 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     def teams_user_id(self) -> str:
         return self.data["from"]["id"]
 
-    @property
-    def command_handlers(
-        self,
-    ) -> Iterable[tuple[MessagingIntegrationCommand, Callable[[CommandInput], AdaptiveCard]]]:
-        yield commands.HELP, (lambda _: build_help_command_card())
-        yield commands.LINK_IDENTITY, self.link_identity
-        yield commands.UNLINK_IDENTITY, self.unlink_identity
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=build_help_command_card(),
+        )
 
-    def link_identity(self, _: CommandInput) -> AdaptiveCard:
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         linked_identity = identity_service.get_identity(
             filter={"identity_ext_id": self.teams_user_id}
         )
         has_linked_identity = linked_identity is not None
-        if has_linked_identity:
-            return build_already_linked_identity_command_card()
-        else:
-            return build_link_identity_command_card()
 
-    def unlink_identity(self, _: CommandInput) -> AdaptiveCard:
+        if has_linked_identity:
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=build_already_linked_identity_command_card(),
+                outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
+                context_data={
+                    "user_id": self.teams_user_id,
+                    "identity_id": linked_identity.id if linked_identity else None,
+                },
+            )
+        else:
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=build_link_identity_command_card(),
+            )
+
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         unlink_url = build_unlinking_url(
             self.conversation_id, self.data["serviceUrl"], self.teams_user_id
         )
-        return build_unlink_identity_card(unlink_url)
+        # TODO: check if the user is already unlinked
+        return IntegrationResponse(
+            response=build_unlink_identity_card(unlink_url),
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+        )
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
+
+        yield commands.HELP, self.help_handler
+        yield commands.LINK_IDENTITY, self.link_user_handler
+        yield commands.UNLINK_IDENTITY, self.unlink_user_handler

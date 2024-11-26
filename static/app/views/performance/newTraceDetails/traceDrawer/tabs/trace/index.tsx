@@ -24,7 +24,7 @@ import {GeneralInfo} from './generalInfo';
 import {TagsSummary} from './tagsSummary';
 
 type TraceDetailsProps = {
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tagsInfiniteQueryResults: UseInfiniteQueryResult<
@@ -66,7 +66,7 @@ export function TraceDetails(props: TraceDetailsProps) {
           tree={props.tree}
           node={props.node}
           rootEventResults={props.rootEventResults}
-          metaResults={props.metaResults}
+          meta={props.meta}
         />
         <TagsSummary
           tagsInfiniteQueryResults={props.tagsInfiniteQueryResults}

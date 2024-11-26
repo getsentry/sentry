@@ -146,6 +146,7 @@ class IntegrationProviderSlug(StrEnum):
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
 
@@ -159,22 +160,23 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,
         IntegrationProviderSlug.JIRA_SERVER,
-        IntegrationProviderSlug.GITHUB,
-        IntegrationProviderSlug.GITHUB_ENTERPRISE,
-        IntegrationProviderSlug.GITLAB,
-        IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     IntegrationDomain.SOURCE_CODE_MANAGEMENT: [
         IntegrationProviderSlug.GITHUB,
         IntegrationProviderSlug.GITHUB_ENTERPRISE,
         IntegrationProviderSlug.GITLAB,
         IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
         IntegrationProviderSlug.OPSGENIE,
     ],
+}
+
+INTEGRATION_PROVIDER_TO_TYPE = {
+    v: k for k, values in INTEGRATION_TYPE_TO_PROVIDER.items() for v in values
 }
 
 
@@ -590,3 +592,11 @@ def disable_integration(
             data={"provider": rpc_integration.provider},
         )
     return None
+
+
+def get_integration_types(provider: str):
+    types = []
+    for integration_type, providers in INTEGRATION_TYPE_TO_PROVIDER.items():
+        if provider in providers:
+            types.append(integration_type)
+    return types

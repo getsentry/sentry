@@ -78,6 +78,16 @@ function SubmenuItem({item}: {item: NavSubmenuItem}) {
 
 const SubmenuLink = styled(Link)`
   position: relative;
+
+  ${InteractionStateLayer} {
+    transform: translate(0, 0);
+    top: 1px;
+    bottom: 1px;
+    right: 0;
+    left: 0;
+    width: initial;
+    height: initial;
+  }
 `;
 
 const SubmenuItemList = styled('ul')`
@@ -95,7 +105,7 @@ const SubmenuItemWrapper = styled('li')`
   a {
     display: flex;
     padding: 5px ${space(1.5)};
-    height: 32px;
+    height: 34px;
     align-items: center;
     color: inherit;
     font-size: ${p => p.theme.fontSizeMedium};

@@ -232,6 +232,9 @@ def devserver(
 
     daemons: MutableSequence[tuple[str, Sequence[str]]] = []
     kafka_consumers: set[str] = set()
+    containers: set[str] = set()
+    with get_docker_client() as docker:
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -324,7 +327,9 @@ def devserver(
             kafka_consumers.add("uptime-configs")
 
         if settings.SENTRY_USE_RELAY:
-            daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
+            # TODO: Remove this once we have a better way to check if relay is running for new devservices
+            if "relay-relay-1" not in containers:
+                daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
             kafka_consumers.add("ingest-events")
             kafka_consumers.add("ingest-attachments")
@@ -334,6 +339,7 @@ def devserver(
 
             kafka_consumers.add("monitors-clock-tick")
             kafka_consumers.add("monitors-clock-tasks")
+            kafka_consumers.add("monitors-incident-occurrences")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -348,9 +354,10 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        with get_docker_client() as docker:
-            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_kafka" not in containers:
+        kafka_container_name = (
+            "kafka-kafka-1" if os.environ.get("USE_NEW_DEVSERVICES") == "1" else "sentry_kafka"
+        )
+        if kafka_container_name not in containers:
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
@@ -369,7 +376,7 @@ or:
 and run `sentry devservices up kafka`.
 
 Alternatively, run without --workers.
-"""
+        """
             )
 
         from sentry.conf.types.kafka_definition import Topic

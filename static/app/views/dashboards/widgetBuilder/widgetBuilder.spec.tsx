@@ -1,4 +1,6 @@
 import {urlEncode} from '@sentry/utils';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
@@ -28,6 +30,8 @@ import {
 } from 'sentry/views/dashboards/types';
 import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
+
+import WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -80,6 +84,13 @@ function renderTestComponent({
 
   ProjectsStore.loadInitialData(projects);
 
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([], {id: 'new', title: 'Dashboard', ...dashboard}),
+    organization,
+    router,
+  });
+
   render(
     <WidgetBuilder
       route={{}}
@@ -104,6 +115,7 @@ function renderTestComponent({
         ...params,
       }}
       updateDashboardSplitDecision={updateDashboardSplitDecision}
+      widgetLegendState={widgetLegendState}
     />,
     {
       router,
@@ -251,6 +263,10 @@ describe('WidgetBuilder', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
 
@@ -565,8 +581,8 @@ describe('WidgetBuilder', function () {
     // Select line chart display
     await userEvent.click(screen.getByText('Line Chart'));
 
-    // Click the add overlay button
-    await userEvent.click(screen.getByLabelText('Add Overlay'));
+    // Click the Add Series button
+    await userEvent.click(screen.getByLabelText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), ['count_unique(…)']);
 
     await userEvent.click(screen.getByLabelText('Add Widget'));
@@ -1243,7 +1259,7 @@ describe('WidgetBuilder', function () {
     expect(await screen.findByText('Area Chart')).toBeInTheDocument();
 
     // Add a group by
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
@@ -1292,7 +1308,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
 
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
     await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
     await waitFor(() => {
@@ -1359,7 +1375,7 @@ describe('WidgetBuilder', function () {
     screen.getByText('Limit to 5 results');
 
     await userEvent.click(screen.getByText('Add Query'));
-    await userEvent.click(screen.getByText('Add Overlay'));
+    await userEvent.click(screen.getByText('Add Series'));
 
     expect(screen.getByText('Limit to 2 results')).toBeInTheDocument();
   });
@@ -2582,6 +2598,114 @@ describe('WidgetBuilder', function () {
           }),
         })
       );
+    });
+  });
+
+  describe('Spans Dataset', () => {
+    it('queries for span tags and returns the correct data', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'plan',
+            name: 'plan',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'string';
+          },
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/spans/fields/`,
+        body: [
+          {
+            key: 'tags[lcp.size,number]',
+            name: 'lcp.size',
+          },
+          {
+            key: 'tags[something.else,number]',
+            name: 'something.else',
+          },
+        ],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.type === 'number';
+          },
+        ],
+      });
+
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(tags[lcp.size,number])'],
+                columns: [],
+                aggregates: ['count(tags[lcp.size,number])'],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      // Click the argument to the count() function
+      expect(await screen.findByText('lcp.size')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('lcp.size'));
+
+      // The option now appears in the aggregate property dropdown
+      expect(screen.queryAllByText('lcp.size')).toHaveLength(2);
+      expect(screen.getByText('something.else')).toBeInTheDocument();
+
+      // Click count() to verify the string tag is in the dropdown
+      expect(screen.queryByText('plan')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByText(`count(…)`));
+      expect(screen.getByText('plan')).toBeInTheDocument();
+    });
+
+    it('does not show the Add Query button', async function () {
+      const dashboard = mockDashboard({
+        widgets: [
+          WidgetFixture({
+            widgetType: WidgetType.SPANS,
+            // Add Query is only available for timeseries charts
+            displayType: DisplayType.LINE,
+            queries: [
+              {
+                name: 'Test Widget',
+                fields: ['count(span.duration)'],
+                columns: [],
+                conditions: '',
+                orderby: '',
+                aggregates: ['count(span.duration)'],
+              },
+            ],
+          }),
+        ],
+      });
+      renderTestComponent({
+        dashboard,
+        orgFeatures: [...defaultOrgFeatures],
+        params: {
+          widgetIndex: '0',
+        },
+      });
+
+      await screen.findByText('Line Chart');
+      expect(screen.queryByText('Add Query')).not.toBeInTheDocument();
     });
   });
 });

@@ -1649,9 +1649,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1690,9 +1690,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],

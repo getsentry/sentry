@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useState} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,40 +8,37 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
+import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {SpansTable} from 'sentry/views/explore/tables/spansTable';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
-import {useSpanTags} from '../contexts/spanTagsContext';
-
-import {TracesTable} from './tracesTable/index';
-import {AggregatesTable} from './aggregatesTable';
-import {ColumnEditorModal} from './columnEditorModal';
-import {SpansTable} from './spansTable';
-
-enum Tab {
-  SPAN = 'span',
-  TRACE = 'trace',
+interface ExploreTablesProps {
+  setError: Dispatch<SetStateAction<string>>;
 }
 
-interface ExploreTablesProps {}
-
-export function ExploreTables({}: ExploreTablesProps) {
+export function ExploreTables({setError}: ExploreTablesProps) {
   const [resultMode] = useResultMode();
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregatesTable />}
-      {resultMode === 'samples' && <ExploreSamplesTable />}
+      {resultMode === 'aggregate' && <ExploreAggregatesTable setError={setError} />}
+      {resultMode === 'samples' && <ExploreSamplesTable setError={setError} />}
     </Fragment>
   );
 }
 
-function ExploreAggregatesTable() {
-  return <AggregatesTable />;
+function ExploreAggregatesTable({setError}: ExploreTablesProps) {
+  return <AggregatesTable setError={setError} />;
 }
 
-function ExploreSamplesTable() {
-  const [tab, setTab] = useState(Tab.SPAN);
+function ExploreSamplesTable({setError}: ExploreTablesProps) {
+  const [tab, setTab] = useTab();
+
   const [fields, setFields] = useSampleFields();
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -77,8 +75,8 @@ function ExploreSamplesTable() {
           {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable />}
-      {tab === Tab.TRACE && <TracesTable />}
+      {tab === Tab.SPAN && <SpansTable setError={setError} />}
+      {tab === Tab.TRACE && <TracesTable setError={setError} />}
     </Fragment>
   );
 }

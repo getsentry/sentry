@@ -7,11 +7,9 @@ import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -31,7 +29,9 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/settings';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
+import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
+import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
@@ -47,13 +47,13 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const BACKEND_COLUMN_TITLES = [
-  'transaction',
-  'project',
-  'operation',
   'http method',
+  'transaction',
+  'operation',
+  'project',
   'tpm',
-  'p50',
-  'p95',
+  'p50()',
+  'p95()',
   'failure rate',
   'apdex',
   'users',
@@ -80,19 +80,28 @@ function BackendOverviewPage() {
   // TODO - this should come from MetricsField / EAP fields
   eventView.fields = [
     {field: 'team_key_transaction'},
+    {field: 'http.method'},
     {field: 'transaction'},
     {field: 'transaction.op'},
-    {field: 'http.method'},
     {field: 'project'},
     {field: 'tpm()'},
-    {field: 'p50(transaction.duration)'},
-    {field: 'p95(transaction.duration)'},
+    {field: 'p50()'},
+    {field: 'p95()'},
     {field: 'failure_rate()'},
     {field: 'apdex()'},
     {field: 'count_unique(user)'},
     {field: 'count_miserable(user)'},
     {field: 'user_misery()'},
   ].map(field => ({...field, width: COL_WIDTH_UNDEFINED}));
+
+  const doubleChartRowEventView = eventView.clone(); // some of the double chart rows rely on span metrics, so they can't be queried with the same tags/filters
+  const disallowedOps = [
+    ...new Set([...FRONTEND_OVERVIEW_PAGE_OPS, ...BACKEND_OVERVIEW_PAGE_OPS]),
+  ];
+
+  const existingQuery = new MutableSearch(eventView.query);
+  existingQuery.addFilterValues('!transaction.op', disallowedOps);
+  eventView.query = existingQuery.formatString();
 
   const showOnboarding = onboardingProject !== undefined;
 
@@ -157,7 +166,7 @@ function BackendOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -202,6 +211,7 @@ function BackendOverviewPage() {
                     <DoubleChartRow
                       allowedCharts={doubleChartRowCharts}
                       {...sharedProps}
+                      eventView={doubleChartRowEventView}
                     />
                     <TripleChartRow
                       allowedCharts={tripleChartRowCharts}
@@ -229,14 +239,10 @@ function BackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const organization = useOrganization();
-
   return (
-    <PageFiltersContainer>
-      <SentryDocumentTitle title={OVERVIEW_PAGE_TITLE} orgSlug={organization.slug}>
-        <BackendOverviewPage />
-      </SentryDocumentTitle>
-    </PageFiltersContainer>
+    <DomainOverviewPageProviders>
+      <BackendOverviewPage />
+    </DomainOverviewPageProviders>
   );
 }
 

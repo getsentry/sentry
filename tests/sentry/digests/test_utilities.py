@@ -183,14 +183,12 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         digest = build_digest(self.project, sort_records(records))[0]
 
         expected_result = {
-            self.user1.id: set(self.team1_events),
             self.user2.id: set(self.team2_events),
             self.user3.id: set(self.team1_events + self.team2_events),
             self.user4.id: set(self.user4_events),
         }
 
-        with self.feature("organizations:notification-all-recipients"):
-            assert_get_personalized_digests(self.project, digest, expected_result)
+        assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_direct_email(self):
         """When the action type is not Issue Owners, then the target actor gets a digest."""
@@ -251,14 +249,13 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         records = [event_to_record(event, (rule,)) for event in events + self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
         expected_result = {
-            self.user1.id: set(events + self.team1_events),
+            self.user1.id: set(events),
             self.user2.id: set(events),
             self.user3.id: set(events + self.team1_events),
             self.user4.id: set(events),
             self.user5.id: set(events),
         }
-        with self.feature("organizations:notification-all-recipients"):
-            assert_get_personalized_digests(self.project, digest, expected_result)
+        assert_get_personalized_digests(self.project, digest, expected_result)
 
     def test_empty_records(self):
         assert build_digest(self.project, []) == DigestInfo({}, {}, {})

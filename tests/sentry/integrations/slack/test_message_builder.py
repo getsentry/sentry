@@ -45,6 +45,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -867,7 +868,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -911,7 +912,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -949,7 +950,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1017,7 +1018,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1057,7 +1058,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1097,7 +1098,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1150,7 +1151,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1181,7 +1182,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1214,7 +1215,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1247,7 +1248,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1283,7 +1284,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1314,7 +1315,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1360,7 +1361,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
-                        "organization_slug": alert_rule.organization.slug,
+                        "organization_slug": self.organization.slug,
                         "alert_rule_id": alert_rule.id,
                     },
                 )
@@ -1597,6 +1598,52 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert (
             context_with_error_user_count
             == f"Events: *3*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+    def test_get_context_users_affected(self):
+        env = self.create_environment(project=self.project)
+        env2 = self.create_environment(project=self.project)
+        rule = IssueAlertRule.objects.create(project=self.project, label="my rule")
+
+        event = [
+            self.store_event(
+                data={
+                    "user": {"id": i},
+                    "environment": env.name,
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            for i in range(5)
+        ][0]
+        [
+            self.store_event(
+                data={
+                    "user": {"id": i},
+                    "environment": env2.name,
+                },
+                project_id=self.project.id,
+                assert_no_errors=False,
+            )
+            for i in range(5, 7)
+        ]
+
+        group = event.group
+        assert group
+        group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
+
+        context = get_context(group, [rule])
+        assert (
+            context
+            == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
+        )
+
+        # filter users affected by env
+        rule.update(environment_id=env.id)
+        context = get_context(group, [rule])
+        assert (
+            context
+            == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
     def test_get_tags(self):

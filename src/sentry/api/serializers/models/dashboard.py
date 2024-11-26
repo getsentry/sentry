@@ -63,10 +63,12 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
+    datasetSource: str | None
 
 
 class DashboardPermissionsResponse(TypedDict):
-    is_creator_only_editable: bool
+    isEditableByEveryone: bool
+    teamsWithEditAccess: list[int]
 
 
 @register(DashboardWidget)
@@ -178,7 +180,8 @@ class DashboardWidgetQuerySerializer(Serializer):
 class DashboardPermissionsSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
         return {
-            "is_creator_only_editable": obj.is_creator_only_editable,
+            "isEditableByEveryone": obj.is_editable_by_everyone,
+            "teamsWithEditAccess": list(obj.teams_with_edit_access.values_list("id", flat=True)),
         }
 
 
@@ -189,6 +192,7 @@ class DashboardListResponse(TypedDict):
     createdBy: UserSerializerResponse
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
+    permissions: DashboardPermissionsResponse | None
 
 
 class DashboardListSerializer(Serializer):
@@ -247,6 +251,7 @@ class DashboardListSerializer(Serializer):
             "createdBy": attrs.get("created_by"),
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
+            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
         }
         return data
 

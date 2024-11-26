@@ -39,8 +39,13 @@ describe('StreamGroup', function () {
         reason: 0,
         reason_details: null,
       },
-      firstSeen: '2017-10-10T02:41:20.000Z',
-      lastSeen: '2017-10-16T02:41:20.000Z',
+      lifetime: {
+        firstSeen: '2017-10-10T02:41:20.000Z',
+        lastSeen: '2017-10-16T02:41:20.000Z',
+        count: '2',
+        userCount: 1,
+        stats: {},
+      },
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

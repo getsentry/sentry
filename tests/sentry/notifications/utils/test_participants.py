@@ -12,12 +12,12 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.team import Team
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -706,17 +706,6 @@ class GetOwnersCase(_ParticipantsTest):
         recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(expected=[], received=recipients)
         assert outcome == "empty"
-
-    # If matched, and all-recipients flag
-    def test_get_owners_match(self):
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
-            event = self.create_event(self.project)
-            recipients, outcome = get_owners(project=self.project, event=event)
-            self.assert_recipients(
-                expected=[self.team_1, self.team_2, self.user_1], received=recipients
-            )
-            assert outcome == "match"
 
     # If matched, and no all-recipients flag
     def test_get_owners_single_participant(self):

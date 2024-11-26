@@ -9,7 +9,7 @@ import {TraceTree} from './traceTree';
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 
-const traceMetadata = {replayRecord: null, meta: null};
+const traceMetadata = {replay: null, meta: null};
 
 const ssrTrace = makeTrace({
   transactions: [
@@ -61,12 +61,8 @@ describe('server side rendering', () => {
     TraceTree.FromSpans(
       tree.root.children[0].children[0],
       ssrSpans,
-      makeEventTransaction(),
-      {
-        sdk: undefined,
-      }
+      makeEventTransaction()
     );
-
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 

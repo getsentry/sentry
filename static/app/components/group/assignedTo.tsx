@@ -196,6 +196,7 @@ function AssignedTo({
     {
       eventId: event?.id ?? '',
       projectSlug: project.slug,
+      group,
     },
     {
       notifyOnChangeProps: ['data'],
@@ -255,7 +256,7 @@ function AssignedTo({
       <StyledSidebarTitle>
         {t('Assigned To')}
         <Access access={['project:read']}>
-          <GuideAnchor target="issue_sidebar_owners" position="bottom">
+          <GuideAnchor target="issue_sidebar_owners">
             <Button
               onClick={() => {
                 openIssueOwnershipRuleModal({

@@ -17,6 +17,9 @@ export const DEFAULT_INSIGHTS_MRI: MRI = 'd:spans/duration@millisecond';
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 export const DEFAULT_INSIGHTS_METRICS_ALERT_FIELD = `sum(${DEFAULT_INSIGHTS_MRI})`;
 
+export const DEFAULT_EAP_FIELD = 'span.duration';
+export const DEFAULT_EAP_METRICS_ALERT_FIELD = `count(${DEFAULT_EAP_FIELD})`;
+
 export function isMRI(mri?: unknown): mri is MRI {
   if (typeof mri !== 'string') {
     return false;

@@ -318,7 +318,6 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
       showPermalink={!hideTitle}
       type={SectionKey.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
-      guideTarget="breadcrumbs"
       actions={actions}
     >
       <ErrorBoundary>
@@ -346,6 +345,10 @@ export const SearchAndSortWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr;
+  }
+
+  @container breadcrumbs (width < 640px) {
+    display: none;
   }
 `;
 

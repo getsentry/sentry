@@ -21,7 +21,7 @@ defaults:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:

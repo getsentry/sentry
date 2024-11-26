@@ -15,23 +15,23 @@ import type {
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import {DEFAULT_FIELD} from '../common/settings';
+import {X_GUTTER, Y_GUTTER} from '../common/settings';
 
 import {ThresholdsIndicator} from './thresholdsIndicator';
 
-export interface Props {
-  value: number;
-  field?: string;
+export interface BigNumberWidgetVisualizationProps {
+  field: string;
+  value: number | string;
   maximumValue?: number;
   meta?: Meta;
   preferredPolarity?: Polarity;
-  previousPeriodValue?: number;
+  previousPeriodValue?: number | string;
   thresholds?: Thresholds;
 }
 
-export function BigNumberWidgetVisualization(props: Props) {
+export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
   const {
-    field = DEFAULT_FIELD,
+    field,
     value,
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
@@ -43,13 +43,9 @@ export function BigNumberWidgetVisualization(props: Props) {
   const organization = useOrganization();
 
   // TODO: meta as MetaType is a white lie. `MetaType` doesn't know that types can be null, but they can!
-  const fieldRenderer =
-    meta && field
-      ? getFieldRenderer(field, meta as MetaType, false)
-      : renderableValue => renderableValue.toString();
-
-  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
-  const clampedValue = Math.min(value, maximumValue);
+  const fieldRenderer = meta
+    ? getFieldRenderer(field, meta as MetaType, false)
+    : renderableValue => renderableValue.toString();
 
   const unit = meta?.units?.[field];
   const type = meta?.fields?.[field];
@@ -60,18 +56,44 @@ export function BigNumberWidgetVisualization(props: Props) {
     unit: unit ?? undefined, // TODO: Field formatters think units can't be null but they can
   };
 
+  // String values don't support differences, thresholds, max values, or anything else.
+  if (typeof value === 'string') {
+    return (
+      <Wrapper>
+        <NumberAndDifferenceContainer>
+          {fieldRenderer(
+            {
+              [field]: value,
+            },
+            baggage
+          )}
+        </NumberAndDifferenceContainer>
+      </Wrapper>
+    );
+  }
+
+  const doesValueHitMaximum = maximumValue ? value >= maximumValue : false;
+  const clampedValue = Math.min(value, maximumValue);
+
   return (
     <Wrapper>
       <NumberAndDifferenceContainer>
-        {props.thresholds && (
-          <ThresholdsIndicator
-            preferredPolarity={props.preferredPolarity}
-            thresholds={props.thresholds}
-            unit={unit ?? ''}
-            value={clampedValue}
-            type={type ?? 'integer'}
-          />
-        )}
+        {defined(props.thresholds?.max_values.max1) &&
+          defined(props.thresholds?.max_values.max2) && (
+            <ThresholdsIndicator
+              preferredPolarity={props.preferredPolarity}
+              thresholds={{
+                unit: props.thresholds.unit ?? undefined,
+                max_values: {
+                  max1: props.thresholds.max_values.max1,
+                  max2: props.thresholds.max_values.max2,
+                },
+              }}
+              unit={unit ?? ''}
+              value={clampedValue}
+              type={type ?? 'integer'}
+            />
+          )}
 
         <NumberContainerOverride>
           <Tooltip
@@ -92,6 +114,7 @@ export function BigNumberWidgetVisualization(props: Props) {
         </NumberContainerOverride>
 
         {defined(previousPeriodValue) &&
+          typeof previousPeriodValue === 'number' &&
           Number.isFinite(previousPeriodValue) &&
           !Number.isNaN(previousPeriodValue) &&
           !doesValueHitMaximum && (
@@ -120,7 +143,7 @@ function Wrapper({children}) {
 
 const AutoResizeParent = styled('div')`
   position: absolute;
-  inset: 0;
+  inset: ${Y_GUTTER} ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
 
   color: ${p => p.theme.headingColor};
 

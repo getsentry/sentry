@@ -119,7 +119,6 @@ export type BreadcrumbContext = {
 export type AutofixInsight = {
   breadcrumb_context: BreadcrumbContext[];
   codebase_context: CodeSnippetContext[];
-  error_message_context: string[];
   insight: string;
   justification: string;
   stacktrace_context: StacktraceContext[];
@@ -141,6 +140,7 @@ export interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+  termination_reason?: string;
 }
 
 export type AutofixCodebaseChange = {

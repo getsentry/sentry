@@ -60,6 +60,8 @@ type Options = {
   yAxis?: string | string[];
 };
 
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
+
 /**
  * Make requests to `events-stats` endpoint
  *
@@ -107,7 +109,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
-  }: {includeAllArgs?: IncludeAllArgsType} & Options
+  }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<
       [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
@@ -173,6 +175,7 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
+  useRpc?: '1';
 };
 
 export type TagSegment = {
@@ -257,7 +260,7 @@ export const useFetchEventAttachments = (
       staleTime: Infinity,
       ...options,
       enabled:
-        (organization.features?.includes('event-attachments') ?? false) &&
+        (organization.features.includes('event-attachments') ?? false) &&
         options.enabled !== false,
     }
   );

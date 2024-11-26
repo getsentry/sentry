@@ -77,19 +77,19 @@ export function ErrorNodeDetails({
     <LoadingIndicator />
   ) : data ? (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.LegacyHeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconBorder
             backgroundColor={makeTraceNodeBarColor(theme, node)}
           >
             <TraceIcons.Icon event={node.value} />
           </TraceDrawerComponents.IconBorder>
-          <TraceDrawerComponents.TitleText>
+          <TraceDrawerComponents.LegacyTitleText>
             <div>{node.value.level ?? t('error')}</div>
             <TraceDrawerComponents.TitleOp
               text={node.value.message ?? node.value.title ?? 'Error'}
             />
-          </TraceDrawerComponents.TitleText>
+          </TraceDrawerComponents.LegacyTitleText>
         </TraceDrawerComponents.Title>
         <TraceDrawerComponents.Actions>
           <TraceDrawerComponents.NodeActions
@@ -101,7 +101,7 @@ export function ErrorNodeDetails({
             {t('Go to Issue')}
           </LinkButton>
         </TraceDrawerComponents.Actions>
-      </TraceDrawerComponents.HeaderContainer>
+      </TraceDrawerComponents.LegacyHeaderContainer>
 
       <IssueList issues={issues} node={node} organization={organization} />
 

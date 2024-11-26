@@ -109,9 +109,6 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
 
         return default_item_type, item_tuples
 
-    def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
-        return self.get_create_issue_config(None, None, project=project)
-
     @all_silo_function
     def get_create_issue_config(
         self, group: Optional["Group"], user: RpcUser | None, **kwargs: Any

@@ -128,6 +128,11 @@ describe('messageSpanSamplesPanel', () => {
         },
       ],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      body: [],
+    });
   });
 
   afterAll(() => {

@@ -323,7 +323,7 @@ function replaceTokensWithText(
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
   const cursorPosition =
-    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length;
+    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
     token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition

@@ -7,7 +7,14 @@ from sentry import options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
 from sentry.plugins.base.v2 import Plugin2
-from sentry.tasks.store import is_process_disabled, preprocess_event, process_event, save_event
+from sentry.tasks.store import (
+    is_process_disabled,
+    preprocess_event,
+    process_event,
+    save_event,
+    save_event_transaction,
+)
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -45,6 +52,12 @@ def mock_save_event():
 
 
 @pytest.fixture
+def mock_save_event_transaction():
+    with mock.patch("sentry.tasks.store.save_event_transaction") as m:
+        yield m
+
+
+@pytest.fixture
 def mock_process_event():
     with mock.patch("sentry.tasks.store.process_event") as m:
         yield m
@@ -59,6 +72,12 @@ def mock_symbolicate_event():
 @pytest.fixture
 def mock_event_processing_store():
     with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
+        yield m
+
+
+@pytest.fixture
+def mock_transaction_processing_store():
+    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 
@@ -292,3 +311,122 @@ def test_killswitch():
     options.set("store.load-shed-process-event-projects-gradual", {1: 1.0})
     assert is_process_disabled(1, "asdasdasd", "null")
     options.set("store.load-shed-process-event-projects-gradual", {})
+
+
+@django_db_all
+def test_transactions_store(default_project, register_plugin, mock_transaction_processing_store):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "type": "transaction",
+        "transaction": "minimal_transaction",
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.store.return_value = "e:1"
+    mock_transaction_processing_store.get.return_value = data
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="e:1",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("e:1")
+
+
+@django_db_all
+def test_store_consumer_type(
+    default_project,
+    mock_save_event,
+    mock_save_event_transaction,
+    register_plugin,
+    mock_event_processing_store,
+    mock_transaction_processing_store,
+):
+    register_plugin(globals(), BasicPreprocessorPlugin)
+
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+    }
+
+    mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:2"
+
+    process_event(cache_key="e:2", start_time=1)
+
+    mock_event_processing_store.get.assert_called_once_with("e:2")
+
+    mock_save_event.delay.assert_called_once_with(
+        cache_key="e:2",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+    )
+
+    transaction_data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.get.return_value = transaction_data
+    mock_transaction_processing_store.store.return_value = "tx:3"
+
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="tx:3",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_not_called()
+
+
+@django_db_all
+@override_options({"transactions.do_post_process_in_save": 1.0})
+def test_transactions_do_post_process_in_save_deletes_from_processing_store(
+    default_project,
+    mock_transaction_processing_store,
+):
+    transaction_data = {
+        "project": default_project.id,
+        "platform": "transaction",
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+        "timestamp": time(),
+        "start_timestamp": time() - 1,
+    }
+
+    mock_transaction_processing_store.get.return_value = transaction_data
+    mock_transaction_processing_store.store.return_value = "tx:3"
+
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+        save_event_transaction(
+            cache_key="tx:3",
+            data=None,
+            start_time=1,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    mock_transaction_processing_store.get.assert_called_once_with("tx:3")
+    mock_transaction_processing_store.delete_by_key.assert_called_once_with("tx:3")

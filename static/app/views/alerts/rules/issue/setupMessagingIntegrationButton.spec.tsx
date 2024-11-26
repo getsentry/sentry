@@ -13,9 +13,7 @@ import SetupMessagingIntegrationButton, {
 jest.mock('sentry/actionCreators/modal');
 
 describe('SetupAlertIntegrationButton', function () {
-  const organization = OrganizationFixture({
-    features: ['messaging-integration-onboarding'],
-  });
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const providers = (providerKey: string) => [
     GitHubIntegrationProviderFixture({key: providerKey}),

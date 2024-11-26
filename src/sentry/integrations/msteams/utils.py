@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry.integrations.msteams")
 # cards, may as well just do that here first.
 class ACTION_TYPE(str, enum.Enum):
     RESOLVE = "1"
-    IGNORE = "2"
+    ARCHIVE = "2"
     ASSIGN = "3"
     UNRESOLVE = "4"
     UNASSIGN = "5"

@@ -7,11 +7,17 @@ from typing import Any
 
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
+from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupinbox import GroupInboxReason
+from sentry.models.groupinbox import (
+    GroupInboxReason,
+    GroupInboxRemoveAction,
+    add_group_to_inbox,
+    remove_group_from_inbox,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
@@ -58,6 +64,11 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_RESOLVED,
         )
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
     elif new_status == GroupStatus.IGNORED:
         # The IGNORED status supports 3 substatuses. For UNTIL_ESCALATING and
         # UNTIL_CONDITION_MET, we expect the caller to monitor the conditions/escalating
@@ -75,13 +86,22 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
         )
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
     elif new_status == GroupStatus.UNRESOLVED and new_substatus == GroupSubStatus.ESCALATING:
+        # Update the group status, priority, and add the group to the inbox
         manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
         activity_type = None
+        group_inbox_reason = None
         if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
+            group_inbox_reason = GroupInboxReason.REGRESSION
+
         elif new_substatus == GroupSubStatus.ONGOING:
+            group_inbox_reason = GroupInboxReason.ONGOING
             if group.substatus == GroupSubStatus.ESCALATING:
                 # If the group was previously escalating, update the priority via AUTO_SET_ONGOING
                 activity_type = ActivityType.AUTO_SET_ONGOING
@@ -103,6 +123,10 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=activity_type,
             from_substatus=group.substatus,
+        )
+        add_group_to_inbox(group, group_inbox_reason)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
         )
     else:
         logger.error(

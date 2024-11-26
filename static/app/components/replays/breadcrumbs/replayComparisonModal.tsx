@@ -4,7 +4,10 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -36,7 +39,24 @@ export default function ReplayComparisonModal({
     <OrganizationContext.Provider value={organization}>
       <Header closeButton>
         <ModalHeader>
-          <h4>{t('Hydration Error')}</h4>
+          <Title>
+            {t('Hydration Error')}
+            <Tooltip
+              isHoverable
+              title={tct(
+                'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors]',
+                {
+                  boldBefore: <Before />,
+                  boldAfter: <After />,
+                  link: (
+                    <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
+                  ),
+                }
+              )}
+            >
+              <IconInfo />
+            </Tooltip>
+          </Title>
           {focusTrap ? (
             <FeedbackWidgetButton
               optionOverrides={{
@@ -52,33 +72,19 @@ export default function ReplayComparisonModal({
         </ModalHeader>
       </Header>
       <Body>
-        <Grid>
-          <StyledParagraph>
-            {tct(
-              'This modal helps with debugging hydration errors by diffing the dom before and after the app hydrated. [boldBefore:Before] refers to the html rendered on the server. [boldAfter:After] refers to the html rendered on the client. This feature is actively being developed; please share any questions or feedback to the discussion linked above.',
-              {
-                boldBefore: <Before />,
-                boldAfter: <After />,
-              }
+        {isSameTimestamp ? (
+          <Alert type="warning" showIcon>
+            {t(
+              "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
             )}
-          </StyledParagraph>
+          </Alert>
+        ) : null}
 
-          {isSameTimestamp ? (
-            <Alert type="warning" showIcon>
-              {t(
-                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-              )}
-            </Alert>
-          ) : (
-            <div />
-          )}
-
-          <ReplayDiffChooser
-            replay={replay}
-            leftOffsetMs={leftOffsetMs}
-            rightOffsetMs={rightOffsetMs}
-          />
-        </Grid>
+        <ReplayDiffChooser
+          replay={replay}
+          leftOffsetMs={leftOffsetMs}
+          rightOffsetMs={rightOffsetMs}
+        />
       </Body>
     </OrganizationContext.Provider>
   );
@@ -91,22 +97,17 @@ const ModalHeader = styled('div')`
   flex-direction: row;
 `;
 
-const Grid = styled('div')`
-  height: 100%;
-  display: grid;
-  grid-template-rows: max-content max-content 1fr;
-  align-items: start;
+const Title = styled('h4')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
-const StyledParagraph = styled('p')`
-  padding-top: ${space(0.5)};
-  margin-bottom: ${space(1)};
-`;
-
-const Before = styled('strong')`
+export const Before = styled('span')`
   color: ${p => p.theme.red300};
+  font-weight: bold;
 `;
 
-const After = styled('strong')`
+export const After = styled('span')`
   color: ${p => p.theme.green300};
+  font-weight: bold;
 `;

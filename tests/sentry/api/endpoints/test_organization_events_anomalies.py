@@ -304,7 +304,7 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
         mock_logger.error.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
-                "message": "I have revolted against my human overlords",
+                "response_data": "I have revolted against my human overlords",
                 "organization_id": self.organization.id,
                 "project_id": 1,
                 "config": self.config,

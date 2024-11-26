@@ -266,6 +266,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 application=grant.application,
                 user=grant.user,
                 scope_list=grant.get_scopes(),
+                scoping_organization_id=grant.organization_id,
             )
 
             # remove the ApiGrant from the database to prevent reuse of the same

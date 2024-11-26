@@ -8,7 +8,7 @@ from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -25,7 +25,6 @@ class JiraCloudClient(ApiClient):
     COMMENTS_URL = "/rest/api/2/issue/%s/comment"
     COMMENT_URL = "/rest/api/2/issue/%s/comment/%s"
     STATUS_URL = "/rest/api/2/status"
-    STATUS_SEARCH_URL = "/rest/api/2/statuses/search"
     CREATE_URL = "/rest/api/2/issue"
     ISSUE_URL = "/rest/api/2/issue/%s"
     META_URL = "/rest/api/2/issue/createmeta"
@@ -225,6 +224,3 @@ class JiraCloudClient(ApiClient):
         return self.get_cached(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
-
-    def get_project_statuses(self, project_id: str) -> dict[str, Any]:
-        return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))

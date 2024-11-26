@@ -417,7 +417,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
 };
 
 /**
@@ -764,9 +764,9 @@ const commonTheme = {
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
-      stickyHeader: 1,
-      sortOptions: 2,
-      displayOptions: 3,
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
     },
   },
 

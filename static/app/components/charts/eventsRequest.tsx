@@ -70,10 +70,6 @@ type DefaultProps = {
    */
   includePrevious: boolean;
   /**
-   * Transform the response data to be something ingestible by charts
-   */
-  includeTransformedData: boolean;
-  /**
    * Interval to group results in
    *
    * e.g. 1d, 1h, 1m, 1s
@@ -95,6 +91,10 @@ type DefaultProps = {
    * Absolute end date for query
    */
   end?: DateString;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeTransformedData?: boolean;
   /**
    * Relative time period for query.
    *
@@ -458,6 +458,9 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
+          ...(countsForTimestamp[0]?.confidence
+            ? {confidence: countsForTimestamp[0].confidence}
+            : {}),
         })),
       },
     ];

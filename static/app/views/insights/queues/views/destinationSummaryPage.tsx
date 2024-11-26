@@ -5,10 +5,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -18,7 +14,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -87,95 +85,93 @@ function DestinationSummaryPage() {
         />
       )}
 
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <HeaderContainer>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-                </ToolRibbon>
+      <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <HeaderContainer>
+                  <ToolRibbon>
+                    <ModulePageFilterBar moduleName={ModuleName.QUEUE} />
+                  </ToolRibbon>
 
-                {!onboardingProject && (
-                  <ReadoutRibbon>
-                    <MetricReadout
-                      title={t('Avg Time In Queue')}
-                      value={data[0]?.['avg(messaging.message.receive.latency)']}
-                      unit={DurationUnit.MILLISECOND}
-                      isLoading={isPending}
-                    />
-                    <MetricReadout
-                      title={t('Avg Processing Time')}
-                      value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
-                      unit={DurationUnit.MILLISECOND}
-                      isLoading={isPending}
-                    />
-                    <MetricReadout
-                      title={t('Error Rate')}
-                      value={errorRate}
-                      unit={'percentage'}
-                      isLoading={isPending}
-                    />
-                    <MetricReadout
-                      title={t('Published')}
-                      value={data[0]?.['count_op(queue.publish)']}
-                      unit={'count'}
-                      isLoading={isPending}
-                    />
-                    <MetricReadout
-                      title={t('Processed')}
-                      value={data[0]?.['count_op(queue.process)']}
-                      unit={'count'}
-                      isLoading={isPending}
-                    />
-                    <MetricReadout
-                      title={t('Time Spent')}
-                      value={data[0]?.['sum(span.duration)']}
-                      unit={DurationUnit.MILLISECOND}
-                      tooltip={getTimeSpentExplanation(
-                        data[0]?.['time_spent_percentage(app,span.duration)']
-                      )}
-                      isLoading={isPending}
-                    />
-                  </ReadoutRibbon>
-                )}
-              </HeaderContainer>
-            </ModuleLayout.Full>
+                  {!onboardingProject && (
+                    <ReadoutRibbon>
+                      <MetricReadout
+                        title={t('Avg Time In Queue')}
+                        value={data[0]?.['avg(messaging.message.receive.latency)']}
+                        unit={DurationUnit.MILLISECOND}
+                        isLoading={isPending}
+                      />
+                      <MetricReadout
+                        title={t('Avg Processing Time')}
+                        value={data[0]?.['avg_if(span.duration,span.op,queue.process)']}
+                        unit={DurationUnit.MILLISECOND}
+                        isLoading={isPending}
+                      />
+                      <MetricReadout
+                        title={t('Error Rate')}
+                        value={errorRate}
+                        unit={'percentage'}
+                        isLoading={isPending}
+                      />
+                      <MetricReadout
+                        title={t('Published')}
+                        value={data[0]?.['count_op(queue.publish)']}
+                        unit={'count'}
+                        isLoading={isPending}
+                      />
+                      <MetricReadout
+                        title={t('Processed')}
+                        value={data[0]?.['count_op(queue.process)']}
+                        unit={'count'}
+                        isLoading={isPending}
+                      />
+                      <MetricReadout
+                        title={t('Time Spent')}
+                        value={data[0]?.['sum(span.duration)']}
+                        unit={DurationUnit.MILLISECOND}
+                        tooltip={getTimeSpentExplanation(
+                          data[0]?.['time_spent_percentage(app,span.duration)']
+                        )}
+                        isLoading={isPending}
+                      />
+                    </ReadoutRibbon>
+                  )}
+                </HeaderContainer>
+              </ModuleLayout.Full>
 
-            {onboardingProject && (
-              <Onboarding organization={organization} project={onboardingProject} />
-            )}
+              {onboardingProject && (
+                <Onboarding organization={organization} project={onboardingProject} />
+              )}
 
-            {!onboardingProject && (
-              <Fragment>
-                <ModuleLayout.Half>
-                  <LatencyChart
-                    destination={destination}
-                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
-                  />
-                </ModuleLayout.Half>
+              {!onboardingProject && (
+                <Fragment>
+                  <ModuleLayout.Half>
+                    <LatencyChart
+                      destination={destination}
+                      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                    />
+                  </ModuleLayout.Half>
 
-                <ModuleLayout.Half>
-                  <ThroughputChart
-                    destination={destination}
-                    referrer={Referrer.QUEUES_SUMMARY_CHARTS}
-                  />
-                </ModuleLayout.Half>
+                  <ModuleLayout.Half>
+                    <ThroughputChart
+                      destination={destination}
+                      referrer={Referrer.QUEUES_SUMMARY_CHARTS}
+                    />
+                  </ModuleLayout.Half>
 
-                <ModuleLayout.Full>
-                  <Flex>
-                    <TransactionsTable />
-                  </Flex>
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+                  <ModuleLayout.Full>
+                    <Flex>
+                      <TransactionsTable />
+                    </Flex>
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
       <MessageSpanSamplesPanel />
     </Fragment>
   );

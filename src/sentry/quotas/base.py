@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
-    from sentry.profiles.task import Profile
+    from sentry.profiles.utils import Profile
 
 
 @unique
