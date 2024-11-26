@@ -1,16 +1,17 @@
-from sentry.workflow_engine.models import (
-	DataSource,
-	Detector,
-	DataConditionGroup,
-	Workflow,
-	DetectorState,
-	DataCondition,
-	DataSourceDetector,
-	DetectorWorkflow,
-	WorkflowDataConditionGroup
-)
-from sentry.snuba.models import QuerySubscription
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.snuba.models import QuerySubscription
+from sentry.workflow_engine.models import (
+    DataCondition,
+    DataConditionGroup,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    DetectorState,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+
 
 def create_aci_metric_alert_models(organization_id, snuba_query, name, project, description, user, owner, threshold_type, sensitivity, seasonality, comparison_delta):
 	query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)

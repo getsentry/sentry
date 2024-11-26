@@ -680,7 +680,19 @@ def create_alert_rule(
 
         if features.has("organizations:metric-alert-aci-migration", organization):
             # TODO this is just an example and is missing some fields
-            create_aci_metric_alert_models(organization.id, snuba_query, name, projects[0], description, user, owner, threshold_type, sensitivity, seasonality, comparison_delta)
+            create_aci_metric_alert_models(
+                organization.id,
+                snuba_query,
+                name,
+                projects[0],
+                description,
+                user,
+                owner,
+                threshold_type,
+                sensitivity,
+                seasonality,
+                comparison_delta,
+            )
 
         if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
             # NOTE: if adding a new metric alert type, take care to check that it's handled here
