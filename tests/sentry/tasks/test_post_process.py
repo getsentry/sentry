@@ -2451,6 +2451,20 @@ class ProcessSimilarityTestMixin(BasePostProgressGroupMixin):
 
         self.assert_not_called_with(mock_safe_execute)
 
+    @patch("sentry.tasks.post_process.safe_execute")
+    @override_options({"sentry.similarity.indexing.enabled": False})
+    def test_skip_process_similarity_global(self, mock_safe_execute):
+        event = self.create_event(data={}, project_id=self.project.id)
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+
+        self.assert_not_called_with(mock_safe_execute)
+
 
 class PostProcessGroupErrorTest(
     TestCase,
