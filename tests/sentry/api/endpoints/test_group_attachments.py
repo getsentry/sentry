@@ -169,6 +169,7 @@ class GroupEventAttachmentsTest(APITestCase):
             data[env] = (event, attachment)
 
         prod_event, prod_attachment = data["production"]
+        assert prod_event.group is not None
 
         with self.feature("organizations:event-attachments"):
             all_response = self.client.get(f"/api/0/issues/{prod_event.group.id}/attachments/")
@@ -199,6 +200,7 @@ class GroupEventAttachmentsTest(APITestCase):
             data[org] = (event, attachment)
 
         sentry_event, sentry_attachment = data["sentry"]
+        assert sentry_event.group is not None
 
         with self.feature("organizations:event-attachments"):
             all_response = self.client.get(f"/api/0/issues/{sentry_event.group.id}/attachments/")

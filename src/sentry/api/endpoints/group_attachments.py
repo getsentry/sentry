@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from django.utils import timezone
@@ -27,7 +26,7 @@ def get_event_ids_from_filters(
     group: Group,
     start: datetime | None,
     end: datetime | None,
-) -> Sequence[str] | None:
+) -> list[str] | None:
     default_end = timezone.now()
     default_start = default_end - timedelta(days=90)
     try:
@@ -93,7 +92,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
-        event_ids = request.GET.getlist("event_id") or ()
+        event_ids = request.GET.getlist("event_id") or None
         screenshot = "screenshot" in request.GET
 
         try:
