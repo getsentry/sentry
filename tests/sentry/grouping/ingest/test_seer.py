@@ -401,7 +401,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_valid_maybe_check_seer_for_matching_group_hash(
         self, mock_get_similarity_data: MagicMock
-    ):
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         type = "FailedToFetchError"
@@ -435,7 +435,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
         GroupHash.objects.create(
             project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
         )
-        group_hashes = GroupHash.objects.filter(project_id=self.project.id)
+        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
         maybe_check_seer_for_matching_grouphash(
             new_event, new_event.get_grouping_variants(), group_hashes
         )
@@ -456,8 +456,8 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
     def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash(
-        self, mock_metrics: MagicMock, mock_get_similar_issues
-    ):
+        self, mock_metrics: MagicMock, mock_get_similar_issues: MagicMock
+    ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         type = "FailedToFetchError"
@@ -493,7 +493,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
         GroupHash.objects.create(
             project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
         )
-        group_hashes = GroupHash.objects.filter(project_id=self.project.id)
+        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
         maybe_check_seer_for_matching_grouphash(
             new_event, new_event.get_grouping_variants(), group_hashes
         )
