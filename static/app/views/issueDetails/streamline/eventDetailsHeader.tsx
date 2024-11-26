@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -36,6 +37,7 @@ export function EventDetailsHeader({
   group: Group;
   project: Project;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,7 +71,14 @@ export function EventDetailsHeader({
           }}
           disabled={!TABS_WITH_DATE_FILTER.includes(currentTab)}
         />
-        <Flex style={{gridArea: 'search'}}>
+        <Flex
+          style={{
+            gridArea: 'search',
+            backgroundColor: TABS_WITH_DATE_FILTER.includes(currentTab)
+              ? undefined
+              : theme.backgroundSecondary,
+          }}
+        >
           <SearchFilter
             group={group}
             handleSearch={query => {
