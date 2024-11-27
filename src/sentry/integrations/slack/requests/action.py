@@ -112,8 +112,9 @@ class SlackActionRequest(SlackRequest):
             if not isinstance(self._data, dict):
                 raise ValueError("Payload must decode to a dictionary")
         except (KeyError, IndexError, TypeError, ValueError):
-            logger.error("slack.action.invalid-payload",
-                        extra={"error": "Invalid JSON payload structure"})
+            logger.error(
+                "slack.action.invalid-payload", extra={"error": "Invalid JSON payload structure"}
+            )
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         # for interactive unfurls with block kit
