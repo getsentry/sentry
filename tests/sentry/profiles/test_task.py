@@ -833,33 +833,23 @@ def test_get_metrics_dsn(default_project):
     assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)
 
 
-@patch("sentry.options.get")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
 @patch("sentry.profiles.task._push_profile_to_vroom")
 @django_db_all
 @pytest.mark.parametrize(
-    "profile,outcomes_in_consumer",
-    [
-        ("sample_v1_profile", True),
-        ("sample_v2_profile", True),
-        ("sample_v1_profile", False),
-        ("sample_v2_profile", False),
-    ],
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_emit_profile_duration_outcome(
     _push_profile_to_vroom,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome_legacy,
     _track_outcome,
-    options_get,
     profile,
-    outcomes_in_consumer,
     organization,
     project,
     request,
@@ -867,11 +857,6 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     _push_profile_to_vroom.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
-    options_get.side_effect = lambda name: (
-        outcomes_in_consumer
-        if name == "profiling.emit_outcomes_in_profiling_consumer.enabled"
-        else None
-    )
 
     profile = request.getfixturevalue(profile)
     profile["organization_id"] = organization.id
@@ -882,58 +867,40 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     assert _track_duration_outcome.call_count == 1
 
     if "profiler_id" not in profile:
-        if outcomes_in_consumer:
-            assert _track_outcome.call_count == 1
-            _track_outcome.assert_called_with(
-                profile=profile,
-                project=project,
-                categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                outcome=Outcome.ACCEPTED,
-            )
-        else:
-            assert _track_outcome_legacy.call_count == 1
+        assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
     else:
-        assert _track_outcome_legacy.call_count == 0
+        assert _track_outcome.call_count == 0
 
 
-@patch("sentry.options.get")
 @patch("sentry.quotas.backend.should_emit_profile_duration_outcome")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
 @patch("sentry.profiles.task._push_profile_to_vroom")
 @django_db_all
 @pytest.mark.parametrize(
-    "profile,outcomes_in_consumer",
-    [
-        ("sample_v1_profile", True),
-        ("sample_v2_profile", True),
-        ("sample_v1_profile", False),
-        ("sample_v2_profile", False),
-    ],
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_not_emit_profile_duration_outcome(
     _push_profile_to_vroom,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome_legacy,
     _track_outcome,
     should_emit_profile_duration_outcome,
-    options_get,
     profile,
-    outcomes_in_consumer,
     organization,
     project,
     request,
 ):
-    options_get.side_effect = lambda name: (
-        outcomes_in_consumer
-        if name == "profiling.emit_outcomes_in_profiling_consumer.enabled"
-        else None
-    )
     _push_profile_to_vroom.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
@@ -952,15 +919,13 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
     )
 
     if "profiler_id" not in profile:
-        if outcomes_in_consumer:
-            assert _track_outcome.call_count == 1
-            _track_outcome.assert_called_with(
-                profile=profile,
-                project=project,
-                categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                outcome=Outcome.ACCEPTED,
-            )
-        else:
-            assert _track_outcome_legacy.call_count == 1
+        assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
+
     else:
-        assert _track_outcome_legacy.call_count == 0
+        assert _track_outcome.call_count == 0

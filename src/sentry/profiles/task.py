@@ -205,22 +205,15 @@ def process_profile_task(
             except Exception as e:
                 sentry_sdk.capture_exception(e)
             if "profiler_id" not in profile:
-                if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
-                    _track_outcome(
-                        profile=profile,
-                        project=project,
-                        outcome=Outcome.ACCEPTED,
-                        categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                    )
-                else:
-                    _track_outcome_legacy(
-                        profile=profile, project=project, outcome=Outcome.ACCEPTED
-                    )
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.ACCEPTED,
+                    categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+                )
+
     else:
-        if (
-            options.get("profiling.emit_outcomes_in_profiling_consumer.enabled")
-            and "profiler_id" not in profile
-        ):
+        if "profiler_id" not in profile:
             _track_outcome(
                 profile=profile,
                 project=project,
@@ -960,28 +953,20 @@ def _track_outcome(
 
 
 def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> None:
-    if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
-        categories = []
-        if "profiler_id" not in profile:
-            categories.append(DataCategory.PROFILE)
-            if profile.get("sampled"):
-                categories.append(DataCategory.PROFILE_INDEXED)
-        else:
-            categories.append(DataCategory.PROFILE_CHUNK)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            categories=categories,
-            reason=reason,
-        )
+    categories = []
+    if "profiler_id" not in profile:
+        categories.append(DataCategory.PROFILE)
+        if profile.get("sampled"):
+            categories.append(DataCategory.PROFILE_INDEXED)
     else:
-        _track_outcome_legacy(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason=reason,
-        )
+        categories.append(DataCategory.PROFILE_CHUNK)
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.INVALID,
+        categories=categories,
+        reason=reason,
+    )
 
 
 @metrics.wraps("process_profile.insert_vroom_profile")
