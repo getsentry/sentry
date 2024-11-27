@@ -42,14 +42,19 @@ export function ColumnEditorModal({
 }: ColumnEditorModalProps) {
   const tags: SelectOption<string>[] = useMemo(() => {
     const allTags = [
-      ...columns.map(column => {
-        return {
-          label: prettifyTagKey(column),
-          value: column,
-          textValue: column,
-          trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
-        };
-      }),
+      ...columns
+        .filter(
+          column =>
+            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
+        )
+        .map(column => {
+          return {
+            label: prettifyTagKey(column),
+            value: column,
+            textValue: column,
+            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+          };
+        }),
       ...Object.values(stringTags).map(tag => {
         return {
           label: tag.name,
