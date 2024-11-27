@@ -48,7 +48,7 @@ from sentry.utils import json
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
-EXCEPTION = {
+EXCEPTION: dict[str, Any] = {
     "values": [
         {
             "stacktrace": {
@@ -366,11 +366,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.seer.similarity.utils.logger")
-    def test_lookup_group_data_stacktrace_bulk_too_many_system_frames(self, mock_logger):
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(self, mock_metrics):
         """
-        Test that if a group has over MAX_FRAME_COUNT only system frames, it is logged
-        and included in results
+        Test that if a group has over MAX_FRAME_COUNT only system frames, its data is not included in
+        the bulk lookup result
         """
         # Use 2 events
         rows, events, hashes = self.bulk_rows[:2], self.bulk_events[:2], {}
@@ -378,7 +378,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has over MAX_FRAME_COUNT system only frames
-        exception: Any = copy.deepcopy(EXCEPTION)
+        exception = copy.deepcopy(EXCEPTION)
         exception["values"][0]["stacktrace"]["frames"] += [
             {
                 "function": f"divide_by_zero_{i}",
@@ -404,7 +404,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_hash = GroupHash.objects.filter(group_id=event.group.id).first()
         assert group_hash
         hashes.update({event.group_id: group_hash.hash})
-        events.append(event)
 
         bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
         expected_group_data = [
@@ -416,17 +415,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
             for event in events
         ]
-
+        expected_stacktraces = [
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            for i in range(2)
+        ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert len(bulk_group_data_stacktraces["stacktrace_list"]) == len(events)
+        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-        mock_logger.info.assert_called_with(
-            "grouping.similarity.over_threshold_system_only_frames",
-            extra={
-                "project_id": self.project.id,
-                "event_id": event.event_id,
-                "hash": group_hash.hash,
-            },
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "backfill"},
         )
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):

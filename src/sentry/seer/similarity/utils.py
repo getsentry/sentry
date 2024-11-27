@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
@@ -26,15 +27,15 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
 )
 SEER_ELIGIBLE_PLATFORMS = frozenset(
     [
-        # "android",
-        # "android-profiling-onboarding-1-install",
-        # "android-profiling-onboarding-3-configure-profiling",
-        # "android-profiling-onboarding-4-upload",
+        "android",
+        "android-profiling-onboarding-1-install",
+        "android-profiling-onboarding-3-configure-profiling",
+        "android-profiling-onboarding-4-upload",
         "bun",
-        # "dart",
+        "dart",
         "deno",
         "django",
-        # "flutter",
+        "flutter",
         "go",
         "go-echo",
         "go-fasthttp",
@@ -44,16 +45,16 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
-        # "groovy",
+        "groovy",
         "java",
         "java-android",
-        # "java-appengine",
-        # "java-log4j",
-        # "java-log4j2",
-        # "java-logging",
+        "java-appengine",
+        "java-log4j",
+        "java-log4j2",
+        "java-logging",
         "java-logback",
-        # "java-spring",
-        # "java-spring-boot",
+        "java-spring",
+        "java-spring-boot",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -151,6 +152,19 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 
+class ReferrerOptions(StrEnum):
+    INGEST = "ingest"
+    BACKFILL = "backfill"
+
+
+class TooManyOnlySystemFramesException(Exception):
+    pass
+
+
+class NoFilenameOrModuleException(Exception):
+    pass
+
+
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -177,17 +191,19 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
+    is_frames_truncated = False
+    has_no_filename_or_module = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
-    is_frames_truncated = False
 
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
     def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
         nonlocal frame_count
         nonlocal html_frame_count
-        nonlocal found_non_snipped_context_line
         nonlocal is_frames_truncated
+        nonlocal has_no_filename_or_module
+        nonlocal found_non_snipped_context_line
         frame_strings = []
 
         contributing_frames = [
@@ -201,13 +217,18 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         frame_count += len(contributing_frames)
 
         for frame in contributing_frames:
-            frame_dict = {"filename": "", "function": "", "context-line": ""}
+            frame_dict = {"filename": "", "function": "", "context-line": "", "module": ""}
             for frame_values in frame.get("values", []):
                 if frame_values.get("id") in frame_dict:
                     frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
+
+            if frame_dict["filename"] == "" and frame_dict["module"] == "":
+                has_no_filename_or_module = True
+            elif frame_dict["filename"] == "":
+                frame_dict["filename"] = frame_dict["module"]
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
@@ -259,6 +280,10 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
+        if is_frames_truncated and not app_hash:
+            raise TooManyOnlySystemFramesException
+        if has_no_filename_or_module:
+            raise NoFilenameOrModuleException
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -291,15 +316,43 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         },
     )
 
-    if is_frames_truncated and not app_hash:
-        logger_extra = {
-            "project_id": data.get("project_id", ""),
-            "event_id": data.get("event_id", ""),
-            "hash": system_hash,
-        }
-        logger.info("grouping.similarity.over_threshold_system_only_frames", extra=logger_extra)
-
     return stacktrace_str.strip()
+
+
+def get_stacktrace_string_with_metrics(
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
+) -> str | None:
+    try:
+        stacktrace_string = get_stacktrace_string(data)
+    except TooManyOnlySystemFramesException:
+        platform = platform if platform else "unknown"
+        metrics.incr(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": platform, "referrer": referrer},
+        )
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={
+                    "call_made": False,
+                    "blocker": "over-threshold-only-system-frames",
+                },
+            )
+        stacktrace_string = None
+    except NoFilenameOrModuleException:
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={
+                    "call_made": False,
+                    "blocker": "no-module-or-filename",
+                },
+            )
+        stacktrace_string = None
+    return stacktrace_string
 
 
 def event_content_has_stacktrace(event: Event) -> bool:

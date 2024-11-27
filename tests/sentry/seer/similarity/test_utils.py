@@ -4,15 +4,22 @@ from typing import Any, Literal, cast
 from unittest.mock import patch
 from uuid import uuid1
 
+import pytest
+
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
+    NoFilenameOrModuleException,
+    ReferrerOptions,
+    TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
     get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.testutils.cases import TestCase
 
@@ -329,14 +336,14 @@ class GetStacktraceStringTest(TestCase):
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["module"],
                                             },
                                             {
                                                 "id": "filename",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["filename"],
                                             },
                                             {
                                                 "id": "function",
@@ -672,7 +679,7 @@ class GetStacktraceStringTest(TestCase):
             )
 
     def test_chained_too_many_exceptions(self):
-        """Test that we restrict number of chained exceptions to 30."""
+        """Test that we restrict number of chained exceptions to MAX_FRAME_COUNT."""
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -680,16 +687,16 @@ class GetStacktraceStringTest(TestCase):
                 exception_value=f"exception {i} message!",
                 frames=self.create_frames(num_frames=1, context_line_factory=lambda i: f"line {i}"),
             )
-            for i in range(1, 32)
+            for i in range(1, MAX_FRAME_COUNT + 2)
         ]
         stacktrace_str = get_stacktrace_string(data_chained_exception)
-        for i in range(2, 32):
+        for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
-        assert stacktrace_str == 'File "", function TestHandler'
+        assert stacktrace_str == 'File "filename", function TestHandler'
 
     def test_system(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
@@ -712,33 +719,19 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    @patch("sentry.seer.similarity.utils.logger")
-    def test_too_many_system_frames_single_exception(self, mock_logger):
+    def test_too_many_system_frames_single_exception(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
-        data_system["project_id"] = self.project.id
-        data_system["event_id"] = "39485673049520"
 
-        get_stacktrace_string(data_system)
+        with pytest.raises(TooManyOnlySystemFramesException):
+            get_stacktrace_string(data_system)
 
-        mock_logger.info.assert_called_with(
-            "grouping.similarity.over_threshold_system_only_frames",
-            extra={
-                "project_id": self.project.id,
-                "event_id": data_system["event_id"],
-                "hash": data_system["system"]["hash"],
-            },
-        )
-
-    @patch("sentry.seer.similarity.utils.logger")
-    def test_too_many_system_frames_chained_exception(self, mock_logger):
+    def test_too_many_system_frames_chained_exception(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
         data_system["system"] = data_system.pop("app")
-        data_system["project_id"] = self.project.id
-        data_system["event_id"] = "39485673049520"
         # Split MAX_FRAME_COUNT across the two exceptions
         data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
             "values"
@@ -747,20 +740,14 @@ class GetStacktraceStringTest(TestCase):
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
 
-        get_stacktrace_string(data_system)
-
-        mock_logger.info.assert_called_with(
-            "grouping.similarity.over_threshold_system_only_frames",
-            extra={
-                "project_id": self.project.id,
-                "event_id": data_system["event_id"],
-                "hash": data_system["system"]["hash"],
-            },
-        )
+        with pytest.raises(TooManyOnlySystemFramesException):
+            get_stacktrace_string(data_system)
 
     def test_too_many_in_app_contributing_frames(self):
-        """Check that when there are over 30 contributing frames, the last 30 are included."""
-
+        """
+        Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
+        are included.
+        """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
@@ -787,7 +774,7 @@ class GetStacktraceStringTest(TestCase):
         for i in range(41, 61):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        assert num_frames == 30
+        assert num_frames == MAX_FRAME_COUNT
 
     def test_too_many_frames_minified_js_frame_limit(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
@@ -831,6 +818,42 @@ class GetStacktraceStringTest(TestCase):
     def test_only_stacktrace_frames(self):
         stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
         assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
+
+    def test_replace_file_with_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
+        )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_filename_or_module(self, mock_metrics):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete module from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        with pytest.raises(NoFilenameOrModuleException):
+            get_stacktrace_string(exception)
+
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        assert stacktrace_string is None
+        mock_metrics.incr.assert_called_with(
+            "grouping.similarity.did_call_seer",
+            sample_rate=sample_rate,
+            tags={
+                "call_made": False,
+                "blocker": "no-module-or-filename",
+            },
+        )
 
 
 class EventContentIsSeerEligibleTest(TestCase):

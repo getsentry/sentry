@@ -6,7 +6,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  classifyTagKey,
+  parseFunction,
+  prettifyParsedFunction,
+  prettifyTagKey,
+} from 'sentry/utils/discover/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
@@ -32,14 +37,21 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
   const stringTags = useSpanTags('string');
 
   const fieldOptions: SelectOption<Field>[] = useMemo(() => {
-    return fields.map(field => {
+    const uniqFields: Field[] = [];
+    for (const field of fields) {
+      if (!uniqFields.includes(field)) {
+        uniqFields.push(field);
+      }
+    }
+
+    const options = uniqFields.map(field => {
       const tag = stringTags[field] ?? numberTags[field] ?? null;
       if (tag) {
         return {
           label: tag.name,
           value: field,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={tag?.kind} />,
         };
       }
 
@@ -53,15 +65,27 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
           trailingItems: <TypeBadge func={func} />,
         };
       }
-
-      // not a tag, maybe it's an aggregate
       return {
-        label: field,
+        label: prettifyTagKey(field),
         value: field,
         textValue: field,
-        trailingItems: <TypeBadge tag={tag} />,
+        trailingItems: <TypeBadge kind={classifyTagKey(field)} />,
       };
     });
+
+    options.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return options;
   }, [fields, numberTags, stringTags]);
 
   const setSortField = useCallback(

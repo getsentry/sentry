@@ -74,6 +74,116 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
 
+    def test_count_unique(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_spans(
+                    [
+                        self.create_span(
+                            {
+                                "description": "foo",
+                                "sentry_tags": {"status": "success"},
+                                "tags": {"foo": f"foo-{minute}"},
+                            },
+                            start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        ),
+                    ],
+                    is_eap=self.is_eap,
+                )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "count_unique(foo)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0]
+
+    def test_p95(self):
+        event_durations = [6, 0, 6, 3, 0, 3]
+        for hour, duration in enumerate(event_durations):
+            self.store_spans(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        duration=duration,
+                        start_ts=self.day_ago + timedelta(hours=hour, minutes=1),
+                    ),
+                ],
+                is_eap=self.is_eap,
+            )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "p95()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_durations, rows):
+            assert test[1][1][0]["count"] == test[0]
+
+    def test_multiaxis(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_spans(
+                    [
+                        self.create_span(
+                            {
+                                "description": "foo",
+                                "sentry_tags": {"status": "success"},
+                            },
+                            duration=count,
+                            start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        ),
+                    ],
+                    is_eap=self.is_eap,
+                )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": ["count()", "p95()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        count_data = response.data["count()"]["data"]
+        p95_data = response.data["p95()"]["data"]
+        assert len(count_data) == len(p95_data) == 6
+
+        count_rows = count_data[0:6]
+        for test in zip(event_counts, count_rows):
+            assert test[1][1][0]["count"] == test[0]
+        p95_rows = p95_data[0:6]
+        for test in zip(event_counts, p95_rows):
+            assert test[1][1][0]["count"] == test[0]
+
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder
     def test_throughput_epm_hour_rollup(self):
@@ -262,13 +372,47 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
 
+    def test_count_extrapolation(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_spans(
+                    [
+                        self.create_span(
+                            {
+                                "description": "foo",
+                                "sentry_tags": {"status": "success"},
+                                "measurements": {"client_sample_rate": {"value": 0.1}},
+                            },
+                            start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                        ),
+                    ],
+                    is_eap=self.is_eap,
+                )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            assert test[1][1][0]["count"] == test[0] * 10
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     is_eap = True
     is_rpc = True
-
-    def test_count(self):
-        super().test_count()
 
     @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_epm_hour_rollup(self):
@@ -286,6 +430,5 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_throughput_eps_minute_rollup(self):
         super().test_throughput_eps_minute_rollup()
 
-    @pytest.mark.xfail(reason="wip: not implemented yet")
     def test_top_events(self):
         super().test_top_events()

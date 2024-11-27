@@ -4,7 +4,6 @@ import pytest
 
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
-from sentry.integrations.project_management.metrics import ProjectManagementHaltReason
 from sentry.integrations.tasks import sync_assignee_outbound
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import TestCase
@@ -77,11 +76,11 @@ class TestSyncAssigneeOutbound(TestCase):
         assert isinstance(metric_exception, Exception)
         assert metric_exception.args[0] == "Something went wrong"
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     @mock.patch.object(ExampleIntegration, "should_sync")
     def test_skips_syncing_if_should_sync_false(
-        self, mock_should_sync, mock_sync_assignee, mock_record_halt
+        self, mock_should_sync, mock_sync_assignee, mock_record_event
     ):
         mock_should_sync.return_value = False
         external_issue = self.create_integration_external_issue(
@@ -93,17 +92,14 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
-        mock_record_halt.assert_called_with(
-            ProjectManagementHaltReason.SYNC_INBOUND_SYNC_SKIPPED,
-            extra={
-                "organization_id": self.organization.id,
-                "external_issue_id": external_issue.id,
-            },
-        )
+        assert mock_record_event.call_count == 2
+        start, success = mock_record_event.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
-    def test_missing_issue_sync(self, mock_sync_assignee, mock_record_halt):
+    def test_missing_issue_sync(self, mock_sync_assignee, mock_record_event):
         # The default test integration does not support issue sync,
         # so creating an external issue for this integration should
         # be enough to test this functionality.
@@ -116,13 +112,12 @@ class TestSyncAssigneeOutbound(TestCase):
         sync_assignee_outbound(external_issue.id, self.user.id, True, None)
         mock_sync_assignee.assert_not_called()
 
-        mock_record_halt.assert_called_with(
-            ProjectManagementHaltReason.SYNC_NON_SYNC_INTEGRATION_PROVIDED,
-            extra={
-                "organization_id": self.organization.id,
-                "external_issue_id": external_issue.id,
-            },
-        )
+        # We don't want to log halt/failure metrics for these as it will taint
+        # all non-sync integrations' metrics.
+        assert mock_record_event.call_count == 2
+        start, success = mock_record_event.mock_calls
+        assert start.args == (EventLifecycleOutcome.STARTED,)
+        assert success.args == (EventLifecycleOutcome.SUCCESS, None)
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_missing_integration_installation(self, mock_sync_assignee):
