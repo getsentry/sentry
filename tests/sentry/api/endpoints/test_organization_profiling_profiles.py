@@ -114,7 +114,6 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-flamegraph"
     features = {
         "organizations:profiling": True,
-        "organizations:continuous-profiling-compat": True,
     }
 
     def setUp(self):
