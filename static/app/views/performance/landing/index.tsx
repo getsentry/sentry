@@ -105,13 +105,19 @@ export function PerformanceLanding(props: Props) {
         {t(
           `To make it easier to see what's relevant for you, Sentry's Performance landing page is now being split into separate `
         )}
-        <Link to={getPerformanceBaseUrl(slug, 'frontend')}>{FRONTEND_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'frontend')}/`}>
+          {FRONTEND_SIDEBAR_LABEL}
+        </Link>
         {`, `}
-        <Link to={getPerformanceBaseUrl(slug, 'backend')}>{BACKEND_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
+          {BACKEND_SIDEBAR_LABEL}
+        </Link>
         {`, `}
-        <Link to={getPerformanceBaseUrl(slug, 'mobile')}>{MOBILE_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
+          {MOBILE_SIDEBAR_LABEL}
+        </Link>
         {t(', and ')}
-        <Link to={getPerformanceBaseUrl(slug, 'ai')}>{AI_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
         {t(' performance pages. They can all be found in the Insights tab.')}
       </Fragment>
     );
