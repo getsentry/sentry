@@ -24,6 +24,7 @@ import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
   isBrowserRequestSpan,
+  isCollapsedNode,
   isJavascriptSDKTransaction,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
@@ -146,7 +147,12 @@ export declare namespace TraceTree {
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
+    | CollapsedNode
     | Root;
+
+  interface CollapsedNode {
+    type: 'collapsed';
+  }
 
   // Node types
   interface MissingInstrumentationSpan {
@@ -1014,7 +1020,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       const node = queue.pop()!;
 
       visibleChildren.push(node);
-      // iterate in reverseto ensure nodes are processed in order
+
+      // iterate in reverse to ensure nodes are processed in order
       if (node.expanded || isParentAutogroupedNode(node)) {
         const children = TraceTree.DirectVisibleChildren(node);
 
@@ -1142,8 +1149,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isParentAutogroupedNode(next)) {
         queue.push(next.head);
       } else {
-        for (const child of next.children) {
-          queue.push(child);
+        for (let i = next.children.length - 1; i >= 0; i--) {
+          queue.push(next.children[i]);
         }
       }
     }
@@ -1511,7 +1518,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // This is very wasteful as it performs O(n^2) search each time we expand a node...
         // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
         // a low autogrouped node count.
-        index = node ? tree.list.findIndex(n => n === node) : -1;
+        index = node ? tree.list.indexOf(node) : -1;
         if (index !== -1) {
           break;
         }
@@ -1959,6 +1966,10 @@ function printTraceTreeNode(
 
   if (isTraceErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
+  }
+
+  if (isCollapsedNode(t)) {
+    return padding + 'collapsed';
   }
 
   return 'unknown node';
