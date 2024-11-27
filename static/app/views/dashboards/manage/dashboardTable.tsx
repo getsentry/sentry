@@ -65,6 +65,7 @@ function DashboardTable({
         trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
+          view_type: 'table',
         });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -83,6 +84,7 @@ function DashboardTable({
       trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
+        view_type: 'table',
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
@@ -144,7 +146,11 @@ function DashboardTable({
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
-                handleDuplicate(dataRow);
+                openConfirmModal({
+                  message: t('Are you sure you want to duplicate this dashboard?'),
+                  priority: 'primary',
+                  onConfirm: () => handleDuplicate(dataRow),
+                });
               }}
               aria-label={t('Duplicate Dashboard')}
               data-test-id={'dashboard-duplicate'}

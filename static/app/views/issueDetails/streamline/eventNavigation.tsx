@@ -196,6 +196,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
         <DropdownMenu
+          onAction={key => {
+            trackAnalytics('issue_details.issue_content_selected', {
+              organization,
+              content: TabName[key],
+            });
+          }}
           items={[
             {
               key: Tab.DETAILS,
@@ -208,12 +214,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               to: {
                 ...location,
                 pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-              },
-              onAction: () => {
-                trackAnalytics('issue_details.issue_content_selected', {
-                  organization,
-                  content: TabName[Tab.DETAILS],
-                });
               },
             },
             {
@@ -234,12 +234,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
               },
               hidden: !issueTypeConfig.replays.enabled,
-              onAction: () => {
-                trackAnalytics('issue_details.issue_content_selected', {
-                  organization,
-                  content: TabName[Tab.REPLAYS],
-                });
-              },
             },
             {
               key: Tab.ATTACHMENTS,
@@ -257,12 +251,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
               },
               hidden: !issueTypeConfig.attachments.enabled,
-              onAction: () => {
-                trackAnalytics('issue_details.issue_content_selected', {
-                  organization,
-                  content: TabName[Tab.ATTACHMENTS],
-                });
-              },
             },
             {
               key: Tab.USER_FEEDBACK,
@@ -277,12 +265,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
               },
               hidden: !issueTypeConfig.userFeedback.enabled,
-              onAction: () => {
-                trackAnalytics('issue_details.issue_content_selected', {
-                  organization,
-                  content: TabName[Tab.USER_FEEDBACK],
-                });
-              },
             },
           ]}
           offset={[-2, 1]}
