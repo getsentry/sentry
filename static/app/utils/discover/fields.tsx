@@ -19,6 +19,7 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
+  FieldKind,
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
@@ -1640,6 +1641,11 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
 export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
+
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
 
 export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
