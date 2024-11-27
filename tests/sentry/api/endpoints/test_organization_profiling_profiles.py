@@ -16,105 +16,10 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
 
-class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
-    endpoint = "sentry-api-0-organization-profiling-flamegraph"
-    features = {"organizations:profiling": True}
-
-    def setUp(self):
-        self.login_as(user=self.user)
-        self.url = reverse(self.endpoint, args=(self.organization.slug,))
-
-    def do_request(self, query, features=None, compat=True, **kwargs):
-        if features is None:
-            features = self.features
-        with self.feature(features):
-            return self.client.get(
-                self.url,
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_more_than_one_project(self):
-        projects = [
-            self.create_project(),
-            self.create_project(),
-        ]
-        # Need this feature so we don't get the multiple project without global view error
-        with self.feature("organizations:global-views"):
-            response = self.do_request(
-                {
-                    "projects": [p.id for p in projects],
-                }
-            )
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "detail": ErrorDetail(
-                "You cannot get a flamegraph from multiple projects.",
-                code="parse_error",
-            ),
-        }
-
-    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_functions(self, mock_proxy_profiling_service, mock_raw_snql_query):
-        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
-
-        fingerprint = int(uuid4().hex[:8], 16)
-
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-                "query": "transaction:foo",
-                "fingerprint": str(fingerprint),
-            },
-        )
-        assert response.status_code == 200, response.content
-
-        mock_raw_snql_query.assert_called_once()
-
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
-
-        assert snql_request.dataset == Dataset.Functions.value
-        assert (
-            Condition(
-                Function("toUInt32", [Column("fingerprint")], "fingerprint"),
-                Op.EQ,
-                fingerprint,
-            )
-            in snql_request.query.where
-        )
-        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
-
-    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_transactions(self, mock_proxy_profiling_service, mock_raw_snql_query):
-        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
-
-        response = self.do_request(
-            {
-                "project": [self.project.id],
-                "query": "transaction:foo",
-            },
-        )
-        assert response.status_code == 200, response.content
-
-        mock_raw_snql_query.assert_called_once()
-
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
-
-        assert snql_request.dataset == Dataset.Discover.value
-        assert Condition(Column("profile_id"), Op.IS_NOT_NULL) in snql_request.query.where
-        assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
-
-
 class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
     endpoint = "sentry-api-0-organization-profiling-flamegraph"
     features = {
         "organizations:profiling": True,
-        "organizations:continuous-profiling-compat": True,
     }
 
     def setUp(self):
