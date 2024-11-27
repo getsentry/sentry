@@ -662,13 +662,25 @@ class SlackActionEndpoint(Endpoint):
         if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
-        member_id = slack_request.callback_data["member_id"]
+        callback_data = slack_request.callback_data
+        if not callback_data:
+            logger.error(
+                "slack.action.missing-callback-data",
+                extra={
+                    "slack_team_id": slack_request.team_id,
+                    "action": action,
+                },
+            )
+            return self.respond_with_text("Invalid request data received")
+        member_id = callback_data.get("member_id")
+        if not member_id:
+            return self.respond_with_text("Member ID not found in request")
 
         try:
             member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
-            member_email = slack_request.callback_data["member_email"]
+            member_email = callback_data.get("member_email", "unknown")
+            return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
             return self.respond_with_text(f"Member invitation for {member_email} no longer exists.")
 
         organization = member.organization
