@@ -252,15 +252,15 @@ def clamp_date_range(
     [start, end] = range
     delta = end - start
 
-    # Ignore negative ranges
-    if delta <= datetime.timedelta(0):
-        return (start, end)
-
     # Ignore negative max time deltas
     if max_timedelta < datetime.timedelta(0):
         return (start, end)
+        
+    # Ignore if delta is within acceptable range
+    if delta < max_delta:
+        return (start, end)
 
-    return (end - min(delta, max_timedelta), end)
+    return (end - max_timedelta, end)
 
 
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
