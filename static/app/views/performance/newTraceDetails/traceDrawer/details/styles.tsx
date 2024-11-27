@@ -832,7 +832,7 @@ function NodeActions(props: {
           />
         </Tooltip>
       ) : null}
-      {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
+      {profileLink ? (
         <Tooltip title={t('Continuous Profile')}>
           <ActionButton
             size="xs"
@@ -918,17 +918,16 @@ function LegacyNodeActions(props: {
         (typeof eventSize === 'number' ? ` (${formatBytesBase10(eventSize, 0)})` : ''),
     };
 
-    const continuousProfileLink: MenuItemProps | null =
-      organization.features.includes('continuous-profiling-ui') && !!props.profileLink
-        ? {
-            key: 'continuous-profile',
-            onAction: () => {
-              traceAnalytics.trackViewContinuousProfile(organization);
-              navigate(props.profileLink!);
-            },
-            label: t('Continuous Profile'),
-          }
-        : null;
+    const continuousProfileLink: MenuItemProps | null = props.profileLink
+      ? {
+          key: 'continuous-profile',
+          onAction: () => {
+            traceAnalytics.trackViewContinuousProfile(organization);
+            navigate(props.profileLink!);
+          },
+          label: t('Continuous Profile'),
+        }
+      : null;
 
     if (isTransactionNode(props.node)) {
       return [showInView, jsonDetails, continuousProfileLink].filter(TypeSafeBoolean);
@@ -955,8 +954,7 @@ function LegacyNodeActions(props: {
   return (
     <ActionsContainer>
       <Actions className="Actions">
-        {organization.features.includes('continuous-profiling-ui') &&
-        !!props.profileLink ? (
+        {props.profileLink ? (
           <LinkButton size="xs" to={props.profileLink}>
             {t('Continuous Profile')}
           </LinkButton>
