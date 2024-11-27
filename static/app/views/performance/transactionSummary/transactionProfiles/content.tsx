@@ -538,11 +538,10 @@ const TransactionProfilesContentContainer = styled('div')`
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: 'visualization digest';
-  grid-template-columns: 1fr 250px;
+  grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -554,7 +553,6 @@ const ProfileVisualizationContainer = styled('div')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  overflow: hidden;
   display: flex;
 `;
 
