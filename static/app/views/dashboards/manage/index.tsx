@@ -70,9 +70,9 @@ const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
-const LIST = 'list';
+const TABLE = 'table';
 
-type DashboardsLayout = 'grid' | 'list';
+export type DashboardsLayout = 'grid' | 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
@@ -81,7 +81,9 @@ function shouldShowTemplates(): boolean {
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
   const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
-  return dashboardsLayout === GRID || dashboardsLayout === LIST ? dashboardsLayout : GRID;
+  return dashboardsLayout === GRID || dashboardsLayout === TABLE
+    ? dashboardsLayout
+    : GRID;
 }
 
 function ManageDashboards() {

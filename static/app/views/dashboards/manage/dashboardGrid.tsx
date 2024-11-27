@@ -73,6 +73,7 @@ function DashboardGrid({
         trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
+          view_type: 'grid',
         });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -91,6 +92,7 @@ function DashboardGrid({
       trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
+        view_type: 'grid',
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
