@@ -4,7 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-import type {TraceShape, TraceTree} from './traceModels/traceTree';
+import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 const trackTraceMetadata = (
   tree: TraceTree,
@@ -166,9 +166,31 @@ const trackMissingInstrumentationPreferenceChange = (
     enabled,
   });
 
+function trackTraceShape(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
+  switch (tree.shape) {
+    case TraceShape.BROKEN_SUBTRACES:
+    case TraceShape.EMPTY_TRACE:
+    case TraceShape.MULTIPLE_ROOTS:
+    case TraceShape.ONE_ROOT:
+    case TraceShape.NO_ROOT:
+    case TraceShape.ONLY_ERRORS:
+    case TraceShape.BROWSER_MULTIPLE_ROOTS:
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
+  trackTraceShape,
   trackEmptyTraceState,
   trackFailedToFetchTraceState,
   // Drawer actions

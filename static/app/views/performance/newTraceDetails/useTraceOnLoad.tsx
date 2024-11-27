@@ -2,9 +2,11 @@ import {useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
+import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
 import type {TracePreferencesState} from './traceState/tracePreferences';
@@ -80,9 +82,6 @@ export function useTraceOnLoad(
     }
 
     let cancel = false;
-    function cleanup() {
-      cancel = true;
-    }
 
     setStatus('pending');
     initializedRef.current = true;
@@ -103,18 +102,95 @@ export function useTraceOnLoad(
 
     promise
       .then(() => {
-        setStatus('success');
-
         if (cancel) {
           return;
         }
-
+        setStatus('success');
         onTraceLoad();
       })
-      .catch(() => setStatus('error'));
+      .catch(() => {
+        if (cancel) {
+          return;
+        }
+        setStatus('error');
+      });
 
-    return cleanup;
+    return () => {
+      cancel = true;
+    };
   }, [tree, api, onTraceLoad, organization, pathToNodeOrEventId]);
+
+  return status;
+}
+
+type UseTraceIssuesOnLoadOptions = {
+  event: Event;
+  onTraceLoad: () => void;
+  tree: IssuesTraceTree;
+};
+
+export function useTraceIssuesOnLoad(
+  options: UseTraceIssuesOnLoadOptions
+): 'success' | 'error' | 'pending' | 'idle' {
+  const api = useApi();
+  const organization = useOrganization();
+  const initializedRef = useRef<boolean>(false);
+  const {tree, onTraceLoad} = options;
+
+  const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
+
+  const traceState = useTraceState();
+  const traceStateRef = useRef<TraceReducerState>(traceState);
+  traceStateRef.current = traceState;
+
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
+
+  useLayoutEffect(() => {
+    if (initializedRef.current) {
+      return undefined;
+    }
+
+    if (tree.type !== 'trace') {
+      return undefined;
+    }
+
+    let cancel = false;
+
+    setStatus('pending');
+    initializedRef.current = true;
+
+    const expandOptions = {
+      api,
+      organization,
+      preferences: traceStatePreferencesRef.current,
+    };
+
+    const promise = options.event
+      ? IssuesTraceTree.ExpandToEvent(tree, options.event.eventID, expandOptions)
+      : Promise.resolve();
+
+    promise
+      .then(() => {
+        if (cancel) {
+          return;
+        }
+        setStatus('success');
+        onTraceLoad();
+      })
+      .catch(() => {
+        if (cancel) {
+          return;
+        }
+        setStatus('error');
+      });
+
+    return () => {
+      cancel = true;
+    };
+  }, [tree, api, onTraceLoad, organization, options.event]);
 
   return status;
 }

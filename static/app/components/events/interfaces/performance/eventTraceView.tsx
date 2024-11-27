@@ -1,28 +1,33 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
-import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
+import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
+import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   loadTraceViewPreferences,
   type TracePreferencesState,
 } from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
+import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -48,25 +53,26 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 interface EventTraceViewInnerProps {
   event: Event;
   organization: Organization;
+  traceId: string;
 }
 
-function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
-  // Assuming profile exists, should be checked in the parent component
-  const traceId = event.contexts.trace!.trace_id!;
-  const location = useLocation();
+function EventTraceViewInner({event, organization, traceId}: EventTraceViewInnerProps) {
+  const timestamp = new Date(event.dateReceived).getTime() / 1e3;
 
   const trace = useTrace({
-    traceSlug: traceId ? traceId : undefined,
+    timestamp,
+    traceSlug: traceId,
     limit: 10000,
   });
-  const meta = useTraceMeta([{traceSlug: traceId, timestamp: undefined}]);
-  const tree = useTraceTree({trace, meta, replay: null});
+  const params = useTraceQueryParams({
+    timestamp,
+  });
+  const meta = useTraceMeta([{traceSlug: traceId, timestamp}]);
+  const tree = useIssuesTraceTree({trace, meta, replay: null});
 
-  const hasNoTransactions = meta.data?.transactions === 0;
-  const shouldLoadTraceRoot = !trace.isPending && trace.data && !hasNoTransactions;
+  const shouldLoadTraceRoot = !trace.isPending && trace.data;
 
   const rootEvent = useTraceRootEvent(shouldLoadTraceRoot ? trace.data! : null);
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('issue-details-trace-view-preferences') ||
@@ -74,64 +80,88 @@ function EventTraceViewInner({event, organization}: EventTraceViewInnerProps) {
     []
   );
 
-  const traceEventView = useMemo(() => {
-    const statsPeriod = location.query.statsPeriod as string | undefined;
-    // Not currently expecting start/end timestamps to be applied to this view
+  const traceEventView = useTraceEventView(traceId, params);
 
-    return EventView.fromSavedQuery({
-      id: undefined,
-      name: `Events with Trace ID ${traceId}`,
-      fields: ['title', 'event.type', 'project', 'timestamp'],
-      orderby: '-timestamp',
-      query: `trace:${traceId}`,
-      projects: [ALL_ACCESS_PROJECTS],
-      version: 2,
-      range: statsPeriod,
-    });
-  }, [location.query.statsPeriod, traceId]);
-
-  const scrollToNode = useMemo(() => {
-    const firstTransactionEventId = trace.data?.transactions[0]?.event_id;
-    return {eventId: firstTransactionEventId};
-  }, [trace.data]);
-
-  if (trace.isPending || rootEvent.isPending || !rootEvent.data || hasNoTransactions) {
+  if (!traceId) {
     return null;
   }
 
   return (
-    <Fragment>
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey="issue-details-view-preferences"
-      >
-        <TraceViewWaterfallWrapper>
-          <TraceViewWaterfall
-            tree={tree}
-            trace={trace}
-            replay={null}
-            rootEvent={rootEvent}
-            traceSlug={undefined}
-            organization={organization}
-            traceEventView={traceEventView}
-            meta={meta}
-            source="issues"
-            scrollToNode={scrollToNode}
-            isEmbedded
-          />
-        </TraceViewWaterfallWrapper>
-      </TraceStateProvider>
-    </Fragment>
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="issue-details-view-preferences"
+    >
+      <IssuesTraceContainer>
+        <IssuesTraceWaterfall
+          tree={tree}
+          trace={trace}
+          traceSlug={traceId}
+          rootEvent={rootEvent}
+          organization={organization}
+          traceEventView={traceEventView}
+          meta={meta}
+          source="issues"
+          replay={null}
+          event={event}
+        />
+        <IssuesTraceOverlay event={event} />
+      </IssuesTraceContainer>
+    </TraceStateProvider>
   );
 }
 
-interface EventTraceViewProps extends EventTraceViewInnerProps {
+function IssuesTraceOverlay({event}: {event: Event}) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
+
+  return (
+    <IssuesTraceOverlayContainer>
+      <LinkButton
+        size="sm"
+        icon={<IconOpen />}
+        aria-label={t('Open Trace')}
+        to={traceTarget}
+      />
+    </IssuesTraceOverlayContainer>
+  );
+}
+
+const IssuesTraceContainer = styled('div')`
+  position: relative;
+`;
+
+const IssuesTraceOverlayContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+
+  a {
+    position: absolute;
+    top: ${space(1)};
+    right: ${space(1)};
+  }
+`;
+
+interface EventTraceViewProps extends Omit<EventTraceViewInnerProps, 'traceId'> {
   group: Group;
 }
 
 export function EventTraceView({group, event, organization}: EventTraceViewProps) {
-  // Check trace id exists
-  if (!event || !event.contexts.trace?.trace_id) {
+  const traceId = event.contexts.trace?.trace_id;
+  if (!traceId) {
     return null;
   }
 
@@ -149,27 +179,15 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   return (
     <ErrorBoundary mini>
       <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
-        <TraceContentWrapper>
-          <div>
-            <TraceDataSection event={event} />
-          </div>
-          {hasTracePreviewFeature && (
-            <EventTraceViewInner event={event} organization={organization} />
-          )}
-        </TraceContentWrapper>
+        <TraceDataSection event={event} />
+        {hasTracePreviewFeature && (
+          <EventTraceViewInner
+            event={event}
+            organization={organization}
+            traceId={traceId}
+          />
+        )}
       </InterimSection>
     </ErrorBoundary>
   );
 }
-
-const TraceContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const TraceViewWaterfallWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: 500px;
-`;

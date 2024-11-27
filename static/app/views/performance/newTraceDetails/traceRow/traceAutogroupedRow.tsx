@@ -19,13 +19,13 @@ export function TraceAutogroupedRow(
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`Autogrouped TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
