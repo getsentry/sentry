@@ -1,4 +1,5 @@
-import {useReducer, useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
+
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 
 export const BuilderStateAction = {
@@ -11,8 +12,8 @@ type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_DESCRIPTION};
 
 interface WidgetBuilderState {
-  title?: string;
   description?: string;
+  title?: string;
 }
 
 function useWidgetBuilderState(): {
@@ -22,26 +23,23 @@ function useWidgetBuilderState(): {
   const [title, setTitle] = useQueryParamState('title');
   const [description, setDescription] = useQueryParamState('description');
 
-  const reducer = useCallback(
-    (state: WidgetBuilderState, action: WidgetAction): WidgetBuilderState => {
+  const state = useMemo(() => ({title, description}), [title, description]);
+
+  const dispatch = useCallback(
+    (action: WidgetAction) => {
       switch (action.type) {
         case BuilderStateAction.SET_TITLE:
           setTitle(action.payload);
-          return {...state, title: action.payload};
+          break;
         case BuilderStateAction.SET_DESCRIPTION:
           setDescription(action.payload);
-          return {...state, description: action.payload};
+          break;
         default:
-          return state;
+          break;
       }
     },
-    []
+    [setTitle, setDescription]
   );
-
-  const [state, dispatch] = useReducer(reducer, undefined, () => ({
-    title,
-    description,
-  }));
 
   return {
     state,

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -23,26 +23,26 @@ export function useQueryParamState(
     parsedQueryParams[fieldName]
   );
 
+  // Debounce the update to the URL query params
+  // to avoid unnecessary re-renders
   const updateQueryParam = useMemo(
     () =>
       debounce((newField: string | undefined) => {
-        if (newField !== localState) {
-          navigate({
-            ...location,
-            query: {...location.query, [fieldName]: newField},
-          });
-        }
+        navigate({
+          ...location,
+          query: {...location.query, [fieldName]: newField},
+        });
       }, DEFAULT_DEBOUNCE_DURATION),
-    [location, navigate, fieldName, localState]
+    [location, navigate, fieldName]
   );
 
-  useEffect(() => {
-    updateQueryParam(localState);
+  const updateField = useCallback(
+    (newField: string | undefined) => {
+      setLocalState(newField);
+      updateQueryParam(newField);
+    },
+    [updateQueryParam]
+  );
 
-    return () => {
-      updateQueryParam.cancel();
-    };
-  }, [localState, updateQueryParam]);
-
-  return [localState, setLocalState];
+  return [localState, updateField];
 }
