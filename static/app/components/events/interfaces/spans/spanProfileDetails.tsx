@@ -23,6 +23,7 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import type {SpanType} from './types';
@@ -35,6 +36,7 @@ const TOP_NODE_MIN_COUNT = 3;
 interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
   span: Readonly<SpanType>;
+  embedInFoldableSection?: boolean;
   onNoProfileFound?: () => void;
 }
 
@@ -42,6 +44,7 @@ export function SpanProfileDetails({
   event,
   span,
   onNoProfileFound,
+  embedInFoldableSection = false,
 }: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -169,7 +172,7 @@ export function SpanProfileDetails({
 
   const percentage = formatPercentage(nodes[index].count / totalWeight);
 
-  return (
+  const content = (
     <SpanContainer>
       <SpanDetails>
         <SpanDetailsItem grow>
@@ -238,7 +241,19 @@ export function SpanProfileDetails({
       />
     </SpanContainer>
   );
+
+  return embedInFoldableSection ? (
+    <InterimSection title={t('Profile')} type="span_profile_details" initialCollapse>
+      <EmbededContentWrapper>{content}</EmbededContentWrapper>
+    </InterimSection>
+  ) : (
+    content
+  );
 }
+
+const EmbededContentWrapper = styled('div')`
+  margin-top: ${space(0.5)};
+`;
 
 function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
   let duration = profile.startedAt;

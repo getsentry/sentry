@@ -396,7 +396,7 @@ function Highlights({
   headerContent,
   bodyContent,
 }: HighlightProps) {
-  if (!isTransactionNode(node)) {
+  if (!isTransactionNode(node) && !isSpanNode(node)) {
     return null;
   }
 
@@ -414,9 +414,9 @@ function Highlights({
     <Fragment>
       <HighlightsWrapper>
         <HighlightsLeftColumn>
-          <Tooltip title={node.value.project_slug}>
+          <Tooltip title={node.value?.project_slug}>
             <ProjectBadge
-              project={project ? project : {slug: node.value.project_slug}}
+              project={project ? project : {slug: node.value?.project_slug ?? ''}}
               avatarSize={18}
               hideName
             />
@@ -424,7 +424,9 @@ function Highlights({
           <VerticalLine />
         </HighlightsLeftColumn>
         <HighlightsRightColumn>
-          <HighlightOp>{node.value['transaction.op']}</HighlightOp>
+          <HighlightOp>
+            {isTransactionNode(node) ? node.value?.['transaction.op'] : node.value?.op}
+          </HighlightOp>
           <HighlightsDurationWrapper>
             <HighlightDuration>
               {getDuration(durationInSeconds, 2, true)}
@@ -435,10 +437,10 @@ function Highlights({
               </HiglightsDurationComparison>
             ) : null}
           </HighlightsDurationWrapper>
-          <Panel>
+          <StyledPanel>
             <StyledPanelHeader>{headerContent}</StyledPanelHeader>
             <PanelBody>{bodyContent}</PanelBody>
-          </Panel>
+          </StyledPanel>
           {event ? <HighLightsOpsBreakdown event={event} /> : null}
         </HighlightsRightColumn>
       </HighlightsWrapper>
@@ -446,6 +448,10 @@ function Highlights({
     </Fragment>
   );
 }
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
 
 function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const breakdown = generateStats(event, {type: 'no_filter'});
@@ -506,6 +512,7 @@ const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
   align-items: flex-start;
   flex-direction: column;
   gap: ${space(0.25)};
+  margin-top: ${space(1.5)};
 `;
 
 const HiglightsDurationComparison = styled('div')<{status: string}>`
@@ -541,13 +548,12 @@ const StyledPanelHeader = styled(PanelHeader)`
   padding: 0;
   line-height: normal;
   text-transform: none;
-  font-size: ${p => p.theme.fontSizeMedium};
   overflow: hidden;
 `;
 
 const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(1.5)} 0;
+  margin: ${space(2)} 0 ${space(1.5)} 0;
 `;
 
 const VerticalLine = styled('div')`
