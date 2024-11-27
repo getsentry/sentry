@@ -34,6 +34,11 @@ def fail_task():
     raise ValueError("nope")
 
 
+@test_namespace.register(name="test.at_most_once", at_most_once=True)
+def at_most_once_task():
+    pass
+
+
 SIMPLE_TASK = TaskActivation(
     id="111",
     taskname="test.simple_task",
@@ -62,6 +67,14 @@ UNDEFINED_TASK = TaskActivation(
     id="444",
     taskname="total.rubbish",
     namespace="lolnope",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
+)
+
+AT_MOST_ONCE_TASK = TaskActivation(
+    id="555",
+    taskname="test.at_most_once",
+    namespace="tests",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
@@ -118,15 +131,31 @@ class TestTaskWorker(TestCase):
 
     def test_process_task_failure(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update_task:
-            mock_update_task.return_value = SIMPLE_TASK
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = SIMPLE_TASK
             result = taskworker.process_task(FAIL_TASK)
 
-            mock_update_task.assert_called_with(
+            mock_update.assert_called_with(
                 task_id=FAIL_TASK.id, status=TASK_ACTIVATION_STATUS_FAILURE
             )
             assert result
             assert result.id == SIMPLE_TASK.id
+
+    def test_process_task_at_most_once(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = SIMPLE_TASK
+            result = taskworker.process_task(AT_MOST_ONCE_TASK)
+
+            mock_update.assert_called_with(
+                task_id=AT_MOST_ONCE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+            )
+        assert taskworker.process_task(AT_MOST_ONCE_TASK) is None
+        assert result
+        assert result.id == SIMPLE_TASK.id
+
+        result = taskworker.process_task(AT_MOST_ONCE_TASK)
+        assert result is None
 
     def test_start_max_task_count(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)

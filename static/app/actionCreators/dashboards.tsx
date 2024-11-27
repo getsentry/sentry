@@ -220,7 +220,7 @@ export function validateWidgetRequest(
 export function updateDashboardPermissions(
   api: Client,
   orgId: string,
-  dashboard: DashboardDetails
+  dashboard: DashboardDetails | DashboardListItem
 ): Promise<DashboardDetails> {
   const {permissions} = dashboard;
   const data = {
