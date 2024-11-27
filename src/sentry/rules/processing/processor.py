@@ -380,9 +380,6 @@ class RuleProcessor:
             rule, self.event, notification_uuid, rule_fire_history
         )
         grouped_futures = None
-        # from sentry.workflow_engine.notification_action.logic import invoke_nowa
-
-        # invoke_nowa(rule, self.event)
 
         if not self.grouped_futures:
             self.grouped_futures = grouped_futures
