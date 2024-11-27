@@ -1,5 +1,5 @@
 ---
-created: '2024-11-25T20:44:29.207064+00:00'
+created: '2024-11-25T21:49:40.423739+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -125,12 +125,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - alert_rule
     - project
-  model_name: sentry.alertruleexcludedprojects
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - alert_rule
-    - project
   model_name: sentry.alertruleprojects
 - comparators:
   - class: ForeignKeyComparator
@@ -144,12 +138,6 @@ source: tests/sentry/backup/test_comparators.py
     - integration_id
     - sentry_app_id
   model_name: sentry.alertruletriggeraction
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - alert_rule_trigger
-    - query_subscription
-  model_name: sentry.alertruletriggerexclusion
 - comparators:
   - class: HashObfuscatingComparator
     fields:
