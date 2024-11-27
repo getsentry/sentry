@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {LineChartWidget} from './lineChartWidget';
 
@@ -20,6 +20,14 @@ describe('LineChartWidget', () => {
           }}
         />
       );
+    });
+  });
+
+  describe('Visualization', () => {
+    it('Explains missing data', () => {
+      render(<LineChartWidget />);
+
+      expect(screen.getByText('No Data')).toBeInTheDocument();
     });
   });
 });

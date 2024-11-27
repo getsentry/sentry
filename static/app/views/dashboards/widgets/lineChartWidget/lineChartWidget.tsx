@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {defined} from 'sentry/utils';
 import {
   WidgetFrame,
   type WidgetFrameProps,
@@ -9,32 +10,42 @@ import {
   type LineChartWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/lineChartWidget/lineChartWidgetVisualization';
 
-import {X_GUTTER, Y_GUTTER} from '../common/settings';
+import {MISSING_DATA_MESSAGE, X_GUTTER, Y_GUTTER} from '../common/settings';
 import type {StateProps} from '../common/types';
 
 interface Props
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
-    LineChartWidgetVisualizationProps {}
+    Partial<LineChartWidgetVisualizationProps> {}
 
 export function LineChartWidget(props: Props) {
   const {timeseries} = props;
+
+  let parsingError: string | undefined = undefined;
+
+  if (!defined(timeseries)) {
+    parsingError = MISSING_DATA_MESSAGE;
+  }
+
+  const error = props.error ?? parsingError;
 
   return (
     <WidgetFrame
       title={props.title}
       description={props.description}
       actions={props.actions}
-      error={props.error}
+      error={error}
       onRetry={props.onRetry}
     >
-      <LineChartWrapper>
-        <LineChartWidgetVisualization
-          timeseries={timeseries}
-          utc={props.utc}
-          meta={props.meta}
-        />
-      </LineChartWrapper>
+      {defined(timeseries) && (
+        <LineChartWrapper>
+          <LineChartWidgetVisualization
+            timeseries={timeseries}
+            utc={props.utc}
+            meta={props.meta}
+          />
+        </LineChartWrapper>
+      )}
     </WidgetFrame>
   );
 }
