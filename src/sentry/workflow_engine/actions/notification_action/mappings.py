@@ -11,8 +11,8 @@ ACTION_TYPE_2_RULE_REGISTRY_ID: dict[Action.Type, str] = {
     Action.Type.NOTIFICATION_JIRA: "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
     Action.Type.NOTIFICATION_JIRA_SERVER: "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
     Action.Type.NOTIFICATION_AZURE_DEVOPS: "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-    Action.Type.NOTIFICATION_SENTRY_APP: "...",
-    Action.Type.NOTIFICATION_EMAIL: "...",
+    Action.Type.NOTIFICATION_SENTRY_APP: "...",  # TODO(iamrajjoshi): Add the rule registry id
+    Action.Type.NOTIFICATION_EMAIL: "...",  # TODO(iamrajjoshi): Add the rule registry id
 }
 
 RULE_REGISTRY_ID_2_ACTION_TYPE: dict[str, Action.Type] = {
@@ -51,7 +51,6 @@ TARGET_IDENTIFIER_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
 
 ACTION_TYPE_2_TARGET_DISPLAY_KEY: dict[Action.Type, str] = {
     Action.Type.NOTIFICATION_SLACK: "channel",
-    Action.Type.NOTIFICATION_DISCORD: None,
     Action.Type.NOTIFICATION_MSTEAMS: "channel",
 }
 
