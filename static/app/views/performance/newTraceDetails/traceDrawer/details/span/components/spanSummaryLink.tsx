@@ -27,6 +27,7 @@ interface Props {
 function SpanSummaryLink(props: Props) {
   const location = useLocation();
   const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
+  const queryBaseUrl = useModuleURL(ModuleName.DB);
 
   const {event, organization, span} = props;
 
@@ -44,7 +45,7 @@ function SpanSummaryLink(props: Props) {
     return (
       <Link
         to={querySummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          base: queryBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
