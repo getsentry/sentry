@@ -1222,10 +1222,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isTransactionNode(n)) {
         // A transaction itself is a span and we are starting to treat it as such.
         // Hence we check for both event_id and span_id.
-        return n.value.event_id === eventId || n.value.span_id === eventId;
+        if (n.value.event_id === eventId || n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isSpanNode(n)) {
-        return n.value.span_id === eventId;
+        if (n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isTraceErrorNode(n)) {
         return n.value.event_id === eventId;
@@ -1253,18 +1281,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (eventId === 'root' && isTraceNode(n)) {
         return true;
-      }
-
-      // If we dont have an exact match, then look for an event_id in the errors or performance issues
-      for (const e of n.errors) {
-        if (e.event_id === eventId) {
-          return true;
-        }
-      }
-      for (const p of n.performance_issues) {
-        if (p.event_id === eventId) {
-          return true;
-        }
       }
 
       return false;
