@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import IntEnum, StrEnum
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
 
@@ -28,6 +29,9 @@ class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
         raise NotImplementedError
+
+
+ConditionHandler = Callable[[T, Any, str], bool]
 
 
 class DetectorType(StrEnum):
