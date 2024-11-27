@@ -25,17 +25,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set
     return triggered_workflows
 
 
-# TODO - should this return the list of actions or actually invoke them? :thinking:
 def process_workflows(evt: GroupEvent):
-    """
-    The process_workflows method will:
-    - take a data packet and the results
-    - evaluate the workflows
-    - then trigger any actions that are necessary.
-
-    This method should be invoked inside of the issue platform, to ensure that the workflows are triggered
-    with the correct IssueOccurrence information
-    """
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
 
@@ -46,7 +36,11 @@ def process_workflows(evt: GroupEvent):
     # evaluate if the workflows should be triggered based on the event
     triggered_workflows = evaluate_workflow_triggers(workflows, evt)
 
-    # get all of the data condition groups associated with the workflows in the action table.
-    # TODO - create evaluate_workflow_actions(data_condition_groups, evt)
+    # get all the data_condition_group_ids from the triggered_workflows <=> workflow_data_condition_groups
+
+    # TODO - create processors/action.py: evaluate_actions(data_condition_group_ids, evt)
+    # TODO - decide if this should iterate the actions and call action.trigger
+    #         or just return the list of actions
+    #         or just return the trigger
 
     return triggered_workflows
