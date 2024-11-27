@@ -1,3 +1,5 @@
+import type {DashboardsLayout} from 'sentry/views/dashboards/manage';
+
 // Used in the full-page widget builder
 type DashboardsEventParametersWidgetBuilder = {
   'dashboards_views.widget_builder.change': {
@@ -39,8 +41,8 @@ export type DashboardsEventParameters = {
     sort: string;
   };
   'dashboards_manage.create.start': {};
-  'dashboards_manage.delete': {dashboard_id: number};
-  'dashboards_manage.duplicate': {dashboard_id: number};
+  'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
+  'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
   'dashboards_manage.paginate': {};
   'dashboards_manage.search': {};
   'dashboards_manage.templates.add': {
