@@ -1390,6 +1390,34 @@
       ]
     ]
   },
+  "sentry.dashboardfavouriteuser": {
+    "dangling": false,
+    "foreign_keys": {
+      "dashboard": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.dashboard",
+        "nullable": false
+      },
+      "user": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": false
+      }
+    },
+    "model": "sentry.dashboardfavouriteuser",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_dashboardfavouriteuser",
+    "uniques": [
+      [
+        "dashboard",
+        "user"
+      ]
+    ]
+  },
   "sentry.dashboardpermissions": {
     "dangling": false,
     "foreign_keys": {
