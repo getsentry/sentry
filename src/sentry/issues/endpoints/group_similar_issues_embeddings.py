@@ -18,6 +18,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    NoFilenameOrModuleException,
     TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
@@ -86,6 +87,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             try:
                 stacktrace_string = get_stacktrace_string(grouping_info)
             except TooManyOnlySystemFramesException:
+                stacktrace_string = ""
+            except NoFilenameOrModuleException:
                 stacktrace_string = ""
 
         if not stacktrace_string or not latest_event:
