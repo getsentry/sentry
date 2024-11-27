@@ -210,44 +210,7 @@ class SearchResolver:
         parsed_terms = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                resolved_column, context = self.resolve_column(item.key.name)
-                raw_value = item.value.raw_value
-                if item.value.is_wildcard():
-                    if item.operator == "=":
-                        operator = ComparisonFilter.OP_LIKE
-                    elif item.operator == "!=":
-                        operator = ComparisonFilter.OP_NOT_LIKE
-                    else:
-                        raise InvalidSearchQuery(
-                            f"Cannot use a wildcard with a {item.operator} filter"
-                        )
-                    # Slashes have to be double escaped so they are
-                    # interpreted as a string literal.
-                    raw_value = (
-                        str(item.value.raw_value)
-                        .replace("\\", "\\\\")
-                        .replace("%", "\\%")
-                        .replace("_", "\\_")
-                        .replace("*", "%")
-                    )
-                elif item.operator in constants.OPERATOR_MAP:
-                    operator = constants.OPERATOR_MAP[item.operator]
-                else:
-                    raise InvalidSearchQuery(f"Unknown operator: {item.operator}")
-                if isinstance(resolved_column.proto_definition, AttributeKey):
-                    parsed_terms.append(
-                        TraceItemFilter(
-                            comparison_filter=ComparisonFilter(
-                                key=resolved_column.proto_definition,
-                                op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, item.operator, raw_value
-                                ),
-                            )
-                        )
-                    )
-                else:
-                    raise NotImplementedError("Can't filter on aggregates yet")
+                parsed_terms.append(self.resolve_term(cast(event_search.SearchFilter, item)))
             else:
                 if self.config.use_aggregate_conditions:
                     raise NotImplementedError("Can't filter on aggregates yet")
@@ -258,6 +221,40 @@ class SearchResolver:
             return parsed_terms[0]
         else:
             return None
+
+    def resolve_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
+        resolved_column, context = self.resolve_column(term.key.name)
+        raw_value = term.value.raw_value
+        if term.value.is_wildcard():
+            if term.operator == "=":
+                operator = ComparisonFilter.OP_LIKE
+            elif term.operator == "!=":
+                operator = ComparisonFilter.OP_NOT_LIKE
+            else:
+                raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
+            raw_value = (
+                str(term.value.raw_value)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+                .replace("*", "%")
+            )
+        elif term.operator in constants.OPERATOR_MAP:
+            operator = constants.OPERATOR_MAP[term.operator]
+        else:
+            raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+        if isinstance(resolved_column.proto_definition, AttributeKey):
+            return TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=operator,
+                    value=self._resolve_search_value(resolved_column, term.operator, raw_value),
+                )
+            )
+        else:
+            raise NotImplementedError("Can't filter on aggregates yet")
 
     def _resolve_search_value(
         self,
