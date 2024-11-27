@@ -44,7 +44,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 start = filter_params["start"]
                 end = filter_params["end"]
 
-                if features.has("organizations:tag-key-sample-n", organization):
+                if features.has("organizations:tag-key-sample-n", organization) and start and end:
                     # Tag queries longer than 14 days tend to time out for large customers. For getting a list of tags, clamping to 14 days is a reasonable compromise of speed vs. completeness
                     (start, end) = clamp_date_range(
                         (start, end),
