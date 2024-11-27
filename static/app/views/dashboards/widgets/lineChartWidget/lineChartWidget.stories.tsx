@@ -14,6 +14,7 @@ import type {TimeseriesData} from '../common/types';
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
+import {shiftTimeserieToNow} from './shiftTimeserieToNow';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -74,6 +75,13 @@ export default storyBook(LineChartWidget, story => {
           UTC or not
         </p>
 
+        <p>
+          The <code>incomplete</code> prop indicates that this data is live, and the last
+          few buckets might not have complete data. This will plot the last few buckets on
+          the chart with a dotted line. The number of incomplete buckets is determined by
+          a hard-coded average ingestion delay value.
+        </p>
+
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
@@ -94,8 +102,12 @@ export default storyBook(LineChartWidget, story => {
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
-              timeseries={[durationTimeSeries1, durationTimeSeries2]}
+              timeseries={[
+                shiftTimeserieToNow(durationTimeSeries1),
+                shiftTimeserieToNow(durationTimeSeries2),
+              ]}
               utc
+              incomplete
               meta={{
                 fields: {
                   'p99(span.duration)': 'duration',

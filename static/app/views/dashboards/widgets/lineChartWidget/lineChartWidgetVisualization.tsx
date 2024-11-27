@@ -1,48 +1,145 @@
+import {useRef} from 'react';
+import type {
+  TooltipFormatterCallback,
+  TopLevelFormatterParams,
+} from 'echarts/types/dist/shared';
+
 import BaseChart from 'sentry/components/charts/baseChart';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
+import {isChartHovered} from 'sentry/components/charts/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 import type {Meta, TimeseriesData} from '../common/types';
 
+import {compareTimeseriesDataByTimestamp} from './compareTimeseriesDataByTimestamp';
 import {formatChartValue} from './formatChartValue';
+import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
+  incomplete?: boolean;
   meta?: Meta;
   utc?: boolean;
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
-  const {timeseries, meta} = props;
+  const chartRef = useRef<ReactEchartsRef>(null);
+  const {meta} = props;
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
 
+  let completeSeries: TimeseriesData[] = props.timeseries;
+  const incompleteSeries: TimeseriesData[] = [];
+
+  // TODO: There's a TypeScript indexing error here. This _could_ in theory be
+  // `undefined`. We need to guard against this in the parent component, and
+  // show an error.
+  const firstSeries = props.timeseries[0];
+
+  const [firstDataPoint, secondDataPoint] = firstSeries?.data
+    ?.sort(compareTimeseriesDataByTimestamp)
+    ?.filter(Boolean);
+
+  if (props.incomplete && firstDataPoint && secondDataPoint) {
+    completeSeries = [];
+
+    props.timeseries.forEach(timeserie => {
+      const [completeSerie, incompleteSerie] =
+        splitSeriesIntoCompleteAndIncomplete(timeserie);
+
+      if (completeSerie && completeSerie.data.length > 0) {
+        completeSeries.push(completeSerie);
+      }
+
+      if (incompleteSerie && incompleteSerie.data.length > 0) {
+        incompleteSeries.push(incompleteSerie);
+      }
+    });
+  }
+
   // TODO: Raise error if attempting to plot series of different types or units
-  const firstSeriesField = timeseries[0]?.field;
+  const firstSeriesField = firstSeries?.field;
   const type = meta?.fields?.[firstSeriesField] ?? 'number';
   const unit = meta?.units?.[firstSeriesField] ?? undefined;
 
+  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+    params,
+    asyncTicket
+  ) => {
+    // Only show the tooltip of the current chart. Otherwise, all tooltips
+    // in the chart group appear.
+    if (!isChartHovered(chartRef?.current)) {
+      return '';
+    }
+
+    let deDupedParams = params;
+
+    if (Array.isArray(params)) {
+      const uniqueSeries = new Set<string>();
+
+      deDupedParams = params.filter(param => {
+        // Filter null values from tooltip
+        if (param.value[1] === null) {
+          return false;
+        }
+
+        if (uniqueSeries.has(param.seriesName)) {
+          return false;
+        }
+
+        uniqueSeries.add(param.seriesName);
+        return true;
+      });
+    }
+
+    return getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      truncate: true,
+      utc: props.utc ?? false,
+    })(deDupedParams, asyncTicket);
+  };
+
   return (
     <BaseChart
-      series={timeseries.map(timeserie => {
-        return LineSeries({
-          name: timeserie.field,
-          color: timeserie.color,
-          animation: false,
-          data: timeserie.data.map(datum => {
-            return [datum.timestamp, datum.value];
-          }),
-        });
-      })}
+      ref={chartRef}
+      series={[
+        ...completeSeries.map(timeserie => {
+          return LineSeries({
+            name: timeserie.field,
+            color: timeserie.color,
+            animation: false,
+            data: timeserie.data.map(datum => {
+              return [datum.timestamp, datum.value];
+            }),
+          });
+        }),
+        ...incompleteSeries.map(timeserie => {
+          return LineSeries({
+            name: timeserie.field,
+            color: timeserie.color,
+            animation: false,
+            data: timeserie.data.map(datum => {
+              return [datum.timestamp, datum.value];
+            }),
+            lineStyle: {
+              type: 'dotted',
+            },
+            silent: true,
+          });
+        }),
+      ]}
       utc={props.utc}
       legend={{
         top: 0,
         left: 0,
       }}
-      showTimeInTooltip
       tooltip={{
+        formatter,
         valueFormatter: value => {
           return formatChartValue(value, type, unit);
         },

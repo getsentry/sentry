@@ -33,6 +33,7 @@ export function LineChartWidget(props: Props) {
           timeseries={timeseries}
           utc={props.utc}
           meta={props.meta}
+          incomplete={props.incomplete}
         />
       </LineChartWrapper>
     </WidgetFrame>
