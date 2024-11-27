@@ -348,7 +348,6 @@ def get_stacktrace_string_with_metrics(
                 sample_rate=options.get("seer.similarity.metrics_sample_rate"),
                 tags={
                     "call_made": False,
-                    "platform": platform,
                     "blocker": "no-module-or-filename",
                 },
             )

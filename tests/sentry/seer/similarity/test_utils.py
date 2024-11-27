@@ -851,7 +851,6 @@ class GetStacktraceStringTest(TestCase):
             sample_rate=sample_rate,
             tags={
                 "call_made": False,
-                "platform": "python",
                 "blocker": "no-module-or-filename",
             },
         )
