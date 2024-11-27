@@ -443,7 +443,10 @@ class SnubaTagStorage(TagStorage):
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
             optimize_kwargs["sample"] = options.get("visibility.tag-key-sample-size")
-            (start, end) = clamp_date_range((start, end), datetime.timedelta(days=14))
+            (start, end) = clamp_date_range(
+                (start, end),
+                datetime.timedelta(days=options.get("visibility.tag-key-max-date-range.days")),
+            )
         # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
