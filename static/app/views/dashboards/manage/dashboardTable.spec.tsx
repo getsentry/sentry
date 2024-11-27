@@ -234,8 +234,15 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -258,8 +265,15 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+
+    expect(postMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
