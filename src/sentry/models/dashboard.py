@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -30,11 +31,11 @@ class DashboardProject(Model):
 
 
 @region_silo_model
-class DashboardFavouriteUser(Model):
-    __relocation_scope__ = RelocationScope.Excluded
+class DashboardFavouriteUser(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
 
-    user = FlexibleForeignKey("sentry.User")
-    dashboard = FlexibleForeignKey("sentry.Dashboard")
+    user = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
@@ -58,9 +59,6 @@ class Dashboard(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    favourited_by = models.ManyToManyField(
-        "sentry.User", through=DashboardFavouriteUser, blank=True
-    )
 
     MAX_WIDGETS = 30
 
@@ -70,6 +68,17 @@ class Dashboard(Model):
         unique_together = (("organization", "title"),)
 
     __repr__ = sane_repr("organization", "title")
+
+    @property
+    def favourited_by(self):
+        user_ids = DashboardFavouriteUser.objects.filter(dashboard=self).values_list(
+            "user", flat=True
+        )
+        return user_ids
+
+    @favourited_by.setter
+    def favourited_by(self, user_id):
+        DashboardFavouriteUser.objects.get_or_create(dashboard=self, user=user_id)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
