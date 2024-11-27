@@ -570,6 +570,7 @@ class _Table extends Component<Props, State> {
                           data={tableData ? tableData.data : []}
                           columnOrder={columnOrder}
                           columnSortBy={columnSortBy}
+                          bodyStyle={{overflow: 'visible'}}
                           grid={{
                             onResizeColumn: this.handleResizeColumn,
                             renderHeadCell: this.renderHeadCellWithMeta(
