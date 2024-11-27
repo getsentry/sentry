@@ -152,16 +152,15 @@ export function usePrompt({
   const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
 
-  const isPromptDismissed =
-    prompt.isSuccess && prompt.data.data
-      ? promptIsDismissed(
-          {
-            dismissedTime: prompt.data.data.dismissed_ts,
-            snoozedTime: prompt.data.data.snoozed_ts,
-          },
-          daysToSnooze
-        )
-      : undefined;
+  const isPromptDismissed = prompt.isSuccess
+    ? promptIsDismissed(
+        {
+          dismissedTime: prompt.data?.data?.dismissed_ts,
+          snoozedTime: prompt.data?.data?.snoozed_ts,
+        },
+        daysToSnooze
+      )
+    : undefined;
 
   const dismissPrompt = useCallback(() => {
     if (!organization) {
