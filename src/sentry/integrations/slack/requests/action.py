@@ -39,25 +39,46 @@ class SlackActionRequest(SlackRequest):
             - is_message: did the original message have a 'message' type
         """
         if self.data.get("callback_id"):
-            return orjson.loads(self.data["callback_id"])
-
-        # XXX(CEO): can't really feature flag this but the block kit data is very different
+            try:
+                return orjson.loads(self.data["callback_id"])
+            except (ValueError, TypeError):
+                logger.error(
+                    "slack.action.invalid-callback-data",
+                    extra={
+                        "error": "Invalid callback_id JSON",
+                        "callback_id": self.data["callback_id"],
+                    },
+                )
+                return {}
 
         # slack sends us a response when a modal is opened and when an option is selected
         # we don't do anything with it until the user hits "Submit" but we need to handle it anyway
         if self.data["type"] == "block_actions":
             if self.data.get("view"):
-                return orjson.loads(self.data["view"]["private_metadata"])
+                try:
+                    return orjson.loads(self.data["view"]["private_metadata"])
+                except (KeyError, ValueError, TypeError):
+                    logger.error(
+                        "slack.action.invalid-view-metadata",
+                        extra={"error": "Invalid view metadata JSON"},
+                    )
+                    return {}
 
             elif self.data.get("container", {}).get(
                 "is_app_unfurl"
             ):  # for actions taken on interactive unfurls
-                return orjson.loads(
-                    self.data["app_unfurl"]["blocks"][0]["block_id"],
-                )
-            return orjson.loads(self.data["message"]["blocks"][0]["block_id"])
+                try:
+                    blocks = self.data.get("app_unfurl", {}).get("blocks", [])
+                    if blocks and blocks[0].get("block_id"):
+                        return orjson.loads(blocks[0]["block_id"])
+                except (KeyError, IndexError, ValueError, TypeError):
+                    pass
 
-        if self.data["type"] == "view_submission":
+            try:
+                blocks = self.data.get("message", {}).get("blocks", [])
+                return orjson.loads(blocks[0]["block_id"]) if blocks else {}
+            except (KeyError, IndexError, ValueError, TypeError):
+                return {}
             return orjson.loads(self.data["view"]["private_metadata"])
 
         for data in self.data["message"]["blocks"]:
@@ -78,9 +99,21 @@ class SlackActionRequest(SlackRequest):
         if "payload" not in self.request.data:
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
+        payload = self.request.data["payload"]
+        if not isinstance(payload, str):
+            logger.error(
+                "slack.action.invalid-payload-type",
+                extra={"error": "Payload must be a string"},
+            )
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            self._data = orjson.loads(self.data["payload"])
+            self._data = orjson.loads(payload)
+            if not isinstance(self._data, dict):
+                raise ValueError("Payload must decode to a dictionary")
         except (KeyError, IndexError, TypeError, ValueError):
+            logger.error("slack.action.invalid-payload",
+                        extra={"error": "Invalid JSON payload structure"})
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         # for interactive unfurls with block kit
