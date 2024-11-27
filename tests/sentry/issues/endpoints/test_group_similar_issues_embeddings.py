@@ -14,6 +14,7 @@ from sentry.issues.endpoints.group_similar_issues_embeddings import (
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils.types import NonNone
@@ -739,3 +740,36 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             assert request_params["use_reranking"] == outgoing_value
 
             mock_seer_request.reset_mock()
+
+    def test_too_many_system_frames(self):
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        error_data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": type,
+                        "value": value,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": f"play_fetch_{i}",
+                                    "filename": f"dogpark{i}.py",
+                                    "context_line": context_line,
+                                }
+                                for i in range(MAX_FRAME_COUNT + 1)
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+        new_event = self.store_event(data=error_data, project_id=self.project)
+        assert new_event.group
+        response = self.client.get(
+            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.01"},
+        )
+        assert response.data == []
