@@ -242,7 +242,7 @@ def clamp_date_range(
     than the max delta, returns the range as-is. If the date range is longer than the max delta, clamps the range range, anchoring to the end.
 
     If any of the inputs are invalid (e.g., a negative range) returns the range
-     without modifying it.
+    without modifying it.
 
     :param range: A tuple of two `datetime.datetime` objects
     :param max_timedelta: Maximum allowed range delta
