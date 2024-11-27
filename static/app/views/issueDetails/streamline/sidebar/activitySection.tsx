@@ -63,7 +63,7 @@ function TimelineItem({
     <ActivityTimelineItem
       title={
         <Flex gap={space(0.5)} align="center" justify="flex-start">
-          <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
+          <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
           {item.type === GroupActivityType.NOTE && (
@@ -265,6 +265,7 @@ export default function StreamlinedActivitySection({
 }
 
 const TitleTooltip = styled(Tooltip)`
+  flex: 1;
   justify-self: start;
   overflow: hidden;
   text-overflow: ellipsis;
