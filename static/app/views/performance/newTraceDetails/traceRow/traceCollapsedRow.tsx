@@ -47,14 +47,14 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
     >
       <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
         <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
-          {stats.events}{' '}
+          {stats.events > 0 ? stats.events : null}{' '}
           {stats.events > 0
             ? stats.events === 1
               ? t('hidden span')
               : t('hidden spans')
             : null}
           {stats.events > 0 && ', '}
-          {stats.issues}{' '}
+          {stats.issues > 0 ? stats.issues : null}{' '}
           {stats.issues > 0
             ? stats.issues === 1
               ? t('hidden issue')
