@@ -117,6 +117,7 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
             attachments = event_attachment_screenshot_filter(attachments)
         if types:
             attachments = attachments.filter(type__in=types)
+        # If event_ids is [], we still want attachments to filter to an empty list.
         if event_ids is not None:
             attachments = attachments.filter(event_id__in=event_ids)
 
