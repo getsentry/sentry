@@ -21,9 +21,6 @@ def get_nested_value(data: GroupEvent, path: str, default: Any = None) -> Any | 
 
 
 @condition_handler_registry.register(Condition.EVENT_COMPARISON)
-def event_comparison_operator(data: GroupEvent, comparison: Any, condition: str) -> bool:
-    event_value = get_nested_value(data, condition)
-    if event_value == comparison:
-        return True
-
-    return False
+def event_comparison_operator(data: GroupEvent, comparison: Any, data_filter: str) -> bool:
+    event_value = get_nested_value(data, data_filter)
+    return event_value == comparison
