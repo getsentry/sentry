@@ -13,7 +13,7 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         self.team = self.create_team()
 
     def test_no_platform(self):
-        project = self.create_project(teams=[self.team], name="foo", platform=None)
+        project = self.create_project(teams=[self.team], name="foo", platform=None, flags=0)
 
         url = reverse(
             "sentry-api-0-project-create-sample-transaction",

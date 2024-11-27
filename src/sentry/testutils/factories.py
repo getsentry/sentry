@@ -508,7 +508,7 @@ class Factories:
             kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
-        if not kwargs.get("flags"):
+        if "flags" not in kwargs:
             # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
             # application knows that events have been sent
             kwargs["flags"] = Project.flags.has_transactions

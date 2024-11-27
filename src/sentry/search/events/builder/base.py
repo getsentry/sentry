@@ -580,7 +580,7 @@ class BaseQueryBuilder:
             # so the developer can write their tests with a non-empty project list
             # In production, we will raise an error
             if not in_test_environment():
-                raise UnqualifiedQueryError("You need to specify at least one project.")
+                raise UnqualifiedQueryError("You need to specify at least one project with data.")
         else:
             conditions.append(
                 Condition(

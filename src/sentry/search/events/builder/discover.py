@@ -91,7 +91,17 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         if self.params.organization_id and in_rollout_group(
             "sentry.search.events.project.check_event", self.params.organization_id
         ):
-            return [proj.id for proj in self.params.projects if proj.flags.has_transactions]
+            if self.dataset == Dataset.Discover:
+                return [
+                    proj.id
+                    for proj in self.params.projects
+                    if proj.flags.has_transactions or proj.first_event is not None
+                ]
+            elif self.dataset == Dataset.Events:
+                return [proj.id for proj in self.params.projects if proj.first_event is not None]
+            elif self.dataset in [Dataset.Transactions, Dataset.IssuePlatform]:
+                return [proj.id for proj in self.params.projects if proj.flags.has_transactions]
+            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
         else:
             return super().resolve_projects()
 
