@@ -84,7 +84,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             try:
-                stacktrace_string = get_stacktrace_string(grouping_info)
+                stacktrace_string = get_stacktrace_string(
+                    grouping_info, platform=latest_event.platform
+                )
             except TooManyOnlySystemFramesException:
                 stacktrace_string = ""
 
