@@ -69,6 +69,11 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       });
 
     const options = [
+      ...unknownOptions.map(option => ({
+        label: prettifyTagKey(option),
+        value: option,
+        textValue: option,
+      })),
       ...Object.values(numberTags).map(tag => {
         return {
           label: tag.name,
@@ -76,11 +81,6 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           textValue: tag.name,
         };
       }),
-      ...unknownOptions.map(option => ({
-        label: prettifyTagKey(option),
-        value: option,
-        textValue: option,
-      })),
     ];
 
     options.sort((a, b) => {
