@@ -104,6 +104,10 @@ describe('Dashboards > WidgetCard', function () {
         data: [{title: 'title'}],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
   });
 
   afterEach(function () {
