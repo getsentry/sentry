@@ -30,6 +30,19 @@ class DashboardProject(Model):
 
 
 @region_silo_model
+class DashboardFavouriteUser(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user = FlexibleForeignKey("sentry.User")
+    dashboard = FlexibleForeignKey("sentry.Dashboard")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfavouriteuser"
+        unique_together = (("user", "dashboard"),)
+
+
+@region_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -45,6 +58,9 @@ class Dashboard(Model):
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
+    favourited_by = models.ManyToManyField(
+        "sentry.User", through=DashboardFavouriteUser, blank=True
+    )
 
     MAX_WIDGETS = 30
 
