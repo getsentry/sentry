@@ -80,30 +80,44 @@ def assert_all_services_defined(services: dict[str, Service]) -> None:
 
 def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str, UnhealthyReasons]:
     unhealthy_services: MutableMapping[str, UnhealthyReasons] = {}
-
+    max_retries = 2
     for name, service in services.items():
         high_watermark = options.get(f"backpressure.high_watermarks.{name}")
         reasons = []
 
         logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
-        try:
-            for memory in check_service_memory(service):
-                if memory.percentage >= high_watermark:
-                    reasons.append(memory)
-                logger.info(
-                    "  name: %s, used: %s, available: %s, percentage: %s",
-                    memory.name,
-                    memory.used,
-                    memory.available,
-                    memory.percentage,
+        for attempt in range(max_retries):
+            try:
+                for memory in check_service_memory(service):
+                    if memory.percentage >= high_watermark:
+                        reasons.append(memory)
+                    logger.info(
+                        "  name: %s, used: %s, available: %s, percentage: %s",
+                        memory.name,
+                        memory.used,
+                        memory.available,
+                        memory.percentage,
+                    )
+                    break
+            except (ConnectionError, TimeoutError) as e:
+                logger.warning(
+                    "Attempt %d/%d: Service `%s` encountered a connection error: %s",
+                    attempt + 1,
+                    max_retries,
+                    name,
+                    e,
                 )
-        except (ConnectionError, TimeoutError):
-            load_service_definitions(refresh=True)
-        except Exception as e:
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_tag("service", name)
-                sentry_sdk.capture_exception(e)
-            unhealthy_services[name] = e
+                if attempt < max_retries - 1:
+                    load_service_definitions(refresh=True)
+                else:
+                    sentry_sdk.capture_exception(e)
+                    unhealthy_services[name] = e
+            except Exception as e:
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("service", name)
+                    sentry_sdk.capture_exception(e)
+                unhealthy_services[name] = e
+                break
         else:
             unhealthy_services[name] = reasons
 

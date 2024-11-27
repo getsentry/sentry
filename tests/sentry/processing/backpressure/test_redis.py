@@ -1,6 +1,8 @@
+from unittest.mock import patch
+
 from django.test.utils import override_settings
 
-from sentry.processing.backpressure.memory import iter_cluster_memory_usage
+from sentry.processing.backpressure.memory import ServiceMemory, iter_cluster_memory_usage
 from sentry.processing.backpressure.monitor import (
     Redis,
     check_service_health,
@@ -57,3 +59,37 @@ def test_redis_unhealthy_state():
     redis_services = unhealthy_services.get("redis")
     assert isinstance(redis_services, list)
     assert len(redis_services) == 6
+
+
+@use_redis_cluster()
+@patch("sentry.processing.backpressure.monitor.iter_cluster_memory_usage")
+@patch("sentry.processing.backpressure.monitor.load_service_definitions")
+def test_redis_retry_fail(mock_load_service_definitions, mock_iter_cluster_memory_usage):
+    mock_iter_cluster_memory_usage.side_effect = ConnectionError("Connection failed")
+    services = load_service_definitions()
+
+    unhealthy_services = check_service_health(services=services)
+    redis_services = unhealthy_services.get("redis")
+
+    assert isinstance(redis_services, ConnectionError)
+    assert mock_iter_cluster_memory_usage.call_count == 2
+    mock_load_service_definitions.assert_called_with(refresh=True)
+
+
+@use_redis_cluster()
+@patch("sentry.processing.backpressure.monitor.iter_cluster_memory_usage")
+@patch("sentry.processing.backpressure.monitor.load_service_definitions")
+def test_redis_retry_success(mock_load_service_definitions, mock_iter_cluster_memory_usage):
+    mock_iter_cluster_memory_usage.side_effect = [
+        ConnectionError("Connection failed"),
+        [ServiceMemory(name="testRedis", used=50, available=100, percentage=0.5)],
+    ]
+    services = load_service_definitions()
+
+    unhealthy_services = check_service_health(services=services)
+    redis_services = unhealthy_services.get("redis")
+
+    assert isinstance(redis_services, list)
+    assert len(redis_services) == 0
+    assert mock_iter_cluster_memory_usage.call_count == 2
+    mock_load_service_definitions.assert_called_once_with(refresh=True)
