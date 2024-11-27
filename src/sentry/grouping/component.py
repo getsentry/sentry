@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from typing import Any, Self
 
@@ -228,17 +229,29 @@ class SymbolGroupingComponent(BaseGroupingComponent[str]):
     id: str = "symbol"
 
 
-class FrameGroupingComponent(
-    BaseGroupingComponent[
-        ContextLineGroupingComponent
-        | FilenameGroupingComponent
-        | FunctionGroupingComponent
-        | LineNumberGroupingComponent  # only in legacy config
-        | ModuleGroupingComponent
-        | SymbolGroupingComponent  # only in legacy config
-    ]
-):
+FrameGroupingComponentChildren = (
+    ContextLineGroupingComponent
+    | FilenameGroupingComponent
+    | FunctionGroupingComponent
+    | LineNumberGroupingComponent  # only in legacy config
+    | ModuleGroupingComponent
+    | SymbolGroupingComponent  # only in legacy config
+)
+
+
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
     id: str = "frame"
+    in_app: bool
+
+    def __init__(
+        self,
+        values: Sequence[FrameGroupingComponentChildren],
+        in_app: bool,
+        hint: str | None = None,  # only passed in legacy
+        contributes: bool | None = None,  # only passed in legacy
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.in_app = in_app
 
 
 # Security-related inner components
@@ -270,21 +283,55 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[FrameGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
-class ExceptionGroupingComponent(
-    BaseGroupingComponent[
-        ErrorTypeGroupingComponent
-        | ErrorValueGroupingComponent
-        | NSErrorGroupingComponent
-        | StacktraceGroupingComponent
-    ]
-):
+ExceptionGroupingComponentChildren = (
+    ErrorTypeGroupingComponent
+    | ErrorValueGroupingComponent
+    | NSErrorGroupingComponent
+    | StacktraceGroupingComponent
+)
+
+
+class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponentChildren]):
     id: str = "exception"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[ExceptionGroupingComponentChildren] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained-exception"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[ExceptionGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
