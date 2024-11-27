@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
 from random import randrange
@@ -18,7 +19,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.rules import EventState, rules
+from sentry.rules import EventState, history, rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
@@ -373,15 +374,15 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
-        # notification_uuid = str(uuid.uuid4())
-        # rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
-        # grouped_futures = activate_downstream_actions(
-        #     rule, self.event, notification_uuid, rule_fire_history
-        # )
+        notification_uuid = str(uuid.uuid4())
+        rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
+        grouped_futures = activate_downstream_actions(
+            rule, self.event, notification_uuid, rule_fire_history
+        )
         grouped_futures = None
-        from sentry.workflow_engine.nowa.logic import invoke_nowa
+        # from sentry.workflow_engine.notification_action.logic import invoke_nowa
 
-        invoke_nowa(rule, self.event)
+        # invoke_nowa(rule, self.event)
 
         if not self.grouped_futures:
             self.grouped_futures = grouped_futures
