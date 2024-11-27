@@ -76,7 +76,7 @@ export interface ReleaseWithHealth extends BaseRelease, ReleaseData {
 }
 
 interface ReleaseData {
-  authors: User[];
+  authors: Array<User | {email: string; name: string}>;
   commitCount: number;
   currentProjectMeta: {
     firstReleaseVersion: string | null;

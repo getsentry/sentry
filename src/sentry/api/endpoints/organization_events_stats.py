@@ -288,6 +288,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                if use_rpc and dataset == spans_eap:
+                    return spans_rpc.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        groupby=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        granularity_secs=rollup,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=False,
+                        ),
+                    )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),

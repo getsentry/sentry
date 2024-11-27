@@ -1,4 +1,5 @@
 import logging
+from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
@@ -26,15 +27,15 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
 )
 SEER_ELIGIBLE_PLATFORMS = frozenset(
     [
-        # "android",
-        # "android-profiling-onboarding-1-install",
-        # "android-profiling-onboarding-3-configure-profiling",
-        # "android-profiling-onboarding-4-upload",
+        "android",
+        "android-profiling-onboarding-1-install",
+        "android-profiling-onboarding-3-configure-profiling",
+        "android-profiling-onboarding-4-upload",
         "bun",
-        # "dart",
+        "dart",
         "deno",
         "django",
-        # "flutter",
+        "flutter",
         "go",
         "go-echo",
         "go-fasthttp",
@@ -44,16 +45,16 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
-        # "groovy",
+        "groovy",
         "java",
         "java-android",
-        # "java-appengine",
-        # "java-log4j",
-        # "java-log4j2",
-        # "java-logging",
+        "java-appengine",
+        "java-log4j",
+        "java-log4j2",
+        "java-logging",
         "java-logback",
-        # "java-spring",
-        # "java-spring-boot",
+        "java-spring",
+        "java-spring-boot",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -151,6 +152,15 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 
+class ReferrerOptions(StrEnum):
+    INGEST = "ingest"
+    BACKFILL = "backfill"
+
+
+class TooManyOnlySystemFramesException(Exception):
+    pass
+
+
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -177,6 +187,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
+    is_frames_truncated = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -185,12 +196,15 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
         nonlocal frame_count
         nonlocal html_frame_count
+        nonlocal is_frames_truncated
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
         ]
+        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
+            is_frames_truncated = True
         contributing_frames = _discard_excess_frames(
             contributing_frames, MAX_FRAME_COUNT, frame_count
         )
@@ -255,6 +269,8 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
+        if is_frames_truncated and not app_hash:
+            raise TooManyOnlySystemFramesException
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -288,6 +304,31 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     )
 
     return stacktrace_str.strip()
+
+
+def get_stacktrace_string_with_metrics(
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
+) -> str | None:
+    try:
+        stacktrace_string = get_stacktrace_string(data)
+    except TooManyOnlySystemFramesException:
+        platform = platform if platform else "unknown"
+        metrics.incr(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": platform, "referrer": referrer},
+        )
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={
+                    "call_made": False,
+                    "blocker": "over-threshold-only-system-frames",
+                },
+            )
+        stacktrace_string = None
+    return stacktrace_string
 
 
 def event_content_has_stacktrace(event: Event) -> bool:

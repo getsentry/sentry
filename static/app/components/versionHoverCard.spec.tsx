@@ -47,4 +47,29 @@ describe('VersionHoverCard', () => {
 
     expect(await screen.findByText(deploy.environment)).toBeInTheDocument();
   });
+
+  it('renders authors without ids', async () => {
+    const noIdAuthorRelease = ReleaseFixture({
+      authors: [
+        {name: 'Test Author', email: 'test@sentry.io'},
+        {name: 'Test Author 2', email: 'test2@sentry.io'},
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(noIdAuthorRelease.version)}/`,
+      body: noIdAuthorRelease,
+    });
+
+    render(
+      <VersionHoverCard
+        organization={organization}
+        projectSlug={project.slug}
+        releaseVersion={release.version}
+      >
+        <div>{release.version}</div>
+      </VersionHoverCard>
+    );
+
+    expect(await screen.findByText(release.version)).toBeInTheDocument();
+  });
 });

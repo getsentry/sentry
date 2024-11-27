@@ -1,5 +1,5 @@
 ---
-created: '2024-11-15T23:09:32.075671+00:00'
+created: '2024-11-25T23:04:25.041092+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -261,12 +261,6 @@ source: tests/sentry/backup/test_sanitize.py
   - slug
 - model_name: sentry.project
   ordinal: 3
-  sanitized_fields:
-  - date_added
-  - name
-  - slug
-- model_name: sentry.project
-  ordinal: 4
   sanitized_fields:
   - date_added
   - name
@@ -599,9 +593,6 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.projectteam
   ordinal: 1
   sanitized_fields: []
-- model_name: sentry.projectteam
-  ordinal: 2
-  sanitized_fields: []
 - model_name: sentry.projectredirect
   ordinal: 1
   sanitized_fields:
@@ -620,9 +611,6 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.projectoption
   ordinal: 3
   sanitized_fields: []
-- model_name: sentry.projectoption
-  ordinal: 4
-  sanitized_fields: []
 - model_name: sentry.projectkey
   ordinal: 1
   sanitized_fields:
@@ -635,11 +623,6 @@ source: tests/sentry/backup/test_sanitize.py
   - secret_key
 - model_name: sentry.projectkey
   ordinal: 3
-  sanitized_fields:
-  - date_added
-  - secret_key
-- model_name: sentry.projectkey
-  ordinal: 4
   sanitized_fields:
   - date_added
   - secret_key
@@ -814,10 +797,6 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 3
   sanitized_fields:
   - date_added
-- model_name: sentry.alertruleexcludedprojects
-  ordinal: 1
-  sanitized_fields:
-  - date_added
 - model_name: sentry.alertruleactivity
   ordinal: 1
   sanitized_fields:
@@ -860,10 +839,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_modified
-- model_name: sentry.alertruletriggerexclusion
-  ordinal: 1
-  sanitized_fields:
-  - date_added
 - model_name: sentry.alertruletriggeraction
   ordinal: 1
   sanitized_fields:

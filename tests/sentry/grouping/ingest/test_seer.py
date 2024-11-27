@@ -5,9 +5,14 @@ from unittest.mock import MagicMock, Mock, patch
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
-from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.grouping.ingest.seer import (
+    get_seer_similar_issues,
+    maybe_check_seer_for_matching_grouphash,
+    should_call_seer_for_grouping,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -282,7 +287,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [asdict(seer_result_data)],
         }
-
+        self.new_event.data["stacktrace_string"] = "stacktrace"
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[seer_result_data],
@@ -297,7 +302,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
             "results": [],
         }
-
+        self.new_event.data["stacktrace_string"] = "stacktrace"
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
@@ -306,3 +311,206 @@ class GetSeerSimilarIssuesTest(TestCase):
                 expected_metadata,
                 None,
             )
+
+    @patch("sentry.grouping.ingest.seer.logger")
+    def test_returns_no_grouphash_and_empty_metadata_if_empty_stacktrace(
+        self, mock_logger: MagicMock
+    ) -> None:
+        expected_metadata = {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "results": [],
+        }
+
+        for stacktrace in ["", None]:
+            self.new_event.data["stacktrace_string"] = ""
+            with patch(
+                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+                return_value=[],
+            ):
+                assert get_seer_similar_issues(self.new_event, self.variants) == (
+                    expected_metadata,
+                    None,
+                )
+            mock_logger.info.assert_called_with(
+                "get_seer_similar_issues.empty_stacktrace",
+                extra={
+                    "event_id": self.new_event.event_id,
+                    "project_id": self.new_event.project.id,
+                    "stacktrace_string": "",
+                },
+            )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_only_system_frames(self, mock_metrics: Mock) -> None:
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="22312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": context_line,
+                                    }
+                                    for i in range(MAX_FRAME_COUNT + 1)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+        expected_metadata = {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "results": [],
+        }
+        assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
+            expected_metadata,
+            None,
+        )
+
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "ingest"},
+        )
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={
+                "call_made": False,
+                "blocker": "over-threshold-only-system-frames",
+            },
+        )
+
+
+class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
+
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    def test_valid_maybe_check_seer_for_matching_group_hash(
+        self, mock_get_similarity_data: MagicMock
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "play_fetch",
+                                        "filename": "dogpark.py",
+                                        "context_line": context_line,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+        GroupHash.objects.create(
+            project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
+        )
+        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
+        maybe_check_seer_for_matching_grouphash(
+            new_event, new_event.get_grouping_variants(), group_hashes
+        )
+
+        mock_get_similarity_data.assert_called_with(
+            {
+                "event_id": new_event.event_id,
+                "hash": new_event.get_primary_hash(),
+                "project_id": self.project.id,
+                "stacktrace": f'{type}: {value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
+                "exception_type": "FailedToFetchError",
+                "k": 1,
+                "referrer": "ingest",
+                "use_reranking": True,
+            }
+        )
+
+    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash(
+        self, mock_metrics: MagicMock, mock_get_similar_issues: MagicMock
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="22312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": context_line,
+                                    }
+                                    for i in range(MAX_FRAME_COUNT + 1)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+
+        GroupHash.objects.create(
+            project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
+        )
+        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
+        maybe_check_seer_for_matching_grouphash(
+            new_event, new_event.get_grouping_variants(), group_hashes
+        )
+
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": "python", "referrer": "ingest"},
+        )
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={
+                "call_made": False,
+                "blocker": "over-threshold-only-system-frames",
+            },
+        )
+
+        mock_get_similar_issues.assert_not_called()
