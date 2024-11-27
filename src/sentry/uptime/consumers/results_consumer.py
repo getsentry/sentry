@@ -333,3 +333,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
     result_processor_cls = UptimeResultProcessor
     topic_for_codec = Topic.UPTIME_RESULTS
+    identifier = "uptime"
+
+    def build_payload_grouping_key(self, result: CheckResult) -> str:
+        return self.result_processor.get_subscription_id(result)
