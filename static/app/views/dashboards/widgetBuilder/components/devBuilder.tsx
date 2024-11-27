@@ -2,11 +2,12 @@ import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {UrlBatchProvider} from 'sentry/views/dashboards/widgetBuilder/context/urlBatchContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-function DevBuilder() {
+function DevBuilderContent() {
   const {state, dispatch} = useWidgetBuilderState();
 
   return (
@@ -14,14 +15,35 @@ function DevBuilder() {
       <Section>
         <h1>Title:</h1>
         <div style={{flex: 1}}>{state.title}</div>
-        <TitleInput
+        <SimpleInput
           value={state.title}
           onChange={e =>
             dispatch({type: BuilderStateAction.SET_TITLE, payload: e.target.value})
           }
         />
       </Section>
+      <Section>
+        <h1>Description:</h1>
+        <div style={{flex: 1}}>{state.description}</div>
+        <SimpleInput
+          value={state.description}
+          onChange={e =>
+            dispatch({
+              type: BuilderStateAction.SET_DESCRIPTION,
+              payload: e.target.value,
+            })
+          }
+        />
+      </Section>
     </Body>
+  );
+}
+
+function DevBuilder() {
+  return (
+    <UrlBatchProvider>
+      <DevBuilderContent />
+    </UrlBatchProvider>
   );
 }
 
@@ -38,7 +60,7 @@ const Section = styled('section')`
   align-items: center;
 `;
 
-const TitleInput = styled(Input)`
+const SimpleInput = styled(Input)`
   width: 100%;
   flex: 1;
 `;
