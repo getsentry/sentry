@@ -9,7 +9,6 @@ import useWidgetBuilderState, {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 jest.mock('sentry/utils/useLocation');
-
 jest.mock('sentry/utils/useNavigate');
 
 const mockedUsedLocation = jest.mocked(useLocation);
