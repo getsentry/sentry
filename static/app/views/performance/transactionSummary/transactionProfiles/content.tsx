@@ -287,16 +287,11 @@ const ALL_DIGESTS = [
 ] satisfies ProfilingFieldType[];
 
 function ProfileDigest({query}: TransactionProfilesContentProps) {
-  const organization = useOrganization();
-
   const profilesSummary = useProfileEvents<ProfilingFieldType>({
     fields: ALL_DIGESTS,
     query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const digestData = profilesSummary.data?.data?.[0];
@@ -419,9 +414,6 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     referrer: 'api.profiling.profile-summary-table',
     cursor,
     limit: 10,
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const handleSort = useCallback(
