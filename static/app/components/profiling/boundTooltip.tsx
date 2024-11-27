@@ -58,6 +58,7 @@ function BoundTooltip({
     canvas.physicalToLogicalSpace
   );
 
+  const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
   const rafIdRef = useRef<number | undefined>();
   const onRef = useCallback(
     node => {
@@ -71,14 +72,18 @@ function BoundTooltip({
       }
 
       rafIdRef.current = window.requestAnimationFrame(() => {
+        if (!sizeCache.current || sizeCache.current?.value !== children) {
+          sizeCache.current = {value: children, size: node.getBoundingClientRect()};
+        }
+
         node.style.transform = computeBestTooltipPlacement(
           logicalSpaceCursor,
           bounds,
-          node.getBoundingClientRect()
+          sizeCache.current.size
         );
       });
     },
-    [bounds, logicalSpaceCursor]
+    [bounds, logicalSpaceCursor, children]
   );
 
   return (
