@@ -341,7 +341,7 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    rv = FrameGroupingComponent(values=values)
+    rv = FrameGroupingComponent(values=values, in_app=frame.in_app)
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together
