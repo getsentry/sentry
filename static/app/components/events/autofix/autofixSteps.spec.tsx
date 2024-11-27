@@ -7,7 +7,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
-import {type AutofixStep, AutofixStepType} from 'sentry/components/events/autofix/types';
+import {
+  AutofixStatus,
+  type AutofixStep,
+  AutofixStepType,
+} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -24,14 +28,14 @@ describe('AutofixSteps', () => {
         AutofixStepFixture({
           id: '1',
           type: AutofixStepType.DEFAULT,
-          status: 'COMPLETED',
+          status: AutofixStatus.COMPLETED,
           insights: [],
           progress: [],
         }),
         AutofixStepFixture({
           id: '2',
           type: AutofixStepType.ROOT_CAUSE_ANALYSIS,
-          status: 'COMPLETED',
+          status: AutofixStatus.COMPLETED,
           causes: [
             {
               id: 'cause1',
@@ -47,7 +51,7 @@ describe('AutofixSteps', () => {
       repositories: [],
       created_at: '2023-01-01T00:00:00Z',
       run_id: '1',
-      status: 'PROCESSING',
+      status: AutofixStatus.PROCESSING,
     }),
     groupId: 'group1',
     runId: 'run1',
@@ -126,7 +130,7 @@ describe('AutofixSteps', () => {
           AutofixStepFixture({
             id: '3',
             type: AutofixStepType.DEFAULT,
-            status: 'PROCESSING',
+            status: AutofixStatus.PROCESSING,
             progress: [
               AutofixProgressItemFixture({
                 message: 'Log message',
@@ -172,7 +176,7 @@ describe('AutofixSteps', () => {
           AutofixStepFixture({
             id: '1',
             type: AutofixStepType.DEFAULT,
-            status: 'COMPLETED',
+            status: AutofixStatus.COMPLETED,
             insights: [],
             progress: [],
             index: 0,
@@ -180,7 +184,7 @@ describe('AutofixSteps', () => {
           AutofixStepFixture({
             id: '2',
             type: AutofixStepType.CHANGES,
-            status: 'COMPLETED',
+            status: AutofixStatus.COMPLETED,
             progress: [],
             changes: [changeData],
           }),

@@ -8,6 +8,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixCodebaseChange,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
@@ -125,7 +126,7 @@ function CreatePRsButton({
             ...data,
             autofix: {
               ...data.autofix,
-              status: 'PROCESSING',
+              status: AutofixStatus.PROCESSING,
             },
           };
         }
@@ -213,15 +214,15 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   switch (step.status) {
-    case 'WAITING_FOR_USER_RESPONSE':
+    case AutofixStatus.WAITING_FOR_USER_RESPONSE:
       return <IconFocus size="sm" color="gray300" />;
-    case 'PROCESSING':
+    case AutofixStatus.PROCESSING:
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
-    case 'CANCELLED':
+    case AutofixStatus.CANCELLED:
       return <IconClose size="sm" isCircled color="gray300" />;
-    case 'ERROR':
+    case AutofixStatus.ERROR:
       return <IconFatal size="sm" color="red300" />;
-    case 'COMPLETED':
+    case AutofixStatus.COMPLETED:
       return <IconCheckmark size="sm" color="green300" isCircled />;
     default:
       return null;
@@ -266,12 +267,12 @@ function AutofixMessageBox({
   const changes =
     isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
   const prsMade =
-    step?.status === 'COMPLETED' &&
+    step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
     changes.every(change => change.pull_request);
 
   const isDisabled =
-    step?.status === 'ERROR' ||
+    step?.status === AutofixStatus.ERROR ||
     (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
 
   useEffect(() => {
