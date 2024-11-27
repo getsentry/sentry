@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from collections import Counter
 from collections.abc import Generator
 from typing import Any
 
@@ -646,7 +647,16 @@ def chained_exception(
     rv = {}
 
     for name, component_list in by_name.items():
-        rv[name] = ChainedExceptionGroupingComponent(values=component_list)
+        # Calculate an aggregate tally of the different types of frames (in-app vs system,
+        # contributing or not) across all of the exceptions in the chain
+        total_frame_counts: Counter[str] = Counter()
+        for exception_component in component_list:
+            total_frame_counts += exception_component.frame_counts
+
+        rv[name] = ChainedExceptionGroupingComponent(
+            values=component_list,
+            frame_counts=total_frame_counts,
+        )
 
     return rv
 
