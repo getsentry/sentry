@@ -17,7 +17,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
   const attachments = useGroupEventAttachments({
-    groupId: group.id,
+    group,
     activeAttachmentsTab: 'all',
     options: {placeholderData: keepPreviousData},
   });

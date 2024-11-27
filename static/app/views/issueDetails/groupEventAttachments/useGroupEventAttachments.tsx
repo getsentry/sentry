@@ -1,4 +1,5 @@
-import type {IssueAttachment} from 'sentry/types/group';
+import type {DateString} from 'sentry/types/core';
+import type {Group, IssueAttachment} from 'sentry/types/group';
 import {
   type ApiQueryKey,
   useApiQuery,
@@ -6,10 +7,12 @@ import {
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
-  groupId: string;
+  group: Group;
   options?: Pick<UseApiQueryOptions<IssueAttachment[]>, 'placeholderData'>;
 }
 
@@ -18,6 +21,10 @@ interface MakeFetchGroupEventAttachmentsQueryKeyOptions
   cursor: string | undefined;
   environment: string[] | string | undefined;
   orgSlug: string;
+  end?: DateString;
+  eventQuery?: string;
+  start?: DateString;
+  statsPeriod?: string;
 }
 
 type GroupEventAttachmentsTypeFilter =
@@ -27,22 +34,47 @@ type GroupEventAttachmentsTypeFilter =
 
 interface GroupEventAttachmentsQuery {
   cursor?: string;
+  end?: DateString;
   environment?: string[] | string;
   per_page?: string;
+  query?: string;
   screenshot?: '1';
+  start?: DateString;
+  statsPeriod?: string;
   types?: `${GroupEventAttachmentsTypeFilter}` | `${GroupEventAttachmentsTypeFilter}`[];
 }
 
 export const makeFetchGroupEventAttachmentsQueryKey = ({
   activeAttachmentsTab,
-  groupId,
+  group,
   orgSlug,
   cursor,
   environment,
+  eventQuery,
+  start,
+  end,
+  statsPeriod,
 }: MakeFetchGroupEventAttachmentsQueryKeyOptions): ApiQueryKey => {
   const query: GroupEventAttachmentsQuery = {};
+
   if (environment) {
     query.environment = environment;
+  }
+
+  if (eventQuery) {
+    query.query = eventQuery;
+  }
+
+  if (start) {
+    query.start = start;
+  }
+
+  if (end) {
+    query.end = end;
+  }
+
+  if (statsPeriod) {
+    query.statsPeriod = statsPeriod;
   }
 
   if (cursor) {
@@ -55,16 +87,19 @@ export const makeFetchGroupEventAttachmentsQueryKey = ({
     query.types = ['event.minidump', 'event.applecrashreport'];
   }
 
-  return [`/organizations/${orgSlug}/issues/${groupId}/attachments/`, {query}];
+  return [`/organizations/${orgSlug}/issues/${group.id}/attachments/`, {query}];
 };
 
 export function useGroupEventAttachments({
-  groupId,
+  group,
   activeAttachmentsTab,
   options,
 }: UseGroupEventAttachmentsOptions) {
-  const organization = useOrganization();
   const location = useLocation();
+  const organization = useOrganization();
+  const eventQuery = useEventQuery({group});
+  const eventView = useIssueDetailsEventView({group});
+
   const {
     data: attachments = [],
     isPending,
@@ -74,10 +109,14 @@ export function useGroupEventAttachments({
   } = useApiQuery<IssueAttachment[]>(
     makeFetchGroupEventAttachmentsQueryKey({
       activeAttachmentsTab,
-      groupId,
+      group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      environment: location.query.environment as string[] | string | undefined,
+      environment: eventView.environment as string[],
+      start: eventView.start,
+      end: eventView.end,
+      statsPeriod: eventView.statsPeriod,
+      eventQuery,
     }),
     {...options, staleTime: 60_000}
   );
