@@ -671,6 +671,9 @@ def get_entity_key_from_snuba_query(
     project_id: int,
     skip_field_validation_for_entity_subscription_deletion: bool = False,
 ) -> EntityKey:
+    query_dataset = Dataset(snuba_query.dataset)
+    if query_dataset == Dataset.EventsAnalyticsPlatform:
+        return EntityKey.EAPSpans
     entity_subscription = get_entity_subscription_from_snuba_query(
         snuba_query,
         organization_id,

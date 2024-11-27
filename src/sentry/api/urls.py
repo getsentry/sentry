@@ -488,9 +488,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_unreleased_commits import (
-    OrganizationMemberUnreleasedCommitsEndpoint,
-)
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
@@ -1762,11 +1759,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$",
         OrganizationMemberDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
-        OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
-        name="sentry-api-0-organization-member-unreleased-commits",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",

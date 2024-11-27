@@ -1,6 +1,5 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -14,6 +13,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,6 +31,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -180,6 +181,7 @@ export function checkUserHasEditAccess(
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
+    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
     !dashboardPermissions ||
     dashboardPermissions.isEditableByEveryone ||
     dashboardCreator?.id === currentUser.id
