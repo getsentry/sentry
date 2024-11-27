@@ -20,10 +20,10 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import options
 from sentry.api import event_search
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.features.rollout import in_rollout_group
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
@@ -88,7 +88,9 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         return super().resolve_field(raw_field, alias)
 
     def resolve_projects(self) -> list[int]:
-        if options.get("sentry.search.events.project.check_event"):
+        if self.params.organization_id and in_rollout_group(
+            "sentry.search.events.project.check_event", self.params.organization_id
+        ):
             return [proj.id for proj in self.params.projects if proj.flags.has_transactions]
         else:
             return super().resolve_projects()
