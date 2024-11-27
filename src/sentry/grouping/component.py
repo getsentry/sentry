@@ -306,6 +306,17 @@ ExceptionGroupingComponentChildren = (
 
 class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponentChildren]):
     id: str = "exception"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[ExceptionGroupingComponentChildren] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
