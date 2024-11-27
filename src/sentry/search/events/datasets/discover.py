@@ -107,6 +107,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         "user_misery()",
     }
     non_nullable_keys = {"event.type"}
+    use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
