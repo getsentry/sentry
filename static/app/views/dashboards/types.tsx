@@ -126,6 +126,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  permissions?: DashboardPermissions;
 };
 
 export enum DashboardFilterKeys {

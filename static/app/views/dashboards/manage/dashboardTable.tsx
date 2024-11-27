@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -24,7 +26,12 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
 
@@ -41,6 +48,7 @@ enum ResponseKeys {
   NAME = 'title',
   WIDGETS = 'widgetDisplay',
   OWNER = 'createdBy',
+  ACCESS = 'permissions',
   CREATED = 'dateCreated',
 }
 
@@ -52,12 +60,20 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder = [
-    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-  ];
+  const columnOrder = organization.features.includes('dashboards-edit-access')
+    ? [
+        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+      ]
+    : [
+        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+      ];
 
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -130,6 +146,33 @@ function DashboardTable({
       );
     }
 
+    if (
+      column.key === ResponseKeys.ACCESS &&
+      organization.features.includes('dashboards-edit-access')
+    ) {
+      /* Handles POST request for Edit Access Selector Changes */
+      const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
+        const dashboardCopy = cloneDeep(dataRow);
+        dashboardCopy.permissions = newDashboardPermissions;
+
+        updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
+          (newDashboard: DashboardDetails) => {
+            onDashboardsChange();
+            addSuccessMessage(t('Dashboard Edit Access updated.'));
+            return newDashboard;
+          }
+        );
+      };
+
+      return (
+        <EditAccessSelector
+          dashboard={dataRow}
+          onChangeEditAccess={onChangeEditAccess}
+          listOnly
+        />
+      );
+    }
+
     if (column.key === ResponseKeys.CREATED) {
       return (
         <DateActionsContainer>
@@ -183,6 +226,8 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
+      // necessary for edit access dropdown
+      bodyStyle={{overflow: 'visible'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{

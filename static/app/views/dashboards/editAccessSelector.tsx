@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -25,10 +25,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
-  dashboard: DashboardDetails;
+  dashboard: DashboardDetails | DashboardListItem;
+  listOnly?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
@@ -36,7 +41,11 @@ interface EditAccessSelectorProps {
  * Dropdown multiselect button to enable selective Dashboard editing access to
  * specific users and teams
  */
-function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorProps) {
+function EditAccessSelector({
+  dashboard,
+  onChangeEditAccess,
+  listOnly = false,
+}: EditAccessSelectorProps) {
   const currentUser: User = useUser();
   const dashboardCreator: User | undefined = dashboard.createdBy;
 
@@ -53,6 +62,18 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({ids: [selectedOptions[1]]});
+
+  // Effect to update selectedOptions whenever the dashboard changes
+  useEffect(() => {
+    const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
+    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
+      setSelectedOptions(['_creator', '_allUsers', ...teamIdsList]);
+    } else {
+      const permittedTeamIds =
+        dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
+      setSelectedOptions(['_creator', ...permittedTeamIds]);
+    }
+  }, [dashboard, teamsToRender]);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -138,7 +159,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" text={'All'} />
+      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
@@ -147,7 +168,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         users={[dashboardCreator]}
         teams={selectedTeam ? selectedTeam : []}
         maxVisibleAvatars={1}
-        avatarSize={25}
+        avatarSize={listOnly ? 30 : 25}
         renderUsersFirst
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
       />
@@ -158,7 +179,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
-        avatarSize={25}
+        avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}
       />
     );
@@ -226,6 +247,7 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
 
   const dropdownMenu = (
     <StyledCompactSelect
+      data-test-id={'edit-access-dropdown'}
       size="sm"
       onChange={newSelectedOptions => {
         onSelectOptions(newSelectedOptions);
@@ -234,16 +256,21 @@ function EditAccessSelector({dashboard, onChangeEditAccess}: EditAccessSelectorP
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={[
-        <StyledFeatureBadge
-          key="beta-badge"
-          type="beta"
-          title={t('This feature is available for early adopters and may change')}
-          tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
-        />,
-        t('Edit Access:'),
-        triggerAvatars,
-      ]}
+      triggerLabel={
+        listOnly
+          ? [triggerAvatars]
+          : [
+              <StyledFeatureBadge
+                key="beta-badge"
+                type="beta"
+                title={t('This feature is available for early adopters and may change')}
+                tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
+              />,
+              t('Edit Access:'),
+              triggerAvatars,
+            ]
+      }
+      triggerProps={{borderless: listOnly}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -297,12 +324,15 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: 6px;
 `;
 
-const StyledBadge = styled(Badge)`
+const StyledBadge = styled(Badge)<{size: number}>`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
   padding: 0;
-  height: 20px;
-  width: 20px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const FilterButtons = styled(ButtonBar)`

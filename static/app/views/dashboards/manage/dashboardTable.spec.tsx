@@ -46,6 +46,10 @@ describe('Dashboards - DashboardTable', function () {
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: UserFixture({id: '1'}),
+        permissions: {
+          isEditableByEveryone: false,
+          teamsWithEditAccess: [1],
+        },
       }),
       DashboardListItemFixture({
         id: '2',
@@ -280,5 +284,32 @@ describe('Dashboards - DashboardTable', function () {
       // Should not update, and not throw error
       expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('renders access column', async function () {
+    const organizationWithEditAccess = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-edit-access',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithEditAccess}
+        dashboards={dashboards}
+        location={router.location}
+      />
+    );
+
+    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(screen.getByText('Access')).toBeInTheDocument();
+    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]);
+    expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
   });
 });
