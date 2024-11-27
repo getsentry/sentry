@@ -240,6 +240,17 @@ FrameGroupingComponentChildren = (
 
 class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
     id: str = "frame"
+    in_app: bool
+
+    def __init__(
+        self,
+        values: Sequence[FrameGroupingComponentChildren],
+        in_app: bool,
+        hint: str | None = None,  # only passed in legacy
+        contributes: bool | None = None,  # only passed in legacy
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.in_app = in_app
 
 
 # Security-related inner components
