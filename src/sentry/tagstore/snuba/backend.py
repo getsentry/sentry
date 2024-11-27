@@ -6,6 +6,7 @@ from collections.abc import Iterable, Sequence
 from datetime import timedelta, timezone
 from typing import Any
 
+import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -309,11 +310,21 @@ class SnubaTagStorage(TagStorage):
             # Cause there's rounding to create this cache suffix, we want to update the query end so results match
             end = snuba.quantize_time(end, key_hash)
             cache_key += f":{duration}@{end.isoformat()}"
-            result = cache.get(cache_key, None)
-            if result is not None:
-                metrics.incr("testing.tagstore.cache_tag_key.hit")
-            else:
-                metrics.incr("testing.tagstore.cache_tag_key.miss")
+
+            with sentry_sdk.start_span(
+                op="cache.get", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+            ) as span:
+                result = cache.get(cache_key, None)
+
+                span.set_data("cache.key", [cache_key])
+
+                if result is not None:
+                    span.set_data("cache.hit", True)
+                    span.set_data("cache.item_size", len(str(result)))
+                    metrics.incr("testing.tagstore.cache_tag_key.hit")
+                else:
+                    span.set_data("cache.hit", False)
+                    metrics.incr("testing.tagstore.cache_tag_key.miss")
 
         if result is None:
             result = snuba.query(
@@ -330,8 +341,13 @@ class SnubaTagStorage(TagStorage):
                 **kwargs,
             )
             if should_cache:
-                cache.set(cache_key, result, 300)
-                metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
+                with sentry_sdk.start_span(
+                    op="cache.put", name="sentry.tagstore.cache.__get_tag_keys_for_projects"
+                ) as span:
+                    cache.set(cache_key, result, 300)
+                    span.set_data("cache.key", [cache_key])
+                    span.set_data("cache.item_size", len(str(result)))
+                    metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
         if group is None:
             ctor = TagKey
