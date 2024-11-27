@@ -214,6 +214,13 @@ class ClampDateRangeTest(unittest.TestCase):
 
         assert clamp_date_range((start, end), max_timedelta) == (start, end)
 
+    def test_clamps_even_to_zero(self):
+        start = datetime.datetime(2024, 1, 1)
+        end = datetime.datetime(2024, 1, 2)
+        max_timedelta = datetime.timedelta(0)
+
+        assert clamp_date_range((start, end), max_timedelta) == (end, end)
+
     def test_clamps_to_end(self):
         start = datetime.datetime(2024, 1, 1)
         end = datetime.datetime(2024, 1, 14)
