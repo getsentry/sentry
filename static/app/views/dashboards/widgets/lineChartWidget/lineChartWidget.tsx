@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {defined} from 'sentry/utils';
 import {
   WidgetFrame,
@@ -20,6 +22,17 @@ interface Props
 
 export function LineChartWidget(props: Props) {
   const {timeseries} = props;
+
+  if (props.isLoading) {
+    return (
+      <WidgetFrame title={props.title} description={props.description}>
+        <LoadingPlaceholder>
+          <TransparentLoadingMask visible />
+          <LoadingIndicator mini />
+        </LoadingPlaceholder>
+      </WidgetFrame>
+    );
+  }
 
   let parsingError: string | undefined = undefined;
 
@@ -53,4 +66,13 @@ export function LineChartWidget(props: Props) {
 const LineChartWrapper = styled('div')`
   flex-grow: 1;
   padding: 0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER};
+`;
+
+const LoadingPlaceholder = styled('div')`
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
