@@ -9,6 +9,7 @@ export const DATA_TYPE_PLURAL = t('LLMs');
 
 export const RELEASE_LEVEL: BadgeType = 'beta';
 
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/llm-monitoring/';
+export const MODULE_DOC_LINK =
+  'https://docs.sentry.io/product/insights/ai/llm-monitoring/';
 
 export const MODULE_FEATURES = ['insights-addon-modules'];
