@@ -244,17 +244,19 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       });
 
       return (
-        <Link
-          to={linkToSummary}
-          onClick={() =>
-            trackAnalytics('profiling_views.go_to_transaction', {
-              organization: props.baggage.organization,
-              source: 'profiling.landing.transaction_table',
-            })
-          }
-        >
-          {props.dataRow.transaction}
-        </Link>
+        <Container>
+          <Link
+            to={linkToSummary}
+            onClick={() =>
+              trackAnalytics('profiling_views.go_to_transaction', {
+                organization: props.baggage.organization,
+                source: 'profiling.landing.transaction_table',
+              })
+            }
+          >
+            {props.dataRow.transaction}
+          </Link>
+        </Container>
       );
     }
 
