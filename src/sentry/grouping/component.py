@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from typing import Any, Self
 
@@ -282,6 +283,17 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[FrameGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class ExceptionGroupingComponent(
