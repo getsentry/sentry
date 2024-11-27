@@ -7,12 +7,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
+  classifyTagKey,
   parseFunction,
   prettifyParsedFunction,
   prettifyTagKey,
-  TYPED_TAG_KEY_RE,
 } from 'sentry/utils/discover/fields';
-import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
@@ -66,20 +65,11 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
           trailingItems: <TypeBadge func={func} />,
         };
       }
-
-      const result = field.match(TYPED_TAG_KEY_RE);
-      const kind =
-        result?.[2] === 'string'
-          ? FieldKind.TAG
-          : result?.[2] === 'number'
-            ? FieldKind.MEASUREMENT
-            : undefined;
-
       return {
         label: prettifyTagKey(field),
         value: field,
         textValue: field,
-        trailingItems: <TypeBadge kind={kind} />,
+        trailingItems: <TypeBadge kind={classifyTagKey(field)} />,
       };
     });
 

@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {classifyTagKey, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
@@ -41,6 +42,19 @@ export function ColumnEditorModal({
 }: ColumnEditorModalProps) {
   const tags: SelectOption<string>[] = useMemo(() => {
     const allTags = [
+      ...columns
+        .filter(
+          column =>
+            !stringTags.hasOwnProperty(column) && !numberTags.hasOwnProperty(column)
+        )
+        .map(column => {
+          return {
+            label: prettifyTagKey(column),
+            value: column,
+            textValue: column,
+            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+          };
+        }),
       ...Object.values(stringTags).map(tag => {
         return {
           label: tag.name,
@@ -70,7 +84,7 @@ export function ColumnEditorModal({
       return 0;
     });
     return allTags;
-  }, [stringTags, numberTags]);
+  }, [columns, stringTags, numberTags]);
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
