@@ -30,6 +30,7 @@ interface SpanSearchQueryBuilderProps {
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
@@ -50,15 +51,18 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   }, {});
 };
 
-const getSpanFieldDefinition = (key: string, kind?: FieldKind) => {
-  return getFieldDefinition(key, 'span', kind);
-};
+function getSpanFieldDefinitionFunction(tags: TagCollection) {
+  return (key: string) => {
+    return getFieldDefinition(key, 'span', tags[key]?.kind);
+  };
+}
 
 export function SpanSearchQueryBuilder({
   initialQuery,
   searchSource,
   datetime,
   onSearch,
+  onBlur,
   placeholder,
   projects,
 }: SpanSearchQueryBuilderProps) {
@@ -133,8 +137,9 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
@@ -155,6 +160,7 @@ export function EAPSpanSearchQueryBuilder({
   initialQuery,
   placeholder,
   onSearch,
+  onBlur,
   searchSource,
   numberTags,
   stringTags,
@@ -179,7 +185,12 @@ export function EAPSpanSearchQueryBuilder({
       SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
     );
     return [
-      ...SPANS_FILTER_KEY_SECTIONS,
+      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
+        return {
+          ...section,
+          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
+        };
+      }),
       {
         value: 'custom_fields',
         label: 'Custom Tags',
@@ -219,8 +230,9 @@ export function EAPSpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={tags}
       initialQuery={initialQuery}
-      fieldDefinitionGetter={getSpanFieldDefinition}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}

@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {FieldKind} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {DragNDropContext} from '../contexts/dragNDropContext';
@@ -45,7 +46,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -53,7 +54,7 @@ export function ColumnEditorModal({
           label: tag.name,
           value: tag.key,
           textValue: tag.name,
-          trailingItems: <TypeBadge tag={tag} />,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
         };
       }),
     ];
@@ -76,7 +77,7 @@ export function ColumnEditorModal({
   const [tempColumns, setTempColumns] = useState<string[]>(columns);
 
   function handleApply() {
-    onColumnsChange(tempColumns);
+    onColumnsChange(tempColumns.filter(Boolean));
     closeModal();
   }
 
@@ -162,7 +163,7 @@ function ColumnEditorRow({
       if (defined(tag)) {
         return (
           <TriggerLabel>
-            {tag.label}
+            <TriggerLabelText>{tag.label}</TriggerLabelText>
             {tag.trailingItems &&
               (typeof tag.trailingItems === 'function'
                 ? tag.trailingItems({
@@ -232,13 +233,19 @@ const RowContainer = styled('div')`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  flex-grow: 1;
+  flex: 1 1;
+  min-width: 0;
 `;
 
 const TriggerLabel = styled('span')`
-  ${p => p.theme.overflowEllipsis}
   text-align: left;
-  line-height: normal;
+  line-height: 20px;
   display: flex;
   justify-content: space-between;
+  flex: 1 1;
+  min-width: 0;
+`;
+
+const TriggerLabelText = styled('span')`
+  ${p => p.theme.overflowEllipsis}
 `;

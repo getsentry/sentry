@@ -29,6 +29,7 @@ from sentry.search.eap.columns import (
     SPAN_FUNCTION_DEFINITIONS,
     VIRTUAL_CONTEXTS,
     ResolvedColumn,
+    ResolvedFunction,
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
@@ -59,8 +60,59 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
-    def resolve_query(self, querystring: str) -> TraceItemFilter | None:
+    def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        environment_query = self.__resolve_environment_query()
+        query = self.__resolve_query(querystring)
+
+        # The RPC request meta does not contain the environment.
+        # So we have to inject it as a query condition.
+        #
+        # To do so, we want to AND it with the query.
+        # So if either one is not defined, we just use the other.
+        # But if both are defined, we AND them together.
+
+        if not environment_query:
+            return query
+
+        if not query:
+            return environment_query
+
+        return TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    environment_query,
+                    query,
+                ]
+            )
+        )
+
+    def __resolve_environment_query(self) -> TraceItemFilter | None:
+        resolved_column, _ = self.resolve_column("environment")
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            return None
+
+        # TODO: replace this with an IN condition when the RPC supports it
+        filters = [
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=environment.name),
+                )
+            )
+            for environment in self.params.environments
+            if environment is not None
+        ]
+
+        if not filters:
+            return None
+
+        return TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+    def __resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
+        if querystring is None:
+            return None
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
@@ -273,7 +325,7 @@ class SearchResolver:
 
     def resolve_columns(
         self, selected_columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
+    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
         """Given a list of columns resolve them and get their context if applicable
 
         This function will also dedupe the virtual column contexts if necessary
@@ -305,7 +357,7 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedColumn | ResolvedFunction, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -380,7 +432,7 @@ class SearchResolver:
 
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
+    ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -391,7 +443,7 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedFunction, VirtualColumnContext | None]:
         # Check if this is a valid function, parse the function name and args out
         if match is None:
             match = fields.is_function(column)
@@ -451,12 +503,13 @@ class SearchResolver:
             resolved_argument = None
 
         return (
-            ResolvedColumn(
+            ResolvedFunction(
                 public_alias=alias,
                 internal_name=function_definition.internal_function,
                 search_type=function_definition.search_type,
                 internal_type=function_definition.internal_type,
                 processor=function_definition.processor,
+                extrapolation=function_definition.extrapolation,
                 argument=resolved_argument,
             ),
             None,

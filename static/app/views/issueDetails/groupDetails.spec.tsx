@@ -15,12 +15,8 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import type {Environment} from 'sentry/types/project';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
-
-jest.unmock('sentry/utils/recreateRoute');
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
@@ -76,23 +72,8 @@ describe('groupDetails', () => {
     },
   });
 
-  function MockComponent({
-    group: groupProp,
-    environments,
-    eventError,
-  }: {
-    environments?: Environment[];
-    eventError?: boolean;
-    group?: Group;
-  }) {
-    return (
-      <div>
-        Group Details Mock
-        <div>title: {groupProp?.title}</div>
-        <div>environment: {environments?.join(' ')}</div>
-        {eventError && <div>eventError</div>}
-      </div>
-    );
+  function MockComponent() {
+    return <div>Group Details Mock</div>;
   }
 
   const createWrapper = (init = defaultInit) => {
@@ -179,7 +160,7 @@ describe('groupDetails', () => {
 
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
-    expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
 
     // Sample event alert should not show up
     expect(screen.queryByText(SAMPLE_EVENT_ALERT_TEXT)).not.toBeInTheDocument();
@@ -217,11 +198,6 @@ describe('groupDetails', () => {
     });
 
     createWrapper();
-
-    await waitFor(() =>
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
-    );
-
     expect(
       await screen.findByText(
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
@@ -230,6 +206,11 @@ describe('groupDetails', () => {
   });
 
   it('fetches issue details for a given environment', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
+
     const init = initializeOrg({
       router: {
         ...initRouter,
@@ -242,19 +223,17 @@ describe('groupDetails', () => {
     createWrapper(init);
 
     await waitFor(() =>
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+      expect(mock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            collapse: ['release', 'tags'],
+            environment: ['staging'],
+            expand: ['inbox', 'owners'],
+          },
+        })
+      )
     );
-
-    expect(await screen.findByText('environment: staging')).toBeInTheDocument();
-  });
-
-  it('renders issue event error', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/events/recommended/`,
-      statusCode: 404,
-    });
-    createWrapper();
-    expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
   it('renders substatus badge', async function () {

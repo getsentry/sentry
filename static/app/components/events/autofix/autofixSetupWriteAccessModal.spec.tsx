@@ -6,7 +6,7 @@ import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/aut
 describe('AutofixSetupWriteAccessModal', function () {
   it('displays help text when repos are not all installed', async function () {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: '/issues/1/autofix/setup/?check_write_access=true',
       body: {
         genAIConsent: {ok: false},
         integration: {ok: true},
@@ -29,7 +29,6 @@ describe('AutofixSetupWriteAccessModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 
@@ -57,7 +56,7 @@ describe('AutofixSetupWriteAccessModal', function () {
 
   it('displays success text when installed repos for github app text', async function () {
     MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
+      url: '/issues/1/autofix/setup/?check_write_access=true',
       body: {
         genAIConsent: {ok: false},
         integration: {ok: true},
@@ -80,7 +79,6 @@ describe('AutofixSetupWriteAccessModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: false},
       },
     });
 

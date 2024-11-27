@@ -6,8 +6,8 @@ from typing import Any
 
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionEvent,
-    SourceCodeIssueIntegrationInteractionType,
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repository import BaseRepositoryIntegration
 from sentry.models.group import Group
@@ -15,8 +15,8 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
 class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegration, ABC):
-    def record_event(self, event: SourceCodeIssueIntegrationInteractionType):
-        return SourceCodeIssueIntegrationInteractionEvent(
+    def record_event(self, event: SCMIntegrationInteractionType):
+        return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.model.provider,
             organization=self.organization,
@@ -27,9 +27,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
-        with self.record_event(
-            SourceCodeIssueIntegrationInteractionType.GET_REPOSITORY_CHOICES
-        ).capture():
+        with self.record_event(SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES).capture():
             try:
                 repos = self.get_repositories()
             except ApiError:

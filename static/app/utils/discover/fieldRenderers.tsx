@@ -302,24 +302,28 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
           ? data[field]
           : emptyValue;
+
       if (isUrl(value)) {
         return (
-          <Container>
-            <ExternalLink href={value} data-test-id="group-tag-url">
-              {value}
-            </ExternalLink>
-          </Container>
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>
+              <ExternalLink href={value} data-test-id="group-tag-url">
+                {value}
+              </ExternalLink>
+            </Container>
+          </Tooltip>
         );
       }
 
-      const content =
-        value && typeof value === 'string' ? (
-          <span title={value}>{nullableValue(value)}</span>
-        ) : (
-          nullableValue(value)
+      if (value && typeof value === 'string') {
+        return (
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>{nullableValue(value)}</Container>
+          </Tooltip>
         );
+      }
 
-      return <Container>{content}</Container>;
+      return <Container>{nullableValue(value)}</Container>;
     },
   },
   array: {
@@ -360,8 +364,8 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.description': SpecialField;
   'span.status_code': SpecialField;
-  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -477,15 +481,27 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
-  span_id: {
-    sortField: 'span_id',
+  'span.description': {
+    sortField: 'span.description',
     renderFunc: data => {
-      const spanId: string | unknown = data?.span_id;
-      if (typeof spanId !== 'string') {
-        return null;
-      }
+      const value = data['span.description'];
 
-      return <Container>{getShortEventId(spanId)}</Container>;
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
     },
   },
   trace: {
@@ -530,7 +546,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'profile.id',
     renderFunc: data => {
       const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string') {
+      if (typeof id !== 'string' || id === '') {
         return emptyValue;
       }
 

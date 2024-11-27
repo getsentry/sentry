@@ -72,6 +72,7 @@ def get_or_create_uptime_subscription(
     method: str = "GET",
     headers: Sequence[tuple[str, str]] | None = None,
     body: str | None = None,
+    trace_sampling: bool = False,
 ) -> UptimeSubscription:
     """
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
@@ -101,6 +102,7 @@ def get_or_create_uptime_subscription(
                 method=method,
                 headers=headers,  # type: ignore[misc]
                 body=body,
+                trace_sampling=trace_sampling,
             )
             created = True
         except IntegrityError:
@@ -157,6 +159,7 @@ def get_or_create_project_uptime_subscription(
     mode: ProjectUptimeSubscriptionMode = ProjectUptimeSubscriptionMode.MANUAL,
     name: str = "",
     owner: Actor | None = None,
+    trace_sampling: bool = False,
 ) -> tuple[ProjectUptimeSubscription, bool]:
     """
     Links a project to an uptime subscription so that it can process results.
@@ -169,7 +172,13 @@ def get_or_create_project_uptime_subscription(
             raise MaxManualUptimeSubscriptionsReached
 
     uptime_subscription = get_or_create_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url=url,
+        interval_seconds=interval_seconds,
+        timeout_ms=timeout_ms,
+        method=method,
+        headers=headers,
+        body=body,
+        trace_sampling=trace_sampling,
     )
     owner_user_id = None
     owner_team_id = None
@@ -200,13 +209,20 @@ def update_project_uptime_subscription(
     body: str | None,
     name: str,
     owner: Actor | None,
+    trace_sampling: bool,
 ):
     """
     Links a project to an uptime subscription so that it can process results.
     """
     cur_uptime_subscription = uptime_monitor.uptime_subscription
     new_uptime_subscription = get_or_create_uptime_subscription(
-        url, interval_seconds, timeout_ms, method, headers, body
+        url=url,
+        interval_seconds=interval_seconds,
+        timeout_ms=timeout_ms,
+        method=method,
+        headers=headers,
+        body=body,
+        trace_sampling=trace_sampling,
     )
     updated_subscription = cur_uptime_subscription.id != new_uptime_subscription.id
 

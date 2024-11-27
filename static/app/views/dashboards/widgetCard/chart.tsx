@@ -297,7 +297,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
-      organization,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -516,7 +515,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     color: colors[i],
                   };
                 })
-                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colours are assigned based on sparse array index
+                .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
             : [];
 
           const seriesStart = series[0]?.data[0]?.name;
@@ -524,8 +523,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
-          return organization.features.includes('dashboards-releases-on-charts') &&
-            widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
+          return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
             <ReleaseSeries
               end={end}
               start={start}

@@ -19,7 +19,7 @@ interface ExploreToolbarProps {
 }
 
 export function ExploreToolbar({extras}: ExploreToolbarProps) {
-  const [dataset, setDataset] = useDataset();
+  const [dataset, setDataset] = useDataset({allowRPC: true});
   const [resultMode, setResultMode] = useResultMode();
 
   const [sampleFields] = useSampleFields();
@@ -31,9 +31,26 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
     if (resultMode === 'samples') {
       return sampleFields;
     }
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
+
+    const allFields: string[] = [];
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    return allFields.filter(Boolean);
   }, [resultMode, sampleFields, groupBys, visualizes]);
 
   const [sorts, setSorts] = useSorts({fields});

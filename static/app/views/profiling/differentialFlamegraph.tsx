@@ -81,7 +81,6 @@ function DifferentialFlamegraphView() {
     breakpoint: location.query.breakpoint as unknown as number,
     environments: selection.selection.environments,
     fingerprint: location.query.fingerprint as unknown as string,
-    transaction: location.query.transaction as unknown as string,
   });
 
   const differentialFlamegraph = useDifferentialFlamegraphModel({

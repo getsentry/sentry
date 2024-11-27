@@ -101,6 +101,10 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/meta/',
         body: [],
       });
@@ -366,6 +370,10 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
       MockApiClient.addMockResponse({
@@ -1902,7 +1910,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      const currentUser = UserFixture({id: '781629'});
+      const currentUser = UserFixture({id: '781629', isSuperuser: false});
       ConfigStore.set('user', currentUser);
 
       render(
@@ -1911,6 +1919,7 @@ describe('Dashboards > Detail', function () {
           organization={{
             ...initialData.organization,
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -1922,6 +1931,7 @@ describe('Dashboards > Detail', function () {
           router: initialData.router,
           organization: {
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           },
         }
       );
@@ -1929,6 +1939,82 @@ describe('Dashboards > Detail', function () {
       await screen.findByText('Edit Access:');
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+    });
+
+    it('disables widget edit, duplicate, and delete button when user does not have edit perms', async function () {
+      const widget = {
+        displayType: types.DisplayType.TABLE,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        widgetType: types.WidgetType.DISCOVER,
+      };
+      const mockDashboard = DashboardFixture([widget], {
+        id: '1',
+        title: 'Custom Errors',
+        createdBy: UserFixture({id: '238900'}),
+        permissions: {isEditableByEveryone: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: mockDashboard,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: mockDashboard,
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('menuitemradio', {name: 'Delete Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     describe('discover split', function () {

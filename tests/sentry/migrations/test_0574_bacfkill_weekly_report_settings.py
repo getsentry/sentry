@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.testutils.cases import TestMigrations
 
 

@@ -108,9 +108,9 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         assert "Link your Slack identity" in get_response_text(data)
 
         assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
+        start, success = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
     def test_user_message_already_linked_sdk(self):
         """

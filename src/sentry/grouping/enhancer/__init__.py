@@ -15,14 +15,14 @@ from sentry_ophio.enhancers import Component as RustComponent
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import Rule
+from .rules import EnhancementRule
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,13 @@ LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
+    "path",  # stack.abs_path alias
     "stack.module",
+    "module",  # stack.module alias
     "stack.function",
+    "function",  # stack.function alias
     "stack.package",
+    "package",  # stack.package
 )
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
@@ -164,11 +168,11 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
-        components: list[GroupingComponent],
+        components: list[FrameGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[GroupingComponent, bool]:
+    ) -> tuple[StacktraceGroupingComponent, bool]:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -186,8 +190,7 @@ class Enhancements:
         for py_component, rust_component in zip(components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
 
-        component = GroupingComponent(
-            id="stacktrace",
+        component = StacktraceGroupingComponent(
             values=components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
@@ -226,7 +229,7 @@ class Enhancements:
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[Rule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,

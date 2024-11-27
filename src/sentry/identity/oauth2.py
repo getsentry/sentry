@@ -322,7 +322,7 @@ class OAuth2CallbackView(PipelineView):
                     "identity.oauth2.ssl-error",
                     extra={"url": self.access_token_url, "verify_ssl": verify_ssl},
                 )
-                lifecycle.record_failure({"failure_reason": "ssl_error"})
+                lifecycle.record_failure("ssl_error")
                 url = self.access_token_url
                 return {
                     "error": "Could not verify SSL certificate",
@@ -331,14 +331,14 @@ class OAuth2CallbackView(PipelineView):
             except ConnectionError:
                 url = self.access_token_url
                 logger.info("identity.oauth2.connection-error", extra={"url": url})
-                lifecycle.record_failure({"failure_reason": "connection_error"})
+                lifecycle.record_failure("connection_error")
                 return {
                     "error": "Could not connect to host or service",
                     "error_description": f"Ensure that {url} is open to connections",
                 }
             except orjson.JSONDecodeError:
                 logger.info("identity.oauth2.json-error", extra={"url": self.access_token_url})
-                lifecycle.record_failure({"failure_reason": "json_error"})
+                lifecycle.record_failure("json_error")
                 return {
                     "error": "Could not decode a JSON Response",
                     "error_description": "We were not able to parse a JSON response, please try again.",
@@ -355,7 +355,7 @@ class OAuth2CallbackView(PipelineView):
             if error:
                 pipeline.logger.info("identity.token-exchange-error", extra={"error": error})
                 lifecycle.record_failure(
-                    {"failure_reason": "token_exchange_error", "msg": ERR_INVALID_STATE}
+                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 
@@ -370,7 +370,7 @@ class OAuth2CallbackView(PipelineView):
                     },
                 )
                 lifecycle.record_failure(
-                    {"failure_reason": "token_exchange_error", "msg": ERR_INVALID_STATE}
+                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 

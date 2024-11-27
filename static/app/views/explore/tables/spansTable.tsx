@@ -1,4 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -10,7 +11,7 @@ import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {fieldAlignment} from 'sentry/utils/discover/fields';
+import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -25,36 +26,42 @@ import {
   useTableStyles,
 } from 'sentry/views/explore/components/table';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
+import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-
-import {useAnalytics} from '../hooks/useAnalytics';
-import {useVisualizes} from '../hooks/useVisualizes';
 
 import {FieldRenderer} from './fieldRenderer';
 
-interface SpansTableProps {}
+interface SpansTableProps {
+  setError: Dispatch<SetStateAction<string>>;
+}
 
-export function SpansTable({}: SpansTableProps) {
+export function SpansTable({setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const [fields] = useSampleFields();
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
   const [visualizes] = useVisualizes();
   const organization = useOrganization();
 
+  const visibleFields = useMemo(
+    () => (fields.includes('id') ? fields : ['id', ...fields]),
+    [fields]
+  );
+
   const eventView = useMemo(() => {
     const queryFields = [
-      ...fields,
+      ...visibleFields,
       'project',
       'trace',
       'transaction.span_id',
-      'span_id',
+      'id',
       'timestamp',
     ];
 
@@ -76,7 +83,7 @@ export function SpansTable({}: SpansTableProps) {
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, fields, sorts, query, selection]);
+  }, [dataset, sorts, query, selection, visibleFields]);
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -87,17 +94,22 @@ export function SpansTable({}: SpansTableProps) {
     allowAggregateConditions: false,
   });
 
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
+
   useAnalytics({
-    result,
+    resultLength: result.data?.length,
+    resultMode: 'span samples',
+    resultStatus: result.status,
     visualizes,
     organization,
     columns: fields,
     userQuery: query,
-    resultsMode: 'sample',
   });
 
   const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
+    items: visibleFields.map(field => {
       return {
         label: field,
         value: field,
@@ -115,7 +127,7 @@ export function SpansTable({}: SpansTableProps) {
       <Table style={tableStyles}>
         <TableHead>
           <TableRow>
-            {fields.map((field, i) => {
+            {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
                 return <TableHeadCell key={i} isFirst={i === 0} />;
@@ -139,7 +151,7 @@ export function SpansTable({}: SpansTableProps) {
                   isFirst={i === 0}
                   onClick={updateSort}
                 >
-                  <span>{tag?.name ?? field}</span>
+                  <span>{tag?.name ?? prettifyTagKey(field)}</span>
                   {defined(direction) && (
                     <IconArrow
                       size="xs"
@@ -169,7 +181,7 @@ export function SpansTable({}: SpansTableProps) {
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
               <TableRow key={i}>
-                {fields.map((field, j) => {
+                {visibleFields.map((field, j) => {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer

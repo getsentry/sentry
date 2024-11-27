@@ -49,6 +49,35 @@
     "table_name": "flags_audit_log",
     "uniques": []
   },
+  "flags.flagwebhooksigningsecretmodel": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": false
+      }
+    },
+    "model": "flags.flagwebhooksigningsecretmodel",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "flags_webhooksigningsecret",
+    "uniques": [
+      [
+        "organization",
+        "provider",
+        "secret"
+      ]
+    ]
+  },
   "hybridcloud.apikeyreplica": {
     "dangling": false,
     "foreign_keys": {
@@ -87,6 +116,11 @@
       },
       "organization": {
         "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
+      "scoping_organization_id": {
+        "kind": "HybridCloudForeignKey",
         "model": "sentry.organization",
         "nullable": true
       },
@@ -452,34 +486,6 @@
     "table_name": "sentry_alertruleactivity",
     "uniques": []
   },
-  "sentry.alertruleexcludedprojects": {
-    "dangling": false,
-    "foreign_keys": {
-      "alert_rule": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.alertrule",
-        "nullable": false
-      },
-      "project": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.project",
-        "nullable": false
-      }
-    },
-    "model": "sentry.alertruleexcludedprojects",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_alertruleexcludedprojects",
-    "uniques": [
-      [
-        "alert_rule",
-        "project"
-      ]
-    ]
-  },
   "sentry.alertruleprojects": {
     "dangling": false,
     "foreign_keys": {
@@ -559,34 +565,6 @@
     "table_name": "sentry_alertruletriggeraction",
     "uniques": []
   },
-  "sentry.alertruletriggerexclusion": {
-    "dangling": false,
-    "foreign_keys": {
-      "alert_rule_trigger": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.alertruletrigger",
-        "nullable": false
-      },
-      "query_subscription": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.querysubscription",
-        "nullable": false
-      }
-    },
-    "model": "sentry.alertruletriggerexclusion",
-    "relocation_dependencies": [],
-    "relocation_scope": "Organization",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_alertruletriggerexclusion",
-    "uniques": [
-      [
-        "alert_rule_trigger",
-        "query_subscription"
-      ]
-    ]
-  },
   "sentry.apiapplication": {
     "dangling": false,
     "foreign_keys": {
@@ -639,6 +617,11 @@
     ],
     "table_name": "sentry_apiauthorization",
     "uniques": [
+      [
+        "application",
+        "organization_id",
+        "user"
+      ],
       [
         "application",
         "user"
@@ -2971,7 +2954,7 @@
     },
     "model": "sentry.incident",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -2999,7 +2982,7 @@
     },
     "model": "sentry.incidentactivity",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3078,7 +3061,7 @@
     },
     "model": "sentry.incidentsnapshot",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3105,7 +3088,7 @@
     },
     "model": "sentry.incidentsubscription",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -3133,7 +3116,7 @@
     },
     "model": "sentry.incidenttrigger",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -4062,7 +4045,7 @@
     },
     "model": "sentry.pendingincidentsnapshot",
     "relocation_dependencies": [],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -6025,7 +6008,7 @@
     "relocation_dependencies": [
       "sentry.incident"
     ],
-    "relocation_scope": "Organization",
+    "relocation_scope": "Global",
     "silos": [
       "Region"
     ],
@@ -6471,12 +6454,17 @@
     ]
   },
   "workflow_engine.detector": {
-    "dangling": false,
+    "dangling": true,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
-        "nullable": false
+        "nullable": true
       },
       "owner_team": {
         "kind": "FlexibleForeignKey",
@@ -6486,6 +6474,11 @@
       "owner_user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
         "nullable": true
       },
       "workflow_condition_group": {
@@ -6557,10 +6550,30 @@
   "workflow_engine.workflow": {
     "dangling": false,
     "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "environment": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.environment",
+        "nullable": true
+      },
       "organization": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       },
       "when_condition_group": {
         "kind": "FlexibleForeignKey",

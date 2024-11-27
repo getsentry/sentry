@@ -1,6 +1,5 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -14,6 +13,7 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,6 +31,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -172,22 +173,24 @@ export function handleUpdateDashboardSplit({
 
 /* Checks if current user has permissions to edit dashboard */
 export function checkUserHasEditAccess(
-  dashboard: DashboardDetails,
   currentUser: User,
   userTeams: Team[],
-  organization: Organization
+  organization: Organization,
+  dashboardPermissions?: DashboardPermissions,
+  dashboardCreator?: User
 ): boolean {
   if (
     !organization.features.includes('dashboards-edit-access') ||
-    !dashboard.permissions ||
-    dashboard.permissions.isEditableByEveryone ||
-    dashboard.createdBy?.id === currentUser.id
+    hasEveryAccess(['org:write'], {organization}) || // Managers and Owners
+    !dashboardPermissions ||
+    dashboardPermissions.isEditableByEveryone ||
+    dashboardCreator?.id === currentUser.id
   ) {
     return true;
   }
-  if (dashboard.permissions.teamsWithEditAccess?.length) {
+  if (dashboardPermissions.teamsWithEditAccess?.length) {
     const userTeamIds = userTeams.map(team => Number(team.id));
-    dashboard.permissions.teamsWithEditAccess.some(teamId =>
+    return dashboardPermissions.teamsWithEditAccess.some(teamId =>
       userTeamIds.includes(teamId)
     );
   }
@@ -273,6 +276,8 @@ class DashboardDetail extends Component<Props, State> {
           totalIssuesCount,
           widgetLegendState: this.state.widgetLegendState,
           dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
+          dashboardPermissions: dashboard.permissions,
+          dashboardCreator: dashboard.createdBy,
           onMetricWidgetEdit: (updatedWidget: Widget) => {
             const widgets = [...dashboard.widgets];
 
@@ -845,6 +850,8 @@ class DashboardDetail extends Component<Props, State> {
                 </StyledPageHeader>
                 <HookHeader organization={organization} />
                 <FiltersBar
+                  dashboardPermissions={dashboard.permissions}
+                  dashboardCreator={dashboard.createdBy}
                   filters={{}} // Default Dashboards don't have filters set
                   location={location}
                   hasUnsavedChanges={false}
@@ -1018,6 +1025,8 @@ class DashboardDetail extends Component<Props, State> {
                               ) : null}
                               <FiltersBar
                                 filters={(modifiedDashboard ?? dashboard).filters}
+                                dashboardPermissions={dashboard.permissions}
+                                dashboardCreator={dashboard.createdBy}
                                 location={location}
                                 hasUnsavedChanges={hasUnsavedFilters}
                                 isEditingDashboard={

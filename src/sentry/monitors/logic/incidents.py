@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.monitors.logic.incident_occurrence import (
-    create_incident_occurrence,
+    dispatch_incident_occurrence,
     resolve_incident_group,
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
@@ -34,7 +34,8 @@ class SimpleCheckIn:
 
 def try_incident_threshold(
     failed_checkin: MonitorCheckIn,
-    received: datetime | None,
+    received: datetime,
+    clock_tick: datetime | None = None,
 ) -> bool:
     """
     Determine if a monitor environment has reached it's incident threshold
@@ -99,8 +100,8 @@ def try_incident_threshold(
         )
 
     elif monitor_env.status == MonitorStatus.ERROR:
-        # if monitor environment has a failed status, use the failed
-        # check-in and send occurrence
+        # If the monitor was already in an incident there are no previous
+        # check-ins to pass long when creating the occurrence
         previous_checkins = [SimpleCheckIn.from_checkin(failed_checkin)]
 
         # get the active incident from the monitor environment
@@ -115,12 +116,7 @@ def try_incident_threshold(
     if not monitor_env.monitor.is_muted and not monitor_env.is_muted and incident:
         checkins = list(MonitorCheckIn.objects.filter(id__in=[c.id for c in previous_checkins]))
         for checkin in checkins:
-            create_incident_occurrence(
-                checkin,
-                checkins,
-                incident,
-                received=received,
-            )
+            dispatch_incident_occurrence(checkin, checkins, incident, received, clock_tick)
 
     monitor_environment_failed.send(monitor_environment=monitor_env, sender=type(monitor_env))
 

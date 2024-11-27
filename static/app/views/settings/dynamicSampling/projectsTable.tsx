@@ -14,6 +14,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 
 interface ProjectItem {
@@ -46,6 +47,7 @@ export function ProjectsTable({
   onChange,
   ...props
 }: Props) {
+  const hasAccess = useHasDynamicSamplingWriteAccess();
   const [tableSort, setTableSort] = useState<'asc' | 'desc'>('desc');
 
   const handleTableSort = useCallback(() => {
@@ -87,6 +89,7 @@ export function ProjectsTable({
             canEdit={canEdit}
             onChange={onChange}
             inputTooltip={inputTooltip}
+            hasAccess={hasAccess}
             {...item}
           />
         ))}
@@ -110,6 +113,7 @@ export function ProjectsTable({
               key={item.project.id}
               canEdit={canEdit}
               onChange={onChange}
+              hasAccess={hasAccess}
               {...item}
             />
           ))}
@@ -248,6 +252,7 @@ function getStoredSpansContent(
 const MAX_PROJECTS_COLLAPSED = 3;
 const TableRow = memo(function TableRow({
   project,
+  hasAccess,
   canEdit,
   count,
   ownCount,
@@ -255,10 +260,11 @@ const TableRow = memo(function TableRow({
   initialSampleRate,
   subProjects,
   error,
-  inputTooltip,
+  inputTooltip: inputTooltipProp,
   onChange,
 }: {
   count: number;
+  hasAccess: boolean;
   initialSampleRate: string;
   ownCount: number;
   project: Project;
@@ -273,10 +279,15 @@ const TableRow = memo(function TableRow({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isExpandable = subProjects.length > 0;
-  const hasAccess = hasEveryAccess(['project:write'], {organization, project});
+  const hasProjectAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const subProjectContent = getSubProjectContent(project.slug, subProjects, isExpanded);
   const subSpansContent = getSubSpansContent(ownCount, subProjects, isExpanded);
+
+  let inputTooltip = inputTooltipProp;
+  if (!hasAccess) {
+    inputTooltip = t('You do not have permission to change the sample rate.');
+  }
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -301,8 +312,9 @@ const TableRow = memo(function TableRow({
             )}
             <ProjectBadge project={project} disableLink avatarSize={16} />
           </HiddenButton>
-          {hasAccess && (
+          {hasProjectAccess && (
             <SettingsButton
+              tabIndex={-1}
               title={t('Open Project Settings')}
               aria-label={t('Open Project Settings')}
               size="xs"
@@ -336,7 +348,7 @@ const TableRow = memo(function TableRow({
           <Tooltip disabled={!inputTooltip} title={inputTooltip}>
             <PercentInput
               type="number"
-              disabled={!canEdit}
+              disabled={!canEdit || !hasAccess}
               onChange={handleChange}
               size="sm"
               value={sampleRate}
