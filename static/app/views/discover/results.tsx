@@ -369,6 +369,9 @@ export class Results extends Component<Props, State> {
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
+    if (nextEventView.environment.length === 0 && selection.environments) {
+      nextEventView.environment = selection.environments;
+    }
     if (selection.datetime) {
       const {period, utc, start, end} = selection.datetime;
       nextEventView.statsPeriod = period ?? undefined;
