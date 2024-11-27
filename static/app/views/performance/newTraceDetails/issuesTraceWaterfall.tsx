@@ -47,8 +47,9 @@ import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
 const noopTraceSearch = () => {};
 
-interface IssuesTraceWaterfallProps extends TraceWaterfallProps {
+interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
   event: Event;
+  tree: IssuesTraceTree;
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
@@ -138,7 +139,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   const onTraceLoad = useCallback(() => {
     traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
     // Construct the visual representation of the tree
-    IssuesTraceTree.CollapseNodes(props.tree.root);
     props.tree.build();
 
     // Find all the nodes that match the event id from the error so that we can try and
@@ -189,6 +189,10 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       nodes?.find(n => isTraceErrorNode(n)) ||
       nodes?.find(n => isSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n));
+
+    if (node) {
+      props.tree.collapseList([node]);
+    }
 
     const index = node ? props.tree.list.indexOf(node) : -1;
     if (index === -1 || !node) {

@@ -1,8 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {EntryType} from 'sentry/types/event';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
+  isSpanNode,
+  isTraceErrorNode,
+  isTraceNode,
+  isTransactionNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
 import {IssuesTraceTree} from './issuesTraceTree';
@@ -40,25 +46,6 @@ const errorsOnlyTrace = makeTrace({
   orphan_errors: new Array(20).fill(null).map(() => makeTraceError({})),
 });
 
-const traceWithSiblingCollapsedNodes = makeTrace({
-  transactions: [
-    makeTransaction({
-      transaction: 'transaction 1',
-      children: [
-        makeTransaction({}),
-        makeTransaction({}),
-        makeTransaction({
-          transaction: 'transaction 2',
-          errors: [makeTraceError({})],
-        }),
-        makeTransaction({}),
-      ],
-    }),
-    makeTransaction({transaction: 'transaction 3'}),
-    makeTransaction({transaction: 'transaction 4'}),
-  ],
-});
-
 function mockSpansResponse(
   spans: TraceTree.Span[],
   project_slug: string,
@@ -73,6 +60,13 @@ function mockSpansResponse(
   });
 }
 
+function hasErrors(n: TraceTreeNode<any>): boolean {
+  return (
+    (isTraceErrorNode(n) || n.errors.size > 0 || n.performance_issues.size > 0) &&
+    !isTraceNode(n)
+  );
+}
+
 describe('IssuesTraceTree', () => {
   it('collapsed nodes without errors', () => {
     const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
@@ -80,9 +74,8 @@ describe('IssuesTraceTree', () => {
       replay: null,
     });
 
-    IssuesTraceTree.CollapseNodes(tree.root);
-
-    expect(tree.build().serialize()).toMatchSnapshot();
+    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+    expect(tree.build().collapseList(issues).serialize()).toMatchSnapshot();
   });
 
   it('preserves path to child error', () => {
@@ -91,9 +84,16 @@ describe('IssuesTraceTree', () => {
       replay: null,
     });
 
-    IssuesTraceTree.CollapseNodes(tree.root);
+    const error = IssuesTraceTree.Find(tree.root, hasErrors);
 
-    expect(tree.build().serialize()).toMatchSnapshot();
+    let node = error;
+    const nodes: TraceTreeNode<any>[] = [];
+    while (node && !isTraceNode(node)) {
+      nodes.push(node);
+      node = node.parent;
+    }
+
+    expect(tree.build().collapseList(nodes).serialize()).toMatchSnapshot();
   });
 
   it('errors only', () => {
@@ -103,20 +103,8 @@ describe('IssuesTraceTree', () => {
       replay: null,
     });
 
-    IssuesTraceTree.CollapseNodes(tree.root);
-
-    expect(tree.build().serialize()).toMatchSnapshot();
-  });
-
-  it('collapses sibling collapsed nodes', () => {
-    const tree = IssuesTraceTree.FromTrace(traceWithSiblingCollapsedNodes, {
-      meta: null,
-      replay: null,
-    });
-
-    IssuesTraceTree.CollapseNodes(tree.root);
-
-    expect(tree.build().serialize()).toMatchSnapshot();
+    const errors = IssuesTraceTree.FindAll(tree.root, hasErrors).slice(0, 10);
+    expect(tree.build().collapseList(errors).serialize()).toMatchSnapshot();
   });
 
   describe('FromSpans', () => {
@@ -172,9 +160,11 @@ describe('IssuesTraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      IssuesTraceTree.CollapseNodes(tree.root);
-
-      expect(tree.build().serialize()).toMatchSnapshot();
+      const span = TraceTree.Find(
+        tree.root,
+        node => isSpanNode(node) && node.value.span_id === 'error-span-id'
+      )!;
+      expect(tree.build().collapseList([span]).serialize()).toMatchSnapshot();
     });
   });
 });

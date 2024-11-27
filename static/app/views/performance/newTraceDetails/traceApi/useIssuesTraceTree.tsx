@@ -8,7 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {TraceTree} from '../traceModels/traceTree';
+import type {TraceTree} from '../traceModels/traceTree';
 
 import type {TraceMetaQueryResults} from './useTraceMeta';
 
@@ -39,12 +39,12 @@ export function useIssuesTraceTree({
   meta,
   replay,
   traceSlug,
-}: UseTraceTreeParams): TraceTree {
+}: UseTraceTreeParams): IssuesTraceTree {
   const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
 
-  const [tree, setTree] = useState<TraceTree>(TraceTree.Empty());
+  const [tree, setTree] = useState<IssuesTraceTree>(IssuesTraceTree.Empty());
 
   useEffect(() => {
     const status = getTraceViewQueryStatus(trace.status, meta.status);
@@ -53,7 +53,7 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'error'
           ? t
-          : TraceTree.Error({
+          : IssuesTraceTree.Error({
               project_slug: projects?.[0]?.slug ?? '',
               event_id: traceSlug,
             })
@@ -65,7 +65,7 @@ export function useIssuesTraceTree({
       trace?.data?.transactions.length === 0 &&
       trace?.data?.orphan_errors.length === 0
     ) {
-      setTree(t => (t.type === 'empty' ? t : TraceTree.Empty()));
+      setTree(t => (t.type === 'empty' ? t : IssuesTraceTree.Empty()));
       return;
     }
 
@@ -73,7 +73,7 @@ export function useIssuesTraceTree({
       setTree(t =>
         t.type === 'loading'
           ? t
-          : TraceTree.Loading({
+          : IssuesTraceTree.Loading({
               project_slug: projects?.[0]?.slug ?? '',
               event_id: traceSlug,
             })

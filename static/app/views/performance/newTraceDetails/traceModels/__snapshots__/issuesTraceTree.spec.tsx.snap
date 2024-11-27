@@ -2,36 +2,32 @@
 
 exports[`IssuesTraceTree FromSpans collapses spans 1`] = `
 "
-trace root
-  collapsed
-    transaction 2 - transaction.op
-      collapsed
+collapsed
       http - GET /
-      collapsed
+      db - SELECT
+      cache - GET
+      http - GET /
+      db - SELECT
 "
 `;
 
 exports[`IssuesTraceTree collapsed nodes without errors 1`] = `
 "
 trace root
-  collapsed
+  transaction 1 - transaction.op
+  transaction 2 - transaction.op
   transaction 3 - transaction.op
-  collapsed
-"
-`;
-
-exports[`IssuesTraceTree collapses sibling collapsed nodes 1`] = `
-"
-trace root
-  collapsed
-    transaction 2 - transaction.op
-    collapsed
+  transaction 4 - transaction.op
+  transaction 5 - transaction.op
 "
 `;
 
 exports[`IssuesTraceTree errors only 1`] = `
 "
 trace root
+  error
+  error
+  error
   error
   error
   error
@@ -48,8 +44,9 @@ trace root
 exports[`IssuesTraceTree preserves path to child error 1`] = `
 "
 trace root
-  collapsed
+  transaction 1 - transaction.op
+  transaction 2 - transaction.op
     transaction - transaction.op
-  collapsed
+  transaction 4 - transaction.op
 "
 `;
