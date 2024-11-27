@@ -2897,6 +2897,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# option for clamping project tag key date range
+register(
+    "visibility.tag-key-max-date-range.days",
+    default=14,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option used to enable/disable applying
 # stack trace rules in profiles
 register(
