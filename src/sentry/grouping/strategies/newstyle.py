@@ -594,7 +594,9 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant] = ExceptionGroupingComponent(values=values)
+        rv[variant] = ExceptionGroupingComponent(
+            values=values, frame_counts=stacktrace_component.frame_counts
+        )
 
     return rv
 
