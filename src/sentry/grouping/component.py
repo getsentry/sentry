@@ -321,6 +321,17 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained-exception"
+    frame_counts: Counter[str]
+
+    def __init__(
+        self,
+        values: Sequence[ExceptionGroupingComponent] | None = None,
+        hint: str | None = None,
+        contributes: bool | None = None,
+        frame_counts: Counter[str] | None = None,
+    ):
+        super().__init__(hint=hint, contributes=contributes, values=values)
+        self.frame_counts = frame_counts or Counter()
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):
