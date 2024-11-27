@@ -616,21 +616,13 @@ type SpansStoredProps = {
   organization: Organization;
 };
 
-const StyledSettingsButton = styled(LinkButton)`
-  margin-top: -${space(0.5)};
-  padding: 3px;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-`;
-
 function SpansStored({organization, acceptedStored}: SpansStoredProps) {
   return (
-    <div style={{gap: '8px', display: 'inline-grid', gridAutoFlow: 'column'}}>
-      {t('%s stored', acceptedStored)}
+    <div>
+      {t('%s stored', acceptedStored)}{' '}
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
-          <StyledSettingsButton
+          <LinkButton
             borderless
             size="zero"
             icon={<IconSettings color="subText" />}
