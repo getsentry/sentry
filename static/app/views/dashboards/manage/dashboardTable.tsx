@@ -221,7 +221,7 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       // necessary for edit access dropdown
-      bodyStyle={{overflow: 'inherit'}}
+      bodyStyle={{overflow: 'visible'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
