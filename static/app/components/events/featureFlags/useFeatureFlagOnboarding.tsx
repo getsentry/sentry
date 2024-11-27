@@ -35,12 +35,15 @@ export function useFeatureFlagOnboarding() {
   const activateSidebarSkipConfigure = useCallback(
     (event: React.MouseEvent, projectId: string) => {
       event.preventDefault();
-      navigate({
-        pathname: location.pathname,
-        // Adding the projectId will help pick the correct project in onboarding
-        query: {...location.query, project: projectId},
-        hash: FLAG_HASH_SKIP_CONFIG,
-      });
+      navigate(
+        {
+          pathname: location.pathname,
+          // Adding the projectId will help pick the correct project in onboarding
+          query: {...location.query, project: projectId},
+          hash: FLAG_HASH_SKIP_CONFIG,
+        },
+        {replace: true}
+      );
       SidebarPanelStore.activatePanel(SidebarPanelKey.FEATURE_FLAG_ONBOARDING);
     },
     [navigate, location.pathname, location.query]
