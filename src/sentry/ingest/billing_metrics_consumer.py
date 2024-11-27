@@ -14,7 +14,6 @@ from arroyo.types import Commit, Message, Partition
 from django.core.cache import cache
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
-from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
@@ -104,13 +103,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return {}
 
         items = {data_category: quantity}
-
-        if not options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
-            if self._has_profile(generic_metric):
-                # The bucket is tagged with the "has_profile" tag,
-                # so we also count the quantity of this bucket towards profiles.
-                # This assumes a "1 to 0..1" relationship between transactions / spans and profiles.
-                items[DataCategory.PROFILE] = quantity
 
         return items
 
