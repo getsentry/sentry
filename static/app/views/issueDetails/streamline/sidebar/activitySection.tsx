@@ -265,7 +265,6 @@ export default function StreamlinedActivitySection({
 }
 
 const TitleTooltip = styled(Tooltip)`
-  flex: 1;
   justify-self: start;
   overflow: hidden;
   text-overflow: ellipsis;
