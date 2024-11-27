@@ -166,4 +166,58 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       },
     ]);
   });
+
+  it('Splits a series with long buckets', () => {
+    // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
+    //
+    const serie: TimeseriesData = {
+      field: 'p99(span.duration)',
+      data: [
+        {
+          value: 110,
+          timestamp: '2024-10-24T12:00:00.000Z',
+        },
+        {
+          value: 120,
+          timestamp: '2024-10-24T13:00:00.000Z',
+        },
+        {
+          value: 130,
+          timestamp: '2024-10-24T14:00:00.000Z',
+        },
+        {
+          value: 140,
+          timestamp: '2024-10-24T15:00:00.000Z',
+        },
+      ],
+    };
+
+    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(serie);
+
+    expect(completeSerie?.data).toEqual([
+      {
+        value: 110,
+        timestamp: '2024-10-24T12:00:00.000Z',
+      },
+      {
+        value: 120,
+        timestamp: '2024-10-24T13:00:00.000Z',
+      },
+      {
+        value: 130,
+        timestamp: '2024-10-24T14:00:00.000Z',
+      },
+    ]);
+
+    expect(incompleteSerie?.data).toEqual([
+      {
+        value: 130,
+        timestamp: '2024-10-24T14:00:00.000Z',
+      },
+      {
+        value: 140,
+        timestamp: '2024-10-24T15:00:00.000Z',
+      },
+    ]);
+  });
 });
