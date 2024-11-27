@@ -296,14 +296,15 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
         self.frame_counts = frame_counts or Counter()
 
 
-class ExceptionGroupingComponent(
-    BaseGroupingComponent[
-        ErrorTypeGroupingComponent
-        | ErrorValueGroupingComponent
-        | NSErrorGroupingComponent
-        | StacktraceGroupingComponent
-    ]
-):
+ExceptionGroupingComponentChildren = (
+    ErrorTypeGroupingComponent
+    | ErrorValueGroupingComponent
+    | NSErrorGroupingComponent
+    | StacktraceGroupingComponent
+)
+
+
+class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponentChildren]):
     id: str = "exception"
 
 
