@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from time import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -368,7 +368,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                         }
                     ]
                 },
-                "platform": "python",
+                "platform": "java",
             },
         )
         expected_metadata = {
@@ -384,7 +384,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         mock_metrics.incr.assert_any_call(
             "grouping.similarity.over_threshold_only_system_frames",
             sample_rate=sample_rate,
-            tags={"platform": "python", "referrer": "ingest"},
+            tags={"platform": "java", "referrer": "ingest"},
         )
         mock_metrics.incr.assert_any_call(
             "grouping.similarity.did_call_seer",
@@ -393,6 +393,58 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "call_made": False,
                 "blocker": "over-threshold-only-system-frames",
             },
+        )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_too_many_only_system_frames_invalid_platform(self, mock_metrics: Mock) -> None:
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="22312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": context_line,
+                                    }
+                                    for i in range(MAX_FRAME_COUNT + 1)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+        expected_metadata = {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "results": [],
+        }
+        assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
+            expected_metadata,
+            None,
+        )
+
+        assert (
+            call(
+                "grouping.similarity.did_call_seer",
+                sample_rate=1.0,
+                tags={
+                    "call_made": False,
+                    "blocker": "over-threshold-only-system-frames",
+                },
+            )
+            not in mock_metrics.incr.call_args_list
         )
 
 
@@ -486,7 +538,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                         }
                     ]
                 },
-                "platform": "python",
+                "platform": "java",
             },
         )
 
@@ -502,7 +554,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
         mock_metrics.incr.assert_any_call(
             "grouping.similarity.over_threshold_only_system_frames",
             sample_rate=sample_rate,
-            tags={"platform": "python", "referrer": "ingest"},
+            tags={"platform": "java", "referrer": "ingest"},
         )
         mock_metrics.incr.assert_any_call(
             "grouping.similarity.did_call_seer",
@@ -514,3 +566,60 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
         )
 
         mock_get_similar_issues.assert_not_called()
+
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash_invalid_platform(
+        self, mock_get_similarity_data: MagicMock
+    ) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="22312012112120120908201304152013",
+            data={
+                "title": f"{type}('{value}')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": type,
+                            "value": value,
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": f"play_fetch_{i}",
+                                        "filename": f"dogpark{i}.py",
+                                        "context_line": context_line,
+                                    }
+                                    for i in range(MAX_FRAME_COUNT + 1)
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+
+        GroupHash.objects.create(
+            project=self.project, group=new_event.group, hash=new_event.get_primary_hash()
+        )
+        group_hashes = list(GroupHash.objects.filter(project_id=self.project.id))
+        maybe_check_seer_for_matching_grouphash(
+            new_event, new_event.get_grouping_variants(), group_hashes
+        )
+
+        mock_get_similarity_data.assert_called_with(
+            {
+                "event_id": new_event.event_id,
+                "hash": new_event.get_primary_hash(),
+                "project_id": self.project.id,
+                "stacktrace": ANY,
+                "exception_type": "FailedToFetchError",
+                "k": 1,
+                "referrer": "ingest",
+                "use_reranking": True,
+            }
+        )
