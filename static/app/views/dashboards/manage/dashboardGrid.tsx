@@ -104,7 +104,13 @@ function DashboardGrid({
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
-        onAction: () => handleDuplicate(dashboard),
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to duplicate this dashboard?'),
+            priority: 'primary',
+            onConfirm: () => handleDuplicate(dashboard),
+          });
+        },
       },
       {
         key: 'dashboard-delete',

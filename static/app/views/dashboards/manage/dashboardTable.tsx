@@ -144,7 +144,11 @@ function DashboardTable({
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
-                handleDuplicate(dataRow);
+                openConfirmModal({
+                  message: t('Are you sure you want to duplicate this dashboard?'),
+                  priority: 'primary',
+                  onConfirm: () => handleDuplicate(dataRow),
+                });
               }}
               aria-label={t('Duplicate Dashboard')}
               data-test-id={'dashboard-duplicate'}

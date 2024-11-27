@@ -244,9 +244,16 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -271,9 +278,16 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    expect(postMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
