@@ -1398,7 +1398,7 @@
         "model": "sentry.dashboard",
         "nullable": false
       },
-      "user": {
+      "user_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
         "nullable": false
@@ -1414,7 +1414,7 @@
     "uniques": [
       [
         "dashboard",
-        "user"
+        "user_id"
       ]
     ]
   },

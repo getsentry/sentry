@@ -572,7 +572,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         DashboardFavouriteUser.objects.create(
             dashboard=dashboard,
-            user=owner.id,
+            user_id=owner.id,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard

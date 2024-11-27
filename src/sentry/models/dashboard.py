@@ -34,13 +34,13 @@ class DashboardProject(Model):
 class DashboardFavouriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
-    user = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_dashboardfavouriteuser"
-        unique_together = (("user", "dashboard"),)
+        unique_together = (("user_id", "dashboard"),)
 
 
 @region_silo_model
@@ -72,13 +72,15 @@ class Dashboard(Model):
     @property
     def favourited_by(self):
         user_ids = DashboardFavouriteUser.objects.filter(dashboard=self).values_list(
-            "user", flat=True
+            "user_id", flat=True
         )
         return user_ids
 
     @favourited_by.setter
-    def favourited_by(self, user_id):
-        DashboardFavouriteUser.objects.get_or_create(dashboard=self, user=user_id)
+    def favourited_by(self, user_ids):
+        DashboardFavouriteUser.objects.filter(dashboard=self).exclude(user_id__in=user_ids).delete()
+        for user_id in user_ids:
+            DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
