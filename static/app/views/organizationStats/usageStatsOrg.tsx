@@ -616,13 +616,21 @@ type SpansStoredProps = {
   organization: Organization;
 };
 
+const StyledSettingsButton = styled(LinkButton)`
+  top: 2px;
+`;
+
+const StyledTextWrapper = styled('div')`
+  min-height: 22px;
+`;
+
 function SpansStored({organization, acceptedStored}: SpansStoredProps) {
   return (
-    <div>
+    <StyledTextWrapper>
       {t('%s stored', acceptedStored)}{' '}
       {organization.access.includes('org:read') &&
         hasDynamicSamplingCustomFeature(organization) && (
-          <LinkButton
+          <StyledSettingsButton
             borderless
             size="zero"
             icon={<IconSettings color="subText" />}
@@ -631,6 +639,6 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
             to={`/settings/${organization.slug}/dynamic-sampling/`}
           />
         )}
-    </div>
+    </StyledTextWrapper>
   );
 }
