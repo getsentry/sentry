@@ -113,7 +113,7 @@ describe('AutofixMessageBox Analytics', () => {
 
   it('passes correct analytics props for Create PR button', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
@@ -130,7 +130,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     // Find the last call to Button that matches our Create PR button
     const createPRButtonCall = mockButton.mock.calls.find(
-      call => call[0]?.children?.[0] === 'Create PR'
+      call => call[0]?.analyticsEventKey === 'autofix.create_pr_clicked'
     );
     expect(createPRButtonCall?.[0]).toEqual(
       expect.objectContaining({
@@ -143,7 +143,7 @@ describe('AutofixMessageBox Analytics', () => {
 
   it('passes correct analytics props for Create PR Setup button', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/setup/',
+      url: '/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: {
         genAIConsent: {ok: true},
