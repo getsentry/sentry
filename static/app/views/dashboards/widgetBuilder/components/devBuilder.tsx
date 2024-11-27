@@ -2,12 +2,11 @@ import styled from '@emotion/styled';
 
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
-import {UrlBatchProvider} from 'sentry/views/dashboards/widgetBuilder/context/urlBatchContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-function DevBuilderContent() {
+function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderState();
 
   return (
@@ -36,14 +35,6 @@ function DevBuilderContent() {
         />
       </Section>
     </Body>
-  );
-}
-
-function DevBuilder() {
-  return (
-    <UrlBatchProvider>
-      <DevBuilderContent />
-    </UrlBatchProvider>
   );
 }
 
