@@ -228,16 +228,17 @@ class SymbolGroupingComponent(BaseGroupingComponent[str]):
     id: str = "symbol"
 
 
-class FrameGroupingComponent(
-    BaseGroupingComponent[
-        ContextLineGroupingComponent
-        | FilenameGroupingComponent
-        | FunctionGroupingComponent
-        | LineNumberGroupingComponent  # only in legacy config
-        | ModuleGroupingComponent
-        | SymbolGroupingComponent  # only in legacy config
-    ]
-):
+FrameGroupingComponentChildren = (
+    ContextLineGroupingComponent
+    | FilenameGroupingComponent
+    | FunctionGroupingComponent
+    | LineNumberGroupingComponent  # only in legacy config
+    | ModuleGroupingComponent
+    | SymbolGroupingComponent  # only in legacy config
+)
+
+
+class FrameGroupingComponent(BaseGroupingComponent[FrameGroupingComponentChildren]):
     id: str = "frame"
 
 
