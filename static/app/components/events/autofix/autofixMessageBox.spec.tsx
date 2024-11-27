@@ -12,7 +12,7 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
-import {AutofixStepType} from 'sentry/components/events/autofix/types';
+import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -41,7 +41,7 @@ describe('AutofixMessageBox', () => {
     ...changesStepProps,
     step: AutofixStepFixture({
       type: AutofixStepType.CHANGES,
-      status: 'COMPLETED',
+      status: AutofixStatus.COMPLETED,
       changes: [AutofixCodebaseChangeData()],
     }),
   };
@@ -50,7 +50,7 @@ describe('AutofixMessageBox', () => {
     ...changesStepProps,
     step: AutofixStepFixture({
       type: AutofixStepType.CHANGES,
-      status: 'COMPLETED',
+      status: AutofixStatus.COMPLETED,
       changes: [
         AutofixCodebaseChangeData({
           repo_name: 'example/repo1',
