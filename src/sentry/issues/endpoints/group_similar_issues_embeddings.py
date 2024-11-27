@@ -90,6 +90,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                 stacktrace_string = ""
             except NoFilenameOrModuleException:
                 stacktrace_string = ""
+            except Exception as e:
+                logger.exception(
+                    "Unexpected exception in stacktrace string formatting",
+                    extra={"exception": str(e)},
+                )
+                stacktrace_string = ""
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
