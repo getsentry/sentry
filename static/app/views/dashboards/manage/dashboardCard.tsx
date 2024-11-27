@@ -1,7 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
@@ -33,9 +35,20 @@ function DashboardCard({
     onEventClick?.();
   }
 
+  // Fetch the theme to set the `InteractionStateLayer` color. Otherwise it will
+  // use the `currentColor` of the `Link`, which is blue, and not correct
+  const theme = useTheme();
+
   return (
-    <Link data-test-id={`card-${title}`} onClick={onClick} to={to} aria-label={title}>
-      <StyledDashboardCard interactive>
+    <CardWithoutMargin>
+      <CardLink
+        data-test-id={`card-${title}`}
+        onClick={onClick}
+        to={to}
+        aria-label={title}
+      >
+        <InteractionStateLayer as="div" color={theme.textColor} />
+
         <CardHeader>
           <CardContent>
             <Title>{title}</Title>
@@ -60,10 +73,11 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
-          {renderContextMenu?.()}
         </CardFooter>
-      </StyledDashboardCard>
-    </Link>
+      </CardLink>
+
+      <ContextMenuWrapper>{renderContextMenu?.()}</ContextMenuWrapper>
+    </CardWithoutMargin>
   );
 }
 
@@ -79,18 +93,8 @@ const CardContent = styled('div')`
   margin-right: ${space(1)};
 `;
 
-const StyledDashboardCard = styled(Card)`
-  justify-content: space-between;
-  height: 100%;
-  &:focus,
-  &:hover {
-    top: -1px;
-  }
-`;
-
-const CardHeader = styled('div')`
-  display: flex;
-  padding: ${space(1.5)} ${space(2)};
+const CardWithoutMargin = styled(Card)`
+  margin: 0;
 `;
 
 const Title = styled('div')`
@@ -98,6 +102,28 @@ const Title = styled('div')`
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
   font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const CardLink = styled(Link)`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  color: ${p => p.theme.textColor};
+
+  &:focus,
+  &:hover {
+    color: ${p => p.theme.textColor};
+
+    ${Title} {
+      text-decoration: underline;
+    }
+  }
+`;
+
+const CardHeader = styled('div')`
+  display: flex;
+  padding: ${space(1.5)} ${space(2)};
 `;
 
 const Detail = styled('div')`
@@ -122,6 +148,7 @@ const CardFooter = styled('div')`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} ${space(2)};
+  height: 42px;
 `;
 
 const DateSelected = styled('div')`
@@ -135,6 +162,12 @@ const DateSelected = styled('div')`
 const DateStatus = styled('span')`
   color: ${p => p.theme.subText};
   padding-left: ${space(1)};
+`;
+
+const ContextMenuWrapper = styled('div')`
+  position: absolute;
+  right: ${space(2)};
+  bottom: ${space(1)};
 `;
 
 export default DashboardCard;
