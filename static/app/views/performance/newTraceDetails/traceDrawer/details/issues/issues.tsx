@@ -128,6 +128,7 @@ function Issue(props: IssueProps) {
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
           <EventOrGroupHeader data={fetchedIssue} organization={organization} />
+          <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
         <SummaryWrapper>
@@ -136,6 +137,7 @@ function Issue(props: IssueProps) {
             organization={props.organization}
             event_id={props.issue.event_id}
           />
+          <EventOrGroupExtraDetails data={fetchedIssue} />
         </SummaryWrapper>
       )}
     </StyledPanelItem>
