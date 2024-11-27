@@ -24,6 +24,7 @@ import {
   getPageloadTransactionChildCount,
   isAutogroupedNode,
   isBrowserRequestSpan,
+  isCollapsedNode,
   isJavascriptSDKTransaction,
   isMissingInstrumentationNode,
   isPageloadTransactionNode,
@@ -146,7 +147,12 @@ export declare namespace TraceTree {
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
+    | CollapsedNode
     | Root;
+
+  interface CollapsedNode {
+    type: 'collapsed';
+  }
 
   // Node types
   interface MissingInstrumentationSpan {
@@ -1014,7 +1020,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       const node = queue.pop()!;
 
       visibleChildren.push(node);
-      // iterate in reverseto ensure nodes are processed in order
+
+      // iterate in reverse to ensure nodes are processed in order
       if (node.expanded || isParentAutogroupedNode(node)) {
         const children = TraceTree.DirectVisibleChildren(node);
 
@@ -1142,8 +1149,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isParentAutogroupedNode(next)) {
         queue.push(next.head);
       } else {
-        for (const child of next.children) {
-          queue.push(child);
+        for (let i = next.children.length - 1; i >= 0; i--) {
+          queue.push(next.children[i]);
         }
       }
     }
@@ -1215,10 +1222,38 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isTransactionNode(n)) {
         // A transaction itself is a span and we are starting to treat it as such.
         // Hence we check for both event_id and span_id.
-        return n.value.event_id === eventId || n.value.span_id === eventId;
+        if (n.value.event_id === eventId || n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isSpanNode(n)) {
-        return n.value.span_id === eventId;
+        if (n.value.span_id === eventId) {
+          return true;
+        }
+
+        // If we dont have an exact match, then look for an event_id in the errors or performance issues
+        for (const e of n.errors) {
+          if (e.event_id === eventId) {
+            return true;
+          }
+        }
+        for (const p of n.performance_issues) {
+          if (p.event_id === eventId) {
+            return true;
+          }
+        }
       }
       if (isTraceErrorNode(n)) {
         return n.value.event_id === eventId;
@@ -1246,18 +1281,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       if (eventId === 'root' && isTraceNode(n)) {
         return true;
-      }
-
-      // If we dont have an exact match, then look for an event_id in the errors or performance issues
-      for (const e of n.errors) {
-        if (e.event_id === eventId) {
-          return true;
-        }
-      }
-      for (const p of n.performance_issues) {
-        if (p.event_id === eventId) {
-          return true;
-        }
       }
 
       return false;
@@ -1511,7 +1534,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         // This is very wasteful as it performs O(n^2) search each time we expand a node...
         // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
         // a low autogrouped node count.
-        index = node ? tree.list.findIndex(n => n === node) : -1;
+        index = node ? tree.list.indexOf(node) : -1;
         if (index !== -1) {
           break;
         }
@@ -1959,6 +1982,10 @@ function printTraceTreeNode(
 
   if (isTraceErrorNode(t)) {
     return padding + (t.value.event_id || t.value.level) || 'unknown trace error';
+  }
+
+  if (isCollapsedNode(t)) {
+    return padding + 'collapsed';
   }
 
   return 'unknown node';

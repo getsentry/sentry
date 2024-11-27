@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -18,8 +17,6 @@ from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
     FlamegraphExecutor,
     get_chunks_from_spans_metadata,
-    get_profile_ids,
-    get_profiles_with_function,
     get_spans_from_group,
 )
 from sentry.profiles.profile_chunks import get_chunk_ids
@@ -70,36 +67,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
-
-        if not features.has(
-            "organizations:continuous-profiling-compat", organization, actor=request.user
-        ):
-            snuba_params = self.get_snuba_params(request, organization)
-
-            project_ids = snuba_params.project_ids
-            if len(project_ids) > 1:
-                raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
-
-            if request.query_params.get("fingerprint"):
-                sentry_sdk.set_tag("data source", "functions")
-                function_fingerprint = int(request.query_params["fingerprint"])
-
-                profile_ids = get_profiles_with_function(
-                    organization.id,
-                    project_ids[0],
-                    function_fingerprint,
-                    snuba_params,
-                    request.GET.get("query", ""),
-                )
-            else:
-                sentry_sdk.set_tag("data source", "profiles")
-                profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
-
-            return proxy_profiling_service(
-                method="POST",
-                path=f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
-                json_data=profile_ids,
-            )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
