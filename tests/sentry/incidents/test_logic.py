@@ -48,10 +48,8 @@ from sentry.incidents.logic import (
     get_alert_resolution,
     get_available_action_integrations_for_org,
     get_incident_aggregates,
-    get_incident_subscribers,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
-    subscribe_to_incident,
     translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
@@ -76,7 +74,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentSubscription,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -176,16 +173,12 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(
-        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
-    ):
+    def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
             incident,
             status,
-            user=user,
-            comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
             date_closed=date_closed,
         )
@@ -194,12 +187,8 @@ class UpdateIncidentStatus(TestCase):
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == (user.id if user else None)
-        if user:
-            assert IncidentSubscription.objects.filter(incident=incident, user_id=user.id).exists()
         assert activity.value == str(status.value)
         assert activity.previous_value == str(prev_status)
-        assert activity.comment == comment
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -230,9 +219,7 @@ class UpdateIncidentStatus(TestCase):
 
     def test_all_params(self):
         incident = self.create_incident()
-        self.run_test(
-            incident, IncidentStatus.CLOSED, timezone.now(), user=self.user, comment="lol"
-        )
+        self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
 
 
 class BaseIncidentsValidation:
@@ -346,28 +333,16 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
     def test_no_snapshot(self):
         incident = self.create_incident()
-        self.record_event.reset_mock()
         activity = create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
-            user=self.user,
             value=str(IncidentStatus.CLOSED.value),
             previous_value=str(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == self.user.id
         assert activity.value == str(IncidentStatus.CLOSED.value)
         assert activity.previous_value == str(IncidentStatus.WARNING.value)
-        assert not self.record_event.called
-
-
-class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        incident = self.create_incident()
-        assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user.id)
-        assert list(get_incident_subscribers(incident)) == [subscription]
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):

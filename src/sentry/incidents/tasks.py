@@ -163,7 +163,6 @@ def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
             update_incident_status(
                 incident,
                 IncidentStatus.CLOSED,
-                comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
                 status_method=IncidentStatusMethod.RULE_UPDATED,
             )
 
