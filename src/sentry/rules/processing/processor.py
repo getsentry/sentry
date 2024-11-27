@@ -379,7 +379,6 @@ class RuleProcessor:
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history
         )
-        grouped_futures = None
 
         if not self.grouped_futures:
             self.grouped_futures = grouped_futures
