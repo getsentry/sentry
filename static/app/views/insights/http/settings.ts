@@ -21,6 +21,7 @@ export const BASE_FILTERS = {
 export const MODULE_DESCRIPTION = t(
   'Monitor outgoing HTTP requests and investigate errors and performance bottlenecks tied to domains.'
 );
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/requests/';
+export const MODULE_DOC_LINK =
+  'https://docs.sentry.io/product/insights/backend/requests/';
 
 export const MODULE_FEATURES = ['insights-initial-modules'];
