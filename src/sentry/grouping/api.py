@@ -74,6 +74,7 @@ class GroupingConfigLoader:
         }
 
     def _get_enhancements(self, project) -> str:
+        # project option editable via UI, will be on Error Detector page
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -214,6 +215,7 @@ def get_fingerprinting_config_for_project(
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
     bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    # project option editable via UI, will be on Error Detector page
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
         return FingerprintingRules([], bases=bases)

@@ -105,3 +105,20 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
+
+
+class ErrorDetector(Detector):
+    class Meta:
+        proxy = True
+
+    @property
+    def CONFIG_SCHEMA(self) -> dict[str, Any]:
+        return {}
+
+    @property
+    def project_options_config(self) -> dict[str, str]:
+        return {
+            "groupingEnhancements": "sentry:grouping_enhancements",
+            "fingerprintingRules": "sentry:fingerprinting_rules",
+            "resolveAge": "sentry:resolve_age",
+        }

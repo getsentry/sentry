@@ -3,6 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.models.options.project_option import ProjectOption
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -10,6 +11,7 @@ from sentry.workflow_engine.models import (
     DataSourceDetector,
     Detector,
 )
+from sentry.workflow_engine.models.detector import ErrorDetector
 from sentry.workflow_engine.types import DataSourceTypeHandler
 
 
@@ -144,4 +146,43 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
+        }
+
+
+@register(ErrorDetector)
+class ErrorDetectorSerializer(Serializer):
+    def get_attrs(
+        self, item_list: Sequence[Detector], user, **kwargs
+    ) -> MutableMapping[Detector, dict[str, Any]]:
+        attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
+
+        # collect project options to serialize
+        project_ids = [item.project_id for item in item_list]
+        project_option_keys = item_list[0].project_options_config.keys()
+
+        project_options_list = list(
+            ProjectOption.objects.filter(key__in=project_option_keys, project__in=project_ids)
+        )
+
+        configs = defaultdict(list)
+        for option in project_options_list:
+            configs[option.project_id].append(option.value)
+
+        for item in item_list:
+            for key in project_option_keys:
+                attrs[item][key] = configs[item.id][key]
+
+        return attrs
+
+    def serialize(self, obj: Detector, attrs: Mapping[str, Any], user, **kwargs) -> dict[str, Any]:
+        return {
+            "id": str(obj.id),
+            "organizationId": str(obj.organization_id),
+            "name": obj.name,
+            "type": obj.type,
+            "dateCreated": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "resolveAge": attrs.get("resolveAge"),
+            "groupingEnhancements": attrs.get("groupingEnhancements"),
+            "fingerprintingRules": attrs.get("fingerprintingRules"),
         }
