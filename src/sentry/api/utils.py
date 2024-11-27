@@ -255,7 +255,7 @@ def clamp_date_range(
     # Ignore negative max time deltas
     if max_timedelta < datetime.timedelta(0):
         return (start, end)
-        
+
     # Ignore if delta is within acceptable range
     if delta < max_delta:
         return (start, end)
