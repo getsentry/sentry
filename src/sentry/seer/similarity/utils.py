@@ -161,6 +161,10 @@ class TooManyOnlySystemFramesException(Exception):
     pass
 
 
+class NoFilenameOrModuleException(Exception):
+    pass
+
+
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -188,6 +192,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
     is_frames_truncated = False
+    has_no_filename_or_module = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -197,6 +202,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal is_frames_truncated
+        nonlocal has_no_filename_or_module
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
@@ -211,13 +217,18 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         frame_count += len(contributing_frames)
 
         for frame in contributing_frames:
-            frame_dict = {"filename": "", "function": "", "context-line": ""}
+            frame_dict = {"filename": "", "function": "", "context-line": "", "module": ""}
             for frame_values in frame.get("values", []):
                 if frame_values.get("id") in frame_dict:
                     frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
+
+            if frame_dict["filename"] == "" and frame_dict["module"] == "":
+                has_no_filename_or_module = True
+            elif frame_dict["filename"] == "":
+                frame_dict["filename"] = frame_dict["module"]
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
@@ -271,6 +282,8 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     frame_strings = _process_frames(exception_value["values"])
         if is_frames_truncated and not app_hash:
             raise TooManyOnlySystemFramesException
+        if has_no_filename_or_module:
+            raise NoFilenameOrModuleException
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -325,6 +338,17 @@ def get_stacktrace_string_with_metrics(
                 tags={
                     "call_made": False,
                     "blocker": "over-threshold-only-system-frames",
+                },
+            )
+        stacktrace_string = None
+    except NoFilenameOrModuleException:
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={
+                    "call_made": False,
+                    "blocker": "no-module-or-filename",
                 },
             )
         stacktrace_string = None

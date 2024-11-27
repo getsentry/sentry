@@ -1,20 +1,25 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
 import pytest
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
+    NoFilenameOrModuleException,
+    ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
     get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.testutils.cases import TestCase
 
@@ -331,14 +336,14 @@ class GetStacktraceStringTest(TestCase):
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["module"],
                                             },
                                             {
                                                 "id": "filename",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["filename"],
                                             },
                                             {
                                                 "id": "function",
@@ -691,7 +696,7 @@ class GetStacktraceStringTest(TestCase):
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
-        assert stacktrace_str == 'File "", function TestHandler'
+        assert stacktrace_str == 'File "filename", function TestHandler'
 
     def test_system(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
@@ -813,6 +818,42 @@ class GetStacktraceStringTest(TestCase):
     def test_only_stacktrace_frames(self):
         stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
         assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
+
+    def test_replace_file_with_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
+        )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_filename_or_module(self, mock_metrics):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete module from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        with pytest.raises(NoFilenameOrModuleException):
+            get_stacktrace_string(exception)
+
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        assert stacktrace_string is None
+        mock_metrics.incr.assert_called_with(
+            "grouping.similarity.did_call_seer",
+            sample_rate=sample_rate,
+            tags={
+                "call_made": False,
+                "blocker": "no-module-or-filename",
+            },
+        )
 
 
 class EventContentIsSeerEligibleTest(TestCase):
