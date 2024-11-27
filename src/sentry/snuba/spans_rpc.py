@@ -66,6 +66,9 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
+    has_aggregations = any(
+        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
+    )
 
     labeled_columns = [categorize_column(col) for col in columns]
 
@@ -74,11 +77,15 @@ def run_table_query(
         meta=meta,
         filter=query,
         columns=labeled_columns,
-        group_by=[
-            col.proto_definition
-            for col in columns
-            if isinstance(col.proto_definition, AttributeKey)
-        ],
+        group_by=(
+            [
+                col.proto_definition
+                for col in columns
+                if isinstance(col.proto_definition, AttributeKey)
+            ]
+            if has_aggregations
+            else []
+        ),
         order_by=resolved_orderby,
         limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
