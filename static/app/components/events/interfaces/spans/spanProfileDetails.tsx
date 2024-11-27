@@ -11,7 +11,6 @@ import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Frame} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -23,7 +22,6 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import type {SpanType} from './types';
@@ -36,34 +34,23 @@ const TOP_NODE_MIN_COUNT = 3;
 interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
   span: Readonly<SpanType>;
-  embedInFoldableSection?: boolean;
   onNoProfileFound?: () => void;
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-  onNoProfileFound,
-  embedInFoldableSection = false,
-}: SpanProfileDetailsProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === event.projectID);
-
+export function useSpanProfileDetails(event, span) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
-    const entries: EventTransaction['entries'] = [...(event.entries || [])];
+    const entries = [...(event.entries || [])];
     if (profileGroup.images) {
       entries.push({
         data: {images: profileGroup.images},
-        type: EntryType.DEBUGMETA,
+        type: 'debugmeta',
       });
     }
     return {...event, entries};
   }, [event, profileGroup]);
 
-  // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(
     () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
     [profileGroup]
@@ -76,20 +63,11 @@ export function SpanProfileDetails({
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const nodes: CallTreeNode[] = useMemo(() => {
+  const nodes = useMemo(() => {
     if (profile === null) {
       return [];
     }
 
-    // The most recent profile formats should contain a timestamp indicating
-    // the beginning of the profile. This timestamp can be after the start
-    // timestamp on the transaction, so we need to account for the gap and
-    // make sure the relative start timestamps we compute for the span is
-    // relative to the start of the profile.
-    //
-    // If the profile does not contain a timestamp, we fall back to using the
-    // start timestamp on the transaction. This won't be as accurate but it's
-    // the next best thing.
     const startTimestamp = profile.timestamp ?? event.startTimestamp;
 
     const relativeStartTimestamp = formatTo(
@@ -116,7 +94,6 @@ export function SpanProfileDetails({
   );
 
   const maxNodes = useMemo(() => {
-    // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
     for (let i = 0; i < nodes.length; i++) {
       if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
@@ -142,6 +119,43 @@ export function SpanProfileDetails({
       hasNext: index + 1 < maxNodes,
     };
   }, [index, maxNodes, event, nodes]);
+
+  return {
+    processedEvent,
+    profileGroup,
+    profile,
+    nodes,
+    index,
+    setIndex,
+    totalWeight,
+    maxNodes,
+    frames,
+    hasPrevious,
+    hasNext,
+  };
+}
+
+export function SpanProfileDetails({
+  event,
+  span,
+  onNoProfileFound,
+}: SpanProfileDetailsProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === event.projectID);
+  const {
+    processedEvent,
+    profileGroup,
+    profile,
+    nodes,
+    index,
+    setIndex,
+    maxNodes,
+    hasNext,
+    hasPrevious,
+    totalWeight,
+    frames,
+  } = useSpanProfileDetails(event, span);
 
   const spanTarget =
     project &&
@@ -172,7 +186,7 @@ export function SpanProfileDetails({
 
   const percentage = formatPercentage(nodes[index].count / totalWeight);
 
-  const content = (
+  return (
     <SpanContainer>
       <SpanDetails>
         <SpanDetailsItem grow>
@@ -241,19 +255,7 @@ export function SpanProfileDetails({
       />
     </SpanContainer>
   );
-
-  return embedInFoldableSection ? (
-    <InterimSection title={t('Profile')} type="span_profile_details" initialCollapse>
-      <EmbededContentWrapper>{content}</EmbededContentWrapper>
-    </InterimSection>
-  ) : (
-    content
-  );
 }
-
-const EmbededContentWrapper = styled('div')`
-  margin-top: ${space(0.5)};
-`;
 
 function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
   let duration = profile.startedAt;
