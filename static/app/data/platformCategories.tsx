@@ -568,7 +568,6 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'python',
   'javascript-angular',
   'javascript-astro',
-  'javascript-backbone',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
