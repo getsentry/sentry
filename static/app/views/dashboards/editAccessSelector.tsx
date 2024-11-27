@@ -61,7 +61,10 @@ function EditAccessSelector({
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const {teams: selectedTeam} = useTeamsById({ids: [selectedOptions[1]]});
+  const {teams: selectedTeam} = useTeamsById({
+    ids:
+      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+  });
 
   // Effect to update selectedOptions whenever the dashboard changes
   useEffect(() => {
