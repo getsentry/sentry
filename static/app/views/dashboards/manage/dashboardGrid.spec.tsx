@@ -283,7 +283,7 @@ describe('Dashboards - DashboardGrid', function () {
     await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
-    expect(createMock).not.toHaveBeenCalled();
+    expect(postMock).not.toHaveBeenCalled();
 
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
