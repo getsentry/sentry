@@ -231,6 +231,8 @@ class QueryBuilderConfig:
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
     insights_metrics_override_metric_layer: bool = False
+    # Allow the errors query builder to use the entity prefix for fields
+    use_entity_prefix_for_fields: bool = False
 
 
 @dataclass(frozen=True)
