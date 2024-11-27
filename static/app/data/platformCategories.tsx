@@ -566,6 +566,20 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript',
   'python',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [

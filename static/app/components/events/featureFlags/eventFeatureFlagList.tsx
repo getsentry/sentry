@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -99,7 +100,9 @@ export function EventFeatureFlagList({
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
   const showCTA =
-    !hasFlagContext && ['javascript', 'python'].includes(project.platform ?? '') && true; // TODO: make this last condition a feature flag for users who have LD integrated
+    !hasFlagContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    true; // TODO: make this last condition a feature flag for users who have LD integrated
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending

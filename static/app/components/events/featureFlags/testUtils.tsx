@@ -45,10 +45,10 @@ export const NO_FLAG_CONTEXT_SECTION_PROPS_NO_CTA = {
   event: EventFixture({
     id: 'abc123def456ghi789jkl',
     contexts: {other: {}},
-    platform: 'javascript-react',
+    platform: 'unity',
   }),
-  project: ProjectFixture({platform: 'javascript-react'}),
-  group: GroupFixture({platform: 'javascript-react'}),
+  project: ProjectFixture({platform: 'unity'}),
+  group: GroupFixture({platform: 'unity'}),
 };
 
 export const NO_FLAG_CONTEXT_SECTION_PROPS_CTA = {
