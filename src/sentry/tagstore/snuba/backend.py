@@ -1,3 +1,4 @@
+import datetime
 import functools
 import os
 import re
@@ -12,7 +13,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 
 from sentry import analytics, features, options
-from sentry.api.utils import default_start_end_dates
+from sentry.api.utils import clamp_date_range, default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -442,6 +443,7 @@ class SnubaTagStorage(TagStorage):
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
             optimize_kwargs["sample"] = options.get("visibility.tag-key-sample-size")
+            (start, end) = clamp_date_range((start, end), datetime.timedelta(days=14))
         # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
