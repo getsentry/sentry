@@ -392,6 +392,7 @@ def frame_legacy(
             ],
             contributes=contributes,
             hint=hint,
+            in_app=interface.in_app,
         )
     }
 

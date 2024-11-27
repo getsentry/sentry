@@ -4,6 +4,7 @@ import base64
 import logging
 import os
 import zlib
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -187,13 +188,21 @@ class Enhancements:
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
 
+        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
+        # both collect metrics and use the information in decisions about whether to send the event
+        # to Seer
+        frame_counts: Counter[str] = Counter()
+
         for py_component, rust_component in zip(components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+            key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
+            frame_counts[key] += 1
 
         component = StacktraceGroupingComponent(
             values=components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
+            frame_counts=frame_counts,
         )
 
         return component, rust_results.invert_stacktrace
