@@ -542,6 +542,9 @@ class BaseQueryBuilder:
 
         return where, having
 
+    def resolve_projects(self) -> list[int]:
+        return self.params.project_ids
+
     def resolve_params(self) -> list[WhereType]:
         """Keys included as url params take precedent if same key is included in search
         They are also considered safe and to have had access rules applied unlike conditions
@@ -570,7 +573,8 @@ class BaseQueryBuilder:
         # complain on an empty list which results on no data being returned.
         # This change will prevent calling Snuba when no projects are selected.
         # Snuba will complain with UnqualifiedQueryError: validation failed for entity...
-        if not self.params.project_ids:
+        project_ids = self.resolve_projects()
+        if not project_ids:
             # TODO: Fix the tests and always raise the error
             # In development, we will let Snuba complain about the lack of projects
             # so the developer can write their tests with a non-empty project list
@@ -582,7 +586,7 @@ class BaseQueryBuilder:
                 Condition(
                     self.column("project_id"),
                     Op.IN,
-                    self.params.project_ids,
+                    project_ids,
                 )
             )
 

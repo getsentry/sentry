@@ -20,6 +20,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.api import event_search
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -85,6 +86,12 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             raw_field = "tags[group_id]"
 
         return super().resolve_field(raw_field, alias)
+
+    def resolve_projects(self) -> list[int]:
+        if options.get("sentry.search.events.project.check_event"):
+            return [proj.id for proj in self.params.projects if proj.flags.has_transactions]
+        else:
+            return super().resolve_projects()
 
     def get_function_result_type(
         self,
