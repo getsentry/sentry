@@ -29,10 +29,6 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
           value: 110,
           timestamp: '2024-10-24T15:56:00.000Z',
         },
-        {
-          value: 120,
-          timestamp: '2024-10-24T15:57:00.000Z',
-        },
       ],
     };
 
@@ -50,10 +46,6 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       {
         value: 110,
         timestamp: '2024-10-24T15:56:00.000Z',
-      },
-      {
-        value: 120,
-        timestamp: '2024-10-24T15:57:00.000Z',
       },
     ]);
 
@@ -145,13 +137,13 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         value: 110,
         timestamp: '2024-10-24T15:56:00.000Z',
       },
-      {
-        value: 120,
-        timestamp: '2024-10-24T15:57:00.000Z',
-      },
     ]);
 
     expect(incompleteSerie?.data).toEqual([
+      {
+        value: 110,
+        timestamp: '2024-10-24T15:56:00.000Z',
+      },
       {
         value: 120,
         timestamp: '2024-10-24T15:57:00.000Z',
