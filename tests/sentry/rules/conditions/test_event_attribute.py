@@ -857,6 +857,16 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+        event["contexts"]["os"] = {}  # missing distribution_name and distribution_version
+        rule = self.get_rule(
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution_name",
+                "value": "ubuntu",
+            }
+        )
+        self.assertDoesNotPass(rule, event)
+
     def test_unreal_crash_type(self):
         event = self.get_event()
         rule = self.get_rule(
