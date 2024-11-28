@@ -543,6 +543,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:dynamic-sampling-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable tagging span with whether or not we should ingest it in the EAP
     manager.add("organizations:ingest-spans-in-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables EAP alerts UI use RPC
+    manager.add("organizations:eap-alerts-ui-uses-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
