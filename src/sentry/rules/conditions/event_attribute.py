@@ -63,8 +63,8 @@ ATTR_CHOICES = {
     "stacktrace.package": Columns.STACK_PACKAGE,
     "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
-    "os.distribution.name": Columns.OS_DISTRIBUTION_NAME,
-    "os.distribution.version": Columns.OS_DISTRIBUTION_VERSION,
+    "os.distribution_name": Columns.OS_DISTRIBUTION_NAME,
+    "os.distribution_version": Columns.OS_DISTRIBUTION_VERSION,
 }
 
 
@@ -418,21 +418,14 @@ class AppAttributeHandler(AttributeHandler):
 
 @attribute_registry.register("os")
 class OsAttributeHandler(AttributeHandler):
-    minimum_path_length = 3
+    minimum_path_length = 2
 
     @classmethod
     def _handle(cls, path: list[str], event: GroupEvent) -> list[str]:
-        if path[1] in ("distribution"):
-            if path[2] in ("name", "version"):
-                contexts = event.data.get("contexts", {})
-                os_context = contexts.get("os")
-                if os_context is None:
-                    os_context = {}
-
-                distribution = os_context.get(path[1])
-                if distribution is None:
-                    distribution = {}
-
-                return [distribution.get(path[2])]
-            return []
+        if path[1] in ("distribution_name", "distribution_version"):
+            contexts = event.data.get("contexts", {})
+            os_context = contexts.get("os")
+            if os_context is None:
+                os_context = {}
+            return [os_context.get(path[1])]
         return []
