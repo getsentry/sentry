@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import TypedDict
+from xmlrpc.client import boolean
 
 import orjson
 
@@ -193,6 +194,7 @@ class DashboardListResponse(TypedDict):
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
+    isFavourited: boolean
 
 
 class DashboardListSerializer(Serializer):
@@ -252,6 +254,7 @@ class DashboardListSerializer(Serializer):
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
+            "isFavourited": user.id in obj.favourited_by,
         }
         return data
 
