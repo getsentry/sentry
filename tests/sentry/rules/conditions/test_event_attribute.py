@@ -64,12 +64,7 @@ class EventAttributeConditionTest(RuleTestCase):
                 "unreal": {
                     "crash_type": "crash",
                 },
-                "os": {
-                    "distribution": {
-                        "name": "ubuntu",
-                        "version": "22.04",
-                    }
-                },
+                "os": {"distribution_name": "ubuntu", "distribution_version": "22.04"},
             },
             "threads": {
                 "values": [
@@ -824,24 +819,21 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
-    def test_os_distribution_only(self):
-        event = self.get_event()
-        rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "os.distribution", "value": "irrelevant"}
-        )
-        self.assertDoesNotPass(rule, event)
-
     def test_os_distribution_name_and_version(self):
         event = self.get_event()
         rule = self.get_rule(
-            data={"match": MatchType.EQUAL, "attribute": "os.distribution.name", "value": "ubuntu"}
+            data={
+                "match": MatchType.EQUAL,
+                "attribute": "os.distribution_name",
+                "value": "ubuntu",
+            }
         )
         self.assertPasses(rule, event)
 
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.version",
+                "attribute": "os.distribution_version",
                 "value": "22.04",
             }
         )
@@ -850,7 +842,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.name",
+                "attribute": "os.distribution_name",
                 "value": "slackware",
             }
         )
@@ -859,7 +851,7 @@ class EventAttributeConditionTest(RuleTestCase):
         rule = self.get_rule(
             data={
                 "match": MatchType.EQUAL,
-                "attribute": "os.distribution.version",
+                "attribute": "os.distribution_version",
                 "value": "20.04",
             }
         )
