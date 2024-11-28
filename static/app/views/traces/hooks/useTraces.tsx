@@ -57,25 +57,10 @@ interface UseTracesOptions {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
-  metricsMax?: string;
-  metricsMin?: string;
-  metricsOp?: string;
-  metricsQuery?: string;
-  mri?: string;
   query?: string | string[];
 }
 
-export function useTraces({
-  datetime,
-  enabled,
-  limit,
-  mri,
-  metricsMax,
-  metricsMin,
-  metricsOp,
-  metricsQuery,
-  query,
-}: UseTracesOptions) {
+export function useTraces({datetime, enabled, limit, query}: UseTracesOptions) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -90,11 +75,6 @@ export function useTraces({
       query,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,
-      mri,
-      metricsMax,
-      metricsMin,
-      metricsOp,
-      metricsQuery,
     },
   };
 
