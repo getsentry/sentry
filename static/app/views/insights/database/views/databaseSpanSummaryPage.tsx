@@ -327,11 +327,7 @@ const DescriptionContainer = styled(ModuleLayout.Full)`
 
 function PageWithProviders(props) {
   return (
-    <ModulePageProviders
-      moduleName="db"
-      pageTitle={t('Query Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="db" pageTitle={t('Query Summary')}>
       <DatabaseSpanSummaryPage {...props} />
     </ModulePageProviders>
   );

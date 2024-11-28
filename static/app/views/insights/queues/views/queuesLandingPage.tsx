@@ -127,11 +127,7 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="queue"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.queue"
-    >
+    <ModulePageProviders moduleName="queue" analyticEventName="insight.page_loads.queue">
       <QueuesLandingPage />
     </ModulePageProviders>
   );

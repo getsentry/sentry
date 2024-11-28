@@ -240,11 +240,7 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="cache"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.cache"
-    >
+    <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>
