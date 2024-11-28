@@ -206,9 +206,6 @@ def update_groups(
 
     acting_user = user if user.is_authenticated else None
 
-    if not group_list:
-        return Response(detail="No groups found", status=400)
-
     # so we won't have to requery for each group
     project_lookup = {g.project_id: g.project for g in group_list}
     group_project_ids = {g.project_id for g in group_list}
@@ -523,7 +520,7 @@ def process_group_resolution(
     user: User | RpcUser,
     self_assign_issue: str,
     activity_type: ActivityType,
-    activity_data: Mapping[str, Any],
+    activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ):
     now = django_timezone.now()
@@ -718,9 +715,9 @@ def handle_other_status_updates(
 ) -> dict[str, Any]:
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
-    new_substatus = (
-        SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
-    )
+    new_substatus = None
+    if result.get("substatus"):
+        new_substatus = SUBSTATUS_UPDATE_CHOICES[result.get("substatus")]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):

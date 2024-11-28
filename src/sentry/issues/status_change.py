@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def infer_substatus(
     new_status: int | None,
     new_substatus: int | None,
-    status_details: dict[str, Any],
+    status_details: Mapping[str, Any],
     group_list: Sequence[Group],
 ) -> int | None:
     if new_substatus is not None:
