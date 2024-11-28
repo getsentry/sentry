@@ -28,7 +28,7 @@ class SDKFrameConfig:
 
     path_replacer: PathReplacer
 
-    function_and_path_patterns: list[FunctionAndPathPattern] = field(default_factory=set)
+    function_and_path_patterns: list[FunctionAndPathPattern] = field(default_factory=list)
 
 
 @unique
