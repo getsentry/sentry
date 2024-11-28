@@ -78,9 +78,14 @@ class Dashboard(Model):
 
     @favourited_by.setter
     def favourited_by(self, user_ids):
-        DashboardFavouriteUser.objects.filter(dashboard=self).exclude(user_id__in=user_ids).delete()
-        for user_id in user_ids:
-            DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
+        from django.db import router, transaction
+
+        with transaction.atomic(using=router.db_for_write(DashboardFavouriteUser)):
+            DashboardFavouriteUser.objects.filter(dashboard=self).exclude(
+                user_id__in=user_ids
+            ).delete()
+            for user_id in user_ids:
+                DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
