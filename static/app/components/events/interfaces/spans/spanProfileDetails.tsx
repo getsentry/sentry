@@ -10,7 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame} from 'sentry/types/event';
+import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -41,16 +41,17 @@ export function useSpanProfileDetails(event, span) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
-    const entries = [...(event.entries || [])];
+    const entries: EventTransaction['entries'] = [...(event.entries || [])];
     if (profileGroup.images) {
       entries.push({
         data: {images: profileGroup.images},
-        type: 'debugmeta',
+        type: EntryType.DEBUGMETA,
       });
     }
     return {...event, entries};
   }, [event, profileGroup]);
 
+  // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(
     () => profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId,
     [profileGroup]
@@ -63,11 +64,20 @@ export function useSpanProfileDetails(event, span) {
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const nodes = useMemo(() => {
+  const nodes: CallTreeNode[] = useMemo(() => {
     if (profile === null) {
       return [];
     }
 
+    // The most recent profile formats should contain a timestamp indicating
+    // the beginning of the profile. This timestamp can be after the start
+    // timestamp on the transaction, so we need to account for the gap and
+    // make sure the relative start timestamps we compute for the span is
+    // relative to the start of the profile.
+    //
+    // If the profile does not contain a timestamp, we fall back to using the
+    // start timestamp on the transaction. This won't be as accurate but it's
+    // the next best thing.
     const startTimestamp = profile.timestamp ?? event.startTimestamp;
 
     const relativeStartTimestamp = formatTo(
@@ -94,6 +104,7 @@ export function useSpanProfileDetails(event, span) {
   );
 
   const maxNodes = useMemo(() => {
+    // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
     for (let i = 0; i < nodes.length; i++) {
       if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
