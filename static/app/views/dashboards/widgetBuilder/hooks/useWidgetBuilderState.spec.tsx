@@ -72,27 +72,51 @@ describe('useWidgetBuilderState', () => {
     );
   });
 
-  it('returns the display type from the query params', () => {
-    mockedUsedLocation.mockReturnValue(
-      LocationFixture({
-        query: {displayType: DisplayType.AREA},
-      })
-    );
+  describe('display type', () => {
+    it('returns the display type from the query params', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: DisplayType.AREA},
+        })
+      );
 
-    const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState());
 
-    expect(result.current.state.displayType).toBe(DisplayType.AREA);
-  });
+      expect(result.current.state.displayType).toBe(DisplayType.AREA);
+    });
 
-  it('returns a default display type from the query params when the display type is not valid', () => {
-    mockedUsedLocation.mockReturnValue(
-      LocationFixture({
-        query: {displayType: 'invalid'},
-      })
-    );
+    it('returns a default display type from the query params when the display type is not valid', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {displayType: 'invalid'},
+        })
+      );
 
-    const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState());
 
-    expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+    });
+
+    it('sets the display type in the query params', () => {
+      const mockNavigate = jest.fn();
+      mockedUseNavigate.mockReturnValue(mockNavigate);
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      jest.runAllTimers();
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({displayType: DisplayType.AREA}),
+        })
+      );
+    });
   });
 });
