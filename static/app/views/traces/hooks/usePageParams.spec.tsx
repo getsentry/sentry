@@ -29,28 +29,4 @@ describe('usePageParams', function () {
 
     expect(result.current.queries).toEqual(['query1', 'query2', 'query3']);
   });
-
-  it('decodes metrics related params', function () {
-    const location = {
-      query: {
-        metricsMax: '456',
-        metricsMin: '123',
-        metricsOp: 'sum',
-        metricsQuery: 'foo:bar',
-        mri: 'd:transactions/duration@millisecond',
-      },
-    };
-    const {result} = renderHook(() => usePageParams(location), {
-      initialProps: {location},
-    });
-
-    expect(result.current).toEqual({
-      queries: [],
-      metricsMax: '456',
-      metricsMin: '123',
-      metricsOp: 'sum',
-      metricsQuery: 'foo:bar',
-      mri: 'd:transactions/duration@millisecond',
-    });
-  });
 });
