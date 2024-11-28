@@ -27,6 +27,8 @@ type Props = {
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
+  // In the trace view, the web vitals correspond to single events, not aggregate data
+  // This prop provides the flexibility to render both cases
   isAggregateMode?: boolean;
 };
 
@@ -67,6 +69,7 @@ export default function WebVitalMeters({
   }
 
   console.dir(projectData);
+  console.dir(projectScore);
 
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
@@ -84,6 +87,7 @@ export default function WebVitalMeters({
           projectData={projectData}
           color={colors[index]}
           onClick={onClick}
+          isAggregateMode={isAggregateMode}
         />
       );
     });
@@ -103,6 +107,7 @@ type VitalMeterProps = {
   projectData: TableData | undefined;
   color: string;
   onClick?: (webVital: WebVitals) => void;
+  isAggregateMode: boolean;
 };
 
 function VitalMeter({
@@ -112,6 +117,7 @@ function VitalMeter({
   projectData,
   color,
   onClick,
+  isAggregateMode,
 }: VitalMeterProps) {
   if (!projectData) {
     return null;
@@ -119,10 +125,13 @@ function VitalMeter({
 
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
   const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
+
+  const webVitalKey = isAggregateMode
+    ? `p75(measurements.${webVital})`
+    : `measurements.${webVital})`;
+
   const formattedMeterValueText = webVitalExists ? (
-    webVitalsConfig[webVital].formatter(
-      projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
-    )
+    webVitalsConfig[webVital].formatter(projectData?.data?.[0]?.[webVitalKey] as number)
   ) : (
     <NoValue />
   );

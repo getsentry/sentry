@@ -8,7 +8,8 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 
-const MIN_HEIGHT = 100;
+const MIN_HEIGHT = 0;
+const DEFAULT_HEIGHT = 100;
 const MAX_HEIGHT = 700;
 
 type Props = {
@@ -17,10 +18,10 @@ type Props = {
 
 export function TraceContextPanel({rootEvent}: Props) {
   const [isDragging, setIsDragging] = useState(false);
-  const [contextPaneHeight, setContextPaneHeight] = useState(MIN_HEIGHT);
+  const [contextPaneHeight, setContextPaneHeight] = useState(DEFAULT_HEIGHT);
 
   const [startY, setStartY] = useState(0);
-  const [startHeight, setStartHeight] = useState(MIN_HEIGHT);
+  const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
 
   console.dir(rootEvent);
   const hasMeasurements = rootEvent.data?.measurements;
@@ -70,7 +71,7 @@ export function TraceContextPanel({rootEvent}: Props) {
       </GrabberContainer>
 
       <TraceContextContainer height={contextPaneHeight}>
-        {hasMeasurements && <WebVitalMeters />}
+        {hasMeasurements && <WebVitalMeters isAggregateMode={false} />}
       </TraceContextContainer>
     </Container>
   );

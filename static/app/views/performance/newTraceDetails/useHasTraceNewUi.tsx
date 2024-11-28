@@ -6,6 +6,6 @@ export function useHasTraceNewUi(): boolean {
   const organization = useOrganization();
 
   return useMemo(() => {
-    return true; //organization.features.includes('trace-view-new-ui');
+    return organization.features.includes('trace-view-new-ui');
   }, [organization.features]);
 }
