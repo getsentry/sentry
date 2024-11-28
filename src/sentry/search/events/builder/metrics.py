@@ -444,8 +444,6 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
-        elif self.profile_functions_metrics_builder:
-            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
@@ -759,7 +757,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
     def resolve_tag_value(self, value: str) -> int | str | None:
         # We only use the indexer for alerts queries
-        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
+        if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
 
