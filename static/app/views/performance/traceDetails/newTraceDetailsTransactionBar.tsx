@@ -56,7 +56,6 @@ import {
   getDurationDisplay,
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
@@ -495,52 +494,44 @@ function NewTraceDetailsTransactionBar(props: Props) {
                     input={profiles?.type === 'resolved' ? profiles.data : null}
                     traceID={profileId || ''}
                   >
-                    <TransactionProfileIdProvider
-                      projectId={embeddedChildren.projectID}
-                      timestamp={embeddedChildren.dateReceived}
-                      transactionId={embeddedChildren.id}
-                    >
-                      <SpanContext.Provider>
-                        <SpanContext.Consumer>
-                          {spanContextProps => (
-                            <Observer>
-                              {() => (
-                                <NewTraceDetailsSpanTree
-                                  measurements={props.measurements}
-                                  quickTrace={results}
-                                  location={props.location}
-                                  onRowClick={props.onRowClick}
-                                  traceInfo={traceInfo}
-                                  traceViewHeaderRef={traceViewRef}
-                                  traceViewRef={traceViewRef}
-                                  parentContinuingDepths={props.continuingDepths}
-                                  traceHasMultipleRoots={props.continuingDepths.some(
-                                    c => c.depth === 0 && c.isOrphanDepth
-                                  )}
-                                  parentIsOrphan={props.isOrphan}
-                                  parentIsLast={isLast}
-                                  parentGeneration={transaction.generation ?? 0}
-                                  organization={organization}
-                                  waterfallModel={waterfallModel}
-                                  filterSpans={waterfallModel.filterSpans}
-                                  spans={waterfallModel
-                                    .getWaterfall({
-                                      viewStart: 0,
-                                      viewEnd: 1,
-                                    })
-                                    .slice(1)}
-                                  focusedSpanIds={waterfallModel.focusedSpanIds}
-                                  spanContextProps={spanContextProps}
-                                  operationNameFilters={
-                                    waterfallModel.operationNameFilters
-                                  }
-                                />
-                              )}
-                            </Observer>
-                          )}
-                        </SpanContext.Consumer>
-                      </SpanContext.Provider>
-                    </TransactionProfileIdProvider>
+                    <SpanContext.Provider>
+                      <SpanContext.Consumer>
+                        {spanContextProps => (
+                          <Observer>
+                            {() => (
+                              <NewTraceDetailsSpanTree
+                                measurements={props.measurements}
+                                quickTrace={results}
+                                location={props.location}
+                                onRowClick={props.onRowClick}
+                                traceInfo={traceInfo}
+                                traceViewHeaderRef={traceViewRef}
+                                traceViewRef={traceViewRef}
+                                parentContinuingDepths={props.continuingDepths}
+                                traceHasMultipleRoots={props.continuingDepths.some(
+                                  c => c.depth === 0 && c.isOrphanDepth
+                                )}
+                                parentIsOrphan={props.isOrphan}
+                                parentIsLast={isLast}
+                                parentGeneration={transaction.generation ?? 0}
+                                organization={organization}
+                                waterfallModel={waterfallModel}
+                                filterSpans={waterfallModel.filterSpans}
+                                spans={waterfallModel
+                                  .getWaterfall({
+                                    viewStart: 0,
+                                    viewEnd: 1,
+                                  })
+                                  .slice(1)}
+                                focusedSpanIds={waterfallModel.focusedSpanIds}
+                                spanContextProps={spanContextProps}
+                                operationNameFilters={waterfallModel.operationNameFilters}
+                              />
+                            )}
+                          </Observer>
+                        )}
+                      </SpanContext.Consumer>
+                    </SpanContext.Provider>
                   </ProfileGroupProvider>
                 )}
               </ProfileContext.Consumer>
