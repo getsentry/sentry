@@ -113,6 +113,40 @@ export default storyBook(LineChartWidget, story => {
     );
   });
 
+  story('State', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="LineChartWidget" /> supports the usual loading and error states.
+          The loading state shows a spinner. The error state shows a message, and an
+          optional "Retry" button.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <LineChartWidget title="Loading Count" isLoading />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget title="Missing Count" />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget
+              title="Count Error"
+              error={new Error('Something went wrong!')}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
+            />
+          </SmallWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
   story('Colors', () => {
     const theme = useTheme();
 
@@ -151,6 +185,12 @@ export default storyBook(LineChartWidget, story => {
 
 const MediumWidget = styled('div')`
   width: 420px;
+  height: 250px;
+`;
+
+const SmallWidget = styled('div')`
+  width: 360px;
+  height: 160px;
 `;
 
 function toTimeSeriesSelection(
