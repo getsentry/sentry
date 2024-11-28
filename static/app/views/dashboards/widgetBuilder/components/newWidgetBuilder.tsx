@@ -52,23 +52,6 @@ function DevWidgetBuilder({isOpen, onClose}: DevWidgetBuilderProps) {
 
 export default DevWidgetBuilder;
 
-// const CloseButton = styled(Button)`
-//   color: ${p => p.theme.gray300};
-//   height: fit-content;
-//   &:hover {
-//     color: ${p => p.theme.gray400};
-//   }
-//   z-index: 100;
-// `;
-
-// const SlideoutTitle = styled('h5')``;
-
-// const SlideoutHeaderWrapper = styled('div')`
-//   padding: ${space(4)};
-//   display: flex;
-//   justify-content: space-between;
-// `;
-
 const fullPageCss = css`
   position: absolute;
   top: 0;
