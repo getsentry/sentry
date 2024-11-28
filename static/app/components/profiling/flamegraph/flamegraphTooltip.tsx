@@ -106,9 +106,9 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
 
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
+      canvasBounds={props.canvasBounds}
       canvasView={props.flamegraphView}
     >
       <FlamegraphTooltipFrameMainInfo>
@@ -140,7 +140,7 @@ interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
 function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -173,7 +173,7 @@ interface FlamechartTooltipProps extends FlamegraphTooltipProps {
 function FlamechartTooltip(props: FlamechartTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
+      canvasBounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}

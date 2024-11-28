@@ -6,39 +6,78 @@ import {space} from 'sentry/styles/space';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import theme from 'sentry/utils/theme';
+
+// The cursor icon is drawn with an origin in the top left, which means that if we render
+// a tooltip directly at the cursor's position, it will overlap with the cursor icon.
+//          x      <- client x
+//          |----| <- cursor icon
+//          |-------------| <- tooltip
+//
+// This wont happen if we draw the tooltip to the left of the cursor, as the cursor icon will
+// be drawn to right of the tooltip. The offset helps us correct this and remove the overlap.
+//               x      <- client x offset
+//               |----| <- cursor icon
+// |-------------|      <- tooltip
+
+// We only need to do this when drawing the tooltip on the left side of the cursor, as
+// the origin is in the correct position when drawing the tooltip on the right side.
+const CURSOR_LEFT_OFFSET_PX = 6;
+const CURSOR_TOP_OFFSET_PX = 4;
+// Gap between the tooltip and container edge for each side
+const WIDTH_OFFSET = 8;
 
 function computeBestTooltipPlacement(
   cursor: vec2,
-  container: Rect,
-  tooltip: DOMRect
+  tooltip: DOMRect,
+  canvas: Rect,
+  container: Rect
 ): string {
   // This is because the cursor's origin is in the top left corner of the arrow, so we want
   // to offset it just enough so that the tooltip does not overlap with the arrow's tail.
   // When the tooltip placed to the left of the cursor, we do not have that issue and hence
   // no offset is applied.
-  const OFFSET_PX = 6;
-  let left = cursor[0] + OFFSET_PX;
-  const top = cursor[1] + OFFSET_PX;
+  const cursorLeft = cursor[0];
+  const cursorTop = cursor[1];
 
-  if (cursor[0] > container.width / 2) {
-    left = cursor[0] - tooltip.width; // No offset is applied here as tooltip is placed to the left
+  let left = cursorLeft;
+
+  if (cursor[0] > canvas.width / 2) {
+    left = cursor[0] - tooltip.width;
+  } else {
+    // when the tooltip is on the left, we need to add the padding from left side of the container
+    left += CURSOR_LEFT_OFFSET_PX;
   }
 
-  return `translate(${left || 0}px, ${top || 0}px)`;
+  if (left <= -canvas.left + WIDTH_OFFSET) {
+    // when the tooltip is on the left, we need to add the padding from left side of the container
+    left = -canvas.left + WIDTH_OFFSET;
+  }
+
+  if (left + canvas.x + tooltip.width >= container.x + container.width - WIDTH_OFFSET) {
+    const offset = left + canvas.x + tooltip.width - (container.x + container.width);
+    // when the tooltip is on the right, we need to subtract the padding from right side of the container
+    left -= offset + WIDTH_OFFSET;
+  }
+
+  return `translate(${left}px, ${cursorTop + CURSOR_TOP_OFFSET_PX}px)`;
 }
 
 interface BoundTooltipProps {
-  bounds: Rect;
   canvas: FlamegraphCanvas;
+  canvasBounds: Rect;
   canvasView: CanvasView<any>;
   cursor: vec2;
   children?: React.ReactNode;
+  containerBounds?: Rect;
 }
 
+const DEFAULT_BOUNDS = Rect.Empty();
+
 function BoundTooltip({
-  bounds,
+  containerBounds,
+  canvasBounds,
   canvas,
   cursor,
   canvasView,
@@ -57,6 +96,20 @@ function BoundTooltip({
     physicalSpaceCursor,
     canvas.physicalToLogicalSpace
   );
+
+  const containerBoundsRef = useRef<Rect>(containerBounds ?? DEFAULT_BOUNDS);
+
+  if (containerBounds) {
+    containerBoundsRef.current = containerBounds;
+  } else if (containerBoundsRef.current.isEmpty()) {
+    const bodyRect = document.body.getBoundingClientRect();
+    containerBoundsRef.current = new Rect(
+      bodyRect.x,
+      bodyRect.y,
+      bodyRect.width,
+      bodyRect.height
+    );
+  }
 
   const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
   const rafIdRef = useRef<number | undefined>();
@@ -78,12 +131,13 @@ function BoundTooltip({
 
         node.style.transform = computeBestTooltipPlacement(
           logicalSpaceCursor,
-          bounds,
-          sizeCache.current.size
+          sizeCache.current.size,
+          canvasBounds,
+          containerBoundsRef.current
         );
       });
     },
-    [bounds, logicalSpaceCursor, children]
+    [canvasBounds, logicalSpaceCursor, children]
   );
 
   return (
@@ -94,7 +148,7 @@ function BoundTooltip({
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
         zIndex: theme.zIndex.tooltip,
-        maxWidth: bounds.width,
+        maxWidth: containerBoundsRef.current.width - 2 * WIDTH_OFFSET,
       }}
     >
       {children}
