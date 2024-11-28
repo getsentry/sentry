@@ -110,6 +110,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   return (
     <BaseChart
       ref={chartRef}
+      autoHeightResize
       series={[
         ...completeSeries.map(timeserie => {
           return LineSeries({
