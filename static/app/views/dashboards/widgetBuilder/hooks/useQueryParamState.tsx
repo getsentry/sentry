@@ -19,7 +19,7 @@ interface UseQueryParamStateProps<T> {
  * @param decoder - A function to decode the query param value into the desired type
  * @returns A tuple containing the current state and a function to update the state
  */
-export function useQueryParamState<T>({
+export function useQueryParamState<T = string>({
   fieldName,
   decoder,
 }: UseQueryParamStateProps<T>): [T | undefined, (newField: T | undefined) => void] {
@@ -35,7 +35,10 @@ export function useQueryParamState<T>({
   const [localState, setLocalState] = useState<T | undefined>(() => {
     return decoder
       ? decoder(parsedQueryParams[fieldName])
-      : (parsedQueryParams[fieldName] as T);
+      : // TODO(nar): This is a temporary fix to avoid type errors
+        // When the decoder isn't provided, we should return the value
+        // if T is a string, or else return undefined
+        (parsedQueryParams[fieldName] as T);
   });
 
   // Debounce the update to the URL query params
