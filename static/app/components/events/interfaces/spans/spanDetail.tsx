@@ -22,7 +22,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {
   generateIssueEventTarget,
@@ -106,7 +105,7 @@ type Props = {
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
-  const profileId = useTransactionProfileId();
+  const profileId = props.event.contexts.profile?.profile_id;
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
 
