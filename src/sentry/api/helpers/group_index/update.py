@@ -187,7 +187,7 @@ def update_groups(
 
     try:
         serializer = validate_request(request, projects, data)
-    except serializers.ValidationError as exc:
+    except ValidationError as exc:
         return Response({"detail": str(exc)}, status=400)
 
     if serializer is None:
@@ -199,20 +199,6 @@ def update_groups(
     project_lookup = {p.id: p for p in projects}
 
     acting_user = user if user.is_authenticated else None
-
-    if search_fn and not group_ids:
-        try:
-            cursor_result, _ = search_fn(
-                {
-                    "limit": BULK_MUTATION_LIMIT,
-                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-                }
-            )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
-
-        group_list = list(cursor_result)
-        group_ids = [g.id for g in group_list]
 
     group_project_ids = {g.project_id for g in group_list}
     # filter projects down to only those that have groups in the search results
