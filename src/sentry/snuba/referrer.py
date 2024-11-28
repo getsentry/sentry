@@ -406,7 +406,6 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
-    API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
     API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
         "api.profiling.profile-flamegraph-transaction-candidates"
     )
