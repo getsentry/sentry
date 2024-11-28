@@ -12,7 +12,6 @@ import {
 } from 'sentry/views/insights/mobile/screenRendering/settings';
 import {ScreenSummaryContent} from 'sentry/views/insights/mobile/ui/views/screenSummaryPage';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 function ScreenRenderingSummary() {
@@ -46,7 +45,6 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName={ModuleName.SCREEN_RENDERING}
       pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features={MODULE_FEATURE_MAP[ModuleName.SCREEN_RENDERING]}
     >
       <ScreenRenderingSummary />
     </ModulePageProviders>

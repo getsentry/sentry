@@ -12,43 +12,14 @@ const baseRules = {
   /**
    * Variables
    */
-  // https://eslint.org/docs/rules/no-shadow
-  'no-shadow': ['error'],
-
   // https://eslint.org/docs/rules/no-shadow-restricted-names
   'no-shadow-restricted-names': ['error'],
-
-  // https://eslint.org/docs/rules/no-undef
-  'no-undef': ['error'],
-
-  // https://eslint.org/docs/rules/no-unused-vars
-  'no-unused-vars': [
-    'error',
-    {
-      vars: 'all',
-      args: 'none',
-
-      // Ignore vars that start with an underscore
-      // e.g. if you want to omit a property using object spread:
-      //
-      //   const {name: _name, ...props} = this.props;
-      //
-      varsIgnorePattern: '^_',
-      argsIgnorePattern: '^_',
-    },
-  ],
-
-  // https://eslint.org/docs/rules/no-use-before-define
-  'no-use-before-define': ['error', {functions: false}],
 
   /**
    * Possible errors
    */
   // https://eslint.org/docs/rules/no-cond-assign
   'no-cond-assign': ['error', 'always'],
-
-  // https://eslint.org/docs/rules/no-console
-  'no-console': ['warn'],
 
   // https://eslint.org/docs/rules/no-alert
   'no-alert': ['error'],
@@ -272,14 +243,6 @@ const reactReactRules = {
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md
   'react/no-deprecated': ['error'],
 
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
-  'react/no-is-mounted': ['warn'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md
-  // Recommended to use callback refs instead
-  // TODO: Upgrade sentry to use callback refs
-  'react/no-find-dom-node': ['warn'],
-
   // Prevent usage of the return value of React.render
   // deprecation: https://facebook.github.io/react/docs/react-dom.html#render
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md
@@ -310,10 +273,6 @@ const reactReactRules = {
 
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
   'react/no-typos': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-string-refs.md
-  // This is now considered legacy, callback refs preferred
-  'react/no-string-refs': ['warn'],
 
   // Prevent invalid characters from appearing in markup
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
@@ -416,16 +375,6 @@ const reactImportRules = {
     },
   ],
 
-  // Enforce a convention in module import order
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/order.md
-  'import/order': [
-    'error',
-    {
-      groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
-      'newlines-between': 'always',
-    },
-  ],
-
   // Require a newline after the last import/require in a group
   // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/newline-after-import.md
   'import/newline-after-import': ['error'],
@@ -499,7 +448,6 @@ const reactImportRules = {
 };
 
 const reactJestRules = {
-  'jest/no-large-snapshots': ['warn', {maxSize: 2000}],
   'jest/no-disabled-tests': 'error',
 };
 
@@ -540,22 +488,6 @@ const reactRules = {
     'asc',
     {caseSensitive: true, natural: false, requiredFirst: true},
   ],
-
-  // Disallow importing `import React from 'react'`. This is not needed since
-  // React 17. We prefer the named imports for potential tree-shaking gains
-  // in the future.
-  'no-restricted-imports': [
-    'error',
-    {
-      paths: [
-        {
-          name: 'react',
-          importNames: ['default'],
-          message: 'Prefer named React imports (React types DO NOT need imported!)',
-        },
-      ],
-    },
-  ],
 };
 
 const appRules = {
@@ -572,6 +504,7 @@ const appRules = {
   // no-undef is redundant with typescript as tsc will complain
   // A downside is that we won't get eslint errors about it, but your editors should
   // support tsc errors so....
+  // https://eslint.org/docs/rules/no-undef
   'no-undef': 'off',
 
   // Let formatter handle this
@@ -579,12 +512,14 @@ const appRules = {
 
   /**
    * Need to use typescript version of these rules
+   * https://eslint.org/docs/rules/no-shadow
    */
   'no-shadow': 'off',
   '@typescript-eslint/no-shadow': 'error',
 
   // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
   // fix them all, so we'll have to incrementally update.
+  // https://eslint.org/docs/rules/no-unused-vars
   'no-unused-vars': 'off',
   '@typescript-eslint/no-unused-vars': [
     'error',
@@ -606,6 +541,7 @@ const appRules = {
     },
   ],
 
+  // https://eslint.org/docs/rules/no-use-before-define
   'no-use-before-define': 'off',
   // This seems to have been turned on while previously it had been off
   '@typescript-eslint/no-use-before-define': ['off'],
@@ -787,6 +723,7 @@ const appRules = {
 };
 
 const strictRules = {
+  // https://eslint.org/docs/rules/no-console
   'no-console': ['error'],
 
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md

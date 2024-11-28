@@ -1,6 +1,5 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 import isEqual from 'lodash/isEqual';
 import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
@@ -32,6 +31,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -40,6 +40,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlProvider} from 'sentry/utils/performance/contexts/onDemandControl';
+import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -54,6 +55,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
+import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -1135,8 +1137,22 @@ class DashboardDetail extends Component<Props, State> {
     );
   }
 
+  /**
+   * This is a temporary component to test the new widget builder hook during development.
+   */
+  renderDevWidgetBuilder() {
+    return <DevBuilder />;
+  }
+
   render() {
-    const {organization} = this.props;
+    const {organization, location} = this.props;
+
+    if (
+      organization.features.includes('dashboards-widget-builder-redesign') &&
+      decodeScalar(location.query?.devBuilder) === 'true'
+    ) {
+      return this.renderDevWidgetBuilder();
+    }
 
     if (this.isWidgetBuilderRouter) {
       return this.renderWidgetBuilder();
