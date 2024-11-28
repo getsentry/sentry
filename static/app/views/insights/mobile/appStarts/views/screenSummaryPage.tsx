@@ -210,11 +210,7 @@ export function ScreenSummaryContentPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="app_start"
-      pageTitle={t('Screen Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="app_start" pageTitle={t('Screen Summary')}>
       <ScreenSummary />
     </ModulePageProviders>
   );

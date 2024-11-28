@@ -213,11 +213,7 @@ export function LLMMonitoringPage({params}: Props) {
 
 function PageWithProviders({params}: Props) {
   return (
-    <ModulePageProviders
-      moduleName="ai"
-      pageTitle={t('Pipeline Summary')}
-      features="insights-addon-modules"
-    >
+    <ModulePageProviders moduleName="ai" pageTitle={t('Pipeline Summary')}>
       <LLMMonitoringPage params={params} />
     </ModulePageProviders>
   );
