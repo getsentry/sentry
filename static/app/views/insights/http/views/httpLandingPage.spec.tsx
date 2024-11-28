@@ -15,7 +15,7 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let spanListRequestMock, spanChartsRequestMock;
 
@@ -39,7 +39,7 @@ describe('HTTPLandingPage', function () {
   });
 
   jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
+    pathname: '/insights/backend/http/',
     search: '',
     query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
     hash: '',

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
@@ -21,7 +20,6 @@ import {
   useEAPSpans,
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
   EAPNumberOfPipelinesChart,
   EAPPipelineDurationChart,
@@ -33,7 +31,6 @@ import {
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -52,7 +49,6 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -120,46 +116,23 @@ export function LLMMonitoringPage({params}: Props) {
   );
   const tokenUsedMetric = (useEAP ? eapTokenData[0] : totalTokenData[0]) ?? {};
 
-  const crumbs = useModuleBreadcrumbs('ai');
-
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Pipeline Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>
-                {spanDescription}
-                <FeatureBadge type={RELEASE_LEVEL} />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
-
-        {isInDomainView && (
-          <AiHeader
-            headerTitle={
-              <Fragment>
-                {spanDescription}
-                <FeatureBadge type={RELEASE_LEVEL} />
-              </Fragment>
-            }
-            breadcrumbs={[
-              {
-                label: t('Pipeline Summary'),
-              },
-            ]}
-            module={ModuleName.AI}
-          />
-        )}
+        <AiHeader
+          headerTitle={
+            <Fragment>
+              {spanDescription}
+              <FeatureBadge type={RELEASE_LEVEL} />
+            </Fragment>
+          }
+          breadcrumbs={[
+            {
+              label: t('Pipeline Summary'),
+            },
+          ]}
+          module={ModuleName.AI}
+        />
         <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
           <Layout.Body>
             <Layout.Main fullWidth>

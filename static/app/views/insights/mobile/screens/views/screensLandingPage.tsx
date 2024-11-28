@@ -2,10 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -26,7 +23,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -50,13 +46,10 @@ import {
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const moduleName = ModuleName.MOBILE_SCREENS;
-  const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
@@ -294,42 +287,19 @@ export function ScreensLandingPage() {
     <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
       <Layout.Page>
         <PageAlertProvider>
-          {!isInDomainView && (
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs crumbs={crumbs} />
-                <Layout.Title>
-                  {MODULE_TITLE}
-                  <PageHeadingQuestionTooltip
-                    docsUrl={MODULE_DOC_LINK}
-                    title={MODULE_DESCRIPTION}
-                  />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  {isProjectCrossPlatform && <PlatformSelector />}
-                  <FeedbackWidgetButton />
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-          )}
-          {isInDomainView && (
-            <MobileHeader
-              headerTitle={
-                <Fragment>
-                  {MODULE_TITLE}
-                  <PageHeadingQuestionTooltip
-                    docsUrl={MODULE_DOC_LINK}
-                    title={MODULE_DESCRIPTION}
-                  />
-                </Fragment>
-              }
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
-              module={ModuleName.MOBILE_SCREENS}
-            />
-          )}
-
+          <MobileHeader
+            headerTitle={
+              <Fragment>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Fragment>
+            }
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+            module={moduleName}
+          />
           <Layout.Body>
             <Layout.Main fullWidth>
               <Container>
