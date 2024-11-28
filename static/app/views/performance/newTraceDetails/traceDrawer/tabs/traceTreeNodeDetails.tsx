@@ -12,10 +12,9 @@ import {
 import type {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../../traceRenderers/virtualizedViewManager';
+import {AutogroupNodeDetails} from '../details/autogroup';
 import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
-import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
-import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
 import {SpanNodeDetails} from '../details/span/index';
 import {TransactionNodeDetails} from '../details/transaction/index';
 
@@ -41,12 +40,8 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <ErrorNodeDetails {...props} />;
   }
 
-  if (isParentAutogroupedNode(props.node)) {
-    return <ParentAutogroupNodeDetails {...props} />;
-  }
-
-  if (isSiblingAutogroupedNode(props.node)) {
-    return <SiblingAutogroupNodeDetails {...props} />;
+  if (isParentAutogroupedNode(props.node) || isSiblingAutogroupedNode(props.node)) {
+    return <AutogroupNodeDetails {...props} />;
   }
 
   if (isMissingInstrumentationNode(props.node)) {

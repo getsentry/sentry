@@ -73,7 +73,7 @@ const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${space(1)};
+  padding: ${p => (p.hasNewTraceUi ? `${space(1)} ${space(2)}` : space(1))};
 
   ${DataSection} {
     padding: 0;
@@ -226,7 +226,7 @@ const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1.5)};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -553,7 +553,7 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
-  margin: ${space(2)} 0 ${space(1.5)} 0;
+  margin: ${space(3)} 0 ${space(1.5)} 0;
 `;
 
 const VerticalLine = styled('div')`
