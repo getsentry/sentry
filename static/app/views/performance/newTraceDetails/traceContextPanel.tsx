@@ -3,16 +3,27 @@ import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import type {EventTransaction} from 'sentry/types/event';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 700;
 
-export function TraceContextPanel() {
+type Props = {
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+};
+
+export function TraceContextPanel({rootEvent}: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [contextPaneHeight, setContextPaneHeight] = useState(MIN_HEIGHT);
 
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(MIN_HEIGHT);
+
+  console.dir(rootEvent);
+  const hasMeasurements = rootEvent.data?.measurements;
 
   const handleMouseDown = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -58,7 +69,9 @@ export function TraceContextPanel() {
         <IconGrabbable color="gray500" />
       </GrabberContainer>
 
-      <TraceContextContainer height={contextPaneHeight}>hello</TraceContextContainer>
+      <TraceContextContainer height={contextPaneHeight}>
+        {hasMeasurements && <WebVitalMeters />}
+      </TraceContextContainer>
     </Container>
   );
 }

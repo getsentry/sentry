@@ -102,6 +102,7 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -127,6 +128,7 @@ function logTraceMetadata(
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
+  const hasTraceNewUi = useHasTraceNewUi();
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
     // null and undefined are not valid trace slugs, but they can be passed
@@ -228,7 +230,7 @@ export function TraceView() {
                 source="performance"
                 isEmbedded={false}
               />
-              <TraceContextPanel />
+              {hasTraceNewUi && <TraceContextPanel rootEvent={rootEvent} />}
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
@@ -275,7 +277,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
-
+  const hasTraceNewUi = useHasTraceNewUi();
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
   const traceView = useMemo(() => new TraceViewModel(), []);
@@ -1024,7 +1026,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </TraceToolbar>
-      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
+      <TraceGrid
+        layout={traceState.preferences.layout}
+        ref={setTraceGridRef}
+        hasTraceNewUi={hasTraceNewUi}
+      >
         <Trace
           trace={props.tree}
           rerender={rerender}
@@ -1122,6 +1128,7 @@ const TraceToolbar = styled('div')`
 
 const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+  hasTraceNewUi: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -1137,8 +1144,13 @@ const TraceGrid = styled('div')<{
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  border-bottom: none;
+
+  ${p =>
+    p.hasTraceNewUi
+      ? `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`
+      : `border-radius: ${p.theme.borderRadius};`}
+  ${p => (p.hasTraceNewUi ? 'border-bottom: none;' : '')}
+
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */
