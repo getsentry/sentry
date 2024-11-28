@@ -1,6 +1,5 @@
 from collections import defaultdict
 from typing import TypedDict
-from xmlrpc.client import boolean
 
 import orjson
 
@@ -194,7 +193,7 @@ class DashboardListResponse(TypedDict):
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
-    isFavourited: boolean
+    isFavourited: bool
 
 
 class DashboardListSerializer(Serializer):
