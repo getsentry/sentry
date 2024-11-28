@@ -9,14 +9,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-interface UseQueryParamStateWithScalarDecoder {
-  fieldName: string;
-  decoder?: typeof decodeScalar;
-  deserializer?: undefined;
-  serializer?: undefined;
-}
-
-interface UseQueryParamStateWithScalarDecoderSerializers<T> {
+interface UseQueryParamStateWithScalarDecoder<T> {
   fieldName: string;
   decoder?: typeof decodeScalar;
   deserializer?: (value: ReturnType<typeof decodeScalar>) => T;
@@ -31,8 +24,7 @@ interface UseQueryParamStateWithListDecoder<T> {
 }
 
 type UseQueryParamStateProps<T> =
-  | UseQueryParamStateWithScalarDecoder
-  | UseQueryParamStateWithScalarDecoderSerializers<T>
+  | UseQueryParamStateWithScalarDecoder<T>
   | UseQueryParamStateWithListDecoder<T>;
 
 /**
