@@ -18,7 +18,7 @@ import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAnd
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
-  incomplete?: boolean;
+  dataCompletenessDelay?: number;
   meta?: Meta;
   utc?: boolean;
 }
@@ -27,6 +27,8 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   const chartRef = useRef<ReactEchartsRef>(null);
   const {meta} = props;
 
+  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
+
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
@@ -34,12 +36,14 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   let completeSeries: TimeseriesData[] = props.timeseries;
   const incompleteSeries: TimeseriesData[] = [];
 
-  if (props.incomplete) {
+  if (dataCompletenessDelay > 0) {
     completeSeries = [];
 
     props.timeseries.forEach(timeserie => {
-      const [completeSerie, incompleteSerie] =
-        splitSeriesIntoCompleteAndIncomplete(timeserie);
+      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+        timeserie,
+        dataCompletenessDelay
+      );
 
       if (completeSerie && completeSerie.data.length > 0) {
         completeSeries.push(completeSerie);

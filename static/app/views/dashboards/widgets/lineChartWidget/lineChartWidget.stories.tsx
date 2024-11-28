@@ -76,10 +76,10 @@ export default storyBook(LineChartWidget, story => {
         </p>
 
         <p>
-          The <code>incomplete</code> prop indicates that this data is live, and the last
-          few buckets might not have complete data. This will plot the last few buckets on
-          the chart with a dotted line. The number of incomplete buckets is determined by
-          a hard-coded average ingestion delay value.
+          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
+          and the last few buckets might not have complete data. The delay is a number in
+          seconds. Any data bucket that happens in that delay window will be plotted with
+          a dotted line. By default the delay is <code>0</code>
         </p>
 
         <SideBySide>
@@ -102,12 +102,12 @@ export default storyBook(LineChartWidget, story => {
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
+              dataCompletenessDelay={60 * 60 * 3}
               timeseries={[
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
               utc
-              incomplete
               meta={{
                 fields: {
                   'p99(span.duration)': 'duration',

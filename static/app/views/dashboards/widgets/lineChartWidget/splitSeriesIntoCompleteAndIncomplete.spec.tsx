@@ -32,7 +32,10 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       ],
     };
 
-    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(serie);
+    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+      serie,
+      90
+    );
 
     expect(completeSerie?.data).toEqual([
       {
@@ -75,7 +78,10 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       ],
     };
 
-    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(serie);
+    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+      serie,
+      90
+    );
 
     expect(completeSerie).toEqual(undefined);
 
@@ -126,7 +132,10 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       ],
     };
 
-    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(serie);
+    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+      serie,
+      90
+    );
 
     expect(completeSerie?.data).toEqual([
       {
@@ -184,7 +193,10 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       ],
     };
 
-    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(serie);
+    const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+      serie,
+      90
+    );
 
     expect(completeSerie?.data).toEqual([
       {

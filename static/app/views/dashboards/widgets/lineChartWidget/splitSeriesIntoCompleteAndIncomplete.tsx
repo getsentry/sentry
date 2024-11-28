@@ -3,7 +3,8 @@ import partition from 'lodash/partition';
 import type {TimeseriesData} from '../common/types';
 
 export function splitSeriesIntoCompleteAndIncomplete(
-  serie: TimeseriesData
+  serie: TimeseriesData,
+  delay: number
 ): (TimeseriesData | undefined)[] {
   const penultimateDatum = serie.data.at(-2);
   const finalDatum = serie.data.at(-1);
@@ -15,7 +16,7 @@ export function splitSeriesIntoCompleteAndIncomplete(
       new Date(penultimateDatum.timestamp).getTime();
   }
 
-  const ingestionDelayTimestamp = Date.now() - AVERAGE_INGESTION_DELAY_MS;
+  const ingestionDelayTimestamp = Date.now() - delay * 1000;
 
   const [completeData, incompleteData] = partition(serie.data, datum => {
     const bucketEndTimestamp = new Date(datum.timestamp).getTime() + bucketSize;
@@ -46,5 +47,3 @@ export function splitSeriesIntoCompleteAndIncomplete(
       : undefined,
   ];
 }
-
-const AVERAGE_INGESTION_DELAY_MS = 90_000;
