@@ -216,6 +216,7 @@ function DashboardGrid({
         columns={columnCount}
         data-test-id={'dashboard-grid'}
       >
+        <h5>{'My Favourites'}</h5>
         {renderMiniDashboards()}
         {isLoading &&
           rowCount * columnCount > numDashboards &&

@@ -178,7 +178,7 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
-            <Feature features="dashboards-edit-access">
+            <Feature features="dashboards-favourite">
               <Button
                 size="sm"
                 // data-test-id="real-time"
