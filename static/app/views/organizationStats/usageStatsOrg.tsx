@@ -5,6 +5,7 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import {LinkButton} from 'sentry/components/button';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
@@ -20,6 +21,7 @@ import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
 import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
@@ -27,6 +29,7 @@ import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -134,19 +137,31 @@ class UsageStatsOrganization<
 
     const queryDatetime = this.endpointQueryDatetime;
 
+    const groupBy = ['outcome', 'reason'];
+    const category: string[] = [dataCategoryApiName];
+
+    if (
+      hasDynamicSamplingCustomFeature(this.props.organization) &&
+      dataCategoryApiName === 'span'
+    ) {
+      groupBy.push('category');
+      category.push('span_indexed');
+    }
+
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['outcome', 'reason'],
+      groupBy,
       project: projectIds,
       field: ['sum(quantity)'],
-      category: dataCategoryApiName,
+      category,
     };
   }
 
   get chartData(): {
     cardStats: {
       accepted?: string;
+      accepted_stored?: string;
       filtered?: string;
       invalid?: string;
       rateLimited?: string;
@@ -342,7 +357,8 @@ class UsageStatsOrganization<
       router,
       dataCategoryApiName,
     } = this.props;
-    const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
+    const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
+      this.chartData.cardStats;
     const dataCategoryNameLower = dataCategoryName.toLowerCase();
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
@@ -373,14 +389,17 @@ class UsageStatsOrganization<
           }
         ),
         score: accepted,
-        trend: (
-          <UsageStatsPerMin
-            dataCategoryApiName={dataCategoryApiName}
-            dataCategory={dataCategory}
-            organization={organization}
-            projectIds={projectIds}
-          />
-        ),
+        trend:
+          dataCategoryApiName === 'span' && accepted_stored ? (
+            <SpansStored organization={organization} acceptedStored={accepted_stored} />
+          ) : (
+            <UsageStatsPerMin
+              dataCategoryApiName={dataCategoryApiName}
+              dataCategory={dataCategory}
+              organization={organization}
+              projectIds={projectIds}
+            />
+          ),
       },
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
@@ -591,3 +610,35 @@ const FooterDate = styled('div')`
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
+
+type SpansStoredProps = {
+  acceptedStored: string;
+  organization: Organization;
+};
+
+const StyledSettingsButton = styled(LinkButton)`
+  top: 2px;
+`;
+
+const StyledTextWrapper = styled('div')`
+  min-height: 22px;
+`;
+
+function SpansStored({organization, acceptedStored}: SpansStoredProps) {
+  return (
+    <StyledTextWrapper>
+      {t('%s stored', acceptedStored)}{' '}
+      {organization.access.includes('org:read') &&
+        hasDynamicSamplingCustomFeature(organization) && (
+          <StyledSettingsButton
+            borderless
+            size="zero"
+            icon={<IconSettings color="subText" />}
+            title={t('Dynamic Sampling Settings')}
+            aria-label={t('Dynamic Sampling Settings')}
+            to={`/settings/${organization.slug}/dynamic-sampling/`}
+          />
+        )}
+    </StyledTextWrapper>
+  );
+}

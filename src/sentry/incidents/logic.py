@@ -60,12 +60,14 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
@@ -74,7 +76,8 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
     IntegrationError,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba import spans_rpc
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
@@ -85,6 +88,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
@@ -417,20 +421,61 @@ def get_incident_aggregates(
         snuba_query,
         incident.organization_id,
     )
-    query_builder = _build_incident_query_builder(
-        incident, entity_subscription, start, end, windowed_stats
-    )
-    try:
-        results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
-    except Exception:
-        metrics.incr(
-            "incidents.get_incident_aggregates.snql.query.error",
-            tags={
-                "dataset": snuba_query.dataset,
-                "entity": get_entity_key_from_query_builder(query_builder).value,
-            },
+    if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
+        start, end = _calculate_incident_time_range(
+            incident, start, end, windowed_stats=windowed_stats
         )
-        raise
+
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+
+        params = SnubaParams(
+            environments=[snuba_query.environment],
+            projects=[Project.objects.get_from_cache(id=project_id) for project_id in project_ids],
+            organization=Organization.objects.get_from_cache(id=incident.organization_id),
+            start=start,
+            end=end,
+        )
+
+        try:
+            results = spans_rpc.run_table_query(
+                params,
+                query_string=snuba_query.query,
+                selected_columns=[entity_subscription.aggregate],
+                orderby=None,
+                offset=0,
+                limit=1,
+                referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                config=SearchResolverConfig(
+                    auto_fields=True,
+                ),
+            )
+
+        except Exception:
+            metrics.incr(
+                "incidents.get_incident_aggregates.snql.query.error",
+                tags={
+                    "dataset": snuba_query.dataset,
+                    "entity": EntityKey.EAPSpans.value,
+                },
+            )
+            raise
+    else:
+        query_builder = _build_incident_query_builder(
+            incident, entity_subscription, start, end, windowed_stats
+        )
+        try:
+            results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
+        except Exception:
+            metrics.incr(
+                "incidents.get_incident_aggregates.snql.query.error",
+                tags={
+                    "dataset": snuba_query.dataset,
+                    "entity": get_entity_key_from_query_builder(query_builder).value,
+                },
+            )
+            raise
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]

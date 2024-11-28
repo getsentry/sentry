@@ -30,34 +30,7 @@ function useSortsImpl({
   location,
   navigate,
 }: ImplOptions): [Sort[], (newSorts: Sort[]) => void] {
-  const sorts = useMemo(() => {
-    const rawSorts = decodeSorts(location.query.sort);
-
-    // Try to assign a default sort if possible
-    if (!rawSorts.length || !rawSorts.some(rawSort => fields.includes(rawSort.field))) {
-      if (fields.includes('timestamp')) {
-        return [
-          {
-            field: 'timestamp',
-            kind: 'desc' as const,
-          },
-        ];
-      }
-
-      if (fields.length) {
-        return [
-          {
-            field: fields[0],
-            kind: 'desc' as const,
-          },
-        ];
-      }
-
-      return [];
-    }
-
-    return rawSorts;
-  }, [fields, location.query.sort]);
+  const sorts = useMemo(() => getSorts(fields, location), [fields, location]);
 
   const setSort = useCallback(
     (newSorts: Sort[]) => {
@@ -76,4 +49,33 @@ function useSortsImpl({
   );
 
   return [sorts, setSort];
+}
+
+export function getSorts(fields: Field[], location: Location) {
+  const rawSorts = decodeSorts(location.query.sort);
+
+  // Try to assign a default sort if possible
+  if (!rawSorts.length || !rawSorts.some(rawSort => fields.includes(rawSort.field))) {
+    if (fields.includes('timestamp')) {
+      return [
+        {
+          field: 'timestamp',
+          kind: 'desc' as const,
+        },
+      ];
+    }
+
+    if (fields.length) {
+      return [
+        {
+          field: fields[0],
+          kind: 'desc' as const,
+        },
+      ];
+    }
+
+    return [];
+  }
+
+  return rawSorts;
 }

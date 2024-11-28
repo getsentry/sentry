@@ -71,7 +71,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         serializer = DiscoverSavedQuerySerializer(
             # HACK: To ensure serializer data is valid, pass along a name temporarily
             data={**request.data, "name": "New Query"},
-            context={"params": params},
+            context={"params": params, "organization": organization, "user": request.user},
         )
         if not serializer.is_valid():
             raise ParseError(serializer.errors)

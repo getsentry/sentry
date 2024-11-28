@@ -34,6 +34,10 @@ export interface NavItemLayout<Item extends NavSidebarItem | NavSubmenuItem> {
  */
 export interface NavSidebarItem extends NavItem {
   /**
+   * A unique identifier string, used as a key for analytics
+   */
+  analyticsKey: string;
+  /**
    * The icon to render in the sidebar
    */
   icon: React.ReactElement;

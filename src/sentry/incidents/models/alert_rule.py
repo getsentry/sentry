@@ -242,26 +242,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
 
 @region_silo_model
-class AlertRuleExcludedProjects(Model):
-    """
-    Excludes a specific project from an AlertRule
-
-    NOTE: This feature is not currently utilized.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleexcludedprojects"
-        unique_together = (("alert_rule", "project"),)
-
-
-@region_silo_model
 class AlertRuleProjects(Model):
     """
     Specify a project for the AlertRule
@@ -301,15 +281,6 @@ class AlertRule(Model):
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
-
-    excluded_projects = models.ManyToManyField(
-        "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )  # NOTE: This feature is not currently utilized.
-    # Determines whether we include all current and future projects from this
-    # organization in this rule.
-    include_all_projects = models.BooleanField(
-        default=False
-    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
@@ -480,24 +451,6 @@ class AlertRuleTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletrigger"
         unique_together = (("alert_rule", "label"),)
-
-
-@region_silo_model
-class AlertRuleTriggerExclusion(Model):
-    """
-    Allows us to define a specific trigger to be excluded from a query subscription
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggerexclusion"
-        unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
 class AlertRuleTriggerActionMethod(StrEnum):

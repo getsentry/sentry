@@ -366,7 +366,6 @@ type SpecialFields = {
   replayId: SpecialField;
   'span.description': SpecialField;
   'span.status_code': SpecialField;
-  span_id: SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
   'timestamp.to_hour': SpecialField;
@@ -482,17 +481,6 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
-  span_id: {
-    sortField: 'span_id',
-    renderFunc: data => {
-      const spanId: string | unknown = data?.span_id;
-      if (typeof spanId !== 'string') {
-        return null;
-      }
-
-      return <Container>{getShortEventId(spanId)}</Container>;
-    },
-  },
   'span.description': {
     sortField: 'span.description',
     renderFunc: data => {
@@ -558,7 +546,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'profile.id',
     renderFunc: data => {
       const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string') {
+      if (typeof id !== 'string' || id === '') {
         return emptyValue;
       }
 
