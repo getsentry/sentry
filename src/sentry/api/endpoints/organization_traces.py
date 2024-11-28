@@ -87,11 +87,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
-    metricsMax = serializers.FloatField(required=False)
-    metricsMin = serializers.FloatField(required=False)
-    metricsOp = serializers.CharField(required=False)
-    metricsQuery = serializers.CharField(required=False)
-    mri = serializers.CharField(required=False)
 
     breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
     query = serializers.ListField(
@@ -163,11 +158,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             snuba_params=snuba_params,
             user_queries=serialized.get("query", []),
             sort=serialized.get("sort"),
-            metrics_max=serialized.get("metricsMax"),
-            metrics_min=serialized.get("metricsMin"),
-            metrics_operation=serialized.get("metricsOp"),
-            metrics_query=serialized.get("metricsQuery"),
-            mri=serialized.get("mri"),
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
             get_all_projects=lambda: self.get_projects(
@@ -197,11 +187,6 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
     dataset = serializers.ChoiceField(
         ["spans", "spansIndexed"], required=False, default="spansIndexed"
     )
-    metricsMax = serializers.FloatField(required=False)
-    metricsMin = serializers.FloatField(required=False)
-    metricsOp = serializers.CharField(required=False)
-    metricsQuery = serializers.CharField(required=False)
-    mri = serializers.CharField(required=False)
 
     field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
     sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
@@ -244,11 +229,6 @@ class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
             fields=serialized["field"],
             user_queries=serialized.get("query", []),
             sort=serialized.get("sort"),
-            metrics_max=serialized.get("metricsMax"),
-            metrics_min=serialized.get("metricsMin"),
-            metrics_operation=serialized.get("metricsOp"),
-            metrics_query=serialized.get("metricsQuery"),
-            mri=serialized.get("mri"),
         )
 
         return self.paginate(
@@ -359,11 +339,6 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         user_queries: list[str],
         sort: str | None,
-        metrics_max: float | None,
-        metrics_min: float | None,
-        metrics_operation: str | None,
-        metrics_query: str | None,
-        mri: str | None,
         limit: int,
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
@@ -372,11 +347,6 @@ class TracesExecutor:
         self.snuba_params = snuba_params
         self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
         self.sort = sort
-        self.metrics_max = metrics_max
-        self.metrics_min = metrics_min
-        self.metrics_operation = metrics_operation
-        self.metrics_query = metrics_query
-        self.mri = mri
         self.offset = 0
         self.limit = limit
         self.breakdown_slices = breakdown_slices
@@ -1161,22 +1131,12 @@ class TraceSpansExecutor:
         fields: list[str],
         user_queries: list[str],
         sort: list[str] | None,
-        metrics_max: float | None,
-        metrics_min: float | None,
-        metrics_operation: str | None,
-        metrics_query: str | None,
-        mri: str | None,
     ):
         self.dataset = dataset
         self.snuba_params = snuba_params
         self.trace_id = trace_id
         self.fields = fields
         self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
-        self.metrics_max = metrics_max
-        self.metrics_min = metrics_min
-        self.metrics_operation = metrics_operation
-        self.metrics_query = metrics_query
-        self.mri = mri
         self.sort = sort
 
     def execute(self, offset: int, limit: int):
@@ -1216,8 +1176,6 @@ class TraceSpansExecutor:
         offset: int,
     ) -> BaseQueryBuilder:
         if self.dataset == Dataset.EventsAnalyticsPlatform:
-            # span_keys is not supported in EAP mode because that's a legacy
-            # code path to support metrics that no longer exists
             return self.get_user_spans_query_eap(snuba_params, limit, offset)
         return self.get_user_spans_query_indexed(snuba_params, limit, offset)
 
