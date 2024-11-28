@@ -37,8 +37,9 @@ class TaskworkerClient:
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
             raise
-
-        return response.task
+        if response.HasField("task"):
+            return response.task
+        return None
 
     def update_task(
         self, task_id: str, status: TaskActivationStatus.ValueType, fetch_next: bool = True
@@ -59,4 +60,6 @@ class TaskworkerClient:
             if err.code() == grpc.StatusCode.NOT_FOUND:
                 return None
             raise
-        return response.task
+        if response.HasField("task"):
+            return response.task
+        return None
