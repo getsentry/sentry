@@ -194,7 +194,6 @@ def build_top_event_conditions(
         other_row_conditions = []
         for key in groupby_columns:
             if key == "project.id":
-                key = "project.id"
                 value = resolver.params.project_slug_map[
                     event.get("project", event.get("project.slug"))
                 ]
