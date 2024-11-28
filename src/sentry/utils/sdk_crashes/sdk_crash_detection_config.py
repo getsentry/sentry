@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, unique
 from typing import TypedDict
 
@@ -13,12 +13,22 @@ from sentry.utils.sdk_crashes.path_replacer import (
 
 
 @dataclass
+class FunctionAndPathPattern:
+    """Both the function and path pattern must match for a frame to be considered a SDK frame."""
+
+    function_pattern: str
+    path_pattern: str
+
+
+@dataclass
 class SDKFrameConfig:
     function_patterns: set[str]
 
     path_patterns: set[str]
 
     path_replacer: PathReplacer
+
+    function_and_path_patterns: list[FunctionAndPathPattern] = field(default_factory=list)
 
 
 @unique
@@ -183,6 +193,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.java.spring-boot",
                 "sentry.java.spring-boot.jakarta",
                 "sentry.java.spring.jakarta",
+                # Required for getting Android Runtime Tracer crashes.
+                "sentry.native.android",
             ],
             # The sentry-java SDK sends SDK frames for uncaught exceptions since 7.0.0, which is required for detecting SDK crashes.
             # 7.0.0 was released in Nov 2023, see https://github.com/getsentry/sentry-java/releases/tag/7.0.0
@@ -196,13 +208,33 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 r"com.android.internal.**",
                 r"kotlin.**",
                 r"dalvik.**",
+                r"/apex/com.android.*/lib*/**",
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
                 path_patterns={
                     r"io.sentry.**",
                 },
-                path_replacer=KeepFieldPathReplacer(fields={"module", "filename"}),
+                # The Android Runtime Tracer can crash when users enable profiling in the
+                # Sentry Android SDK. While the Sentry Android SDK doesn't directly cause
+                # these crashes, we must know when they occur. As Sentry doesn't appear in
+                # the stacktrace, we filter for the following specific methods in the
+                # specified Android apex packages.
+                function_and_path_patterns=[
+                    FunctionAndPathPattern(
+                        function_pattern=r"*pthread_getcpuclockid*",
+                        path_pattern=r"/apex/com.android.art/lib64/bionic/libc.so",
+                    ),
+                    FunctionAndPathPattern(
+                        function_pattern=r"*art::Trace::StopTracing*",
+                        path_pattern=r"/apex/com.android.art/lib64/libart.so",
+                    ),
+                    FunctionAndPathPattern(
+                        function_pattern=r"*art::Thread::DumpState*",
+                        path_pattern=r"/apex/com.android.art/lib64/libart.so",
+                    ),
+                ],
+                path_replacer=KeepFieldPathReplacer(fields={"module", "filename", "package"}),
             ),
             sdk_crash_ignore_functions_matchers=set(),
         )
