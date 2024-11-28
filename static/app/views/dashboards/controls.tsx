@@ -9,7 +9,7 @@ import Confirm from 'sentry/components/confirm';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -177,6 +177,23 @@ function Controls({
               >
                 {t('Export Dashboard')}
               </Button>
+            </Feature>
+            <Feature features="dashboards-edit-access">
+              <Button
+                size="sm"
+                // data-test-id="real-time"
+                // title={realtimeTitle}
+                aria-label={'dashboards-favourite'}
+                icon={
+                  <IconStar
+                    // isSolid
+                    // // isSolid={!!keyedTeamsCount}
+                    // // color={'yellow300'}
+                    color={'subText'}
+                  />
+                }
+                // onClick={() => onRealtimeChange(!realtimeActive)}
+              />
             </Feature>
             <Feature features="dashboards-edit-access">
               <EditAccessSelector

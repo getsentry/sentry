@@ -6,6 +6,7 @@ import Card from 'sentry/components/card';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
+import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
@@ -73,6 +74,7 @@ function DashboardCard({
               <DateStatus />
             )}
           </DateSelected>
+          <StyledIconStar size="md" color={'subText'} />
         </CardFooter>
       </CardLink>
 
@@ -168,6 +170,10 @@ const ContextMenuWrapper = styled('div')`
   position: absolute;
   right: ${space(2)};
   bottom: ${space(1)};
+`;
+
+const StyledIconStar = styled(IconStar)`
+  margin-right: 25px;
 `;
 
 export default DashboardCard;

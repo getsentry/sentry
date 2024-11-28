@@ -300,6 +300,7 @@ function ManageDashboards() {
 
   function renderDashboards() {
     return dashboardsLayout === GRID ? (
+      // here
       <DashboardGrid
         api={api}
         dashboards={dashboards}
