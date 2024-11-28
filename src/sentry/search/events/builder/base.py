@@ -87,7 +87,6 @@ class BaseQueryBuilder:
     organization_column: str = "organization.id"
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
-    profile_functions_metrics_builder = False
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()

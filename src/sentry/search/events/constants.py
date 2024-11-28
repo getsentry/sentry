@@ -367,9 +367,6 @@ SPAN_METRICS_MAP = {
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
 }
-PROFILE_METRICS_MAP = {
-    "function.duration": "d:profiles/function.duration@millisecond",
-}
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
