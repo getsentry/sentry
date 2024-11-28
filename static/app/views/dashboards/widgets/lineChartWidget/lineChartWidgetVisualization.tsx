@@ -13,7 +13,6 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 import type {Meta, TimeseriesData} from '../common/types';
 
-import {compareTimeseriesDataByTimestamp} from './compareTimeseriesDataByTimestamp';
 import {formatChartValue} from './formatChartValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
@@ -35,16 +34,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   let completeSeries: TimeseriesData[] = props.timeseries;
   const incompleteSeries: TimeseriesData[] = [];
 
-  // TODO: There's a TypeScript indexing error here. This _could_ in theory be
-  // `undefined`. We need to guard against this in the parent component, and
-  // show an error.
-  const firstSeries = props.timeseries[0];
-
-  const [firstDataPoint, secondDataPoint] = firstSeries?.data
-    ?.sort(compareTimeseriesDataByTimestamp)
-    ?.filter(Boolean);
-
-  if (props.incomplete && firstDataPoint && secondDataPoint) {
+  if (props.incomplete) {
     completeSeries = [];
 
     props.timeseries.forEach(timeserie => {
@@ -60,6 +50,11 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       }
     });
   }
+
+  // TODO: There's a TypeScript indexing error here. This _could_ in theory be
+  // `undefined`. We need to guard against this in the parent component, and
+  // show an error.
+  const firstSeries = props.timeseries[0];
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;
