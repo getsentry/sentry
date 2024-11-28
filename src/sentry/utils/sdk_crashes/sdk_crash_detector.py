@@ -108,6 +108,7 @@ class SDKCrashDetector:
             ) in self.config.sdk_frame_config.function_and_path_patterns:
                 function_pattern = function_and_path_pattern.function_pattern
                 path_pattern = function_and_path_pattern.path_pattern
+
                 function_matches = glob_match(function, function_pattern, ignorecase=True)
                 path_matches = self._path_patters_match_frame({path_pattern}, frame)
 
