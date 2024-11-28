@@ -45,6 +45,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -227,6 +228,7 @@ export function TraceView() {
                 source="performance"
                 isEmbedded={false}
               />
+              <TraceContextPanel />
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
@@ -1135,7 +1137,8 @@ const TraceGrid = styled('div')<{
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  border-bottom: none;
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */
