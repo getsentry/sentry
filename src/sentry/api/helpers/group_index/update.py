@@ -188,7 +188,8 @@ def update_groups(
     try:
         serializer = validate_request(request, projects, data)
     except ValidationError as exc:
-        return Response({"detail": str(exc)}, status=400)
+        logger.error("Validation error: %s", exc)
+        return Response({"detail": "Invalid request data"}, status=400)
 
     if serializer is None:
         return
