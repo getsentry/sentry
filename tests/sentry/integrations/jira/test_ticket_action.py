@@ -129,9 +129,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert ExternalIssue.objects.count() == external_issue_count
             mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_misconfigured_ticket_rule(self, mock_create_issue, mock_record_failure):
+    def test_misconfigured_ticket_rule(self, mock_create_issue, mock_record_event):
         def raise_api_error(*args, **kwargs):
             raise ApiInvalidRequestError("Invalid data entered")
 
@@ -149,12 +149,13 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 # an ApiInvalidRequestError, which is reraised as an IntegrationError.
                 self.trigger(event, rule_object)
 
-            assert mock_record_failure.call_count == 1
-            mock_record_event_args = mock_record_failure.call_args_list[0][0]
-            assert mock_record_event_args[0] is not None
-
-            metric_exception = mock_record_event_args[0]
-            assert isinstance(metric_exception, IntegrationError)
+            assert mock_record_event.call_count == 2
+            start, failure = mock_record_event.mock_calls
+            assert start.args == (EventLifecycleOutcome.STARTED,)
+            assert failure.args == (
+                EventLifecycleOutcome.FAILURE,
+                "Error Communicating with Jira (HTTP 400): unknown error",
+            )
 
     def test_fails_validation(self):
         """
@@ -216,5 +217,8 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             mock_record_event_args = mock_record_halt.call_args_list[0][0]
             assert mock_record_event_args[0] is not None
 
-            metric_exception = mock_record_event_args[0]
-            assert isinstance(metric_exception, IntegrationError)
+            metric_exception_message = mock_record_event_args[0]
+
+            # The error message here is formatted by the Jira integration, and
+            # only includes extracted JSON from the error
+            assert metric_exception_message == "{'foo': ['bar']}"

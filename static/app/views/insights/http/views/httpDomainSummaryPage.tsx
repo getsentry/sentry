@@ -2,9 +2,6 @@ import React, {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -29,7 +26,6 @@ import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
@@ -67,7 +63,7 @@ type Query = {
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
   const {projects} = useProjects();
-  const {isInDomainView, view} = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
 
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
@@ -184,8 +180,6 @@ export function HTTPDomainSummaryPage() {
     !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
   );
 
-  const crumbs = useModuleBreadcrumbs('http');
-
   const headerTitle = (
     <Fragment>
       {project && <ProjectAvatar project={project} size={36} />}
@@ -196,32 +190,7 @@ export function HTTPDomainSummaryPage() {
 
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Domain Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>
-              {project && <ProjectAvatar project={project} size={36} />}
-              {domain || NULL_DOMAIN_DESCRIPTION}
-              <DomainStatusLink domain={domain} />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
+      {view === FRONTEND_LANDING_SUB_PATH && (
         <FrontendHeader
           headerTitle={
             <Fragment>
@@ -239,7 +208,7 @@ export function HTTPDomainSummaryPage() {
         />
       )}
 
-      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+      {view === BACKEND_LANDING_SUB_PATH && (
         <BackendHeader
           headerTitle={headerTitle}
           module={ModuleName.HTTP}

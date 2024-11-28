@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_android import get_crash_event
+from fixtures.sdk_crash_detection.crash_event_android import get_apex_crash_event, get_crash_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -137,6 +137,132 @@ def test_sdk_crash_is_reported_with_android_paths(
         assert system_frame2["function"] == "invoke"
         assert system_frame2["module"] == system_frame_module
         assert system_frame2["filename"] == "Method.java"
+        assert system_frame2["in_app"] is False
+
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["apex_frame_function", "apex_frame_package", "system_frame_package", "detected"],
+    [
+        (
+            "pthread_getcpuclockid",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.art/lib64/libart.so",
+            True,
+        ),
+        (
+            "__pthread_getcpuclockid",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.art/lib64/libart.so",
+            True,
+        ),
+        (
+            "pthread_getcpuclockid(void*)",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.art/lib64/libart.so",
+            True,
+        ),
+        (
+            "pthread_getcpuclocki",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.art/lib64/libart.so",
+            False,
+        ),
+        (
+            "pthread_getcpuclockid",
+            "/apex/com.android.art/lib64/bionic/libc.s",
+            "/apex/com.android.art/lib64/libart.so",
+            False,
+        ),
+        (
+            "art::Trace::StopTracing",
+            "/apex/com.android.art/lib64/libart.so",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            True,
+        ),
+        (
+            "art::Trace::StopTracing_",
+            "/apex/com.android.art/lib64/libart.so",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            True,
+        ),
+        (
+            "art::Trace::StopTracing_",
+            "/apex/com.android.art/lib64/libart.s",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            False,
+        ),
+        (
+            "art::Thread::DumpState",
+            "/apex/com.android.art/lib64/libart.so",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            True,
+        ),
+        (
+            "_art::Thread::DumpState",
+            "/apex/com.android.art/lib64/libart.so",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            True,
+        ),
+        (
+            "_art::Thread::DumpState",
+            "/apex/com.android.art/lib64/libar.so",
+            "/apex/com.android.art/lib64/bionic/libc.so",
+            False,
+        ),
+    ],
+)
+@decorators
+def test_sdk_crash_is_reported_for_android_runtime_tracer_crashes(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    apex_frame_function,
+    apex_frame_package,
+    system_frame_package,
+    detected,
+):
+    event = store_event(
+        data=get_apex_crash_event(
+            apex_frame_function=apex_frame_function,
+            apex_frame_package=apex_frame_package,
+            system_frame_package=system_frame_package,
+        )
+    )
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+
+        stripped_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+
+        assert len(stripped_frames) == 4
+
+        system_frame1 = stripped_frames[0]
+        assert system_frame1["function"] == "__pthread_start"
+        assert system_frame1["raw_function"] == "__pthread_start(void*)"
+        assert system_frame1["symbol"] == "_ZL15__pthread_startPv"
+        assert system_frame1["package"] == "/apex/com.android.runtime/lib/bionic/libc.so"
+        assert system_frame1["in_app"] is False
+
+        apex_frame = stripped_frames[2]
+        assert apex_frame["function"] == apex_frame_function
+        assert apex_frame["symbol"] == apex_frame_function
+        assert apex_frame["package"] == apex_frame_package
+        assert apex_frame["in_app"] is True
+
+        system_frame2 = stripped_frames[3]
+        assert system_frame2["function"] == "invoke"
+        assert system_frame2["package"] == system_frame_package
         assert system_frame2["in_app"] is False
 
     else:
