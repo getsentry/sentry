@@ -179,7 +179,16 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
             assert {"key": "foo", "name": "Foo"} in response.data
 
     def test_tags_list_nums_processed(self):
-        for tag in ["foo", "bar", "baz", "lcp", "fcp"]:
+        for tag in [
+            "foo",
+            "bar",
+            "baz",
+            "lcp",
+            "fcp",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
+        ]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
@@ -208,6 +217,18 @@ class OrganizationEAPSpansTagsEndpointTest(OrganizationSpansTagsEndpointTest):
                 {"key": "tags[baz,number]", "name": "baz"},
                 {"key": "measurements.fcp", "name": "measurements.fcp"},
                 {"key": "tags[foo,number]", "name": "foo"},
+                {
+                    "key": "http.decoded_response_content_length",
+                    "name": "http.decoded_response_content_length",
+                },
+                {
+                    "key": "http.response_content_length",
+                    "name": "http.response_content_length",
+                },
+                {
+                    "key": "http.response_transfer_size",
+                    "name": "http.response_transfer_size",
+                },
                 {"key": "measurements.lcp", "name": "measurements.lcp"},
                 {"key": "span.duration", "name": "span.duration"},
             ]

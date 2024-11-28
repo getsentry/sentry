@@ -235,6 +235,11 @@ SPAN_EAP_COLUMN_MAP = {
     "user.ip": "attr_str[sentry.user.ip]",
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
+    "http.decoded_response_content_length": "attr_num[http.decoded_response_content_length]",
+    "http.response_content_length": "attr_num[http.response_content_length]",
+    "http.response_transfer_size": "attr_num[http.response_transfer_size]",
+    "http.request.body.size": "attr_num[http.request_content_length_uncompressed]",
+    "http.response.body.size": "attr_num[http.response_content_length_uncompressed]",
 }
 
 SPAN_COLUMN_MAP.update(
