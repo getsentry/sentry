@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -53,6 +54,28 @@ function DevBuilder() {
             })
           }
           style={{width: '200px'}}
+        />
+      </Section>
+      <Section>
+        <h1>Dataset:</h1>
+        <div>{state.dataset}</div>
+        <RadioGroup
+          label="Dataset"
+          value={state.dataset ?? null}
+          choices={[
+            [WidgetType.DISCOVER, 'Discover'],
+            [WidgetType.ISSUE, 'Issue'],
+            [WidgetType.RELEASE, 'Release'],
+            [WidgetType.METRICS, 'Metrics'],
+            [WidgetType.ERRORS, 'Errors'],
+            [WidgetType.TRANSACTIONS, 'Transactions'],
+          ]}
+          onChange={newValue =>
+            dispatch({
+              type: BuilderStateAction.SET_DATASET,
+              payload: newValue,
+            })
+          }
         />
       </Section>
     </Body>

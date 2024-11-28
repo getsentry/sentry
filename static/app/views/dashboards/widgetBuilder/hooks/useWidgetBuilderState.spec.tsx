@@ -4,7 +4,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -117,6 +117,48 @@ describe('useWidgetBuilderState', () => {
           query: expect.objectContaining({displayType: DisplayType.AREA}),
         })
       );
+    });
+  });
+
+  describe('dataset', () => {
+    it('returns the dataset from the query params', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {dataset: WidgetType.ISSUE}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      expect(result.current.state.dataset).toBe(WidgetType.ISSUE);
+    });
+
+    it('sets the dataset in the query params', () => {
+      const mockNavigate = jest.fn();
+      mockedUseNavigate.mockReturnValue(mockNavigate);
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.METRICS,
+        });
+      });
+
+      jest.runAllTimers();
+
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({dataset: WidgetType.METRICS}),
+        })
+      );
+    });
+
+    it('returns errors as the default dataset', () => {
+      mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
     });
   });
 });
