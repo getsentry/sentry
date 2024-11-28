@@ -79,6 +79,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
     let deDupedParams = params;
 
     if (Array.isArray(params)) {
+      // We split each series into a complete and incomplete series, and they
+      // have the same name. The two series overlap at one point on the chart,
+      // to create a continuous line. This code prevents both series from
+      // showing up on the tooltip
       const uniqueSeries = new Set<string>();
 
       deDupedParams = params.filter(param => {

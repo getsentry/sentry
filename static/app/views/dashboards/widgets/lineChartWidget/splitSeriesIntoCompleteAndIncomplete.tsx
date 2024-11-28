@@ -22,6 +22,9 @@ export function splitSeriesIntoCompleteAndIncomplete(
     return bucketEndTimestamp < ingestionDelayTimestamp;
   });
 
+  // If there is both complete and incomplete data, prepend the incomplete data
+  // with the final point from the complete data. This way, when the series are
+  // plotted, there's a connecting line between them
   const finalCompletePoint = completeData.at(-1);
 
   if (incompleteData.length > 0 && finalCompletePoint) {
