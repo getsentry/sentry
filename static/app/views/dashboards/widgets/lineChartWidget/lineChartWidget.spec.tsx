@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {LineChartWidget} from './lineChartWidget';
+import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 
 describe('LineChartWidget', () => {
   describe('Layout', () => {
@@ -9,7 +10,7 @@ describe('LineChartWidget', () => {
         <LineChartWidget
           title="eps()"
           description="Number of events per second"
-          timeseries={[]}
+          timeseries={[sampleDurationTimeSeries]}
           meta={{
             fields: {
               'eps()': 'rate',
