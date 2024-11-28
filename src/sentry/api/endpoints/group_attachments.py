@@ -27,6 +27,11 @@ def get_event_ids_from_filters(
     start: datetime | None,
     end: datetime | None,
 ) -> list[str] | None:
+    """
+    Returns a list of Event IDs matching the environment/query filters.
+    If neither are provided it will return `None`, skipping the filter by `EventAttachment.event_id` matches.
+    If at least one is provided, but nothing is matched, it will return `[]`, which will result in no attachment matches (as expected).
+    """
     default_end = timezone.now()
     default_start = default_end - timedelta(days=90)
     try:

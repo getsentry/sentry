@@ -213,3 +213,38 @@ class GroupEventAttachmentsTest(APITestCase):
         assert len(prod_response.data) == 1
         assert prod_response.data[0]["id"] == str(sentry_attachment.id)
         assert prod_response.data[0]["event_id"] == sentry_attachment.event_id
+
+    def test_event_filters_allow_none(self):
+        self.login_as(user=self.user)
+
+        self.create_environment(name="development", project=self.project)
+        event = self.store_event(
+            data={
+                "fingerprint": ["same-group"],
+                "timestamp": before_now(days=1).isoformat(),
+                "tags": {"organization": "sentry"},
+                "environment": "production",
+            },
+            project_id=self.project.id,
+        )
+        attachment = self.create_attachment(event_id=event.event_id, group_id=event.group_id)
+
+        assert event.group is not None
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(f"/api/0/issues/{event.group.id}/attachments/")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(attachment.id)
+        assert response.data[0]["event_id"] == attachment.event_id
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(
+                f"/api/0/issues/{event.group.id}/attachments/?query=organization:acme"
+            )
+        assert len(response.data) == 0
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(
+                f"/api/0/issues/{event.group.id}/attachments/?environment=development"
+            )
+        assert len(response.data) == 0
