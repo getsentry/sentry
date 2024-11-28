@@ -346,7 +346,7 @@ A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
 - `alertThreshold`: The value that the subscription needs to reach to trigger the
 alert rule.
-- `actions`: A list of actions that take place when the threshold is met. Each trigger must have at least one action.
+- `actions`: A list of actions that take place when the threshold is met.
 ```json
 triggers: [
     {
