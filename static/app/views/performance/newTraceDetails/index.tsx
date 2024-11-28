@@ -46,6 +46,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -102,7 +103,6 @@ import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
-import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 function logTraceMetadata(
   tree: TraceTree,
@@ -1127,8 +1127,8 @@ const TraceToolbar = styled('div')`
 `;
 
 const TraceGrid = styled('div')<{
-  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   hasTraceNewUi: boolean;
+  layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};

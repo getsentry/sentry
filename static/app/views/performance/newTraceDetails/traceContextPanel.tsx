@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 700;
