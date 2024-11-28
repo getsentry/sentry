@@ -1,8 +1,5 @@
 import React, {Fragment} from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
@@ -23,7 +20,6 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -50,7 +46,7 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
-  const {isInDomainView, view} = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
@@ -164,8 +160,6 @@ export function HTTPLandingPage() {
     !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
   );
 
-  const crumbs = useModuleBreadcrumbs('http');
-
   const headerTitle = (
     <Fragment>
       {moduleTitle}
@@ -175,37 +169,11 @@ export function HTTPLandingPage() {
 
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-
-            <Layout.Title>{headerTitle}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
+      {view === FRONTEND_LANDING_SUB_PATH && (
+        <FrontendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 
-      {isInDomainView && view === FRONTEND_LANDING_SUB_PATH && (
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {moduleTitle}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.HTTP}
-        />
-      )}
-
-      {isInDomainView && view === BACKEND_LANDING_SUB_PATH && (
+      {view === BACKEND_LANDING_SUB_PATH && (
         <BackendHeader headerTitle={headerTitle} module={ModuleName.HTTP} />
       )}
 

@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -23,7 +22,6 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
   COLD_START_TYPE,
@@ -32,7 +30,6 @@ import {
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -54,43 +51,24 @@ export function ScreenSummary() {
   const location = useLocation<Query>();
   const {transaction: transactionName} = location.query;
   const organization = useOrganization();
-  const crumbs = useModuleBreadcrumbs('app_start');
-  const {isInDomainView} = useDomainViewFilters();
 
   const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
 
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Screen Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>{transactionName}</Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
-        {isInDomainView && (
-          <MobileHeader
-            hideDefaultTabs={isMobileScreensEnabled}
-            module={
-              isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
-            }
-            headerTitle={transactionName}
-            breadcrumbs={[
-              {
-                label: t('Screen Summary'),
-              },
-            ]}
-          />
-        )}
+        <MobileHeader
+          hideDefaultTabs={isMobileScreensEnabled}
+          module={
+            isMobileScreensEnabled ? ModuleName.MOBILE_SCREENS : ModuleName.APP_START
+          }
+          headerTitle={transactionName}
+          breadcrumbs={[
+            {
+              label: t('Screen Summary'),
+            },
+          ]}
+        />
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
