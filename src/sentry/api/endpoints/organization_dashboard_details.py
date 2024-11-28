@@ -214,12 +214,12 @@ class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
-        is_favorited = request.user.id in dashboard.favourited_by
-        return Response({"isFavorited": is_favorited})
+        is_favourited = request.user.id in dashboard.favourited_by
+        return Response({"isFavourited": is_favourited})
 
     def put(self, request: Request, organization, dashboard) -> Response:
         """
-        Toggle favorite status for current user by adding or removing current
+        Toggle favourite status for current user by adding or removing current
         user from dashboard favourites
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
@@ -239,6 +239,5 @@ class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
             Response(status=204)
 
         dashboard.favourited_by = current_favourites
-        dashboard.save(update_fields=["favourited_by"])
 
         return Response(status=204)
