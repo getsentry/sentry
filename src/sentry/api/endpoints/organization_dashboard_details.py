@@ -197,3 +197,48 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.save(update_fields=["visits", "last_visited"])
 
         return Response(status=204)
+
+
+@region_silo_endpoint
+class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, organization, dashboard) -> Response:
+        """
+        Return whether current user has favourited the dashboard
+        """
+        if not features.has(READ_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        is_favorited = request.user.id in dashboard.favourited_by
+        return Response({"isFavorited": is_favorited})
+
+    def put(self, request: Request, organization, dashboard) -> Response:
+        """
+        Toggle favorite status for current user by adding or removing current
+        user from dashboard favourites
+        """
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        if isinstance(dashboard, dict):
+            return Response(status=204)
+
+        is_favourited = request.data.get("isFavourited", True)
+        current_favourites = set(dashboard.favourited_by)
+
+        if is_favourited and request.user.id not in current_favourites:
+            current_favourites.add(request.user.id)  # Add user to the set
+        elif not is_favourited and request.user.id in current_favourites:
+            current_favourites.remove(request.user.id)
+        else:
+            Response(status=204)
+
+        dashboard.favourited_by = current_favourites
+        dashboard.save(update_fields=["favourited_by"])
+
+        return Response(status=204)
