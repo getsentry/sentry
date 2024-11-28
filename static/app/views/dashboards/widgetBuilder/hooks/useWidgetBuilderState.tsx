@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
-import {DisplayType} from 'sentry/views/dashboards/types';
 
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 
 export const BuilderStateAction = {
@@ -16,6 +16,7 @@ type WidgetAction =
 
 interface WidgetBuilderState {
   description?: string;
+  displayType?: DisplayType;
   title?: string;
 }
 
@@ -23,9 +24,14 @@ function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction) => void;
   state: WidgetBuilderState;
 } {
-  const [title, setTitle] = useQueryParamState('title');
-  const [description, setDescription] = useQueryParamState('description');
-  const [displayType, setDisplayType] = useQueryParamState('displayType');
+  const [title, setTitle] = useQueryParamState<string>({fieldName: 'title'});
+  const [description, setDescription] = useQueryParamState<string>({
+    fieldName: 'description',
+  });
+  const [displayType, setDisplayType] = useQueryParamState<DisplayType>({
+    fieldName: 'displayType',
+    decoder: decodeDisplayType,
+  });
 
   const state = useMemo(
     () => ({title, description, displayType}),
@@ -55,6 +61,17 @@ function useWidgetBuilderState(): {
     state,
     dispatch,
   };
+}
+
+/**
+ * Decodes the display type from the query params
+ * Returns the default display type if the value is not a valid display type
+ */
+function decodeDisplayType(value: string): DisplayType {
+  if (Object.values(DisplayType).includes(value as DisplayType)) {
+    return value as DisplayType;
+  }
+  return DisplayType.TABLE;
 }
 
 export default useWidgetBuilderState;
