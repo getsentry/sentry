@@ -92,7 +92,7 @@ function decodeDataset(value: string): WidgetType {
   if (Object.values(WidgetType).includes(value as WidgetType)) {
     return value as WidgetType;
   }
-  return WidgetType.DISCOVER;
+  return WidgetType.ERRORS;
 }
 
 export default useWidgetBuilderState;
