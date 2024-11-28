@@ -81,11 +81,7 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="ai"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.ai"
-    >
+    <ModulePageProviders moduleName="ai" analyticEventName="insight.page_loads.ai">
       <LLMMonitoringPage />
     </ModulePageProviders>
   );

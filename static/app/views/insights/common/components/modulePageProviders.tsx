@@ -1,5 +1,3 @@
-import type {ComponentProps} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,7 +10,11 @@ import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
+import {
+  INSIGHTS_TITLE,
+  MODULE_FEATURE_MAP,
+  QUERY_DATE_RANGE_LIMIT,
+} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -20,7 +22,6 @@ export type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 interface Props {
   children: React.ReactNode;
-  features: ComponentProps<typeof Feature>['features'];
   moduleName: TitleableModuleNames;
   analyticEventName?: InsightEventKey;
   pageTitle?: string;
@@ -30,7 +31,6 @@ export function ModulePageProviders({
   moduleName,
   pageTitle,
   children,
-  features,
   analyticEventName,
 }: Props) {
   const organization = useOrganization();
@@ -40,6 +40,8 @@ export function ModulePageProviders({
   const hasDateRangeQueryLimit = organization.features.includes(
     'insights-query-date-range-limit'
   );
+
+  const features = MODULE_FEATURE_MAP[moduleName];
 
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 

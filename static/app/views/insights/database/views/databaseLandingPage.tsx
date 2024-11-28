@@ -248,11 +248,7 @@ const LIMIT: number = 25;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="db"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.db"
-    >
+    <ModulePageProviders moduleName="db" analyticEventName="insight.page_loads.db">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );
