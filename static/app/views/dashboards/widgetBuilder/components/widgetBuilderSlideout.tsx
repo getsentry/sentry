@@ -5,8 +5,6 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 
@@ -16,8 +14,6 @@ type WidgetBuilderSlideoutProps = {
 };
 
 function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
   return (
     <SlideOverPanel collapsed={!isOpen} slidePosition="left">
       <SlideoutHeaderWrapper>
@@ -35,7 +31,7 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
         <Section>
-          <WidgetBuilderFilterBar organization={organization} selection={selection} />
+          <WidgetBuilderFilterBar />
         </Section>
         <Section>
           <WidgetBuilderNameAndDescription />

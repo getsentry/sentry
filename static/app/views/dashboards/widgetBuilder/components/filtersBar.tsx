@@ -4,17 +4,14 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 
-type WidgetBuilderFilterBarProps = {
-  organization: Organization;
-  selection: PageFilters;
-};
-
-function WidgetBuilderFilterBar({organization, selection}: WidgetBuilderFilterBarProps) {
+function WidgetBuilderFilterBar() {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   return (
     <PageFiltersContainer
       disablePersistence
@@ -28,11 +25,15 @@ function WidgetBuilderFilterBar({organization, selection}: WidgetBuilderFilterBa
       }}
     >
       <PageFilterBar>
-        <ProjectPageFilter onChange={() => {}} />
-        <EnvironmentPageFilter onChange={() => {}} />
-        <DatePageFilter onChange={() => {}} />
+        <ProjectPageFilter disabled onChange={() => {}} />
+        <EnvironmentPageFilter disabled onChange={() => {}} />
+        <DatePageFilter disabled onChange={() => {}} />
         <ReleasesProvider organization={organization} selection={selection}>
-          <ReleasesSelectControl handleChangeFilter={() => {}} selectedReleases={[]} />
+          <ReleasesSelectControl
+            isDisabled
+            handleChangeFilter={() => {}}
+            selectedReleases={[]}
+          />
         </ReleasesProvider>
       </PageFilterBar>
     </PageFiltersContainer>

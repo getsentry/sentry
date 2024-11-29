@@ -133,7 +133,6 @@ export declare namespace TraceTree {
   type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
-    id: number;
     slug: string;
   };
   type Root = null;
@@ -237,7 +236,7 @@ function fetchTrace(
 
 export class TraceTree extends TraceTreeEventDispatcher {
   eventsCount = 0;
-  projects = new Set<TraceTree.Project>();
+  projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -295,8 +294,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       tree.eventsCount++;
-      tree.projects.add({
-        id: value.project_id,
+      tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });
 
