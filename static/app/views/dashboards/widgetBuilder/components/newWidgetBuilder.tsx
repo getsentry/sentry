@@ -14,8 +14,6 @@ type DevWidgetBuilderProps = {
 function DevWidgetBuilder({isOpen, onClose}: DevWidgetBuilderProps) {
   const escapeKeyPressed = useKeyPress('Escape');
 
-  // TODO(nikki): be able to handle clicking outside widget to close
-
   useEffect(() => {
     if (escapeKeyPressed) {
       if (isOpen) {
