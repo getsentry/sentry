@@ -31,7 +31,7 @@ class DashboardProject(Model):
 
 
 @region_silo_model
-class DashboardFavouriteUser(DefaultFieldsModel):
+class DashboardFavoriteUser(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
@@ -39,7 +39,7 @@ class DashboardFavouriteUser(DefaultFieldsModel):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_dashboardfavouriteuser"
+        db_table = "sentry_DashboardFavoriteUser"
         unique_together = (("user_id", "dashboard"),)
 
 
@@ -70,28 +70,28 @@ class Dashboard(Model):
     __repr__ = sane_repr("organization", "title")
 
     @property
-    def favourited_by(self):
-        user_ids = DashboardFavouriteUser.objects.filter(dashboard=self).values_list(
+    def favorited_by(self):
+        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
             "user_id", flat=True
         )
         return user_ids
 
-    @favourited_by.setter
-    def favourited_by(self, user_ids):
+    @favorited_by.setter
+    def favorited_by(self, user_ids):
         from django.db import router, transaction
 
-        with transaction.atomic(using=router.db_for_write(DashboardFavouriteUser)):
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
             user_ids_to_delete = list(
-                DashboardFavouriteUser.objects.filter(dashboard=self)
+                DashboardFavoriteUser.objects.filter(dashboard=self)
                 .exclude(user_id__in=user_ids)
                 .values_list("user_id", flat=True)
             )
-            DashboardFavouriteUser.objects.filter(
+            DashboardFavoriteUser.objects.filter(
                 dashboard=self, user_id__in=user_ids_to_delete
             ).delete()
             for user_id in user_ids:
                 if user_id not in user_ids_to_delete:
-                    DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
+                    DashboardFavoriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):

@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.CreateModel(
-            name="DashboardFavouriteUser",
+            name="DashboardFavoriteUser",
             fields=[
                 (
                     "id",
@@ -54,7 +54,7 @@ class Migration(CheckedMigration):
                 ),
             ],
             options={
-                "db_table": "sentry_dashboardfavouriteuser",
+                "db_table": "sentry_dashboardfavoriteuser",
                 "unique_together": {("user_id", "dashboard")},
             },
         ),

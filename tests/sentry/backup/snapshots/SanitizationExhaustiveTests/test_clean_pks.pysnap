@@ -659,7 +659,7 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.dashboardpermissions
   ordinal: 1
   sanitized_fields: []
-- model_name: sentry.dashboardfavouriteuser
+- model_name: sentry.dashboardfavoriteuser
   ordinal: 1
   sanitized_fields:
   - date_added

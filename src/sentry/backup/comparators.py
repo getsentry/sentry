@@ -802,7 +802,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
             ],
-            "sentry.dashboardfavouriteuser": [
+            "sentry.dashboardfavoriteuser": [
                 DateUpdatedComparator("date_added", "date_updated"),
             ],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],

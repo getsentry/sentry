@@ -10,7 +10,7 @@ from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
-from sentry.models.dashboard import Dashboard, DashboardFavouriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -325,7 +325,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         CustomDynamicSamplingRule,
         Dashboard,
-        DashboardFavouriteUser,
+        DashboardFavoriteUser,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,
@@ -366,7 +366,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         CustomDynamicSamplingRule,
         Dashboard,
-        DashboardFavouriteUser,
+        DashboardFavoriteUser,
         GroupAssignee,
         GroupBookmark,
         GroupSeen,

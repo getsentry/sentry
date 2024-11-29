@@ -189,7 +189,7 @@
     "sentry.organization",
     "sentry.user"
   ],
-  "sentry.dashboardfavouriteuser": [
+  "sentry.dashboardfavoriteuser": [
     "sentry.dashboard",
     "sentry.user"
   ],

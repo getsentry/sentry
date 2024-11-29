@@ -362,7 +362,7 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - dashboard
     - user_id
-  model_name: sentry.dashboardfavouriteuser
+  model_name: sentry.dashboardfavoriteuser
 - comparators:
   - class: ForeignKeyComparator
     fields:

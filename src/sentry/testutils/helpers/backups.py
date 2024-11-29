@@ -65,7 +65,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardFavouriteUser, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -570,7 +570,7 @@ class ExhaustiveFixtures(Fixtures):
             created_by_id=owner_id,
             organization=org,
         )
-        DashboardFavouriteUser.objects.create(
+        DashboardFavoriteUser.objects.create(
             dashboard=dashboard,
             user_id=owner.id,
         )

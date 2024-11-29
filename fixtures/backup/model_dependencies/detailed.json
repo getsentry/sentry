@@ -1390,7 +1390,7 @@
       ]
     ]
   },
-  "sentry.dashboardfavouriteuser": {
+  "sentry.dashboardfavoriteuser": {
     "dangling": false,
     "foreign_keys": {
       "dashboard": {
@@ -1404,13 +1404,13 @@
         "nullable": false
       }
     },
-    "model": "sentry.dashboardfavouriteuser",
+    "model": "sentry.dashboardfavoriteuser",
     "relocation_dependencies": [],
     "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
-    "table_name": "sentry_dashboardfavouriteuser",
+    "table_name": "sentry_dashboardfavoriteuser",
     "uniques": [
       [
         "dashboard",
