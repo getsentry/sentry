@@ -6,9 +6,13 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useWidgetBuilderState, {
+  BuilderStateAction,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function WidgetBuilderNameAndDescription() {
   const [isDescSelected, setIsDescSelected] = useState(false);
+  const {state, dispatch} = useWidgetBuilderState();
 
   return (
     <Fragment>
@@ -19,6 +23,10 @@ function WidgetBuilderNameAndDescription() {
         title={t('Widget Name')}
         type="text"
         aria-label={t('Widget Name')}
+        value={state.title}
+        onChange={e => {
+          dispatch({type: BuilderStateAction.SET_TITLE, payload: e.target.value});
+        }}
       />
       {!isDescSelected && (
         <AddDescriptionButton
@@ -37,6 +45,10 @@ function WidgetBuilderNameAndDescription() {
           aria-label={t('Widget Description')}
           autosize
           rows={4}
+          value={state.description}
+          onChange={e => {
+            dispatch({type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value});
+          }}
         />
       )}
     </Fragment>
