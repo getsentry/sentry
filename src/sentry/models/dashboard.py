@@ -81,11 +81,17 @@ class Dashboard(Model):
         from django.db import router, transaction
 
         with transaction.atomic(using=router.db_for_write(DashboardFavouriteUser)):
-            DashboardFavouriteUser.objects.filter(dashboard=self).exclude(
-                user_id__in=user_ids
+            user_ids_to_delete = list(
+                DashboardFavouriteUser.objects.filter(dashboard=self)
+                .exclude(user_id__in=user_ids)
+                .values_list("user_id", flat=True)
+            )
+            DashboardFavouriteUser.objects.filter(
+                dashboard=self, user_id__in=user_ids_to_delete
             ).delete()
             for user_id in user_ids:
-                DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
+                if user_id not in user_ids_to_delete:
+                    DashboardFavouriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
