@@ -1,4 +1,6 @@
 import {useRef} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -9,9 +11,13 @@ import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 
-import type {Meta, TimeseriesData} from '../common/types';
+import {ReleaseSeries} from '../common/releaseSeries';
+import type {Meta, Release, TimeseriesData} from '../common/types';
 
 import {formatChartValue} from './formatChartValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
@@ -20,6 +26,7 @@ export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   dataCompletenessDelay?: number;
   meta?: Meta;
+  releases?: Release[];
   utc?: boolean;
 }
 
@@ -28,6 +35,25 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
+
+  const theme = useTheme();
+  const organization = useOrganization();
+  const navigate = useNavigate();
+
+  let releaseSeries: Series | undefined = undefined;
+  if (props.releases) {
+    const onClick = (release: Release) => {
+      navigate(
+        normalizeUrl({
+          pathname: `/organizations/${
+            organization.slug
+          }/releases/${encodeURIComponent(release.version)}/`,
+        })
+      );
+    };
+
+    releaseSeries = ReleaseSeries(theme, props.releases, onClick, props.utc ?? false);
+  }
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -135,7 +161,13 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
             silent: true,
           });
         }),
-      ]}
+        releaseSeries &&
+          LineSeries({
+            ...releaseSeries,
+            name: releaseSeries.seriesName,
+            data: [],
+          }),
+      ].filter(defined)}
       utc={props.utc}
       legend={{
         top: 0,
