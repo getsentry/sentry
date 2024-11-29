@@ -5,15 +5,18 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-export default WidgetBuilderSlideout;
-
 function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   return (
     <SlideOverPanel collapsed={!isOpen} slidePosition="left">
       <SlideoutHeaderWrapper>
@@ -29,9 +32,14 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
           {t('Close')}
         </CloseButton>
       </SlideoutHeaderWrapper>
+      <SlideoutBodyWrapper>
+        <WidgetBuilderFilterBar organization={organization} selection={selection} />
+      </SlideoutBodyWrapper>
     </SlideOverPanel>
   );
 }
+
+export default WidgetBuilderSlideout;
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.gray300};
@@ -39,12 +47,21 @@ const CloseButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray400};
   }
+  z-index: 100;
 `;
 
-const SlideoutTitle = styled('h5')``;
+const SlideoutTitle = styled('h5')`
+  margin: 0;
+`;
 
 const SlideoutHeaderWrapper = styled('div')`
-  padding: ${space(4)};
+  padding: ${space(3)} ${space(4)};
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
+
+const SlideoutBodyWrapper = styled('div')`
+  padding: ${space(4)};
 `;
