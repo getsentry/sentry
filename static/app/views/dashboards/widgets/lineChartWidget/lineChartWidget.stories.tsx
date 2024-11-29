@@ -9,7 +9,7 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import type {TimeseriesData} from '../common/types';
+import type {Release, TimeseriesData} from '../common/types';
 
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
@@ -193,6 +193,50 @@ export default storyBook(LineChartWidget, story => {
       </Fragment>
     );
   });
+
+  story('Releases', () => {
+    const releases = [
+      {
+        version: 'ui@0.1.2',
+        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+      },
+      {
+        version: 'ui@0.1.3',
+        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+      },
+    ].filter(hasTimestamp);
+
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="LineChartWidget" /> supports the <code>releases</code> prop. If
+          passed in, the widget will plot every release as a vertical line that overlays
+          the chart data. Clicking on a release line will open the release details page.
+        </p>
+
+        <MediumWidget>
+          <LineChartWidget
+            title="error_rate()"
+            timeseries={[
+              {
+                ...sampleThroughputTimeSeries,
+                field: 'error_rate()',
+              } as unknown as TimeseriesData,
+            ]}
+            releases={releases}
+            meta={{
+              fields: {
+                'error_rate()': 'rate',
+              },
+              units: {
+                'error_rate()': '1/second',
+              },
+            }}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
 });
 
 const MediumWidget = styled('div')`
@@ -224,4 +268,8 @@ function toTimeSeriesSelection(
       return true;
     }),
   };
+}
+
+function hasTimestamp(release: Partial<Release>): release is Release {
+  return Boolean(release?.timestamp);
 }
