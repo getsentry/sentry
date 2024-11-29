@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -16,7 +16,6 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
@@ -133,11 +132,7 @@ function EventDetailsContent(props: Props) {
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
       return (
-        <TransactionProfileIdProvider
-          projectId={event.projectID}
-          transactionId={event.type === 'transaction' ? event.id : undefined}
-          timestamp={event.dateReceived}
-        >
+        <Fragment>
           <Layout.Header>
             <Layout.HeaderContent>
               <DiscoverBreadcrumb
@@ -281,7 +276,7 @@ function EventDetailsContent(props: Props) {
               </Layout.Side>
             )}
           </Layout.Body>
-        </TransactionProfileIdProvider>
+        </Fragment>
       );
     };
 

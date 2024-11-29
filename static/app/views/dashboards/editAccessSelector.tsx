@@ -59,20 +59,26 @@ function EditAccessSelector({
   const {onSearch} = useTeams();
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const {teams: selectedTeam} = useTeamsById({ids: [selectedOptions[1]]});
+  const {teams: selectedTeam} = useTeamsById({
+    ids:
+      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+  });
 
-  // Effect to update selectedOptions whenever the dashboard changes
+  // Gets selected options for the dropdown from dashboard object
   useEffect(() => {
     const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
-    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
-      setSelectedOptions(['_creator', '_allUsers', ...teamIdsList]);
-    } else {
-      const permittedTeamIds =
-        dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
-      setSelectedOptions(['_creator', ...permittedTeamIds]);
-    }
+    const selectedOptionsFromDashboard =
+      !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
+        ? ['_creator', '_allUsers', ...teamIdsList]
+        : [
+            '_creator',
+            ...(dashboard.permissions.teamsWithEditAccess?.map(teamId =>
+              String(teamId)
+            ) ?? []),
+          ];
+    setSelectedOptions(selectedOptionsFromDashboard);
   }, [dashboard, teamsToRender]);
 
   // Handles state change when dropdown options are selected
@@ -115,16 +121,6 @@ function EditAccessSelector({
             .filter(option => option !== '_creator')
             .map(teamId => parseInt(teamId, 10)),
     };
-  }
-
-  // Gets selected options for the dropdown from dashboard object
-  function getSelectedOptions(): string[] {
-    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
-      return ['_creator', '_allUsers', ...teamIds];
-    }
-    const permittedTeamIds =
-      dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
-    return ['_creator', ...permittedTeamIds];
   }
 
   // Dashboard creator option in the dropdown
@@ -212,9 +208,6 @@ function EditAccessSelector({
         size="sm"
         onClick={() => {
           setMenuOpen(false);
-          if (isMenuOpen) {
-            setSelectedOptions(getSelectedOptions());
-          }
         }}
         disabled={!userCanEditDashboardPermissions}
       >
@@ -275,9 +268,6 @@ function EditAccessSelector({
       isOpen={isMenuOpen}
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
-        if (isMenuOpen) {
-          setSelectedOptions(getSelectedOptions());
-        }
       }}
       menuFooter={dropdownFooterButtons}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}

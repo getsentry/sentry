@@ -14,6 +14,7 @@ import type {TimeseriesData} from '../common/types';
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
+import {shiftTimeserieToNow} from './shiftTimeserieToNow';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,
@@ -74,6 +75,13 @@ export default storyBook(LineChartWidget, story => {
           UTC or not
         </p>
 
+        <p>
+          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
+          and the last few buckets might not have complete data. The delay is a number in
+          seconds. Any data bucket that happens in that delay window will be plotted with
+          a dotted line. By default the delay is <code>0</code>
+        </p>
+
         <SideBySide>
           <MediumWidget>
             <LineChartWidget
@@ -94,7 +102,11 @@ export default storyBook(LineChartWidget, story => {
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
-              timeseries={[durationTimeSeries1, durationTimeSeries2]}
+              dataCompletenessDelay={60 * 60 * 3}
+              timeseries={[
+                shiftTimeserieToNow(durationTimeSeries1),
+                shiftTimeserieToNow(durationTimeSeries2),
+              ]}
               utc
               meta={{
                 fields: {
@@ -108,6 +120,40 @@ export default storyBook(LineChartWidget, story => {
               }}
             />
           </MediumWidget>
+        </SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('State', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="LineChartWidget" /> supports the usual loading and error states.
+          The loading state shows a spinner. The error state shows a message, and an
+          optional "Retry" button.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <LineChartWidget title="Loading Count" isLoading />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget title="Missing Count" />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget
+              title="Count Error"
+              error={new Error('Something went wrong!')}
+            />
+          </SmallWidget>
+          <SmallWidget>
+            <LineChartWidget
+              title="Data Error"
+              error={new Error('Something went wrong!')}
+              onRetry={() => {}}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -151,6 +197,12 @@ export default storyBook(LineChartWidget, story => {
 
 const MediumWidget = styled('div')`
   width: 420px;
+  height: 250px;
+`;
+
+const SmallWidget = styled('div')`
+  width: 360px;
+  height: 160px;
 `;
 
 function toTimeSeriesSelection(

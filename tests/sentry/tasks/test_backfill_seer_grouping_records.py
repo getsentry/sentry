@@ -392,7 +392,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         event = self.store_event(
             data={
-                "platform": "python",
+                "platform": "java",
                 "exception": exception,
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
@@ -426,7 +426,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_metrics.incr.assert_called_with(
             "grouping.similarity.over_threshold_only_system_frames",
             sample_rate=sample_rate,
-            tags={"platform": "python", "referrer": "backfill"},
+            tags={"platform": "java", "referrer": "backfill"},
         )
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
