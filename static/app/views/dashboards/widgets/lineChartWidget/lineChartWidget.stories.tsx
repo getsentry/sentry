@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SideBySide from 'sentry/components/stories/sideBySide';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -68,37 +69,34 @@ export default storyBook(LineChartWidget, story => {
         <p>
           The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
           some bells and whistles including automatic axes labels, and a hover tooltip.
+          Like other widgets, it automatically fills the parent element. The{' '}
+          <code>utc</code> prop controls whether the X Axis timestamps are shown in UTC or
+          not.
         </p>
-
-        <p>
-          The <code>utc</code> prop controls whether the X Axis timestamps are shown in
-          UTC or not
-        </p>
+        <SmallSizingWindow>
+          <LineChartWidget
+            title="eps()"
+            description="Number of events per second"
+            timeseries={[throughputTimeSeries]}
+            meta={{
+              fields: {
+                'eps()': 'rate',
+              },
+              units: {
+                'eps()': '1/second',
+              },
+            }}
+          />
+        </SmallSizingWindow>
 
         <p>
           The <code>dataCompletenessDelay</code> prop indicates that this data is live,
           and the last few buckets might not have complete data. The delay is a number in
           seconds. Any data bucket that happens in that delay window will be plotted with
-          a dotted line. By default the delay is <code>0</code>
+          a dotted line. By default the delay is <code>0</code>.
         </p>
 
         <SideBySide>
-          <MediumWidget>
-            <LineChartWidget
-              title="eps()"
-              description="Number of events per second"
-              timeseries={[throughputTimeSeries]}
-              meta={{
-                fields: {
-                  'eps()': 'rate',
-                },
-                units: {
-                  'eps()': '1/second',
-                },
-              }}
-            />
-          </MediumWidget>
-
           <MediumWidget>
             <LineChartWidget
               title="span.duration"
@@ -247,6 +245,11 @@ const MediumWidget = styled('div')`
 const SmallWidget = styled('div')`
   width: 360px;
   height: 160px;
+`;
+
+const SmallSizingWindow = styled(SizingWindow)`
+  width: 50%;
+  height: 300px;
 `;
 
 function toTimeSeriesSelection(
