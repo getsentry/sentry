@@ -160,7 +160,7 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "platform": f'"{platform}"',
+            "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
@@ -178,7 +178,7 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "platform": f'"{platform}"',
+            "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
@@ -198,7 +198,7 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         json = {
-            "platform": f'"{platform}"',
+            "platform": platform,
             "sources": sources,
             "options": {
                 "dif_candidates": True,
@@ -220,7 +220,7 @@ class Symbolicator:
         scraping_config = get_scraping_config(self.project)
 
         json = {
-            "platform": f'"{platform}"',
+            "platform": platform,
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
@@ -261,7 +261,7 @@ class Symbolicator:
         source = get_internal_source(self.project)
 
         json = {
-            "platform": f'"{platform}"',
+            "platform": platform,
             "sources": [source],
             "exceptions": exceptions,
             "stacktraces": stacktraces,
