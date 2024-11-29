@@ -46,7 +46,6 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.models.team import Team
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
 from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
@@ -64,14 +63,18 @@ from .validators import GroupValidator, ValidationError
 logger = logging.getLogger(__name__)
 
 
+class MultipleProjectsError(Exception):
+    pass
+
+
 def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user: User,
+    acting_user: Any,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=user):
+        if not features.has("projects:discard-groups", project, actor=acting_user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -86,7 +89,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(user),
+                    actor_id=coerce_id_from(acting_user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
@@ -109,12 +112,14 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: RpcUser | User | None, group: Group, self_assign_issue: str
+    acting_user: Any, group: Group, self_assign_issue: str
 ) -> Actor | None:
-    # Used during issue resolution to assign to acting user
-    # returns None if the user didn't elect to self assign on resolution
-    # or the group is assigned already, otherwise returns Actor
-    # representation of current user
+    """
+    Used during issue resolution to assign to acting user
+    returns None if the user didn't elect to self assign on resolution
+    or the group is assigned already, otherwise returns Actor
+    representation of current user
+    """
     if acting_user:
         GroupSubscription.objects.subscribe(
             subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
@@ -181,6 +186,7 @@ def update_groups(
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
+    acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
     try:
@@ -225,22 +231,23 @@ def update_groups(
         handle_priority(
             priority=result["priority"],
             group_list=group_list,
-            actor=acting_user,
+            acting_user=acting_user,
             project_lookup=project_lookup,
         )
     if status in ("resolved", "resolvedInNextRelease"):
-        result, res_type = handle_resolve_in_release(
-            status,
-            status_details,
-            group_list,
-            projects,
-            project_lookup,
-            acting_user,
-            user,
-            result,
-        )
-        if isinstance(result, Response):
-            return result
+        try:
+            result, res_type = handle_resolve_in_release(
+                status,
+                status_details,
+                group_list,
+                projects,
+                project_lookup,
+                acting_user,
+                user,
+                result,
+            )
+        except MultipleProjectsError:
+            return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
     elif status:
         result = handle_other_status_updates(
             result,
@@ -348,10 +355,10 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
-    user: User | RpcUser,
+    acting_user: Any,
+    user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
-) -> tuple[dict[str, Any], GroupResolution.Type | None] | Response:
+) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
     commit = None
@@ -366,10 +373,7 @@ def handle_resolve_in_release(
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in next release for multiple projects."},
-                status=400,
-            )
+            raise MultipleProjectsError()
         # may not be a release yet
         release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
 
@@ -390,10 +394,7 @@ def handle_resolve_in_release(
         res_status = GroupResolution.Status.pending
     elif status_details.get("inUpcomingRelease"):
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in upcoming release for multiple projects."},
-                status=400,
-            )
+            raise MultipleProjectsError()
         release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
@@ -412,9 +413,7 @@ def handle_resolve_in_release(
         # applies to multiple projects, but I think we agreed to punt
         # on this for now
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in release for multiple projects."}, status=400
-            )
+            raise MultipleProjectsError()
         release = status_details["inRelease"]
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {
@@ -435,9 +434,7 @@ def handle_resolve_in_release(
         # TODO(jess): Same here, this is probably something we could do, but
         # punting for now.
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
-            )
+            raise MultipleProjectsError()
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
@@ -506,7 +503,7 @@ def handle_resolve_in_release(
 
     result.update({"status": "resolved", "statusDetails": new_status_details})
 
-    return result, res_type
+    return dict(result), res_type
 
 
 def process_group_resolution(
@@ -514,12 +511,12 @@ def process_group_resolution(
     group_list: Sequence[Group],
     release: Release | None,
     commit: Commit | None,
-    res_type: GroupResolution.Type,
-    res_status: GroupResolution.Status,
-    acting_user: User | None,
-    user: User | RpcUser,
+    res_type: int | None,
+    res_status: int | None,
+    acting_user: Any,
+    user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
-    activity_type: ActivityType,
+    activity_type: int,
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ):
@@ -527,11 +524,12 @@ def process_group_resolution(
     resolution = None
     created = None
     if release:
+        # These are the parameters that are set for creating a GroupResolution
         resolution_params = {
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": user.id if user.is_authenticated else None,
+            "actor_id": user.id if user and user.is_authenticated else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -549,7 +547,11 @@ def process_group_resolution(
             current_release_version = get_current_release_version_of_group(group, follows_semver)
 
             if current_release_version:
-                resolution_params.update({"current_release_version": current_release_version})
+                # Mypy believes `current_release_version` is of type `Release | None`,
+                # but we know it's of type `str` (CharField)
+                resolution_params.update(
+                    {"current_release_version": current_release_version}  # type: ignore[dict-item]
+                )
 
                 # Sets `current_release_version` for activity, since there is no point
                 # waiting for when a new release is created i.e.
@@ -621,7 +623,10 @@ def process_group_resolution(
             group=group, defaults=resolution_params
         )
         if not created:
-            resolution.update(datetime=django_timezone.now(), **resolution_params)
+            # Mypy complains about Argument 2 has incompatible type "**dict[str, Release | int | None]"; expected "str | None"
+            resolution.update(
+                datetime=django_timezone.now(), **resolution_params  # type: ignore[arg-type]
+            )
 
     if commit:
         GroupLink.objects.create(
@@ -636,7 +641,7 @@ def process_group_resolution(
         status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
     )
     if not resolution:
-        created = affected
+        created = bool(affected)
 
     group.status = GroupStatus.RESOLVED
     group.substatus = None
@@ -662,7 +667,7 @@ def process_group_resolution(
             type=activity_type,
             user_id=acting_user.id,
             ident=resolution.id if resolution else None,
-            data=activity_data,
+            data=dict(activity_data),
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
@@ -675,7 +680,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User,
+    acting_user: Any,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -704,20 +709,20 @@ def merge_groups(
 
 
 def handle_other_status_updates(
-    result: Mapping[str, Any],
+    result: MutableMapping[str, Any],
     group_list: Sequence[Group],
     group_ids: Sequence[int],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: Mapping[str, Any],
-    acting_user: User,
-    user: User,
+    acting_user: Any,
+    user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
     new_substatus = None
     if result.get("substatus"):
-        new_substatus = SUBSTATUS_UPDATE_CHOICES[result.get("substatus")]
+        new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
@@ -735,7 +740,7 @@ def handle_other_status_updates(
                 )
             else:
                 result["statusDetails"] = handle_ignored(
-                    group_ids, group_list, status_details, acting_user, user
+                    group_ids, group_list, dict(status_details), acting_user, user
                 )
             result["inbox"] = None
         else:
@@ -762,9 +767,9 @@ def prepare_response(
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User,
+    acting_user: Any,
     data: Mapping[str, Any],
-    res_type: GroupResolution.Type | None,
+    res_type: int | None,
     referer: str,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
@@ -881,7 +886,7 @@ def greatest_semver_release(project: Project) -> Release | None:
 def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()
+        .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
@@ -891,7 +896,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User,
+    acting_user: Any,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -919,7 +924,7 @@ def handle_is_bookmarked(
     group_list: Sequence[Group],
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
-    acting_user: User | RpcUser | Team | None,
+    acting_user: Any,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -955,7 +960,7 @@ def handle_has_seen(
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User | None,
+    acting_user: Any,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -981,7 +986,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    actor: User | None,
+    acting_user: Any,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -991,7 +996,7 @@ def handle_priority(
             group=group,
             priority=priority_value,
             sender="manual_update_priority",
-            actor=actor,
+            actor=acting_user,
             project=project_lookup[group.project_id],
         )
         group.update(priority_locked_at=django_timezone.now())
@@ -1001,7 +1006,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
+    acting_user: Any,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1045,7 +1050,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
+    acting_user: Any,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

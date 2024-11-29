@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -86,11 +87,11 @@ def handle_archived_until_escalating(
 
 
 def handle_ignored(
-    group_ids: Sequence[Group],
+    group_ids: Sequence[int],
     group_list: Sequence[Group],
     status_details: dict[str, Any],
-    acting_user: User | None,
-    user: User | RpcUser,
+    acting_user: Any,
+    user: User | RpcUser | AnonymousUser,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
