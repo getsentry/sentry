@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from snuba_sdk import Condition, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -161,6 +161,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         """
         environments = [e for e in get_environments(request, group.project.organization)]
         environment_names = [e.name for e in environments]
+        # The streamlined UI doesn't want a fallback if a query has no results.
+        should_always_return_event = not features.has(
+            "organizations:issue-details-streamline", group.organization, actor=request.user
+        )
 
         if event_id == "latest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
@@ -182,7 +186,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                             query, group, request.user, environments
                         )
                         event = group.get_recommended_event_for_environments(
-                            environments, conditions
+                            environments=environments,
+                            conditions=conditions,
+                            always_return_event=should_always_return_event,
                         )
                     except ValidationError:
                         return Response(status=400)
@@ -196,7 +202,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     "api.endpoints.group_event_details.get",
                     tags={"type": "helpful", "query": False},
                 ):
-                    event = group.get_recommended_event_for_environments(environments)
+                    event = group.get_recommended_event_for_environments(
+                        environments=environments,
+                        always_return_event=should_always_return_event,
+                    )
         else:
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(

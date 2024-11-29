@@ -792,16 +792,22 @@ class Group(Model):
         self,
         environments: Sequence[Environment] = (),
         conditions: Sequence[Condition] | None = None,
+        *,
+        always_return_event: bool = True,
     ) -> GroupEvent | None:
         maybe_event = get_recommended_event_for_environments(
             environments,
             self,
             conditions,
         )
+
+        if maybe_event:
+            return maybe_event
+
         return (
-            maybe_event
-            if maybe_event
-            else self.get_latest_event_for_environments([env.name for env in environments])
+            self.get_latest_event_for_environments([env.name for env in environments])
+            if always_return_event
+            else None
         )
 
     def get_suspect_commit(self) -> Commit | None:
