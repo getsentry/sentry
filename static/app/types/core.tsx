@@ -81,6 +81,7 @@ export enum DataCategory {
   PROFILE_DURATION = 'profileDuration',
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
+  PROFILE_CHUNKS = 'profileChunks',
 }
 
 /**
