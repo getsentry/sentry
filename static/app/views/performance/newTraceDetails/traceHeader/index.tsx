@@ -165,8 +165,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   );
 
   const projectSlugs = useMemo(() => {
-    return Array.from(props.tree.projects).map(p => p.slug);
-  }, [props.tree]);
+    return Array.from(props.tree.projects.values()).map(project => project.slug);
+  }, [props.tree.projects]);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
