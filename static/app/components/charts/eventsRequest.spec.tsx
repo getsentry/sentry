@@ -72,6 +72,21 @@ describe('EventsRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
+    it('sets use RPC param', async function () {
+      render(
+        <EventsRequest {...DEFAULTS} useRpc>
+          {mock}
+        </EventsRequest>
+      );
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(1));
+      expect(doEventsRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          useRpc: true,
+        })
+      );
+    });
+
     it('makes a new request if projects prop changes', async function () {
       const {rerender} = render(<EventsRequest {...DEFAULTS}>{mock}</EventsRequest>);
       (doEventsRequest as jest.Mock).mockClear();
