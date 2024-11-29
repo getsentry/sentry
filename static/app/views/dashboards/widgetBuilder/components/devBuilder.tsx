@@ -4,7 +4,11 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
+import useOrganization from 'sentry/utils/useOrganization';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -78,7 +82,54 @@ function DevBuilder() {
           }
         />
       </Section>
+      <Section>
+        <h1>Fields:</h1>
+        <div>{state.fields?.map(generateFieldAsString).join(', ')}</div>
+        <ColumnSelector
+          displayType={state.displayType ?? DisplayType.TABLE}
+          dataset={state.dataset ?? WidgetType.DISCOVER}
+          fields={state.fields ?? [{field: '', kind: 'field'}]}
+          onChange={newFields => {
+            dispatch({
+              type: BuilderStateAction.SET_FIELDS,
+              payload: newFields,
+            });
+          }}
+        />
+      </Section>
     </Body>
+  );
+}
+
+function ColumnSelector({
+  displayType,
+  fields,
+  dataset,
+  onChange,
+}: {
+  dataset: WidgetType;
+  displayType: DisplayType;
+  fields: Column[];
+  onChange: (newFields: Column[]) => void;
+}) {
+  const organization = useOrganization();
+  const datasetConfig = getDatasetConfig(dataset);
+
+  const fieldOptions = datasetConfig.getTableFieldOptions(organization);
+
+  return (
+    <ColumnFields
+      displayType={displayType ?? DisplayType.TABLE}
+      organization={organization}
+      widgetType={dataset ?? WidgetType.DISCOVER}
+      fields={fields ?? []}
+      errors={[]}
+      fieldOptions={fieldOptions}
+      isOnDemandWidget={false}
+      filterAggregateParameters={() => true}
+      filterPrimaryOptions={() => true}
+      onChange={onChange}
+    />
   );
 }
 
