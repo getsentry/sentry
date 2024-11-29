@@ -72,13 +72,13 @@ describe('EventsRequest', function () {
       expect(doEventsRequest).toHaveBeenCalled();
     });
 
-    it('sets use RPC param', function () {
+    it('sets use RPC param', async function () {
       render(
         <EventsRequest {...DEFAULTS} useRpc>
           {mock}
         </EventsRequest>
       );
-
+      await waitFor(() => expect(doEventsRequest).toHaveBeenCalledTimes(1));
       expect(doEventsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
