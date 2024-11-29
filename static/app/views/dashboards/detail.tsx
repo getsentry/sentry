@@ -15,6 +15,7 @@ import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -56,6 +57,7 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
+import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
@@ -126,6 +128,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   dashboardState: DashboardState;
+  isWidgetBuilderOpen: boolean;
   modifiedDashboard: DashboardDetails | null;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
@@ -213,6 +216,7 @@ class DashboardDetail extends Component<Props, State> {
       location: this.props.location,
       router: this.props.router,
     }),
+    isWidgetBuilderOpen: false,
   };
 
   componentDidMount() {
@@ -1144,6 +1148,28 @@ class DashboardDetail extends Component<Props, State> {
     return <DevBuilder />;
   }
 
+  renderDevWidgetBuilderUI() {
+    return (
+      <Fragment>
+        <Button
+          aria-label="new widget builder"
+          onClick={() => {
+            this.setState({isWidgetBuilderOpen: true});
+          }}
+          style={{maxWidth: '250px', alignSelf: 'center'}}
+        >
+          {'Open Widget Builder'}
+        </Button>
+        <DevWidgetBuilder
+          isOpen={this.state.isWidgetBuilderOpen}
+          onClose={() => {
+            this.setState({isWidgetBuilderOpen: false});
+          }}
+        />
+      </Fragment>
+    );
+  }
+
   render() {
     const {organization, location} = this.props;
 
@@ -1152,6 +1178,13 @@ class DashboardDetail extends Component<Props, State> {
       decodeScalar(location.query?.devBuilder) === 'true'
     ) {
       return this.renderDevWidgetBuilder();
+    }
+
+    if (
+      organization.features.includes('dashboards-widget-builder-redesign') &&
+      decodeScalar(location.query?.devBuilderUI) === 'true'
+    ) {
+      return this.renderDevWidgetBuilderUI();
     }
 
     if (this.isWidgetBuilderRouter) {
