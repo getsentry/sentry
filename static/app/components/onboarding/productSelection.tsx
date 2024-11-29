@@ -119,10 +119,6 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
-  'javascript-nuxt': [
-    ProductSolution.PERFORMANCE_MONITORING,
-    ProductSolution.SESSION_REPLAY,
-  ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
