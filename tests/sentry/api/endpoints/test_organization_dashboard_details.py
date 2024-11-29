@@ -3220,3 +3220,112 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         dashboard = Dashboard.objects.get(id=self.dashboard.id)
         assert dashboard.visits == 1
         assert dashboard.last_visited == last_visited
+
+
+class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
+    def setUp(self):
+        super().setUp()
+        # Create two additional users
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.user_2 = self.create_user(email="user2@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.create_member(user=self.user_2, organization=self.organization)
+
+        # Both users have favourited the dashboard
+        self.dashboard.favourited_by = [self.user_1.id, self.user_2.id]
+
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-favourite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    # GET tests
+    def test_get_favourited_user_status(self):
+        self.login_as(user=self.user_1)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavourited"] is True
+
+    def test_get_not_favourited_user_status(self):
+        user_3 = self.create_user()
+        self.create_member(user=user_3, organization=self.organization)
+        self.login_as(user=user_3)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavourited"] is False
+
+    def test_get_favourite_status_no_dashboard_edit_access(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+        self.login_as(user=self.user_2)
+        dashboard_detail_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", dashboard_detail_url, data={"title": "New Dashboard 9"}
+            )
+            # assert user cannot edit dashboard
+            assert response.status_code == 403
+
+        # assert user can see if they favourited the dashboard
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavourited"] is True
+
+    # PUT tests
+    def test_favourite_dashboard(self):
+        assert self.user.id not in self.dashboard.favourited_by
+        self.login_as(user=self.user)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavourited": "true"}
+            )
+            assert response.status_code == 204
+            assert self.user.id in self.dashboard.favourited_by
+
+    def test_unfavourite_dashboard(self):
+        assert self.user_1.id in self.dashboard.favourited_by
+        self.login_as(user=self.user_1)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavourited": False}
+            )
+            assert response.status_code == 204
+            assert self.user_1.id not in self.dashboard.favourited_by
+
+    def test_favourite_dashboard_no_dashboard_edit_access(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+        self.login_as(user=self.user_2)
+        dashboard_detail_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", dashboard_detail_url, data={"title": "New Dashboard 9"}
+            )
+            # assert user cannot edit dashboard
+            assert response.status_code == 403
+
+        # assert if user can favourite the dashboard
+        assert self.user_2.id in self.dashboard.favourited_by
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavourited": False}
+            )
+            assert response.status_code == 204
+            assert self.user_2.id not in self.dashboard.favourited_by
