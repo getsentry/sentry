@@ -7,10 +7,10 @@ export function isLowConfidenceTimeSeries(
 ) {
   if (data) {
     if (isEventsStats(data)) {
-      return data.data.some(series => series[1][0].confidence === 'LOW');
+      return data.data.some(series => series[1][0]?.confidence === 'LOW');
     }
     return Object.values(data).some(eventsStats =>
-      eventsStats.data.some(series => series[1][0].confidence === 'LOW')
+      eventsStats.data.some(series => series[1][0]?.confidence === 'LOW')
     );
   }
   return false;

@@ -217,6 +217,10 @@ type EventsRequestPartialProps = {
    */
   useOnDemandMetrics?: boolean;
   /**
+   * Whether or not to use RPCs instead of SnQL requests in the backend.
+   */
+  useRpc?: boolean;
+  /**
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;
