@@ -39,7 +39,6 @@ const CloseButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.gray400};
   }
-  z-index: 100;
 `;
 
 const SlideoutTitle = styled('h5')``;
