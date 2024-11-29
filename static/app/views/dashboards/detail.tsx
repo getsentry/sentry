@@ -250,7 +250,7 @@ class DashboardDetail extends Component<Props, State> {
       location: this.props.location,
       router: this.props.router,
     }),
-    isWidgetBuilderOpen: this.isWidgetBuilderRouter,
+    isWidgetBuilderOpen: this.isRedesignedWidgetBuilder,
   };
 
   componentDidMount() {
@@ -406,27 +406,34 @@ class DashboardDetail extends Component<Props, State> {
     const {location, params, organization} = this.props;
     const {dashboardId, widgetIndex} = params;
 
+    const widgetBuilderRoutes = [
+      `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+      `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
+      `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+    ];
+
+    if (USING_CUSTOMER_DOMAIN) {
+      // TODO: replace with url generation later on.
+      widgetBuilderRoutes.push(
+        ...[
+          `/dashboards/new/widget/new/`,
+          `/dashboard/${dashboardId}/widget/new/`,
+          `/dashboards/new/widget/${widgetIndex}/edit/`,
+          `/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+        ]
+      );
+    }
+
+    return widgetBuilderRoutes.includes(location.pathname);
+  }
+
+  get isRedesignedWidgetBuilder() {
+    const {organization, location, params} = this.props;
+    const {dashboardId, widgetIndex} = params;
+
     if (!organization.features.includes('dashboards-widget-builder-redesign')) {
-      const widgetBuilderRoutes = [
-        `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-        `/organizations/${organization.slug}/dashboards/new/widget/${widgetIndex}/edit/`,
-        `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-      ];
-
-      if (USING_CUSTOMER_DOMAIN) {
-        // TODO: replace with url generation later on.
-        widgetBuilderRoutes.push(
-          ...[
-            `/dashboards/new/widget/new/`,
-            `/dashboard/${dashboardId}/widget/new/`,
-            `/dashboards/new/widget/${widgetIndex}/edit/`,
-            `/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-          ]
-        );
-      }
-
-      return widgetBuilderRoutes.includes(location.pathname);
+      return false;
     }
 
     const widgetBuilderRoutes = [
@@ -1265,10 +1272,7 @@ class DashboardDetail extends Component<Props, State> {
       return this.renderDevWidgetBuilder();
     }
 
-    if (
-      this.isWidgetBuilderRouter &&
-      !organization.features.includes('dashboards-widget-builder-redesign')
-    ) {
+    if (this.isWidgetBuilderRouter) {
       return this.renderWidgetBuilder();
     }
 
