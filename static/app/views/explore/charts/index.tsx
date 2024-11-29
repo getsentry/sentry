@@ -61,7 +61,7 @@ export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 // TODO: Update to support aggregate mode and multiple queries / visualizations
 export function ExploreCharts({query, setError}: ExploreChartsProps) {
   const pageFilters = usePageFilters();
-  const [dataset] = useDataset();
+  const [dataset] = useDataset({allowRPC: true});
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const {groupBys} = useGroupBys();
