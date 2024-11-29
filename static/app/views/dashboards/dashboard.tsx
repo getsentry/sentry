@@ -95,6 +95,7 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
+  onAddWidget?: (dataset?: DataSet) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
@@ -222,18 +223,38 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
-      this.props;
+    const {
+      organization,
+      router,
+      location,
+      paramDashboardId,
+      handleAddMetricWidget,
+      onAddWidget,
+    } = this.props;
 
     if (dataset === DataSet.METRICS) {
       handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
-    if (paramDashboardId) {
+    if (!organization.features.includes('dashboards-widget-builder-redesign')) {
+      if (paramDashboardId) {
+        router.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+            query: {
+              ...location.query,
+              source: DashboardWidgetSource.DASHBOARDS,
+              dataset,
+            },
+          })
+        );
+        return;
+      }
+
       router.push(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+          pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -241,20 +262,11 @@ class Dashboard extends Component<Props, State> {
           },
         })
       );
+
       return;
     }
 
-    router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-          dataset,
-        },
-      })
-    );
-
+    onAddWidget?.();
     return;
   };
 
