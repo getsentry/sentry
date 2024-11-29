@@ -584,8 +584,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/snuba/search/                                        @getsentry/issues
 ## End of Issues
 
-## Billing
-/src/sentry/api/endpoints/check_am2_compatibility.py    @getsentry/revenue
+## Billing/Revenue
+/src/sentry/api/endpoints/check_am2_compatibility.py              @getsentry/revenue
+/static/app/views/organizationStats                               @getsentry/revenue
+## End of Billing/Revenue
 
 ## ML & AI
 *autofix*.py                                                @getsentry/machine-learning-ai
