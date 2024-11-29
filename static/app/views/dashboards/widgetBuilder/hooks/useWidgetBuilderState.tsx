@@ -9,6 +9,15 @@ import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 
+export type WidgetBuilderStateQueryParams = {
+  dataset?: WidgetType;
+  description?: string;
+  displayType?: DisplayType;
+  field?: (string | undefined)[];
+  title?: string;
+  yAxis?: string[];
+};
+
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
   SET_DESCRIPTION: 'SET_DESCRIPTION',
