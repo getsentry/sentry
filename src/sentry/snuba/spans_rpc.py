@@ -10,9 +10,9 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
-from sentry.search.events.types import EventsMeta, EventsResponse, SnubaData, SnubaParams
+from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_result_key
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
@@ -37,7 +37,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
-) -> EventsResponse:
+) -> EAPResponse:
     """Make the query"""
     resolver = (
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
@@ -94,6 +94,7 @@ def run_table_query(
 
     """Process the results"""
     final_data: SnubaData = []
+    final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(fields={})
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
@@ -109,8 +110,16 @@ def run_table_query(
         resolved_column = columns_by_name[attribute]
         final_meta["fields"][attribute] = resolved_column.meta_type
 
+        # When there's no aggregates reliabilities is an empty array
+        has_reliability = len(column_value.reliabilities) > 0
+        if has_reliability:
+            assert len(column_value.results) == len(column_value.reliabilities), Exception(
+                "Length of rpc results do not match length of rpc reliabilities"
+            )
+
         while len(final_data) < len(column_value.results):
             final_data.append({})
+            final_confidence.append({})
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
@@ -121,8 +130,12 @@ def run_table_query(
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
             final_data[index][attribute] = resolved_column.process_column(result_value)
+            if has_reliability:
+                final_confidence[index][attribute] = CONFIDENCES.get(
+                    column_value.reliabilities[index], None
+                )
 
-    return {"data": final_data, "meta": final_meta}
+    return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
 
 def get_timeseries_query(
@@ -192,7 +205,7 @@ def run_timeseries_query(
 
 
 def build_top_event_conditions(
-    resolver: SearchResolver, top_events: EventsResponse, groupby_columns: list[str]
+    resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
 ) -> Any:
     conditions = []
     other_conditions = []

@@ -342,6 +342,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
             if not data:
                 return {"data": [], "meta": meta}
+            if "confidence" in results:
+                return {"data": data, "meta": meta, "confidence": results["confidence"]}
             return {"data": data, "meta": meta}
 
     def handle_data(
