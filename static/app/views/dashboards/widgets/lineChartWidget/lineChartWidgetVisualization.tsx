@@ -175,6 +175,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         left: 0,
       }}
       tooltip={{
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+        },
         formatter,
         valueFormatter: value => {
           return formatChartValue(value, type, unit);
@@ -184,6 +188,17 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         axisLabel: {
           formatter(value: number) {
             return formatChartValue(value, type, unit);
+          },
+        },
+        axisPointer: {
+          type: 'line',
+          snap: false,
+          lineStyle: {
+            type: 'solid',
+            width: 0.5,
+          },
+          label: {
+            show: false,
           },
         },
       }}
