@@ -2,9 +2,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
+  isAutogroupedNode,
   isMissingInstrumentationNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -40,7 +39,7 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <ErrorNodeDetails {...props} />;
   }
 
-  if (isParentAutogroupedNode(props.node) || isSiblingAutogroupedNode(props.node)) {
+  if (isAutogroupedNode(props.node)) {
     return <AutogroupNodeDetails {...props} />;
   }
 
