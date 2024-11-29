@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import useKeyPress from 'sentry/utils/useKeyPress';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilderSlideout';
+import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 
 type DevWidgetBuilderProps = {
   isOpen: boolean;

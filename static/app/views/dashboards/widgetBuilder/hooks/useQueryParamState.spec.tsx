@@ -68,12 +68,39 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const testDecoder = (value: string) => `${value.toUpperCase()} - decoded`;
+    const testDeserializer = (value: string) => `${value.toUpperCase()} - decoded`;
 
     const {result} = renderHook(() =>
-      useQueryParamState({fieldName: 'testField', decoder: testDecoder})
+      useQueryParamState({fieldName: 'testField', deserializer: testDeserializer})
     );
 
     expect(result.current[0]).toBe('INITIAL STATE - decoded');
+  });
+
+  it('can take any kind of value and serialize it to a string compatible with query params', () => {
+    type TestType = {
+      count: number;
+      isActive: boolean;
+      value: string;
+    };
+
+    const mockedNavigate = jest.fn();
+    mockedUseNavigate.mockReturnValue(mockedNavigate);
+
+    const testSerializer = (value: TestType) =>
+      `${value.value} - ${value.count} - ${value.isActive}`;
+
+    const {result} = renderHook(() =>
+      useQueryParamState({fieldName: 'testField', serializer: testSerializer})
+    );
+
+    act(() => {
+      result.current[1]({value: 'newValue', count: 2, isActive: true});
+    });
+
+    expect(mockedNavigate).toHaveBeenCalledWith({
+      ...LocationFixture(),
+      query: {testField: 'newValue - 2 - true'},
+    });
   });
 });
