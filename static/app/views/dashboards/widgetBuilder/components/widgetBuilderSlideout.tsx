@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
@@ -33,7 +34,12 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        <WidgetBuilderFilterBar organization={organization} selection={selection} />
+        <Section>
+          <WidgetBuilderFilterBar organization={organization} selection={selection} />
+        </Section>
+        <Section>
+          <WidgetBuilderNameAndDescription />
+        </Section>
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );
@@ -64,4 +70,8 @@ const SlideoutHeaderWrapper = styled('div')`
 
 const SlideoutBodyWrapper = styled('div')`
   padding: ${space(4)};
+`;
+
+const Section = styled('div')`
+  margin-bottom: ${space(4)};
 `;
