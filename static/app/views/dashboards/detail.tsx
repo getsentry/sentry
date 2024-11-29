@@ -335,11 +335,6 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            if (organization.features.includes('dashboards-widget-builder-redesign')) {
-              this.setState({isWidgetBuilderOpen: true});
-              return;
-            }
-
             const widgetIndex = dashboard.widgets.indexOf(widget);
             if (dashboardId) {
               const query = omit(location.query, Object.values(WidgetViewerQueryField));
