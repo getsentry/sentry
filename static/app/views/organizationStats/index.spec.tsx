@@ -435,6 +435,10 @@ describe('OrganizationStats', function () {
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+    // Should not show Profile Chunks option
+    expect(
+      screen.queryByRole('option', {name: 'Profile Chunks'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows both profile hours and profiles categories with continuous-profiling feature', async () => {
@@ -454,6 +458,8 @@ describe('OrganizationStats', function () {
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+    // Should show Profile Chunks option
+    expect(screen.getByRole('option', {name: 'Profile Chunks'})).toBeInTheDocument();
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {
@@ -478,6 +484,8 @@ describe('OrganizationStats', function () {
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+    // Should show Profile Chunks option
+    expect(screen.getByRole('option', {name: 'Profile Chunks'})).toBeInTheDocument();
   });
 
   it('shows only Profiles category without profiling features', async () => {
@@ -493,10 +501,14 @@ describe('OrganizationStats', function () {
 
     await userEvent.click(await screen.findByText('Category'));
 
-    // Should show Profile Hours option
+    // Should not show Profile Hours option
     expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+    // Should not show Profile Chunks option
+    expect(
+      screen.queryByRole('option', {name: 'Profile Chunks'})
+    ).not.toBeInTheDocument();
   });
 });
 

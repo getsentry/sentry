@@ -368,6 +368,16 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
+  [DataCategoryExact.PROFILE_CHUNK]: {
+    name: DataCategoryExact.PROFILE_CHUNK,
+    apiName: 'profile_chunk',
+    plural: 'profileChunks',
+    displayName: 'profile chunk',
+    titleName: t('Profile Chunks'),
+    productName: t('Continuous Profiling'),
+    uid: 18,
+    isBilledCategory: false,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
