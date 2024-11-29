@@ -142,6 +142,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         left: 0,
       }}
       tooltip={{
+        trigger: 'axis',
         axisPointer: {
           type: 'cross',
         },
