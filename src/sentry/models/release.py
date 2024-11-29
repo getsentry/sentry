@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import ClassVar, Literal, TypedDict
 
@@ -806,3 +807,81 @@ def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
     return follows_semver
+
+
+def batch_check_semver_versioning_scheme(
+    organization_id: int, project_ids: list[int]
+) -> dict[int, bool]:
+    """
+    Batch checks if projects follow semantic versioning scheme based on their latest releases.
+    Returns a dict mapping project_id to boolean indicating semver compliance.
+
+    A project follows semver if:
+    1. At least one semver compliant in the most recent 3 releases
+    2. At least 3 semver compliant releases in the most recent 10 releases
+    """
+    # Check cache first
+    cache_keys = {
+        project_id: f"follows_semver:1:{hash_values([organization_id, project_id])}"
+        for project_id in project_ids
+    }
+    cached_results = cache.get_many(cache_keys.values())
+
+    # Convert cache keys back to project IDs
+    results = {}
+    projects_to_check = []
+    for project_id, cache_key in cache_keys.items():
+        if cache_key in cached_results:
+            results[project_id] = cached_results[cache_key]
+        else:
+            projects_to_check.append(project_id)
+
+    if not projects_to_check:
+        return results
+
+    # Fetch latest 10 releases for all uncached projects in a single query
+    releases_by_project = defaultdict(list)
+    releases = (
+        Release.objects.filter(
+            organization_id=organization_id,
+            projects__id__in=projects_to_check,
+            status=ReleaseStatus.OPEN,
+        )
+        .using_replica()
+        .order_by("projects__id", "-date_added")
+        .values("projects__id", "version", "is_semver_release")[: len(projects_to_check) * 10]
+    )
+
+    # Group releases by project
+    for release in releases:
+        project_id = release["projects__id"]
+        releases_by_project[project_id].append(release)
+
+    # Calculate semver compliance for each project
+    to_cache = {}
+    for project_id in projects_to_check:
+        project_releases = releases_by_project.get(project_id, [])
+
+        if not project_releases:
+            follows_semver = False
+        elif len(project_releases) <= 2:
+            # Most recent release is considered to decide if project follows semver
+            follows_semver = project_releases[0]["is_semver_release"]
+        elif len(project_releases) < 10:
+            # Enough if at least one in first 3 is semver compliant
+            follows_semver = any(r["is_semver_release"] for r in project_releases[:3])
+        else:
+            # Count semver releases in the last ten
+            semver_matches = sum(1 for r in project_releases if r["is_semver_release"])
+            at_least_three_in_last_ten = semver_matches >= 3
+            at_least_one_in_last_three = any(r["is_semver_release"] for r in project_releases[:3])
+            follows_semver = at_least_one_in_last_three and at_least_three_in_last_ten
+
+        results[project_id] = follows_semver
+        to_cache[cache_keys[project_id]] = follows_semver
+
+    # Cache results
+    if to_cache:
+        cache.set_many(to_cache, 3600)
+
+    return results

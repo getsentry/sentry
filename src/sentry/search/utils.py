@@ -15,7 +15,7 @@ from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
+from sentry.models.release import Release, ReleaseStatus, batch_check_semver_versioning_scheme
 from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
@@ -370,11 +370,12 @@ def get_latest_release(
 
     # Convert projects to ids so that we can work with them more easily
     project_ids = [getattr(project, "id", project) for project in projects]
+    semver_status = batch_check_semver_versioning_scheme(organization_id, project_ids)
 
     semver_project_ids = []
     date_project_ids = []
     for project_id in project_ids:
-        if follows_semver_versioning_scheme(organization_id, project_id):
+        if semver_status[project_id]:
             semver_project_ids.append(project_id)
         else:
             date_project_ids.append(project_id)
