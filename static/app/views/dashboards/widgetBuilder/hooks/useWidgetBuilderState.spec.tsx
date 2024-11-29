@@ -161,4 +161,24 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
     });
   });
+
+  describe('fields', () => {
+    it('returns the fields from the query params', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({query: {field: ['event.type', 'potato', 'count()']}})
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+        {
+          alias: undefined,
+          kind: 'function',
+          function: ['count', '', undefined, undefined],
+        },
+      ]);
+    });
+  });
 });
