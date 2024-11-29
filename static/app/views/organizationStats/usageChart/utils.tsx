@@ -55,8 +55,12 @@ export function getXAxisDates(
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
-  const start = moment(dateStart).startOf('h');
-  const end = moment(dateEnd).startOf('h');
+  let startOfUnit: moment.unitOfTime.StartOf = 'h';
+  if (interval <= '6h') {
+    startOfUnit = 'm';
+  }
+  const start = moment(dateStart).startOf(startOfUnit);
+  const end = moment(dateEnd).startOf(startOfUnit);
 
   if (!start.isValid() || !end.isValid()) {
     return range;
