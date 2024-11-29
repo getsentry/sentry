@@ -1137,6 +1137,17 @@ function buildRoutes() {
         component={make(() => import('sentry/views/dashboards/view'))}
         withOrgPath
       >
+        {/* New widget builder routes */}
+        <Route
+          path="widget-builder/widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+        <Route
+          path="widget-builder/widget/new/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+
+        {/* Old widget builder routes */}
         <Route
           path="widget/:widgetIndex/edit/"
           component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
