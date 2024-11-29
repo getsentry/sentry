@@ -1064,12 +1064,23 @@ function buildRoutes() {
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
-            path="/dashboards/new/*"
+            path="/dashboards/new/"
             component={withDomainRequired(
               make(() => import('sentry/views/dashboards/create'))
             )}
             key="orgless-dashboards-new-route"
           >
+            {/* New widget builder routes */}
+            <Route
+              path="widget-builder/widget/:widgetIndex/edit/"
+              component={make(() => import('sentry/views/dashboards/view'))}
+            />
+            <Route
+              path="widget-builder/widget/new/"
+              component={make(() => import('sentry/views/dashboards/view'))}
+            />
+
+            {/* Old widget builder routes */}
             <Route
               path="widget/:widgetIndex/edit/"
               component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
@@ -1081,12 +1092,23 @@ function buildRoutes() {
           </Route>
         )}
         <Route
-          path="/organizations/:orgId/dashboards/new/*"
+          path="/organizations/:orgId/dashboards/new/"
           component={withDomainRedirect(
             make(() => import('sentry/views/dashboards/create'))
           )}
           key="org-dashboards-new"
         >
+          {/* New widget builder routes */}
+          <Route
+            path="widget-builder/widget/:widgetIndex/edit/"
+            component={make(() => import('sentry/views/dashboards/view'))}
+          />
+          <Route
+            path="widget-builder/widget/new/"
+            component={make(() => import('sentry/views/dashboards/view'))}
+          />
+
+          {/* Old widget builder routes */}
           <Route
             path="widget/:widgetIndex/edit/"
             component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
@@ -1133,10 +1155,21 @@ function buildRoutes() {
         <Redirect from="/dashboards/:dashboardId/" to="/dashboard/:dashboardId/" />
       )}
       <Route
-        path="/dashboard/:dashboardId/*"
+        path="/dashboard/:dashboardId/"
         component={make(() => import('sentry/views/dashboards/view'))}
         withOrgPath
       >
+        {/* New widget builder routes */}
+        <Route
+          path="widget-builder/widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+        <Route
+          path="widget-builder/widget/new/"
+          component={make(() => import('sentry/views/dashboards/view'))}
+        />
+
+        {/* Old widget builder routes */}
         <Route
           path="widget/:widgetIndex/edit/"
           component={make(() => import('sentry/views/dashboards/widgetBuilder'))}
