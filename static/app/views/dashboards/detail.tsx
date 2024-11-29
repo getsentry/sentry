@@ -203,14 +203,14 @@ export function checkUserHasEditAccess(
   return false;
 }
 
-function getDashboardUrl({
+function getDashboardLocation({
   organization,
   dashboardId,
   location,
 }: {
-  dashboardId: string;
   location: Location<any>;
   organization: Organization;
+  dashboardId?: string;
 }) {
   // Preserve important filter params
   const filterParams = pick(location.query, [
@@ -222,9 +222,13 @@ function getDashboardUrl({
     'end',
   ]);
 
-  const dashboardUrl = USING_CUSTOMER_DOMAIN
+  const commonPath = defined(dashboardId)
     ? `/dashboard/${dashboardId}/`
-    : `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
+    : `/dashboards/new/`;
+
+  const dashboardUrl = USING_CUSTOMER_DOMAIN
+    ? commonPath
+    : `/organizations/${organization.slug}${commonPath}`;
 
   return normalizeUrl({
     pathname: dashboardUrl,
@@ -665,30 +669,45 @@ class DashboardDetail extends Component<Props, State> {
       location,
       params: {dashboardId},
     } = this.props;
+    const {modifiedDashboard} = this.state;
 
     if (dataset === DataSet.METRICS) {
       this.handleAddMetricWidget();
       return;
     }
-    this.setState(
-      {
-        modifiedDashboard: cloneDashboard(dashboard),
-      },
-      () => {
-        if (organization.features.includes('dashboards-widget-builder-redesign')) {
+
+    if (organization.features.includes('dashboards-widget-builder-redesign')) {
+      this.setState(
+        {
+          modifiedDashboard: cloneDashboard(modifiedDashboard ?? dashboard),
+        },
+        () => {
           this.setState({isWidgetBuilderOpen: true});
+          let pathname = `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`;
+          if (!defined(dashboardId)) {
+            pathname = `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/new/`;
+          }
           router.push(
             normalizeUrl({
               // TODO: Replace with the old widget builder path when swapping over
-              pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/new/`,
+              pathname,
               query: {
                 ...location.query,
                 dataset,
               },
             })
           );
-          return;
         }
+      );
+
+      return;
+    }
+
+    this.setState(
+      {
+        modifiedDashboard: cloneDashboard(dashboard),
+      },
+      () => {
         if (dashboardId) {
           router.push(
             normalizeUrl({
@@ -1203,11 +1222,8 @@ class DashboardDetail extends Component<Props, State> {
                                     isOpen={this.state.isWidgetBuilderOpen}
                                     onClose={() => {
                                       this.setState({isWidgetBuilderOpen: false});
-                                      if (!defined(dashboardId)) {
-                                        return;
-                                      }
                                       router.push(
-                                        getDashboardUrl({
+                                        getDashboardLocation({
                                           organization,
                                           dashboardId,
                                           location,
