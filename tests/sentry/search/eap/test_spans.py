@@ -350,3 +350,25 @@ class SearchResolverColumnTest(TestCase):
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
+
+    def test_resolver_cache_attribute(self):
+        self.resolver.resolve_columns(["span.op"])
+        assert "span.op" in self.resolver._resolved_attribute_cache
+
+        project_column, project_context = self.resolver.resolve_column("project")
+        # Override the cache so we can confirm its being used
+        self.resolver._resolved_attribute_cache["span.op"] = project_column, project_context  # type: ignore[assignment]
+
+        # If we resolve op again, we should get the project context and column instead
+        resolved_column, virtual_context = self.resolver.resolve_column("span.op")
+        assert (resolved_column, virtual_context) == (project_column, project_context)
+
+    def test_resolver_cache_function(self):
+        self.resolver.resolve_columns(["count()"])
+        assert "count()" in self.resolver._resolved_function_cache
+
+        p95_column, p95_context = self.resolver.resolve_column("p95(span.duration) as foo")
+        self.resolver._resolved_function_cache["count()"] = p95_column, p95_context  # type: ignore[assignment]
+
+        resolved_column, virtual_context = self.resolver.resolve_column("count()")
+        assert (resolved_column, virtual_context) == (p95_column, p95_context)
