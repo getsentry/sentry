@@ -4,11 +4,13 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
+import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -97,6 +99,21 @@ function DevBuilder() {
           }}
         />
       </Section>
+      <Section>
+        <h1>Y-Axis:</h1>
+        <div>{state.yAxis?.map(generateFieldAsString).join(', ')}</div>
+        <YAxis
+          displayType={state.displayType ?? DisplayType.TABLE}
+          widgetType={state.dataset ?? WidgetType.DISCOVER}
+          aggregates={state.yAxis ?? [{field: '', kind: 'field'}]}
+          onChange={newAggregates => {
+            dispatch({
+              type: BuilderStateAction.SET_Y_AXIS,
+              payload: newAggregates,
+            });
+          }}
+        />
+      </Section>
     </Body>
   );
 }
@@ -130,6 +147,33 @@ function ColumnSelector({
       filterPrimaryOptions={() => true}
       onChange={onChange}
     />
+  );
+}
+
+function YAxis({
+  displayType,
+  widgetType,
+  aggregates,
+  onChange,
+}: {
+  aggregates: Column[];
+  displayType: DisplayType;
+  onChange: (newFields: Column[]) => void;
+  widgetType: WidgetType;
+}) {
+  const organization = useOrganization();
+  return (
+    <CustomMeasurementsProvider organization={organization}>
+      <YAxisSelector
+        widgetType={widgetType}
+        displayType={displayType}
+        aggregates={aggregates}
+        onChange={onChange}
+        tags={{}}
+        errors={[]}
+        selectedAggregate={undefined}
+      />
+    </CustomMeasurementsProvider>
   );
 }
 

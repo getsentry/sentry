@@ -181,4 +181,41 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
   });
+
+  describe('yAxis', () => {
+    it('does not conflict with fields when setting the state', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'potato', 'count()'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+  });
 });

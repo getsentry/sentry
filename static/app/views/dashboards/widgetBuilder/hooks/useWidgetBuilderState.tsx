@@ -15,6 +15,7 @@ export const BuilderStateAction = {
   SET_DISPLAY_TYPE: 'SET_DISPLAY_TYPE',
   SET_DATASET: 'SET_DATASET',
   SET_FIELDS: 'SET_FIELDS',
+  SET_Y_AXIS: 'SET_Y_AXIS',
 } as const;
 
 type WidgetAction =
@@ -22,7 +23,8 @@ type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_DESCRIPTION}
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS};
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS};
 
 interface WidgetBuilderState {
   dataset?: WidgetType;
@@ -30,6 +32,7 @@ interface WidgetBuilderState {
   displayType?: DisplayType;
   fields?: Column[];
   title?: string;
+  yAxis?: Column[];
 }
 
 function useWidgetBuilderState(): {
@@ -54,10 +57,16 @@ function useWidgetBuilderState(): {
     deserializer: deserializeFields,
     serializer: serializeFields,
   });
+  const [yAxis, setYAxis] = useQueryParamState<Column[]>({
+    fieldName: 'yAxis',
+    decoder: decodeList,
+    deserializer: deserializeFields,
+    serializer: serializeFields,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields}),
-    [title, description, displayType, dataset, fields]
+    () => ({title, description, displayType, dataset, fields, yAxis}),
+    [title, description, displayType, dataset, fields, yAxis]
   );
 
   const dispatch = useCallback(
@@ -78,11 +87,14 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
           break;
+        case BuilderStateAction.SET_Y_AXIS:
+          setYAxis(action.payload);
+          break;
         default:
           break;
       }
     },
-    [setTitle, setDescription, setDisplayType, setDataset, setFields]
+    [setTitle, setDescription, setDisplayType, setDataset, setFields, setYAxis]
   );
 
   return {
