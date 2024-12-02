@@ -84,7 +84,7 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def get_condition_handler(self, type_: type[T]) -> DataConditionHandler[T] | None:
+    def get_condition_handler(self, type_: T) -> DataConditionHandler[T] | None:
         try:
             condition_type = Condition(self.type)
         except ValueError:
