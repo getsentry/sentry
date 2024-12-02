@@ -145,7 +145,10 @@ class ApiTokenTest(TestCase):
         token = ApiToken.objects.create(user_id=user.id)
         with assume_test_silo_mode(SiloMode.REGION):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
-            assert f"replica_token_id={replica.id}, token_id={token.id}"
+            assert (
+                f"{replica} is swug"
+                == f"replica_token_id={replica.id}, token_id={token.id} is swug"
+            )
 
 
 @control_silo_test
