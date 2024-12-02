@@ -5,8 +5,10 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
@@ -30,7 +32,15 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        <WidgetBuilderFilterBar />
+        <Section>
+          <WidgetBuilderFilterBar />
+        </Section>
+        <Section>
+          <WidgetBuilderDatasetSelector />
+        </Section>
+        <Section>
+          <WidgetBuilderNameAndDescription />
+        </Section>
         <DevBuilder />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
@@ -62,4 +72,8 @@ const SlideoutHeaderWrapper = styled('div')`
 
 const SlideoutBodyWrapper = styled('div')`
   padding: ${space(4)};
+`;
+
+const Section = styled('div')`
+  margin-bottom: ${space(4)};
 `;

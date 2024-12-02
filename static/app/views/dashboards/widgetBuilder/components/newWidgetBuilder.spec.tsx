@@ -1,13 +1,14 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
+  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -21,6 +22,12 @@ const {organization, projects, router} = initializeOrg({
     params: {},
   },
 });
+
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
+const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
@@ -55,7 +62,7 @@ describe('NewWidgetBuiler', function () {
   afterEach(() => PageFiltersStore.reset());
 
   it('renders', async function () {
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
       router,
       organization,
     });
@@ -69,6 +76,69 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: '14D'})).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
+    expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
+
+    expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
+    expect(await screen.getByText('Errors')).toBeInTheDocument();
+    expect(await screen.getByText('Transactions')).toBeInTheDocument();
+    expect(await screen.getByText('Spans')).toBeInTheDocument();
+    expect(await screen.getByText('Issues')).toBeInTheDocument();
+    expect(await screen.getByText('Releases')).toBeInTheDocument();
+
+    expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
+    expect(await screen.findByTestId('add-description')).toBeInTheDocument();
+
     expect(await screen.findByText('TEST WIDGET')).toBeInTheDocument();
+  });
+
+  it('edits name and description', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
+      router,
+      organization,
+    });
+
+    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({title: 'some name'}),
+      })
+    );
+
+    await userEvent.click(await screen.findByTestId('add-description'));
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Description'),
+      'some description'
+    );
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({description: 'some description'}),
+      })
+    );
+  });
+
+  it('changes the dataset', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
+      router,
+      organization,
+    });
+
+    await userEvent.click(await screen.findByLabelText('Issues'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({dataset: 'issue'}),
+      })
+    );
   });
 });
