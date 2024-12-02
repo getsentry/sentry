@@ -73,12 +73,11 @@ export function NewOnboardingStatus({
   });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
-  const totalRemainingTasks = allTasks.length - doneTasks.length;
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+  const allTasksCompleted = allTasks.length === completeTasks.length;
 
   const skipQuickStart =
-    !organization.features?.includes('onboarding') ||
-    (completeTasks.length === allTasks.length && !isActive);
+    !organization.features?.includes('onboarding') || (allTasksCompleted && !isActive);
 
   const unseenDoneTasks = useMemo(
     () =>
@@ -111,7 +110,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || skipQuickStart || quickStartCompleted) {
+    if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
       return;
     }
 
@@ -123,11 +122,11 @@ export function NewOnboardingStatus({
 
     setQuickStartCompleted(true);
   }, [
-    totalRemainingTasks,
     organization,
     skipQuickStart,
     quickStartCompleted,
     setQuickStartCompleted,
+    allTasksCompleted,
   ]);
 
   useEffect(() => {
