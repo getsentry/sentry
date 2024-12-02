@@ -102,6 +102,11 @@ function DashboardGrid({
     }
   }
 
+  // function handleFavorite() {
+  //   // call api
+  //   onDashboardsChange();
+  // }
+
   function renderDropdownMenu(dashboard: DashboardListItem) {
     const menuItems: MenuItemProps[] = [
       {
@@ -181,6 +186,7 @@ function DashboardGrid({
         createdBy={dashboard.createdBy}
         renderWidgets={() => renderGridPreview(dashboard)}
         renderContextMenu={() => renderDropdownMenu(dashboard)}
+        // pass handleFavourite
       />
     );
   }
@@ -199,7 +205,7 @@ function DashboardGrid({
     });
   }
 
-  function renderFavouriteDashboards() {
+  function renderFavoriteDashboards() {
     if (
       rowCount * columnCount === currentDashboards?.length &&
       !isEqual(currentDashboards, dashboards)
@@ -207,8 +213,8 @@ function DashboardGrid({
       return [];
     }
 
-    const favouriteDashboardsRows = Math.ceil(5 / columnCount);
-    rowCount -= favouriteDashboardsRows;
+    const favoriteDashboardsRows = Math.ceil(5 / columnCount);
+    rowCount -= favoriteDashboardsRows;
 
     return currentDashboards?.slice(0, 5).map((dashboard, index) => {
       return renderDashboardCard(dashboard, index);
@@ -244,7 +250,7 @@ function DashboardGrid({
                 columns={columnCount}
                 data-test-id={'dashboard-grid'}
               >
-                {renderFavouriteDashboards()}
+                {renderFavoriteDashboards()}
                 {isLoading &&
                   rowCount * columnCount > numDashboards &&
                   new Array(rowCount * columnCount - numDashboards)
