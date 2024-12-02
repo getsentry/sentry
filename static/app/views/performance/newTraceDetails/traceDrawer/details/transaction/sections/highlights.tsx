@@ -107,5 +107,6 @@ const BodyContentWrapper = styled('div')`
 `;
 
 const TextWrapper = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.theme.overflowEllipsis};
 `;
