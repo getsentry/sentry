@@ -1,5 +1,5 @@
 ---
-created: '2024-11-25T23:04:25.041092+00:00'
+created: '2024-11-28T16:28:45.079966+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -659,6 +659,11 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.dashboardpermissions
   ordinal: 1
   sanitized_fields: []
+- model_name: sentry.dashboardfavoriteuser
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: sentry.customdynamicsamplingruleproject
   ordinal: 1
   sanitized_fields: []

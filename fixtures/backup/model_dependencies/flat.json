@@ -189,6 +189,10 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.dashboardfavoriteuser": [
+    "sentry.dashboard",
+    "sentry.user"
+  ],
   "sentry.dashboardpermissions": [
     "sentry.dashboard"
   ],
