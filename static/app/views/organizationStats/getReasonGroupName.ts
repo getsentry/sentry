@@ -108,7 +108,7 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
   security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
   unreal: [DiscardReason.PROCESS_UNREAL],
-  cors: [DiscardReason.CORS],
+  disallowed_domain: [DiscardReason.CORS],
   empty: [
     DiscardReason.NO_EVENT_PAYLOAD,
     DiscardReason.EMPTY_ENVELOPE,
