@@ -94,9 +94,11 @@ function EAPField({aggregate, onChange}: Props) {
     [fieldsArray]
   );
 
+  const fieldName = fieldsArray.find(f => f.key === field)?.name;
+
   // When using the async variant of SelectControl, we need to pass in an option object instead of just the value
   const selectedOption = field && {
-    label: field,
+    label: fieldName,
     value: field,
   };
 
@@ -118,7 +120,6 @@ function EAPField({aggregate, onChange}: Props) {
         async
         defaultOptions={getFieldOptions('')}
         loadOptions={searchText => Promise.resolve(getFieldOptions(searchText))}
-        filterOption={() => true}
         value={selectedOption}
         onChange={handleFieldChange}
       />
