@@ -69,6 +69,10 @@ export interface AssigneeSelectorDropdownProps {
    */
   loading: boolean;
   /**
+   * Additional items to render in the menu footer
+   */
+  additionalMenuFooterItems?: React.ReactNode;
+  /**
    * Additional styles to apply to the dropdown
    */
   className?: string;
@@ -213,6 +217,7 @@ export default function AssigneeSelectorDropdown({
   owners,
   sizeLimit = 150,
   trigger,
+  additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
   const sessionUser = useUser();
@@ -536,18 +541,21 @@ export default function AssigneeSelectorDropdown({
   };
 
   const footerInviteButton = (
-    <Button
-      size="xs"
-      aria-label={t('Invite Member')}
-      disabled={loading}
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        event.preventDefault();
-        openInviteMembersModal({source: 'assignee_selector'});
-      }}
-      icon={<IconAdd isCircled />}
-    >
-      {t('Invite Member')}
-    </Button>
+    <FooterWrapper>
+      <Button
+        size="xs"
+        aria-label={t('Invite Member')}
+        disabled={loading}
+        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
+        icon={<IconAdd isCircled />}
+      >
+        {t('Invite Member')}
+      </Button>
+      {additionalMenuFooterItems}
+    </FooterWrapper>
   );
 
   return (
@@ -610,4 +618,10 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
