@@ -66,7 +66,6 @@ from sentry.utils.snuba import (
     QueryOutsideRetentionError,
     UnqualifiedQueryError,
     is_duration_measurement,
-    is_integer_measurement,
     is_measurement,
     is_numeric_measurement,
     is_percentage_measurement,
@@ -1005,8 +1004,6 @@ class BaseQueryBuilder:
             return self.meta_resolver_map[field]
         if is_percentage_measurement(field):
             return "percentage"
-        if is_integer_measurement(field):
-            return "integer"
         if is_numeric_measurement(field):
             return "number"
 
