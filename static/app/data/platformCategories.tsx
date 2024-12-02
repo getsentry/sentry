@@ -566,6 +566,17 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
   'javascript',
   'python',
+  'python-aiohttp',
+  'python-bottle',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-pyramid',
+  'python-quart',
+  'python-sanic',
+  'python-starlette',
+  'python-tornado',
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
