@@ -4,7 +4,7 @@ import pytest
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.integrations.utils.metrics import EventLifecycle, IntegrationEventLifecycleMetric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -209,6 +209,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             },
         )
 
+        self._check_metrics_call_args(mock_metrics, "halted")
         mock_logger.warning.assert_any_call(
             "EventLifecycle flow warning: %s", "The lifecycle has already been exited"
         )
@@ -222,6 +223,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
             lifecycle.record_success()
             lifecycle.record_halt("Integration went boom", extra={"even": "more"})
 
+        self._check_metrics_call_args(mock_metrics, "success")
+
         mock_logger.warning.assert_not_called()
         mock_logger.error.assert_called_once_with(
             "EventLifecycle flow error: %s",
@@ -232,4 +235,16 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "interaction_type": "my_interaction",
                 "outcome_reason": "Integration went boom",
             },
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_invalid_metric_lifecycle(self, mock_metrics, mock_logger):
+        metric_obj = self.TestLifecycleMetric()
+        lifecycle = EventLifecycle(metric_obj, True)
+        lifecycle.record_success()
+
+        mock_metrics.assert_not_called()
+        mock_logger.error.assert_called_once_with(
+            "EventLifecycle flow error: %s", "The lifecycle has not yet been entered", extra=None
         )

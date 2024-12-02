@@ -161,7 +161,7 @@ class EventLifecycle:
     ) -> None:
         should_record_outcome = True
         if self._state is None:
-            self._report_flow_warning("The lifecycle has not yet been entered")
+            self._report_flow_error("The lifecycle has not yet been entered")
             should_record_outcome = False
         elif self._state == EventLifecycleOutcome.SUCCESS and (
             new_state == EventLifecycleOutcome.HALTED or new_state == EventLifecycleOutcome.FAILURE
