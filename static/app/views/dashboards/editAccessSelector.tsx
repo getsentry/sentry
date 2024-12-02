@@ -231,7 +231,12 @@ function EditAccessSelector({
         priority="primary"
         disabled={
           !userCanEditDashboardPermissions ||
-          isEqual(getDashboardPermissions(), dashboard.permissions)
+          isEqual(getDashboardPermissions(), {
+            ...dashboard.permissions,
+            teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+              (a, b) => a - b
+            ),
+          })
         }
       >
         {t('Save Changes')}
