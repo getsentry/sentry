@@ -1,7 +1,7 @@
 import logging
 import operator
 from enum import StrEnum
-from typing import Any
+from typing import Generic, TypeVar, cast
 
 from django.db import models
 
@@ -9,7 +9,11 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    ConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +25,7 @@ class Condition(StrEnum):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
-    EVENT_COMPARISON = "event_comparison"
+    GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
 
 
 condition_ops = {
@@ -34,14 +38,17 @@ condition_ops = {
 }
 
 
+T = TypeVar("T")
+
+
 @region_silo_model
-class DataCondition(DefaultFieldsModel):
+class DataCondition(Generic[T], DefaultFieldsModel):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition")
+    __repr__ = sane_repr("type", "condition", "condition_group")
 
     # The condition is the logic condition that needs to be met, gt, lt, eq, etc.
     condition = models.CharField(max_length=200)
@@ -78,10 +85,7 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def evaluate_value(self, value: Any) -> DataConditionResult:
-        # TODO: This logic should be in a condition class that we get from `self.type`
-        # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
-        # class from this model
+    def evaluate_value(self, value: T) -> DataConditionResult:
         try:
             condition_type = Condition(self.type)
         except ValueError:
@@ -90,18 +94,24 @@ class DataCondition(DefaultFieldsModel):
             )
             return None
 
-        op = condition_ops.get(condition_type)
-        if op is None:
-            custom_handler = True
-            try:
-                op = condition_handler_registry.get(condition_type)
-            except NoRegistrationExistsError:
-                return None
+        condition_handler = None
 
-        if not custom_handler:
+        try:
+            condition_handler = condition_handler_registry.get(condition_type)
+        except NoRegistrationExistsError:
+            # if it's not in the registry, check for a default operator
+            logger.info("No handler found, using operator")
+            condition = Condition(self.condition)
+            op = condition_ops.get(condition, None)
+
+        if condition_handler is not None:
+            result = cast(ConditionHandler[T], condition_handler)(
+                value, self.comparison, self.condition
+            )
+        elif op is not None:
             result = op(value, self.comparison)
         else:
-            result = op(value, self.comparison, self.condition)
+            return None
 
         if result:
             return self.get_condition_result()
