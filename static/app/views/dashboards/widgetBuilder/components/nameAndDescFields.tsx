@@ -35,6 +35,7 @@ function WidgetBuilderNameAndDescription() {
           onClick={() => {
             setIsDescSelected(true);
           }}
+          data-test-id={'add-description'}
         >
           {t('+ Add Widget Description')}
         </AddDescriptionButton>
