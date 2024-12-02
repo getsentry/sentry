@@ -90,6 +90,7 @@ class BaseQueryBuilder:
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    size_fields: dict[str, str] = {}
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
@@ -1012,6 +1013,9 @@ class BaseQueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
+
+        if unit := self.size_fields.get(field):
+            return unit
 
         measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do

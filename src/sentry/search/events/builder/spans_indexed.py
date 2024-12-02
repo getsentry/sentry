@@ -38,12 +38,19 @@ DURATION_FIELDS = {
     "span.self_time",
 }
 
+SIZE_FIELDS = {
+    "http.decoded_response_content_length": "byte",
+    "http.response_content_length": "byte",
+    "http.response_transfer_size": "byte",
+}
+
 
 class SpansIndexedQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = False
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
     duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
     config_class = SpansIndexedDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -58,6 +65,7 @@ class SpansEAPQueryBuilder(BaseQueryBuilder):
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
     duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
     config_class = SpansEAPDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -106,6 +114,7 @@ class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
     duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
 
     @property
     def time_column(self) -> SelectType:
@@ -123,6 +132,7 @@ class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
     uuid_fields = SPAN_UUID_FIELDS
     span_id_fields = SPAN_ID_FIELDS
     duration_fields = DURATION_FIELDS
+    size_fields = SIZE_FIELDS
 
     @property
     def time_column(self) -> SelectType:

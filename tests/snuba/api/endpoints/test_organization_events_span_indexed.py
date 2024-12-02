@@ -616,7 +616,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             ("messaging.message.body.size", "number", None),
             ("messaging.message.receive.latency", "number", None),
             ("messaging.message.retry.count", "number", None),
-            ("http.response_content_length", "number", None),
         ]
 
         self.store_spans(
@@ -1368,6 +1367,69 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_span_data_fields_http_resource(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "resource.img",
+                        "description": "/image/",
+                        "data": {
+                            "http.decoded_response_content_length": 1,
+                            "http.response_content_length": 2,
+                            "http.response_transfer_size": 3,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http.decoded_response_content_length",
+                    "http.response_content_length",
+                    "http.response_transfer_size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "allowAggregateConditions": "0",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "http.decoded_response_content_length": 1,
+                "http.response_content_length": 2,
+                "http.response_transfer_size": 3,
+                "project.name": self.project.slug,
+                "id": mock.ANY,
+            },
+        ]
+        assert response.data["meta"] == {
+            "dataset": mock.ANY,
+            "datasetReason": "unchanged",
+            "fields": {
+                "http.decoded_response_content_length": "size",
+                "http.response_content_length": "size",
+                "http.response_transfer_size": "size",
+                "id": "string",
+                "project.name": "string",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "http.decoded_response_content_length": "byte",
+                "http.response_content_length": "byte",
+                "http.response_transfer_size": "byte",
+                "id": None,
+                "project.name": None,
+            },
+        }
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
@@ -1617,3 +1679,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="units not implemented yet")
     def test_simple_measurements(self):
         super().test_simple_measurements()
+
+    @pytest.mark.xfail(reason="units not implemented yet")
+    def test_span_data_fields_http_resource(self):
+        super().test_span_data_fields_http_resource()
