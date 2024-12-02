@@ -210,16 +210,6 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization, dashboard) -> Response:
-        """
-        Return whether current user has favorited the dashboard
-        """
-        if not features.has(READ_FEATURE, organization, actor=request.user):
-            return Response(status=404)
-
-        is_favorited = request.user.id in dashboard.favorited_by
-        return Response({"isFavorited": is_favorited})
-
     def put(self, request: Request, organization, dashboard) -> Response:
         """
         Toggle favorite status for current user by adding or removing
