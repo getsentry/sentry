@@ -2102,9 +2102,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_data_condition(
-        **kwargs,
-    ) -> DataCondition:
+    def create_data_condition(**kwargs) -> DataCondition:
         return DataCondition.objects.create(**kwargs)
 
     @staticmethod

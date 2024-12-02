@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum, StrEnum
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
 
@@ -27,6 +27,12 @@ ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        raise NotImplementedError
+
+
+class DataConditionHandler(Generic[T]):
+    @staticmethod
+    def evaluate_value(value: T, comparison: Any, condition: str) -> DataConditionResult:
         raise NotImplementedError
 
 
