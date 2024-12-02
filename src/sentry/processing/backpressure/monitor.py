@@ -98,7 +98,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                         memory.available,
                         memory.percentage,
                     )
-                    break
+                break
             except (ConnectionError, TimeoutError) as e:
                 logger.warning(
                     "Attempt %d/%d: Service `%s` encountered a connection error: %s",
