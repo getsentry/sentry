@@ -1,5 +1,6 @@
 import logging
 import operator
+from collections.abc import Callable
 from enum import StrEnum
 from typing import Any, TypeVar, cast
 
@@ -94,9 +95,12 @@ class DataCondition(DefaultFieldsModel):
         return condition_handler_registry.get(condition_type)
 
     def evaluate_value(self, value: T) -> DataConditionResult:
+        condition_handler: DataConditionHandler[T] | None = None
+        op: Callable | None = None
+
         try:
             # Use a custom hanler
-            condition_handler: DataConditionHandler[T] | None = self.get_condition_handler()
+            condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
             # If it's not a custom handler, use the default operators
             condition = Condition(self.condition)
@@ -104,9 +108,19 @@ class DataCondition(DefaultFieldsModel):
 
         if condition_handler is not None:
             result = condition_handler.evaluate_value(value, self.comparison, self.condition)
-
-        if op is not None:
+        elif op is not None:
             result = op(cast(Any, value), self.comparison)
+        else:
+            logger.error(
+                "Invalid Data Condition Evaluation",
+                extra={
+                    "id": self.id,
+                    "type": self.type,
+                    "condition": self.condition,
+                },
+            )
+
+            return None
 
         if result:
             return self.get_condition_result()
