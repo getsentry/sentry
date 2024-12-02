@@ -28,6 +28,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 export enum VueVersion {
@@ -361,6 +362,7 @@ const docs: Docs<PlatformOptions> = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

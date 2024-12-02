@@ -31,6 +31,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularConfigType {
@@ -473,6 +474,7 @@ const docs: Docs<PlatformOptions> = {
   crashReportOnboarding,
   platformOptions,
   profilingOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;
