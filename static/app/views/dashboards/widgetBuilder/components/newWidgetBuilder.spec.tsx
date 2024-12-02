@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -62,10 +64,18 @@ describe('NewWidgetBuiler', function () {
   afterEach(() => PageFiltersStore.reset());
 
   it('renders', async function () {
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <DevWidgetBuilder
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
@@ -86,10 +96,18 @@ describe('NewWidgetBuiler', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <DevWidgetBuilder
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
     expect(mockNavigate).toHaveBeenLastCalledWith(
