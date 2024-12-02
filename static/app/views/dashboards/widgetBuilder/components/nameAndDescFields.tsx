@@ -11,8 +11,8 @@ import useWidgetBuilderState, {
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function WidgetBuilderNameAndDescription() {
-  const [isDescSelected, setIsDescSelected] = useState(false);
   const {state, dispatch} = useWidgetBuilderState();
+  const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
 
   return (
     <Fragment>

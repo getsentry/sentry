@@ -77,7 +77,7 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
-    expect(await screen.findByTestId('add-description')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
 
     expect(await screen.findByText('TEST WIDGET')).toBeInTheDocument();
   });
@@ -92,10 +92,7 @@ describe('NewWidgetBuiler', function () {
     });
 
     await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
-    // use this because navigate is called many times while the field is being updated
-    const lastTitleNavigateCall =
-      mockNavigate.mock.calls[mockNavigate.mock.calls.length - 1][0];
-    expect(lastTitleNavigateCall).toEqual(
+    expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({title: 'some name'}),
@@ -108,10 +105,7 @@ describe('NewWidgetBuiler', function () {
       await screen.findByPlaceholderText('Description'),
       'some description'
     );
-    // use this because navigate is called many times while the field is being updated
-    const lastDescriptionNavigateCall =
-      mockNavigate.mock.calls[mockNavigate.mock.calls.length - 1][0];
-    expect(lastDescriptionNavigateCall).toEqual(
+    expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
