@@ -84,7 +84,7 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def get_condition_handler(self, type_: T) -> DataConditionHandler[T] | None:
+    def get_condition_handler(self) -> DataConditionHandler[T] | None:
         try:
             condition_type = Condition(self.type)
         except ValueError:
@@ -98,7 +98,7 @@ class DataCondition(DefaultFieldsModel):
         op = None
 
         try:
-            condition_handler = self.get_condition_handler(type_=type(value))
+            condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
             condition = Condition(self.condition)
             op = condition_ops.get(condition, None)
