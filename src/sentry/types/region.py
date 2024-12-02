@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -15,6 +15,9 @@ from sentry import options
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
+
+if TYPE_CHECKING:
+    from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
 class RegionCategory(Enum):
@@ -341,6 +344,25 @@ def find_regions_for_user(user_id: int) -> set[str]:
 
     org_ids = _find_orgs_for_user(user_id)
     return find_regions_for_orgs(org_ids)
+
+
+@control_silo_function
+def find_regions_for_sentry_app(sentry_app: SentryApp) -> set[str]:
+    from sentry.models.organizationmapping import OrganizationMapping
+    from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {settings.SENTRY_MONOLITH_REGION}
+
+    organizations_with_installations = SentryAppInstallation.objects.filter(
+        sentry_app=sentry_app
+    ).values_list("organization_id")
+    regions = (
+        OrganizationMapping.objects.filter(organization_id__in=organizations_with_installations)
+        .distinct("region_name")
+        .values_list("region_name")
+    )
+    return {r[0] for r in regions}
 
 
 def find_all_region_names() -> Iterable[str]:
