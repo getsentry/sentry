@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 MAX_RETRIES = 2
@@ -123,6 +123,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = dashboards.filter(title__icontains=query)
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            filter_by = request.query_params.get("filter")
+            if filter_by == "onlyFavorites":
+                dashboards = dashboards.filter(
+                    id__in=DashboardFavoriteUser.objects.filter(
+                        user_id=request.user.id
+                    ).values_list("dashboard_id", flat=True)
+                )
+            elif filter_by == "excludeFavorites":
+                dashboards = dashboards.exclude(
+                    id__in=DashboardFavoriteUser.objects.filter(
+                        user_id=request.user.id
+                    ).values_list("dashboard_id", flat=True)
+                )
+
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -191,7 +206,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            sources=[prebuilt, dashboards],
+            sources=[dashboards] if filter_by == "onlyFavorites" else [prebuilt, dashboards],
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
