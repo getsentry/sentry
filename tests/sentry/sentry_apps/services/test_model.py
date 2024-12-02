@@ -29,7 +29,7 @@ class TestRpcApiApplication(TestCase):
             == f"this id={install.sentry_app.application_id} is so skibidi"
         )
         assert f"this {install.sentry_app} is so skibidi".lower().find("client_id") == -1
-        assert f"this {install.sentry_app} is so skibidi".lower().find("client_secret") == -1
+        assert f"this {install.sentry_app} is so toilet".lower().find("client_secret") == -1
 
     def test_serializes_correct_fields_(self):
         install = app_service.get_many(filter=dict(installation_ids=[self.install.id]))[0]
@@ -39,4 +39,4 @@ class TestRpcApiApplication(TestCase):
             == f"this id={install.sentry_app.application_id} is so skibidi"
         )
         assert f"this {install.sentry_app} is so skibidi".lower().find("client_id") == -1
-        assert f"this {install.sentry_app} is so skibidi".lower().find("client_secret") == -1
+        assert f"this {install.sentry_app} is so toilet".lower().find("client_secret") == -1

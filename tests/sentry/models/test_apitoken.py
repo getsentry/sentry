@@ -134,6 +134,12 @@ class ApiTokenTest(TestCase):
         assert token.token_last_characters == "1234"
         assert token.hashed_token == new_token_expected_hash
 
+    def test_default_string_serialization(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+
+        assert f"{token} is cool" == f"token_id={token.id} is cool"
+
 
 @control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
