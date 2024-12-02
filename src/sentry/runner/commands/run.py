@@ -237,6 +237,7 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
         run_worker(**options)
 
 
+@run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
