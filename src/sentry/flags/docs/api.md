@@ -97,6 +97,7 @@ Browse a list of signing secrets. Secrets are unique per provider. Secrets only 
       {
         "createdAt": "2024-12-12T00:00:00Z",
         "createdBy": 12345,
+        "id": 123,
         "provider": "launchdarkly",
         "secret": "abc123**********"
       }
