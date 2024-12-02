@@ -1,7 +1,7 @@
 import logging
 import operator
 from enum import StrEnum
-from typing import Generic, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from django.db import models
 
@@ -10,7 +10,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import (
-    ConditionHandler,
+    DataConditionHandler,
     DataConditionResult,
     DetectorPriorityLevel,
 )
@@ -37,12 +37,11 @@ condition_ops = {
     Condition.NOT_EQUAL: operator.ne,
 }
 
-
 T = TypeVar("T")
 
 
 @region_silo_model
-class DataCondition(Generic[T], DefaultFieldsModel):
+class DataCondition(DefaultFieldsModel):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
     """
@@ -85,31 +84,29 @@ class DataCondition(Generic[T], DefaultFieldsModel):
 
         return None
 
-    def evaluate_value(self, value: T) -> DataConditionResult:
+    def get_condition_handler(self, type_: type[T]) -> DataConditionHandler[T] | None:
         try:
             condition_type = Condition(self.type)
         except ValueError:
-            logger.exception(
-                "Invalid condition", extra={"condition": self.condition, "id": self.id}
-            )
-            return None
+            # If the type isn't in the condition, then it won't be in the registry either.
+            raise NoRegistrationExistsError(f"No registration exists for {self.type}")
 
+        return condition_handler_registry.get(condition_type)
+
+    def evaluate_value(self, value: T) -> DataConditionResult:
         condition_handler = None
+        op = None
 
         try:
-            condition_handler = condition_handler_registry.get(condition_type)
+            condition_handler = self.get_condition_handler(type_=type(value))
         except NoRegistrationExistsError:
-            # if it's not in the registry, check for a default operator
-            logger.info("No handler found, using operator")
             condition = Condition(self.condition)
             op = condition_ops.get(condition, None)
 
         if condition_handler is not None:
-            result = cast(ConditionHandler[T], condition_handler)(
-                value, self.comparison, self.condition
-            )
+            result = condition_handler.evaluate_value(value, self.comparison, self.condition)
         elif op is not None:
-            result = op(value, self.comparison)
+            result = op(cast(Any, value), self.comparison)
         else:
             return None
 

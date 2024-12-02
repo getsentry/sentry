@@ -3,6 +3,7 @@ from typing import Any
 from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler
 
 
 def get_nested_value(data: GroupEvent, path: str, default: Any = None) -> Any | None:
@@ -21,6 +22,8 @@ def get_nested_value(data: GroupEvent, path: str, default: Any = None) -> Any | 
 
 
 @condition_handler_registry.register(Condition.GROUP_EVENT_ATTR_COMPARISON)
-def event_comparison_operator(data: GroupEvent, comparison: Any, data_filter: str) -> bool:
-    event_value = get_nested_value(data, data_filter)
-    return event_value == comparison
+class GroupEventConditionHandler(DataConditionHandler[GroupEvent]):
+    @staticmethod
+    def evaluate_value(data: GroupEvent, comparison: Any, data_filter: str) -> bool:
+        event_value = get_nested_value(data, data_filter)
+        return event_value == comparison

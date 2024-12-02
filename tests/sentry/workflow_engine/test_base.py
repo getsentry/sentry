@@ -67,7 +67,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         if not workflow_triggers.conditions.exists():
             # create a trigger condition for a new event
-            self.create_data_condition[GroupEvent](
+            self.create_data_condition(
                 condition_group=workflow_triggers,
                 type=Condition.GROUP_EVENT_ATTR_COMPARISON,
                 condition="group.times_seen",

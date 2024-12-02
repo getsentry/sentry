@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from enum import IntEnum, StrEnum
 from typing import Any, Generic, TypeVar
 
@@ -31,7 +30,10 @@ class DataSourceTypeHandler(Generic[T]):
         raise NotImplementedError
 
 
-ConditionHandler = Callable[[T, Any, str], bool]
+class DataConditionHandler(Generic[T]):
+    @staticmethod
+    def evaluate_value(value: T, comparison: Any, condition: str) -> DataConditionResult:
+        raise NotImplementedError
 
 
 class DetectorType(StrEnum):
