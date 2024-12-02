@@ -79,7 +79,7 @@ function EditAccessSelector({
             ) ?? []),
           ];
     setSelectedOptions(selectedOptionsFromDashboard);
-  }, [dashboard, teamsToRender]);
+  }, [dashboard, teamsToRender, isMenuOpen]);
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -119,7 +119,8 @@ function EditAccessSelector({
         ? []
         : selectedOptions
             .filter(option => option !== '_creator')
-            .map(teamId => parseInt(teamId, 10)),
+            .map(teamId => parseInt(teamId, 10))
+            .sort((a, b) => a - b),
     };
   }
 
@@ -268,6 +269,19 @@ function EditAccessSelector({
       isOpen={isMenuOpen}
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
+        if (!isMenuOpen) {
+          teamsToRender.sort((team1, team2) => {
+            const team1Selected = selectedOptions.includes(team1.id);
+            const team2Selected = selectedOptions.includes(team2.id);
+            if (team1Selected && !team2Selected) {
+              return -1;
+            }
+            if (!team1Selected && team2Selected) {
+              return 1;
+            }
+            return team1.name.localeCompare(team2.name);
+          });
+        }
       }}
       menuFooter={dropdownFooterButtons}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
