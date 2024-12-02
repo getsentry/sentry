@@ -96,7 +96,7 @@ export function AutofixSetupWriteAccessModal({
   const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
 
   return (
-    <Fragment>
+    <div id="autofix-write-access-modal">
       <Header closeButton>
         <h3>{t('Allow Autofix to Make Pull Requests')}</h3>
       </Header>
@@ -117,7 +117,7 @@ export function AutofixSetupWriteAccessModal({
           </ButtonBar>
         </Footer>
       )}
-    </Fragment>
+    </div>
   );
 }
 
