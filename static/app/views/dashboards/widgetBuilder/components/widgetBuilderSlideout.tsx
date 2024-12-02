@@ -5,6 +5,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
@@ -33,6 +34,9 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
       <SlideoutBodyWrapper>
         <Section>
           <WidgetBuilderFilterBar />
+        </Section>
+        <Section>
+          <WidgetBuilderDatasetSelector />
         </Section>
         <Section>
           <WidgetBuilderNameAndDescription />
