@@ -71,7 +71,8 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components
       .map<ExternalIssueComponent | null>(component => {
-        const {sentryApp, error: disabled} = component;
+        const {sentryApp, error} = component;
+        const disabled = typeof error === 'string' ? !error : error;
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
         );
