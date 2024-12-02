@@ -25,7 +25,6 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -118,14 +117,6 @@ export default function WizardField({
               {
                 label: AlertWizardAlertNames.custom_transactions,
                 value: 'custom_transactions' as const,
-              },
-            ]
-          : []),
-        ...(hasInsightsAlerts(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.insights_metrics,
-                value: 'insights_metrics' as const,
               },
             ]
           : []),
