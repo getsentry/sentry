@@ -13,14 +13,13 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
 import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
-import useWidgetBuilderState, {
-  BuilderStateAction,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
 
 function DevBuilder() {
-  const {state, dispatch} = useWidgetBuilderState();
+  const {state, dispatch} = useWidgetBuilderContext();
   const [showDevBuilder] = useLocalStorageState('showDevBuilder', false);
 
   if (!showDevBuilder) {

@@ -6,12 +6,11 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useWidgetBuilderState, {
-  BuilderStateAction,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function WidgetBuilderNameAndDescription() {
-  const {state, dispatch} = useWidgetBuilderState();
+  const {state, dispatch} = useWidgetBuilderContext();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
 
   return (
