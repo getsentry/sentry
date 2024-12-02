@@ -4,12 +4,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentActivity,
-    IncidentProject,
-    IncidentSubscription,
-)
+from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
 
@@ -89,23 +84,8 @@ class DetailedIncidentSerializer(IncidentSerializer):
             expand.append("original_alert_rule")
         super().__init__(expand=expand)
 
-    def get_attrs(self, item_list, user, **kwargs):
-        results = super().get_attrs(item_list, user=user, **kwargs)
-        subscribed_incidents = set()
-        if user.is_authenticated:
-            subscribed_incidents = set(
-                IncidentSubscription.objects.filter(
-                    incident__in=item_list, user_id=user.id
-                ).values_list("incident_id", flat=True)
-            )
-
-        for item in item_list:
-            results[item]["is_subscribed"] = item.id in subscribed_incidents
-        return results
-
     def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
-        context["isSubscribed"] = attrs["is_subscribed"]
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 
