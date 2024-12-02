@@ -94,21 +94,19 @@ class DataCondition(DefaultFieldsModel):
         return condition_handler_registry.get(condition_type)
 
     def evaluate_value(self, value: T) -> DataConditionResult:
-        condition_handler = None
-        op = None
-
         try:
-            condition_handler = self.get_condition_handler()
+            # Use a custom hanler
+            condition_handler: DataConditionHandler[T] | None = self.get_condition_handler()
         except NoRegistrationExistsError:
+            # If it's not a custom handler, use the default operators
             condition = Condition(self.condition)
             op = condition_ops.get(condition, None)
 
         if condition_handler is not None:
             result = condition_handler.evaluate_value(value, self.comparison, self.condition)
-        elif op is not None:
+
+        if op is not None:
             result = op(cast(Any, value), self.comparison)
-        else:
-            return None
 
         if result:
             return self.get_condition_result()
