@@ -419,7 +419,7 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      {<EventFeatureFlagList group={group} project={project} event={event} />}
+      <EventFeatureFlagList group={group} project={project} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
