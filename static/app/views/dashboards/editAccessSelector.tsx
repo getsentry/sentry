@@ -271,12 +271,12 @@ function EditAccessSelector({
         setMenuOpen(!isMenuOpen);
         if (!isMenuOpen) {
           teamsToRender.sort((team1, team2) => {
-            const team1Selected = selectedOptions.includes(team1.id);
-            const team2Selected = selectedOptions.includes(team2.id);
-            if (team1Selected && !team2Selected) {
+            const isTeam1Selected = selectedOptions.includes(team1.id);
+            const isTeam2Selected = selectedOptions.includes(team2.id);
+            if (isTeam1Selected && !isTeam2Selected) {
               return -1;
             }
-            if (!team1Selected && team2Selected) {
+            if (!isTeam1Selected && isTeam2Selected) {
               return 1;
             }
             return team1.name.localeCompare(team2.name);
