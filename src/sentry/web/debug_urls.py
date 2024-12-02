@@ -21,7 +21,6 @@ from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMu
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
-from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email_activated_alert import (
     DebugIncidentActivatedAlertTriggerEmailView,
@@ -148,7 +147,6 @@ urlpatterns = [
     re_path(
         r"^debug/mail/sso-unlinked/no-password/$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
     ),
-    re_path(r"^debug/mail/incident-activity/$", DebugIncidentActivityEmailView.as_view()),
     re_path(r"^debug/mail/incident-trigger/$", DebugIncidentTriggerEmailView.as_view()),
     re_path(
         r"^debug/mail/activated-incident-trigger/$",

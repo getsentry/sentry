@@ -2,21 +2,15 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import urlencode
 
-from django.urls import reverse
-
-from sentry.auth.access import from_user
 from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleTriggerAction,
     AlertRuleTriggerActionMethod,
 )
 from sentry.incidents.models.incident import (
-    INCIDENT_STATUS,
     Incident,
     IncidentActivity,
-    IncidentActivityType,
     IncidentStatus,
     IncidentStatusMethod,
 )
@@ -31,105 +25,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
 from sentry.tasks.base import instrumented_task
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.email import MessageBuilder
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
-
-
-@instrumented_task(
-    name="sentry.incidents.tasks.send_subscriber_notifications",
-    queue="incidents",
-    silo_mode=SiloMode.REGION,
-)
-def send_subscriber_notifications(activity_id: int) -> None:
-    from sentry.incidents.logic import get_incident_subscribers, unsubscribe_from_incident
-
-    try:
-        activity = IncidentActivity.objects.select_related(
-            "incident", "incident__organization"
-        ).get(id=activity_id)
-    except IncidentActivity.DoesNotExist:
-        return
-
-    if activity.user_id is None:
-        return
-
-    activity_user = user_service.get_user(user_id=activity.user_id)
-
-    # Only send notifications for specific activity types.
-    if activity.type not in (
-        IncidentActivityType.COMMENT.value,
-        IncidentActivityType.STATUS_CHANGE.value,
-    ):
-        return
-
-    # Check that the user still has access to at least one of the projects
-    # related to the incident. If not then unsubscribe them.
-    projects = list(activity.incident.projects.all())
-    for subscriber in get_incident_subscribers(activity.incident):
-        subscriber_user = user_service.get_user(user_id=subscriber.user_id)
-        if subscriber_user is None:
-            continue
-
-        access = from_user(subscriber_user, activity.incident.organization)
-        if not any(project for project in projects if access.has_project_access(project)):
-            unsubscribe_from_incident(activity.incident, subscriber_user.id)
-        elif subscriber_user.id != activity.user_id:
-            msg = generate_incident_activity_email(activity, subscriber_user, activity_user)
-            msg.send_async([subscriber_user.email])
-
-
-def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | User | None = None
-) -> MessageBuilder:
-    incident = activity.incident
-    return MessageBuilder(
-        subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
-        template="sentry/emails/incidents/activity.txt",
-        html_template="sentry/emails/incidents/activity.html",
-        type="incident.activity",
-        context=build_activity_context(activity, user, activity_user),
-    )
-
-
-def build_activity_context(
-    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | None = None
-) -> dict[str, Any]:
-    if activity_user is None:
-        activity_user = user_service.get_user(user_id=activity.user_id)
-
-    if activity.type == IncidentActivityType.COMMENT.value:
-        action = "left a comment"
-    else:
-        action = "changed status from {} to {}".format(
-            INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
-            INCIDENT_STATUS[IncidentStatus(int(activity.value))],
-        )
-    incident = activity.incident
-
-    action = f"{action} on alert {incident.title} (#{incident.identifier})"
-
-    return {
-        "user_name": activity_user.name if activity_user else "Sentry",
-        "action": action,
-        "link": absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        )
-        + "?"
-        + urlencode({"referrer": "incident_activity_email"}),
-        "comment": activity.comment,
-    }
 
 
 @register_subscriber(SUBSCRIPTION_METRICS_LOGGER)
@@ -265,7 +163,6 @@ def auto_resolve_snapshot_incidents(alert_rule_id: int, **kwargs: Any) -> None:
             update_incident_status(
                 incident,
                 IncidentStatus.CLOSED,
-                comment="This alert has been auto-resolved because the rule that triggered it has been modified or deleted.",
                 status_method=IncidentStatusMethod.RULE_UPDATED,
             )
 

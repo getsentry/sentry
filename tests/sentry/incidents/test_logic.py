@@ -21,11 +21,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.events import (
-    IncidentCommentCreatedEvent,
-    IncidentCreatedEvent,
-    IncidentStatusUpdatedEvent,
-)
+from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     DEFAULT_ALERT_RULE_RESOLUTION,
@@ -52,10 +48,8 @@ from sentry.incidents.logic import (
     get_alert_resolution,
     get_available_action_integrations_for_org,
     get_incident_aggregates,
-    get_incident_subscribers,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
-    subscribe_to_incident,
     translate_aggregate_field,
     update_alert_rule,
     update_alert_rule_trigger,
@@ -80,7 +74,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentSubscription,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -180,16 +173,12 @@ class UpdateIncidentStatus(TestCase):
         )
         assert incident.status == IncidentStatus.WARNING.value
 
-    def run_test(
-        self, incident, status, expected_date_closed, user=None, comment=None, date_closed=None
-    ):
+    def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
         prev_status = incident.status
         self.record_event.reset_mock()
         update_incident_status(
             incident,
             status,
-            user=user,
-            comment=comment,
             status_method=IncidentStatusMethod.RULE_TRIGGERED,
             date_closed=date_closed,
         )
@@ -198,12 +187,8 @@ class UpdateIncidentStatus(TestCase):
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == (user.id if user else None)
-        if user:
-            assert IncidentSubscription.objects.filter(incident=incident, user_id=user.id).exists()
         assert activity.value == str(status.value)
         assert activity.previous_value == str(prev_status)
-        assert activity.comment == comment
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0]
@@ -234,9 +219,7 @@ class UpdateIncidentStatus(TestCase):
 
     def test_all_params(self):
         incident = self.create_incident()
-        self.run_test(
-            incident, IncidentStatus.CLOSED, timezone.now(), user=self.user, comment="lol"
-        )
+        self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
 
 
 class BaseIncidentsValidation:
@@ -348,117 +331,18 @@ class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
 
 @freeze_time()
 class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    @pytest.fixture(autouse=True)
-    def _setup_patches(self):
-        with mock.patch(
-            "sentry.incidents.tasks.send_subscriber_notifications"
-        ) as self.send_subscriber_notifications:
-            with mock.patch("sentry.analytics.base.Analytics.record_event") as self.record_event:
-                yield
-
-    def assert_notifications_sent(self, activity):
-        self.send_subscriber_notifications.apply_async.assert_called_once_with(
-            kwargs={"activity_id": activity.id}, countdown=10
-        )
-
     def test_no_snapshot(self):
         incident = self.create_incident()
-        self.record_event.reset_mock()
         activity = create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
-            user=self.user,
             value=str(IncidentStatus.CLOSED.value),
             previous_value=str(IncidentStatus.WARNING.value),
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user_id == self.user.id
         assert activity.value == str(IncidentStatus.CLOSED.value)
         assert activity.previous_value == str(IncidentStatus.WARNING.value)
-        self.assert_notifications_sent(activity)
-        assert not self.record_event.called
-
-    def test_comment(self):
-        incident = self.create_incident()
-        comment = "hello"
-
-        assert not IncidentSubscription.objects.filter(
-            incident=incident, user_id=self.user.id
-        ).exists()
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
-        )
-        assert IncidentSubscription.objects.filter(incident=incident, user_id=self.user.id).exists()
-
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user_id == self.user.id
-        assert activity.comment == comment
-        assert activity.value is None
-        assert activity.previous_value is None
-        self.assert_notifications_sent(activity)
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCommentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
-        }
-
-    def test_mentioned_user_ids(self):
-        incident = self.create_incident()
-        mentioned_member = self.create_user()
-        subscribed_mentioned_member = self.create_user()
-        IncidentSubscription.objects.create(
-            incident=incident, user_id=subscribed_mentioned_member.id
-        )
-        comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
-
-        assert not IncidentSubscription.objects.filter(
-            incident=incident, user_id=mentioned_member.id
-        ).exists()
-        self.record_event.reset_mock()
-        activity = create_incident_activity(
-            incident,
-            IncidentActivityType.COMMENT,
-            user=self.user,
-            comment=comment,
-            mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
-        )
-        assert IncidentSubscription.objects.filter(
-            incident=incident, user_id=mentioned_member.id
-        ).exists()
-
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user_id == self.user.id
-        assert activity.comment == comment
-        assert activity.value is None
-        assert activity.previous_value is None
-        self.assert_notifications_sent(activity)
-        assert len(self.record_event.call_args_list) == 1
-        event = self.record_event.call_args[0][0]
-        assert isinstance(event, IncidentCommentCreatedEvent)
-        assert event.data == {
-            "organization_id": str(self.organization.id),
-            "incident_id": str(incident.id),
-            "incident_type": str(incident.type),
-            "user_id": str(self.user.id),
-            "activity_id": str(activity.id),
-        }
-
-
-class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
-    def test_simple(self):
-        incident = self.create_incident()
-        assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user.id)
-        assert list(get_incident_subscribers(incident)) == [subscription]
 
 
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):

@@ -21,14 +21,5 @@ class IncidentStatusUpdatedEvent(BaseIncidentEvent):
     )
 
 
-class IncidentCommentCreatedEvent(BaseIncidentEvent):
-    type = "incident.comment"
-    attributes = BaseIncidentEvent.attributes + (
-        analytics.Attribute("user_id", required=False),
-        analytics.Attribute("activity_id", required=False),
-    )
-
-
 analytics.register(IncidentCreatedEvent)
 analytics.register(IncidentStatusUpdatedEvent)
-analytics.register(IncidentCommentCreatedEvent)
