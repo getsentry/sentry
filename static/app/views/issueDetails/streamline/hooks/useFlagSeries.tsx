@@ -57,6 +57,13 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
         const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z', {
           local: !selection.datetime.utc,
         });
+
+        const eventIsBefore = moment(event?.dateCreated).isBefore(moment(time));
+        const formattedDate = moment(time).from(event?.dateCreated, true);
+        const suffix = eventIsBefore
+          ? t(' (%s after this event)', formattedDate)
+          : t(' (%s before this event)', formattedDate);
+
         return [
           '<div class="tooltip-series">',
           `<div><span class="tooltip-label"><strong>${t(
@@ -66,8 +73,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          event?.dateCreated &&
-            ` (${moment(time).from(event.dateCreated, true)} ${t('before this event')})`,
+          event?.dateCreated && suffix,
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');
