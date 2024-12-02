@@ -139,6 +139,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if assign_partitions_randomly:
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
+        
+        if event.get_tag("sample_event"):
+            kwargs["asynchronous"] = False
 
         super().insert(
             event,
