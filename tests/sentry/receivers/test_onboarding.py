@@ -947,3 +947,21 @@ class OrganizationOnboardingTaskTest(TestCase):
                 id=integration_id,
                 provider="github",
             )
+
+    def test_second_platform_complete(self):
+        with self.feature("organizations:quick-start-updates"):
+            now = timezone.now()
+            project = self.create_project(first_event=now)
+            second_project = self.create_project(first_event=now)
+
+            project_created.send(project=project, user=self.user, sender=type(project))
+            project_created.send(
+                project=second_project, user=self.user, sender=type(second_project)
+            )
+
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.SECOND_PLATFORM,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
