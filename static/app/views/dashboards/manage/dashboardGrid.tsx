@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -164,6 +165,26 @@ function DashboardGrid({
       : {}),
   };
 
+  function renderDashboardCard(dashboard: DashboardListItem, index: number) {
+    return (
+      <DashboardCard
+        key={`${index}-${dashboard.id}`}
+        title={dashboard.title}
+        to={{
+          pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+          ...queryLocation,
+        }}
+        detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
+        dateStatus={
+          dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
+        }
+        createdBy={dashboard.createdBy}
+        renderWidgets={() => renderGridPreview(dashboard)}
+        renderContextMenu={() => renderDropdownMenu(dashboard)}
+      />
+    );
+  }
+
   function renderMiniDashboards() {
     // on pagination, render no dashboards to show placeholders while loading
     if (
@@ -174,23 +195,23 @@ function DashboardGrid({
     }
 
     return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
-      return (
-        <DashboardCard
-          key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-            ...queryLocation,
-          }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
-          dateStatus={
-            dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
-          }
-          createdBy={dashboard.createdBy}
-          renderWidgets={() => renderGridPreview(dashboard)}
-          renderContextMenu={() => renderDropdownMenu(dashboard)}
-        />
-      );
+      return renderDashboardCard(dashboard, index);
+    });
+  }
+
+  function renderFavouriteDashboards() {
+    if (
+      rowCount * columnCount === currentDashboards?.length &&
+      !isEqual(currentDashboards, dashboards)
+    ) {
+      return [];
+    }
+
+    const favouriteDashboardsRows = Math.ceil(5 / columnCount);
+    rowCount -= favouriteDashboardsRows;
+
+    return currentDashboards?.slice(0, 5).map((dashboard, index) => {
+      return renderDashboardCard(dashboard, index);
     });
   }
 
@@ -210,19 +231,43 @@ function DashboardGrid({
       ? currentDashboards?.length ?? 0
       : dashboards?.length ?? 0;
 
+    const isFirstPage = location.query.cursor === undefined;
+
     return (
-      <DashboardGridContainer
-        rows={rowCount}
-        columns={columnCount}
-        data-test-id={'dashboard-grid'}
-      >
-        {renderMiniDashboards()}
-        {isLoading &&
-          rowCount * columnCount > numDashboards &&
-          new Array(rowCount * columnCount - numDashboards)
-            .fill(0)
-            .map((_, index) => <Placeholder key={index} height="270px" />)}
-      </DashboardGridContainer>
+      <DashboardGridWrapper>
+        {isFirstPage && (
+          <Feature features="dashboards-favourite">
+            <div>
+              <h5>{t('My Favourites')}</h5>
+              <DashboardGridContainer
+                rows={rowCount}
+                columns={columnCount}
+                data-test-id={'dashboard-grid'}
+              >
+                {renderFavouriteDashboards()}
+                {isLoading &&
+                  rowCount * columnCount > numDashboards &&
+                  new Array(rowCount * columnCount - numDashboards)
+                    .fill(0)
+                    .map((_, index) => <Placeholder key={index} height="270px" />)}
+              </DashboardGridContainer>
+            </div>
+          </Feature>
+        )}
+        {isFirstPage && <h5>{t('All Dashboards')}</h5>}
+        <DashboardGridContainer
+          rows={rowCount}
+          columns={columnCount}
+          data-test-id={'dashboard-grid'}
+        >
+          {renderMiniDashboards()}
+          {isLoading &&
+            rowCount * columnCount > numDashboards &&
+            new Array(rowCount * columnCount - numDashboards)
+              .fill(0)
+              .map((_, index) => <Placeholder key={index} height="270px" />)}
+        </DashboardGridContainer>
+      </DashboardGridWrapper>
     );
   }
 
@@ -237,6 +282,14 @@ const DashboardGridContainer = styled('div')<{columns: number; rows: number}>`
   );
   grid-template-rows: repeat(${props => props.rows}, max-content);
   gap: ${DASHBOARD_CARD_GRID_PADDING}px;
+`;
+
+const DashboardGridWrapper = styled('div')`
+  h5 {
+    border-bottom: 1px solid ${p => p.theme.border};
+    padding-bottom: ${space(1)};
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const DropdownTrigger = styled(Button)`
