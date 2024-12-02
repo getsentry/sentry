@@ -125,7 +125,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
             )
             if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
-                # If a token is limitted to one organization, this endpoint should only return that one organization
+                # If a token is limited to one organization, this endpoint should only return that one organization
                 queryset = queryset.filter(id=request.auth.organization_id)
 
         query = request.GET.get("query")
