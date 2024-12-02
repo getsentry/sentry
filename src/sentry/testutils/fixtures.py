@@ -10,7 +10,6 @@ from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
-from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
@@ -373,11 +372,6 @@ class Fixtures:
 
     def create_incident_activity(self, *args, **kwargs):
         return Factories.create_incident_activity(*args, **kwargs)
-
-    def create_incident_comment(self, incident, *args, **kwargs):
-        return self.create_incident_activity(
-            incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
-        )
 
     def create_incident_trigger(self, incident, alert_rule_trigger, status):
         return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
