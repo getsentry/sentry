@@ -97,6 +97,25 @@ export function updateDashboardVisit(
   return promise;
 }
 
+export function updateDashboardFavorite(
+  api: Client,
+  orgId: string,
+  dashboardId: string | string[],
+  isFavorited: boolean
+): Promise<void> {
+  const promise = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
+    {
+      method: 'PUT',
+      data: {
+        isFavorited,
+      },
+    }
+  );
+
+  return promise;
+}
+
 export function fetchDashboard(
   api: Client,
   orgId: string,
