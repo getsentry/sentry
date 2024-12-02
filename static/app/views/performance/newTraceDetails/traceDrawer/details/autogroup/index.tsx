@@ -65,7 +65,7 @@ export function AutogroupNodeDetails(
       </BulletList>
       <TextBlock>
         {t(
-          'You can either open this autogroup by chevron on the span or turn this functionality off using the settings dropdown above.'
+          'You can either open this autogroup using the chevron on the span or turn this functionality off using the settings dropdown above.'
         )}
       </TextBlock>
     </TraceDrawerComponents.DetailContainer>
