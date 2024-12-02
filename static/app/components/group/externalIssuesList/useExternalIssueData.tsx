@@ -2,6 +2,7 @@ import type {ExternalIssueComponent} from 'sentry/components/group/externalIssue
 import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
+import {getSentryAppComponentIsDisabled} from 'sentry/components/sentryAppComponentIcon';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
@@ -71,8 +72,8 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components
       .map<ExternalIssueComponent | null>(component => {
-        const {sentryApp, error} = component;
-        const disabled = typeof error === 'string' ? !error : error;
+        const {sentryApp} = component;
+        const disabled = getSentryAppComponentIsDisabled(component);
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
         );
