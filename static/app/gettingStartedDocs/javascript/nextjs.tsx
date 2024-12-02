@@ -27,6 +27,7 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -424,6 +425,7 @@ const docs: Docs = {
   }),
   performanceOnboarding,
   crashReportOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;
