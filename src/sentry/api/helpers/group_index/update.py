@@ -170,7 +170,7 @@ def update_groups(
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None,
+    search_fn: SearchFunction | None = None,
     user: RpcUser | User | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -196,11 +196,13 @@ def update_groups(
 
     result = dict(serializer.validated_data)
 
-    # so we won't have to requery for each group
-    project_lookup = {p.id: p for p in projects}
-
     acting_user = user if user.is_authenticated else None
 
+    if not group_list:
+        return Response(detail="No groups found", status=400)
+
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in group_list}
     group_project_ids = {g.project_id for g in group_list}
     # filter projects down to only those that have groups in the search results
     projects = [p for p in projects if p.id in group_project_ids]

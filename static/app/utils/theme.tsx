@@ -743,6 +743,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
+    // needs to be below sidebar
+    widgetBuilderDrawer: 1016,
+
     settingsSidebarNavMask: 1017,
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,

@@ -26,7 +26,7 @@ describe('useQueryParamState', () => {
       LocationFixture({query: {testField: 'initial state'}})
     );
 
-    const {result} = renderHook(() => useQueryParamState('testField'));
+    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}));
 
     expect(result.current[0]).toBe('initial state');
   });
@@ -35,7 +35,7 @@ describe('useQueryParamState', () => {
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);
 
-    const {result} = renderHook(() => useQueryParamState('testField'));
+    const {result} = renderHook(() => useQueryParamState({fieldName: 'testField'}));
 
     act(() => {
       result.current[1]('newValue');
@@ -61,5 +61,46 @@ describe('useQueryParamState', () => {
 
     // The local state should be still reflect the new value
     expect(result.current[0]).toBe('newValue');
+  });
+
+  it('should use the decoder function to decode the query param value if provided', () => {
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({query: {testField: 'initial state'}})
+    );
+
+    const testDeserializer = (value: string) => `${value.toUpperCase()} - decoded`;
+
+    const {result} = renderHook(() =>
+      useQueryParamState({fieldName: 'testField', deserializer: testDeserializer})
+    );
+
+    expect(result.current[0]).toBe('INITIAL STATE - decoded');
+  });
+
+  it('can take any kind of value and serialize it to a string compatible with query params', () => {
+    type TestType = {
+      count: number;
+      isActive: boolean;
+      value: string;
+    };
+
+    const mockedNavigate = jest.fn();
+    mockedUseNavigate.mockReturnValue(mockedNavigate);
+
+    const testSerializer = (value: TestType) =>
+      `${value.value} - ${value.count} - ${value.isActive}`;
+
+    const {result} = renderHook(() =>
+      useQueryParamState({fieldName: 'testField', serializer: testSerializer})
+    );
+
+    act(() => {
+      result.current[1]({value: 'newValue', count: 2, isActive: true});
+    });
+
+    expect(mockedNavigate).toHaveBeenCalledWith({
+      ...LocationFixture(),
+      query: {testField: 'newValue - 2 - true'},
+    });
   });
 });
