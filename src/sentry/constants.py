@@ -778,17 +778,17 @@ DS_DENYLIST = frozenset(
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*heartbeat*",
-    "*/health",
-    "*/healthy",
-    "*/healthz",
-    "*/_health",
-    r"*/\[_health\]",
-    "*/live",
-    "*/livez",
-    "*/ready",
-    "*/readyz",
-    "*/ping",
-    "*/up",
+    "*/health{/,}",
+    "*/healthy{/,}",
+    "*/healthz{/,}",
+    "*/_health{/,}",
+    r"*/\[_health\]{/,}",
+    "*/live{/,}",
+    "*/livez{/,}",
+    "*/ready{/,}",
+    "*/readyz{/,}",
+    "*/ping{/,}",
+    "*/up{/,}",
 ]
 
 

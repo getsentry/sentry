@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
@@ -34,6 +36,8 @@ from sentry.services.organization import (
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -120,6 +124,9 @@ class OrganizationIndexEndpoint(Endpoint):
                     "organization"
                 )
             )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         query = request.GET.get("query")
         if query:

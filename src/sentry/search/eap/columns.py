@@ -285,6 +285,21 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="ai.total_cost",
             search_type="number",
         ),
+        ResolvedColumn(
+            public_alias="http.decoded_response_content_length",
+            internal_name="http.decoded_response_content_length",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="http.response_content_length",
+            internal_name="http.response_content_length",
+            search_type="number",
+        ),
+        ResolvedColumn(
+            public_alias="http.response_transfer_size",
+            internal_name="http.response_transfer_size",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),

@@ -22,7 +22,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    profile_functions_metrics,
     spans_eap,
     spans_indexed,
     spans_metrics,
@@ -253,7 +252,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
                         spans_eap,
@@ -288,6 +286,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                if use_rpc and dataset == spans_eap:
+                    return spans_rpc.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        raw_groupby=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        granularity_secs=rollup,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=False,
+                        ),
+                    )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
