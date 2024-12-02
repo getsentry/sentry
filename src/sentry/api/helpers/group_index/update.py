@@ -294,6 +294,25 @@ def get_group_ids_and_group_list(
     group_ids: Sequence[int | str] | None,
     search_fn: SearchFunction | None,
 ) -> tuple[list[int | str], list[Group]]:
+    """
+    Gets group IDs and group list based on provided filters.
+
+    Args:
+        organization_id: ID of the organization
+        projects: Sequence of projects to filter groups by
+        group_ids: Optional sequence of specific group IDs to fetch
+        search_fn: Optional search function to find groups if no IDs provided
+
+    Returns:
+        Tuple of:
+            - List of group IDs that were found
+            - List of Group objects that were found
+
+    Notes:
+        - If group_ids provided, filters to only valid groups in the org/projects
+        - If no group_ids but search_fn provided, uses search to find groups
+        - Limited to BULK_MUTATION_LIMIT results when using search
+    """
     _group_ids: list[int | str] = []
     _group_list: list[Group] = []
 
@@ -307,6 +326,7 @@ def get_group_ids_and_group_list(
         _group_ids = [g.id for g in _group_list]
 
     if search_fn and not _group_ids:
+        # It can raise ValidationError
         cursor_result, _ = search_fn(
             {
                 "limit": BULK_MUTATION_LIMIT,
