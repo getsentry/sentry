@@ -102,7 +102,7 @@ export function EventFeatureFlagList({
   const showCTA =
     !hasFlagContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    true; // TODO: make this last condition a feature flag for users who have LD integrated
+    organization.features.includes('feature-flag-cta');
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
