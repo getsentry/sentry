@@ -193,7 +193,7 @@ class DashboardListResponse(TypedDict):
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
-    isFavourited: bool
+    isFavorited: bool
 
 
 class DashboardListSerializer(Serializer):
@@ -253,7 +253,7 @@ class DashboardListSerializer(Serializer):
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
-            "isFavourited": user.id in obj.favourited_by,
+            "isFavorited": user.id in obj.favorited_by,
         }
         return data
 

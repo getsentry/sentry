@@ -200,9 +200,9 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
 
 
 @region_silo_endpoint
-class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
+class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
-    Endpoint for managing the favourite status of dashboards for users
+    Endpoint for managing the favorite status of dashboards for users
     """
 
     publish_status = {
@@ -212,18 +212,18 @@ class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
 
     def get(self, request: Request, organization, dashboard) -> Response:
         """
-        Return whether current user has favourited the dashboard
+        Return whether current user has favorited the dashboard
         """
         if not features.has(READ_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
-        is_favourited = request.user.id in dashboard.favourited_by
-        return Response({"isFavourited": is_favourited})
+        is_favorited = request.user.id in dashboard.favorited_by
+        return Response({"isFavorited": is_favorited})
 
     def put(self, request: Request, organization, dashboard) -> Response:
         """
-        Toggle favourite status for current user by adding or removing
-        current user from dashboard favourites
+        Toggle favorite status for current user by adding or removing
+        current user from dashboard favorites
         """
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
@@ -231,16 +231,16 @@ class OrganizationDashboardFavouriteEndpoint(OrganizationDashboardBase):
         if isinstance(dashboard, dict):
             return Response(status=204)
 
-        is_favourited = request.data.get("isFavourited")
-        current_favourites = set(dashboard.favourited_by)
+        is_favorited = request.data.get("isFavorited")
+        current_favorites = set(dashboard.favorited_by)
 
-        if is_favourited and request.user.id not in current_favourites:
-            current_favourites.add(request.user.id)
-        elif not is_favourited and request.user.id in current_favourites:
-            current_favourites.remove(request.user.id)
+        if is_favorited and request.user.id not in current_favorites:
+            current_favorites.add(request.user.id)
+        elif not is_favorited and request.user.id in current_favorites:
+            current_favorites.remove(request.user.id)
         else:
             Response(status=204)
 
-        dashboard.favourited_by = current_favourites
+        dashboard.favorited_by = current_favorites
 
         return Response(status=204)

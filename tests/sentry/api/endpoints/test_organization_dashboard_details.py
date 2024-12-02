@@ -3222,7 +3222,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         assert dashboard.last_visited == last_visited
 
 
-class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
+class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
         # Create two additional users
@@ -3231,12 +3231,12 @@ class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
         self.create_member(user=self.user_1, organization=self.organization)
         self.create_member(user=self.user_2, organization=self.organization)
 
-        # Both users have favourited the dashboard
-        self.dashboard.favourited_by = [self.user_1.id, self.user_2.id]
+        # Both users have favorited the dashboard
+        self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
 
     def url(self, dashboard_id):
         return reverse(
-            "sentry-api-0-organization-dashboard-favourite",
+            "sentry-api-0-organization-dashboard-favorite",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "dashboard_id": dashboard_id,
@@ -3244,23 +3244,23 @@ class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
         )
 
     # GET tests
-    def test_get_favourited_user_status(self):
+    def test_get_favorited_user_status(self):
         self.login_as(user=self.user_1)
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request("get", self.url(self.dashboard.id))
             assert response.status_code == 200
-            assert response.data["isFavourited"] is True
+            assert response.data["isFavorited"] is True
 
-    def test_get_not_favourited_user_status(self):
+    def test_get_not_favorited_user_status(self):
         user_3 = self.create_user()
         self.create_member(user=user_3, organization=self.organization)
         self.login_as(user=user_3)
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request("get", self.url(self.dashboard.id))
             assert response.status_code == 200
-            assert response.data["isFavourited"] is False
+            assert response.data["isFavorited"] is False
 
-    def test_get_favourite_status_no_dashboard_edit_access(self):
+    def test_get_favorite_status_no_dashboard_edit_access(self):
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
         self.login_as(user=self.user_2)
         dashboard_detail_url = reverse(
@@ -3277,34 +3277,34 @@ class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
             # assert user cannot edit dashboard
             assert response.status_code == 403
 
-        # assert user can see if they favourited the dashboard
+        # assert user can see if they favorited the dashboard
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request("get", self.url(self.dashboard.id))
             assert response.status_code == 200
-            assert response.data["isFavourited"] is True
+            assert response.data["isFavorited"] is True
 
     # PUT tests
-    def test_favourite_dashboard(self):
-        assert self.user.id not in self.dashboard.favourited_by
+    def test_favorite_dashboard(self):
+        assert self.user.id not in self.dashboard.favorited_by
         self.login_as(user=self.user)
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"isFavourited": "true"}
+                "put", self.url(self.dashboard.id), data={"isFavorited": "true"}
             )
             assert response.status_code == 204
-            assert self.user.id in self.dashboard.favourited_by
+            assert self.user.id in self.dashboard.favorited_by
 
-    def test_unfavourite_dashboard(self):
-        assert self.user_1.id in self.dashboard.favourited_by
+    def test_unfavorite_dashboard(self):
+        assert self.user_1.id in self.dashboard.favorited_by
         self.login_as(user=self.user_1)
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"isFavourited": False}
+                "put", self.url(self.dashboard.id), data={"isFavorited": False}
             )
             assert response.status_code == 204
-            assert self.user_1.id not in self.dashboard.favourited_by
+            assert self.user_1.id not in self.dashboard.favorited_by
 
-    def test_favourite_dashboard_no_dashboard_edit_access(self):
+    def test_favorite_dashboard_no_dashboard_edit_access(self):
         DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
         self.login_as(user=self.user_2)
         dashboard_detail_url = reverse(
@@ -3321,11 +3321,11 @@ class OrganizationDashboardFavouriteTest(OrganizationDashboardDetailsTestCase):
             # assert user cannot edit dashboard
             assert response.status_code == 403
 
-        # assert if user can favourite the dashboard
-        assert self.user_2.id in self.dashboard.favourited_by
+        # assert if user can favorite the dashboard
+        assert self.user_2.id in self.dashboard.favorited_by
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"isFavourited": False}
+                "put", self.url(self.dashboard.id), data={"isFavorited": False}
             )
             assert response.status_code == 204
-            assert self.user_2.id not in self.dashboard.favourited_by
+            assert self.user_2.id not in self.dashboard.favorited_by
