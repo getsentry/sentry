@@ -37,5 +37,5 @@ class OnboardingTaskBackend(Service, Generic[T]):
     def create_or_update_onboarding_task(self, organization, user, task, values):
         raise NotImplementedError
 
-    def try_mark_onboarding_complete(self, organization_id):
+    def try_mark_onboarding_complete(self, organization_id, user):
         raise NotImplementedError

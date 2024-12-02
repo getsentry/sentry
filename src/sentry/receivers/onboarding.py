@@ -10,7 +10,6 @@ from sentry import analytics, features
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.interfaces.user import User
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -256,7 +255,8 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         logger.info("record_first_replay_analytics_end")
-        try_mark_onboarding_complete(project.organization_id)
+        user: RpcUser = project.organization.get_default_owner()
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @first_feedback_received.connect(weak=False)
@@ -403,7 +403,8 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
         },
     )
     if created or rows_affected:
-        try_mark_onboarding_complete(organization_id)
+        user: RpcUser = Organization.objects.get(id=organization_id).get_default_owner()
+        try_mark_onboarding_complete(organization_id, user)
 
 
 def record_release_received(project, event, **kwargs):
@@ -432,7 +433,8 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        try_mark_onboarding_complete(project.organization_id)
+        user: RpcUser = organization.get_default_owner()
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 event_processed.connect(record_release_received, weak=False)
@@ -469,7 +471,8 @@ def record_user_context_received(project, event, **kwargs):
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
-            try_mark_onboarding_complete(project.organization_id)
+            user: RpcUser = organization.get_default_owner()
+            try_mark_onboarding_complete(project.organization_id, user)
 
 
 event_processed.connect(record_user_context_received, weak=False)
@@ -542,7 +545,8 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id)
+        user: RpcUser = organization.get_default_owner()
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @event_processed.connect(weak=False)
@@ -597,7 +601,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         data={"plugin": plugin.slug},
     )
     if success:
-        try_mark_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id, user)
 
     analytics.record(
         "plugin.enabled",
@@ -625,7 +629,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     )
 
     if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @issue_tracker_used.connect(weak=False)
@@ -644,7 +648,7 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
     )
 
     if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
+        try_mark_onboarding_complete(project.organization_id, user)
 
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
@@ -680,9 +684,8 @@ def record_integration_added(
         return
 
     organization = Organization.objects.get(id=organization_id)
-    user = User.objects.get(id=user_id)
 
-    if features.has("organizations:quick-start-updates", organization, actor=user):
+    if features.has("organizations:quick-start-updates", organization):
         integration_types = get_integration_types(integration.provider)
 
         task_mapping = {

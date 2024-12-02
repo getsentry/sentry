@@ -63,7 +63,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         )
 
         if rows_affected or created:
-            onboarding_tasks.try_mark_onboarding_complete(organization.id)
+            onboarding_tasks.try_mark_onboarding_complete(organization.id, request.user)
 
         return Response(status=204)
 
