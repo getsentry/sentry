@@ -140,6 +140,13 @@ class ApiTokenTest(TestCase):
 
         assert f"{token} is cool" == f"token_id={token.id} is cool"
 
+    def test_replica_string_serialization(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        with assume_test_silo_mode(SiloMode.REGION):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            assert f"replica_token_id={replica.id}, token_id={token.id}"
+
 
 @control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
