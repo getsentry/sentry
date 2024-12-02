@@ -17,19 +17,19 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 
-type DevWidgetBuilderProps = {
+type WidgetBuilderV2Props = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
 };
 
-function DevWidgetBuilder({
+function WidgetBuilderV2({
   isOpen,
   onClose,
   dashboardFilters,
   dashboard,
-}: DevWidgetBuilderProps) {
+}: WidgetBuilderV2Props) {
   const escapeKeyPressed = useKeyPress('Escape');
 
   useEffect(() => {
@@ -62,7 +62,7 @@ function DevWidgetBuilder({
   );
 }
 
-export default DevWidgetBuilder;
+export default WidgetBuilderV2;
 
 function WidgetPreviewContainer({
   dashboardFilters,

@@ -63,9 +63,7 @@ export default function useSuspectFlags({
     {
       staleTime: 0,
       // if no intersection, then there are no suspect flags
-      enabled: Boolean(
-        organization.features.includes('feature-flag-ui') && intersectionFlags.length
-      ),
+      enabled: Boolean(intersectionFlags.length),
     }
   );
 
