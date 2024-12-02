@@ -179,17 +179,20 @@ def update_groups(
     user = user or request.user
     data = data or request.data
 
-    group_ids, group_list = get_group_ids_and_group_list(
-        organization_id, projects, group_ids, search_fn
-    )
+    try:
+        group_ids, group_list = get_group_ids_and_group_list(
+            organization_id, projects, group_ids, search_fn
+        )
+    except ValidationError:
+        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+        return Response(
+            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+        )
+
     if not group_ids or not group_list:
         return Response({"detail": "No groups found"}, status=204)
 
-    try:
-        serializer = validate_request(request, projects, data)
-    except ValidationError:
-        logger.exception("Validation error")
-        return Response({"detail": "Invalid request data"}, status=400)
+    serializer = validate_request(request, projects, data)
 
     if serializer is None:
         return
