@@ -97,7 +97,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
     def test_no_releases(self):
         self.login_as(user=self.user)
-        group = self.create_group_with_no_release()
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        group = event.group
 
         url = f"/api/0/issues/{group.id}/"
 
