@@ -8,7 +8,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
-  organization: {features: ['global-views', 'open-membership']},
+  organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},
@@ -76,6 +76,13 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: '14D'})).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
+    expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
+    expect(await screen.getByText('Errors')).toBeInTheDocument();
+    expect(await screen.getByText('Transactions')).toBeInTheDocument();
+    expect(await screen.getByText('Spans')).toBeInTheDocument();
+    expect(await screen.getByText('Issues')).toBeInTheDocument();
+    expect(await screen.getByText('Releases')).toBeInTheDocument();
+
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
@@ -115,6 +122,25 @@ describe('NewWidgetBuiler', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({description: 'some description'}),
+      })
+    );
+  });
+
+  it('changes the dataset', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+      router,
+      organization,
+    });
+
+    await userEvent.click(await screen.findByLabelText('Issues'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({dataset: 'issue'}),
       })
     );
   });
