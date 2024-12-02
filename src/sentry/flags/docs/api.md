@@ -83,7 +83,26 @@ Retrieve a single flag log instance.
   }
   ```
 
-## Signing Secret [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/signing-secret/]
+## Signing Secrets [/organizations/<organization_id_or_slug>/flags/hooks/signing-secrets/]
+
+### Browse Signing Secrets [GET]
+
+Browse a list of signing secrets. Secrets are unique per provider. Secrets only show the first six characters; the remainder are redacted.
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "createdAt": "2024-12-12T00:00:00Z",
+        "createdBy": 12345,
+        "provider": "launchdarkly",
+        "secret": "abc123**********"
+      }
+    ]
+  }
+  ```
 
 ### Create Signing Secret [POST]
 
@@ -98,6 +117,14 @@ Requests from web hook providers can be signed. We use the signing secret to ver
   ```
 
 - Response 201
+
+## Signing Secret [/organizations/<organization_id_or_slug>/flags/hooks/signing-secrets/<signing_secret_id>/]
+
+### Delete Signing Secret [DELETE]
+
+Delete a signing secret.
+
+- Response 204
 
 ## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/]
 
