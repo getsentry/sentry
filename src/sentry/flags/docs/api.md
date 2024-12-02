@@ -112,6 +112,7 @@ Requests from web hook providers can be signed. We use the signing secret to ver
 
   ```json
   {
+    "provider": "launchdarkly",
     "secret": "d41d7d1adced450d9e2eb7f76dde6a04"
   }
   ```
