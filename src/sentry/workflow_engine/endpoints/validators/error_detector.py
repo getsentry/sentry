@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from sentry import audit_log
 from sentry.api.fields.empty_integer import EmptyIntegerField
+from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 from sentry.workflow_engine.models.detector import Detector, ErrorDetector
@@ -27,12 +28,13 @@ class ErrorDetectorValidator(BaseGroupTypeDetectorValidator):
                 type=validated_data["group_type"].slug,
             )
 
-            project = detector.project
-            # update configs, which are project options. continue using them
-            for config in validated_data:
-                project.update_option(
-                    detector.project_options_config[config], validated_data[config]
-                )
+            project: Project | None = detector.project
+            if project:
+                # update configs, which are project options. continue using them
+                for config in validated_data:
+                    project.update_option(
+                        detector.project_options_config[config], validated_data[config]
+                    )
 
             create_audit_entry(
                 request=self.context["request"],

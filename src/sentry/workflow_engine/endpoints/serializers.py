@@ -149,28 +149,30 @@ class DetectorSerializer(Serializer):
         }
 
 
-@register(ErrorDetector)
-class ErrorDetectorSerializer(Serializer):
+class ErrorDetectorSerializer(DetectorSerializer):
     def get_attrs(
         self, item_list: Sequence[Detector], user, **kwargs
     ) -> MutableMapping[Detector, dict[str, Any]]:
-        attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
+        attrs = super().get_attrs(item_list, user)
 
         # collect project options to serialize
-        project_ids = [item.project_id for item in item_list]
-        project_option_keys = item_list[0].project_options_config.keys()
+        filtered_item_list = [item for item in item_list if isinstance(item, ErrorDetector)]
+        project_ids = [item.project_id for item in filtered_item_list]
+        project_option_keys = filtered_item_list[0].project_options_config.keys()
 
         project_options_list = list(
             ProjectOption.objects.filter(key__in=project_option_keys, project__in=project_ids)
         )
 
-        configs = defaultdict(list)
+        configs: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in project_options_list:
-            configs[option.project_id].append(option.value)
+            configs[option.project_id][option.key] = option.value
 
-        for item in item_list:
+        for item in filtered_item_list:
+            if not item.project_id:
+                continue
             for key in project_option_keys:
-                attrs[item][key] = configs[item.id][key]
+                attrs[item][key] = configs[item.project_id][key]
 
         return attrs
 

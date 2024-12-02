@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, TypedDict
 
 import sentry_sdk
 
-from sentry import options
+from sentry import features, options
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -30,6 +30,7 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.models.grouphash import GroupHash
+from sentry.workflow_engine.models.detector import Detector
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -67,15 +68,18 @@ class GroupingConfigLoader:
 
     cache_prefix: str  # Set in subclasses
 
-    def get_config_dict(self, project: Project) -> GroupingConfig:
+    def get_config_dict(self, project: Project, detector: Detector | None = None) -> GroupingConfig:
         return {
-            "id": self._get_config_id(project),
-            "enhancements": self._get_enhancements(project),
+            "id": self._get_config_id(project, detector),
+            "enhancements": self._get_enhancements(project, detector),
         }
 
-    def _get_enhancements(self, project) -> str:
+    def _get_enhancements(self, project, detector) -> str:
         # project option editable via UI, will be on Error Detector page
-        enhancements = project.get_option("sentry:grouping_enhancements")
+        if detector:
+            enhancements = detector.get_option("sentry:grouping_enhancements")
+        else:
+            enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
@@ -99,14 +103,19 @@ class GroupingConfigLoader:
         cache.set(cache_key, rv)
         return rv
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project, detector=None):
         raise NotImplementedError
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project, detector=None):
+        if detector:
+            return detector.get_option(
+                self.option_name,
+                validate=lambda x: x in CONFIGURATIONS,
+            )
         return project.get_option(
             self.option_name,
             validate=lambda x: x in CONFIGURATIONS,
@@ -132,7 +141,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
     cache_prefix = "background-grouping-enhancements:"
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project, detector=None):
         return options.get("store.background-grouping-config-id")
 
 
@@ -145,8 +154,11 @@ def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     This is called early on in normalization so that everything that is needed
     to group the project is pulled into the event.
     """
+    detector: Detector | None = None
+    if features.has("organizations:detector-project-options", project.organization):
+        detector = Detector.objects.filter(project_id=project.id, type="error").first()
     loader = PrimaryGroupingConfigLoader()
-    return loader.get_config_dict(project)
+    return loader.get_config_dict(project, detector)
 
 
 def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
@@ -167,10 +179,14 @@ def get_projects_default_fingerprinting_bases(
     """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
     from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 
+    detector: Detector | None = None
+    if features.has("organizations:detector-project-options", project.organization):
+        detector = Detector.objects.filter(project_id=project.id, type="error").first()
+
     config_id = (
         config_id
         # TODO: add fingerprinting config to GroupingConfigLoader and use that here
-        or PrimaryGroupingConfigLoader()._get_config_id(project)
+        or PrimaryGroupingConfigLoader()._get_config_id(project, detector)
         or DEFAULT_GROUPING_CONFIG
     )
 
