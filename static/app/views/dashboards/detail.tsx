@@ -56,7 +56,7 @@ import {
   isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
-import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -1245,7 +1245,7 @@ class DashboardDetail extends Component<Props, State> {
                                     onEditWidget={this.onEditWidget}
                                   />
 
-                                  <DevWidgetBuilder
+                                  <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
                                     onClose={() => {
                                       this.setState({isWidgetBuilderOpen: false});
