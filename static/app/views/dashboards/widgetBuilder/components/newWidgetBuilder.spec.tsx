@@ -1,9 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
@@ -21,6 +22,12 @@ const {organization, projects, router} = initializeOrg({
     params: {},
   },
 });
+
+jest.mock('sentry/utils/useNavigate', () => ({
+  useNavigate: jest.fn(),
+}));
+
+const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
@@ -69,6 +76,40 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByRole('button', {name: '14D'})).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
+    expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
+    expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
+
     expect(await screen.findByText('TEST WIDGET')).toBeInTheDocument();
+  });
+
+  it('edits name and description', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+      router,
+      organization,
+    });
+
+    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({title: 'some name'}),
+      })
+    );
+
+    await userEvent.click(await screen.findByTestId('add-description'));
+
+    await userEvent.type(
+      await screen.findByPlaceholderText('Description'),
+      'some description'
+    );
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({description: 'some description'}),
+      })
+    );
   });
 });
