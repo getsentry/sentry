@@ -27,7 +27,6 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.store import ConsumerType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
@@ -515,6 +514,7 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
+    from sentry.tasks.store import ConsumerType
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
