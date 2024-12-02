@@ -37,7 +37,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -136,24 +135,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        if not features.has(
-            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
-        ):
-            try:
-                # This sets current_release_version to the latest semver version associated with a group
-                associated_release_id = GroupRelease.objects.filter(
-                    project_id=group.project.id, group_id=group.id
-                ).values_list("release_id")
-                current_release_version = (
-                    get_semver_releases(group.project)
-                    .filter(id__in=associated_release_id)
-                    .values_list("version", flat=True)[:1]
-                    .get()
-                )
-            except Release.DoesNotExist:
-                pass
-        else:
-            current_release_version = greatest_semver_release(group.project).version
+        current_release_version = greatest_semver_release(group.project).version
 
     else:
         # This sets current_release_version to the most recent release associated with a group
