@@ -59,7 +59,10 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
         });
 
         const eventIsBefore = moment(event?.dateCreated).isBefore(moment(time));
-        const suffix = eventIsBefore ? t('after this event') : t('before this event');
+        const formattedDate = moment(time).from(event?.dateCreated, true);
+        const suffix = eventIsBefore
+          ? t(' (%s after this event)', formattedDate)
+          : t(' (%s before this event)', formattedDate);
 
         return [
           '<div class="tooltip-series">',
@@ -70,8 +73,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          event?.dateCreated &&
-            ` (${moment(time).from(event.dateCreated, true)} ${suffix})`,
+          event?.dateCreated && suffix,
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');
