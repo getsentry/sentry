@@ -18,6 +18,7 @@ import {
 } from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -370,5 +371,5 @@ function LegacyTransactionSpecificSections({
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
+  margin-bottom: ${space(2)};
 `;

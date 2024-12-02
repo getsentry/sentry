@@ -2,23 +2,22 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {IconGroup} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
-import type {TraceTreeNodeDetailsProps} from '../../traceDrawer/tabs/traceTreeNodeDetails';
-import type {ParentAutogroupNode} from '../../traceModels/parentAutogroupNode';
-import {TraceTree} from '../../traceModels/traceTree';
-import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
-import {getTraceTabTitle} from '../../traceState/traceTabs';
+import type {TraceTreeNodeDetailsProps} from '../../../traceDrawer/tabs/traceTreeNodeDetails';
+import type {SiblingAutogroupNode} from '../../../traceModels/siblingAutogroupNode';
+import {TraceTree} from '../../../traceModels/traceTree';
+import {makeTraceNodeBarColor} from '../../../traceRow/traceBar';
+import {getTraceTabTitle} from '../../../traceState/traceTabs';
+import {IssueList} from '.././issues/issues';
+import {type SectionCardKeyValueList, TraceDrawerComponents} from '.././styles';
 
-import {IssueList} from './issues/issues';
-import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
-
-export function ParentAutogroupNodeDetails({
+export function SiblingAutogroupNodeDetails({
   node,
   organization,
   onParentClick,
   onTabScrollToNode,
-}: TraceTreeNodeDetailsProps<ParentAutogroupNode>) {
+}: TraceTreeNodeDetailsProps<SiblingAutogroupNode>) {
   const theme = useTheme();
   const issues = useMemo(() => {
     return [...node.errors, ...node.performance_issues];
@@ -30,9 +29,7 @@ export function ParentAutogroupNodeDetails({
     {
       key: 'grouping_logic',
       subject: t('Grouping Logic'),
-      value: t(
-        'Chain of immediate and only children spans with the same operation as their parent.'
-      ),
+      value: t('5 or more sibling spans with the same operation and description.'),
     },
     {
       key: 'group_count',
@@ -42,7 +39,10 @@ export function ParentAutogroupNodeDetails({
     {
       key: 'grouping_key',
       subject: t('Grouping Key'),
-      value: `${t('Span Operation')} : ${node.value.op}`,
+      value: tct('Span operation: [operation] and description: [description]', {
+        operation: node.value.op,
+        description: node.value.description,
+      }),
     },
   ];
 
@@ -66,7 +66,7 @@ export function ParentAutogroupNodeDetails({
             <TraceDrawerComponents.IconBorder
               backgroundColor={makeTraceNodeBarColor(theme, node)}
             >
-              <IconGroup size="md" />
+              <IconGroup />
             </TraceDrawerComponents.IconBorder>
             <div style={{fontWeight: 'bold'}}>{t('Autogroup')}</div>
           </TraceDrawerComponents.IconTitleWrapper>

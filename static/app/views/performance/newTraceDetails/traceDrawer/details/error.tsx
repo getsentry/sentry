@@ -10,6 +10,7 @@ import {
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {EventError} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -19,11 +20,61 @@ import {TraceTree} from '../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {makeTraceNodeBarColor} from '../../traceRow/traceBar';
 import {getTraceTabTitle} from '../../traceState/traceTabs';
+import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
 import {IssueList} from './issues/issues';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from './styles';
 
-export function ErrorNodeDetails({
+export function ErrorNodeDetails(
+  props: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.TraceError>>
+) {
+  const hasTraceNewUi = useHasTraceNewUi();
+  const {node, organization, onTabScrollToNode} = props;
+  const issues = useMemo(() => {
+    return [...node.errors];
+  }, [node.errors]);
+
+  if (!hasTraceNewUi) {
+    return <LegacyErrorNodeDetails {...props} />;
+  }
+
+  return (
+    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasTraceNewUi}>
+      <TraceDrawerComponents.HeaderContainer>
+        <TraceDrawerComponents.Title>
+          <TraceDrawerComponents.LegacyTitleText>
+            <TraceDrawerComponents.TitleText>
+              {t('Error')}
+            </TraceDrawerComponents.TitleText>
+            <TraceDrawerComponents.SubtitleWithCopyButton
+              text={`ID: ${props.node.value.event_id}`}
+            />
+          </TraceDrawerComponents.LegacyTitleText>
+        </TraceDrawerComponents.Title>
+        <TraceDrawerComponents.NodeActions
+          node={node}
+          organization={organization}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+      </TraceDrawerComponents.HeaderContainer>
+      <Description>
+        {t(
+          'This error is related to an ongoing issue. For details about how many users this affects and more, go to the issue below.'
+        )}
+      </Description>
+      <IssueList issues={issues} node={node} organization={organization} />
+    </TraceDrawerComponents.DetailContainer>
+  );
+}
+
+const Description = styled('div')`
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  line-height: 1.5;
+  text-align: left;
+`;
+
+function LegacyErrorNodeDetails({
   node,
   organization,
   onTabScrollToNode,
@@ -133,7 +184,6 @@ export function ErrorNodeDetails({
     </TraceDrawerComponents.DetailContainer>
   ) : null;
 }
-
 const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
