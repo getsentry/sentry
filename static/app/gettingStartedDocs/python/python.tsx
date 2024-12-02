@@ -244,7 +244,7 @@ export function AlternativeConfiguration() {
 }
 
 export const featureFlagOnboarding: OnboardingConfig = {
-  install: onboarding.install,
+  install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
