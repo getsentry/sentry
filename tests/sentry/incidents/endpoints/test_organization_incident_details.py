@@ -1,7 +1,7 @@
 from functools import cached_property
 
 from sentry.api.serializers import serialize
-from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
@@ -90,22 +90,6 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest):
             )
             assert resp.status_code == 400
             assert resp.data.startswith("Status cannot be changed")
-
-    def test_comment(self):
-        incident = self.create_incident()
-        status = IncidentStatus.CLOSED.value
-        comment = "fixed"
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                incident.organization.slug, incident.identifier, status=status, comment=comment
-            )
-
-        incident = Incident.objects.get(id=incident.id)
-        assert incident.status == status
-        activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
-        assert activity.value == str(status)
-        assert activity.comment == comment
-        assert activity.user_id == self.user.id
 
     def test_invalid_status(self):
         incident = self.create_incident()

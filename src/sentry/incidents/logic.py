@@ -199,8 +199,6 @@ def create_incident(
 def update_incident_status(
     incident: Incident,
     status: IncidentStatus,
-    user: RpcUser | None = None,
-    comment: str | None = None,
     status_method: IncidentStatusMethod = IncidentStatusMethod.RULE_TRIGGERED,
     date_closed: datetime | None = None,
 ) -> Incident:
@@ -216,13 +214,9 @@ def update_incident_status(
         create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
-            user=user,
             value=status.value,
             previous_value=incident.status,
-            comment=comment,
         )
-        if user:
-            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs: dict[str, Any] = {"status": status.value, "status_method": status_method.value}
@@ -260,12 +254,9 @@ def create_incident_activity(
     user: RpcUser | User | None = None,
     value: str | int | None = None,
     previous_value: str | int | None = None,
-    comment: str | None = None,
     mentioned_user_ids: Collection[int] = (),
     date_added: datetime | None = None,
 ) -> IncidentActivity:
-    if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else None
     previous_value = str(previous_value) if previous_value is not None else None
     kwargs = {}
@@ -277,7 +268,6 @@ def create_incident_activity(
         user_id=user.id if user else None,
         value=value,
         previous_value=previous_value,
-        comment=comment,
         notification_uuid=uuid4(),
         **kwargs,
     )
@@ -295,22 +285,6 @@ def create_incident_activity(
                     for mentioned_user_id in user_ids_to_subscribe
                 ]
             )
-    transaction.on_commit(
-        lambda: tasks.send_subscriber_notifications.apply_async(
-            kwargs={"activity_id": activity.id}, countdown=10
-        ),
-        router.db_for_write(IncidentSubscription),
-    )
-    if activity_type == IncidentActivityType.COMMENT:
-        analytics.record(
-            "incident.comment",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident.type,
-            user_id=user.id if user else None,
-            activity_id=activity.id,
-        )
-
     return activity
 
 
@@ -479,11 +453,6 @@ def get_incident_aggregates(
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
-
-
-def subscribe_to_incident(incident: Incident, user_id: int) -> IncidentSubscription:
-    subscription, _ = IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
-    return subscription
 
 
 def unsubscribe_from_incident(incident: Incident, user_id: int) -> None:
