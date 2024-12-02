@@ -531,7 +531,7 @@ function Sidebar() {
           {organization ? (
             <DismissableRollbackBanner
               organization={organization}
-              collapsed={collapsed}
+              collapsed={collapsed || horizontal}
             />
           ) : null}
 
