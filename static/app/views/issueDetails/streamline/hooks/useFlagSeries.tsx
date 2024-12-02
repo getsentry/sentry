@@ -25,7 +25,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
-  if (!rawFlagData || isError || isPending) {
+  if (!rawFlagData || !rawFlagData.data.length || isError || isPending) {
     return {
       seriesName: t('Feature Flags'),
       markLine: {},
