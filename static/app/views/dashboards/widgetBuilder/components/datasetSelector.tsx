@@ -9,13 +9,12 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import useWidgetBuilderState, {
-  BuilderStateAction,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function WidgetBuilderDatasetSelector() {
   const organization = useOrganization();
-  const {state, dispatch} = useWidgetBuilderState();
+  const {state, dispatch} = useWidgetBuilderContext();
 
   const datasetChoices: RadioOption<WidgetType>[] = [];
   datasetChoices.push([WidgetType.ERRORS, t('Errors')]);
