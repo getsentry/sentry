@@ -113,17 +113,25 @@ function TitleWithTestId(props: PropsWithChildren<{}>) {
   return <Title data-test-id="trace-drawer-title">{props.children}</Title>;
 }
 
-function SubtitleWithCopyButton({text}: {text: string}) {
+function SubtitleWithCopyButton({
+  text,
+  hideCopyButton = false,
+}: {
+  text: string;
+  hideCopyButton?: boolean;
+}) {
   return (
     <SubTitleWrapper>
       <StyledSubTitleText>{text}</StyledSubTitleText>
-      <CopyToClipboardButton
-        borderless
-        size="zero"
-        iconSize="xs"
-        text={text}
-        tooltipProps={{disabled: true}}
-      />
+      {!hideCopyButton ? (
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          iconSize="xs"
+          text={text}
+          tooltipProps={{disabled: true}}
+        />
+      ) : null}
     </SubTitleWrapper>
   );
 }
