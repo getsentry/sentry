@@ -125,19 +125,8 @@ class OrganizationIndexEndpoint(Endpoint):
                 )
             )
             if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
-                # TODO: @athena Remove the temporary logging
-                # If a token is limitted to one organization, this case should not happen
-                # So ideally here we should limit the query set to that one org
-                # Adding some logging to verify if this is going to be a breaking change
-                logger.info(
-                    "organization_index.unexpected_results",
-                    extra={
-                        "token_org": request.auth.organization_id,
-                        "org_count": queryset.count(),
-                        "user_id": request.auth.user_id,
-                        "app_id": request.auth.application_id,
-                    },
-                )
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         query = request.GET.get("query")
         if query:
