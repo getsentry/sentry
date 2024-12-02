@@ -32,6 +32,8 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           : defaultQuery.aggregates,
       columns: defined(columns) && columns.length > 0 ? columns : defaultQuery.columns,
       conditions: query,
+      // TODO: This will be read from the state under a separate key, not derived
+      // from the fields. This is only to satisfy the type interface for now.
       orderby: defined(fields) && fields.length > 0 ? fields[0] : defaultQuery.orderby,
     };
   });
