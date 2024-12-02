@@ -98,7 +98,6 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                         memory.available,
                         memory.percentage,
                     )
-                break
             except (ConnectionError, TimeoutError) as e:
                 logger.warning(
                     "Attempt %d/%d: Service `%s` encountered a connection error: %s",
@@ -118,10 +117,10 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                     sentry_sdk.capture_exception(e)
                 unhealthy_services[name] = e
                 break
-        else:
-            unhealthy_services[name] = reasons
-
-        logger.info("  => healthy: %s", not unhealthy_services[name])
+            else:
+                unhealthy_services[name] = reasons
+                break
+            logger.info("  => healthy: %s", not unhealthy_services[name])
 
     return unhealthy_services
 
