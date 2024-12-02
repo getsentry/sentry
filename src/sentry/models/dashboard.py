@@ -39,7 +39,7 @@ class DashboardFavoriteUser(DefaultFieldsModel):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_DashboardFavoriteUser"
+        db_table = "sentry_dashboardfavoriteuser"
         unique_together = (("user_id", "dashboard"),)
 
 
@@ -80,18 +80,18 @@ class Dashboard(Model):
     def favorited_by(self, user_ids):
         from django.db import router, transaction
 
+        existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+            "user_id", flat=True
+        )
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            user_ids_to_delete = list(
-                DashboardFavoriteUser.objects.filter(dashboard=self)
-                .exclude(user_id__in=user_ids)
-                .values_list("user_id", flat=True)
-            )
+            newly_favourited = [
+                DashboardFavoriteUser(dashboard=self, user_id=user_id)
+                for user_id in set(user_ids) - set(existing_user_ids)
+            ]
             DashboardFavoriteUser.objects.filter(
-                dashboard=self, user_id__in=user_ids_to_delete
+                dashboard=self, user_id__in=set(existing_user_ids) - set(user_ids)
             ).delete()
-            for user_id in user_ids:
-                if user_id not in user_ids_to_delete:
-                    DashboardFavoriteUser.objects.get_or_create(dashboard=self, user_id=user_id)
+            DashboardFavoriteUser.objects.bulk_create(newly_favourited)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):
