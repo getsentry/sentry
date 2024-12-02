@@ -61,9 +61,25 @@ export function AggregatesTable({setError}: AggregatesTableProps) {
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
+    const allFields: string[] = [];
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    return allFields.filter(Boolean);
   }, [groupBys, visualizes]);
   const [sorts, setSorts] = useSorts({fields});
   const [query] = useUserQuery();
