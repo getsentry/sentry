@@ -89,7 +89,7 @@ def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     )
 
 
-FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app")
+FRAME_FIELDS = ("platform", "abs_path", "lineno", "function", "module", "filename", "in_app")
 
 
 def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
@@ -287,6 +287,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
     response = symbolicator.process_jvm(
+        platform=data.get("platform"),
         exceptions=[
             {"module": exc["module"], "type": exc["type"]} for exc in processable_exceptions
         ],

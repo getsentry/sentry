@@ -205,7 +205,7 @@ def _normalize_nonhandled_frame(frame, data):
     return frame
 
 
-FRAME_FIELDS = ("abs_path", "lineno", "colno", "function")
+FRAME_FIELDS = ("platform", "abs_path", "lineno", "colno", "function")
 
 
 def _normalize_frame(raw_frame: Any) -> dict:
@@ -240,6 +240,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
 
     metrics.incr("process.javascript.symbolicate.request")
     response = symbolicator.process_js(
+        platform=data.get("platform"),
         stacktraces=stacktraces,
         modules=modules,
         release=data.get("release"),
