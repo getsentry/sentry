@@ -11,6 +11,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
 
@@ -111,5 +112,21 @@ describe('EventDetailsHeader', () => {
     expect(mockUseNavigate).toHaveBeenCalledWith(expect.objectContaining(locationQuery), {
       replace: true,
     });
+  });
+
+  it('disables search when not on the events tab', async function () {
+    const allEventsRouter = RouterFixture({
+      params: {groupId: group.id},
+      routes: [{path: TabPaths[Tab.ATTACHMENTS]}],
+      location: LocationFixture({
+        pathname: `/organizations/${organization.slug}/issues/${group.id}/${TabPaths[Tab.ATTACHMENTS]}`,
+      }),
+    });
+    render(<EventDetailsHeader {...defaultProps} />, {
+      organization,
+      router: allEventsRouter,
+    });
+    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search events\u2026')).toBeDisabled();
   });
 });
