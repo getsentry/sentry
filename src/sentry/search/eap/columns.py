@@ -56,11 +56,6 @@ class ResolvedAttribute:
         else:
             return constants.TYPE_MAP[self.search_type]
 
-    @property
-    def meta_type(self) -> str:
-        """This column's type for the meta response from the API"""
-        return self.search_type
-
 
 @dataclass(frozen=True, kw_only=True)
 class ResolvedColumn(ResolvedAttribute):
