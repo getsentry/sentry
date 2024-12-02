@@ -168,7 +168,10 @@ function ReplaySearchBar(props: Props) {
         endpointParams,
         includeReplays: true,
       }).then(
-        tagValues => (tagValues as TagValue[]).map(({value}) => value),
+        tagValues =>
+          (tagValues as TagValue[])
+            .filter(tagValue => tagValue.name !== '')
+            .map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }

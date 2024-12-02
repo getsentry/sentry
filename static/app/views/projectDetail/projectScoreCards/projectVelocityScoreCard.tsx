@@ -139,7 +139,7 @@ function ProjectVelocityScoreCard(props: Props) {
   } = useReleaseCount(props);
 
   const noReleaseEver =
-    [...(allTimeReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
+    [...(currentReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
       .length === 0;
 
   const cardTitle = t('Number of Releases');

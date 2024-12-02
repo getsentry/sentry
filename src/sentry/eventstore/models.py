@@ -572,6 +572,11 @@ class Event(BaseEvent):
         state.pop("_groups_cache", None)
         return state
 
+    def __repr__(self):
+        return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
+            id(self), self.event_id
+        )
+
     @property
     def data(self) -> NodeData:
         return self._data

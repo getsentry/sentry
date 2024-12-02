@@ -29,6 +29,7 @@ jest.mock('sentry/utils/analytics', () => ({
     })),
     endSpan: jest.fn(),
   },
+  trackAnalytics: jest.fn(),
 }));
 
 describe('Incident Rules Form', () => {
@@ -109,6 +110,10 @@ describe('Incident Rules Form', () => {
       method: 'POST',
       url: '/organizations/org-slug/events/anomalies/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
     });
   });
 
@@ -594,6 +599,33 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('edits query', async () => {
+      createWrapper({
+        name: 'Query Rule',
+        projects: ['project-slug'],
+        eventTypes: ['num_errors'],
+        thresholdPeriod: 10,
+        query: 'is:unresolved',
+        rule,
+        ruleId: rule.id,
+      });
+
+      const queryInput = await screen.findByTestId('query-builder-input');
+      await userEvent.type(queryInput, 'has:http.url');
+      await userEvent.type(queryInput, '{enter}');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query: 'has:http.url',
+          }),
+        })
+      );
+    }, 10000);
 
     it('switches from percent change to count', async () => {
       createWrapper({

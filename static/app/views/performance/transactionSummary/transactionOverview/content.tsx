@@ -466,9 +466,9 @@ function SummaryContent({
         />
 
         <SuspectFunctionsTable
-          project={project}
-          transaction={transactionName}
+          eventView={eventView}
           analyticsPageSource="performance_transaction"
+          project={project}
         />
         <RelatedIssues
           organization={organization}

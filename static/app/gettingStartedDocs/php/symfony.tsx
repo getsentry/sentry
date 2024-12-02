@@ -82,16 +82,21 @@ SENTRY_DSN="${params.dsn.public}"
                 code: `when@prod:
       sentry:
           dsn: '%env(SENTRY_DSN)%'${
+            params.isPerformanceSelected || params.isProfilingSelected
+              ? `
+          options:`
+              : ''
+          }${
             params.isPerformanceSelected
               ? `
-          # Specify a fixed sample rate
-          traces_sample_rate: 1.0`
+              # Specify a fixed sample rate
+              traces_sample_rate: 1.0`
               : ''
           }${
             params.isProfilingSelected
               ? `
-          # Set a sampling rate for profiling - this is relative to traces_sample_rate
-          profiles_sample_rate: 1.0`
+              # Set a sampling rate for profiling - this is relative to traces_sample_rate
+              profiles_sample_rate: 1.0`
               : ''
           }`,
               },

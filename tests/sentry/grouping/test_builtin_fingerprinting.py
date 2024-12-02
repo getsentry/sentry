@@ -561,11 +561,11 @@ class BuiltInFingerprintingTest(TestCase):
             k: v.as_dict()
             for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
         }
-        assert "built-in-fingerprint" in variants
+        assert "built_in_fingerprint" in variants
 
-        assert variants["built-in-fingerprint"] == {
+        assert variants["built_in_fingerprint"] == {
             "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
-            "type": "built-in-fingerprint",
+            "type": "built_in_fingerprint",
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
@@ -590,9 +590,9 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_chunkload_rules_wrong_sdk(self):
         """
-        Built-in ChunkLoadError rule should also apply event if SDK is not sentry.javascript.nextjs.
+        Built-in ChunkLoadError rule should also apply regardless of the SDK value.
         """
-        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"
+        self.chunkload_error_trace["sdk"]["name"] = "not.a.real.SDK"
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
 
@@ -711,7 +711,7 @@ class BuiltInFingerprintingTest(TestCase):
             ).items()
         }
 
-        assert "built-in-fingerprint" not in variants
+        assert "built_in_fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
 
     def test_hydration_rule_w_family_matcher(self):

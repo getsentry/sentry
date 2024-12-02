@@ -306,11 +306,11 @@ function AddToDashboardModal({
                     widgetLegendState={widgetLegendState}
                     onLegendSelectChanged={() => {}}
                     legendOptions={
-                      organization.features.includes('dashboards-releases-on-charts') &&
                       widgetLegendState.widgetRequiresLegendUnselection(widget)
                         ? {selected: unselectedReleasesForCharts}
                         : undefined
                     }
+                    disableFullscreen
                   />
 
                   <IndexedEventsSelectionAlert widget={widget} />

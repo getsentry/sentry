@@ -398,6 +398,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                   baseDescription={t(
                     'Average total time for this span group across the project associated with its parent transaction, over the last 24 hours'
                   )}
+                  node={props.node}
                 />
               </Row>
               {span.exclusive_time ? (
@@ -416,6 +417,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                     baseDescription={t(
                       'Average self time for this span group across the project associated with its parent transaction, over the last 24 hours'
                     )}
+                    node={props.node}
                   />
                 </Row>
               ) : null}

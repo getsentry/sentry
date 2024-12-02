@@ -26,7 +26,6 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
@@ -40,70 +39,6 @@ class StartEnd(TypedDict):
 
 class ProfileIds(TypedDict):
     profile_ids: list[str]
-
-
-def get_profile_ids(
-    snuba_params: SnubaParams,
-    query: str | None = None,
-) -> ProfileIds:
-    builder = DiscoverQueryBuilder(
-        dataset=Dataset.Discover,
-        params={},
-        snuba_params=snuba_params,
-        query=query,
-        selected_columns=["profile.id"],
-        limit=options.get("profiling.flamegraph.profile-set.size"),
-    )
-
-    builder.add_conditions(
-        [
-            Condition(Column("type"), Op.EQ, "transaction"),
-            Condition(Column("profile_id"), Op.IS_NOT_NULL),
-        ]
-    )
-
-    result = builder.run_query(Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value)
-
-    return {"profile_ids": [row["profile.id"] for row in result["data"]]}
-
-
-def get_profiles_with_function(
-    organization_id: int,
-    project_id: int,
-    function_fingerprint: int,
-    snuba_params: SnubaParams,
-    query: str,
-) -> ProfileIds:
-    conditions = [query, f"fingerprint:{function_fingerprint}"]
-
-    result = functions.query(
-        selected_columns=["timestamp", "unique_examples()"],
-        query=" ".join(cond for cond in conditions if cond),
-        snuba_params=snuba_params,
-        limit=100,
-        orderby=["-timestamp"],
-        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
-        transform_alias_to_input_format=True,
-    )
-
-    def extract_profile_ids() -> list[str]:
-        max_profiles = options.get("profiling.flamegraph.profile-set.size")
-        profile_ids = []
-
-        for i in range(5):
-            for row in result["data"]:
-                examples = row["unique_examples()"]
-                if i < len(examples):
-                    profile_ids.append(examples[i])
-
-                    if len(profile_ids) >= max_profiles:
-                        return profile_ids
-
-        return profile_ids
-
-    return {"profile_ids": extract_profile_ids()}
 
 
 class IntervalMetadata(TypedDict):
@@ -295,7 +230,7 @@ class ProfilerMeta:
     thread_id: str
     start: float
     end: float
-    transaction_id: str
+    transaction_id: str | None = None
 
     def as_condition(self) -> Condition:
         return And(
@@ -341,14 +276,13 @@ class FlamegraphExecutor:
         raise NotImplementedError
 
     def get_profile_candidates_from_functions(self) -> ProfileCandidates:
-        # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
         builder = ProfileFunctionsQueryBuilder(
             dataset=Dataset.Functions,
             params={},
             snuba_params=self.snuba_params,
-            selected_columns=["project.id", "timestamp", "unique_examples()"],
+            selected_columns=["project.id", "timestamp", "all_examples()"],
             query=self.query,
             limit=max_profiles,
             config=QueryBuilderConfig(
@@ -365,22 +299,34 @@ class FlamegraphExecutor:
         results = builder.process_results(results)
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
+        profiler_metas: list[ProfilerMeta] = []
 
         for row in results["data"]:
             project = row["project.id"]
-            for example in row["unique_examples()"]:
+            for example in row["all_examples()"]:
                 if len(transaction_profile_candidates) > max_profiles:
                     break
-                transaction_profile_candidates.append(
-                    {
-                        "project_id": project,
-                        "profile_id": example,
-                    }
-                )
+                if "profile_id" in example:
+                    transaction_profile_candidates.append(
+                        {
+                            "project_id": project,
+                            "profile_id": example["profile_id"],
+                        }
+                    )
+                elif "profiler_id" in example:
+                    profiler_metas.append(
+                        ProfilerMeta(
+                            project_id=project,
+                            profiler_id=example["profiler_id"],
+                            thread_id=example["thread_id"],
+                            start=example["start"],
+                            end=example["end"],
+                        )
+                    )
 
         return {
             "transaction": transaction_profile_candidates,
-            "continuous": [],
+            "continuous": self.get_chunks_for_profilers(profiler_metas),
         }
 
     def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
@@ -499,17 +445,19 @@ class FlamegraphExecutor:
                     if start > profiler_meta.end or end < profiler_meta.start:
                         continue
 
-                    continuous_profile_candidates.append(
-                        {
-                            "project_id": profiler_meta.project_id,
-                            "profiler_id": profiler_meta.profiler_id,
-                            "chunk_id": row["chunk_id"],
-                            "thread_id": profiler_meta.thread_id,
-                            "start": str(int(profiler_meta.start * 1.0e9)),
-                            "end": str(int(profiler_meta.end * 1.0e9)),
-                            "transaction_id": profiler_meta.transaction_id,
-                        }
-                    )
+                    candidate: ContinuousProfileCandidate = {
+                        "project_id": profiler_meta.project_id,
+                        "profiler_id": profiler_meta.profiler_id,
+                        "chunk_id": row["chunk_id"],
+                        "thread_id": profiler_meta.thread_id,
+                        "start": str(int(profiler_meta.start * 1e9)),
+                        "end": str(int(profiler_meta.end * 1e9)),
+                    }
+
+                    if profiler_meta.transaction_id is not None:
+                        candidate["transaction_id"] = profiler_meta.transaction_id
+
+                    continuous_profile_candidates.append(candidate)
 
         return continuous_profile_candidates
 

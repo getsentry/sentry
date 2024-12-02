@@ -14,7 +14,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
-from django.db.models import Func, Max
+from django.db.models import Max
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from urllib3.exceptions import MaxRetryError, TimeoutError
@@ -47,6 +47,7 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -70,6 +71,9 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer.datasource.redis import (
+    record_transaction_name as record_transaction_name_for_clustering,
+)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -99,6 +103,8 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.features import record_event_processed
+from sentry.receivers.onboarding import record_release_received, record_user_context_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -304,44 +310,6 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
     return query[:max_crashreports].count()
-
-
-class ScoreClause(Func):
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
-        self.group = group
-        self.last_seen = last_seen
-        self.times_seen = times_seen
-        # times_seen is likely an F-object that needs the value extracted
-        if hasattr(self.times_seen, "rhs"):
-            self.times_seen = self.times_seen.rhs.value
-        super().__init__(*args, **kwargs)
-
-    def __int__(self):
-        # Calculate the score manually when coercing to an int.
-        # This is used within create_or_update and friends
-
-        # XXX: Since removing the 'score' column from 'Group', this now always returns 0.
-        return 0
-
-    def as_sql(
-        self,
-        compiler,
-        connection,
-        function=None,
-        template=None,
-        arg_joiner: str | None = None,
-        **extra_context,
-    ) -> tuple[str, list[str | int]]:
-        has_values = self.last_seen is not None and self.times_seen is not None
-        if has_values:
-            sql = "log(times_seen + %d) * 600 + %d" % (
-                self.times_seen,
-                self.last_seen.timestamp(),
-            )
-        else:
-            sql = "log(times_seen) * 600 + last_seen::abstime::int"
-
-        return (sql, [])
 
 
 ProjectsMapping = Mapping[int, Project]
@@ -2550,6 +2518,34 @@ def _detect_performance_problems(
         )
 
 
+@sentry_sdk.tracing.trace
+def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    """
+    this function does what we do in post_process for transactions. if this option is
+    turned on, we do the actions here instead of in post_process, with the goal
+    eventually being to not run transactions through post_process
+    """
+    for job in jobs:
+        try:
+            event = job["event"]
+            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
+                continue
+
+            project = event.project
+            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+                record_transaction_name_for_clustering(project, event.data)
+
+            # these are what the "transaction_processed" signal hooked into
+            # we should not use signals here, so call the recievers directly
+            # instead of sending a signal. we should consider potentially
+            # deleting these
+            record_event_processed(project, event)
+            record_user_context_received(project, event)
+            record_release_received(project, event)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
@@ -2674,6 +2670,9 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
         _send_occurrence_to_platform(jobs, projects)
+
+    with metrics.timer("save_transaction_events.record_transaction_info"):
+        _record_transaction_info(jobs, projects)
 
     return jobs
 

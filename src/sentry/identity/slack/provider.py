@@ -78,12 +78,8 @@ class SlackOAuth2LoginView(OAuth2LoginView):
 
     user_scope = ""
 
-    def __init__(
-        self, authorize_url=None, client_id=None, scope=None, user_scope=None, *args, **kwargs
-    ):
-        super().__init__(
-            authorize_url=authorize_url, client_id=client_id, scope=scope, *args, **kwargs
-        )
+    def __init__(self, authorize_url=None, client_id=None, scope=None, user_scope=None):
+        super().__init__(authorize_url=authorize_url, client_id=client_id, scope=scope)
         if user_scope is not None:
             self.user_scope = user_scope
 

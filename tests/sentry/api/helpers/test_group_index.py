@@ -474,6 +474,10 @@ class TestHandleIsPublic(TestCase):
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SET_PUBLIC.value
         ).exists()
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIVATE.value
+        ).exists()
+
         assert share_id == new_share.uuid
 
     def test_is_public_existing_shares(self) -> None:

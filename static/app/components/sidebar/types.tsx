@@ -9,6 +9,7 @@ export enum SidebarPanelKey {
   PROFILING_ONBOARDING = 'profiling_onboarding',
   METRICS_ONBOARDING = 'metrics_onboarding',
   FEEDBACK_ONBOARDING = 'feedback_onboarding',
+  FEATURE_FLAG_ONBOARDING = 'flag_onboarding',
 }
 
 export type CommonSidebarProps = {

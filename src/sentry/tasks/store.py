@@ -16,6 +16,7 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
+from sentry.features.rollout import in_rollout_group
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
@@ -155,6 +156,12 @@ def _do_preprocess_event(
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
     symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    metrics.incr(
+        "events.to-symbolicate",
+        tags={platform.value: True for platform in symbolicate_platforms},
+        skip_internal=False,
+    )
+
     should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)
@@ -576,6 +583,16 @@ def _do_save_event(
             raise
 
         finally:
+            if (
+                consumer_type == ConsumerType.Transactions
+                and event_id
+                and in_rollout_group("transactions.do_post_process_in_save", event_id)
+            ):
+                # we won't use the transaction data in post_process
+                # so we can delete it from the cache now.
+                if cache_key:
+                    processing_store.delete_by_key(cache_key)
+
             reprocessing2.mark_event_reprocessed(data)
             if cache_key and has_attachments:
                 attachment_cache.delete(cache_key)

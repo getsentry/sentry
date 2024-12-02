@@ -9,7 +9,12 @@ interface QuestionProps
   extends Partial<
     Pick<
       TooltipProps,
-      'containerDisplayMode' | 'isHoverable' | 'overlayStyle' | 'position' | 'skipWrapper'
+      | 'containerDisplayMode'
+      | 'isHoverable'
+      | 'overlayStyle'
+      | 'position'
+      | 'skipWrapper'
+      | 'delay'
     >
   > {
   /**

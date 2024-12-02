@@ -123,7 +123,11 @@ class MonitorStatus:
 
 class CheckInStatus:
     UNKNOWN = 0
-    """No status was passed"""
+    """
+    Checkin may have lost data and we cannot know the resulting status of the
+    check-in. This can happen when an incident is detected using clock-tick
+    volume anomoly detection.
+    """
 
     OK = 1
     """Checkin had no issues during execution"""
@@ -146,10 +150,13 @@ class CheckInStatus:
     status was reported by the monitor itself (was not synthetic)
     """
 
-    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT, UNKNOWN)
     """
     Values indicating the montior is in a terminal "synthetic" status. These
     status are not sent by the monitor themselve but are a side effect result.
+
+    For some values such as UNKNOWN it is possible for it to transition to a
+    USER_TERMINAL_VALUES.
     """
 
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)

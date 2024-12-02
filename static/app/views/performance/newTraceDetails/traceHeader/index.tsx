@@ -159,14 +159,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const onProjectClick = useCallback(
     (projectSlug: string) => {
-      dispatch({type: 'set query', query: `project:${projectSlug}`});
+      dispatch({type: 'set query', query: `project:${projectSlug}`, source: 'external'});
     },
     [dispatch]
   );
 
   const projectSlugs = useMemo(() => {
-    return Array.from(props.tree.projects).map(p => p.slug);
-  }, [props.tree]);
+    return Array.from(props.tree.projects.values()).map(project => project.slug);
+  }, [props.tree.projects]);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -233,7 +233,7 @@ const ProjectsRendererWrapper = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout.Header)`
-  padding: ${space(2)} ${space(2)} !important;
+  padding: ${space(2)} ${space(2)} 0 !important;
 `;
 
 const HeaderRow = styled('div')`

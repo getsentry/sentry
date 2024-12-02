@@ -161,6 +161,7 @@ function SpanRow({
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace_span', {
               organization,
+              source: 'new explore',
             })
           }
         />

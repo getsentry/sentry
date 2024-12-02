@@ -17,10 +17,10 @@
         <li>Your email address</li>
       </ul>
       <p>
-        {% if organization_options|length != 0 %}
+        {% if organization_options|length != 1 %}
         <!-- If application needs user level access or it's org level access and user has multiple orgs -->
           {{ application.name }} will also have the following permissions to your Sentry organizations:
-        {% elif organization_options|length == 1 %}
+        {% else %}
         <!-- If user only has one org and application requires org level access, choose that org by default -->
           {{ application.name }} will also have the following permissions to your Sentry organization <strong>{{organization_options.0.name}}</strong>:
           <input type="hidden" name="selected_organization_id" value="{{ organization_options.0.id }}">

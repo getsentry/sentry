@@ -83,18 +83,16 @@ function GroupEventAttachments({project, groupId}: GroupEventAttachmentsProps) {
     if (attachments.length > 0) {
       return (
         <ScreenshotGrid>
-          {attachments.map((screenshot, index) => {
+          {attachments.map(screenshot => {
             return (
               <ScreenshotCard
-                key={`${index}-${screenshot.id}`}
+                key={screenshot.id}
                 eventAttachment={screenshot}
                 eventId={screenshot.event_id}
                 projectSlug={project.slug}
                 groupId={groupId}
                 onDelete={handleDelete}
-                pageLinks={getResponseHeader?.('Link')}
                 attachments={attachments}
-                attachmentIndex={index}
               />
             );
           })}
@@ -132,7 +130,7 @@ const ScreenshotGrid = styled('div')`
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(4, minmax(100px, 1fr));
   }
 

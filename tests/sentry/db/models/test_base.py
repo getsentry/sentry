@@ -10,9 +10,6 @@ from sentry.models.importchunk import (
     ControlImportChunkReplica,
     RegionImportChunk,
 )
-from sentry.models.notificationsettingbase import NotificationSettingBase
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.relocation import (
     Relocation,
@@ -24,6 +21,9 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
+from sentry.notifications.models.notificationsettingbase import NotificationSettingBase
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.sentry_apps.models import SentryAppInstallationForProvider
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 

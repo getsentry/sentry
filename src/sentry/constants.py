@@ -75,6 +75,8 @@ ENVIRONMENT_NAME_MAX_LENGTH = 64
 
 SENTRY_APP_SLUG_MAX_LENGTH = 64
 
+PROJECT_SLUG_MAX_LENGTH = 100
+
 # Maximum number of results we are willing to fetch when calculating rollup
 # Clients should adapt the interval width based on their display width.
 MAX_ROLLUP_POINTS = 10000
@@ -704,7 +706,7 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-AI_SUGGESTED_SOLUTION = True
+HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
@@ -776,17 +778,17 @@ DS_DENYLIST = frozenset(
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*heartbeat*",
-    "*/health",
-    "*/healthy",
-    "*/healthz",
-    "*/_health",
-    r"*/\[_health\]",
-    "*/live",
-    "*/livez",
-    "*/ready",
-    "*/readyz",
-    "*/ping",
-    "*/up",
+    "*/health{/,}",
+    "*/healthy{/,}",
+    "*/healthz{/,}",
+    "*/_health{/,}",
+    r"*/\[_health\]{/,}",
+    "*/live{/,}",
+    "*/livez{/,}",
+    "*/ready{/,}",
+    "*/readyz{/,}",
+    "*/ping{/,}",
+    "*/up{/,}",
 ]
 
 

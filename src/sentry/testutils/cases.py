@@ -99,8 +99,6 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -110,6 +108,8 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -124,7 +124,6 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
-    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -674,7 +673,9 @@ class PerformanceIssueTestCase(BaseTestCase):
                 side_effect=detect_performance_problems_interceptor,
             ),
             mock.patch.object(
-                issue_type, "noise_config", new=NoiseConfig(noise_limit, timedelta(minutes=1))
+                issue_type,
+                "noise_config",
+                new=NoiseConfig(noise_limit, timedelta(minutes=1)),
             ),
             override_options(
                 {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
@@ -846,7 +847,8 @@ class APITestCaseMixin:
             return response
 
         with mock.patch(
-            "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+            "sentry.hybridcloud.apigateway.proxy.external_request",
+            new=proxy_raw_request,
         ):
             yield
 
@@ -1007,7 +1009,8 @@ class PermissionTestCase(TestCase):
         super().setUp()
         self.owner = self.create_user(is_superuser=False)
         self.organization = self.create_organization(
-            owner=self.owner, flags=0  # disable default allow_joinleave access
+            owner=self.owner,
+            flags=0,  # disable default allow_joinleave access
         )
         self.team = self.create_team(organization=self.organization)
 
@@ -1210,7 +1213,9 @@ class IntegrationTestCase(TestCase):
         self.request = self.make_request(self.user)
         # XXX(dcramer): this is a bit of a hack, but it helps contain this test
         self.pipeline = IntegrationPipeline(
-            request=self.request, organization=rpc_organization, provider_key=self.provider.key
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
         )
 
         self.init_path = reverse(
@@ -1365,12 +1370,14 @@ class SnubaTestCase(BaseTestCase):
         data = [self.__wrap_group(group)]
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
+                data=json.dumps(data),
             ).status_code
             == 200
         )
 
     def store_span(self, span, is_eap=False):
+        span["ingest_in_eap"] = is_eap
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
@@ -1380,6 +1387,8 @@ class SnubaTestCase(BaseTestCase):
         )
 
     def store_spans(self, spans, is_eap=False):
+        for span in spans:
+            span["ingest_in_eap"] = is_eap
         assert (
             requests.post(
                 settings.SENTRY_SNUBA + f"/tests/entities/{'eap_' if is_eap else ''}spans/insert",
@@ -1393,43 +1402,6 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
                 data=json.dumps(issues),
-            ).status_code
-            == 200
-        )
-
-    def store_metrics_summary(self, span):
-        common_fields = {
-            "duration_ms": span["duration_ms"],
-            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
-            "group": span["sentry_tags"].get("group", "0"),
-            "is_segment": span["is_segment"],
-            "project_id": span["project_id"],
-            "received": span["received"],
-            "retention_days": span["retention_days"],
-            "segment_id": span.get("segment_id", "0"),
-            "span_id": span["span_id"],
-            "trace_id": span["trace_id"],
-        }
-        rows = []
-        for mri, summaries in span.get("_metrics_summary", {}).items():
-            for summary in summaries:
-                rows.append(
-                    {
-                        **common_fields,
-                        **{
-                            "count": summary.get("count", 0),
-                            "max": summary.get("max", 0.0),
-                            "mri": mri,
-                            "min": summary.get("min", 0.0),
-                            "sum": summary.get("sum", 0.0),
-                            "tags": summary.get("tags", {}),
-                        },
-                    }
-                )
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps(rows),
             ).status_code
             == 200
         )
@@ -1495,7 +1467,8 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/entities/events/insert",
+                data=json.dumps(events),
             ).status_code
             == 200
         )
@@ -1520,7 +1493,6 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
@@ -1559,8 +1531,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
@@ -1571,9 +1541,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["status"] = status
 
         self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1591,7 +1558,6 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
@@ -1633,8 +1599,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
@@ -1644,9 +1608,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -1736,7 +1697,6 @@ class BaseMetricsTestCase(SnubaTestCase):
         aggregation_option: AggregationOption | None = None,
         sampling_weight: int | None = None,
     ) -> None:
-
         parsed = parse_mri(mri)
         metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
@@ -1853,7 +1813,6 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(BaseMetricsTestCase):
-
     # In order to avoid complexity and edge cases while working on tests, all children of this class should use
     # this mocked time, except in case in which a specific time is required. This is suggested because working
     # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
@@ -2264,49 +2223,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 subvalue,
             )
 
-    def store_profile_functions_metric(
-        self,
-        value: dict[str, int] | list[int] | int,
-        metric: str = "function.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
-        internal_metric = (
-            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        )
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        val_list: list[int | dict[str, int]] = []
-        if not isinstance(value, list):
-            val_list.append(value)
-        else:
-            val_list = value
-        for subvalue in val_list:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
     def wait_for_metric_count(
         self,
         project,
@@ -2385,7 +2301,8 @@ class OutcomesSnubaTest(TestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
+                data=json.dumps(outcomes),
             ).status_code
             == 200
         )
@@ -2425,6 +2342,7 @@ class ProfilesSnubaTestCase(
             }
             for function in functions
         ]
+
         functions_payload = {
             "functions": functions,
             # the transaction platform doesn't quite match the
@@ -2436,18 +2354,81 @@ class ProfilesSnubaTestCase(
             "retention_days": 90,
             "timestamp": int(timestamp),
             "transaction_name": transaction["transaction"],
+            "materialization_version": 1,
         }
 
         if extras is not None:
             functions_payload.update(extras)
 
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/functions/insert", json=[functions_payload]
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
+            json=[functions_payload],
         )
         assert response.status_code == 200
 
         return {
             "transaction": transaction,
+            "functions": functions,
+        }
+
+    def store_functions_chunk(
+        self,
+        functions,
+        project,
+        profiler_id=None,
+        extras=None,
+        timestamp=None,
+    ):
+        if profiler_id is None:
+            profiler_id = uuid4().hex
+
+        # TODO: also write to chunks dataset
+        chunk_id = uuid4().hex
+
+        functions = [
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
+            for function in functions
+        ]
+
+        timestamp = (timestamp or timezone.now()).timestamp()
+
+        max_duration = max(
+            duration for function in functions for duration in function["self_times_ns"]
+        )
+
+        start = timestamp
+        end = timestamp + max_duration / 1e9
+
+        functions_payload = {
+            "functions": functions,
+            "platform": "",
+            "transaction_name": "",
+            "profile_id": profiler_id,
+            "project_id": project.id,
+            "received": int(timestamp),
+            "retention_days": 90,
+            "timestamp": int(timestamp),
+            "start_timestamp": start,
+            "end_timestamp": end,
+            "profiling_type": "continuous",
+            "materialization_version": 1,
+        }
+        if extras is not None:
+            functions_payload.update(extras)
+
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
+            json=[functions_payload],
+        )
+        assert response.status_code == 200
+
+        return {
+            "profiler_id": profiler_id,
+            "chunk_id": chunk_id,
             "functions": functions,
         }
 
@@ -2545,12 +2526,19 @@ class IntegrationRepositoryTestCase(APITestCase):
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_repository(
-        self, repository_config, integration_id, organization_slug=None, add_responses=True
+        self,
+        repository_config,
+        integration_id,
+        organization_slug=None,
+        add_responses=True,
     ):
         if add_responses:
             self.add_create_repository_responses(repository_config)
         if not integration_id:
-            data = {"provider": self.provider_name, "identifier": repository_config["id"]}
+            data = {
+                "provider": self.provider_name,
+                "identifier": repository_config["id"],
+            }
         else:
             data = {
                 "provider": self.provider_name,
@@ -2654,7 +2642,9 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
+            title="Dashboard 1",
+            created_by_id=self.user.id,
+            organization=self.organization,
         )
         self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
@@ -2755,7 +2745,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
     def create_user_member_role(self):
         self.user = self.create_user(is_superuser=False)
         self.create_member(
-            user=self.user, organization=self.organization, role="member", teams=[self.team]
+            user=self.user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],
         )
         self.login_as(self.user)
 
@@ -2905,7 +2898,9 @@ class ActivityTestCase(TestCase):
         release.add_project(self.project)
         release.add_project(self.project2)
         deploy = Deploy.objects.create(
-            release=release, organization_id=self.org.id, environment_id=self.environment.id
+            release=release,
+            organization_id=self.org.id,
+            environment_id=self.environment.id,
         )
 
         return release, deploy
@@ -3237,7 +3232,9 @@ class MonitorTestCase(APITestCase):
         }
 
         return MonitorEnvironment.objects.create(
-            monitor=monitor, environment_id=environment.id, **monitorenvironment_defaults
+            monitor=monitor,
+            environment_id=environment.id,
+            **monitorenvironment_defaults,
         )
 
     def _create_issue_alert_rule(self, monitor, exclude_slug_filter=False):
@@ -3319,7 +3316,8 @@ class UptimeTestCaseMixin:
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
         self.mock_resolve_rdap_provider_ctx = mock.patch(
-            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+            "sentry.uptime.rdap.query.resolve_rdap_provider",
+            return_value="https://fake.com/",
         )
         self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
         self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
@@ -3349,7 +3347,10 @@ class UptimeTestCase(UptimeTestCaseMixin, TestCase):
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
             "status": status,
-            "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "status_reason": {
+                "type": CHECKSTATUSREASONTYPE_TIMEOUT,
+                "description": "it timed out",
+            },
             "span_id": uuid.uuid4().hex,
             "trace_id": uuid.uuid4().hex,
             "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),

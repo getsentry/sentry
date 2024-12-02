@@ -41,6 +41,7 @@ import type {TraceReducerAction, TraceReducerState} from '../traceState';
 import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
 import {getTraceTabTitle, type TraceTabsReducerState} from '../traceState/traceTabs';
+import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
@@ -66,6 +67,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const contentContainerRef = useRef<HTMLDivElement>(null);
+  const hasNewTraceUi = useHasTraceNewUi();
 
   // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
@@ -410,7 +412,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-          {traceState.preferences.drawer.layoutOptions.length > 0 ? (
+          {traceState.preferences.drawer.layoutOptions.length > 0 && !hasNewTraceUi ? (
             <TraceLayoutButtons traceDispatch={traceDispatch} trace_state={traceState} />
           ) : null}
         </TabsLayout>

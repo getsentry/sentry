@@ -2,6 +2,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -127,6 +128,11 @@ describe('Modals -> WidgetViewerModal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
@@ -374,6 +380,17 @@ describe('Modals -> WidgetViewerModal', function () {
         );
         await waitForMetaToHaveBeenCalled();
         expect(screen.getByText('Another Query Name')).toBeInTheDocument();
+      });
+
+      it('renders the first query if the query index is invalid', async function () {
+        mockEvents();
+        initialData.router.location.query = {query: ['7']};
+
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+        );
       });
 
       it('renders the correct discover query link when there are multiple queries in a widget', async function () {
@@ -1466,6 +1483,37 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('Span Widgets', function () {
+    beforeEach(function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+    });
+
+    it('renders the Open in Explore button', async function () {
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: ['span.description', 'avg(span.duration)'],
+            aggregates: ['avg(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
   });
 });

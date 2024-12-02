@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -14,6 +14,7 @@ from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -21,10 +22,10 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    profile_functions_metrics,
     spans_eap,
     spans_indexed,
     spans_metrics,
+    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -251,7 +252,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
                         spans_eap,
@@ -274,10 +274,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+        use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _get_event_stats(
             scoped_dataset: Any,
-            query_columns: Sequence[str],
+            query_columns: list[str],
             query: str,
             snuba_params: SnubaParams,
             rollup: int,
@@ -285,6 +286,21 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             comparison_delta: datetime | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                if use_rpc and dataset == spans_eap:
+                    return spans_rpc.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        groupby=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        granularity_secs=rollup,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=False,
+                        ),
+                    )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
@@ -302,8 +318,25 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    fallback_to_transactions=features.has(
+                        "organizations:performance-discover-dataset-selector",
+                        organization,
+                        actor=request.user,
+                    ),
                 )
 
+            if use_rpc and dataset == spans_eap:
+                return spans_rpc.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=query,
+                    y_axes=query_columns,
+                    granularity_secs=rollup,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=False,
+                        use_aggregate_conditions=False,
+                    ),
+                )
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -328,6 +361,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -340,7 +378,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
 
             def fn(
-                query_columns: Sequence[str],
+                query_columns: list[str],
                 query: str,
                 snuba_params: SnubaParams,
                 rollup: int,

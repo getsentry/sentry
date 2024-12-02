@@ -36,6 +36,7 @@ class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
             CheckInStatus.ERROR,
             CheckInStatus.MISSED,
             CheckInStatus.TIMEOUT,
+            CheckInStatus.UNKNOWN,
         ]
 
         check_ins = MonitorCheckIn.objects.filter(

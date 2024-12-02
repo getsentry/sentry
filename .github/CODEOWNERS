@@ -228,8 +228,6 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/api/endpoints/test_organization_events_vitals.py               @getsentry/visibility
 /tests/snuba/api/endpoints/test_organization_tagkey_values.py               @getsentry/visibility
 
-/src/sentry/api/endpoints/organization_transaction_anomaly_detection.py     @getsentry/data
-
 /src/sentry/spans/                                                          @getsentry/visibility
 /tests/sentry/spans/                                                        @getsentry/visibility
 
@@ -242,6 +240,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/snuba/search/test_backend.py                                         @getsentry/visibility
 
 /src/sentry/search/events/                                                  @getsentry/visibility
+/src/sentry/search/eap/                                                  @getsentry/visibility
 
 /src/sentry/utils/performance_issues/                                       @getsentry/performance
 
@@ -324,8 +323,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Flags
-/src/sentry/flags/              @getsentry/replay-backend
-/tests/sentry/flags/            @getsentry/replay-backend
+/src/sentry/flags/                                          @getsentry/replay-backend
+/tests/sentry/flags/                                        @getsentry/replay-backend
+/static/app/components/events/featureFlags/                 @getsentry/replay-frontend
 ## End of Flags
 
 
@@ -469,10 +469,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
-/src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
-/src/sentry/api/serializers/models/metrics_extraction_rules.py                   @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/models/spanattributeextractionrules.py                @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_sampling_project_span_counts.py           @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_sampling_project_span_counts.py    @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -482,7 +480,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
-/src/sentry/sentry_metrics/span_attribute_extraction_rules.py                    @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/test_extraction_rules.py                            @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
@@ -503,6 +500,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
 /static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
+/static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
 /static/app/views/onboarding*                                                    @getsentry/telemetry-experience
 
@@ -629,3 +627,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/data_secrecy/                                             @getsentry/core-product-foundations
 /tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
 ## End of Core Product Foundations
+
+# Taskworkers
+/src/sentry/taskworker/                                       @getsentry/taskworker
+/tests/sentry/taskworker/                                     @getsentry/taskworker

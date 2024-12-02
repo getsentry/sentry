@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
-  getSpanBarColours,
+  getSpanBarColors,
   ROW_HEIGHT,
 } from 'sentry/components/performance/waterfall/constants';
 import {
@@ -315,7 +315,7 @@ export function SpanGroupBar(props: Props) {
                     }}
                   >
                     <SpanGroupRowTitleContent
-                      color={getSpanBarColours(spanBarType, theme).primary}
+                      color={getSpanBarColors(spanBarType, theme).primary}
                     >
                       {props.renderGroupSpansTitle()}
                     </SpanGroupRowTitleContent>

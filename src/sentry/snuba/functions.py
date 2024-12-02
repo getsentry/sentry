@@ -90,6 +90,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> Any:
 
     builder = ProfileFunctionsTimeseriesQueryBuilder(
@@ -105,6 +106,7 @@ def timeseries_query(
     )
     results = builder.run_query(referrer=referrer, query_source=query_source)
     results = builder.strip_alias_prefix(results)
+    results = builder.process_results(results)
 
     return SnubaTSResult(
         {
@@ -152,6 +154,7 @@ def top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 

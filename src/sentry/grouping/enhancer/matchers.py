@@ -104,7 +104,7 @@ def create_match_frame(frame_data: dict, platform: str | None) -> dict:
     return match_frame
 
 
-class Match:
+class EnhancementMatch:
     def matches_frame(self, frames, idx, exception_data, cache):
         raise NotImplementedError()
 
@@ -115,9 +115,9 @@ class Match:
     def _from_config_structure(obj, version):
         val = obj
         if val.startswith("|[") and val.endswith("]"):
-            return CalleeMatch(Match._from_config_structure(val[2:-1], version))
+            return CalleeMatch(EnhancementMatch._from_config_structure(val[2:-1], version))
         if val.startswith("[") and val.endswith("]|"):
-            return CallerMatch(Match._from_config_structure(val[1:-2], version))
+            return CallerMatch(EnhancementMatch._from_config_structure(val[1:-2], version))
 
         if val.startswith("!"):
             negated = True
@@ -136,13 +136,13 @@ class Match:
 InstanceKey = tuple[str, str, bool]
 
 
-class FrameMatch(Match):
+class FrameMatch(EnhancementMatch):
     # Global registry of matchers
-    instances: dict[InstanceKey, Match] = {}
+    instances: dict[InstanceKey, EnhancementMatch] = {}
     field: Any = None
 
     @classmethod
-    def from_key(cls, key: str, pattern: str, negated: bool) -> Match:
+    def from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -153,7 +153,7 @@ class FrameMatch(Match):
         return instance
 
     @classmethod
-    def _from_key(cls, key: str, pattern: str, negated: bool) -> Match:
+    def _from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -315,7 +315,7 @@ class ExceptionMechanismMatch(ExceptionFieldMatch):
     field_path = ["mechanism", "type"]
 
 
-class CallerMatch(Match):
+class CallerMatch(EnhancementMatch):
     def __init__(self, inner: FrameMatch):
         self.inner = inner
 
@@ -330,7 +330,7 @@ class CallerMatch(Match):
         return idx > 0 and self.inner.matches_frame(frames, idx - 1, exception_data, cache)
 
 
-class CalleeMatch(Match):
+class CalleeMatch(EnhancementMatch):
     def __init__(self, inner: FrameMatch):
         self.inner = inner
 

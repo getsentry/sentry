@@ -7,26 +7,36 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {GroupTagsTab} from './groupTagsTab';
 
 describe('GroupTagsTab', function () {
-  const {routerProps, router, organization} = initializeOrg();
   const group = GroupFixture();
-  let tagsMock;
+  const {router, organization} = initializeOrg({
+    router: {
+      location: {
+        query: {
+          environment: 'dev',
+        },
+      },
+      params: {
+        orgId: 'org-slug',
+        groupId: group.id,
+      },
+    },
+  });
+  let tagsMock: jest.Mock;
+
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: group,
+    });
     tagsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/tags/',
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
     });
   });
 
   it('navigates to issue details events tab with correct query params', async function () {
-    render(
-      <GroupTagsTab
-        {...routerProps}
-        group={group}
-        environments={['dev']}
-        baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
-      />,
-      {router, organization}
-    );
+    render(<GroupTagsTab />, {router, organization});
 
     const headers = await screen.findAllByTestId('tag-title');
 
@@ -49,7 +59,7 @@ describe('GroupTagsTab', function () {
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',
-      query: {query: 'user.username:david'},
+      query: {query: 'user.username:david', environment: 'dev'},
     });
   });
 
@@ -59,15 +69,7 @@ describe('GroupTagsTab', function () {
       statusCode: 500,
     });
 
-    render(
-      <GroupTagsTab
-        {...routerProps}
-        group={group}
-        environments={['dev']}
-        baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
-      />,
-      {router, organization}
-    );
+    render(<GroupTagsTab />, {router, organization});
 
     expect(
       await screen.findByText('There was an error loading issue tags.')

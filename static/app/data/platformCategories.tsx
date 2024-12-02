@@ -464,6 +464,7 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',
+  'flutter',
 ];
 
 // These are all the platforms that can set up replay.
@@ -559,6 +560,12 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackWebApiPlatforms,
   ...feedbackWidgetPlatforms,
   ...feedbackCrashApiPlatforms,
+];
+
+// Feature flag onboarding platforms
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+  'javascript',
+  'python',
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [

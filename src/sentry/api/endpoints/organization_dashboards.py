@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Case, IntegerField, When
 from drf_spectacular.utils import extend_schema
@@ -33,7 +31,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 
-MAX_RETRIES = 10
+MAX_RETRIES = 2
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
 
 
@@ -50,25 +48,40 @@ class OrganizationDashboardsPermission(OrganizationPermission):
             return super().has_object_permission(request, view, obj)
 
         if isinstance(obj, Dashboard):
-            # 1. Dashboard contains certain projects
-            if obj.projects.exists():
-                return request.access.has_projects_access(obj.projects.all())
+            if features.has(
+                "organizations:dashboards-edit-access", obj.organization, actor=request.user
+            ):
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
 
-            # 2. Dashboard covers all projects or all my projects
+                # check if user is restricted from editing dashboard
+                if hasattr(obj, "permissions"):
+                    return obj.permissions.has_edit_permissions(request.user.id)
 
-            # allow when Open Membership
-            if obj.organization.flags.allow_joinleave:
+                # if no permissions are assigned, it is considered accessible to all users
                 return True
 
-            # allow for Managers and Owners
-            if request.access.has_scope("org:write"):
-                return True
+            else:
+                # 1. Dashboard contains certain projects
+                if obj.projects.exists():
+                    return request.access.has_projects_access(obj.projects.all())
 
-            # allow for creator
-            if request.user.id == obj.created_by_id:
-                return True
+                # 2. Dashboard covers all projects or all my projects
 
-            return False
+                # allow when Open Membership
+                if obj.organization.flags.allow_joinleave:
+                    return True
+
+                # allow for Managers and Owners
+                if request.access.has_scope("org:write"):
+                    return True
+
+                # allow for creator
+                if request.user.id == obj.created_by_id:
+                    return True
+
+                return False
 
         return True
 
@@ -221,22 +234,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboard = serializer.save()
             return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
-            pass
+            duplicate = request.data.get("duplicate", False)
 
-        duplicate = request.data.get("duplicate", False)
-        if not duplicate or retry >= MAX_RETRIES:
-            return Response("Dashboard title already taken", status=409)
+            if not duplicate or retry >= MAX_RETRIES:
+                return Response("Dashboard title already taken", status=409)
 
-        title = request.data["title"]
-        match = re.match(DUPLICATE_TITLE_PATTERN, title)
-        if match:
-            partial_title = match.group(1)
-            copy_counter = match.group(2)
-            if copy_counter:
-                request.data["title"] = f"{partial_title} copy {int(copy_counter) + 1}"
-            else:
-                request.data["title"] = f"{partial_title} copy 1"
-        else:
-            request.data["title"] = f"{title} copy"
+            request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
 
-        return self.post(request, organization, retry=retry + 1)
+            return self.post(request, organization, retry=retry + 1)

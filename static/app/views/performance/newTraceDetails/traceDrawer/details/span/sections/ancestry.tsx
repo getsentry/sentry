@@ -155,7 +155,7 @@ function SpanChildrenTraversalButton({
   );
 }
 
-export function getSpanAncestryAndGroupingItems({
+export function useSpanAncestryAndGroupingItems({
   node,
   onParentClick,
   location,

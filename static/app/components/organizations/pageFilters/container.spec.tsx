@@ -652,6 +652,58 @@ describe('PageFiltersContainer', function () {
     });
   });
 
+  describe('maxPickableDays param', function () {
+    it('applies maxPickableDays if the query parms exceed it', async function () {
+      renderComponent(
+        <PageFiltersContainer maxPickableDays={7} />,
+        changeQuery(router, {statsPeriod: '14d'}),
+        organization
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '7d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('does not use maxPickableDays if the query parms do not exceed it', async function () {
+      renderComponent(
+        <PageFiltersContainer maxPickableDays={7} />,
+        changeQuery(router, {statsPeriod: '3d'}),
+        organization
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection).toEqual({
+          datetime: {
+            period: '3d',
+            utc: null,
+            start: null,
+            end: null,
+          },
+          environments: [],
+          projects: [],
+        })
+      );
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+  });
+
   describe('skipInitializeUrlParams', function () {
     const initialData = initializeOrg({
       organization,

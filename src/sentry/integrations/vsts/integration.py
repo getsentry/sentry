@@ -20,6 +20,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -31,6 +32,10 @@ from sentry.integrations.services.integration import RpcOrganizationIntegration,
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
@@ -631,43 +636,46 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 class AccountConfigView(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        account_id = request.POST.get("account")
-        if account_id is not None:
-            state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
-                key="accounts"
-            )
-            account = self.get_account_from_id(account_id, state_accounts or [])
-            if account is not None:
-                pipeline.bind_state("account", account)
-                return pipeline.next_step()
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.ACCOUNT_CONFIG,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            VstsIntegrationProvider.key,
+        ).capture() as lifecycle:
+            account_id = request.POST.get("account")
+            if account_id is not None:
+                state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
+                    key="accounts"
+                )
+                account = self.get_account_from_id(account_id, state_accounts or [])
+                if account is not None:
+                    pipeline.bind_state("account", account)
+                    return pipeline.next_step()
 
-        state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
-        access_token = (state or {}).get("data", {}).get("access_token")
-        user = get_user_info(access_token)
+            state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
+            access_token = (state or {}).get("data", {}).get("access_token")
+            user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user["uuid"])
-        logger.info(
-            "vsts.get_accounts",
-            extra={
+            accounts = self.get_accounts(access_token, user["uuid"])
+            extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
                 "accounts": accounts,
-            },
-        )
-        if not accounts or not accounts.get("value"):
+            }
+            if not accounts or not accounts.get("value"):
+                lifecycle.record_failure("no_accounts", extra=extra)
+                return render_to_response(
+                    template="sentry/integrations/vsts-config.html",
+                    context={"no_accounts": True},
+                    request=request,
+                )
+            accounts = accounts["value"]
+            pipeline.bind_state("accounts", accounts)
+            account_form = AccountForm(accounts)
             return render_to_response(
                 template="sentry/integrations/vsts-config.html",
-                context={"no_accounts": True},
+                context={"form": account_form, "no_accounts": False},
                 request=request,
             )
-        accounts = accounts["value"]
-        pipeline.bind_state("accounts", accounts)
-        account_form = AccountForm(accounts)
-        return render_to_response(
-            template="sentry/integrations/vsts-config.html",
-            context={"form": account_form, "no_accounts": False},
-            request=request,
-        )
 
     def get_account_from_id(
         self, account_id: int, accounts: Sequence[Mapping[str, Any]]

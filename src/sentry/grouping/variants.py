@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
+from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
@@ -55,7 +58,7 @@ class ChecksumVariant(BaseVariant):
 
 
 class HashedChecksumVariant(ChecksumVariant):
-    type = "hashed-checksum"
+    type = "hashed_checksum"
     description = "hashed legacy checksum"
 
     def __init__(self, checksum: str, raw_checksum: str):
@@ -85,7 +88,7 @@ class PerformanceProblemVariant(BaseVariant):
         contains the event and the evidence.
     """
 
-    type = "performance-problem"
+    type = "performance_problem"
     description = "performance problem"
     contributes = True
 
@@ -105,7 +108,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
-    `GroupingComponent` it encloses.
+    `BaseGroupingComponent` it encloses.
     """
 
     type = "component"
@@ -132,24 +135,24 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values, info=None):
+def expose_fingerprint_dict(values, info):
     rv = {
         "values": values,
     }
-    if not info:
-        return rv
-
-    from sentry.grouping.fingerprinting import Rule
 
     client_values = info.get("client_fingerprint")
     if client_values and (
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
     ):
         rv["client_values"] = client_values
+
     matched_rule = info.get("matched_rule")
     if matched_rule:
-        rule = Rule.from_json(matched_rule)
-        rv["matched_rule"] = rule.text
+        # TODO: Before late October 2024, we didn't store the rule text along with the matched rule,
+        # meaning there are still events out there whose `_fingerprint_info` entry doesn't have it.
+        # Once those events have aged out (in February or so), we can remove the default value here
+        # and the `test_old_event_with_no_fingerprint_rule_text` test in `test_variants.py`.
+        rv["matched_rule"] = matched_rule.get("text", FingerprintRule.from_json(matched_rule).text)
 
     return rv
 
@@ -157,9 +160,9 @@ def expose_fingerprint_dict(values, info=None):
 class CustomFingerprintVariant(BaseVariant):
     """A user-defined custom fingerprint."""
 
-    type = "custom-fingerprint"
+    type = "custom_fingerprint"
 
-    def __init__(self, values, fingerprint_info=None):
+    def __init__(self, values, fingerprint_info):
         self.values = values
         self.info = fingerprint_info
 
@@ -177,7 +180,7 @@ class CustomFingerprintVariant(BaseVariant):
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
     """A built-in, Sentry defined fingerprint."""
 
-    type = "built-in-fingerprint"
+    type = "built_in_fingerprint"
 
     @property
     def description(self):
@@ -187,9 +190,9 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
 class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
 
-    type = "salted-component"
+    type = "salted_component"
 
-    def __init__(self, values, component, config, fingerprint_info=None):
+    def __init__(self, values, component, config, fingerprint_info):
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info
@@ -213,3 +216,14 @@ class SaltedComponentVariant(ComponentVariant):
         rv = ComponentVariant._get_metadata_as_dict(self)
         rv.update(expose_fingerprint_dict(self.values, self.info))
         return rv
+
+
+class VariantsByDescriptor(TypedDict, total=False):
+    system: ComponentVariant
+    app: ComponentVariant
+    custom_fingerprint: CustomFingerprintVariant
+    built_in_fingerprint: BuiltInFingerprintVariant
+    checksum: ChecksumVariant
+    hashed_checksum: HashedChecksumVariant
+    default: ComponentVariant
+    fallback: FallbackVariant

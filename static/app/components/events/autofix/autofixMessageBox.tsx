@@ -8,6 +8,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixCodebaseChange,
+  AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
@@ -125,7 +126,7 @@ function CreatePRsButton({
             ...data,
             autofix: {
               ...data.autofix,
-              status: 'PROCESSING',
+              status: AutofixStatus.PROCESSING,
             },
           };
         }
@@ -161,7 +162,7 @@ function SetupAndCreatePRsButton({
   changes: AutofixCodebaseChange[];
   groupId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId});
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
 
   if (
     !changes.every(
@@ -213,15 +214,15 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   switch (step.status) {
-    case 'WAITING_FOR_USER_RESPONSE':
+    case AutofixStatus.WAITING_FOR_USER_RESPONSE:
       return <IconFocus size="sm" color="gray300" />;
-    case 'PROCESSING':
+    case AutofixStatus.PROCESSING:
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
-    case 'CANCELLED':
+    case AutofixStatus.CANCELLED:
       return <IconClose size="sm" isCircled color="gray300" />;
-    case 'ERROR':
+    case AutofixStatus.ERROR:
       return <IconFatal size="sm" color="red300" />;
-    case 'COMPLETED':
+    case AutofixStatus.COMPLETED:
       return <IconCheckmark size="sm" color="green300" isCircled />;
     default:
       return null;
@@ -259,19 +260,19 @@ function AutofixMessageBox({
     'suggested_root_cause' | 'custom_root_cause'
   >('suggested_root_cause');
 
-  const [changesMode, setChangesMode] = useState<'give_feedback' | 'create_prs'>(
-    'give_feedback'
-  );
+  const [changesMode, setChangesMode] = useState<
+    'give_feedback' | 'add_tests' | 'create_prs'
+  >('give_feedback');
 
   const changes =
     isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
   const prsMade =
-    step?.status === 'COMPLETED' &&
+    step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
     changes.every(change => change.pull_request);
 
   const isDisabled =
-    step?.status === 'ERROR' ||
+    step?.status === AutofixStatus.ERROR ||
     (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
 
   useEffect(() => {
@@ -294,12 +295,18 @@ function AutofixMessageBox({
       return;
     }
 
-    if (message.trim() !== '' || allowEmptyMessage) {
+    let text = message;
+    if (isChangesStep && changesMode === 'add_tests') {
+      text =
+        'Please write a unit test that reproduces the issue to make sure it is fixed. Put it in the appropriate test file in the codebase. If there is none, create one.';
+    }
+
+    if (text.trim() !== '' || allowEmptyMessage) {
       if (onSend != null) {
-        onSend(message);
+        onSend(text);
       } else {
         send({
-          message: message,
+          message: text,
         });
       }
       setMessage('');
@@ -377,6 +384,9 @@ function AutofixMessageBox({
                   <SegmentedControl.Item key="give_feedback">
                     {t('Give feedback')}
                   </SegmentedControl.Item>
+                  <SegmentedControl.Item key="add_tests">
+                    {t('Add tests')}
+                  </SegmentedControl.Item>
                   <SegmentedControl.Item key="create_prs">
                     {t('Approve changes')}
                   </SegmentedControl.Item>
@@ -400,7 +410,7 @@ function AutofixMessageBox({
                       onChange={e => setMessage(e.target.value)}
                       placeholder={
                         !isRootCauseSelectionStep
-                          ? 'Say something...'
+                          ? 'Share helpful context or feedback...'
                           : rootCauseMode === 'suggested_root_cause'
                             ? '(Optional) Provide any instructions for the fix...'
                             : 'Propose your own root cause...'
@@ -429,6 +439,20 @@ function AutofixMessageBox({
               </InputArea>
             </form>
           )}
+        {isChangesStep && changesMode === 'add_tests' && !prsMade && (
+          <form onSubmit={handleSend}>
+            <InputArea>
+              <Fragment>
+                <StaticMessage>
+                  Write unit tests to make sure the issue is fixed?
+                </StaticMessage>
+                <Button type="submit" priority="primary">
+                  Add Tests
+                </Button>
+              </Fragment>
+            </InputArea>
+          </form>
+        )}
         {isChangesStep && changesMode === 'create_prs' && !prsMade && (
           <InputArea>
             <Fragment>
@@ -441,7 +465,7 @@ function AutofixMessageBox({
           </InputArea>
         )}
         {isChangesStep && prsMade && (
-          <ViewPRButtons>
+          <ViewPRButtons aria-label={t('View pull requests')}>
             {changes.map(
               change =>
                 change.pull_request?.pr_url && (

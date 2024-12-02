@@ -11,6 +11,7 @@ import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-qu
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
@@ -369,7 +370,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
       {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
@@ -461,18 +462,18 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   },
   'screen-rendering': {
     description: t(
-      'Screen Rendering shows you views within your application that are presenting slow or frozen interactions and how frequently these hiccups are occurring.'
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
     ),
-    heading: t('An app that loads quickly can still be terrible'),
-    imageSrc: screenLoadsPreviewImg, // TODO - replace with actual image
+    heading: t('Fast-loading apps can still be janky'),
+    imageSrc: screenRenderingPreviewImg,
     valuePropDescription: tct('With [moduleTitle]:', {
       moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
     }),
     valuePropPoints: [
-      tct('Compare [dataType] performance between releases.', {
+      tct('Find and debug slow rendering interactions.', {
         dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
       }),
-      t('Drill down to specific suspect operations.'),
+      t('Compare render performance between releases.'),
       tct('Correlate [dataType] performance with real-user metrics.', {
         dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
       }),

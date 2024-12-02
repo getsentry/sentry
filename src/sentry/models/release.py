@@ -197,8 +197,6 @@ class Release(Model):
         ),
     )
 
-    # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
     # ref might be the branch name being released
     ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)

@@ -40,7 +40,7 @@ function getEventExtraDataKnownDataDetails({
     default:
       return {
         subject: type,
-        value: data[type],
+        value: [type],
       };
   }
 }

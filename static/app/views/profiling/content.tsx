@@ -51,7 +51,6 @@ import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import {ProfilesChart} from './landing/profileCharts';
 import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
-import {SlowestFunctionsTable} from './landing/slowestFunctionsTable';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
@@ -60,239 +59,6 @@ const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
 
 interface ProfilingContentProps {
   location: Location;
-}
-
-function ProfilingContentLegacy({location}: ProfilingContentProps) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const cursor = decodeScalar(location.query.cursor);
-  const query = decodeScalar(location.query.query, '');
-
-  const fields = ALL_FIELDS;
-
-  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
-    key: 'count()',
-    order: 'desc',
-  });
-
-  const {projects} = useProjects();
-
-  const transactions = useProfileEvents<FieldType>({
-    cursor,
-    fields,
-    query,
-    sort,
-    referrer: 'api.profiling.landing-table',
-  });
-
-  const transactionsError =
-    transactions.status === 'error' ? formatError(transactions.error) : null;
-
-  useEffect(() => {
-    trackAnalytics('profiling_views.landing', {
-      organization,
-    });
-  }, [organization]);
-
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
-    (searchQuery: string) => {
-      browserHistory.push({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
-      });
-    },
-    [location]
-  );
-
-  // Open the modal on demand
-  const onSetupProfilingClick = useCallback(() => {
-    trackAnalytics('profiling_views.onboarding', {
-      organization,
-    });
-    SidebarPanelStore.activatePanel(SidebarPanelKey.PROFILING_ONBOARDING);
-  }, [organization]);
-
-  const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
-    // if it's My Projects or All projects, only show onboarding if we can't
-    // find any projects with profiles
-    if (
-      selection.projects.length === 0 ||
-      selection.projects[0] === ALL_ACCESS_PROJECTS
-    ) {
-      return projects.every(project => !project.hasProfiles);
-    }
-
-    // otherwise, only show onboarding if we can't find any projects with profiles
-    // from those that were selected
-    const projectsWithProfiles = new Set(
-      projects.filter(project => project.hasProfiles).map(project => project.id)
-    );
-    return selection.projects.every(
-      project => !projectsWithProfiles.has(String(project))
-    );
-  }, [selection.projects, projects]);
-
-  return (
-    <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer
-        defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
-      >
-        <Layout.Page>
-          <ProfilingBetaAlertBanner organization={organization} />
-          <Layout.Header>
-            <StyledHeaderContent>
-              <Layout.Title>
-                {t('Profiling')}
-                <PageHeadingQuestionTooltip
-                  docsUrl="https://docs.sentry.io/product/profiling/"
-                  title={t(
-                    'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-                  )}
-                />
-              </Layout.Title>
-              <FeedbackWidgetButton />
-            </StyledHeaderContent>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              {transactionsError && (
-                <Alert type="error" showIcon>
-                  {transactionsError}
-                </Alert>
-              )}
-              <ActionBar>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                </PageFilterBar>
-                {organization.features.includes('search-query-builder-performance') ? (
-                  <TransactionSearchQueryBuilder
-                    projects={selection.projects}
-                    initialQuery={query}
-                    onSearch={handleSearch}
-                    searchSource="profile_landing"
-                  />
-                ) : (
-                  <SearchBar
-                    searchSource="profile_landing"
-                    organization={organization}
-                    projectIds={selection.projects}
-                    query={query}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                )}
-              </ActionBar>
-              {shouldShowProfilingOnboardingPanel ? (
-                <Fragment>
-                  <ProfilingOnboardingPanel
-                    content={
-                      // If user is on m2, show default
-                      <ProfilingAM1OrMMXUpgrade
-                        organization={organization}
-                        fallback={
-                          <Fragment>
-                            <h3>{t('Function level insights')}</h3>
-                            <p>
-                              {t(
-                                'Discover slow-to-execute or resource intensive functions within your application'
-                              )}
-                            </p>
-                          </Fragment>
-                        }
-                      />
-                    }
-                  >
-                    <ProfilingUpgradeButton
-                      data-test-id="profiling-upgrade"
-                      organization={organization}
-                      priority="primary"
-                      onClick={onSetupProfilingClick}
-                      fallback={
-                        <Button onClick={onSetupProfilingClick} priority="primary">
-                          {t('Set Up Profiling')}
-                        </Button>
-                      }
-                    >
-                      {t('Set Up Profiling')}
-                    </ProfilingUpgradeButton>
-                    <LinkButton href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </LinkButton>
-                  </ProfilingOnboardingPanel>
-                </Fragment>
-              ) : (
-                <Fragment>
-                  {organization.features.includes(
-                    'profiling-global-suspect-functions'
-                  ) ? (
-                    <Fragment>
-                      <ProfilesChartWidget
-                        chartHeight={150}
-                        referrer="api.profiling.landing-chart"
-                        userQuery={query}
-                        selection={selection}
-                      />
-                      <WidgetsContainer>
-                        <LandingWidgetSelector
-                          cursorName={LEFT_WIDGET_CURSOR}
-                          widgetHeight="340px"
-                          defaultWidget="slowest functions"
-                          query={query}
-                          storageKey="profiling-landing-widget-0"
-                        />
-                        <LandingWidgetSelector
-                          cursorName={RIGHT_WIDGET_CURSOR}
-                          widgetHeight="340px"
-                          defaultWidget="regressed functions"
-                          query={query}
-                          storageKey="profiling-landing-widget-1"
-                        />
-                      </WidgetsContainer>
-                    </Fragment>
-                  ) : (
-                    <PanelsGrid>
-                      <ProfilingSlowestTransactionsPanel />
-                      <ProfilesChart
-                        referrer="api.profiling.landing-chart"
-                        query={query}
-                        selection={selection}
-                        hideCount
-                      />
-                    </PanelsGrid>
-                  )}
-                  <ProfileEventsTable
-                    columns={fields.slice()}
-                    data={transactions.status === 'success' ? transactions.data : null}
-                    error={
-                      transactions.status === 'error'
-                        ? t('Unable to load profiles')
-                        : null
-                    }
-                    isLoading={transactions.status === 'pending'}
-                    sort={sort}
-                    sortableColumns={new Set(fields)}
-                  />
-                  <Pagination
-                    pageLinks={
-                      transactions.status === 'success'
-                        ? transactions.getResponseHeader?.('Link') ?? null
-                        : null
-                    }
-                  />
-                </Fragment>
-              )}
-            </Layout.Main>
-          </Layout.Body>
-        </Layout.Page>
-      </PageFiltersContainer>
-    </SentryDocumentTitle>
-  );
 }
 
 function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
@@ -305,7 +71,7 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
   return validateTab(tab) ? tab : 'transactions';
 }
 
-function ProfilingContent({location}: ProfilingContentProps) {
+export default function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {projects} = useProjects();
@@ -430,7 +196,6 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
     query,
     sort,
     referrer: 'api.profiling.landing-table',
-    continuousProfilingCompat: true,
   });
 
   const transactionsError =
@@ -485,25 +250,13 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
         <ProfilingOnboardingCTA />
       ) : (
         <Fragment>
-          {organization.features.includes('continuous-profiling-ui') ? (
+          {organization.features.includes('profiling-global-suspect-functions') ? (
             <Fragment>
               <ProfilesChartWidget
                 chartHeight={150}
                 referrer="api.profiling.landing-chart"
                 userQuery={query}
                 selection={selection}
-                continuousProfilingCompat
-              />
-              <SlowestFunctionsTable userQuery={query} />
-            </Fragment>
-          ) : organization.features.includes('profiling-global-suspect-functions') ? (
-            <Fragment>
-              <ProfilesChartWidget
-                chartHeight={150}
-                referrer="api.profiling.landing-chart"
-                userQuery={query}
-                selection={selection}
-                continuousProfilingCompat
               />
               <WidgetsContainer>
                 <LandingWidgetSelector
@@ -733,15 +486,3 @@ const WidgetsContainer = styled('div')`
 const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
-
-function ProfilingContentWrapper(props: ProfilingContentProps) {
-  const organization = useOrganization();
-
-  if (organization.features.includes('continuous-profiling-compat')) {
-    return <ProfilingContent {...props} />;
-  }
-
-  return <ProfilingContentLegacy {...props} />;
-}
-
-export default ProfilingContentWrapper;

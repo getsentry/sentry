@@ -42,12 +42,12 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
@@ -71,7 +71,15 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
 )
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -81,6 +89,7 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -171,10 +180,10 @@ ORG_OPTIONS = (
     ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
     (
-        "aiSuggestedSolution",
-        "sentry:ai_suggested_solution",
+        "hideAiFeatures",
+        "sentry:hide_ai_features",
         bool,
-        AI_SUGGESTED_SOLUTION,
+        HIDE_AI_FEATURES_DEFAULT,
     ),
     (
         "githubPRBot",
@@ -266,7 +275,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
-    aiSuggestedSolution = serializers.BooleanField(required=False)
+    hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
@@ -375,36 +384,20 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def validate_targetSampleRate(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
             )
 
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.ORGANIZATION.value
-        ):
-            raise serializers.ValidationError(
-                "Must be in Automatic Mode to configure the organization sample rate."
-            )
-
         return value
 
     def validate_samplingMode(self, value):
-        from sentry import features
-
         organization = self.context["organization"]
         request = self.context["request"]
-        has_dynamic_sampling_custom = features.has(
-            "organizations:dynamic-sampling-custom", organization, actor=request.user
-        )
+        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
         if not has_dynamic_sampling_custom:
             raise serializers.ValidationError(
                 "Organization does not have the custom dynamic sample rate feature enabled."
@@ -424,6 +417,23 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
+
+        organization = self.context["organization"]
+        sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+        request_sampling_mode = attrs.get("samplingMode")
+        request_target_sample_rate = attrs.get("targetSampleRate")
+
+        if (
+            request_sampling_mode == DynamicSamplingMode.PROJECT.value
+            or (
+                sampling_mode == DynamicSamplingMode.PROJECT.value
+                and request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
+            )
+        ) and request_target_sample_rate is not None:
+            raise serializers.ValidationError(
+                "Must be in Automatic Mode to configure the organization sample rate."
+            )
+
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
@@ -647,8 +657,8 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="Specify `true` to opt-in to new features before they're released to the public.",
         required=False,
     )
-    aiSuggestedSolution = serializers.BooleanField(
-        help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
+    hideAiFeatures = serializers.BooleanField(
+        help_text="Specify `true` to hide AI features from the organization.",
         required=False,
     )
     codecovAccess = serializers.BooleanField(
@@ -902,7 +912,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Update various attributes and configurable settings for the given organization.
         """
@@ -954,8 +964,40 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
 
-            if "targetSampleRate" in changed_data:
-                boost_low_volume_projects_of_org_with_query.delay(organization.id)
+            if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
+                is_org_mode = is_organization_mode_sampling(organization)
+
+                # If the sampling mode was changed, adapt the project and org options accordingly
+                if "samplingMode" in changed_data:
+                    with transaction.atomic(router.db_for_write(ProjectOption)):
+                        if is_project_mode_sampling(organization):
+                            self._compute_project_target_sample_rates(organization)
+                            organization.delete_option("sentry:target_sample_rate")
+
+                        elif is_org_mode:
+                            if "targetSampleRate" in changed_data:
+                                organization.update_option(
+                                    "sentry:target_sample_rate",
+                                    serializer.validated_data["targetSampleRate"],
+                                )
+
+                            ProjectOption.objects.filter(
+                                project__organization_id=organization.id,
+                                key="sentry:target_sample_rate",
+                            ).delete()
+
+                # If the target sample rate for the org was changed, update the org option
+                if is_org_mode and "targetSampleRate" in changed_data:
+                    organization.update_option(
+                        "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
+                    )
+
+                # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
+                # trigger the rebalancing of project sample rates.
+                if is_org_mode and (
+                    "samplingMode" in changed_data or "targetSampleRate" in changed_data
+                ):
+                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -985,6 +1027,16 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def _compute_project_target_sample_rates(self, organization):
+        for project in organization.project_set.all():
+            current_rate, _ = get_boost_low_volume_projects_sample_rate(
+                org_id=organization.id,
+                project_id=project.id,
+                error_sample_rate_fallback=None,
+            )
+            if current_rate:
+                project.update_option("sentry:target_sample_rate", current_rate)
 
     def handle_delete(self, request: Request, organization: Organization):
         """
