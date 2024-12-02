@@ -111,6 +111,3 @@ def test_get_cluster_from_options_both_options_invalid():
             {"hosts": {0: {"db": 0}}, "cluster": "foo", "foo": "bar"},
             cluster_manager=manager,
         )
-
-
-# todo: add test cases for forcing refresh

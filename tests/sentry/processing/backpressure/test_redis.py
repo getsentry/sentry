@@ -82,7 +82,7 @@ def test_redis_retry_fail(mock_load_service_definitions, mock_iter_cluster_memor
 def test_redis_retry_success(mock_load_service_definitions, mock_iter_cluster_memory_usage):
     mock_iter_cluster_memory_usage.side_effect = [
         ConnectionError("Connection failed"),
-        [ServiceMemory(name="testRedis", used=50, available=100)],
+        [ServiceMemory(name="redis", used=50, available=100)],
     ]
     services = load_service_definitions()
 
