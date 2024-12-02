@@ -14,7 +14,7 @@ class SentryAppComponentSerializer(Serializer):
             "uuid": str(obj.uuid),
             "type": obj.type,
             "schema": obj.schema,
-            "error": errors.get(str(obj.uuid), None) or "",
+            "error": errors.get(str(obj.uuid), ""),
             "sentryApp": {
                 "uuid": obj.sentry_app.uuid,
                 "slug": obj.sentry_app.slug,
