@@ -6,3 +6,4 @@
 /fixtures
 /node_modules
 /tests
+/.webpack_cache
