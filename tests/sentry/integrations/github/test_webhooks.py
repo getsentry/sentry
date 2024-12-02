@@ -28,7 +28,10 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import assert_failure_metric
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_success_metric,
+)
 
 
 class WebhookTest(APITestCase):
@@ -80,7 +83,8 @@ class InstallationEventWebhookTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_installation_created(self, get_jwt):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_created(self, mock_record, get_jwt):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/app/installations/2",
@@ -105,6 +109,8 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.metadata["sender"]["id"] == 1
         assert integration.metadata["sender"]["login"] == "octocat"
         assert integration.status == ObjectStatus.ACTIVE
+
+        assert_success_metric(mock_record)
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -282,7 +288,8 @@ class PushEventWebhookTest(APITestCase):
         assert_failure_metric(mock_record, error)
 
     @responses.activate
-    def test_simple(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple(self, mock_record):
         project = self.project  # force creation
 
         repo = Repository.objects.create(
@@ -330,6 +337,8 @@ class PushEventWebhookTest(APITestCase):
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
         assert repo.name == "baxterthehacker/public-repo"
+
+        assert_success_metric(mock_record)
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
@@ -624,7 +633,8 @@ class PullRequestEventWebhook(APITestCase):
         assert_failure_metric(mock_record, error)
 
     @patch("sentry.integrations.github.webhook.metrics")
-    def test_opened(self, mock_metrics):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_opened(self, mock_record, mock_metrics):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
 
@@ -657,6 +667,8 @@ class PullRequestEventWebhook(APITestCase):
         self.assert_group_link(group, pr)
 
         mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
+
+        assert_success_metric(mock_record)
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_opened_missing_option(self, mock_metrics):
