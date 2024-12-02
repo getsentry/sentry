@@ -325,6 +325,31 @@ class MergeGroupsTest(TestCase):
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
         assert mock_handle_merge.call_count == 0
 
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock):
+        """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
+        projects = [self.create_project(), self.create_project()]
+        proj1 = projects[0]
+        groups = [self.create_group(proj1), self.create_group(proj1)]
+        group_ids = [g.id for g in groups]
+        project_ids = [g.project_id for g in groups]
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        # The two groups belong to the same project, so we should be able to merge them
+        request.GET = {"id": group_ids, "project": project_ids}
+
+        update_groups(request, group_ids, projects, self.organization.id)
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {proj1.id: proj1}
+        assert call_args[2] == self.user
+
     def test_metrics(self):
         for referer, expected_referer_tag in [
             ("https://sentry.io/organizations/dogsaregreat/issues/", "issue stream"),
