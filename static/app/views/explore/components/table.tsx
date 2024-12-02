@@ -50,8 +50,8 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
 const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
 type Item = {
-  label: string;
-  value: React.ReactNode;
+  label: React.ReactNode;
+  value: string;
   width?: number | 'min-content';
 };
 

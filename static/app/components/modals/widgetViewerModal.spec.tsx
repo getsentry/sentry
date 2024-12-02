@@ -2,6 +2,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {MetricsTotalCountByReleaseIn24h} from 'sentry-fixture/metrics';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -127,6 +128,11 @@ describe('Modals -> WidgetViewerModal', function () {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
 
@@ -1477,6 +1483,37 @@ describe('Modals -> WidgetViewerModal', function () {
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('Span Widgets', function () {
+    beforeEach(function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {},
+      });
+    });
+
+    it('renders the Open in Explore button', async function () {
+      const mockWidget = WidgetFixture({
+        widgetType: WidgetType.SPANS,
+        queries: [
+          {
+            fields: ['span.description', 'avg(span.duration)'],
+            aggregates: ['avg(span.duration)'],
+            columns: ['span.description'],
+            conditions: '',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
     });
   });
 });

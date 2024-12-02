@@ -7,7 +7,7 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -21,7 +21,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         (event_failures,) = (
             call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
         )
-        assert event_failures.args[1]["failure_reason"] == error_msg
+        assert event_failures.args[1] == error_msg
 
     def test_config_view(self):
         resp = self.client.get(self.init_path)

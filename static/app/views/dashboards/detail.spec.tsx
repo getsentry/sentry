@@ -25,9 +25,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
+import DashboardDetail, {
+  handleUpdateDashboardSplit,
+} from 'sentry/views/dashboards/detail';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
+import {DashboardState} from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -98,6 +101,10 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
       MockApiClient.addMockResponse({
@@ -366,6 +373,10 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/releases/stats/',
         body: [],
       });
       MockApiClient.addMockResponse({
@@ -1902,7 +1913,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      const currentUser = UserFixture({id: '781629'});
+      const currentUser = UserFixture({id: '781629', isSuperuser: false});
       ConfigStore.set('user', currentUser);
 
       render(
@@ -1911,6 +1922,7 @@ describe('Dashboards > Detail', function () {
           organization={{
             ...initialData.organization,
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -1922,6 +1934,7 @@ describe('Dashboards > Detail', function () {
           router: initialData.router,
           organization: {
             features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
           },
         }
       );
@@ -1929,6 +1942,133 @@ describe('Dashboards > Detail', function () {
       await screen.findByText('Edit Access:');
       expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+    });
+
+    it('disables widget edit, duplicate, and delete button when user does not have edit perms', async function () {
+      const widget = {
+        displayType: types.DisplayType.TABLE,
+        interval: '1d',
+        queries: [
+          {
+            name: 'Test Widget',
+            fields: ['count()', 'count_unique(user)', 'epm()', 'project'],
+            columns: ['project'],
+            aggregates: ['count()', 'count_unique(user)', 'epm()'],
+            conditions: '',
+            orderby: '',
+          },
+        ],
+        title: 'Transactions',
+        id: '1',
+        widgetType: types.WidgetType.DISCOVER,
+      };
+      const mockDashboard = DashboardFixture([widget], {
+        id: '1',
+        title: 'Custom Errors',
+        createdBy: UserFixture({id: '238900'}),
+        permissions: {isEditableByEveryone: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: mockDashboard,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: mockDashboard,
+      });
+
+      const currentUser = UserFixture({id: '781629'});
+      ConfigStore.set('user', currentUser);
+
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
+          }}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-edit-access', ...initialData.organization.features],
+            access: ['org:read'],
+          },
+        }
+      );
+
+      await screen.findByText('Edit Access:');
+      expect(screen.getByRole('button', {name: 'Edit Dashboard'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('menuitemradio', {name: 'Delete Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Edit Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    describe('widget builder redesign', function () {
+      beforeEach(function () {
+        initialData = initializeOrg({
+          organization: OrganizationFixture({
+            features: [
+              'global-views',
+              'dashboards-basic',
+              'dashboards-edit',
+              'discover-query',
+              'performance-discover-dataset-selector',
+              'dashboards-widget-builder-redesign',
+            ],
+          }),
+        });
+      });
+
+      it('opens the widget builder slideout when clicking add widget', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByTestId('widget-add'));
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
     });
 
     describe('discover split', function () {

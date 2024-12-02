@@ -80,6 +80,8 @@ export enum DataCategory {
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
   SPANS = 'spans',
+  SPANS_INDEXED = 'spansIndexed',
+  PROFILE_CHUNKS = 'profileChunks',
 }
 
 /**
@@ -99,6 +101,7 @@ export enum DataCategoryExact {
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
+  SPAN_INDEXED = 'span_indexed',
 }
 
 export interface DataCategoryInfo {

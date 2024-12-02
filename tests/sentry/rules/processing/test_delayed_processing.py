@@ -452,8 +452,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         assert len(result) == 0
 
     def test_empty_group_ids(self):
-        parsed_data: dict[tuple[str, str], dict[str, str]] = {}
-        result = get_group_to_groupevent(parsed_data, self.project.id, set())
+        result = get_group_to_groupevent({}, self.project.id, set())
         assert len(result) == 0
 
     def test_invalid_group_ids(self):
@@ -469,7 +468,7 @@ class GetRulesToFireTest(TestCase):
 
         self.rule1: Rule = self.create_project_rule(
             project=self.project,
-            condition_match=[TEST_RULE_SLOW_CONDITION],
+            condition_data=[TEST_RULE_SLOW_CONDITION],
             environment_id=self.environment.id,
         )
         self.group1: Group = self.create_group(self.project)
@@ -557,7 +556,7 @@ class GetRulesToFireTest(TestCase):
     def test_multiple_rules_and_groups(self, mock_passes):
         rule2 = self.create_project_rule(
             project=self.project,
-            condition_match=[TEST_RULE_SLOW_CONDITION],
+            condition_data=[TEST_RULE_SLOW_CONDITION],
             environment_id=self.environment.id,
         )
         self.rules_to_slow_conditions[rule2].append(TEST_RULE_SLOW_CONDITION)
@@ -642,19 +641,18 @@ class ParseRuleGroupToEventDataTest(TestCase):
 
         result = parse_rulegroup_to_event_data(input_data)
         assert result == {
-            (str(self.rule.id), str(self.group.id)): self.event_data,
-            (str(self.rule_two.id), str(self.group_two.id)): self.event_data,
+            (self.rule.id, self.group.id): self.event_data,
+            (self.rule_two.id, self.group_two.id): self.event_data,
         }
 
     def test_parse_rulegroup_empty(self):
-        input_data: dict[str, str] = {}
-        result = parse_rulegroup_to_event_data(input_data)
+        result = parse_rulegroup_to_event_data({})
         assert result == {}
 
     def test_parse_rulegroup_basic(self):
         input_data = {f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data)}
         result = parse_rulegroup_to_event_data(input_data)
-        assert result == {(str(self.rule.id), str(self.group.id)): self.event_data}
+        assert result == {(self.rule.id, self.group.id): self.event_data}
 
     def test_parse_rulegroup_invalid_json(self):
         input_data = {f"{self.rule.id}:{self.group.id}": "}"}
@@ -694,7 +692,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
 
         self.rule1 = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition],
+            condition_data=[self.event_frequency_condition],
             environment_id=self.environment.id,
         )
         self.event1 = self.create_event(
@@ -705,7 +703,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.group1 = self.event1.group
 
         self.rule2 = self.create_project_rule(
-            project=self.project, condition_match=[self.user_frequency_condition]
+            project=self.project, condition_data=[self.user_frequency_condition]
         )
         self.event2 = self.create_event(
             self.project.id, FROZEN_TIME, "group-2", self.environment.name
@@ -725,7 +723,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
 
         self.rule3 = self.create_project_rule(
             project=self.project_two,
-            condition_match=[self.event_frequency_condition2],
+            condition_data=[self.event_frequency_condition2],
             environment_id=self.environment2.id,
         )
         self.event3 = self.create_event(
@@ -738,7 +736,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self.group3 = self.event3.group
 
         self.rule4 = self.create_project_rule(
-            project=self.project_two, condition_match=[event_frequency_percent_condition]
+            project=self.project_two, condition_data=[event_frequency_percent_condition]
         )
         self.event4 = self.create_event(self.project_two.id, FROZEN_TIME, "group-4")
         assert self.event4.group
@@ -787,13 +785,13 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         env3 = self.create_environment(project=project_three)
         rule_1 = self.create_project_rule(
             project=project_three,
-            condition_match=[self.event_frequency_condition],
+            condition_data=[self.event_frequency_condition],
             filter_match=[self.tag_filter],
             environment_id=env3.id,
         )
         rule_2 = self.create_project_rule(
             project=project_three,
-            condition_match=[self.event_frequency_condition2],
+            condition_data=[self.event_frequency_condition2],
             environment_id=env3.id,
         )
         rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
@@ -861,7 +859,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition2],
+            condition_data=[self.event_frequency_condition2],
         )
         tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
         contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
@@ -902,7 +900,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition2],
+            condition_data=[self.event_frequency_condition2],
             environment_id=self.environment.id,
         )
         self.snooze_rule(owner_id=self.user.id, rule=rule5)
@@ -934,7 +932,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition2],
+            condition_data=[self.event_frequency_condition2],
             environment_id=self.environment.id,
         )
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
@@ -967,7 +965,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._push_base_events()
         diff_interval_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition3],
+            condition_data=[self.event_frequency_condition3],
             environment_id=self.environment.id,
         )
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
@@ -1000,7 +998,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         environment3 = self.create_environment(project=self.project)
         diff_env_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition],
+            condition_data=[self.event_frequency_condition],
             environment_id=environment3.id,
         )
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
@@ -1038,7 +1036,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         }
         no_fire_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[high_event_frequency_condition],
+            condition_data=[high_event_frequency_condition],
             environment_id=self.environment.id,
         )
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
@@ -1069,7 +1067,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         self._push_base_events()
         two_conditions_match_all_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[self.event_frequency_condition, self.user_frequency_condition],
+            condition_data=[self.event_frequency_condition, self.user_frequency_condition],
             environment_id=self.environment.id,
         )
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
@@ -1090,7 +1088,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         condition_wont_pass_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[self.create_event_frequency_condition(value=100)],
+            condition_data=[self.create_event_frequency_condition(value=100)],
             environment_id=self.environment.id,
         )
         self.push_to_hash(
@@ -1260,13 +1258,13 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id)
         rule_1 = self.create_project_rule(
             project=project_three,
-            condition_match=[self.event_frequency_condition],
+            condition_data=[self.event_frequency_condition],
             filter_match=[self.tag_filter],
             environment_id=env3.id,
         )
         rule_2 = self.create_project_rule(
             project=project_three,
-            condition_match=[self.event_frequency_condition],
+            condition_data=[self.event_frequency_condition],
             environment_id=env3.id,
         )
         event1 = self.create_event(
@@ -1315,7 +1313,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         percent_comparison_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[percent_condition],
+            condition_data=[percent_condition],
         )
 
         incorrect_interval_time = FROZEN_TIME - timedelta(hours=1, minutes=30)
@@ -1362,7 +1360,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         percent_comparison_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[percent_condition],
+            condition_data=[percent_condition],
         )
 
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
@@ -1391,7 +1389,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         self.fires_percent_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[fires_percent_condition],
+            condition_data=[fires_percent_condition],
             environment_id=self.environment.id,
         )
 
@@ -1401,7 +1399,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         self.fires_count_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[fires_count_condition],
+            condition_data=[fires_count_condition],
             environment_id=self.environment.id,
         )
         skips_count_condition = self.create_event_frequency_condition(
@@ -1410,7 +1408,7 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         )
         self.skips_count_rule = self.create_project_rule(
             project=self.project,
-            condition_match=[skips_count_condition],
+            condition_data=[skips_count_condition],
             environment_id=self.environment.id,
         )
 

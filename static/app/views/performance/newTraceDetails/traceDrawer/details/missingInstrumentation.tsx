@@ -81,7 +81,7 @@ export function MissingInstrumentationNodeDetails({
 
   return (
     <TraceDrawerComponents.DetailContainer>
-      <TraceDrawerComponents.HeaderContainer>
+      <TraceDrawerComponents.LegacyHeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.IconTitleWrapper>
             <TraceDrawerComponents.IconBorder
@@ -97,7 +97,7 @@ export function MissingInstrumentationNodeDetails({
           node={node}
           onTabScrollToNode={onTabScrollToNode}
         />
-      </TraceDrawerComponents.HeaderContainer>
+      </TraceDrawerComponents.LegacyHeaderContainer>
 
       {node.event?.projectSlug ? (
         <ProfilesProvider

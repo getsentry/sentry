@@ -54,6 +54,7 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 
 pytestmark = [requires_snuba]
 
@@ -484,7 +485,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         notification_card = MSTeamsNotificationsMessageBuilder(
             self.notification,
             self.context,
-            self.recipient,
+            Actor.from_object(self.recipient),
         ).build_notification_card()
 
         body = notification_card["body"]
@@ -520,7 +521,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         notification_card = MSTeamsNotificationsMessageBuilder(
             dummy_notification,
             self.context,
-            self.recipient,
+            Actor.from_object(self.recipient),
         ).build_notification_card()
 
         assert 2 == len(notification_card["body"])

@@ -43,7 +43,7 @@ class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
             Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
         )
         mql = f"sum({SpanMRI.COUNT_PER_ROOT_PROJECT.value}) by (project,target_project_id)"
-        query = MQLQuery(mql=mql, order=QueryOrder.DESC)
+        query = MQLQuery(mql=mql, order=QueryOrder.DESC, limit=10000)
         results = run_queries(
             mql_queries=[query],
             start=start,

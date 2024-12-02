@@ -23,7 +23,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse

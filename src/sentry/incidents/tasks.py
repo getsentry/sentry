@@ -98,7 +98,7 @@ def generate_incident_activity_email(
 
 
 def build_activity_context(
-    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+    activity: IncidentActivity, user: RpcUser | User, activity_user: RpcUser | None = None
 ) -> dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)

@@ -19,9 +19,10 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
@@ -37,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
+import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
 import RouteError from 'sentry/views/routeError';
 
@@ -44,12 +46,13 @@ import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
-import DashboardList from './dashboardList';
+import DashboardGrid from './dashboardGrid';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
+  DASHBOARD_TABLE_NUM_ROWS,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import TemplateCard from './templateCard';
@@ -64,10 +67,23 @@ const SORT_OPTIONS: SelectValue<string>[] = [
 ];
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
+export const LAYOUT_KEY = 'dashboards-overview-layout';
+
+const GRID = 'grid';
+const TABLE = 'table';
+
+export type DashboardsLayout = 'grid' | 'table';
 
 function shouldShowTemplates(): boolean {
   const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
   return shouldShow === 'true' || shouldShow === null;
+}
+
+function getDashboardsOverviewLayout(): DashboardsLayout {
+  const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+  return dashboardsLayout === GRID || dashboardsLayout === TABLE
+    ? dashboardsLayout
+    : GRID;
 }
 
 function ManageDashboards() {
@@ -80,6 +96,10 @@ function ManageDashboards() {
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
+  );
+  const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
+    LAYOUT_KEY,
+    getDashboardsOverviewLayout()
   );
   const [{rowCount, columnCount}, setGridSize] = useState({
     rowCount: DASHBOARD_GRID_DEFAULT_NUM_ROWS,
@@ -100,7 +120,8 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
-          per_page: rowCount * columnCount,
+          per_page:
+            dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
       },
     ],
@@ -230,13 +251,34 @@ function ManageDashboards() {
   function renderActions() {
     const activeSort = getActiveSort();
     return (
-      <StyledActions>
+      <StyledActions listView={organization.features.includes('dashboards-table-view')}>
         <SearchBar
           defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
+        <Feature features={'organizations:dashboards-table-view'}>
+          <SegmentedControl<DashboardsLayout>
+            onChange={setDashboardsLayout}
+            size="md"
+            value={dashboardsLayout}
+            aria-label={t('Layout Control')}
+          >
+            <SegmentedControl.Item
+              key="grid"
+              textValue="grid"
+              aria-label={t('Grid View')}
+              icon={<IconGrid />}
+            />
+            <SegmentedControl.Item
+              key="list"
+              textValue="list"
+              aria-label={t('List View')}
+              icon={<IconList />}
+            />
+          </SegmentedControl>
+        </Feature>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
           value={activeSort.value}
@@ -257,8 +299,8 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
-    return (
-      <DashboardList
+    return dashboardsLayout === GRID ? (
+      <DashboardGrid
         api={api}
         dashboards={dashboards}
         organization={organization}
@@ -267,6 +309,15 @@ function ManageDashboards() {
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
+      />
+    ) : (
+      <DashboardTable
+        api={api}
+        dashboards={dashboards}
+        organization={organization}
+        location={location}
+        onDashboardsChange={() => refetchDashboards()}
+        isLoading={isLoading}
       />
     );
   }
@@ -444,9 +495,10 @@ function ManageDashboards() {
   );
 }
 
-const StyledActions = styled('div')`
+const StyledActions = styled('div')<{listView: boolean}>`
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: ${p =>
+    p.listView ? 'auto max-content max-content' : 'auto max-content'};
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 

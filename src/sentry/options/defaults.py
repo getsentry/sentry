@@ -2010,10 +2010,28 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Enables system incident anomaly detection based on the volume of check-ins
-# being processed
+
+# Temporary killswitch to enable dispatching incident occurrences into the
+# incident_occurrence_consumer
 register(
-    "crons.tick_volume_anomaly_detection",
+    "crons.dispatch_incident_occurrences_to_consumer",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables recording tick volume metrics and tick decisions based on those
+# metrics. Decisions are used to delay notifications in a system incident.
+register(
+    "crons.system_incidents.collect_metrics",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables the the crons incident occurrence consumer to consider the clock-tick
+# decision made based on volume metrics to determine if a incident occurrence
+# should be processed, delayed, or dropped entirely.
+register(
+    "crons.system_incidents.use_decisions",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2879,6 +2897,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# option for clamping project tag key date range
+register(
+    "visibility.tag-key-max-date-range.days",
+    default=14,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option used to enable/disable applying
 # stack trace rules in profiles
 register(
@@ -2896,4 +2921,30 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.event-tracker.sample-rate.transactions",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# migrating send_alert_event task to not pass Event
+register(
+    "sentryapps.send_alert_event.use-eventid",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "transactions.do_post_process_in_save",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+
+# allows us to disable indexing during maintenance events
+register(
+    "sentry.similarity.indexing.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -31,7 +31,7 @@ describe('useResultMode', function () {
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <TestPage />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -39,7 +39,7 @@ describe('useResultMode', function () {
 
     expect(resultMode).toEqual('samples'); // default
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -56,7 +56,7 @@ describe('useResultMode', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',

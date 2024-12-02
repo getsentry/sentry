@@ -83,12 +83,6 @@ class ConfigValidator:
 
 
 class PluginConfigMixin(ProviderMixin):
-    asset_key = None
-    assets = []
-
-    def get_assets(self):
-        return self.assets
-
     def get_metadata(self):
         """
         Return extra metadata which is used to represent this plugin.

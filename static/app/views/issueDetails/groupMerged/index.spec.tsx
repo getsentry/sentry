@@ -1,4 +1,5 @@
 import {DetailedEventsFixture} from 'sentry-fixture/events';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +9,7 @@ import GroupMergedView from 'sentry/views/issueDetails/groupMerged';
 
 describe('Issues -> Merged View', function () {
   const events = DetailedEventsFixture();
+  const group = GroupFixture();
   const mockData = {
     merged: [
       {
@@ -27,7 +29,7 @@ describe('Issues -> Merged View', function () {
     GroupingStore.init();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/groupId/hashes/?limit=50&query=',
+      url: `/organizations/org-slug/issues/${group.id}/hashes/?limit=50&query=`,
       body: mockData.merged,
     });
   });
@@ -43,7 +45,7 @@ describe('Issues -> Merged View', function () {
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{groupId: 'groupId'}}
+        groupId={group.id}
         location={router.location}
       />,
       {router, organization}
@@ -64,7 +66,7 @@ describe('Issues -> Merged View', function () {
       <GroupMergedView
         organization={organization}
         project={project}
-        params={{groupId: 'groupId'}}
+        groupId={group.id}
         location={router.location}
       />,
       {router, organization}

@@ -3,7 +3,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.notificationaction import ActionTarget
+from sentry.notifications.models.notificationaction import ActionTarget
 
 
 @region_silo_model
@@ -24,16 +24,12 @@ class Action(DefaultFieldsModel):
         Notification = "SendNotificationAction"
         TriggerWorkflow = "TriggerWorkflowAction"
 
-    """
-    Required actions cannot be disabled by the user, and will not be displayed in the UI.
-    These actions will be used internally, to trigger other aspects of the system.
-    For example, creating a new issue in the Issue Platform or a detector emitting an event.
-    """
-    required = models.BooleanField(default=False)
-
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)
     data = models.JSONField(default=dict)
+
+    # TODO - finish removing this field
+    required = models.BooleanField(default=False, null=True)
 
     # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
     # This allows us to map the way we're saving the notification channels to the action.

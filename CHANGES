@@ -1,3 +1,67 @@
+24.11.1
+-------
+
+### Various fixes & improvements
+
+- feat(toolbar): Make the login-success page have styles that blend with the login flow (#81230) by @ryan953
+- fix(issues): Revert to app external issue name (#81277) by @scttcper
+- Revert "chore(similarity): Do not send > 30 system frames to seer (#81259)" (104352cb) by @getsentry-bot
+- :wrench: chore(slos): Update Halt to Success for Bot Commands (#81271) by @iamrajjoshi
+- fix(auth): Adding scoping_organization_id to replica (#81213) by @sentaur-athena
+- chore(similarity): Do not send > 30 system frames to seer (#81259) by @jangjodi
+- fix(issues): Animate dropdown chevrons, button sizes (#81262) by @scttcper
+- feat(eap): Add missing profile.id column to EAP (#81263) by @Zylphrex
+- ref(dashboards): Modify how permissions are handled for editing/deleting dashboards (#80684) by @harshithadurai
+- feat(explore): Format numeric tags nicely in explore (#81255) by @Zylphrex
+- fix(explore): Preserve sort when adding group by (#81258) by @Zylphrex
+- ref(insights): remove insights-domain-view flag part 1 (#81241) by @DominikB2014
+- chore(alerts): Drop included and excluded projects (#81250) by @ceorourke
+- ref: fix flaky digests test (#81256) by @asottile-sentry
+- chore(sentryapps) Remove option for sentryapp RPC transition (#81245) by @markstory
+- fix(grouping): Only collect metadata timing metric when actually getting metadata (#81252) by @lobsterkatie
+- chore(performance): Remove old anomaly detection backend (#80696) by @gggritso
+- Revert "chore(similarity): Add logging for over 30 system frames (#81130)" (7b7e7955) by @getsentry-bot
+- ♻️ chore(slo): SLOs for CommitContextIntegration (#81225) by @iamrajjoshi
+- chore(widget-builder): Remove organization props (#81248) by @narsaynorath
+- chore(integrations): SourceCodeSearchEndpoint metrics (#80956) by @mifu67
+- chore(vsts): vsts installation step metrics (#80789) by @cathteng
+- Remove excluded_projects & include_all_projects columns (#81204) by @ceorourke
+- fix(issues): Wrap solutions in error boundary (#81244) by @scttcper
+
+_Plus 338 more_
+
+24.11.0
+-------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add support link to dropdown (#80804) by @roggenkemper
+- fix(issues): Show 50+ Replays whenever the count is maxed out like that (#80809) by @ryan953
+- ref(replay): Refactor extractDomNodes stepper strategy into extractDomNodes.tsx (#80810) by @ryan953
+- ref: make condition_data / action_data param names match for create_project_rule (#80781) by @asottile-sentry
+- ref: explicitly install libexpat1 (#80742) by @asottile-sentry
+- ref(dashboards): Fixes and refactoring for edit access selector button (#80633) by @harshithadurai
+- feat(flamegraphs): Support functions flamegraphs for continuous profi… (#80822) by @Zylphrex
+- feature(dashboards): added grid icon (#80806) by @doralchan
+- fix(charts): Respect stacked prop in area chart (#80824) by @Zylphrex
+- fix(insights): filter out ui.action in backend, and add to mobile (#80823) by @DominikB2014
+- chore(flamegraph): Remove transactions from differential flamegraphs (#80807) by @Zylphrex
+- feat(functions): Use flamegraph as data source for slowest functions (#80791) by @Zylphrex
+- feat(dashboards): Dashboards landing page layout toggle (#80790) by @nikkikapadia
+- ref(grouping): Rename `GroupingComponent` to `BaseGroupingComponent` (#80725) by @lobsterkatie
+- feat(dynamic-sampling): Show project as active if not 100 percent (#80819) by @ArthurKnaus
+- feat(dynamic-sampling): Copy changes and doc links (#80818) by @ArthurKnaus
+- fix(releases): For semver releases, get latest release as the resolving one (#80737) by @armenzg
+- feat(dynamic-sampling): Use new span count endpoint (#80732) by @ArthurKnaus
+- feat(dynamic-sampling): Show stored span per sub-project (#80816) by @ArthurKnaus
+- fix(dynamic-sampling): set dynamic sampling project span count mql query limit (#80812) by @shellmayr
+- chore(codeowners): update telemetry experience ownership (#80813) by @shellmayr
+- fix(crons): Move limit back onto QuerySet for incident detection (#80805) by @evanpurkhiser
+- fix(grouping): Small types fixes (#80724) by @lobsterkatie
+- feat(backup): Add export checkpointer (#80711) by @azaslavsky
+
+_Plus 1276 more_
+
 24.10.0
 -------
 

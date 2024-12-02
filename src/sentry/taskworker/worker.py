@@ -11,6 +11,7 @@ from uuid import uuid4
 import grpc
 import orjson
 from django.conf import settings
+from django.core.cache import cache
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -18,8 +19,10 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TaskActivation,
 )
 
+from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.registry import taskregistry
-from sentry.taskworker.service.client import TaskClient
+from sentry.taskworker.task import Task
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
@@ -32,6 +35,14 @@ def _process_activation(
 ) -> None:
     """multiprocess worker method"""
     taskregistry.get(namespace).get(task_name)(*args, **kwargs)
+
+
+AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+
+
+def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
+    # tw:amo -> taskworker:at_most_once
+    return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
 class TaskWorker:
@@ -52,7 +63,7 @@ class TaskWorker:
         self._execution_count = 0
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
-        self.client = TaskClient(rpc_host)
+        self.client = TaskworkerClient(rpc_host)
         self._pool: Pool | None = None
         self._build_pool()
 
@@ -89,6 +100,7 @@ class TaskWorker:
                     task = self.fetch_task()
 
                 if not task:
+                    metrics.incr("taskworker.worker.no_task.pause")
                     time.sleep(1)
                     continue
 
@@ -97,6 +109,10 @@ class TaskWorker:
                     self._max_task_count is not None
                     and self._max_task_count <= self._execution_count
                 ):
+                    metrics.incr(
+                        "taskworker.worker.max_task_count_reached",
+                        tags={"count": self._execution_count},
+                    )
                     logger.info("Max task execution count reached. Terminating")
                     return 0
 
@@ -110,22 +126,25 @@ class TaskWorker:
         try:
             activation = self.client.get_task()
         except grpc.RpcError:
+            metrics.incr("taskworker.worker.get_task.failed")
             logger.info("get_task failed. Retrying in 1 second")
             return None
 
         if not activation:
+            metrics.incr("taskworker.worker.get_task.not_found")
             logger.info("No task fetched")
             return None
 
+        metrics.incr("taskworker.worker.get_task.success")
         return activation
 
-    def _known_task(self, activation: TaskActivation) -> bool:
+    def _get_known_task(self, activation: TaskActivation) -> Task[Any, Any] | None:
         if not taskregistry.contains(activation.namespace):
             logger.error(
                 "taskworker.invalid_namespace",
                 extra={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            return False
+            return None
 
         namespace = taskregistry.get(activation.namespace)
         if not namespace.contains(activation.taskname):
@@ -133,19 +152,35 @@ class TaskWorker:
                 "taskworker.invalid_taskname",
                 extra={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            return False
-        return True
+            return None
+        return namespace.get(activation.taskname)
 
     def process_task(self, activation: TaskActivation) -> TaskActivation | None:
         assert self._pool
-        if not self._known_task(activation):
+        task = self._get_known_task(activation)
+        if not task:
+            metrics.incr(
+                "taskworker.worker.unknown_task",
+                tags={"namespace": activation.namespace, "taskname": activation.taskname},
+            )
             self._execution_count += 1
             return self.client.update_task(
                 task_id=activation.id,
                 status=TASK_ACTIVATION_STATUS_FAILURE,
             )
 
-        # TODO(taskworker): Add at_most_once checks
+        if task.at_most_once:
+            key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
+            if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
+                metrics.incr(
+                    "taskworker.task.at_most_once.executed", tags={"task": activation.taskname}
+                )
+            else:
+                metrics.incr(
+                    "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
+                )
+                return None
+
         processing_timeout = activation.processing_deadline_duration
         namespace = taskregistry.get(activation.namespace)
         next_state = TASK_ACTIVATION_STATUS_FAILURE
@@ -193,15 +228,35 @@ class TaskWorker:
         self._execution_count += 1
 
         task_added_time = activation.received_at.ToDatetime().timestamp()
+        execution_duration = execution_complete_time - execution_start_time
+        execution_latency = execution_complete_time - task_added_time
         logger.info(
             "taskworker.task_execution",
             extra={
                 "taskname": activation.taskname,
-                "execution_duration": execution_complete_time - execution_start_time,
-                "execution_latency": execution_complete_time - task_added_time,
+                "execution_duration": execution_duration,
+                "execution_latency": execution_latency,
                 "status": next_state,
             },
         )
+        metrics.incr(
+            "taskworker.worker.execute_task",
+            tags={
+                "namespace": activation.namespace,
+                "status": next_state,
+            },
+        )
+        metrics.distribution(
+            "taskworker.worker.execution_duration",
+            execution_duration,
+            tags={"namespace": activation.namespace},
+        )
+        metrics.distribution(
+            "taskworker.worker.execution_latency",
+            execution_latency,
+            tags={"namespace": activation.namespace},
+        )
+
         return self.client.update_task(
             task_id=activation.id,
             status=next_state,

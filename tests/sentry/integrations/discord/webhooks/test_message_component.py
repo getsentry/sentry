@@ -24,7 +24,7 @@ from sentry.integrations.discord.webhooks.message_component import (
     RESOLVED_IN_NEXT_RELEASE,
     UNRESOLVED,
 )
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase

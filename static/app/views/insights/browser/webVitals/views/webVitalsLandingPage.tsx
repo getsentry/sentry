@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -35,18 +32,17 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
+const WEB_VITALS_COUNT = 5;
+
 export function WebVitalsLandingPage() {
   const location = useLocation();
-  const {isInDomainView} = useDomainViewFilters();
 
   const router = useRouter();
 
@@ -71,45 +67,21 @@ export function WebVitalsLandingPage() {
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
-  const crumbs = useModuleBreadcrumbs('vital');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
+      <FrontendHeader
+        headerTitle={
+          <Fragment>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Fragment>
+        }
+        module={ModuleName.VITAL}
+      />
 
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <FrontendHeader
-          headerTitle={
-            <Fragment>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.VITAL}
-        />
-      )}
       <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
         <Layout.Body>
           <Layout.Main fullWidth>
@@ -135,6 +107,7 @@ export function WebVitalsLandingPage() {
                   />
                 </PerformanceScoreChartContainer>
                 <WebVitalMetersContainer>
+                  {(isPending || isProjectScoresLoading) && <WebVitalMetersPlaceholder />}
                   <WebVitalMeters
                     projectData={projectData}
                     projectScore={projectScore}
@@ -188,13 +161,19 @@ export function WebVitalsLandingPage() {
   );
 }
 
+function WebVitalMetersPlaceholder() {
+  return (
+    <LoadingBoxContainer>
+      {[...Array(WEB_VITALS_COUNT)].map((_, index) => (
+        <LoadingBox key={index} />
+      ))}
+    </LoadingBoxContainer>
+  );
+}
+
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="vital"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.vital"
-    >
+    <ModulePageProviders moduleName="vital" analyticEventName="insight.page_loads.vital">
       <WebVitalsLandingPage />
     </ModulePageProviders>
   );
@@ -217,6 +196,26 @@ const MainContentContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const LoadingBoxContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  gap: ${space(1)};
+  align-items: center;
+  flex-wrap: wrap;
+
+  margin-bottom: ${space(1)};
+`;
+
+const LoadingBox = styled('div')`
+  flex: 1;
+  min-width: 140px;
+  height: 90px;
+  background-color: ${p => p.theme.gray100};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export const AlertContent = styled('div')`

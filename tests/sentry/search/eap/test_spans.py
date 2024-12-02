@@ -3,6 +3,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    ExtrapolationMode,
     Function,
     IntArray,
     StrArray,
@@ -220,8 +221,8 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_empty_query(self):
-        query = self.resolver.resolve_query("")
-        assert query is None
+        assert self.resolver.resolve_query("") is None
+        assert self.resolver.resolve_query(None) is None
 
 
 class SearchResolverColumnTest(TestCase):
@@ -288,6 +289,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.exclusive_time_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum(span.self_time)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -297,6 +299,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="sum()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -306,6 +309,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_SUM,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="test",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -315,6 +319,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
@@ -322,6 +327,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_COUNT,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="count(span.duration)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -331,6 +337,7 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_P50,
             key=AttributeKey(name="sentry.duration_ms", type=AttributeKey.Type.TYPE_FLOAT),
             label="p50()",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
 
@@ -340,5 +347,28 @@ class SearchResolverColumnTest(TestCase):
             aggregate=Function.FUNCTION_UNIQ,
             key=AttributeKey(name="sentry.action", type=AttributeKey.Type.TYPE_STRING),
             label="count_unique(span.action)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
+
+    def test_resolver_cache_attribute(self):
+        self.resolver.resolve_columns(["span.op"])
+        assert "span.op" in self.resolver._resolved_attribute_cache
+
+        project_column, project_context = self.resolver.resolve_column("project")
+        # Override the cache so we can confirm its being used
+        self.resolver._resolved_attribute_cache["span.op"] = project_column, project_context  # type: ignore[assignment]
+
+        # If we resolve op again, we should get the project context and column instead
+        resolved_column, virtual_context = self.resolver.resolve_column("span.op")
+        assert (resolved_column, virtual_context) == (project_column, project_context)
+
+    def test_resolver_cache_function(self):
+        self.resolver.resolve_columns(["count()"])
+        assert "count()" in self.resolver._resolved_function_cache
+
+        p95_column, p95_context = self.resolver.resolve_column("p95(span.duration) as foo")
+        self.resolver._resolved_function_cache["count()"] = p95_column, p95_context  # type: ignore[assignment]
+
+        resolved_column, virtual_context = self.resolver.resolve_column("count()")
+        assert (resolved_column, virtual_context) == (p95_column, p95_context)

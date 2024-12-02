@@ -15,6 +15,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -27,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -170,6 +171,13 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     }
   }, [query, params.eventId, defaultIssueEvent]);
 
+  const onTabChange = (tabKey: typeof selectedOption) => {
+    trackAnalytics('issue_details.event_navigation_selected', {
+      organization,
+      content: EventNavLabels[tabKey],
+    });
+  };
+
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
   const grayText = css`
@@ -188,6 +196,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     <EventNavigationWrapper role="navigation">
       <LargeDropdownButtonWrapper>
         <DropdownMenu
+          onAction={key => {
+            trackAnalytics('issue_details.issue_content_selected', {
+              organization,
+              content: TabName[key],
+            });
+          }}
           items={[
             {
               key: Tab.DETAILS,
@@ -206,7 +220,12 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
               key: Tab.REPLAYS,
               label: (
                 <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
-                  {TabName[Tab.REPLAYS]} <ItemCount value={replaysCount} />
+                  {TabName[Tab.REPLAYS]}{' '}
+                  {replaysCount > 50 ? (
+                    <CustomItemCount>50+</CustomItemCount>
+                  ) : (
+                    <ItemCount value={replaysCount} />
+                  )}
                 </DropdownCountWrapper>
               ),
               textValue: TabName[Tab.REPLAYS],
@@ -249,7 +268,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             },
           ]}
           offset={[-2, 1]}
-          trigger={triggerProps =>
+          trigger={(triggerProps, isOpen) =>
             hideDropdownButton ? (
               <NavigationLabel>
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
@@ -257,11 +276,14 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
             ) : (
               <NavigationDropdownButton
                 {...triggerProps}
+                isOpen={isOpen}
                 borderless
                 size="sm"
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}
                 aria-description={TabName[currentTab]}
+                analyticsEventName="Issue Details: Issue Content Dropdown Opened"
+                analyticsEventKey="issue_details.issue_content_dropdown_opened"
               >
                 {TabName[currentTab] ?? TabName[Tab.DETAILS]}
               </NavigationDropdownButton>
@@ -282,6 +304,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     disabled={!defined(event.previousEventID)}
+                    analyticsEventKey="issue_details.previous_event_clicked"
+                    analyticsEventName="Issue Details: Previous Event Clicked"
                     to={{
                       pathname: `${baseEventsPath}${event.previousEventID}/`,
                       query: {...location.query, referrer: 'previous-event'},
@@ -304,6 +328,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     disabled={!defined(event.nextEventID)}
+                    analyticsEventKey="issue_details.next_event_clicked"
+                    analyticsEventName="Issue Details: Next Event Clicked"
                     to={{
                       pathname: `${baseEventsPath}${event.nextEventID}/`,
                       query: {...location.query, referrer: 'next-event'},
@@ -320,7 +346,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                   />
                 </Tooltip>
               </Navigation>
-              <Tabs value={selectedOption} disableOverflow>
+              <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
                 <TabList hideBorder variant="floating">
                   {EventNavOrder.map(label => {
                     const eventPath =
@@ -352,6 +378,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 query: location.query,
               }}
               size="xs"
+              analyticsEventKey="issue_details.all_events_clicked"
+              analyticsEventName="Issue Details: All Events Clicked"
             >
               {t('All Events')}
             </LinkButton>
@@ -364,6 +392,8 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 aria-label={t('Open in Discover')}
                 size="xs"
                 icon={<IconTelescope />}
+                analyticsEventKey="issue_details.discover_clicked"
+                analyticsEventName="Issue Details: Discover Clicked"
               >
                 {t('Discover')}
               </LinkButton>
@@ -444,6 +474,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   align-items: center;
   justify-content: space-between;
   gap: ${space(3)};
+  font-variant-numeric: tabular-nums;
   font-weight: ${p =>
     p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
 `;

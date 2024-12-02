@@ -170,7 +170,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         return connected_issues
 
     def post(self, request: Request, group: Group) -> Response:
-        if not features.has("organizations:ai-summary", group.organization, actor=request.user):
+        if not features.has(
+            "organizations:gen-ai-features", group.organization, actor=request.user
+        ):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
         cache_key = "ai-group-summary-v2:" + str(group.id)

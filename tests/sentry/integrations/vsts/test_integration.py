@@ -13,6 +13,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
@@ -165,7 +166,14 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
-    def test_accounts_list_failure(self):
+    def assert_failure_metric(self, mock_record, error_msg):
+        (event_failures,) = (
+            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
+        )
+        assert event_failures.args[1] == error_msg
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_accounts_list_failure(self, mock_record):
         responses.replace(
             responses.GET,
             "https://app.vssps.visualstudio.com/_apis/accounts?memberId=%s&api-version=4.1"
@@ -183,6 +191,8 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         resp = self.make_oauth_redirect_request(query["state"][0])
         assert resp.status_code == 200, resp.content
         assert b"No accounts found" in resp.content
+
+        self.assert_failure_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_webhook_subscription_created_once(self, mock_get_scopes):

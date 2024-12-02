@@ -457,7 +457,6 @@ export type IntegrationIssueConfig = {
  * Project Plugins
  */
 export type PluginNoProject = {
-  assets: Array<{url: string}>;
   canDisable: boolean;
   // TODO(ts)
   contexts: any[];

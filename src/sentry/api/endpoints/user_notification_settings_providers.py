@@ -10,7 +10,7 @@ from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
 from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer

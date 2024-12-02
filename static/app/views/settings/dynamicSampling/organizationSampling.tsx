@@ -18,6 +18,7 @@ import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projec
 import {SamplingModeField} from 'sentry/views/settings/dynamicSampling/samplingModeField';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
+import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {
   type ProjectionSamplePeriod,
   useProjectSampleCounts,
@@ -47,7 +48,7 @@ export function OrganizationSampling() {
   const handleSubmit = () => {
     updateOrganization(
       {
-        targetSampleRate: Number(formState.fields.targetSampleRate.value) / 100,
+        targetSampleRate: parsePercent(formState.fields.targetSampleRate.value),
       },
       {
         onSuccess: () => {

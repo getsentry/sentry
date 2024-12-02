@@ -116,27 +116,51 @@ export default function WebVitalMeters({
             </Fragment>
           );
           return (
-            <MeterBarContainer
+            <VitalContainer
               key={webVital}
-              onClick={() => webVitalExists && onClick?.(webVital)}
-              clickable={webVitalExists}
-            >
-              {webVitalExists && <InteractionStateLayer />}
-              {webVitalExists && meterBody}
-              {!webVitalExists && (
-                <StyledTooltip
-                  title={tct('No [webVital] data found in this project.', {
-                    webVital: webVital.toUpperCase(),
-                  })}
-                >
-                  {meterBody}
-                </StyledTooltip>
-              )}
-            </MeterBarContainer>
+              webVital={webVital}
+              webVitalExists={webVitalExists}
+              meterBody={meterBody}
+              onClick={onClick}
+            />
           );
         })}
       </Flex>
     </Container>
+  );
+}
+
+type VitalContainerProps = {
+  meterBody: React.ReactNode;
+  webVital: WebVitals;
+  webVitalExists: boolean;
+  onClick?: (webVital: WebVitals) => void;
+};
+
+function VitalContainer({
+  webVital,
+  webVitalExists,
+  meterBody,
+  onClick,
+}: VitalContainerProps) {
+  return (
+    <MeterBarContainer
+      key={webVital}
+      onClick={() => webVitalExists && onClick?.(webVital)}
+      clickable={webVitalExists}
+    >
+      {webVitalExists && <InteractionStateLayer />}
+      {webVitalExists && meterBody}
+      {!webVitalExists && (
+        <StyledTooltip
+          title={tct('No [webVital] data found in this project.', {
+            webVital: webVital.toUpperCase(),
+          })}
+        >
+          {meterBody}
+        </StyledTooltip>
+      )}
+    </MeterBarContainer>
   );
 }
 

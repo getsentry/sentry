@@ -7,33 +7,135 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
+from arroyo import Topic as ArroyoTopic
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.utils.text import get_text_list
 from django.utils.translation import gettext_lazy as _
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import IncidentOccurrence
 
+from sentry import options
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.issues.grouptype import MonitorIncidentType
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
 )
-from sentry.monitors.types import SimpleCheckIn
+from sentry.utils.arroyo_producer import SingletonProducer
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
 logger = logging.getLogger(__name__)
 
+MONITORS_INCIDENT_OCCURRENCES: Codec[IncidentOccurrence] = get_topic_codec(
+    Topic.MONITORS_INCIDENT_OCCURRENCES
+)
 
-def create_incident_occurrence(
-    failed_checkins: Sequence[SimpleCheckIn],
+
+def _get_producer() -> KafkaProducer:
+    cluster_name = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["cluster"]
+    producer_config = get_kafka_producer_cluster_options(cluster_name)
+    producer_config.pop("compression.type", None)
+    producer_config.pop("message.max.bytes", None)
+    return KafkaProducer(build_kafka_configuration(default_config=producer_config))
+
+
+_incident_occurrence_producer = SingletonProducer(_get_producer)
+
+
+def dispatch_incident_occurrence(
     failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
     incident: MonitorIncident,
-    received: datetime | None,
+    received: datetime,
+    clock_tick: datetime | None,
 ) -> None:
-    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+    """
+    Determine how to route a incident occurrence.
 
+    - When failed check-in triggers mark_failed directly from the
+      monitor_consumer we will immediately dispatch the associated incident
+      occurrence.
+
+      This is indicated by the lack of a `clock_tick`.
+
+    - When a synthetic failed check-in (time-out or miss) triggers mark_failed
+      we will queue the incident occurrence to be processed later, allowing for
+      the occurrence to be delayed or dropped in the case a systems incident.
+
+      This is indicated by the presence of a `clock_tick`.
+    """
+    # XXX(epurkhiser): Dispatching via the consumer is behind a flag while we
+    # verify things are working well.
+    consumer_dispatch_enabled = options.get("crons.dispatch_incident_occurrences_to_consumer")
+
+    if clock_tick and consumer_dispatch_enabled:
+        queue_incident_occurrence(failed_checkin, previous_checkins, incident, received, clock_tick)
+    else:
+        send_incident_occurrence(failed_checkin, previous_checkins, incident, received)
+
+
+def queue_incident_occurrence(
+    failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
+    incident: MonitorIncident,
+    received: datetime,
+    clock_tick: datetime,
+) -> None:
+    """
+    Queue an issue occurrence for a monitor incident.
+
+    This incident occurrence will be processed by the
+    `incident_occurrence_consumer`. Queuing is used here to allow for issue
+    occurrences to be delayed in the scenario where Sentry may be experiencing
+    a systems incident (eg. Relay cannot process check-ins). In these scenarios
+    the consumer will delay consumption until we can determine there is no
+    systems incident. Or in the worst case, will drop incident occurrences
+    since we can no longer reliably guarantee the occurrences are accurate.
+    """
+    monitor_env = failed_checkin.monitor_environment
+
+    if monitor_env is None:
+        return
+
+    incident_occurrence: IncidentOccurrence = {
+        "incident_id": incident.id,
+        "failed_checkin_id": failed_checkin.id,
+        "previous_checkin_ids": [checkin.id for checkin in previous_checkins],
+        "received_ts": int(received.timestamp()),
+        "clock_tick_ts": int(clock_tick.timestamp()),
+    }
+
+    # The incident occurrence is partitioned by monitor environment ID, just
+    # the same as the clock tasks. Ensures issue occurences are sent in order.
+    payload = KafkaPayload(
+        str(monitor_env.id).encode(),
+        MONITORS_INCIDENT_OCCURRENCES.encode(incident_occurrence),
+        [],
+    )
+
+    topic = get_topic_definition(Topic.MONITORS_INCIDENT_OCCURRENCES)["real_topic_name"]
+    _incident_occurrence_producer.produce(ArroyoTopic(topic), payload)
+
+
+def send_incident_occurrence(
+    failed_checkin: MonitorCheckIn,
+    previous_checkins: Sequence[MonitorCheckIn],
+    incident: MonitorIncident,
+    received: datetime,
+) -> None:
+    """
+    Construct and send an issue occurrence given an incident and the associated
+    failing check-ins which caused that incident.
+    """
     monitor_env = failed_checkin.monitor_environment
 
     if monitor_env is None:
@@ -59,7 +161,7 @@ def create_incident_occurrence(
         evidence_display=[
             IssueEvidence(
                 name="Failure reason",
-                value=str(get_failure_reason(failed_checkins)),
+                value=str(get_failure_reason(previous_checkins)),
                 important=True,
             ),
             IssueEvidence(
@@ -92,8 +194,10 @@ def create_incident_occurrence(
         "fingerprint": [incident.grouphash],
         "platform": "other",
         "project_id": monitor_env.monitor.project_id,
-        # We set this to the time that the checkin that triggered the occurrence was written to relay if available
-        "received": (received if received else current_timestamp).isoformat(),
+        # This is typically the time that the checkin that triggered the
+        # occurrence was written to relay, otherwise it is when we detected a
+        # missed or timeout.
+        "received": received.isoformat(),
         "sdk": None,
         "tags": {
             "monitor.id": str(monitor_env.monitor.guid),
@@ -127,7 +231,7 @@ SINGULAR_HUMAN_FAILURE_MAP: Mapping[int, _StrPromise] = {
 }
 
 
-def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
+def get_failure_reason(failed_checkins: Sequence[MonitorCheckIn]):
     """
     Builds a human readable string from a list of failed check-ins.
 
@@ -137,9 +241,9 @@ def get_failure_reason(failed_checkins: Sequence[SimpleCheckIn]):
     """
 
     status_counts = Counter(
-        checkin["status"]
+        checkin.status
         for checkin in failed_checkins
-        if checkin["status"] in HUMAN_FAILURE_STATUS_MAP.keys()
+        if checkin.status in HUMAN_FAILURE_STATUS_MAP.keys()
     )
 
     if sum(status_counts.values()) == 1:
@@ -169,3 +273,16 @@ def get_monitor_environment_context(monitor_environment: MonitorEnvironment):
         "status": monitor_environment.get_status_display(),
         "type": monitor_environment.monitor.get_type_display(),
     }
+
+
+def resolve_incident_group(incident: MonitorIncident, project_id: int):
+    status_change = StatusChangeMessage(
+        fingerprint=[incident.grouphash],
+        project_id=project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )

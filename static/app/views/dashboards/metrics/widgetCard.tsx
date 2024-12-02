@@ -208,6 +208,7 @@ export function MetricWidgetCard({
                   showContextMenu
                   isPreview={false}
                   widgetLimitReached={false}
+                  hasEditAccess
                   onEdit={() => {
                     router.push({
                       pathname: `${location.pathname}${

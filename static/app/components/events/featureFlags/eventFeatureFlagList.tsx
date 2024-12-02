@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -11,10 +10,7 @@ import {
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {
-  modalCss,
-  SetupIntegrationModal,
-} from 'sentry/components/events/featureFlags/setupIntegrationModal';
+import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
   FlagControlOptions,
   OrderBy,
@@ -32,10 +28,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -80,6 +76,7 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+  const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
     suspectFlags,
@@ -94,13 +91,6 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
-
-  function handleSetupButtonClick() {
-    trackAnalytics('flags.setup_modal_opened', {organization});
-    openModal(modalProps => <SetupIntegrationModal {...modalProps} />, {
-      modalCss,
-    });
-  }
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
@@ -195,7 +185,9 @@ export function EventFeatureFlagList({
           <Button
             aria-label={t('Set Up Integration')}
             size="xs"
-            onClick={handleSetupButtonClick}
+            onClick={mouseEvent => {
+              activateSidebarSkipConfigure(mouseEvent, project.id);
+            }}
           >
             {t('Set Up Integration')}
           </Button>

@@ -16,6 +16,7 @@ from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task
+from sentry.utils import metrics
 from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -70,6 +71,7 @@ class TaskNamespace:
         retry: Retry | None = None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int | datetime.timedelta | None = None,
+        at_most_once: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
         """register a task, used as a decorator"""
 
@@ -83,6 +85,7 @@ class TaskNamespace:
                 processing_deadline_duration=(
                     processing_deadline_duration or self.default_processing_deadline_duration
                 ),
+                at_most_once=at_most_once,
             )
             # TODO(taskworker) tasks should be registered into the registry
             # so that we can ensure task names are globally unique
@@ -92,6 +95,7 @@ class TaskNamespace:
         return wrapped
 
     def send_task(self, activation: TaskActivation) -> None:
+        metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
         # TODO(taskworker) producer callback handling
         self.producer.produce(
             ArroyoTopic(name=self.topic.value),

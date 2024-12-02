@@ -30,7 +30,6 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
@@ -482,7 +481,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
-    aiSuggestedSolution: bool
     hideAiFeatures: bool
     githubPRBot: bool
     githubOpenPRBot: bool
@@ -599,9 +597,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
-                "aiSuggestedSolution": bool(
-                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
-                ),
                 "hideAiFeatures": bool(
                     obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
                 ),
@@ -614,7 +609,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
-                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "genAIConsent": bool(
+                    obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
+                ),
                 "aggregatedDataConsent": bool(
                     obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
                 ),

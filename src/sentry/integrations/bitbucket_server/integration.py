@@ -185,14 +185,12 @@ class OAuthLoginView(PipelineView):
             try:
                 request_token = client.get_request_token()
             except ApiError as error:
-                lifecycle.record_failure({"failure_reason": str(error), "url": config.get("url")})
+                lifecycle.record_failure(str(error), extra={"url": config.get("url")})
                 return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
             pipeline.bind_state("request_token", request_token)
             if not request_token.get("oauth_token"):
-                lifecycle.record_failure(
-                    {"failure_reason": "missing oauth_token", "url": config.get("url")}
-                )
+                lifecycle.record_failure("missing oauth_token", extra={"url": config.get("url")})
                 return pipeline.error("Missing oauth_token")
 
             authorize_url = client.get_authorize_url(request_token)
@@ -230,7 +228,7 @@ class OAuthCallbackView(PipelineView):
 
                 return pipeline.next_step()
             except ApiError as error:
-                lifecycle.record_failure({"failure_reason": str(error)})
+                lifecycle.record_failure(str(error))
                 return pipeline.error(
                     f"Could not fetch an access token from Bitbucket. {str(error)}"
                 )
