@@ -290,3 +290,33 @@ class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
+
+
+class IntegrationWebhookEventType(Enum):
+    INSTALLATION = "INSTALLATION"
+    PUSH = "PUSH"
+    PULL_REQUEST = "PULL_REQUEST"
+
+    def __str__(self) -> str:
+        return self.value.lower()
+
+
+@dataclass
+class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
+    """An instance to be recorded of a webhook event."""
+
+    interaction_type: IntegrationWebhookEventType
+    domain: IntegrationDomain
+    provider_key: str
+
+    def get_metrics_domain(self) -> str:
+        return "webhook"
+
+    def get_integration_domain(self) -> IntegrationDomain:
+        return self.domain
+
+    def get_integration_name(self) -> str:
+        return self.provider_key
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
