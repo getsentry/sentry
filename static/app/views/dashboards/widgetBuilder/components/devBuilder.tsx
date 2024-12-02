@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
@@ -14,6 +15,8 @@ import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yA
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderState();
@@ -114,6 +117,49 @@ function DevBuilder() {
           }}
         />
       </Section>
+      <Section>
+        <h1>Query:</h1>
+        <ol>{state.query?.map((query, index) => <li key={index}>{query}</li>)}</ol>
+        <div>
+          {state.query?.map((query, index) => (
+            <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+              <QueryField
+                query={query}
+                widgetType={state.dataset ?? WidgetType.DISCOVER}
+                fields={state.fields ?? []}
+                key={index}
+                onSearch={queryString => {
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload:
+                      state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                  });
+                }}
+              />
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload: state.query?.filter((_, i) => i !== index) ?? [],
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              dispatch({
+                type: BuilderStateAction.SET_QUERY,
+                payload: [...(state.query ?? []), ''],
+              })
+            }
+          >
+            Add
+          </button>
+        </div>
+      </Section>
     </Body>
   );
 }
@@ -174,6 +220,32 @@ function YAxis({
         selectedAggregate={undefined}
       />
     </CustomMeasurementsProvider>
+  );
+}
+
+function QueryField({
+  query,
+  widgetType,
+  fields,
+  onSearch,
+}: {
+  fields: Column[];
+  onSearch: (query: string) => void;
+  query: string;
+  widgetType: WidgetType;
+}) {
+  const pageFilters = usePageFilters();
+
+  return (
+    <ResultsSearchQueryBuilder
+      projectIds={pageFilters.selection.projects}
+      query={query}
+      fields={fields as any}
+      onSearch={onSearch}
+      dataset={getDiscoverDatasetFromWidgetType(widgetType)}
+      includeTransactions
+      searchSource="widget_builder"
+    />
   );
 }
 
