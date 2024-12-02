@@ -13,7 +13,6 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -34,7 +33,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
@@ -116,23 +115,7 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       addSuccessMessage(t('Created pull requests.'));
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(groupId),
-        data => {
-          if (!data || !data.autofix) {
-            return data;
-          }
-
-          return {
-            ...data,
-            autofix: {
-              ...data.autofix,
-              status: AutofixStatus.PROCESSING,
-            },
-          };
-        }
-      );
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       setHasClickedCreatePr(false);
