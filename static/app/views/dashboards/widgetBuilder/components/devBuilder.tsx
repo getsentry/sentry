@@ -4,17 +4,28 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
+import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderState();
+  const [showDevBuilder] = useLocalStorageState('showDevBuilder', false);
+
+  if (!showDevBuilder) {
+    return null;
+  }
 
   return (
     <Body>
@@ -97,6 +108,64 @@ function DevBuilder() {
           }}
         />
       </Section>
+      <Section>
+        <h1>Y-Axis:</h1>
+        <div>{state.yAxis?.map(generateFieldAsString).join(', ')}</div>
+        <YAxis
+          displayType={state.displayType ?? DisplayType.TABLE}
+          widgetType={state.dataset ?? WidgetType.DISCOVER}
+          aggregates={state.yAxis ?? [{field: '', kind: 'field'}]}
+          onChange={newAggregates => {
+            dispatch({
+              type: BuilderStateAction.SET_Y_AXIS,
+              payload: newAggregates,
+            });
+          }}
+        />
+      </Section>
+      <Section>
+        <h1>Query:</h1>
+        <ol>{state.query?.map((query, index) => <li key={index}>{query}</li>)}</ol>
+        <div>
+          {state.query?.map((query, index) => (
+            <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+              <QueryField
+                query={query}
+                widgetType={state.dataset ?? WidgetType.DISCOVER}
+                fields={state.fields ?? []}
+                key={index}
+                onSearch={queryString => {
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload:
+                      state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                  });
+                }}
+              />
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload: state.query?.filter((_, i) => i !== index) ?? [],
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              dispatch({
+                type: BuilderStateAction.SET_QUERY,
+                payload: [...(state.query ?? []), ''],
+              })
+            }
+          >
+            Add
+          </button>
+        </div>
+      </Section>
     </Body>
   );
 }
@@ -129,6 +198,59 @@ function ColumnSelector({
       filterAggregateParameters={() => true}
       filterPrimaryOptions={() => true}
       onChange={onChange}
+    />
+  );
+}
+
+function YAxis({
+  displayType,
+  widgetType,
+  aggregates,
+  onChange,
+}: {
+  aggregates: Column[];
+  displayType: DisplayType;
+  onChange: (newFields: Column[]) => void;
+  widgetType: WidgetType;
+}) {
+  const organization = useOrganization();
+  return (
+    <CustomMeasurementsProvider organization={organization}>
+      <YAxisSelector
+        widgetType={widgetType}
+        displayType={displayType}
+        aggregates={aggregates}
+        onChange={onChange}
+        tags={{}}
+        errors={[]}
+        selectedAggregate={undefined}
+      />
+    </CustomMeasurementsProvider>
+  );
+}
+
+function QueryField({
+  query,
+  widgetType,
+  fields,
+  onSearch,
+}: {
+  fields: Column[];
+  onSearch: (query: string) => void;
+  query: string;
+  widgetType: WidgetType;
+}) {
+  const pageFilters = usePageFilters();
+
+  return (
+    <ResultsSearchQueryBuilder
+      projectIds={pageFilters.selection.projects}
+      query={query}
+      fields={fields as any}
+      onSearch={onSearch}
+      dataset={getDiscoverDatasetFromWidgetType(widgetType)}
+      includeTransactions
+      searchSource="widget_builder"
     />
   );
 }
