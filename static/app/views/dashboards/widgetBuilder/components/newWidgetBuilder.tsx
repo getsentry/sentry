@@ -12,7 +12,7 @@ type DevWidgetBuilderProps = {
   onClose: () => void;
 };
 
-function DevWidgetBuilder({isOpen, onClose}: DevWidgetBuilderProps) {
+function WidgetBuilderV2({isOpen, onClose}: DevWidgetBuilderProps) {
   const escapeKeyPressed = useKeyPress('Escape');
 
   useEffect(() => {
@@ -51,7 +51,7 @@ function DevWidgetBuilder({isOpen, onClose}: DevWidgetBuilderProps) {
   );
 }
 
-export default DevWidgetBuilder;
+export default WidgetBuilderV2;
 
 const fullPageCss = css`
   position: absolute;
