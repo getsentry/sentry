@@ -149,18 +149,42 @@ class EventLifecycle:
             logger.warning(key, **log_params)
 
     @staticmethod
-    def _report_flow_error(message) -> None:
-        logger.error("EventLifecycle flow error: %s", message)
+    def _report_flow_error(message, extra: dict[str, Any] | None = None) -> None:
+        logger.error("EventLifecycle flow error: %s", message, extra=extra)
+
+    @staticmethod
+    def _report_flow_warning(message) -> None:
+        logger.warning("EventLifecycle flow warning: %s", message)
 
     def _terminate(
         self, new_state: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
     ) -> None:
+        should_record_outcome = True
         if self._state is None:
-            self._report_flow_error("The lifecycle has not yet been entered")
-        if self._state != EventLifecycleOutcome.STARTED:
-            self._report_flow_error("The lifecycle has already been exited")
-        self._state = new_state
-        self.record_event(new_state, outcome_reason)
+            self._report_flow_warning("The lifecycle has not yet been entered")
+            should_record_outcome = False
+        elif self._state == EventLifecycleOutcome.SUCCESS and (
+            new_state == EventLifecycleOutcome.HALTED or new_state == EventLifecycleOutcome.FAILURE
+        ):
+            # Handles the case where a failure follows a success. This is typically
+            # unintentional and likely requires some intervention on our end
+            extra = dict(self.payload.get_metric_tags())
+            if outcome_reason:
+                extra["outcome_reason"] = str(outcome_reason)
+
+            self._report_flow_error(
+                "The lifecycle encountered a failure or halt after recording success", extra
+            )
+            should_record_outcome = False
+        elif self._state != EventLifecycleOutcome.STARTED:
+            # This handles all other cases where a lifecycle has already finished,
+            # but we still attempt to record another outcome.
+            self._report_flow_warning("The lifecycle has already been exited")
+            should_record_outcome = False
+
+        if should_record_outcome:
+            self._state = new_state
+            self.record_event(new_state, outcome_reason)
 
     def record_success(self) -> None:
         """Record that the event halted successfully.

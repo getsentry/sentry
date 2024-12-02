@@ -184,3 +184,52 @@ class IntegrationEventLifecycleMetricTest(TestCase):
                 "interaction_type": "my_interaction",
             },
         )
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_recording_halt_then_failure(self, mock_metrics, mock_logger):
+        metric_obj = self.TestLifecycleMetric()
+
+        with metric_obj.capture() as lifecycle:
+            lifecycle.record_halt("Integration halted")
+            lifecycle.record_failure("Integration went boom", extra={"even": "more"})
+
+        mock_logger.error.assert_not_called()
+
+        # Warning logger will be called twice, once for the lifecycle warning,
+        # and once for the halted message
+        assert mock_logger.warning.call_count == 2
+        mock_logger.warning.assert_any_call(
+            "integrations.slo.halted",
+            extra={
+                "outcome_reason": "Integration halted",
+                "integration_domain": "messaging",
+                "integration_name": "my_integration",
+                "interaction_type": "my_interaction",
+            },
+        )
+
+        mock_logger.warning.assert_any_call(
+            "EventLifecycle flow warning: %s", "The lifecycle has already been exited"
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_record_success_then_halt(self, mock_metrics, mock_logger):
+        metric_obj = self.TestLifecycleMetric()
+
+        with metric_obj.capture() as lifecycle:
+            lifecycle.record_success()
+            lifecycle.record_halt("Integration went boom", extra={"even": "more"})
+
+        mock_logger.warning.assert_not_called()
+        mock_logger.error.assert_called_once_with(
+            "EventLifecycle flow error: %s",
+            "The lifecycle encountered a failure or halt after recording success",
+            extra={
+                "integration_domain": "messaging",
+                "integration_name": "my_integration",
+                "interaction_type": "my_interaction",
+                "outcome_reason": "Integration went boom",
+            },
+        )
