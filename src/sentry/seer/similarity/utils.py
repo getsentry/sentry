@@ -131,9 +131,8 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "ruby-rails",
     ]
 )
-SEER_ELIGIBLE_PLATFORMS = frozenset(
-    SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
-    + [
+SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
+    [
         "android",
         "android-profiling-onboarding-1-install",
         "android-profiling-onboarding-3-configure-profiling",
