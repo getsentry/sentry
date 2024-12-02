@@ -291,7 +291,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         params=snuba_params,
                         query_string=query,
                         y_axes=query_columns,
-                        groupby=self.get_field_list(organization, request),
+                        raw_groupby=self.get_field_list(organization, request),
                         orderby=self.get_orderby(request),
                         limit=top_events,
                         referrer=referrer,

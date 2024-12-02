@@ -291,7 +291,7 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
-                elif isinstance(value, float):
+                elif isinstance(value, (float, int)):
                     return AttributeValue(val_int=int(value))
             elif column_type == constants.FLOAT:
                 if operator in constants.IN_OPERATORS:

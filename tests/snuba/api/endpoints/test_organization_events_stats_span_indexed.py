@@ -366,6 +366,110 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert "foo" in response.data
         assert "bar" in response.data
         assert len(response.data["Other"]["data"]) == 6
+        for key in ["Other", "foo", "bar"]:
+            rows = response.data[key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, key
+        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+
+    def test_top_events_with_project(self):
+        # Each of these denotes how many events to create in each minute
+        projects = [self.create_project(), self.create_project()]
+        for project in projects:
+            self.store_spans(
+                [
+                    self.create_span(
+                        {"sentry_tags": {"status": "success"}},
+                        start_ts=self.day_ago + timedelta(minutes=1),
+                        project=project,
+                        duration=2000,
+                    ),
+                ],
+                is_eap=self.is_eap,
+            )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["project", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "Other" in response.data
+        assert projects[0].slug in response.data
+        assert projects[1].slug in response.data
+        assert len(response.data["Other"]["data"]) == 6
+        for key in ["Other", projects[0].slug, projects[1].slug]:
+            rows = response.data[key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, key
+        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+
+    def test_top_events_with_project_and_project_id(self):
+        # Each of these denotes how many events to create in each minute
+        projects = [self.create_project(), self.create_project()]
+        for project in projects:
+            self.store_spans(
+                [
+                    self.create_span(
+                        {"sentry_tags": {"status": "success"}},
+                        start_ts=self.day_ago + timedelta(minutes=1),
+                        project=project,
+                        duration=2000,
+                    ),
+                ],
+                is_eap=self.is_eap,
+            )
+        self.store_spans(
+            [
+                self.create_span(
+                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["project", "project.id", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "Other" in response.data
+        key1 = f"{projects[0].slug},{projects[0].id}"
+        key2 = f"{projects[1].slug},{projects[1].id}"
+        assert key1 in response.data
+        assert key2 in response.data
+        assert len(response.data["Other"]["data"]) == 6
+        for key in ["Other", key1, key2]:
+            rows = response.data[key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, key
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
 
@@ -429,6 +533,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_eps_minute_rollup(self):
         super().test_throughput_eps_minute_rollup()
-
-    def test_top_events(self):
-        super().test_top_events()
