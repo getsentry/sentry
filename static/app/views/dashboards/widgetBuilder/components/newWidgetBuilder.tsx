@@ -5,6 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import useKeyPress from 'sentry/utils/useKeyPress';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type DevWidgetBuilderProps = {
   isOpen: boolean;
@@ -27,21 +28,23 @@ function DevWidgetBuilder({isOpen, onClose}: DevWidgetBuilderProps) {
       {isOpen && <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />}
       <AnimatePresence>
         {isOpen && (
-          <WidgetBuilderContainer>
-            <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
-            <SampleWidgetCard
-              initial={{opacity: 0, x: '50%', y: 0}}
-              animate={{opacity: 1, x: 0, y: 0}}
-              exit={{opacity: 0, x: '50%', y: 0}}
-              transition={{
-                type: 'spring',
-                stiffness: 500,
-                damping: 50,
-              }}
-            >
-              {'TEST WIDGET'}
-            </SampleWidgetCard>
-          </WidgetBuilderContainer>
+          <WidgetBuilderProvider>
+            <WidgetBuilderContainer>
+              <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
+              <SampleWidgetCard
+                initial={{opacity: 0, x: '50%', y: 0}}
+                animate={{opacity: 1, x: 0, y: 0}}
+                exit={{opacity: 0, x: '50%', y: 0}}
+                transition={{
+                  type: 'spring',
+                  stiffness: 500,
+                  damping: 50,
+                }}
+              >
+                {'TEST WIDGET'}
+              </SampleWidgetCard>
+            </WidgetBuilderContainer>
+          </WidgetBuilderProvider>
         )}
       </AnimatePresence>
     </Fragment>

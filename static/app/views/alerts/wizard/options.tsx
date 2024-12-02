@@ -29,7 +29,6 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -140,7 +139,6 @@ export const getAlertWizardCategories = (org: Organization) => {
         'fid',
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
