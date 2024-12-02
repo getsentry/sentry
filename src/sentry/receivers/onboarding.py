@@ -100,11 +100,16 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         project_id=project.id,
     )
     if not success:
+        organization = Organization.objects.get(id=project.organization_id)
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
-            status=OnboardingTaskStatus.PENDING,
+            status=(
+                OnboardingTaskStatus.COMPLETE
+                if features.has("organizations:quick-start-updates", organization, actor=user)
+                else OnboardingTaskStatus.PENDING
+            ),
             project_id=project.id,
         )
 
