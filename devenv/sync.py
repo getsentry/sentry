@@ -84,9 +84,9 @@ def check_minimum_version(minimum_version: str):
 Hi! To reduce potential breakage we've defined a minimum
 devenv version ({minimum_version}) to run sync.
 
-Please run the following to update your global devenv to the minimum:
+Please run the following to update your global devenv:
 
-{constants.root}/venv/bin/pip install -U 'sentry-devenv=={minimum_version}'
+devenv update
 
 Then, use it to run sync this one time.
 
@@ -96,7 +96,7 @@ Then, use it to run sync this one time.
 
 
 def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.13.0")
+    check_minimum_version("1.14.2")
 
     repo = context["repo"]
     reporoot = context["reporoot"]
@@ -129,19 +129,12 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if constants.DARWIN:
-        colima.install(
-            repo_config["colima"]["version"],
-            repo_config["colima"][constants.SYSTEM_MACHINE],
-            repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
-        limactl.install(
-            repo_config["lima"]["version"],
-            repo_config["lima"][constants.SYSTEM_MACHINE],
-            repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
-            reporoot,
-        )
+    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
+        # `devenv update`ing to >=1.14.0 will install global colima
+        # so if it's there, uninstall the repo local stuff
+        binroot = f"{reporoot}/.devenv/bin"
+        colima.uninstall(binroot)
+        limactl.uninstall(binroot)
 
     if not run_procs(
         repo,
