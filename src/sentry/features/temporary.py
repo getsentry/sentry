@@ -602,6 +602,12 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=True,
     )
+    manager.add(
+        "organizations:feature-flag-cta",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
 
     # Partner oauth
     manager.add(
