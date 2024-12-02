@@ -60,8 +60,6 @@ class IncidentSerializer(Serializer):
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,
-            "seenBy": attrs["seen_by"] if "seen_by" in self.expand else None,
-            "hasSeen": attrs["has_seen"] if "seen_by" in self.expand else None,
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
@@ -78,8 +76,6 @@ class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
         if expand is None:
             expand = []
-        if "seen_by" not in expand:
-            expand.append("seen_by")
         if "original_alert_rule" not in expand:
             expand.append("original_alert_rule")
         super().__init__(expand=expand)
