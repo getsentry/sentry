@@ -499,6 +499,7 @@ def symbolicate(
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
         return symbolicator.process_js(
+            platform=platform,
             stacktraces=stacktraces,
             modules=modules,
             release=profile.get("release"),
@@ -507,6 +508,7 @@ def symbolicate(
         )
     elif platform == "android":
         return symbolicator.process_jvm(
+            platform=platform,
             exceptions=[],
             stacktraces=stacktraces,
             modules=modules,
@@ -515,7 +517,7 @@ def symbolicate(
             classes=[],
         )
     return symbolicator.process_payload(
-        stacktraces=stacktraces, modules=modules, apply_source_context=False
+        platform=platform, stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
 
 
