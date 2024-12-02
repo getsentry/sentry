@@ -6,7 +6,7 @@ from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
 
-def get_nested_value(data: GroupEvent, path: str, default: Any = None) -> Any | None:
+def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
     try:
         value = data
         for part in path.split("."):
