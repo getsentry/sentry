@@ -36,6 +36,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {
   getForceMetricsLayerQueryExtras,
@@ -1202,6 +1203,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let formattedAggregate = aggregate;
     if (alertType === 'custom_metrics') {
       formattedAggregate = formatMRIField(aggregate);
+    }
+    const func = parseFunction(aggregate);
+    if (func && alertType === 'eap_metrics') {
+      formattedAggregate = prettifyParsedFunction(func);
     }
 
     const chartProps: ComponentProps<typeof TriggersChart> = {
