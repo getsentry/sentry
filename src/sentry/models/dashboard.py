@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -27,6 +28,19 @@ class DashboardProject(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardproject"
         unique_together = (("project", "dashboard"),)
+
+
+@region_silo_model
+class DashboardFavoriteUser(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardfavoriteuser"
+        unique_together = (("user_id", "dashboard"),)
 
 
 @region_silo_model
@@ -54,6 +68,30 @@ class Dashboard(Model):
         unique_together = (("organization", "title"),)
 
     __repr__ = sane_repr("organization", "title")
+
+    @property
+    def favorited_by(self):
+        user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+            "user_id", flat=True
+        )
+        return user_ids
+
+    @favorited_by.setter
+    def favorited_by(self, user_ids):
+        from django.db import router, transaction
+
+        existing_user_ids = DashboardFavoriteUser.objects.filter(dashboard=self).values_list(
+            "user_id", flat=True
+        )
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            newly_favourited = [
+                DashboardFavoriteUser(dashboard=self, user_id=user_id)
+                for user_id in set(user_ids) - set(existing_user_ids)
+            ]
+            DashboardFavoriteUser.objects.filter(
+                dashboard=self, user_id__in=set(existing_user_ids) - set(user_ids)
+            ).delete()
+            DashboardFavoriteUser.objects.bulk_create(newly_favourited)
 
     @staticmethod
     def get_prebuilt_list(organization, user, title_query=None):

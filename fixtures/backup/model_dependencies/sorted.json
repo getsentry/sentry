@@ -189,6 +189,7 @@
   "sentry.dashboardwidget",
   "sentry.dashboardproject",
   "sentry.dashboardpermissions",
+  "sentry.dashboardfavoriteuser",
   "sentry.customdynamicsamplingruleproject",
   "sentry.commitfilechange",
   "sentry.broadcastseen",
