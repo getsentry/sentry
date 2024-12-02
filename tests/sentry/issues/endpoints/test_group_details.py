@@ -355,12 +355,6 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.status == GroupResolution.Status.pending
         assert group_resolution.release.version == most_recent_version.version
 
-    def test_resolved_in_next_release_semver_no_first_release(self):
-        self.resolved_in_next_release_helper(with_first_release=False)
-
-    def test_resolved_in_next_release_semver_and_first_release(self):
-        self.resolved_in_next_release_helper(with_first_release=True)
-
     def resolved_in_next_release_helper(self, with_first_release: bool = True) -> None:
         self.login_as(user=self.user)
 
@@ -425,6 +419,12 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id, project=project.id)
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
+
+    def test_resolved_in_next_release_semver_no_first_release(self):
+        self.resolved_in_next_release_helper(with_first_release=False)
+
+    def test_resolved_in_next_release_semver_and_first_release(self):
+        self.resolved_in_next_release_helper(with_first_release=True)
 
     def test_resolved_in_next_release_no_release(self):
         self.login_as(user=self.user)
