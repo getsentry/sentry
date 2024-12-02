@@ -3321,7 +3321,7 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
             # assert user cannot edit dashboard
             assert response.status_code == 403
 
-        # assert if user can favorite the dashboard
+        # assert if user can edit the favorite status of the dashboard
         assert self.user_2.id in self.dashboard.favorited_by
         with self.feature({"organizations:dashboards-favourite": True}):
             response = self.do_request(
