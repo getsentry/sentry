@@ -351,6 +351,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         self, component_field: str, component: SentryAppComponent
     ) -> Sequence[str]:
         fields = dict(**component.app_schema).get(component_field)
+        assert fields, "component field was not found in the schema"
         uris = []
 
         for field in fields.get("required_fields", []):

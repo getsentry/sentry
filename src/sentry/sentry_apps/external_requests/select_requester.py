@@ -94,7 +94,7 @@ class SelectRequester:
                 },
             )
             raise ValidationError(
-                f"Invalid response format for SelectField in {self.sentry_app.slug.slug} from uri: {self.uri}"
+                f"Invalid response format for SelectField in {self.sentry_app.slug} from uri: {self.uri}"
             )
         return self._format_response(response)
 
