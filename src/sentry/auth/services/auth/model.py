@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class RpcApiKey(RpcModel):
     id: int = -1
     organization_id: int = -1
-    key: str = ""
+    key: str = Field(repr=False, default="")
     status: int = 0
     allowed_origins: list[str] = Field(default_factory=list)
     label: str = ""
