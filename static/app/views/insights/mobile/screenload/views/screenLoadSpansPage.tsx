@@ -201,11 +201,7 @@ export function ScreenLoadSpansContent() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="screen_load"
-      pageTitle={t('Screen Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="screen_load" pageTitle={t('Screen Summary')}>
       <ScreenLoadSpans />
     </ModulePageProviders>
   );

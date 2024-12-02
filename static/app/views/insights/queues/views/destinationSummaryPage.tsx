@@ -146,11 +146,7 @@ function DestinationSummaryPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="queue"
-      pageTitle={t('Destination Summary')}
-      features="insights-addon-modules"
-    >
+    <ModulePageProviders moduleName="queue" pageTitle={t('Destination Summary')}>
       <DestinationSummaryPage />
     </ModulePageProviders>
   );
