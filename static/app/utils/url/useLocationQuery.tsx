@@ -10,7 +10,7 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;
-type Decoder =
+export type Decoder =
   | typeof decodeInteger
   | typeof decodeList
   | typeof decodeScalar

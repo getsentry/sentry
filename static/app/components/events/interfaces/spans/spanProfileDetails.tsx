@@ -10,8 +10,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
@@ -38,15 +37,7 @@ interface SpanProfileDetailsProps {
   onNoProfileFound?: () => void;
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-  onNoProfileFound,
-}: SpanProfileDetailsProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === event.projectID);
-
+export function useSpanProfileDetails(event, span) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
@@ -139,6 +130,43 @@ export function SpanProfileDetails({
       hasNext: index + 1 < maxNodes,
     };
   }, [index, maxNodes, event, nodes]);
+
+  return {
+    processedEvent,
+    profileGroup,
+    profile,
+    nodes,
+    index,
+    setIndex,
+    totalWeight,
+    maxNodes,
+    frames,
+    hasPrevious,
+    hasNext,
+  };
+}
+
+export function SpanProfileDetails({
+  event,
+  span,
+  onNoProfileFound,
+}: SpanProfileDetailsProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === event.projectID);
+  const {
+    processedEvent,
+    profileGroup,
+    profile,
+    nodes,
+    index,
+    setIndex,
+    maxNodes,
+    hasNext,
+    hasPrevious,
+    totalWeight,
+    frames,
+  } = useSpanProfileDetails(event, span);
 
   const spanTarget =
     project &&

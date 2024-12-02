@@ -389,7 +389,7 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <BreadcrumbsDataSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && (
+      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
         <EventTraceView group={group} event={event} organization={organization} />
       )}
       {defined(eventEntries[EntryType.REQUEST]) && (

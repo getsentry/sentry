@@ -34,7 +34,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (Array.from(tree.projects).some(p => Number(project.id) === p.id)) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {

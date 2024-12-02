@@ -10,7 +10,6 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
@@ -193,59 +192,50 @@ function GroupEventDetails() {
 
   return (
     <AnalyticsArea name="issue_details">
-      <TransactionProfileIdProvider
-        projectId={event?.projectID}
-        transactionId={event?.type === 'transaction' ? event.id : undefined}
-        timestamp={event?.dateReceived}
+      <VisuallyCompleteWithData
+        id="IssueDetails-EventBody"
+        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        isLoading={isLoadingEvent}
       >
-        <VisuallyCompleteWithData
-          id="IssueDetails-EventBody"
-          hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
-          isLoading={isLoadingEvent}
-        >
-          <LayoutBody data-test-id="group-event-details">
-            {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-              <ReprocessingProgress
-                totalEvents={
-                  (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
-                    .data.eventCount
-                }
-                pendingEvents={
-                  (group.statusDetails as GroupReprocessing['statusDetails'])
-                    .pendingEvents
-                }
-              />
-            ) : (
-              <Fragment>
-                <MainLayoutComponent>
-                  {!hasStreamlinedUI && renderGroupStatusBanner()}
-                  {eventWithMeta &&
-                    issueTypeConfig.stats.enabled &&
-                    !hasStreamlinedUI && (
-                      <GroupEventHeader
-                        group={group}
-                        event={eventWithMeta}
-                        project={project}
-                      />
-                    )}
-                  {renderContent()}
-                </MainLayoutComponent>
-                {hasStreamlinedUI ? null : (
-                  <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
-                    <GroupSidebar
-                      organization={organization}
-                      project={project}
-                      group={group}
-                      event={eventWithMeta}
-                      environments={environments}
-                    />
-                  </StyledLayoutSide>
+        <LayoutBody data-test-id="group-event-details">
+          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+            <ReprocessingProgress
+              totalEvents={
+                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                  .data.eventCount
+              }
+              pendingEvents={
+                (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
+              }
+            />
+          ) : (
+            <Fragment>
+              <MainLayoutComponent>
+                {!hasStreamlinedUI && renderGroupStatusBanner()}
+                {eventWithMeta && issueTypeConfig.stats.enabled && !hasStreamlinedUI && (
+                  <GroupEventHeader
+                    group={group}
+                    event={eventWithMeta}
+                    project={project}
+                  />
                 )}
-              </Fragment>
-            )}
-          </LayoutBody>
-        </VisuallyCompleteWithData>
-      </TransactionProfileIdProvider>
+                {renderContent()}
+              </MainLayoutComponent>
+              {hasStreamlinedUI ? null : (
+                <StyledLayoutSide hasStreamlinedUi={hasStreamlinedUI}>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              )}
+            </Fragment>
+          )}
+        </LayoutBody>
+      </VisuallyCompleteWithData>
     </AnalyticsArea>
   );
 }
