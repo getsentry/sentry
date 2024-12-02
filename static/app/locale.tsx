@@ -408,6 +408,14 @@ export function gettextComponentTemplate(
 }
 
 /**
+ * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
+ * is commonly used.
+ */
+export function tctCode(template: string, components: ComponentMap = {}) {
+  return gettextComponentTemplate(template, {code: <code />, ...components});
+}
+
+/**
  * Shorthand versions should primarily be used.
  */
 export {gettext as t, gettextComponentTemplate as tct, ngettext as tn};

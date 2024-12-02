@@ -11,20 +11,23 @@ describe('javascript-nuxt onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Automatic Configuration (Recommended)'})
+    ).toBeInTheDocument();
+    // Renders main headings
+    expect(
+      screen.getByRole('heading', {name: 'Manual Configuration'})
+    ).toBeInTheDocument();
+    // Renders main headings
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes 2 import statements
+    // Includes configure statement
     expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/nuxt"/)
-      )
-    ).toHaveLength(2);
+      screen.getByText(textWithMarkupMatcher(/npx @sentry\/wizard@latest -i nuxt/))
+    ).toBeInTheDocument();
   });
 
-  it('displays sample rates by default', () => {
+  it('displays the verify instructions', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -33,53 +36,8 @@ describe('javascript-nuxt onboarding docs', function () {
       ],
     });
 
-    expect(screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate/))).toHaveLength(
-      2
-    ); // client and server
     expect(
-      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
-    ).toBeInTheDocument(); // only client
-    expect(
-      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
-    ).toBeInTheDocument(); // only client
-  });
-
-  it('enables performance setting the tracesSampleRate to 1', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.PERFORMANCE_MONITORING,
-      ],
-    });
-
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
-    ).toHaveLength(2);
-  });
-
-  it('enables replay by setting replay samplerates', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.ERROR_MONITORING,
-        ProductSolution.SESSION_REPLAY,
-      ],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate: 0\.1/))
+      screen.queryByText(textWithMarkupMatcher(/sentry-example-page/))
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate: 1\.0/))
-    ).toBeInTheDocument();
-  });
-
-  it('enables profiling by setting profiling sample rates', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
-    });
-
-    expect(
-      screen.getAllByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
-    ).toHaveLength(2);
   });
 });
