@@ -254,6 +254,7 @@ export type SentryAppComponent<
     | SentryAppSchemaStacktraceLink
     | SentryAppSchemaElement,
 > = {
+  error: string | boolean;
   schema: Schema;
   sentryApp: {
     avatars: Avatar[];
@@ -263,7 +264,6 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: boolean;
 };
 
 export type SentryAppWebhookRequest = {

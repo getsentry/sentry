@@ -18,7 +18,12 @@ function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
     ({color}) => color === false
   );
   const isDefault = selectedAvatar?.avatarType !== 'upload';
-  const isDisabled = sentryAppComponent.error;
+
+  // Patch for backwards compatibility as the change's truth table is inverse to the previous'
+  const isDisabled =
+    typeof sentryAppComponent.error === 'string'
+      ? !sentryAppComponent.error
+      : sentryAppComponent.error;
   return (
     <SentryAppAvatarWrapper
       isDark={ConfigStore.get('theme') === 'dark'}
