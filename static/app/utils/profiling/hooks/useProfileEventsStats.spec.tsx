@@ -74,7 +74,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -135,7 +135,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -197,7 +197,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });

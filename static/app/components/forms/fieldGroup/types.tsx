@@ -1,3 +1,5 @@
+import type {TooltipProps} from 'sentry/components/tooltip';
+
 /**
  * Props that control UI elements that are part of a Form Group
  */
@@ -91,9 +93,10 @@ export interface FieldGroupProps {
    */
   required?: boolean;
   /**
-   * Displays the help element in the tooltip
+   * Displays the help element in the tooltip. Tooltip props may be passed to
+   * customize the help tooltip.
    */
-  showHelpInTooltip?: boolean;
+  showHelpInTooltip?: boolean | Omit<TooltipProps, 'title'>;
   /**
    * When stacking forms the bottom border is hidden and padding is adjusted
    * for form elements to be stacked on each other.

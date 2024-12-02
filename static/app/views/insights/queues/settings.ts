@@ -44,7 +44,7 @@ export const MODULE_DESCRIPTION = t(
   'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/insights/queue-monitoring/';
+  'https://docs.sentry.io/product/insights/backend/queue-monitoring/';
 
 export const TABLE_ROWS_LIMIT = 25;
 

@@ -6,7 +6,7 @@ import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -18,7 +18,6 @@ import {Card} from './card';
 interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
-  organization: Organization;
   selectedWidgetId: string | null;
 }
 
@@ -26,9 +25,9 @@ export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
   selectedWidgetId,
-  organization,
 }: Props) {
   const theme = useTheme();
+  const organization = useOrganization();
   const defaultWidgets = getTopNConvertedDefaultWidgets(organization);
 
   function getLibrarySelectionHandler(

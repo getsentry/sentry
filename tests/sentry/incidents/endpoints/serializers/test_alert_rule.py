@@ -54,7 +54,6 @@ class BaseAlertRuleSerializerTest:
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
-        assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by_id:
             created_by = user_service.get_user(user_id=alert_rule.created_by_id)
             assert created_by is not None
@@ -264,7 +263,6 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert sorted(result["projects"]) == sorted(p.slug for p in projects)
-        assert result["excludedProjects"] == []
         assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
     def test_triggers(self):

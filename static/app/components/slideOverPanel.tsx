@@ -13,11 +13,13 @@ const PANEL_HEIGHT = '50vh';
 const OPEN_STYLES = {
   bottom: {opacity: 1, x: 0, y: 0},
   right: {opacity: 1, x: 0, y: 0},
+  left: {opacity: 1, x: 0, y: 0},
 };
 
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
+  left: {opacity: 0, x: -200, y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -26,7 +28,7 @@ type SlideOverPanelProps = {
   ariaLabel?: string;
   className?: string;
   onOpen?: () => void;
-  slidePosition?: 'right' | 'bottom';
+  slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
 
@@ -84,7 +86,7 @@ const _SlideOverPanel = styled(motion.div, {
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
-  slidePosition?: 'right' | 'bottom';
+  slidePosition?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
 
@@ -118,16 +120,28 @@ const _SlideOverPanel = styled(motion.div, {
             bottom: 0;
             left: 0;
           `
-        : css`
-            position: fixed;
+        : p.slidePosition === 'right'
+          ? css`
+              position: fixed;
 
-            width: ${PANEL_WIDTH};
-            height: 100%;
+              width: ${PANEL_WIDTH};
+              height: 100%;
 
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: auto;
-          `}
+              top: 0;
+              right: 0;
+              bottom: 0;
+              left: auto;
+            `
+          : css`
+              position: relative;
+
+              width: ${PANEL_WIDTH};
+              height: 100%;
+
+              top: 0;
+              right: auto;
+              bottom: 0;
+              left: auto;
+            `}
   }
 `;

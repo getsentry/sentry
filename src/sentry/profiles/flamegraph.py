@@ -26,7 +26,6 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
@@ -40,70 +39,6 @@ class StartEnd(TypedDict):
 
 class ProfileIds(TypedDict):
     profile_ids: list[str]
-
-
-def get_profile_ids(
-    snuba_params: SnubaParams,
-    query: str | None = None,
-) -> ProfileIds:
-    builder = DiscoverQueryBuilder(
-        dataset=Dataset.Discover,
-        params={},
-        snuba_params=snuba_params,
-        query=query,
-        selected_columns=["profile.id"],
-        limit=options.get("profiling.flamegraph.profile-set.size"),
-    )
-
-    builder.add_conditions(
-        [
-            Condition(Column("type"), Op.EQ, "transaction"),
-            Condition(Column("profile_id"), Op.IS_NOT_NULL),
-        ]
-    )
-
-    result = builder.run_query(Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value)
-
-    return {"profile_ids": [row["profile.id"] for row in result["data"]]}
-
-
-def get_profiles_with_function(
-    organization_id: int,
-    project_id: int,
-    function_fingerprint: int,
-    snuba_params: SnubaParams,
-    query: str,
-) -> ProfileIds:
-    conditions = [query, f"fingerprint:{function_fingerprint}"]
-
-    result = functions.query(
-        selected_columns=["timestamp", "unique_examples()"],
-        query=" ".join(cond for cond in conditions if cond),
-        snuba_params=snuba_params,
-        limit=100,
-        orderby=["-timestamp"],
-        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
-        transform_alias_to_input_format=True,
-    )
-
-    def extract_profile_ids() -> list[str]:
-        max_profiles = options.get("profiling.flamegraph.profile-set.size")
-        profile_ids = []
-
-        for i in range(5):
-            for row in result["data"]:
-                examples = row["unique_examples()"]
-                if i < len(examples):
-                    profile_ids.append(examples[i])
-
-                    if len(profile_ids) >= max_profiles:
-                        return profile_ids
-
-        return profile_ids
-
-    return {"profile_ids": extract_profile_ids()}
 
 
 class IntervalMetadata(TypedDict):

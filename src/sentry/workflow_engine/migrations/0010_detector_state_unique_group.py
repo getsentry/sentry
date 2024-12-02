@@ -21,6 +21,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("workflow_engine", "0009_detector_type"),
     ]
