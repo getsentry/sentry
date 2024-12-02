@@ -96,6 +96,7 @@ type Props = {
   isPreview?: boolean;
   newWidget?: Widget;
   onAddWidget?: (dataset?: DataSet) => void;
+  onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
@@ -373,7 +374,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleEditWidget = (index: number) => () => {
-    const {organization, router, location, paramDashboardId} = this.props;
+    const {organization, router, location, paramDashboardId, onEditWidget} = this.props;
     const widget = this.props.dashboard.widgets[index];
 
     trackAnalytics('dashboards_views.widget.edit', {
@@ -382,6 +383,11 @@ class Dashboard extends Component<Props, State> {
     });
 
     if (widget.widgetType === WidgetType.METRICS) {
+      return;
+    }
+
+    if (organization.features.includes('dashboards-widget-builder-redesign')) {
+      onEditWidget?.(widget);
       return;
     }
 

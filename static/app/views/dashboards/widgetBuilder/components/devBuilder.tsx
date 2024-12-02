@@ -6,6 +6,7 @@ import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -20,6 +21,11 @@ import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryB
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderState();
+  const [showDevBuilder] = useLocalStorageState('showDevBuilder', false);
+
+  if (!showDevBuilder) {
+    return null;
+  }
 
   return (
     <Body>
