@@ -36,7 +36,7 @@ class GetSerializer(Serializer):
         }
 
     def serialize(self, obj: Any, attrs: Any, user, **kwargs) -> Mapping[str, Any]:
-        return {"id": obj.id, "sampleRate": attrs}
+        return {"id": obj.id, "sampleRate": round(attrs, 4)}
 
 
 class PutSerializer(serializers.Serializer):
