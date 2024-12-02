@@ -643,16 +643,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 export const featureFlagOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
+  install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
@@ -668,7 +659,6 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'JavaScript',
           code: `
-import * as Sentry from '@sentry/browser';
 ${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
 
 // Register with Sentry

@@ -288,7 +288,7 @@ function OnboardingContent({
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/platforms/python/feature-flags/"
+            href="https://docs.sentry.io/product/explore/feature-flags/"
             external
           >
             {t('Go to Sentry Documentation')}
