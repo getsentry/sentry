@@ -31,6 +31,10 @@ async function renderFlagDrawer() {
 describe('FeatureFlagDrawer', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
       body: TagsFixture(),
     });

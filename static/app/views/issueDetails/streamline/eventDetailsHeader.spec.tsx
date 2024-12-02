@@ -34,6 +34,10 @@ describe('EventDetailsHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),
       method: 'GET',

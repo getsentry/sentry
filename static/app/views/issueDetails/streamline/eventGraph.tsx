@@ -72,7 +72,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
-  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
 
   const config = getConfigForIssueType(group, group.project);
 
@@ -233,7 +232,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine && hasFeatureFlagFeature) {
+    if (flagSeries.markLine && flagSeries.type === 'line') {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
@@ -245,7 +244,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     releaseSeries,
     flagSeries,
     theme,
-    hasFeatureFlagFeature,
     isUnfilteredStatsEnabled,
     unfilteredEventSeries,
     unfilteredUserSeries,
@@ -268,7 +266,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     show: true,
     top: 4,
     right: 8,
-    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
+    data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.gray200,
