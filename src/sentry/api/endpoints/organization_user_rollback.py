@@ -1,5 +1,4 @@
 from rest_framework import status
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,19 +15,12 @@ from sentry.models.rollbackorganization import RollbackOrganization
 from sentry.models.rollbackuser import RollbackUser
 
 
-class MemberPermission(BasePermission):
-    scope_map = {
-        "GET": ["member:read"],
-    }
-
-
 @region_silo_endpoint
 class OrganizationRollbackUserEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
-    permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
