@@ -5,7 +5,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import DevWidgetBuilder from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership', 'dashboards-eap']},
@@ -62,7 +62,7 @@ describe('NewWidgetBuiler', function () {
   afterEach(() => PageFiltersStore.reset());
 
   it('renders', async function () {
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
       router,
       organization,
     });
@@ -96,7 +96,7 @@ describe('NewWidgetBuiler', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
       router,
       organization,
     });
@@ -127,7 +127,7 @@ describe('NewWidgetBuiler', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<DevWidgetBuilder isOpen onClose={onCloseMock} />, {
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
       router,
       organization,
     });
