@@ -72,7 +72,7 @@ def test_redis_retry_fail(mock_load_service_definitions, mock_iter_cluster_memor
     redis_services = unhealthy_services.get("redis")
 
     assert isinstance(redis_services, ConnectionError)
-    assert mock_iter_cluster_memory_usage.call_count == 2
+    assert mock_iter_cluster_memory_usage.call_count == 6
     mock_load_service_definitions.assert_called_with(refresh=True)
 
 
@@ -82,7 +82,7 @@ def test_redis_retry_fail(mock_load_service_definitions, mock_iter_cluster_memor
 def test_redis_retry_success(mock_load_service_definitions, mock_iter_cluster_memory_usage):
     mock_iter_cluster_memory_usage.side_effect = [
         ConnectionError("Connection failed"),
-        [ServiceMemory(name="testRedis", used=50, available=100, percentage=0.5)],
+        [ServiceMemory(name="testRedis", used=50, available=100)],
     ]
     services = load_service_definitions()
 
