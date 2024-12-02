@@ -10,7 +10,7 @@ from sentry.silo.base import SiloMode
 
 
 class SentryAppRequestService(RpcService):
-    key = "region_app"
+    key = "sentry_app_request"
     local_mode = SiloMode.REGION
 
     @classmethod
