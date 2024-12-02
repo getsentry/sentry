@@ -20,6 +20,7 @@ interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
@@ -76,6 +77,7 @@ export function AssigneeSelector({
   assigneeLoading,
   handleAssigneeChange,
   owners,
+  additionalMenuFooterItems,
 }: AssigneeSelectorProps) {
   return (
     <AssigneeSelectorDropdown
@@ -107,6 +109,7 @@ export function AssigneeSelector({
           />
         </StyledDropdownButton>
       )}
+      additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }

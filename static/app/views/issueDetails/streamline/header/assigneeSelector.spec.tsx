@@ -58,5 +58,6 @@ describe('GroupHeaderAssigneeSelector', () => {
 
     expect(screen.getByText(ownerActor.name)).toBeInTheDocument();
     expect(screen.getByText('Codeowners:/issues')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Ownership'})).toBeInTheDocument();
   });
 });
