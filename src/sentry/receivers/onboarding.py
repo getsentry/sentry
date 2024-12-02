@@ -10,6 +10,7 @@ from sentry import analytics, features
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.interfaces.user import User
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -679,8 +680,9 @@ def record_integration_added(
         return
 
     organization = Organization.objects.get(id=organization_id)
+    user = User.objects.get(id=user_id)
 
-    if features.has("organizations:quick-start-updates", organization):
+    if features.has("organizations:quick-start-updates", organization, actor=user):
         integration_types = get_integration_types(integration.provider)
 
         task_mapping = {

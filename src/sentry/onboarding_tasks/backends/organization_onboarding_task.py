@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import analytics, features
+from sentry.interfaces.user import User
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
@@ -41,7 +42,9 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         )
 
         organization = Organization.objects.get(id=organization_id)
-        if features.has("organizations:quick-start-updates", organization):
+        user_id = organization.default_owner_id
+        user = User.objects.get(id=user_id)
+        if features.has("organizations:quick-start-updates", organization, actor=user):
             required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
         else:
             required_tasks = OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
@@ -58,7 +61,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
                 organization = Organization.objects.get(id=organization_id)
                 analytics.record(
                     "onboarding.complete",
-                    user_id=organization.default_owner_id,
+                    user_id=user_id,
                     organization_id=organization_id,
                     referrer="onboarding_tasks",
                 )
