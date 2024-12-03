@@ -18,11 +18,11 @@ class TransactionStageStatus(StrEnum):
     # the transaction is published to the `events` topic for snuba/sbc consumers to consume
     SNUBA_TOPIC_PUT = "snuba_topic_put"
 
-    # a post_process task is kicked off
-    POST_PROCESS_STARTED = "post_process_started"
-
     # the transaction is deleted from rc-transactions
     REDIS_DELETED = "redis_deleted"
+
+    # a post_process task is finished
+    POST_PROCESS_FINISHED = "post_process_finished"
 
 
 logger = logging.getLogger("EventTracker")

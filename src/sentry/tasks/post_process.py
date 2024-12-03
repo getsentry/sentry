@@ -653,7 +653,7 @@ def post_process_group(
             track_sampled_event(
                 event.event_id,
                 ConsumerType.Transactions,
-                TransactionStageStatus.POST_PROCESS_STARTED,
+                TransactionStageStatus.POST_PROCESS_FINISHED,
             )
 
         metric_tags = {}
