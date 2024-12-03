@@ -580,14 +580,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -1675,11 +1675,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):
         super().test_spm()
-
-    @pytest.mark.xfail(reason="units not implemented yet")
-    def test_simple_measurements(self):
-        super().test_simple_measurements()
-
-    @pytest.mark.xfail(reason="units not implemented yet")
-    def test_span_data_fields_http_resource(self):
-        super().test_span_data_fields_http_resource()
