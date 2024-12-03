@@ -7,7 +7,7 @@ from sentry.backup.dependencies import NormalizedModelName, dependencies, get_mo
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
+from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
@@ -333,7 +333,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchView,
         GroupSubscription,
         IncidentActivity,
-        IncidentSubscription,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
@@ -374,7 +373,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchView,
         GroupSubscription,
         IncidentActivity,
-        IncidentSubscription,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
