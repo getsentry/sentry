@@ -240,9 +240,7 @@
   "sentry_pendingincidentsnapshot",
   "sentry_notificationmessage",
   "sentry_incidenttrigger",
-  "sentry_incidentsubscription",
   "sentry_incidentsnapshot",
-  "sentry_incidentseen",
   "sentry_incidentproject",
   "sentry_incidentactivity"
 ]
