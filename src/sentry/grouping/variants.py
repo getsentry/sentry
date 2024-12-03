@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.grouping.component import (
@@ -24,11 +24,12 @@ class FingerprintVariantMetadata(TypedDict):
 
 
 class BaseVariant(ABC):
-    # The type of the variant that is reported to the UI.
-    type: str | None = None
-
     # This is true if `get_hash` does not return `None`.
     contributes = True
+
+    @property
+    @abstractmethod
+    def type(self) -> str: ...
 
     def get_hash(self) -> str | None:
         return None
