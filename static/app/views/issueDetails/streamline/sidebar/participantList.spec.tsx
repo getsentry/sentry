@@ -3,12 +3,22 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
 describe('ParticipantList', () => {
   const users = [
-    UserFixture({id: '1', name: 'John Doe', email: 'john.doe@example.com'}),
-    UserFixture({id: '2', name: 'Bob Alice', email: 'bob.alice@example.com'}),
+    UserFixture({
+      id: '1',
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+      lastSeen: '2024-01-01T00:00:00.000Z',
+    }),
+    UserFixture({
+      id: '2',
+      name: 'Bob Alice',
+      email: 'bob.alice@example.com',
+      lastSeen: '2024-01-02T00:00:00.000Z',
+    }),
   ];
 
   const teams = [
@@ -46,5 +56,17 @@ describe('ParticipantList', () => {
     await userEvent.click(screen.getByText('J'), {skipHover: true});
     // Would find two elements if it was duplicated
     expect(await screen.findByText('john.doe@example.com')).toBeInTheDocument();
+  });
+
+  it('displays information about last seen, if available', async () => {
+    render(<ParticipantList users={users} teams={teams} />);
+    await userEvent.click(screen.getByText('JD'), {skipHover: true});
+    expect(await screen.findByText('John Doe')).toBeInTheDocument();
+    expect(await screen.findByText('Jan 1, 2024 12:00 AM')).toBeInTheDocument();
+    expect(await screen.findByText('Bob Alice')).toBeInTheDocument();
+    expect(await screen.findByText('Jan 2, 2024 12:00 AM')).toBeInTheDocument();
+    // Still display teams/users without timestamps
+    expect(await screen.findByText('#team-1')).toBeInTheDocument();
+    expect(await screen.findByText('#team-2')).toBeInTheDocument();
   });
 });
