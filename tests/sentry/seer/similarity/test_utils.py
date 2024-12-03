@@ -736,10 +736,7 @@ class GetStacktraceStringTest(TestCase):
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
 
-        stacktrace_string = get_stacktrace_string(data_system)
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-        stacktrace_string = get_stacktrace_string(data_system, platform="python")
+        stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
     def test_too_many_system_frames_chained_exception(self):
@@ -767,16 +764,13 @@ class GetStacktraceStringTest(TestCase):
             "values"
         ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
 
-        stacktrace_string = get_stacktrace_string(data_system)
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-        stacktrace_string = get_stacktrace_string(data_system, platform="python")
+        stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
     def test_too_many_in_app_contributing_frames(self):
         """
         Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
-        are included.
+        is included.
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
@@ -791,7 +785,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames)
+        stacktrace_str = get_stacktrace_string(data_frames, "java")
 
         num_frames = 0
         for i in range(1, 11):
