@@ -123,6 +123,25 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = dashboards.filter(title__icontains=query)
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
 
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            filter_by = request.query_params.get("filter")
+            if filter_by == "onlyFavorites":
+                dashboards = dashboards.filter(
+                    id__in=[
+                        dashboard.id
+                        for dashboard in dashboards
+                        if request.user.id in dashboard.favorited_by
+                    ]
+                )
+            elif filter_by == "excludeFavorites":
+                dashboards = dashboards.exclude(
+                    id__in=[
+                        dashboard.id
+                        for dashboard in dashboards
+                        if request.user.id in dashboard.favorited_by
+                    ]
+                )
+
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -191,7 +210,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            sources=[prebuilt, dashboards],
+            sources=(
+                [dashboards]
+                if features.has(
+                    "organizations:dashboards-favourite", organization, actor=request.user
+                )
+                and filter_by
+                and filter_by == "onlyFavorites"
+                else [prebuilt, dashboards]
+            ),
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
