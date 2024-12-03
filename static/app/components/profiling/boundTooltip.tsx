@@ -44,12 +44,10 @@ function computeBestTooltipPlacement(
   // Cursor is relative to canvas, not container
   const cursorRelativeToContainer = cursorLeft + canvas.x;
 
-  let left = cursorLeft;
-
-  left =
+  let left =
     cursorRelativeToContainer > container.width / 2
       ? cursorLeft - tooltip.width
-      : (left += CURSOR_LEFT_OFFSET_PX);
+      : cursorLeft + CURSOR_LEFT_OFFSET_PX;
 
   const right = left + tooltip.width + canvas.left;
 
