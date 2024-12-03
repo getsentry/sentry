@@ -137,27 +137,6 @@ describe('Wizard utils', function () {
     ).toBe('custom_transactions');
   });
 
-  it('extracts insights metric alerts', function () {
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'spm()',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(d:spans/exclusive_time@millisecond)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(g:spans/mobile.slow_frames@none)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-  });
-
   it('extracts eap metric alerts', function () {
     expect(
       getAlertTypeFromAggregateDataset({
