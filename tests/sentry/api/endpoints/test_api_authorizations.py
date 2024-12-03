@@ -25,6 +25,18 @@ class ApiAuthorizationsListTest(ApiAuthorizationsTest):
         response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(auth.id)
+        assert response.data[0]["organization"] is None
+
+    def test_org_level_auth(self):
+        org = self.create_organization(owner=self.user, slug="test-org-slug")
+        app = ApiApplication.objects.create(
+            name="test", owner=self.user, requires_org_level_access=True
+        )
+        ApiAuthorization.objects.create(application=app, user=self.user, organization_id=org.id)
+
+        response = self.get_success_response()
+        assert len(response.data) == 1
+        assert response.data[0]["organization"]["slug"] == org.slug
 
 
 @control_silo_test
