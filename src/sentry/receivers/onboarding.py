@@ -137,7 +137,9 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: RpcUser = Organization.objects.get_from_cache(
+            id=project.organization_id
+        ).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -419,7 +421,9 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
     if created or rows_affected:
         # TODO(Telemetry): Remove this once we remove the feature flag 'quick-start-updates'
         try:
-            user: RpcUser = Organization.objects.get(id=organization_id).get_default_owner()
+            user: RpcUser = Organization.objects.get_from_cache(
+                id=organization_id
+            ).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record member joined an organization (%s) due to missing owners",
@@ -706,7 +710,7 @@ def record_integration_added(
     if integration is None:
         return
 
-    organization = Organization.objects.get(id=organization_id)
+    organization = Organization.objects.get_from_cache(id=organization_id)
 
     if features.has("organizations:quick-start-updates", organization):
         integration_types = get_integration_types(integration.provider)

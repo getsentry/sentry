@@ -45,7 +45,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
             ).values_list("task", flat=True)
         )
 
-        organization = Organization.objects.get(id=organization_id)
+        organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:quick-start-updates", organization, actor=user):
             required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
         else:
