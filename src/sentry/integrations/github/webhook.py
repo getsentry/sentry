@@ -85,6 +85,7 @@ class Webhook(ABC):
     def event_type(self) -> IntegrationWebhookEventType:
         raise NotImplementedError
 
+    @abstractmethod
     def _handle(
         self,
         integration: RpcIntegration,
