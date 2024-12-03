@@ -7,6 +7,7 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -101,6 +102,25 @@ function DashboardGrid({
     }
   }
 
+  async function handleFavorite(dashboard: DashboardListItem) {
+    // const oldValue = dashboard.isFavorited;
+    dashboard.isFavorited = !dashboard.isFavorited;
+    onDashboardsChange();
+
+    try {
+      await updateDashboardFavorite(
+        api,
+        organization.slug,
+        dashboard.id,
+        dashboard.isFavorited
+      );
+      onDashboardsChange();
+    } catch (error) {
+      // dashboard.isFavorited = oldValue;
+      addErrorMessage(t('Error favoriting dashboard'));
+    }
+  }
+
   function renderDropdownMenu(dashboard: DashboardListItem) {
     const menuItems: MenuItemProps[] = [
       {
@@ -190,6 +210,8 @@ function DashboardGrid({
           renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
           dashboardId={dashboard.id}
+          isFavorited={dashboard.isFavorited}
+          onFavorite={() => handleFavorite(dashboard)}
         />
       );
     });
