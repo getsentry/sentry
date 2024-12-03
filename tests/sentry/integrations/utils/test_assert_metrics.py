@@ -26,7 +26,7 @@ def assert_failure_metric(mock_record, error_msg):
 
 
 def assert_success_metric(mock_record):
-    (event_success,) = (
+    event_success = (
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.SUCCESS
     )
     assert event_success

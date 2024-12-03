@@ -293,6 +293,7 @@ class IntegrationWebhookEventType(StrEnum):
     INSTALLATION = "installation"
     PUSH = "push"
     PULL_REQUEST = "pull_request"
+    INBOUND_SYNC = "inbound_sync"
 
 
 @dataclass
