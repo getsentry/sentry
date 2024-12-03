@@ -50,7 +50,7 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
 
 
 @region_silo_endpoint
-class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
+class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -95,3 +95,27 @@ class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
         )
 
         return Response(status=201)
+
+
+@region_silo_endpoint
+class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.REPLAY
+    publish_status = {"DELETE": ApiPublishStatus.PRIVATE}
+
+    def delete(
+        self, request: Request, organization: Organization, signing_secret_id: str
+    ) -> Response:
+        if not features.has(
+            "organizations:feature-flag-audit-log", organization, actor=request.user
+        ):
+            return Response("Not enabled.", status=404)
+
+        try:
+            model = FlagWebHookSigningSecretModel.objects.filter(
+                organization_id=organization.id
+            ).get(id=int(signing_secret_id))
+            model.delete()
+        except FlagWebHookSigningSecretModel.DoesNotExist:
+            return Response(status=404)
+        else:
+            return Response(status=204)

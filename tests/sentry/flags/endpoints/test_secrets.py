@@ -4,8 +4,8 @@ from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.testutils.cases import APITestCase
 
 
-class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
-    endpoint = "sentry-api-0-organization-flag-hooks-signing-secret"
+class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
+    endpoint = "sentry-api-0-organization-flag-hooks-signing-secrets"
 
     def setUp(self):
         super().setUp()
@@ -23,10 +23,21 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
         return {"organizations:feature-flag-audit-log": True}
 
     def test_browse(self):
+        org = self.create_organization()
+        FlagWebHookSigningSecretModel.objects.create(
+            created_by=self.user.id,
+            organization=org,
+            provider="launchdarkly",
+            secret="123456123456",
+        )
+
         with self.feature(self.features):
             response = self.client.get(self.url)
             assert response.status_code == 200
-            assert response.json() == {
+
+            response_json = response.json()
+            assert len(response_json["data"]) == 1
+            assert response_json == {
                 "data": [
                     {
                         "createdAt": self.obj.date_added.isoformat(),
@@ -70,3 +81,54 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
             assert response.status_code == 400, response.content
             assert response.json()["provider"] == ["This field is required."]
             assert response.json()["secret"] == ["This field is required."]
+
+    def test_post_other_organization(self):
+        org = self.create_organization()
+        url = reverse(self.endpoint, args=(org.id,))
+
+        with self.feature(self.features):
+            response = self.client.post(url, data={})
+            assert response.status_code == 403, response.content
+
+
+class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
+    endpoint = "sentry-api-0-organization-flag-hooks-signing-secret"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.obj = FlagWebHookSigningSecretModel.objects.create(
+            created_by=self.user.id,
+            organization=self.organization,
+            provider="launchdarkly",
+            secret="123456123456",
+        )
+        self.url = reverse(self.endpoint, args=(self.organization.id, self.obj.id))
+
+    @property
+    def features(self):
+        return {"organizations:feature-flag-audit-log": True}
+
+    def test_delete(self):
+        with self.feature(self.features):
+            response = self.client.delete(self.url)
+            assert response.status_code == 204
+
+    def test_delete_disabled(self):
+        response = self.client.delete(self.url)
+        assert response.status_code == 404
+
+    def test_delete_other_organization(self):
+        """Attempt to delete a secret outside your organization."""
+        org = self.create_organization()
+        obj = FlagWebHookSigningSecretModel.objects.create(
+            created_by=self.user.id,
+            organization=org,
+            provider="launchdarkly",
+            secret="123456123456",
+        )
+        url = reverse(self.endpoint, args=(self.organization.id, obj.id))
+
+        with self.feature(self.features):
+            response = self.client.delete(url)
+            assert response.status_code == 404
