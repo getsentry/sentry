@@ -1,3 +1,5 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -57,15 +59,33 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
 
   it('renders', async function () {
-    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
@@ -80,26 +100,34 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByText('+ Add Widget Description')).toBeInTheDocument();
 
     expect(await screen.findByLabelText('Dataset')).toHaveAttribute('role', 'radiogroup');
-    expect(await screen.getByText('Errors')).toBeInTheDocument();
-    expect(await screen.getByText('Transactions')).toBeInTheDocument();
-    expect(await screen.getByText('Spans')).toBeInTheDocument();
-    expect(await screen.getByText('Issues')).toBeInTheDocument();
-    expect(await screen.getByText('Releases')).toBeInTheDocument();
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Transactions')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Issues')).toBeInTheDocument();
+    expect(screen.getByText('Releases')).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
-    expect(await screen.findByText('TEST WIDGET')).toBeInTheDocument();
+    expect(screen.getByLabelText('Widget panel')).toBeInTheDocument();
   });
 
   it('edits name and description', async function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
     expect(mockNavigate).toHaveBeenLastCalledWith(
@@ -127,10 +155,18 @@ describe('NewWidgetBuiler', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     await userEvent.click(await screen.findByLabelText('Issues'));
 
