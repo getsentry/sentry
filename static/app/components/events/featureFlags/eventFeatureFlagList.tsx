@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
@@ -242,28 +241,26 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection
-        help={t(
-          "The last 100 flags evaluated in the user's session leading up to this event."
-        )}
-        isHelpHoverable
-        title={t('Feature Flags')}
-        type={SectionKey.FEATURE_FLAGS}
-        actions={actions}
-      >
-        {hasFlags ? (
-          <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card expandLeft contentItems={columnOne} />
-            <KeyValueData.Card expandLeft contentItems={columnTwo} />
-          </CardContainer>
-        ) : (
-          <StyledEmptyStateWarning withIcon>
-            {t('No feature flags were found for this event')}
-          </StyledEmptyStateWarning>
-        )}
-      </InterimSection>
-    </ErrorBoundary>
+    <InterimSection
+      help={t(
+        "The last 100 flags evaluated in the user's session leading up to this event."
+      )}
+      isHelpHoverable
+      title={t('Feature Flags')}
+      type={SectionKey.FEATURE_FLAGS}
+      actions={actions}
+    >
+      {hasFlags ? (
+        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+          <KeyValueData.Card expandLeft contentItems={columnOne} />
+          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+        </CardContainer>
+      ) : (
+        <StyledEmptyStateWarning withIcon>
+          {t('No feature flags were found for this event')}
+        </StyledEmptyStateWarning>
+      )}
+    </InterimSection>
   );
 }
 
