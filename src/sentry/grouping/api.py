@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import sentry_sdk
 
@@ -239,7 +239,9 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: MutableMapping[str, Any], config: FingerprintingRules, allow_custom_title: bool = True
+) -> None:
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
