@@ -193,15 +193,21 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
 
     """Process the results"""
-    result: list[dict[str, Any]] = []
+    result: SnubaData = []
+    confidences: SnubaData = []
     for timeseries in rpc_response.result_timeseries:
-        processed = _process_timeseries(timeseries, params, granularity_secs)
+        processed, confidence = _process_timeseries(timeseries, params, granularity_secs)
         if len(result) == 0:
             result = processed
+            confidences = confidence
         else:
             for existing, new in zip(result, processed):
                 existing.update(new)
-    return SnubaTSResult({"data": result}, params.start, params.end, granularity_secs)
+            for existing, new in zip(confidences, confidence):
+                existing.update(new)
+    return SnubaTSResult(
+        {"data": result, "confidence": confidences}, params.start, params.end, granularity_secs
+    )
 
 
 def build_top_event_conditions(
@@ -328,26 +334,30 @@ def run_top_events_timeseries_query(
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
+        result_data, result_confidence = _process_timeseries(
+            map_result_key_to_timeseries[result_key],
+            params,
+            granularity_secs,
+        )
         final_result[result_key] = SnubaTSResult(
             {
-                "data": _process_timeseries(
-                    map_result_key_to_timeseries[result_key],
-                    params,
-                    granularity_secs,
-                ),
+                "data": result_data,
+                "confidence": result_confidence,
                 "order": index,
             },
             params.start,
             params.end,
             granularity_secs,
         )
+    result_data, result_confidence = _process_timeseries(
+        other_response.result_timeseries[0],
+        params,
+        granularity_secs,
+    )
     final_result[OTHER_KEY] = SnubaTSResult(
         {
-            "data": _process_timeseries(
-                other_response.result_timeseries[0],
-                params,
-                granularity_secs,
-            ),
+            "data": result_data,
+            "confidence": result_confidence,
             "order": limit,
         },
         params.start,
@@ -359,14 +369,17 @@ def run_top_events_timeseries_query(
 
 def _process_timeseries(
     timeseries: TimeSeries, params: SnubaParams, granularity_secs: int, order: int | None = None
-) -> list[dict[str, Any]]:
+) -> tuple[SnubaData, SnubaData]:
     result: SnubaData = []
+    confidence: SnubaData = []
     # Timeseries serialization expects the function alias (eg. `count` not `count()`)
     label = get_function_alias(timeseries.label)
     if len(result) < len(timeseries.buckets):
         for bucket in timeseries.buckets:
             result.append({"time": bucket.seconds})
+            confidence.append({"time": bucket.seconds})
     for index, data_point in enumerate(timeseries.data_points):
         result[index][label] = data_point.data
+        confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
-    return result
+    return result, confidence
