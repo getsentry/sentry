@@ -60,3 +60,21 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
         return evaluation
+
+    def get_filtered_actions(self, evt: GroupEvent) -> bool:
+        """
+        Evaluate the conditions for the workflow action filters and return the results.
+        If there isn't a filter_condition_group, the workflow should always trigger.
+        """
+        actions = self.workflowdataconditiongroup_set.all()
+        filtered_actions = set()
+
+        for action in actions:
+            evaluation, result = evaluate_condition_group(action, evt)
+
+            print("Action: ", action, "evaluation: ", evaluation, "result: ", result)
+
+            if evaluation:
+                filtered_actions.add(action)
+
+        return filtered_actions
