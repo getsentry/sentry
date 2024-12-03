@@ -13,7 +13,7 @@ describe('AutofixRootCause', function () {
     repos: [],
   };
 
-  it('can view a relevant code snippet', async function () {
+  it('can view a relevant code snippet', function () {
     render(<AutofixRootCause {...defaultProps} />);
 
     // Displays all root cause and code context info
@@ -23,11 +23,6 @@ describe('AutofixRootCause', function () {
       screen.getByText('This is the description of a root cause.')
     ).toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Relevant code',
-      })
-    );
     expect(
       screen.getByText('Snippet #1: This is the title of a relevant code snippet.')
     ).toBeInTheDocument();
@@ -53,7 +48,7 @@ describe('AutofixRootCause', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows hyperlink when matching GitHub repo available', async function () {
+  it('shows hyperlink when matching GitHub repo available', function () {
     render(
       <AutofixRootCause
         {...{
@@ -69,12 +64,6 @@ describe('AutofixRootCause', function () {
           ],
         }}
       />
-    );
-
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Relevant code',
-      })
     );
 
     expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
