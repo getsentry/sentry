@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -15,6 +16,7 @@ import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/col
 import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -162,6 +164,11 @@ function DevBuilder() {
           </button>
         </div>
       </Section>
+      <Section>
+        <h1>Sort:</h1>
+        <div>{state.sort?.map(formatSort).join(', ')}</div>
+        <SortSelector />
+      </Section>
     </Body>
   );
 }
@@ -243,6 +250,57 @@ function QueryField({
       getTagValues={() => Promise.resolve([])}
       showUnsubmittedIndicator
     />
+  );
+}
+
+function SortSelector() {
+  const {state, dispatch} = useWidgetBuilderContext();
+
+  // There's a SortDirection enum in the widgetBuilder utils, but it's not used anywhere else
+  // so I'd rather just get rid of the dependency and use a new object that uses standard terms
+  const sortDirections = {
+    desc: 'High to low',
+    asc: 'Low to high',
+  };
+  const direction = state.sort?.[0]?.kind;
+  const sortBy = state.sort?.[0]?.field;
+
+  return (
+    <div>
+      <SelectControl
+        name="sortDirection"
+        aria-label={'Sort direction'}
+        menuPlacement="auto"
+        options={Object.keys(sortDirections).map(value => ({
+          label: sortDirections[value],
+          value,
+        }))}
+        value={direction}
+        onChange={option => {
+          dispatch({
+            type: BuilderStateAction.SET_SORT,
+            payload: [{field: sortBy ?? '', kind: option.value}],
+          });
+        }}
+      />
+      <SelectControl
+        name="sortBy"
+        aria-label={'Sort by'}
+        menuPlacement="auto"
+        placeholder={'Sort'}
+        value={sortBy}
+        options={state.fields?.map(field => ({
+          label: generateFieldAsString(field),
+          value: generateFieldAsString(field),
+        }))}
+        onChange={option => {
+          dispatch({
+            type: BuilderStateAction.SET_SORT,
+            payload: [{field: option.value, kind: direction ?? 'asc'}],
+          });
+        }}
+      />
+    </div>
   );
 }
 
