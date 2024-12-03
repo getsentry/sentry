@@ -688,6 +688,11 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      */
     canSend: boolean;
     /**
+     * Indicates that the account has reached the maximum member limit. Future invitations
+     * are limited to Billing roles
+     */
+    isOverMemberLimit: boolean;
+    /**
      * Trigger sending invites
      */
     sendInvites: () => void;
