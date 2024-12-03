@@ -2,6 +2,7 @@ import dataclasses
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 import orjson
@@ -244,7 +245,11 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
                             continue
 
                         buffered_segments.append(
-                            Value(KafkaPayload(None, payload_data, []), {}, timestamp)
+                            Value(
+                                KafkaPayload(None, payload_data, []),
+                                {},
+                                datetime.fromtimestamp(timestamp),
+                            )
                         )
 
     return buffered_segments
