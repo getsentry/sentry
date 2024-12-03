@@ -99,7 +99,7 @@ export function TraceContextPanel({tree}: Props) {
       </GrabberContainer>
 
       <TraceContextContainer height={contextPaneHeight}>
-        <VitalMeterContainer>{renderVitals()}</VitalMeterContainer>
+        <VitalMetersContainer>{renderVitals()}</VitalMetersContainer>
       </TraceContextContainer>
     </Container>
   );
@@ -138,8 +138,14 @@ const TraceContextContainer = styled('div')<{height: number}>`
   height: ${p => p.height}px;
 `;
 
-const VitalMeterContainer = styled('div')`
+const VitalMetersContainer = styled('div')`
+  justify-content: center;
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  width: 100%;
+
+  > div {
+    max-width: 200px;
+  }
 `;
