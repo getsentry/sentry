@@ -210,8 +210,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   return (
     <FilterWrapper
       aria-label={token.text}
-      aria-invalid={tokenHasError}
-      aria-warning={tokenHasWarning}
+      invalid={tokenHasError}
+      warning={tokenHasWarning}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -267,7 +267,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')`
+const FilterWrapper = styled('div')<{invalid: boolean; warning: boolean}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
@@ -280,15 +280,18 @@ const FilterWrapper = styled('div')`
     outline: none;
   }
 
-  &[aria-warning='true'] {
-    border-color: ${p => p.theme.gray400};
-    background-color: ${p => p.theme.gray100};
-  }
-
-  &[aria-invalid='true'] {
-    border-color: ${p => p.theme.red200};
-    background-color: ${p => p.theme.red100};
-  }
+  ${p =>
+    p.invalid
+      ? `
+      border-color: ${p.theme.red200};
+      background-color: ${p.theme.red100};
+    `
+      : p.warning
+        ? `
+      border-color: ${p.theme.gray300};
+      background-color: ${p.theme.gray100};
+    `
+        : ''}
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
