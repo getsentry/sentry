@@ -26,10 +26,10 @@ class AutofixRequest(TypedDict):
 class AutofixStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     ERROR = "ERROR"
-    PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
     CANCELLED = "CANCELLED"
+    WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
 class AutofixState(BaseModel):
