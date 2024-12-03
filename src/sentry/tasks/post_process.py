@@ -651,7 +651,7 @@ def post_process_group(
                     event=event,
                 )
             track_sampled_event(
-                data["event_id"],
+                event.event_id,
                 ConsumerType.Transactions,
                 TransactionStageStatus.POST_PROCESS_STARTED,
             )
