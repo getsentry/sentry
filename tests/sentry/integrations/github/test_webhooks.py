@@ -28,6 +28,10 @@ from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_success_metric,
+)
 
 
 class WebhookTest(APITestCase):
@@ -79,7 +83,8 @@ class InstallationEventWebhookTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_installation_created(self, get_jwt):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_created(self, mock_record, get_jwt):
         responses.add(
             method=responses.GET,
             url="https://api.github.com/app/installations/2",
@@ -104,6 +109,36 @@ class InstallationEventWebhookTest(APITestCase):
         assert integration.metadata["sender"]["id"] == 1
         assert integration.metadata["sender"]["login"] == "octocat"
         assert integration.status == ObjectStatus.ACTIVE
+
+        assert_success_metric(mock_record)
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github.webhook.InstallationEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_error_metric(self, mock_record, mock_event, get_jwt):
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/app/installations/2",
+            body=INSTALLATION_API_RESPONSE,
+            status=200,
+            content_type="application/json",
+        )
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            path=self.url,
+            data=INSTALLATION_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
 
 
 @control_silo_test
@@ -222,7 +257,39 @@ class PushEventWebhookTest(APITestCase):
         assert response.status_code == 204
 
     @responses.activate
-    def test_simple(self):
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(self, mock_record, mock_event, get_jwt):
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple(self, mock_record):
         project = self.project  # force creation
 
         repo = Repository.objects.create(
@@ -270,6 +337,8 @@ class PushEventWebhookTest(APITestCase):
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
         assert repo.name == "baxterthehacker/public-repo"
+
+        assert_success_metric(mock_record)
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
@@ -532,8 +601,40 @@ class PullRequestEventWebhook(APITestCase):
 
         assert response.status_code == 204
 
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(self, mock_record, mock_event, get_jwt):
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(self.project.organization.id, self.user)
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            path=self.url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
+
     @patch("sentry.integrations.github.webhook.metrics")
-    def test_opened(self, mock_metrics):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_opened(self, mock_record, mock_metrics):
         project = self.project  # force creation
         group = self.create_group(project=project, short_id=7)
 
@@ -566,6 +667,8 @@ class PullRequestEventWebhook(APITestCase):
         self.assert_group_link(group, pr)
 
         mock_metrics.incr.assert_called_with("github.open_pr_comment.queue_task")
+
+        assert_success_metric(mock_record)
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_opened_missing_option(self, mock_metrics):
