@@ -263,7 +263,7 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: boolean;
+  error?: string | boolean;
 };
 
 export type SentryAppWebhookRequest = {
