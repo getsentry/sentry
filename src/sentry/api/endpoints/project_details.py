@@ -753,7 +753,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"]), 4
+                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
             ):
                 changed_proj_settings["sentry:target_sample_rate"] = round(
                     result["targetSampleRate"], 4
