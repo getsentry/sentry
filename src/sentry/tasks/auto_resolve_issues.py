@@ -43,6 +43,7 @@ def schedule_auto_resolution():
 
     cutoff = time() - ONE_HOUR
     for project_id, options in opts_by_project.items():
+        # project option editable via UI, will be on Error Detector page
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
             ProjectOption.objects.filter(
