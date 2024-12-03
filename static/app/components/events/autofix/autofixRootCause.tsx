@@ -230,6 +230,7 @@ function RootCauseContext({
           icon={<IconCode size="sm" color="subText" />}
           title={'Relevant code'}
           rounded
+          expandByDefault
         >
           <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
         </ExpandableInsightContext>
