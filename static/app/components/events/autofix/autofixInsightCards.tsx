@@ -86,7 +86,7 @@ export function ExpandableInsightContext({
   title,
   icon,
   rounded,
-  expandByDefault,
+  expandByDefault = false,
 }: {
   children: React.ReactNode;
   title: string;
