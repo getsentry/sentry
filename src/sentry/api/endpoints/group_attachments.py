@@ -15,7 +15,7 @@ from sentry.api.helpers.events import get_query_builder_for_group
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.models.group import Group
 from sentry.search.events.types import ParamsType
@@ -27,6 +27,11 @@ def get_event_ids_from_filters(
     start: datetime | None,
     end: datetime | None,
 ) -> list[str] | None:
+    """
+    Returns a list of Event IDs matching the environment/query filters.
+    If neither are provided it will return `None`, skipping the filter by `EventAttachment.event_id` matches.
+    If at least one is provided, but nothing is matched, it will return `[]`, which will result in no attachment matches (as expected).
+    """
     default_end = timezone.now()
     default_start = default_end - timedelta(days=90)
     try:
@@ -49,13 +54,16 @@ def get_event_ids_from_filters(
     if environments:
         params["environment"] = [env.name for env in environments]
 
-    snuba_query = get_query_builder_for_group(
-        query=query,
-        snuba_params=params,
-        group=group,
-        limit=10000,
-        offset=0,
-    )
+    try:
+        snuba_query = get_query_builder_for_group(
+            query=query,
+            snuba_params=params,
+            group=group,
+            limit=10000,
+            offset=0,
+        )
+    except InvalidSearchQuery as e:
+        raise ParseError(detail=str(e))
     referrer = f"api.group-attachments.{group.issue_category.name.lower()}"
     results = snuba_query.run_query(referrer=referrer)
     return [evt["id"] for evt in results["data"]]
@@ -117,11 +125,11 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
             attachments = event_attachment_screenshot_filter(attachments)
         if types:
             attachments = attachments.filter(type__in=types)
-        if event_ids:
+        # If event_ids is [], we still want attachments to filter to an empty list.
+        if event_ids is not None:
             attachments = attachments.filter(event_id__in=event_ids)
 
         return self.paginate(
-            default_per_page=20,
             request=request,
             queryset=attachments,
             order_by="-date_added",
