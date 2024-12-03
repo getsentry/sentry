@@ -519,6 +519,13 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data = response.data["data"]
             assert len(data) == 6
 
+            meta = response.data["meta"]
+            assert meta["fields"] == {
+                "time": "date",
+                axis: "rate",
+            }
+            assert meta["units"] == {"time": None, axis: "1/minute"}
+
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
@@ -590,6 +597,13 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
+
+            meta = response.data["meta"]
+            assert meta["fields"] == {
+                "time": "date",
+                axis: "rate",
+            }
+            assert meta["units"] == {"time": None, axis: "1/second"}
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
