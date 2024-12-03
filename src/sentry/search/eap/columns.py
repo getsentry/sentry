@@ -296,6 +296,11 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="http.response_transfer_size",
             search_type="byte",
         ),
+        ResolvedColumn(
+            public_alias="sampling_rate",
+            internal_name="sentry.sampling_factor",
+            search_type="percentage",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
@@ -438,7 +443,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -448,7 +453,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -553,7 +558,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -563,7 +568,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
