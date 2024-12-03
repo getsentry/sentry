@@ -438,6 +438,15 @@ table.table.key-value {
   }
 }
 
+.theme-dark {
+  .loading {
+    .loading-indicator {
+      // surface200
+      background: #1A141F;
+    }
+  }
+}
+
 @-webkit-keyframes loading {
   0% {
     -webkit-transform: rotate(0deg);
@@ -516,6 +525,17 @@ table.table.key-value {
     border: 0;
     overflow: hidden;
     border-radius: 50%;
+  }
+}
+
+.theme-dark .loading.triangle .loading-indicator {
+  filter: invert(100%);
+}
+body.theme-system {
+  @media (prefers-color-scheme: dark) {
+    .loading.triangle .loading-indicator {
+      filter: invert(100%);
+    }
   }
 }
 
