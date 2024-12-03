@@ -26,6 +26,7 @@ from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
+    MessageInteractionFailureReason,
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
@@ -247,6 +248,17 @@ class SlackActionEndpoint(Endpoint):
                 return element
             detail = element
 
+    def record_event(
+        self, interaction_type: MessagingInteractionType, group: Group, request: Request
+    ) -> MessagingInteractionEvent:
+        user = request.user
+        return MessagingInteractionEvent(
+            interaction_type,
+            SlackMessagingSpec(),
+            user=(user if isinstance(user, User) else None),
+            organization=(group.project.organization if group else None),
+        )
+
     def validation_error(
         self,
         slack_request: SlackActionRequest,
@@ -364,72 +376,85 @@ class SlackActionEndpoint(Endpoint):
 
         if slack_request.type == "view_submission":
             # TODO: if we use modals for something other than resolve and archive, this will need to be more specific
+            with self.record_event(
+                MessagingInteractionType.VIEW_SUBMISSION, group, request
+            ).capture() as lifecycle:
 
-            # Masquerade a status action
-            selection = None
-            view = slack_request.data.get("view")
-            if view:
-                state = view.get("state")
-            if state:
-                values = state.get("values")
-            if values:
-                for value in values:
-                    for val in values[value]:
-                        selection = values[value][val]["selected_option"]["value"]
-                        if selection:
-                            break
+                # Masquerade a status action
+                selection = None
+                view = slack_request.data.get("view")
+                if view:
+                    state = view.get("state")
+                if state:
+                    values = state.get("values")
+                if values:
+                    for value in values:
+                        for val in values[value]:
+                            selection = values[value][val]["selected_option"]["value"]
+                            if selection:
+                                break
 
-            if not selection:
+                if not selection:
+                    lifecycle.record_failure(MessageInteractionFailureReason.MISSING_ACTION)
+                    return self.respond()
+
+                lifecycle.add_extra(
+                    "selection",
+                    selection,
+                )
+
+                status_action = MessageAction(name="status", value=selection)
+
+                try:
+                    self.on_status(request, identity_user, group, status_action)
+                except client.ApiError as error:
+                    lifecycle.record_failure(error)
+                    return self.api_error(
+                        slack_request, group, identity_user, error, "status_dialog"
+                    )
+
+                view = View(**slack_request.data["view"])
+                private_metadata = orjson.loads(view.private_metadata)
+                original_tags_from_request = set(private_metadata.get("tags", {}))
+
+                blocks = SlackIssuesMessageBuilder(
+                    group,
+                    identity=identity,
+                    actions=[status_action],
+                    tags=original_tags_from_request,
+                    rules=[rule] if rule else None,
+                    issue_details=True,
+                    skip_fallback=True,
+                ).build()
+
+                # use the original response_url to update the link attachment
+                try:
+                    webhook_client = WebhookClient(private_metadata["orig_response_url"])
+                    webhook_client.send(
+                        blocks=blocks.get("blocks"), delete_original=False, replace_original=True
+                    )
+                    metrics.incr(
+                        SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
+                        sample_rate=1.0,
+                        tags={"type": "submit_modal"},
+                    )
+                except SlackApiError as e:
+                    lifecycle.record_failure(e)
+                    metrics.incr(
+                        SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                        sample_rate=1.0,
+                        tags={"type": "submit_modal"},
+                    )
+                    _logger.exception(
+                        "slack.webhook.view_submission.response-error",
+                        extra={
+                            "error": str(e),
+                            "integration_id": slack_request.integration.id,
+                            "organization_id": group.project.organization_id,
+                        },
+                    )
+
                 return self.respond()
-
-            status_action = MessageAction(name="status", value=selection)
-
-            try:
-                self.on_status(request, identity_user, group, status_action)
-            except client.ApiError as error:
-                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
-
-            view = View(**slack_request.data["view"])
-            private_metadata = orjson.loads(view.private_metadata)
-            original_tags_from_request = set(private_metadata.get("tags", {}))
-
-            blocks = SlackIssuesMessageBuilder(
-                group,
-                identity=identity,
-                actions=[status_action],
-                tags=original_tags_from_request,
-                rules=[rule] if rule else None,
-                issue_details=True,
-                skip_fallback=True,
-            ).build()
-
-            # use the original response_url to update the link attachment
-            try:
-                webhook_client = WebhookClient(private_metadata["orig_response_url"])
-                webhook_client.send(
-                    blocks=blocks.get("blocks"), delete_original=False, replace_original=True
-                )
-                metrics.incr(
-                    SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "submit_modal"},
-                )
-            except SlackApiError as e:
-                metrics.incr(
-                    SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"type": "submit_modal"},
-                )
-                _logger.exception(
-                    "slack.webhook.view_submission.response-error",
-                    extra={
-                        "error": str(e),
-                        "integration_id": slack_request.integration.id,
-                        "organization_id": group.project.organization_id,
-                    },
-                )
-
-            return self.respond()
 
         # Usually we'll want to respond with the updated attachment including
         # the list of actions taken. However, when opening a dialog we do not
@@ -437,32 +462,31 @@ class SlackActionEndpoint(Endpoint):
         # response_url later to update it.
         defer_attachment_update = False
 
-        def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
-            user = request.user
-            return MessagingInteractionEvent(
-                interaction_type,
-                SlackMessagingSpec(),
-                user=(user if isinstance(user, User) else None),
-                organization=(group.project.organization if group else None),
-            )
-
         # Handle interaction actions
         for action in action_list:
             try:
                 if action.name in ("status", "unresolved:ongoing"):
-                    with record_event(MessagingInteractionType.STATUS).capture():
+                    with self.record_event(
+                        MessagingInteractionType.STATUS, group, request
+                    ).capture():
                         self.on_status(request, identity_user, group, action)
                 elif (
                     action.name == "assign"
                 ):  # TODO: remove this as it is replaced by the options-load endpoint
-                    with record_event(MessagingInteractionType.ASSIGN).capture():
+                    with self.record_event(
+                        MessagingInteractionType.ASSIGN, group, request
+                    ).capture():
                         self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
-                    with record_event(MessagingInteractionType.RESOLVE_DIALOG).capture():
+                    with self.record_event(
+                        MessagingInteractionType.RESOLVE_DIALOG, group, request
+                    ).capture():
                         _ResolveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
-                    with record_event(MessagingInteractionType.ARCHIVE_DIALOG).capture():
+                    with self.record_event(
+                        MessagingInteractionType.ARCHIVE_DIALOG, group, request
+                    ).capture():
                         _ArchiveDialog().open_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
