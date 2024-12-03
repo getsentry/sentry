@@ -85,6 +85,10 @@ export default function WebVitalMeters({
       const score = projectScore[`${webVital}Score`];
       const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
 
+      if (!score) {
+        return null;
+      }
+
       return (
         <VitalMeter
           key={webVital}
@@ -115,7 +119,7 @@ type VitalMeterProps = {
   onClick?: (webVital: WebVitals) => void;
 };
 
-function VitalMeter({
+export function VitalMeter({
   webVital,
   showTooltip,
   score,

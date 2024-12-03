@@ -3,8 +3,10 @@ import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {useTheme} from '@emotion/react';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 100;
@@ -14,7 +16,10 @@ type Props = {
   tree: TraceTree;
 };
 
+const ALLOWED_VITALS = ['lcp', 'fcp', 'cls', 'ttfb'];
+
 export function TraceContextPanel({tree}: Props) {
+  const theme = useTheme();
   const [isDragging, setIsDragging] = useState(false);
   const [contextPaneHeight, setContextPaneHeight] = useState(DEFAULT_HEIGHT);
 
@@ -61,6 +66,31 @@ export function TraceContextPanel({tree}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
+  console.dir(tree);
+
+  const renderVitals = () => {
+    if (!hasVitals) {
+      return null;
+    }
+
+    return tree.indicators.map((indicator, index) => {
+      if (ALLOWED_VITALS.includes(indicator.type) && indicator.score) {
+        const colors = theme.charts.getColorPalette(3);
+        return (
+          <VitalMeter
+            webVital={indicator.type as WebVitals}
+            score={indicator.score}
+            meterValue={indicator.measurement.value}
+            showTooltip={true}
+            color={colors[index]}
+          />
+        );
+      }
+
+      return null;
+    });
+  };
+
   return (
     <Container>
       <GrabberContainer onMouseDown={handleMouseDown}>
@@ -68,7 +98,7 @@ export function TraceContextPanel({tree}: Props) {
       </GrabberContainer>
 
       <TraceContextContainer height={contextPaneHeight}>
-        {hasVitals && <WebVitalMeters isAggregateMode={false} />}
+        <VitalMeterContainer>{renderVitals()}</VitalMeterContainer>
       </TraceContextContainer>
     </Container>
   );
@@ -100,11 +130,15 @@ const GrabberContainer = styled(Container)`
 const TraceContextContainer = styled('div')<{height: number}>`
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
 
   width: 100%;
   margin-top: ${space(1)};
-  background: ${p => p.theme.red300};
   height: ${p => p.height}px;
+`;
+
+const VitalMeterContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
 `;
