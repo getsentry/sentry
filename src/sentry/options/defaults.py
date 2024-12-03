@@ -2876,20 +2876,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# killswitch for profile consumers outcome emission.
-# If false, processed outcomes for profiles will keep
-# being emitted in the billing metrics consumer.
-#
-# If true, we'll stop emitting processed outcomes for
-# profiles in the billing metrics consumer and we'll
-# start emitting them in the profiling consumers
-register(
-    "profiling.emit_outcomes_in_profiling_consumer.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
