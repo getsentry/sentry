@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
@@ -8,6 +8,12 @@ from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
+
+
+class FingerprintVariantMetadata(TypedDict):
+    values: list[str]
+    client_values: NotRequired[list[str]]
+    matched_rule: NotRequired[str]
 
 
 class BaseVariant:
@@ -138,8 +144,8 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values: list[str], info: FingerprintInfo):
-    rv = {
+def expose_fingerprint_dict(values: list[str], info: FingerprintInfo) -> FingerprintVariantMetadata:
+    rv: FingerprintVariantMetadata = {
         "values": values,
     }
 
@@ -176,7 +182,7 @@ class CustomFingerprintVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return hash_from_values(self.values)
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
         return expose_fingerprint_dict(self.values, self.info)
 
 
