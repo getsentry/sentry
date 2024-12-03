@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ParticipantList from 'sentry/components/group/streamlinedParticipantList';
+import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 
 describe('ParticipantList', () => {
   const users = [
