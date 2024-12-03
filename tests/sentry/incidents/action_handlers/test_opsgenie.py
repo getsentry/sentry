@@ -172,7 +172,7 @@ class OpsgenieActionHandlerTest(FireTest):
         if method == "resolve":
             responses.add(
                 responses.POST,
-                url=f"https://api.opsgenie.com/v2/alerts/{alias}/acknowledge?identifierType=alias",
+                url=f"https://api.opsgenie.com/v2/alerts/{alias}/close?identifierType=alias",
                 json={},
                 status=202,
             )
