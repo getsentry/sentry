@@ -10,7 +10,6 @@ from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
@@ -271,14 +270,7 @@ def format_top_events_timeseries_results(
                         else item["data"]
                     ),
                     "order": item["order"],
-                    "meta": {
-                        "fields": {
-                            value["name"]: get_json_meta_type(
-                                value["name"], value.get("type"), query_builder
-                            )
-                            for value in result["meta"]
-                        }
-                    },
+                    "meta": result["meta"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,
