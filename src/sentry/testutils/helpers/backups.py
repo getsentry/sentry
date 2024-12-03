@@ -48,7 +48,6 @@ from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
-    IncidentSubscription,
     IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
@@ -552,7 +551,6 @@ class ExhaustiveFixtures(Fixtures):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
