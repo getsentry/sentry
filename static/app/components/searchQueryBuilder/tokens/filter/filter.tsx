@@ -210,8 +210,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   return (
     <FilterWrapper
       aria-label={token.text}
-      invalid={tokenHasError}
-      warning={tokenHasWarning}
+      aria-invalid={tokenHasError}
+      state={tokenHasError ? 'invalid' : tokenHasWarning ? 'warning' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -267,7 +267,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')<{invalid: boolean; warning: boolean}>`
+const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
@@ -281,12 +281,12 @@ const FilterWrapper = styled('div')<{invalid: boolean; warning: boolean}>`
   }
 
   ${p =>
-    p.invalid
+    p.state === 'invalid'
       ? `
       border-color: ${p.theme.red200};
       background-color: ${p.theme.red100};
     `
-      : p.warning
+      : p.state === 'warning'
         ? `
       border-color: ${p.theme.gray300};
       background-color: ${p.theme.gray100};
