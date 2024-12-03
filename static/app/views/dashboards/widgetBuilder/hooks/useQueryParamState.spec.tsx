@@ -2,9 +2,12 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
+import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
@@ -101,6 +104,32 @@ describe('useQueryParamState', () => {
     expect(mockedNavigate).toHaveBeenCalledWith({
       ...LocationFixture(),
       query: {testField: 'newValue - 2 - true'},
+    });
+  });
+
+  it('can decode and update sorts', () => {
+    mockedUseLocation.mockReturnValue(LocationFixture({query: {sort: '-testField'}}));
+
+    const mockedNavigate = jest.fn();
+    mockedUseNavigate.mockReturnValue(mockedNavigate);
+
+    const {result} = renderHook(() =>
+      useQueryParamState<Sort[]>({
+        fieldName: 'sort',
+        decoder: decodeSorts,
+        serializer: value => value.map(formatSort),
+      })
+    );
+
+    expect(result.current[0]).toEqual([{field: 'testField', kind: 'desc'}]);
+
+    act(() => {
+      result.current[1]([{field: 'testField', kind: 'asc'}]);
+    });
+
+    expect(mockedNavigate).toHaveBeenCalledWith({
+      ...LocationFixture(),
+      query: {sort: ['testField']},
     });
   });
 });

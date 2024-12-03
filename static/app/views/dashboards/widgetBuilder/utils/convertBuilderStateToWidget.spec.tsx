@@ -97,4 +97,16 @@ describe('convertBuilderStateToWidget', function () {
       ],
     });
   });
+
+  it('injects the orderby from the sort state into the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100', 'transaction.duration:>50'],
+      sort: [{field: 'geo.country', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0].orderby).toEqual('-geo.country');
+    expect(widget.queries[1].orderby).toEqual('-geo.country');
+  });
 });
