@@ -1,7 +1,7 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
@@ -13,8 +13,6 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   dashboardId: string;
@@ -26,6 +24,7 @@ interface Props {
   dateStatus?: React.ReactNode;
   isFavorited?: boolean;
   onEventClick?: () => void;
+  onFavorite?: () => void;
   renderContextMenu?: () => React.ReactNode;
 }
 
@@ -39,8 +38,10 @@ function DashboardCard({
   onEventClick,
   renderContextMenu,
   isFavorited = false,
-  dashboardId,
+  onFavorite,
 }: Props) {
+  const [favorited, setFavorited] = useState<boolean>(isFavorited);
+
   function onClick() {
     onEventClick?.();
   }
@@ -48,9 +49,6 @@ function DashboardCard({
   // Fetch the theme to set the `InteractionStateLayer` color. Otherwise it will
   // use the `currentColor` of the `Link`, which is blue, and not correct
   const theme = useTheme();
-  const api = useApi();
-  const organization = useOrganization();
-  const orgSlug = organization.slug;
   return (
     <CardWithoutMargin>
       <CardLink
@@ -93,10 +91,12 @@ function DashboardCard({
           <StyledButton
             icon={
               <IconStar
-                isSolid={isFavorited}
-                size="md"
+                isSolid={favorited}
+                color={favorited ? 'yellow300' : 'subText'}
+                size="sm"
                 onClick={() => {
-                  updateDashboardFavorite(api, orgSlug, dashboardId, true);
+                  setFavorited(!favorited);
+                  onFavorite?.();
                 }}
               />
             }
@@ -202,8 +202,8 @@ const ContextMenuWrapper = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  margin-right: -5px;
-  padding: 4px;
+  margin-right: -10px;
+  padding: 5px;
 `;
 
 export default DashboardCard;
