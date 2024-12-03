@@ -206,7 +206,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         return self.paginate(
             request=request,
-            sources=[dashboards] if filter_by == "onlyFavorites" else [prebuilt, dashboards],
+            sources=(
+                [dashboards]
+                if features.has(
+                    "organizations:dashboards-favourite", organization, actor=request.user
+                )
+                and filter_by
+                and filter_by == "onlyFavorites"
+                else [prebuilt, dashboards]
+            ),
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
