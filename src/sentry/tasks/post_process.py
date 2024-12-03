@@ -650,9 +650,10 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
-            event_id = _get_event_id_from_cache_key(cache_key)
             track_sampled_event(
-                event_id, ConsumerType.Transactions, TransactionStageStatus.POST_PROCESS_STARTED
+                data["event_id"],
+                ConsumerType.Transactions,
+                TransactionStageStatus.POST_PROCESS_STARTED,
             )
 
         metric_tags = {}
