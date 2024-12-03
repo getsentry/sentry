@@ -363,6 +363,12 @@ def get_stacktrace_string_with_metrics(
                 },
             )
         stacktrace_string = None
+    except Exception as e:
+        logger.exception(
+            "Unexpected exception in stacktrace string formatting", extra={"exception": str(e)}
+        )
+        stacktrace_string = None
+
     return stacktrace_string
 
 
