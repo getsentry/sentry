@@ -58,7 +58,6 @@ import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/trigge
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
-import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isLowConfidenceTimeSeries} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
@@ -181,9 +180,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['custom_metrics', 'span_metrics', 'insights_metrics', 'eap_metrics'].includes(
-        alertType
-      )
+      !['custom_metrics', 'span_metrics', 'eap_metrics'].includes(alertType)
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
@@ -762,7 +759,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       sensitivity,
       seasonality,
       comparisonType,
-      alertType,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -841,7 +837,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             wizardV3: 'true',
             referrer: location?.query?.referrer,
             sessionId,
-            ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+            ...getForceMetricsLayerQueryExtras(organization, dataset),
           }
         );
         // if we get a 202 back it means that we have an async task
@@ -1236,11 +1232,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (
-      alertType === 'custom_metrics' ||
-      alertType === 'insights_metrics' ||
-      alertType === 'eap_metrics'
-    ) {
+    if (alertType === 'custom_metrics' || alertType === 'eap_metrics') {
       formattedQuery = '';
     }
 
@@ -1359,10 +1351,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
-        {isCustomMetricAlert(rule.aggregate) &&
-          !isInsightsMetricAlert(rule.aggregate) && (
-            <MetricsBetaEndAlert organization={organization} />
-          )}
+        {isCustomMetricAlert(rule.aggregate) && (
+          <MetricsBetaEndAlert organization={organization} />
+        )}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
