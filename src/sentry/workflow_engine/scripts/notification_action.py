@@ -1,17 +1,17 @@
 from typing import Any
 
-from sentry.workflow_engine.actions.notification_action.mappings import (
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.typings.notification_action import (
     ACTION_TYPE_2_INTEGRATION_ID_KEY,
     ACTION_TYPE_2_TARGET_DISPLAY_KEY,
     ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
     RULE_REGISTRY_ID_2_ACTION_TYPE,
 )
-from sentry.workflow_engine.models.action import Action
 
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 
-def pop_action_json_blob_data(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
+def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
     """
     Pops the keys we don't want to save inside the JSON field of the Action model.
 
@@ -58,7 +58,7 @@ def build_notification_actions_from_rule_data(actions: list[dict[str, Any]]) -> 
 
         notification_action = Action(
             type=action_type,
-            data=pop_action_json_blob_data(action, action_type),
+            data=sanitize_to_action(action, action_type),
             integration_id=integration_id,
             target_identifier=target_identifier,
             target_display=target_display,

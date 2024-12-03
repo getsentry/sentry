@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import patch
 
 from sentry.models.group import GroupEvent
@@ -5,16 +6,17 @@ from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.actions.action_handlers_registry import trigger_action
-from sentry.workflow_engine.actions.notification_action.logic import form_issue_alert_models
-from sentry.workflow_engine.actions.notification_action.mappings import (
+from sentry.workflow_engine.actions.notification_action.logic import (
+    create_rule_fire_history_from_action,
+    create_rule_from_action,
+)
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.scripts.notification_action import EXCLUDED_ACTION_DATA_KEYS
+from sentry.workflow_engine.typings.notification_action import (
     ACTION_TYPE_2_INTEGRATION_ID_KEY,
     ACTION_TYPE_2_TARGET_DISPLAY_KEY,
     ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
 )
-from sentry.workflow_engine.actions.notification_action.migration_utils import (
-    EXCLUDED_ACTION_DATA_KEYS,
-)
-from sentry.workflow_engine.models.action import Action
 
 
 class TestNotificationActionBase(TestCase):
@@ -25,6 +27,7 @@ class TestNotificationActionBase(TestCase):
     def setUp(self):
         self.group = self.create_group(project=self.project)
         self.group_event = GroupEvent.from_event(self.event, self.group)
+        self.notification_uuid = str(uuid.uuid4())
 
         # Build the detector
         self.detector = self.create_detector(project=self.project)
@@ -95,12 +98,13 @@ class TestNotificationActionLogicIssueAlertRegistry(TestNotificationActionBase):
             target_display="#test-channel",
         )
 
-        rule, rule_fire_history, notification_uuid = form_issue_alert_models(
-            action, self.detector, self.group_event
+        rule = create_rule_from_action(action, self.detector)
+        rule_fire_history = create_rule_fire_history_from_action(
+            action, self.detector, self.group_event, rule, self.notification_uuid
         )
 
         self.assert_rule_equivalent_to_action(rule, action)
-        self.assert_rule_fire_history(rule, rule_fire_history, notification_uuid, action)
+        self.assert_rule_fire_history(rule, rule_fire_history, self.notification_uuid, action)
 
     def test_form_issue_alert_models_discord(self):
         action = self.create_action(
@@ -109,16 +113,17 @@ class TestNotificationActionLogicIssueAlertRegistry(TestNotificationActionBase):
             target_identifier="1234567890",
         )
 
-        rule, rule_fire_history, notification_uuid = form_issue_alert_models(
-            action, self.detector, self.group_event
+        rule = create_rule_from_action(action, self.detector)
+        rule_fire_history = create_rule_fire_history_from_action(
+            action, self.detector, self.group_event, rule, self.notification_uuid
         )
 
         self.assert_rule_equivalent_to_action(rule, action)
-        self.assert_rule_fire_history(rule, rule_fire_history, notification_uuid, action)
+        self.assert_rule_fire_history(rule, rule_fire_history, self.notification_uuid, action)
 
     # TODO(iamrajjoshi): Add tests for the other integrations
 
-    # TODO(iamrajjoshi): Write a test for invoke_issue_alert_registry without mocking
+    # TODO(iamrajjoshi): Write a test for send_notification_using_rule_registry without mocking
 
 
 class TestNotificationAction(TestNotificationActionBase):
@@ -126,8 +131,10 @@ class TestNotificationAction(TestNotificationActionBase):
     Tests for notification actions.
     """
 
-    @patch("sentry.workflow_engine.actions.notification_action.logic.invoke_issue_alert_registry")
-    def test_issue_alert_registry_invoked(self, mock_invoke_issue_alert_registry):
+    @patch(
+        "sentry.workflow_engine.actions.notification_action.logic.send_notification_using_rule_registry"
+    )
+    def test_issue_alert_registry_invoked(self, mock_send_notification_using_rule_registry):
         # self.data_source is of type IssueOccurrence
         action = self.create_action(
             type=Action.Type.NOTIFICATION_SLACK,
@@ -138,6 +145,6 @@ class TestNotificationAction(TestNotificationActionBase):
 
         trigger_action(action, self.group_event)
 
-        mock_invoke_issue_alert_registry.assert_called_once_with(
-            self.action, self.detector, self.group_event
+        mock_send_notification_using_rule_registry.assert_called_once_with(
+            action, self.detector, self.group_event
         )
