@@ -11,6 +11,7 @@ import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoa
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -44,7 +45,7 @@ sentry_sdk.init(
           ? `
     _experiments={
         # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
+        # to automatically start the profiler when
         # possible.
         "continuous_profiling_auto_start": True,
     },`
@@ -106,16 +107,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-async def hello(request):
-   return web.Response(text="Hello, world")
-
-app = web.Application()
-app.add_routes([web.get('/', hello)])
-
-web.run_app(app)
-`,
+          code: getSdkSetupSnippet(params),
         },
       ],
       additionalInfo: params.isProfilingSelected &&
@@ -124,7 +116,7 @@ web.run_app(app)
         ),
     },
   ],
-  verify: (params: Params) => [
+  verify: () => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -135,7 +127,6 @@ web.run_app(app)
           language: 'python',
 
           code: `
-${getSdkSetupSnippet(params)}
 async def hello(request):
     1/0  # raises an error
     return web.Response(text="Hello, world")
@@ -177,6 +168,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

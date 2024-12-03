@@ -1,4 +1,5 @@
-import type {Flags} from 'sentry/types/event';
+import type {FeatureFlagContext} from '@sentry/types/build/types/context';
+
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
@@ -22,7 +23,7 @@ export default class FeatureObserver {
   }
 
   private _bufferSize = 0;
-  private FEATURE_FLAGS: Flags = {values: []};
+  private FEATURE_FLAGS: FeatureFlagContext = {values: []};
 
   constructor({bufferSize}: {bufferSize: number}) {
     this._bufferSize = bufferSize;

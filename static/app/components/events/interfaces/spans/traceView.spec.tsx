@@ -16,7 +16,6 @@ import * as AnchorLinkManager from 'sentry/components/events/interfaces/spans/sp
 import TraceView from 'sentry/components/events/interfaces/spans/traceView';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -534,11 +533,9 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
-          <AnchorLinkManager.Provider>
-            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-          </AnchorLinkManager.Provider>
-        </TransactionProfileIdProvider>
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
@@ -562,11 +559,9 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(builder.getEventFixture());
 
       render(
-        <TransactionProfileIdProvider transactionId={undefined} timestamp={undefined}>
-          <AnchorLinkManager.Provider>
-            <TraceView organization={data.organization} waterfallModel={waterfallModel} />
-          </AnchorLinkManager.Provider>
-        </TransactionProfileIdProvider>
+        <AnchorLinkManager.Provider>
+          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        </AnchorLinkManager.Provider>
       );
 
       expect(await screen.findByText(/0000000000000003/i)).toBeInTheDocument();
