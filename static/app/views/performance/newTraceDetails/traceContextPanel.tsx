@@ -23,7 +23,6 @@ export function TraceContextPanel({rootEvent}: Props) {
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
 
-  console.dir(rootEvent);
   const hasMeasurements = rootEvent.data?.measurements;
 
   const handleMouseDown = (event: React.MouseEvent) => {

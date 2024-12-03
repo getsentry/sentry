@@ -141,6 +141,8 @@ export function collectTraceMeasurements(
       value.unit ?? 'millisecond'
     );
 
+    const score = measurements[`score.${measurement}`]?.value;
+
     indicators.push({
       start: timestamp,
       duration: 0,
@@ -150,6 +152,7 @@ export function collectTraceMeasurements(
         : false,
       type: measurement as TraceTree.Indicator['type'],
       label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
+      score,
     });
   }
 
