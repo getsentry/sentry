@@ -17,7 +17,7 @@ class Action(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
-    __repr__ = sane_repr("workflow_id", "type")
+    __repr__ = sane_repr("id", "type")
 
     # TODO (@saponifi3d): Don't hardcode these values, and these are incomplete values
     class Type(models.TextChoices):
