@@ -34,7 +34,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   }
 
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
-  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
   const intersectionFlags = hydratedFlagData.filter(f =>
     evaluatedFlagNames?.includes(f.name)
   );

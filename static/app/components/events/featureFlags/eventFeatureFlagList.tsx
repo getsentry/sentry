@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   CardContainer,
   FeatureFlagDrawer,
@@ -91,8 +90,12 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = !!event.contexts.flags;
-  const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
+  const flagValues = useMemo(() => {
+    return event.contexts?.flags?.values ?? [];
+  }, [event]);
+  const hasFlags = hasFlagContext && flagValues.length > 0;
+
   const showCTA =
     !hasFlagContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
@@ -107,11 +110,11 @@ export function EventFeatureFlagList({
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component
     // Reverse the flags to show newest at the top by default
-    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values.toReversed() ?? [];
+    const rawFlags: FeatureFlag[] = flagValues.toReversed() ?? [];
 
     // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
     const flags = rawFlags.filter(
-      f => f && typeof f === 'object' && 'flag' in f && 'result' in f
+      (f): f is Required<FeatureFlag> => f && 'flag' in f && 'result' in f
     );
 
     return flags.map(f => {
@@ -131,7 +134,7 @@ export function EventFeatureFlagList({
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [event, suspectFlagNames]);
+  }, [suspectFlagNames, flagValues]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
@@ -240,28 +243,26 @@ export function EventFeatureFlagList({
   }
 
   return (
-    <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
-      <InterimSection
-        help={t(
-          "The last 100 flags evaluated in the user's session leading up to this event."
-        )}
-        isHelpHoverable
-        title={t('Feature Flags')}
-        type={SectionKey.FEATURE_FLAGS}
-        actions={actions}
-      >
-        {hasFlags ? (
-          <CardContainer numCols={columnTwo.length ? 2 : 1}>
-            <KeyValueData.Card expandLeft contentItems={columnOne} />
-            <KeyValueData.Card expandLeft contentItems={columnTwo} />
-          </CardContainer>
-        ) : (
-          <StyledEmptyStateWarning withIcon>
-            {t('No feature flags were found for this event')}
-          </StyledEmptyStateWarning>
-        )}
-      </InterimSection>
-    </ErrorBoundary>
+    <InterimSection
+      help={t(
+        "The last 100 flags evaluated in the user's session leading up to this event."
+      )}
+      isHelpHoverable
+      title={t('Feature Flags')}
+      type={SectionKey.FEATURE_FLAGS}
+      actions={actions}
+    >
+      {hasFlags ? (
+        <CardContainer numCols={columnTwo.length ? 2 : 1}>
+          <KeyValueData.Card expandLeft contentItems={columnOne} />
+          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+        </CardContainer>
+      ) : (
+        <StyledEmptyStateWarning withIcon>
+          {t('No feature flags were found for this event')}
+        </StyledEmptyStateWarning>
+      )}
+    </InterimSection>
   );
 }
 
