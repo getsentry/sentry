@@ -5,6 +5,7 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+import {IssueCategory, IssueTitle} from 'sentry/types/group';
 import type {TraceEventResponse} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {makeTraceError} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
@@ -98,6 +99,35 @@ describe('EventTraceView', () => {
     expect(await screen.findByText('Trace')).toBeInTheDocument();
     expect(
       await screen.findByText('MaybeEncodingError: Error sending result')
+    ).toBeInTheDocument();
+  });
+
+  it('still renders trace link for performance issues', async () => {
+    const perfGroup = GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
+    const perfEvent = EventFixture({
+      occurrence: {
+        type: 1001,
+        issueTitle: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+      },
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+      contexts: {
+        trace: {
+          trace_id: traceId,
+        },
+      },
+    });
+
+    render(
+      <EventTraceView group={perfGroup} event={perfEvent} organization={organization} />
+    );
+    expect(await screen.findByText('Trace')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', {name: 'View Full Trace'})
     ).toBeInTheDocument();
   });
 
