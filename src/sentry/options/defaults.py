@@ -2910,7 +2910,7 @@ register(
 )
 register(
     "performance.event-tracker.sample-rate.transactions",
-    default=0.0,
+    default=0.01,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
