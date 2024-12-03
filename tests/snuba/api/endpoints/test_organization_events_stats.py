@@ -486,6 +486,45 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         assert response.status_code == 400, response.content
 
+    def test_throughput_meta(self):
+        project = self.create_project()
+
+        for axis in ["epm()", "tpm()"]:
+            response = self.do_request(
+                data={
+                    "transformAliasToInputFormat": 1,
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
+                    "interval": "1h",
+                    "yAxis": axis,
+                    "project": project.id,
+                },
+            )
+            meta = response.data["meta"]
+            assert meta["fields"] == {
+                "time": "date",
+                axis: "rate",
+            }
+            assert meta["units"] == {"time": None, axis: "1/minute"}
+
+        for axis in ["eps()", "tps()"]:
+            response = self.do_request(
+                data={
+                    "transformAliasToInputFormat": 1,
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
+                    "interval": "1h",
+                    "yAxis": axis,
+                    "project": project.id,
+                },
+            )
+            meta = response.data["meta"]
+            assert meta["fields"] == {
+                "time": "date",
+                axis: "rate",
+            }
+            assert meta["units"] == {"time": None, axis: "1/second"}
+
     def test_throughput_epm_hour_rollup(self):
         project = self.create_project()
         # Each of these denotes how many events to create in each hour
@@ -518,13 +557,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-
-            meta = response.data["meta"]
-            assert meta["fields"] == {
-                "time": "date",
-                axis: "rate",
-            }
-            assert meta["units"] == {"time": None, axis: "1/minute"}
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
@@ -597,13 +629,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             assert response.status_code == 200, response.content
             data = response.data["data"]
             assert len(data) == 6
-
-            meta = response.data["meta"]
-            assert meta["fields"] == {
-                "time": "date",
-                axis: "rate",
-            }
-            assert meta["units"] == {"time": None, axis: "1/second"}
 
             rows = data[0:6]
             for test in zip(event_counts, rows):
