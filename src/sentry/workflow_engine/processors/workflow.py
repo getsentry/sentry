@@ -1,5 +1,5 @@
 from sentry.eventstore.models import GroupEvent
-from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.types import DetectorType
 
 
@@ -30,11 +30,7 @@ def process_workflows(evt: GroupEvent):
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
 
-    # gather all the workflows based on the detector_id and dedupe the workflows
-    dws = DetectorWorkflow.objects.filter(detector_id=detector.id).prefetch_related("workflow")
-    workflows = {dw.workflow for dw in dws}
-
-    # evaluate if the workflows should be triggered based on the event
+    workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, evt)
 
     # get all the data_condition_group_ids from the triggered_workflows <=> workflow_data_condition_groups
