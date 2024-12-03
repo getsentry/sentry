@@ -169,10 +169,6 @@ class TooManyOnlySystemFramesException(Exception):
     pass
 
 
-class NoFilenameOrModuleException(Exception):
-    pass
-
-
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -200,7 +196,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
     is_frames_truncated = False
-    has_no_filename_or_module = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -210,7 +205,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal is_frames_truncated
-        nonlocal has_no_filename_or_module
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
@@ -232,7 +226,8 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
                 found_non_snipped_context_line = True
 
             if not filename:
-                has_no_filename_or_module = True
+                # Skip the frame if we can't figure out the filename
+                continue
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
@@ -283,8 +278,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             and not app_hash
         ):
             raise TooManyOnlySystemFramesException
-        if has_no_filename_or_module:
-            raise NoFilenameOrModuleException
+
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -369,13 +363,6 @@ def get_stacktrace_string_with_metrics(
                 key,
                 sample_rate=sample_rate,
                 tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
-            )
-    except NoFilenameOrModuleException:
-        if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "no-module-or-filename"},
             )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
