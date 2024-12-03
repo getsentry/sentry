@@ -261,7 +261,15 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         logger.info("record_first_replay_analytics_end")
-        user: RpcUser = project.organization.get_default_owner()
+        # TODO(Telemetry): Remove this once we remove the feature flag 'quick-start-updates'
+        try:
+            user: RpcUser = project.organization.get_default_owner()
+        except IndexError:
+            logger.warning(
+                "Cannot record first replay for organization (%s) due to missing owners",
+                project.organization_id,
+            )
+            return
         try_mark_onboarding_complete(project.organization_id, user)
 
 
@@ -409,7 +417,15 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
         },
     )
     if created or rows_affected:
-        user: RpcUser = Organization.objects.get(id=organization_id).get_default_owner()
+        # TODO(Telemetry): Remove this once we remove the feature flag 'quick-start-updates'
+        try:
+            user: RpcUser = Organization.objects.get(id=organization_id).get_default_owner()
+        except IndexError:
+            logger.warning(
+                "Cannot record member joined an organization (%s) due to missing owners",
+                organization_id,
+            )
+            return
         try_mark_onboarding_complete(organization_id, user)
 
 
@@ -425,8 +441,9 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         organization = Organization.objects.get_from_cache(id=project.organization_id)
-        owner_id = organization.default_owner_id
-        if not owner_id:
+        try:
+            owner: RpcUser = organization.get_default_owner()
+        except IndexError:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -435,12 +452,11 @@ def record_release_received(project, event, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=owner_id,
+            user_id=owner.id,
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        user: RpcUser = organization.get_default_owner()
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id, owner)
 
 
 event_processed.connect(record_release_received, weak=False)
@@ -463,8 +479,9 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             organization = Organization.objects.get_from_cache(id=project.organization_id)
-            owner_id = organization.default_owner_id
-            if not owner_id:
+            try:
+                owner: RpcUser = organization.get_default_owner()
+            except IndexError:
                 logger.warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
                     project.organization_id,
@@ -473,12 +490,12 @@ def record_user_context_received(project, event, **kwargs):
 
             analytics.record(
                 "first_user_context.sent",
-                user_id=owner_id,
+                user_id=owner.id,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
-            user: RpcUser = organization.get_default_owner()
-            try_mark_onboarding_complete(project.organization_id, user)
+
+            try_mark_onboarding_complete(project.organization_id, owner)
 
 
 event_processed.connect(record_user_context_received, weak=False)
@@ -535,8 +552,9 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         organization = Organization.objects.get_from_cache(id=project.organization_id)
-        owner_id = organization.default_owner_id
-        if not owner_id:
+        try:
+            owner: RpcUser = organization.get_default_owner()
+        except IndexError:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -544,15 +562,14 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=owner_id,
+            user_id=owner.id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        user: RpcUser = organization.get_default_owner()
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id, owner)
 
 
 @event_processed.connect(weak=False)
