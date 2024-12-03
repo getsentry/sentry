@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {useTheme} from '@emotion/react';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 100;
@@ -66,8 +66,6 @@ export function TraceContextPanel({tree}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
-  console.dir(tree);
-
   const renderVitals = () => {
     if (!hasVitals) {
       return null;
@@ -76,12 +74,15 @@ export function TraceContextPanel({tree}: Props) {
     return tree.indicators.map((indicator, index) => {
       if (ALLOWED_VITALS.includes(indicator.type) && indicator.score) {
         const colors = theme.charts.getColorPalette(3);
+        const score = Math.round(indicator.score * 100);
+
         return (
           <VitalMeter
+            key={indicator.type}
             webVital={indicator.type as WebVitals}
-            score={indicator.score}
+            score={score}
             meterValue={indicator.measurement.value}
-            showTooltip={true}
+            showTooltip
             color={colors[index]}
           />
         );
