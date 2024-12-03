@@ -11,8 +11,18 @@ from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.stacktraces.processing import StacktraceInfo
+from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
+
+# Platform values that should mark an event
+# or frame as being Java for the purposes
+# of symbolication.
+#
+# Strictly speaking, this should probably include
+# "android" too—at least we use it in profiling.
+JAVA_PLATFORMS = ("java",)
 
 
 def is_valid_proguard_image(image):
@@ -107,10 +117,24 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
 
-def is_jvm_event(data: Any) -> bool:
-    """Returns whether `data` is a JVM event, based on its images."""
+def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
+    """Returns whether `data` is a JVM event, based on its platform,
+    the supplied stacktraces, and its images."""
+
+    platform = data.get("platform")
+
+    if platform in JAVA_PLATFORMS:
+        return True
+
+    for stacktrace in stacktraces:
+        # The platforms of a stacktrace are exactly the platforms of its frames
+        # so this is tantamount to checking if any frame has a Java platform.
+        if any(x in JAVA_PLATFORMS for x in stacktrace.platforms):
+            return True
 
     # check if there are any JVM or Proguard images
+    # TODO: Can this actually happen if the event platform
+    # is not "java"?
     images = get_path(
         data,
         "debug_meta",
@@ -118,4 +142,10 @@ def is_jvm_event(data: Any) -> bool:
         filter=lambda x: is_valid_jvm_image(x) or is_valid_proguard_image(x),
         default=(),
     )
-    return bool(images)
+
+    if images:
+        metrics.incr("process.java.symbolicate.missing_platform", tags={platform: platform})
+
+        return True
+
+    return False
