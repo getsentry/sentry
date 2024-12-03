@@ -42,7 +42,7 @@ function WidgetBuilderDatasetSelector() {
             ),
           }
         )}
-        position="auto"
+        position="right-end"
         delay={200}
         isHoverable
       >
