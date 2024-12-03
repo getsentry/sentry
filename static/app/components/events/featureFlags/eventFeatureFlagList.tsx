@@ -91,7 +91,9 @@ export function EventFeatureFlagList({
   });
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
-  const flagValues = event.contexts?.flags?.values ?? [];
+  const flagValues = useMemo(() => {
+    return event.contexts?.flags?.values ?? [];
+  }, [event]);
   const hasFlags = hasFlagContext && flagValues.length > 0;
 
   const showCTA =
@@ -108,7 +110,7 @@ export function EventFeatureFlagList({
   const hydratedFlags = useMemo(() => {
     // Transform the flags array into something readable by the key-value component
     // Reverse the flags to show newest at the top by default
-    const rawFlags: FeatureFlag[] = event.contexts?.flags?.values?.toReversed() ?? [];
+    const rawFlags: FeatureFlag[] = flagValues.toReversed() ?? [];
 
     // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
     const flags = rawFlags.filter(
@@ -132,7 +134,7 @@ export function EventFeatureFlagList({
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [event, suspectFlagNames]);
+  }, [suspectFlagNames, flagValues]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {
