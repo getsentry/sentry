@@ -34,6 +34,7 @@ class MessagingInteractionType(StrEnum):
     UNRESOLVE = "UNRESOLVE"
     IGNORE = "IGNORE"
     MARK_ONGOING = "MARK_ONGOING"
+    VIEW_SUBMISSION = "VIEW_SUBMISSION"
 
     # Automatic behaviors
     UNFURL_ISSUES = "UNFURL_ISSUES"
@@ -84,9 +85,6 @@ class MessageCommandHaltReason(StrEnum):
     TEAM_NOT_LINKED = "team_not_linked"
     INSUFFICIENT_ROLE = "insufficient_role"
 
-    def __str__(self) -> str:
-        return self.value
-
 
 class MessageCommandFailureReason(StrEnum):
     """Common reasons why a messaging command may fail."""
@@ -94,5 +92,8 @@ class MessageCommandFailureReason(StrEnum):
     MISSING_DATA = "missing_data"
     INVALID_STATE = "invalid_state"
 
-    def __str__(self) -> str:
-        return self.value
+
+class MessageInteractionFailureReason(StrEnum):
+    """Common reasons why a messaging interaction may fail."""
+
+    MISSING_ACTION = "missing_action"
