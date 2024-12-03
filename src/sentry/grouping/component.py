@@ -6,8 +6,6 @@ from typing import Any, Self
 
 from sentry.grouping.utils import hash_from_values
 
-DEFAULT_HINTS = {"salt": "a static salt"}
-
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
 # the UI.
@@ -53,7 +51,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
         self.variant_provider = variant_provider
 
         self.update(
-            hint=hint or DEFAULT_HINTS.get(self.id),
+            hint=hint,
             contributes=contributes,
             values=values or [],
         )
@@ -145,7 +143,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]]:
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self) -> Generator[str | int | BaseGroupingComponent[Any]]:
+    def iter_values(self) -> Generator[str | int]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
@@ -213,7 +211,7 @@ class FunctionGroupingComponent(BaseGroupingComponent[str]):
     id: str = "function"
 
 
-class LineNumberGroupingComponent(BaseGroupingComponent[str]):
+class LineNumberGroupingComponent(BaseGroupingComponent[int]):
     id: str = "lineno"
 
 
@@ -366,3 +364,41 @@ class TemplateGroupingComponent(
     BaseGroupingComponent[ContextLineGroupingComponent | FilenameGroupingComponent]
 ):
     id: str = "template"
+
+
+# Wrapper components used to link component trees to variants
+
+
+class DefaultGroupingComponent(
+    BaseGroupingComponent[
+        CSPGroupingComponent
+        | ExpectCTGroupingComponent
+        | ExpectStapleGroupingComponent
+        | HPKPGroupingComponent
+        | MessageGroupingComponent
+        | TemplateGroupingComponent
+    ]
+):
+    id: str = "default"
+
+
+class AppGroupingComponent(
+    BaseGroupingComponent[
+        ChainedExceptionGroupingComponent
+        | ExceptionGroupingComponent
+        | StacktraceGroupingComponent
+        | ThreadsGroupingComponent
+    ]
+):
+    id: str = "app"
+
+
+class SystemGroupingComponent(
+    BaseGroupingComponent[
+        ChainedExceptionGroupingComponent
+        | ExceptionGroupingComponent
+        | StacktraceGroupingComponent
+        | ThreadsGroupingComponent
+    ]
+):
+    id: str = "system"
