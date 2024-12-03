@@ -1,7 +1,8 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -59,21 +60,28 @@ function EditAccessSelector({
   const {onSearch} = useTeams();
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
-  const [selectedOptions, setSelectedOptions] = useState<string[]>(getSelectedOptions());
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const {teams: selectedTeam} = useTeamsById({ids: [selectedOptions[1]]});
+  const {teams: selectedTeam} = useTeamsById({
+    ids:
+      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+  });
 
-  // Effect to update selectedOptions whenever the dashboard changes
+  // Gets selected options for the dropdown from dashboard object
   useEffect(() => {
     const teamIdsList: string[] = Object.values(teamsToRender).map(team => team.id);
-    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
-      setSelectedOptions(['_creator', '_allUsers', ...teamIdsList]);
-    } else {
-      const permittedTeamIds =
-        dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
-      setSelectedOptions(['_creator', ...permittedTeamIds]);
-    }
-  }, [dashboard, teamsToRender]);
+    const selectedOptionsFromDashboard =
+      !defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone
+        ? ['_creator', '_allUsers', ...teamIdsList]
+        : [
+            '_creator',
+            ...(dashboard.permissions.teamsWithEditAccess?.map(teamId =>
+              String(teamId)
+            ) ?? []),
+          ];
+    setSelectedOptions(selectedOptionsFromDashboard);
+  }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
@@ -113,41 +121,34 @@ function EditAccessSelector({
         ? []
         : selectedOptions
             .filter(option => option !== '_creator')
-            .map(teamId => parseInt(teamId, 10)),
+            .map(teamId => parseInt(teamId, 10))
+            .sort((a, b) => a - b),
     };
   }
 
-  // Gets selected options for the dropdown from dashboard object
-  function getSelectedOptions(): string[] {
-    if (!defined(dashboard.permissions) || dashboard.permissions.isEditableByEveryone) {
-      return ['_creator', '_allUsers', ...teamIds];
-    }
-    const permittedTeamIds =
-      dashboard.permissions.teamsWithEditAccess?.map(teamId => String(teamId)) ?? [];
-    return ['_creator', ...permittedTeamIds];
-  }
-
-  // Dashboard creator option in the dropdown
-  const makeCreatorOption = () => ({
-    value: '_creator',
-    label: (
-      <UserBadge
-        avatarSize={18}
-        user={dashboardCreator}
-        displayName={
-          <StyledDisplayName>
-            {dashboardCreator?.id === currentUser.id
-              ? tct('You ([email])', {email: currentUser.email})
-              : dashboardCreator?.email ||
-                tct('You ([email])', {email: currentUser.email})}
-          </StyledDisplayName>
-        }
-        displayEmail={t('Creator')}
-      />
-    ),
-    textValue: `creator_${currentUser.email}`,
-    disabled: true,
-  });
+  const makeCreatorOption = useCallback(
+    () => ({
+      value: '_creator',
+      label: (
+        <UserBadge
+          avatarSize={18}
+          user={dashboardCreator}
+          displayName={
+            <StyledDisplayName>
+              {dashboardCreator?.id === currentUser.id
+                ? tct('You ([email])', {email: currentUser.email})
+                : dashboardCreator?.email ||
+                  tct('You ([email])', {email: currentUser.email})}
+            </StyledDisplayName>
+          }
+          displayEmail={t('Creator')}
+        />
+      ),
+      textValue: `creator_${currentUser.email}`,
+      disabled: true,
+    }),
+    [dashboardCreator, currentUser]
+  );
 
   // Single team option in the dropdown
   const makeTeamOption = (team: Team) => ({
@@ -184,26 +185,38 @@ function EditAccessSelector({
       />
     );
 
-  const allDropdownOptions = [
-    makeCreatorOption(),
-    {
-      value: '_all_users_section',
-      options: [
-        {
-          value: '_allUsers',
-          label: t('All users'),
-          disabled: !userCanEditDashboardPermissions,
-        },
-      ],
-    },
-    {
-      value: '_teams',
-      label: t('Teams'),
-      options: teamsToRender.map(makeTeamOption),
-      showToggleAllButton: userCanEditDashboardPermissions,
-      disabled: !userCanEditDashboardPermissions,
-    },
-  ];
+  // Sorting function for team options
+  const listSort = useCallback(
+    (team: Team) => [
+      !stagedOptions.includes(team.id), // selected teams are shown first
+      team.slug, // sort rest alphabetically
+    ],
+    [stagedOptions]
+  );
+
+  const allDropdownOptions = useMemo(
+    () => [
+      makeCreatorOption(),
+      {
+        value: '_all_users_section',
+        options: [
+          {
+            value: '_allUsers',
+            label: t('All users'),
+            disabled: !userCanEditDashboardPermissions,
+          },
+        ],
+      },
+      {
+        value: '_teams',
+        label: t('Teams'),
+        options: sortBy(teamsToRender, listSort).map(makeTeamOption),
+        showToggleAllButton: userCanEditDashboardPermissions,
+        disabled: !userCanEditDashboardPermissions,
+      },
+    ],
+    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
+  );
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
@@ -212,9 +225,6 @@ function EditAccessSelector({
         size="sm"
         onClick={() => {
           setMenuOpen(false);
-          if (isMenuOpen) {
-            setSelectedOptions(getSelectedOptions());
-          }
         }}
         disabled={!userCanEditDashboardPermissions}
       >
@@ -237,7 +247,12 @@ function EditAccessSelector({
         priority="primary"
         disabled={
           !userCanEditDashboardPermissions ||
-          isEqual(getDashboardPermissions(), dashboard.permissions)
+          isEqual(getDashboardPermissions(), {
+            ...dashboard.permissions,
+            teamsWithEditAccess: dashboard.permissions?.teamsWithEditAccess?.sort(
+              (a, b) => a - b
+            ),
+          })
         }
       >
         {t('Save Changes')}
@@ -274,10 +289,8 @@ function EditAccessSelector({
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
+        setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
-        if (isMenuOpen) {
-          setSelectedOptions(getSelectedOptions());
-        }
       }}
       menuFooter={dropdownFooterButtons}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}

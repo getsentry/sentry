@@ -451,13 +451,14 @@ class SnubaTagStorage(TagStorage):
         # We want to disable FINAL in the snuba query to reduce load.
         optimize_kwargs = {"turbo": True}
 
-        # Add static sample amount to the query. Turbo will sample at 10% by
-        # default, but organizations with many events still get timeouts. A
-        # static sample creates more consistent performance.
         organization_id = get_organization_id_from_project_ids(projects)
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:tag-key-sample-n", organization):
+            # Add static sample amount to the query. Turbo will sample at 10% by
+            # default, but organizations with many events still get timeouts. A
+            # static sample creates more consistent performance.
             optimize_kwargs["sample"] = options.get("visibility.tag-key-sample-size")
+
         # If we are fetching less than max_unsampled_projects, then disable
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so

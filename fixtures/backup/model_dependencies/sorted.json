@@ -189,6 +189,7 @@
   "sentry.dashboardwidget",
   "sentry.dashboardproject",
   "sentry.dashboardpermissions",
+  "sentry.dashboardfavoriteuser",
   "sentry.customdynamicsamplingruleproject",
   "sentry.commitfilechange",
   "sentry.broadcastseen",
@@ -239,9 +240,7 @@
   "sentry.pendingincidentsnapshot",
   "sentry.notificationmessage",
   "sentry.incidenttrigger",
-  "sentry.incidentsubscription",
   "sentry.incidentsnapshot",
-  "sentry.incidentseen",
   "sentry.incidentproject",
   "sentry.incidentactivity"
 ]

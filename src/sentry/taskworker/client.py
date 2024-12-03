@@ -25,8 +25,18 @@ class TaskworkerClient:
         self._stub = ConsumerServiceStub(self._channel)
 
     def get_task(self) -> TaskActivation | None:
+        """
+        Fetch a pending task
+
+        Will return None when there are no tasks to fetch
+        """
         request = GetTaskRequest()
-        response = self._stub.GetTask(request)
+        try:
+            response = self._stub.GetTask(request)
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            raise
         if response.HasField("task"):
             return response.task
         return None
@@ -44,7 +54,12 @@ class TaskworkerClient:
             status=status,
             fetch_next=fetch_next,
         )
-        response = self._stub.SetTaskStatus(request)
-        if response.HasField("error"):
-            raise RuntimeError(response.error)
-        return response.task
+        try:
+            response = self._stub.SetTaskStatus(request)
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            raise
+        if response.HasField("task"):
+            return response.task
+        return None

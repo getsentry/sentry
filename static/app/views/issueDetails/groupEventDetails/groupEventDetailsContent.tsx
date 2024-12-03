@@ -107,7 +107,6 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const groupingCurrentLevel = group?.metadata?.current_level;
-  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -420,9 +419,9 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      {hasFeatureFlagSection && (
+      <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagList group={group} project={project} event={event} />
-      )}
+      </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />

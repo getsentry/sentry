@@ -13,7 +13,6 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -34,12 +33,13 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {message: string}) => {
@@ -55,6 +55,7 @@ function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
@@ -114,23 +115,7 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       addSuccessMessage(t('Created pull requests.'));
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(groupId),
-        data => {
-          if (!data || !data.autofix) {
-            return data;
-          }
-
-          return {
-            ...data,
-            autofix: {
-              ...data.autofix,
-              status: AutofixStatus.PROCESSING,
-            },
-          };
-        }
-      );
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       setHasClickedCreatePr(false);
@@ -189,6 +174,102 @@ function SetupAndCreatePRsButton({
   }
 
   return <CreatePRsButton changes={changes} groupId={groupId} />;
+}
+
+interface RootCauseAndFeedbackInputAreaProps {
+  actionText: string;
+  changesMode: 'give_feedback' | 'add_tests' | 'create_prs';
+  groupId: string;
+  handleSend: (e: FormEvent<HTMLFormElement>) => void;
+  isRootCauseSelectionStep: boolean;
+  message: string;
+  primaryAction: boolean;
+  responseRequired: boolean;
+  rootCauseMode: 'suggested_root_cause' | 'custom_root_cause';
+  setMessage: (message: string) => void;
+}
+
+function RootCauseAndFeedbackInputArea({
+  handleSend,
+  isRootCauseSelectionStep,
+  message,
+  rootCauseMode,
+  responseRequired,
+  setMessage,
+  groupId,
+  actionText,
+  primaryAction,
+  changesMode,
+}: RootCauseAndFeedbackInputAreaProps) {
+  return (
+    <form onSubmit={handleSend}>
+      <InputArea>
+        {!responseRequired ? (
+          <Fragment>
+            <NormalInput
+              type="text"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder={
+                !isRootCauseSelectionStep
+                  ? 'Share helpful context or feedback...'
+                  : rootCauseMode === 'suggested_root_cause'
+                    ? '(Optional) Provide any instructions for the fix...'
+                    : 'Propose your own root cause...'
+              }
+            />
+            {isRootCauseSelectionStep ? (
+              <Button
+                type="submit"
+                priority={primaryAction ? 'primary' : 'default'}
+                analyticsEventKey="autofix.create_fix_clicked"
+                analyticsEventName="Autofix: Create Fix Clicked"
+                analyticsParams={{
+                  group_id: groupId,
+                  type:
+                    rootCauseMode === 'suggested_root_cause'
+                      ? message
+                        ? 'suggested_with_instructions'
+                        : 'suggested'
+                      : 'custom',
+                }}
+              >
+                {actionText}
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                priority={primaryAction ? 'primary' : 'default'}
+                analyticsEventKey="autofix.feedback_provided"
+                analyticsEventName="Autofix: Feedback Provided"
+                analyticsParams={{
+                  group_id: groupId,
+                  type:
+                    changesMode === 'give_feedback'
+                      ? 'feedback_for_changes'
+                      : 'interjection',
+                }}
+              >
+                {actionText}
+              </Button>
+            )}
+          </Fragment>
+        ) : (
+          <Fragment>
+            <RequiredInput
+              type="text"
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder={'Please answer to continue...'}
+            />
+            <Button type="submit" priority={'primary'}>
+              {actionText}
+            </Button>
+          </Fragment>
+        )}
+      </InputArea>
+    </form>
+  );
 }
 
 function StepIcon({step}: {step: AutofixStep}) {
@@ -400,44 +481,18 @@ function AutofixMessageBox({
         {(!isChangesStep || changesMode === 'give_feedback') &&
           !prsMade &&
           !isDisabled && (
-            <form onSubmit={handleSend}>
-              <InputArea>
-                {!responseRequired ? (
-                  <Fragment>
-                    <NormalInput
-                      type="text"
-                      value={message}
-                      onChange={e => setMessage(e.target.value)}
-                      placeholder={
-                        !isRootCauseSelectionStep
-                          ? 'Share helpful context or feedback...'
-                          : rootCauseMode === 'suggested_root_cause'
-                            ? '(Optional) Provide any instructions for the fix...'
-                            : 'Propose your own root cause...'
-                      }
-                    />
-                    <Button
-                      type="submit"
-                      priority={primaryAction ? 'primary' : 'default'}
-                    >
-                      {actionText}
-                    </Button>
-                  </Fragment>
-                ) : (
-                  <Fragment>
-                    <RequiredInput
-                      type="text"
-                      value={message}
-                      onChange={e => setMessage(e.target.value)}
-                      placeholder={'Please answer to continue...'}
-                    />
-                    <Button type="submit" priority={'primary'}>
-                      {actionText}
-                    </Button>
-                  </Fragment>
-                )}
-              </InputArea>
-            </form>
+            <RootCauseAndFeedbackInputArea
+              handleSend={handleSend}
+              isRootCauseSelectionStep={isRootCauseSelectionStep}
+              message={message}
+              rootCauseMode={rootCauseMode}
+              responseRequired={responseRequired}
+              setMessage={setMessage}
+              actionText={actionText}
+              primaryAction={primaryAction}
+              changesMode={changesMode}
+              groupId={groupId}
+            />
           )}
         {isChangesStep && changesMode === 'add_tests' && !prsMade && (
           <form onSubmit={handleSend}>

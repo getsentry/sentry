@@ -277,7 +277,6 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
-      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -296,7 +295,6 @@ class TriggersChart extends PureComponent<Props, State> {
       queryDataset = DiscoverDatasets.ERRORS;
     }
 
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -305,7 +303,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -460,8 +458,6 @@ class TriggersChart extends PureComponent<Props, State> {
       organization.features.includes('change-alerts') && comparisonDelta
     );
 
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -469,7 +465,7 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
@@ -599,6 +595,10 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
+    const useRpc =
+      organization.features.includes('eap-alerts-ui-uses-rpc') &&
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+
     const baseProps = {
       api,
       organization,
@@ -613,6 +613,7 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      useRpc,
     };
 
     return (

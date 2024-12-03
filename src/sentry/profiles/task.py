@@ -499,6 +499,7 @@ def symbolicate(
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
         return symbolicator.process_js(
+            platform=platform,
             stacktraces=stacktraces,
             modules=modules,
             release=profile.get("release"),
@@ -507,6 +508,7 @@ def symbolicate(
         )
     elif platform == "android":
         return symbolicator.process_jvm(
+            platform=platform,
             exceptions=[],
             stacktraces=stacktraces,
             modules=modules,
@@ -515,7 +517,7 @@ def symbolicate(
             classes=[],
         )
     return symbolicator.process_payload(
-        stacktraces=stacktraces, modules=modules, apply_source_context=False
+        platform=platform, stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
 
 
@@ -907,26 +909,6 @@ def get_data_category(profile: Profile) -> DataCategory:
     if profile.get("version") == "2":
         return DataCategory.PROFILE_CHUNK
     return DataCategory.PROFILE_INDEXED
-
-
-@metrics.wraps("process_profile.track_outcome")
-def _track_outcome_legacy(
-    profile: Profile,
-    project: Project,
-    outcome: Outcome,
-    reason: str | None = None,
-) -> None:
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=outcome,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        event_id=get_event_id(profile),
-        category=get_data_category(profile),
-        quantity=1,
-    )
 
 
 @metrics.wraps("process_profile.track_outcome")

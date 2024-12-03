@@ -189,6 +189,10 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "sentry.dashboardfavoriteuser": [
+    "sentry.dashboard",
+    "sentry.user"
+  ],
   "sentry.dashboardpermissions": [
     "sentry.dashboard"
   ],
@@ -420,17 +424,9 @@
     "sentry.incident",
     "sentry.project"
   ],
-  "sentry.incidentseen": [
-    "sentry.incident",
-    "sentry.user"
-  ],
   "sentry.incidentsnapshot": [
     "sentry.incident",
     "sentry.timeseriessnapshot"
-  ],
-  "sentry.incidentsubscription": [
-    "sentry.incident",
-    "sentry.user"
   ],
   "sentry.incidenttrigger": [
     "sentry.alertruletrigger",

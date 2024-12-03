@@ -59,7 +59,7 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
 
   const {onOpenOrgDropdown, shouldShowDropdownBanner, shouldShowDot} = useRollbackPrompts(
     {
-      collapsed,
+      collapsed: collapsed || orientation === 'top',
       organization: org,
     }
   );
