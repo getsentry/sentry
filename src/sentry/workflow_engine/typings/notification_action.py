@@ -1,4 +1,17 @@
+from typing import Literal, Union
+
 from sentry.workflow_engine.models.action import Action
+
+"""
+IntegrationIdKey is the key used to identify the integration in the rule data.
+"""
+IntegrationIdKey = Union[
+    Literal["workspace"],
+    Literal["server"],
+    Literal["team"],
+    Literal["account"],
+    Literal["integration"],
+]
 
 ACTION_TYPE_2_RULE_REGISTRY_ID: dict[Action.Type, str] = {
     Action.Type.NOTIFICATION_SLACK: "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -19,7 +32,7 @@ RULE_REGISTRY_ID_2_ACTION_TYPE: dict[str, Action.Type] = {
     v: k for k, v in ACTION_TYPE_2_RULE_REGISTRY_ID.items()
 }
 
-ACTION_TYPE_2_INTEGRATION_ID_KEY: dict[Action.Type, str] = {
+ACTION_TYPE_2_INTEGRATION_ID_KEY: dict[Action.Type, IntegrationIdKey] = {
     Action.Type.NOTIFICATION_SLACK: "workspace",
     Action.Type.NOTIFICATION_DISCORD: "server",
     Action.Type.NOTIFICATION_MSTEAMS: "team",
@@ -32,7 +45,7 @@ ACTION_TYPE_2_INTEGRATION_ID_KEY: dict[Action.Type, str] = {
     Action.Type.NOTIFICATION_AZURE_DEVOPS: "integration",
 }
 
-INTEGRATION_ID_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
+INTEGRATION_ID_KEY_2_ACTION_TYPE: dict[IntegrationIdKey, Action.Type] = {
     v: k for k, v in ACTION_TYPE_2_INTEGRATION_ID_KEY.items()
 }
 
@@ -57,3 +70,14 @@ ACTION_TYPE_2_TARGET_DISPLAY_KEY: dict[Action.Type, str] = {
 TARGET_DISPLAY_KEY_2_ACTION_TYPE: dict[str, Action.Type] = {
     v: k for k, v in ACTION_TYPE_2_TARGET_DISPLAY_KEY.items()
 }
+
+
+class RuleDataBlob:
+    """
+    Represents the Rule.data.actions json blob.
+    It contains the required fields needed to be stored in the Rule.data.actions field created from an Action model instance.
+    """
+
+    id: str
+    uuid: str
+    IntegrationIdKey

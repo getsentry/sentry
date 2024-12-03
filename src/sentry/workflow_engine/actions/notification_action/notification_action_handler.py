@@ -1,6 +1,8 @@
 from sentry.models.group import GroupEvent
 from sentry.workflow_engine.actions.action_handlers_registry import register_action_handler
-from sentry.workflow_engine.actions.notification_action.logic import invoke_issue_alert_registry
+from sentry.workflow_engine.actions.notification_action.logic import (
+    send_notification_using_rule_registry,
+)
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
@@ -51,7 +53,7 @@ def notification_action_handler(action: Action, group_event: GroupEvent):
     assert isinstance(data_source, DataSource)
 
     if data_source.type == "IssueOccurrence":
-        invoke_issue_alert_registry(action, detector, group_event)
+        send_notification_using_rule_registry(action, detector, group_event)
     else:
         # TODO(iamrajjoshi): Implement the logic to invoke Metric Alert Registry
         pass
