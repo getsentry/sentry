@@ -514,7 +514,7 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
-    from sentry.tasks.store import ConsumerType
+    from sentry.ingest.types import ConsumerType
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
