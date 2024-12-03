@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
 
 MAX_RETRIES = 2
@@ -127,15 +127,19 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             filter_by = request.query_params.get("filter")
             if filter_by == "onlyFavorites":
                 dashboards = dashboards.filter(
-                    id__in=DashboardFavoriteUser.objects.filter(
-                        user_id=request.user.id
-                    ).values_list("dashboard_id", flat=True)
+                    id__in=[
+                        dashboard.id
+                        for dashboard in dashboards
+                        if request.user.id in dashboard.favorited_by
+                    ]
                 )
             elif filter_by == "excludeFavorites":
                 dashboards = dashboards.exclude(
-                    id__in=DashboardFavoriteUser.objects.filter(
-                        user_id=request.user.id
-                    ).values_list("dashboard_id", flat=True)
+                    id__in=[
+                        dashboard.id
+                        for dashboard in dashboards
+                        if request.user.id in dashboard.favorited_by
+                    ]
                 )
 
         sort_by = request.query_params.get("sort")
