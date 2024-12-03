@@ -29,18 +29,12 @@ class FlagWebhookSigningSecretResponse(TypedDict):
 @register(FlagWebHookSigningSecretModel)
 class FlagWebhookSigningSecretSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> FlagWebhookSigningSecretResponse:
-        secret = obj.secret
-        if len(secret) >= 10:
-            secret = secret[0:6] + "*" * len(secret[6:])
-        else:
-            secret = "*" * len(secret)
-
         return {
             "createdAt": obj.date_added.isoformat(),
             "createdBy": obj.created_by,
             "id": obj.id,
             "provider": obj.provider,
-            "secret": secret,
+            "secret": obj.secret[0:6] + "*" * (len(obj.secret) - 6),
         }
 
 
