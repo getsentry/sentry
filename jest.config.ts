@@ -207,7 +207,6 @@ const ESM_NODE_MODULES = ['screenfull'];
 
 const config: Config.InitialOptions = {
   verbose: false,
-  coverageProvider: 'v8',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
