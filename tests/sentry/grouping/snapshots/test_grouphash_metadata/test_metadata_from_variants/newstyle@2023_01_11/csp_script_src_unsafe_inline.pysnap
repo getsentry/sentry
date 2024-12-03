@@ -1,14 +1,23 @@
 ---
-created: '2024-12-02T21:58:18.403594+00:00'
+created: '2024-12-02T22:04:08.131452+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
-hash_basis: unknown
-hashing_metadata: {}
+hash_basis: violation
+hashing_metadata: {
+  "blocked_host": "self",
+  "csp_directive": "script-src",
+  "csp_script_violation": "unsafe-inline",
+  "security_report_type": "csp"
+}
 ---
 metrics with tags: {
   "grouping.grouphashmetadata.event_hash_basis": {
-    "hash_basis": "unknown"
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "csp"
   }
 }
 ---
