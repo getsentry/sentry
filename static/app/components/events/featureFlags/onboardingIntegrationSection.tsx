@@ -23,15 +23,13 @@ function usePostSecret({
   const api = useApi();
 
   const postSecret = async (secret: string) =>
-    await api.requestPromise(
-      `/organizations/${orgSlug}/flags/hooks/provider/${provider.toLowerCase()}/signing-secret/`,
-      {
-        method: 'POST',
-        data: {
-          secret: secret,
-        },
-      }
-    );
+    await api.requestPromise(`/organizations/${orgSlug}/flags/signing-secrets/`, {
+      method: 'POST',
+      data: {
+        secret: secret,
+        provider: provider.toLowerCase(),
+      },
+    });
 
   return {postSecret};
 }
@@ -44,7 +42,7 @@ export default function OnboardingIntegrationSection({
   provider: string;
 }) {
   const organization = useOrganization();
-  const [tokenSaved, setTokenSaved] = useState(false);
+  const [secretSaved, setSecretSaved] = useState(false);
   const {postSecret} = usePostSecret({provider, orgSlug: organization?.slug});
   const [secret, setSecret] = useState('');
   const [storedProvider, setStoredProvider] = useState(provider);
@@ -54,7 +52,7 @@ export default function OnboardingIntegrationSection({
     setStoredProvider(provider);
     setStoredIntegration(integration);
     setSecret('');
-    setTokenSaved(false);
+    setSecretSaved(false);
   }
 
   return (
@@ -95,16 +93,16 @@ export default function OnboardingIntegrationSection({
               priority="default"
               onClick={() => {
                 postSecret(secret);
-                setTokenSaved(true);
+                setSecretSaved(true);
               }}
               disabled={secret === ''}
             >
               {t('Save Secret')}
             </Button>
           </InputArea>
-          {tokenSaved ? (
+          {secretSaved ? (
             <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
-              {t('Secret token verified.')}
+              {t('Secret verified.')}
             </StyledAlert>
           ) : null}
         </SubSection>
