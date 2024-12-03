@@ -26,7 +26,7 @@ describe('GroupSummary', function () {
     render(<GroupSummary data={undefined} isError={false} isPending />);
 
     // Should show loading placeholders
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // 3 placeholder cards
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
   });
 
   it('shows error state', function () {
