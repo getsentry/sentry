@@ -332,12 +332,13 @@ class MergeGroupsTest(TestCase):
         proj1 = projects[0]
         groups = [self.create_group(proj1), self.create_group(proj1)]
         group_ids = [g.id for g in groups]
-        project_ids = [g.project_id for g in groups]
+        project_ids = [p.id for p in projects]
 
         request = self.make_request(method="PUT")
         request.user = self.user
         request.data = {"merge": 1}
-        # The two groups belong to the same project, so we should be able to merge them
+        # The two groups belong to the same project, so we should be able to merge them, even though
+        # we're passing multiple project ids
         request.GET = {"id": group_ids, "project": project_ids}
 
         update_groups(request, group_ids, projects, self.organization.id)
@@ -348,6 +349,28 @@ class MergeGroupsTest(TestCase):
         # Have to convert to ids because first argument is a queryset
         assert [group.id for group in call_args[0]] == group_ids
         assert call_args[1] == {proj1.id: proj1}
+        assert call_args[2] == self.user
+
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock):
+        """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
+        we should be able to derive them from the given group ids."""
+        group_ids = [self.create_group().id, self.create_group().id]
+        project = self.project
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        request.GET = {"id": group_ids}
+
+        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {project.id: project}
         assert call_args[2] == self.user
 
     def test_metrics(self):
