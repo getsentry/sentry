@@ -26,7 +26,6 @@ export interface SearchQueryBuilderContextData {
   searchSource: string;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
-  getFilterTokenWarning?: (key: string) => React.ReactNode;
   placeholder?: string;
   recentSearches?: SavedSearchType;
 }
