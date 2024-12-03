@@ -15,6 +15,7 @@ import type {
   AutofixRepository,
   BreadcrumbContext,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbIcon,
@@ -38,7 +39,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
@@ -372,6 +373,7 @@ function AutofixInsightCards({
 
 export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {
@@ -393,6 +395,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage(t('Thanks, rethinking this...'));
     },
     onError: () => {
