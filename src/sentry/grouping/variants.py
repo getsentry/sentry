@@ -1,10 +1,21 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
+
+if TYPE_CHECKING:
+    from sentry.grouping.api import FingerprintInfo
+    from sentry.grouping.component import BaseGroupingComponent
+    from sentry.grouping.strategies.base import StrategyConfiguration
+
+
+class FingerprintVariantMetadata(TypedDict):
+    values: list[str]
+    client_values: NotRequired[list[str]]
+    matched_rule: NotRequired[str]
 
 
 class BaseVariant:
@@ -135,8 +146,8 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values, info):
-    rv = {
+def expose_fingerprint_dict(values: list[str], info: FingerprintInfo) -> FingerprintVariantMetadata:
+    rv: FingerprintVariantMetadata = {
         "values": values,
     }
 
@@ -162,7 +173,7 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, values, fingerprint_info):
+    def __init__(self, values: list[str], fingerprint_info: FingerprintInfo):
         self.values = values
         self.info = fingerprint_info
 
@@ -173,7 +184,7 @@ class CustomFingerprintVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return hash_from_values(self.values)
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> FingerprintVariantMetadata:
         return expose_fingerprint_dict(self.values, self.info)
 
 
@@ -192,7 +203,13 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, values, component, config, fingerprint_info):
+    def __init__(
+        self,
+        values: list[str],
+        component: BaseGroupingComponent[Any],
+        config: StrategyConfiguration,
+        fingerprint_info: FingerprintInfo,
+    ):
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info
