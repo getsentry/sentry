@@ -207,7 +207,6 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
 
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def put(self, request: Request, organization, dashboard) -> Response:
