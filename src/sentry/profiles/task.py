@@ -912,26 +912,6 @@ def get_data_category(profile: Profile) -> DataCategory:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome_legacy(
-    profile: Profile,
-    project: Project,
-    outcome: Outcome,
-    reason: str | None = None,
-) -> None:
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=outcome,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        event_id=get_event_id(profile),
-        category=get_data_category(profile),
-        quantity=1,
-    )
-
-
-@metrics.wraps("process_profile.track_outcome")
 def _track_outcome(
     profile: Profile,
     project: Project,
