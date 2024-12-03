@@ -320,6 +320,7 @@ def test_native_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store
     assert mock_sdk_crash_reporter.report.call_count == 1
 
 
+@decorators
 def test_native_sdk_version_too_low_not_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs
 ):
