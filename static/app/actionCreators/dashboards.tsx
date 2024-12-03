@@ -113,6 +113,16 @@ export function updateDashboardFavorite(
     }
   );
 
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else {
+      addErrorMessage(t('Unable to favorite dashboard'));
+    }
+  });
+
   return promise;
 }
 
