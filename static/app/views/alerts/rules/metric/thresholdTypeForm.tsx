@@ -48,7 +48,6 @@ function ThresholdTypeForm({
     'fid',
     'cls',
     'custom_transactions',
-    'insights_metrics',
   ]);
 
   const hasAnomalyDetection =
