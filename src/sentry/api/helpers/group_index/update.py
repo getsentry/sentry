@@ -179,33 +179,20 @@ def update_groups(
     user = user or request.user
     data = data or request.data
 
-    if group_ids:
-        group_list = Group.objects.filter(
-            project__organization_id=organization_id, project__in=projects, id__in=group_ids
+    try:
+        group_ids, group_list = get_group_ids_and_group_list(
+            organization_id, projects, group_ids, search_fn
         )
-        # filter down group ids to only valid matches
-        group_ids = [g.id for g in group_list]
-        if not group_ids:
-            return Response(status=204)
-    else:
-        group_list = None
+    except ValidationError:
+        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+        return Response(
+            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+        )
 
-    serializer = None
-    # TODO(jess): We may want to look into refactoring GroupValidator
-    # to support multiple projects, but this is pretty complicated
-    # because of the assignee validation. Punting on this for now.
-    for project in projects:
-        serializer = GroupValidator(
-            data=data,
-            partial=True,
-            context={
-                "project": project,
-                "organization": project.organization,
-                "access": getattr(request, "access", None),
-            },
-        )
-        if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors)
+    if not group_ids or not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    serializer = validate_request(request, projects, data)
 
     if serializer is None:
         return
@@ -213,20 +200,6 @@ def update_groups(
     result = dict(serializer.validated_data)
 
     acting_user = user if user.is_authenticated else None
-
-    if search_fn and not group_ids:
-        try:
-            cursor_result, _ = search_fn(
-                {
-                    "limit": BULK_MUTATION_LIMIT,
-                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-                }
-            )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
-
-        group_list = list(cursor_result)
-        group_ids = [g.id for g in group_list]
 
     if not group_list:
         return Response(detail="No groups found", status=400)
@@ -289,6 +262,82 @@ def update_groups(
         res_type,
         request.META.get("HTTP_REFERER", ""),
     )
+
+
+def validate_request(
+    request: Request,
+    projects: Sequence[Project],
+    data: Mapping[str, Any],
+) -> GroupValidator | None:
+    serializer = None
+    # TODO(jess): We may want to look into refactoring GroupValidator
+    # to support multiple projects, but this is pretty complicated
+    # because of the assignee validation. Punting on this for now.
+    for project in projects:
+        serializer = GroupValidator(
+            data=data,
+            partial=True,
+            context={
+                "project": project,
+                "organization": project.organization,
+                "access": getattr(request, "access", None),
+            },
+        )
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+    return serializer
+
+
+def get_group_ids_and_group_list(
+    organization_id: int,
+    projects: Sequence[Project],
+    group_ids: Sequence[int | str] | None,
+    search_fn: SearchFunction | None,
+) -> tuple[list[int | str], list[Group]]:
+    """
+    Gets group IDs and group list based on provided filters.
+
+    Args:
+        organization_id: ID of the organization
+        projects: Sequence of projects to filter groups by
+        group_ids: Optional sequence of specific group IDs to fetch
+        search_fn: Optional search function to find groups if no IDs provided
+
+    Returns:
+        Tuple of:
+            - List of group IDs that were found
+            - List of Group objects that were found
+
+    Notes:
+        - If group_ids provided, filters to only valid groups in the org/projects
+        - If no group_ids but search_fn provided, uses search to find groups
+        - Limited to BULK_MUTATION_LIMIT results when using search
+    """
+    _group_ids: list[int | str] = []
+    _group_list: list[Group] = []
+
+    if group_ids:
+        _group_list = list(
+            Group.objects.filter(
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids
+            )
+        )
+        # filter down group ids to only valid matches
+        _group_ids = [g.id for g in _group_list]
+
+    if search_fn and not _group_ids:
+        # It can raise ValidationError
+        cursor_result, _ = search_fn(
+            {
+                "limit": BULK_MUTATION_LIMIT,
+                "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+            }
+        )
+
+        _group_list = list(cursor_result)
+        _group_ids = [g.id for g in _group_list]
+
+    return _group_ids, _group_list
 
 
 def handle_resolve_in_release(

@@ -104,7 +104,13 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
-            status=OnboardingTaskStatus.PENDING,
+            status=(
+                OnboardingTaskStatus.COMPLETE
+                if features.has(
+                    "organizations:quick-start-updates", project.organization, actor=user
+                )
+                else OnboardingTaskStatus.PENDING
+            ),
             project_id=project.id,
         )
 

@@ -18,9 +18,9 @@ interface UseQueryParamStateWithScalarDecoder<T> {
 
 interface UseQueryParamStateWithListDecoder<T> {
   decoder: typeof decodeList;
-  deserializer: (value: ReturnType<typeof decodeList>) => T;
   fieldName: string;
-  serializer: (value: T) => string[];
+  deserializer?: (value: ReturnType<typeof decodeList>) => T;
+  serializer?: (value: T) => string[];
 }
 
 type UseQueryParamStateProps<T> =
