@@ -11,6 +11,7 @@ export function convertWidgetToBuilderStateParams(
   const yAxis = widget.queries.flatMap(q => q.aggregates);
   const field = widget.queries.flatMap(q => q.fields);
   const query = widget.queries.flatMap(q => q.conditions);
+  const sort = widget.queries.flatMap(q => q.orderby);
 
   return {
     title: widget.title,
@@ -20,5 +21,6 @@ export function convertWidgetToBuilderStateParams(
     field,
     yAxis,
     query,
+    sort,
   };
 }
