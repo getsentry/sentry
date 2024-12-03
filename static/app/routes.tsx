@@ -977,7 +977,7 @@ function buildRoutes() {
           component={make(
             () =>
               import(
-                'sentry/views/settings/featureFlags/organizationFeatureFlagsNewSecet'
+                'sentry/views/settings/featureFlags/organizationFeatureFlagsNewSecret'
               )
           )}
         />
