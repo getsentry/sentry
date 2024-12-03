@@ -22,7 +22,7 @@ from sentry.utils.safe import get_path
 #
 # Strictly speaking, this should probably include
 # "android" too—at least we use it in profiling.
-JAVA_PLATFORMS = "java"
+JAVA_PLATFORMS = ("java",)
 
 
 def is_valid_proguard_image(image):
