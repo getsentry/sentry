@@ -237,7 +237,6 @@ export function EAPSpanSearchQueryBuilder({
       onBlur={onBlur}
       getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
-      disallowFreeText
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
       disallowUnsupportedFilters
