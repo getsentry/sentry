@@ -175,7 +175,7 @@ def get_hash_basis_and_metadata(
         logger.exception(
             "Encountered unknown grouping method '%s'.",
             contributing_variant.description,
-            extra={"project": project.id, "event": event.event_id},
+            extra={"project": project.id, "event_id": event.event_id},
         )
         return (HashBasis.UNKNOWN, {})
 
