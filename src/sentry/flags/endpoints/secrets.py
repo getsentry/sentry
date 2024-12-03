@@ -95,6 +95,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
+    permission_classes = (OrganizationEventPermission,)
     publish_status = {"DELETE": ApiPublishStatus.PRIVATE}
 
     def delete(
