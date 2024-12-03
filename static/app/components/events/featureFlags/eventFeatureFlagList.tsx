@@ -91,7 +91,7 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = !!event.contexts.flags;
+  const hasFlagContext = !!event.contexts?.flags?.values;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values?.length);
   const showCTA =
     !hasFlagContext &&
