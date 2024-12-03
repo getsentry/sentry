@@ -171,7 +171,8 @@ const seriesAPILadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
   [THIRTY_DAYS, '4h'],
   [SIX_HOURS, '1h'],
-  [0, '5m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
 ]);
 export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   return seriesAPILadder.getInterval(getDiffInMinutes(datetimeObj));
