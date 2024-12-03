@@ -128,17 +128,8 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
                         item[self.lookup.name] = (attrs.get(value),)
                     result_row.append(item)
                 confidence_values.append((key, result_row))
-            res["confidence"] = (
-                zerofill(
-                    confidence_values,
-                    result.start,
-                    result.end,
-                    result.rollup,
-                    allow_partial_buckets=allow_partial_buckets,
-                )
-                if zerofill_results
-                else confidence_values
-            )
+            # confidence only comes from the RPC which already helps us zerofill by returning all buckets
+            res["confidence"] = confidence_values
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}
