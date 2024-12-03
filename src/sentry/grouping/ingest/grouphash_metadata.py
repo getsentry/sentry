@@ -71,6 +71,8 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     # Security reports (CSP, expect-ct, and the like)
     "URL": HashBasis.SECURITY_VIOLATION,
     "hostname": HashBasis.SECURITY_VIOLATION,
+    # CSP reports of `unsafe-inline` and `unsafe-eval` violations
+    "violation": HashBasis.SECURITY_VIOLATION,
     # Django template errors, which don't report a full stacktrace
     "template": HashBasis.TEMPLATE,
     # Hash set directly on the event by the client, under the key `checksum`
