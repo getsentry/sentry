@@ -651,9 +651,10 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
-    track_sampled_event(
-        event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
-    )
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
+        )
     _do_save_event(
         cache_key,
         data,
@@ -663,9 +664,10 @@ def save_event_transaction(
         consumer_type=ConsumerType.Transactions,
         **kwargs,
     )
-    track_sampled_event(
-        event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
-    )
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
+        )
 
 
 @instrumented_task(
