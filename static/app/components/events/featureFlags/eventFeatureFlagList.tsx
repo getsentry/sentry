@@ -91,8 +91,10 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = !!event.contexts?.flags?.values;
-  const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values?.length);
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
+  const flagValues = event.contexts?.flags?.values ?? [];
+  const hasFlags = hasFlagContext && flagValues.length > 0;
+
   const showCTA =
     !hasFlagContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
@@ -111,7 +113,7 @@ export function EventFeatureFlagList({
 
     // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
     const flags = rawFlags.filter(
-      f => f && typeof f === 'object' && 'flag' in f && 'result' in f
+      (f): f is Required<FeatureFlag> => f && 'flag' in f && 'result' in f
     );
 
     return flags.map(f => {
