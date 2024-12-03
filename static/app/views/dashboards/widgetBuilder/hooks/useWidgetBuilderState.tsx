@@ -37,7 +37,7 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY};
 
-interface WidgetBuilderState {
+export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;

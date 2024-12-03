@@ -1257,6 +1257,11 @@ class DashboardDetail extends Component<Props, State> {
                                         })
                                       );
                                     }}
+                                    dashboardFilters={
+                                      getDashboardFiltersFromURL(location) ??
+                                      dashboard.filters
+                                    }
+                                    dashboard={modifiedDashboard ?? dashboard}
                                   />
                                 </Fragment>
                               </WidgetViewerContext.Provider>
