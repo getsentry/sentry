@@ -6,11 +6,9 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 from snuba_sdk import (
     And,
-    BooleanCondition,
     Column,
     Condition,
     Direction,
-    Entity,
     Function,
     Limit,
     Op,
@@ -26,180 +24,10 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
-from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
+from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
-from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
-
-
-class StartEnd(TypedDict):
-    start: str
-    end: str
-
-
-class ProfileIds(TypedDict):
-    profile_ids: list[str]
-
-
-class IntervalMetadata(TypedDict):
-    start: str
-    end: str
-    active_thread_id: str
-
-
-def get_spans_from_group(
-    organization_id: int,
-    project_id: int,
-    snuba_params: SnubaParams,
-    span_group: str,
-) -> dict[str, list[IntervalMetadata]]:
-    query = Query(
-        match=Entity(EntityKey.Spans.value),
-        select=[
-            Column("start_timestamp_precise"),
-            Column("end_timestamp_precise"),
-            Function(
-                "arrayElement",
-                parameters=[
-                    Column("sentry_tags.value"),
-                    Function(
-                        "indexOf",
-                        parameters=[
-                            Column("sentry_tags.key"),
-                            "profiler_id",
-                        ],
-                    ),
-                ],
-                alias="profiler_id",
-            ),
-            Function(
-                "arrayElement",
-                parameters=[
-                    Column("sentry_tags.value"),
-                    Function(
-                        "indexOf",
-                        parameters=[
-                            Column("sentry_tags.key"),
-                            "thread.id",
-                        ],
-                    ),
-                ],
-                alias="active_thread_id",
-            ),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, snuba_params.start),
-            Condition(Column("timestamp"), Op.LT, snuba_params.end),
-            Condition(Column("group"), Op.EQ, span_group),
-            Condition(Column("profiler_id"), Op.NEQ, ""),
-        ],
-        limit=Limit(100),
-    )
-    request = Request(
-        dataset=Dataset.SpansIndexed.value,
-        app_id="default",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
-            "organization_id": organization_id,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
-    )["data"]
-    spans: dict[str, list[IntervalMetadata]] = defaultdict(list)
-    for row in data:
-        spans[row["profiler_id"]].append(
-            {
-                "active_thread_id": row["active_thread_id"],
-                "start": row["start_timestamp_precise"],
-                "end": row["end_timestamp_precise"],
-            }
-        )
-
-    return spans
-
-
-class SpanMetadata(TypedDict):
-    profiler_id: list[IntervalMetadata]
-
-
-def get_chunk_snuba_conditions_from_spans_metadata(
-    spans: dict[str, list[IntervalMetadata]],
-) -> list[BooleanCondition | Condition]:
-    cond = []
-    for profiler_id, intervals in spans.items():
-        chunk_range_cond = []
-        for interval in intervals:
-            start = interval.get("start")
-            end = interval.get("end")
-            chunk_range_cond.append(
-                And(
-                    [
-                        Condition(Column("end_timestamp"), Op.GTE, start),
-                        Condition(Column("start_timestamp"), Op.LT, end),
-                    ],
-                )
-            )
-        cond.append(
-            And(
-                [
-                    Condition(Column("profiler_id"), Op.EQ, profiler_id),
-                    Or(chunk_range_cond) if len(chunk_range_cond) >= 2 else chunk_range_cond[0],
-                ]
-            )
-        )
-    return [Or(cond)] if len(cond) >= 2 else cond
-
-
-def get_chunks_from_spans_metadata(
-    organization_id: int,
-    project_id: int,
-    spans: dict[str, list[IntervalMetadata]],
-) -> list[dict[str, Any]]:
-    query = Query(
-        match=Storage(StorageKey.ProfileChunks.value),
-        select=[
-            Column("profiler_id"),
-            Column("chunk_id"),
-        ],
-        where=[Condition(Column("project_id"), Op.EQ, project_id)]
-        + get_chunk_snuba_conditions_from_spans_metadata(spans),
-        limit=Limit(100),
-    )
-    request = Request(
-        dataset=Dataset.Profiles.value,
-        app_id="default",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
-            "organization_id": organization_id,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
-    )["data"]
-    chunks = []
-    for row in data:
-        intervals = [
-            {
-                "start": str(int(datetime.fromisoformat(el["start"]).timestamp() * 1e9)),
-                "end": str(int(datetime.fromisoformat(el["end"]).timestamp() * 1e9)),
-                "active_thread_id": el["active_thread_id"],
-            }
-            for el in spans[row["profiler_id"]]
-        ]
-        chunks.append(
-            {
-                "profiler_id": row["profiler_id"],
-                "chunk_id": row["chunk_id"],
-                "span_intervals": intervals,
-            }
-        )
-    return chunks
+from sentry.utils.snuba import bulk_snuba_queries
 
 
 class TransactionProfileCandidate(TypedDict):
