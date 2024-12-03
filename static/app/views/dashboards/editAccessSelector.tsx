@@ -1,7 +1,8 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
+import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -60,6 +61,7 @@ function EditAccessSelector({
   const teamIds: string[] = Object.values(teamsToRender).map(team => team.id);
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [stagedOptions, setStagedOptions] = useState<string[]>([]);
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
@@ -124,27 +126,29 @@ function EditAccessSelector({
     };
   }
 
-  // Dashboard creator option in the dropdown
-  const makeCreatorOption = () => ({
-    value: '_creator',
-    label: (
-      <UserBadge
-        avatarSize={18}
-        user={dashboardCreator}
-        displayName={
-          <StyledDisplayName>
-            {dashboardCreator?.id === currentUser.id
-              ? tct('You ([email])', {email: currentUser.email})
-              : dashboardCreator?.email ||
-                tct('You ([email])', {email: currentUser.email})}
-          </StyledDisplayName>
-        }
-        displayEmail={t('Creator')}
-      />
-    ),
-    textValue: `creator_${currentUser.email}`,
-    disabled: true,
-  });
+  const makeCreatorOption = useCallback(
+    () => ({
+      value: '_creator',
+      label: (
+        <UserBadge
+          avatarSize={18}
+          user={dashboardCreator}
+          displayName={
+            <StyledDisplayName>
+              {dashboardCreator?.id === currentUser.id
+                ? tct('You ([email])', {email: currentUser.email})
+                : dashboardCreator?.email ||
+                  tct('You ([email])', {email: currentUser.email})}
+            </StyledDisplayName>
+          }
+          displayEmail={t('Creator')}
+        />
+      ),
+      textValue: `creator_${currentUser.email}`,
+      disabled: true,
+    }),
+    [dashboardCreator, currentUser]
+  );
 
   // Single team option in the dropdown
   const makeTeamOption = (team: Team) => ({
@@ -181,26 +185,38 @@ function EditAccessSelector({
       />
     );
 
-  const allDropdownOptions = [
-    makeCreatorOption(),
-    {
-      value: '_all_users_section',
-      options: [
-        {
-          value: '_allUsers',
-          label: t('All users'),
-          disabled: !userCanEditDashboardPermissions,
-        },
-      ],
-    },
-    {
-      value: '_teams',
-      label: t('Teams'),
-      options: teamsToRender.map(makeTeamOption),
-      showToggleAllButton: userCanEditDashboardPermissions,
-      disabled: !userCanEditDashboardPermissions,
-    },
-  ];
+  // Sorting function for team options
+  const listSort = useCallback(
+    (team: Team) => [
+      !stagedOptions.includes(team.id), // selected teams are shown first
+      team.slug, // sort rest alphabetically
+    ],
+    [stagedOptions]
+  );
+
+  const allDropdownOptions = useMemo(
+    () => [
+      makeCreatorOption(),
+      {
+        value: '_all_users_section',
+        options: [
+          {
+            value: '_allUsers',
+            label: t('All users'),
+            disabled: !userCanEditDashboardPermissions,
+          },
+        ],
+      },
+      {
+        value: '_teams',
+        label: t('Teams'),
+        options: sortBy(teamsToRender, listSort).map(makeTeamOption),
+        showToggleAllButton: userCanEditDashboardPermissions,
+        disabled: !userCanEditDashboardPermissions,
+      },
+    ],
+    [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
+  );
 
   // Save and Cancel Buttons
   const dropdownFooterButtons = (
@@ -227,6 +243,7 @@ function EditAccessSelector({
             onChangeEditAccess?.(newDashboardPermissions);
           }
           setMenuOpen(!isMenuOpen);
+          setStagedOptions(selectedOptions);
         }}
         priority="primary"
         disabled={
@@ -274,19 +291,6 @@ function EditAccessSelector({
       isOpen={isMenuOpen}
       onOpenChange={() => {
         setMenuOpen(!isMenuOpen);
-        if (!isMenuOpen) {
-          teamsToRender.sort((team1, team2) => {
-            const isTeam1Selected = selectedOptions.includes(team1.id);
-            const isTeam2Selected = selectedOptions.includes(team2.id);
-            if (isTeam1Selected && !isTeam2Selected) {
-              return -1;
-            }
-            if (!isTeam1Selected && isTeam2Selected) {
-              return 1;
-            }
-            return team1.name.localeCompare(team2.name);
-          });
-        }
       }}
       menuFooter={dropdownFooterButtons}
       onSearch={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
