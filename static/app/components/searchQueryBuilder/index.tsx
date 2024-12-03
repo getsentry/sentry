@@ -84,7 +84,7 @@ export interface SearchQueryBuilderProps {
   filterKeySections?: FilterKeySection[];
   /**
    * A function that returns a warning message for a given filter key
-   * will only show a render a warning if the value is truthy
+   * will only render a warning if the value is truthy
    */
   getFilterTokenWarning?: (key: string) => React.ReactNode;
   /**
