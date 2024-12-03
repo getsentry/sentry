@@ -10,11 +10,37 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.url = reverse(self.endpoint, args=(self.organization.id))
+        self.obj = FlagWebHookSigningSecretModel.objects.create(
+            created_by=self.user.id,
+            organization=self.organization,
+            provider="launchdarkly",
+            secret="123456123456",
+        )
+        self.url = reverse(self.endpoint, args=(self.organization.id,))
 
     @property
     def features(self):
         return {"organizations:feature-flag-audit-log": True}
+
+    def test_browse(self):
+        with self.feature(self.features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.json() == {
+                "data": [
+                    {
+                        "createdAt": self.obj.date_added.isoformat(),
+                        "createdBy": self.obj.created_by,
+                        "id": self.obj.id,
+                        "provider": self.obj.provider,
+                        "secret": "123456******",
+                    }
+                ]
+            }
+
+    def test_browse_disabled(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 404
 
     def test_post(self):
         with self.feature(self.features):
@@ -28,15 +54,15 @@ class OrganizationFlagsWebHookSigningSecretEndpointTestCase(APITestCase):
         assert models[0].secret == "123"
 
     def test_post_disabled(self):
-        response = self.client.post(self.url, data={"secret": "123"})
+        response = self.client.post(self.url, data={})
         assert response.status_code == 404, response.content
 
     def test_post_invalid_provider(self):
         with self.feature(self.features):
-            url = reverse(self.endpoint, args=(self.organization.id))
+            url = reverse(self.endpoint, args=(self.organization.id,))
             response = self.client.post(url, data={"secret": "123", "provider": "other"})
             assert response.status_code == 400, response.content
-            assert response.json()["provider"] == ["This field is required."]
+            assert response.json()["provider"] == ['"other" is not a valid choice.']
 
     def test_post_empty_request(self):
         with self.feature(self.features):
