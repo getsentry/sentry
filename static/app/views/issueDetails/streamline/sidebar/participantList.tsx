@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,11 +6,13 @@ import Avatar from 'sentry/components/avatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
+import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
+import type {AvatarUser, User} from 'sentry/types/user';
+import {userDisplayName} from 'sentry/utils/formatters';
 import useOverlay from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
@@ -35,6 +38,13 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
           users={users}
           avatarSize={24}
           maxVisibleAvatars={3}
+          renderTooltip={user => (
+            <Fragment>
+              {userDisplayName(user)}
+              <br />
+              <LastSeen date={(user as AvatarUser).lastSeen} />
+            </Fragment>
+          )}
         />
       </Button>
       {isOpen && (
@@ -66,6 +76,7 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                     {user.email !== user.name ? (
                       <SmallText>{user.email}</SmallText>
                     ) : null}
+                    <LastSeen date={(user as AvatarUser).lastSeen} />
                   </NameWrapper>
                 </UserRow>
               ))}
@@ -127,4 +138,9 @@ const SmallText = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   justify-content: flex-end;
   padding-left: ${space(0.75)};
+`;
+
+const LastSeen = styled(DateTime)`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
