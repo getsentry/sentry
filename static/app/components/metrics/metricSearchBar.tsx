@@ -12,13 +12,10 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
-import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {INSIGHTS_METRICS} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
-import {SpanMetricsField} from 'sentry/views/insights/types';
 import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
@@ -34,23 +31,6 @@ export interface MetricSearchBarProps
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
-const INSIGHTS_ADDITIONAL_TAG_FILTERS: MetricTag[] = [
-  {
-    key: 'has',
-  },
-  {
-    key: SpanMetricsField.SPAN_MODULE,
-  },
-  {
-    key: SpanMetricsField.FILE_EXTENSION,
-  },
-  {
-    key: SpanMetricsField.SPAN_SYSTEM,
-  },
-  {
-    key: SpanMetricsField.SPAN_GROUP,
-  },
-];
 
 export function MetricSearchBar({
   mri,
@@ -80,18 +60,9 @@ export function MetricSearchBar({
     blockedTags
   );
 
-  const additionalTags: MetricTag[] = useMemo(
-    () =>
-      // Insights metrics allow the `has` filter.
-      // `span.module` is a discover field alias that does not appear in the metrics meta endpoint.
-      INSIGHTS_METRICS.includes(mri as string) ? INSIGHTS_ADDITIONAL_TAG_FILTERS : [],
-    [mri]
-  );
-
   const supportedTags: TagCollection = useMemo(
-    () =>
-      [...tags, ...additionalTags].reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
-    [tags, additionalTags]
+    () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
+    [tags]
   );
 
   const searchConfig = useMemo(

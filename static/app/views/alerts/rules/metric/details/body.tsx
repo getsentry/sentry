@@ -32,7 +32,6 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
@@ -179,7 +178,7 @@ export default function MetricDetailsBody({
 
   return (
     <Fragment>
-      {isCustomMetricAlert(rule.aggregate) && !isInsightsMetricAlert(rule.aggregate) && (
+      {isCustomMetricAlert(rule.aggregate) && (
         <StyledLayoutBody>
           <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
         </StyledLayoutBody>
