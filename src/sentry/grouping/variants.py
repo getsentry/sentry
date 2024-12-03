@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
@@ -8,6 +8,8 @@ from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
+    from sentry.grouping.component import BaseGroupingComponent
+    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class FingerprintVariantMetadata(TypedDict):
@@ -201,7 +203,13 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
-    def __init__(self, values: list[str], component, config, fingerprint_info: FingerprintInfo):
+    def __init__(
+        self,
+        values: list[str],
+        component: BaseGroupingComponent[Any],
+        config: StrategyConfiguration,
+        fingerprint_info: FingerprintInfo,
+    ):
         ComponentVariant.__init__(self, component, config)
         self.values = values
         self.info = fingerprint_info
