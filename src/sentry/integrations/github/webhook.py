@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from collections.abc import Callable, Mapping, MutableMapping
+from abc import ABC, abstractmethod
+from collections.abc import Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
@@ -22,6 +23,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
@@ -30,6 +32,7 @@ from sentry.integrations.services.integration.model import (
 )
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -70,13 +73,19 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-class Webhook:
+class Webhook(ABC):
     """
     Base class for GitHub webhooks handled in region silos.
     """
 
     provider = "github"
 
+    @property
+    @abstractmethod
+    def event_type(self) -> IntegrationWebhookEventType:
+        raise NotImplementedError
+
+    @abstractmethod
     def _handle(
         self,
         integration: RpcIntegration,
@@ -209,6 +218,10 @@ class InstallationEventWebhook:
 
     provider = "github"
 
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.INSTALLATION
+
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         installation = event["installation"]
 
@@ -283,6 +296,10 @@ class InstallationEventWebhook:
 
 class PushEventWebhook(Webhook):
     """https://developer.github.com/v3/activity/events/types/#pushevent"""
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
 
     def is_anonymous_email(self, email: str) -> bool:
         return email[-25:] == "@users.noreply.github.com"
@@ -460,6 +477,10 @@ class PushEventWebhook(Webhook):
 class PullRequestEventWebhook(Webhook):
     """https://developer.github.com/v3/activity/events/types/#pullrequestevent"""
 
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PULL_REQUEST
+
     def is_anonymous_email(self, email: str) -> bool:
         return email[-25:] == "@users.noreply.github.com"
 
@@ -591,13 +612,13 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {
+    _handlers: dict[str, type[Webhook] | type[InstallationEventWebhook]] = {
         "push": PushEventWebhook,
         "pull_request": PullRequestEventWebhook,
         "installation": InstallationEventWebhook,
     }
 
-    def get_handler(self, event_type: str) -> Callable[[], Callable[[Any], Any]] | None:
+    def get_handler(self, event_type: str) -> type[Webhook] | type[InstallationEventWebhook] | None:
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
@@ -673,5 +694,12 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             logger.exception("Invalid JSON.")
             return HttpResponse(status=400)
 
-        handler()(event)
+        event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key="github",
+        ).capture():
+            event_handler(event)
         return HttpResponse(status=204)

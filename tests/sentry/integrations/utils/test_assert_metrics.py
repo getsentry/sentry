@@ -23,3 +23,10 @@ def assert_failure_metric(mock_record, error_msg):
         assert isinstance(event_failures.args[1], type(error_msg))
     else:
         assert event_failures.args[1] == error_msg
+
+
+def assert_success_metric(mock_record):
+    (event_success,) = (
+        call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.SUCCESS
+    )
+    assert event_success
