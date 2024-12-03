@@ -49,7 +49,6 @@ function WidgetBuilderTypeSelector() {
           value,
         }))}
         clearable={false}
-        searchable={false}
         onChange={newValue => {
           dispatch({
             type: BuilderStateAction.SET_DISPLAY_TYPE,

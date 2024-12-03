@@ -86,6 +86,10 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.getByText('Issues')).toBeInTheDocument();
     expect(await screen.getByText('Releases')).toBeInTheDocument();
 
+    expect(screen.getByText('Table')).toBeInTheDocument();
+    // ensure the dropdown input has the default value 'table'
+    expect(screen.getByDisplayValue('table')).toBeInTheDocument();
+
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
@@ -138,6 +142,28 @@ describe('NewWidgetBuiler', function () {
       expect.objectContaining({
         ...router.location,
         query: expect.objectContaining({dataset: 'issue'}),
+      })
+    );
+  });
+
+  it('changes the visualization type', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
+      router,
+      organization,
+    });
+
+    // click dropdown
+    await userEvent.click(await screen.findByText('Table'));
+    // select new option
+    await userEvent.click(await screen.findByText('Bar'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({displayType: 'bar'}),
       })
     );
   });
