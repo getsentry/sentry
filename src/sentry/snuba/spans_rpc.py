@@ -108,7 +108,7 @@ def run_table_query(
             )
             continue
         resolved_column = columns_by_name[attribute]
-        final_meta["fields"][attribute] = resolved_column.meta_type
+        final_meta["fields"][attribute] = resolved_column.search_type
 
         # When there's no aggregates reliabilities is an empty array
         has_reliability = len(column_value.reliabilities) > 0

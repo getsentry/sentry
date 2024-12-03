@@ -1004,7 +1004,7 @@ class BaseQueryBuilder:
             return self.meta_resolver_map[field]
         if is_percentage_measurement(field):
             return "percentage"
-        elif is_numeric_measurement(field):
+        if is_numeric_measurement(field):
             return "number"
 
         if (

@@ -420,8 +420,9 @@ class SearchResolver:
             if field_type not in constants.TYPE_MAP:
                 raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
 
+            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedColumn(
-                public_alias=column, internal_name=field, search_type=field_type
+                public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
 
@@ -496,19 +497,24 @@ class SearchResolver:
         # Proto doesn't support anything more than 1 argument yet
         if len(parsed_columns) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1:
-            resolved_argument = (
-                parsed_columns[0].proto_definition
-                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
-                else None
+        elif len(parsed_columns) == 1 and isinstance(
+            parsed_columns[0].proto_definition, AttributeKey
+        ):
+            parsed_column = parsed_columns[0]
+            resolved_argument = parsed_column.proto_definition
+            search_type = (
+                parsed_column.search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
             )
         else:
             resolved_argument = None
+            search_type = function_definition.default_search_type
 
         resolved_function = ResolvedFunction(
             public_alias=alias,
             internal_name=function_definition.internal_function,
-            search_type=function_definition.search_type,
+            search_type=search_type,
             internal_type=function_definition.internal_type,
             processor=function_definition.processor,
             extrapolation=function_definition.extrapolation,
