@@ -34,15 +34,22 @@ class Task(Generic[P, R]):
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
     ):
-        # TODO(taskworker) Implement task execution deadlines
         self.name = name
         self._func = func
         self._namespace = namespace
-        self._retry = retry
         self._expires = expires
         self._processing_deadline_duration = (
             processing_deadline_duration or DEFAULT_PROCESSING_DEADLINE
         )
+        if at_most_once and retry:
+            raise AssertionError(
+                """
+                You cannot enable at_most_once and have retries defined.
+                Having retries enabled means that a task supports being executed
+                multiple times and thus cannot be idempotent.
+                """
+            )
+        self._retry = retry
         self.at_most_once = at_most_once
         update_wrapper(self, func)
 
@@ -87,18 +94,17 @@ class Task(Generic[P, R]):
 
     def _create_retry_state(self) -> RetryState:
         retry = self.retry or self._namespace.default_retry or None
-        if not retry:
+        if not retry or self.at_most_once:
             # If the task and namespace have no retry policy,
-            # make a single attempt and then discard the task.
+            # or can only be attempted once make a single
+            # attempt and then discard the task.
             return RetryState(
                 attempts=0,
                 kind="sentry.taskworker.retry.Retry",
                 discard_after_attempt=1,
                 at_most_once=self.at_most_once,
             )
-        retry_state = retry.initial_state()
-        retry_state.at_most_once = self.at_most_once
-        return retry_state
+        return retry.initial_state()
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
         # No retry policy means no retries.
