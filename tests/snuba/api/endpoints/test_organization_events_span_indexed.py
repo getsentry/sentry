@@ -1478,8 +1478,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 10
         assert confidence[0]["count()"] == "low"
         assert data[1]["count()"] == 1
-        # Skipping this assert for now, IMO confidence for "bar" should be high, but checking with sns
-        # assert confidence[1]["count()"] == "high"
+        # While logically the confidence for 1 event at 100% sample rate should be high, we're going with low until we
+        # get customer feedback
+        assert confidence[1]["count()"] == "low"
 
     def test_span_duration(self):
         spans = [
