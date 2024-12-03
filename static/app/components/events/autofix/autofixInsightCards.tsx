@@ -94,7 +94,7 @@ export function ExpandableInsightContext({
   icon?: React.ReactNode;
   rounded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(expandByDefault ?? false);
+  const [expanded, setExpanded] = useState(expandByDefault);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
