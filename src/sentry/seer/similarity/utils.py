@@ -25,17 +25,14 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
         "ruby",
     ]
 )
-SEER_ELIGIBLE_PLATFORMS = frozenset(
+# An original set of platforms were backfilled allowing more than 30 system contributing frames
+# being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
+# these set of platforms but for now we will blacklist them.
+SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
     [
-        "android",
-        "android-profiling-onboarding-1-install",
-        "android-profiling-onboarding-3-configure-profiling",
-        "android-profiling-onboarding-4-upload",
         "bun",
-        "dart",
         "deno",
         "django",
-        "flutter",
         "go",
         "go-echo",
         "go-fasthttp",
@@ -45,16 +42,6 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
-        "groovy",
-        "java",
-        "java-android",
-        "java-appengine",
-        "java-log4j",
-        "java-log4j2",
-        "java-logging",
-        "java-logback",
-        "java-spring",
-        "java-spring-boot",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -144,6 +131,26 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "ruby-rails",
     ]
 )
+SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
+    [
+        "android",
+        "android-profiling-onboarding-1-install",
+        "android-profiling-onboarding-3-configure-profiling",
+        "android-profiling-onboarding-4-upload",
+        "dart",
+        "flutter",
+        "groovy",
+        "java",
+        "java-android",
+        "java-appengine",
+        "java-log4j",
+        "java-log4j2",
+        "java-logging",
+        "java-logback",
+        "java-spring",
+        "java-spring-boot",
+    ]
+)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -169,7 +176,7 @@ def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
-def get_stacktrace_string(data: dict[str, Any]) -> str:
+def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -280,7 +287,11 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
-        if is_frames_truncated and not app_hash:
+        if (
+            platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
+            and is_frames_truncated
+            and not app_hash
+        ):
             raise TooManyOnlySystemFramesException
         if has_no_filename_or_module:
             raise NoFilenameOrModuleException
@@ -323,7 +334,7 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     try:
-        stacktrace_string = get_stacktrace_string(data)
+        stacktrace_string = get_stacktrace_string(data, platform)
     except TooManyOnlySystemFramesException:
         platform = platform if platform else "unknown"
         metrics.incr(

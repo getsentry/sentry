@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0797_drop_excluded_project_triggers"),
+        ("sentry", "0798_add_favorite_dashboard_col"),
     ]
 
     operations = [
