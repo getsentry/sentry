@@ -45,9 +45,9 @@ export function FlamegraphChartTooltip({
 
   return series.length > 0 ? (
     <BoundTooltip
-      bounds={canvasBounds}
       cursor={configSpaceCursor}
       canvas={chartCanvas}
+      canvasBounds={canvasBounds}
       canvasView={chartView}
     >
       {series.map((p, i) => {

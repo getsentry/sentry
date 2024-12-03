@@ -514,7 +514,6 @@ const AggregateFlamegraphContainer = styled('div')`
   flex: 1 1 100%;
   height: 100%;
   width: 100%;
-  overflow: hidden;
   position: absolute;
   left: 0px;
   top: 0px;
