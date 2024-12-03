@@ -280,6 +280,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     projects: list[int]
     filters: DashboardFilters
     permissions: DashboardPermissionsResponse | None
+    isFavorited: bool
 
 
 @register(Dashboard)
@@ -316,6 +317,7 @@ class DashboardDetailsModelSerializer(Serializer):
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
+            "isFavorited": user.id in obj.favorited_by,
         }
 
         if obj.filters is not None:
