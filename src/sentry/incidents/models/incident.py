@@ -303,7 +303,6 @@ class TimeSeriesSnapshot(Model):
 class IncidentActivityType(Enum):
     CREATED = 1
     STATUS_CHANGE = 2
-    COMMENT = 3
     DETECTED = 4
 
 

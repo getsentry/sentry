@@ -1,6 +1,5 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -13,12 +12,9 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {getFormattedMQL} from 'sentry/utils/metrics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,23 +54,7 @@ function Content() {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
 
-  const {queries, metricsMax, metricsMin, metricsOp, metricsQuery, mri} =
-    usePageParams(location);
-
-  const hasMetric = metricsOp && mri;
-
-  const removeMetric = useCallback(() => {
-    browserHistory.push({
-      ...location,
-      query: omit(location.query, [
-        'mri',
-        'metricsOp',
-        'metricsQuery',
-        'metricsMax',
-        'metricsMin',
-      ]),
-    });
-  }, [location]);
+  const {queries} = usePageParams(location);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -119,11 +99,6 @@ function Content() {
   const tracesQuery = useTraces({
     limit,
     query: queries,
-    mri: hasMetric ? mri : undefined,
-    metricsMax: hasMetric ? metricsMax : undefined,
-    metricsMin: hasMetric ? metricsMin : undefined,
-    metricsOp: hasMetric ? metricsOp : undefined,
-    metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
   const isLoading = tracesQuery.isFetching;
@@ -164,25 +139,6 @@ function Content() {
                 <EnvironmentPageFilter />
                 <DatePageFilter defaultPeriod="2h" />
               </PageFilterBar>
-              {hasMetric && (
-                <StyledAlert
-                  type="info"
-                  showIcon
-                  trailingItems={<StyledCloseButton onClick={removeMetric} />}
-                >
-                  {tct('The metric query [metricQuery] is filtering the results below.', {
-                    metricQuery: (
-                      <strong>
-                        {getFormattedMQL({
-                          mri: mri as MRI,
-                          aggregation: metricsOp as MetricAggregation,
-                          query: metricsQuery,
-                        })}
-                      </strong>
-                    ),
-                  })}
-                </StyledAlert>
-              )}
               {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
                 <StyledAlert type="error" showIcon>
                   {tracesQuery.error?.responseJSON?.detail}
@@ -227,8 +183,4 @@ const LayoutMain = styled(Layout.Main)`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
-`;
-
-const StyledCloseButton = styled(IconClose)`
-  cursor: pointer;
 `;

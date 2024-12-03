@@ -764,7 +764,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     }
                 ]
             },
-            "platform": "python",
+            "platform": "java",
         }
         new_event = self.store_event(data=error_data, project_id=self.project)
         assert new_event.group

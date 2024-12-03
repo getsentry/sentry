@@ -8,7 +8,7 @@ export type Meta = {
 type TableRow = Record<string, number | string | undefined>;
 export type TableData = TableRow[];
 
-type TimeSeriesItem = {
+export type TimeSeriesItem = {
   timestamp: string;
   value: number;
 };
@@ -28,3 +28,8 @@ export interface StateProps {
 }
 
 export type Thresholds = ThresholdsConfig;
+
+export type Release = {
+  timestamp: string;
+  version: string;
+};
