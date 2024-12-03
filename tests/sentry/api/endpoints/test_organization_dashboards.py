@@ -1079,3 +1079,17 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) == 4
         assert response.data[3]["permissions"]["isEditableByEveryone"] is False
         assert response.data[3]["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
+
+    def test_gets_dashboard_favorited_with_dashboard_list(self):
+        self.dashboard.favorited_by = [self.user.id]
+
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200, response.content
+
+            for dashboard in response.data:
+                assert "isFavorited" in dashboard
+            self.assert_equal_dashboards(self.dashboard, response.data[1])
+            assert response.data[1]["isFavorited"] is True
+            assert response.data[0]["isFavorited"] is False  # general template
+            assert response.data[2]["isFavorited"] is False  # dashboard_2 w/ no favorites set
