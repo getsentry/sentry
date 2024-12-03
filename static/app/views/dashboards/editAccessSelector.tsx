@@ -243,7 +243,6 @@ function EditAccessSelector({
             onChangeEditAccess?.(newDashboardPermissions);
           }
           setMenuOpen(!isMenuOpen);
-          setStagedOptions(selectedOptions);
         }}
         priority="primary"
         disabled={
@@ -290,6 +289,7 @@ function EditAccessSelector({
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
+        setStagedOptions(selectedOptions);
         setMenuOpen(!isMenuOpen);
       }}
       menuFooter={dropdownFooterButtons}
