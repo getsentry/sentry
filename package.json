@@ -227,7 +227,7 @@
   "proxyURL": "http://localhost:8000",
   "scripts": {
     "test": "node scripts/test.js --watch",
-    "test-ci": "node scripts/test.js --ci --coverage --maxWorkers=100% --colors",
+    "test-ci": "node scripts/test.js --ci --maxWorkers=100% --colors",
     "test-debug": "node --inspect-brk scripts/test.js --runInBand",
     "test-precommit": "node scripts/test.js --bail --findRelatedTests -u",
     "test-staged": "node scripts/test.js --findRelatedTests $(git diff --name-only --cached)",
