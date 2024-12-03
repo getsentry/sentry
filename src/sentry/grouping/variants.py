@@ -221,7 +221,7 @@ class SaltedComponentVariant(ComponentVariant):
     def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
-        final_values = []
+        final_values: list[str | int] = []
         for value in self.values:
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
