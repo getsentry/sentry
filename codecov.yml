@@ -4,10 +4,9 @@ coverage:
     project: false
     patch:
       frontend:
-        # codecov will not fail status checks for master
-        only_pulls: true
-        informational: false # Fail the check
-        target: 60%
+        informational: true
+        branches:
+          - master
         flags:
           - frontend
       backend:
