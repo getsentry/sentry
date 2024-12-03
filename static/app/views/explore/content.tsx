@@ -21,7 +21,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,10 +51,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [dataset] = useDataset();
-
-  const [resultMode] = useResultMode();
-  const supportedAggregates =
-    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
+  const [resultsMode] = useResultMode();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -125,7 +125,23 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
                   searchSource="explore"
-                  supportedAggregates={supportedAggregates}
+                  getFilterTokenWarning={
+                    resultsMode === 'samples'
+                      ? key => {
+                          if (
+                            ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(
+                              key as AggregationKey
+                            )
+                          ) {
+                            return t(
+                              "This key won't affect the results because samples mode does not support aggregate functions"
+                            );
+                          }
+                          return undefined;
+                        }
+                      : undefined
+                  }
+                  supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />

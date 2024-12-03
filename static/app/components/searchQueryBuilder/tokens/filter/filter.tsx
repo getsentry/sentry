@@ -205,11 +205,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   });
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const tokenHasWarning = 'warning' in token && defined(token.warning);
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
+      aria-warning={tokenHasWarning}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -276,6 +278,11 @@ const FilterWrapper = styled('div')`
   :focus {
     background-color: ${p => p.theme.gray100};
     outline: none;
+  }
+
+  &[aria-warning='true'] {
+    border-color: ${p => p.theme.gray400};
+    background-color: ${p => p.theme.gray100};
   }
 
   &[aria-invalid='true'] {
