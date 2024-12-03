@@ -50,9 +50,9 @@ export function FlamegraphUIFramesTooltip({
 
   return (
     <BoundTooltip
-      bounds={canvasBounds}
       cursor={configSpaceCursor}
       canvas={uiFramesCanvas}
+      canvasBounds={canvasBounds}
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {

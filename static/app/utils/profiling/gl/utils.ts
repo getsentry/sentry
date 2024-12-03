@@ -835,12 +835,10 @@ export function useResizeCanvasObserver(
     }
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
-
-      setCanvasBounds(
-        new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)
-      );
+      // We cannot use the resize observer's reported rect because it does not report x
+      // coordinate that is required to do edge detection.
+      const rect = entries[0].target.getBoundingClientRect();
+      setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
 
       canvas.initPhysicalSpace();
       if (view) {
