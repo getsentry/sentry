@@ -280,7 +280,11 @@ export function SuggestedFixSnippet({
     if (!repo) {
       return undefined;
     }
-    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}`;
+    return `${repo.url}/blob/${repo.default_branch}/${snippet.file_path}${
+      snippet.start_line && snippet.end_line
+        ? `#L${snippet.start_line}-L${snippet.end_line}`
+        : ''
+    }`;
   }
   const extension = getFileExtension(snippet.file_path);
   const language = extension ? getPrismLanguage(extension) : undefined;
@@ -299,7 +303,7 @@ export function SuggestedFixSnippet({
       </StyledCodeSnippet>
       {sourceLink && (
         <CodeLinkWrapper>
-          <Tooltip title={t('Open this file in GitHub')} skipWrapper>
+          <Tooltip title={t('Open in GitHub')} skipWrapper>
             <OpenInLink href={sourceLink} openInNewTab aria-label={t('GitHub')}>
               <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
             </OpenInLink>
