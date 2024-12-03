@@ -1,0 +1,24 @@
+---
+created: '2024-12-02T21:57:58.488332+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: unknown
+hashing_metadata: {}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "unknown"
+  }
+}
+---
+contributing variants:
+  default*
+    hash: "d346ee37d19a2be6587e609075ca2d57"
+    component:
+      default*
+        csp*
+          salt* (a static salt)
+            "script-src"
+          violation*
+            "'unsafe-inline'"

@@ -90,6 +90,7 @@ class BaseQueryBuilder:
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    size_fields: dict[str, str] = {}
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
@@ -1003,7 +1004,7 @@ class BaseQueryBuilder:
             return self.meta_resolver_map[field]
         if is_percentage_measurement(field):
             return "percentage"
-        elif is_numeric_measurement(field):
+        if is_numeric_measurement(field):
             return "number"
 
         if (
@@ -1012,6 +1013,9 @@ class BaseQueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
+
+        if unit := self.size_fields.get(field):
+            return unit
 
         measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do

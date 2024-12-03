@@ -49,7 +49,8 @@ export default function SolutionsSection({
           if (
             viewAllButton?.contains(element) ||
             document.getElementById('sentry-feedback')?.contains(element) ||
-            document.getElementById('autofix-rethink-input')?.contains(element)
+            document.getElementById('autofix-rethink-input')?.contains(element) ||
+            document.getElementById('autofix-write-access-modal')?.contains(element)
           ) {
             return false;
           }

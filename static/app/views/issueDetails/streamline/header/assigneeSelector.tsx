@@ -1,11 +1,15 @@
 import {useEffect} from 'react';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -58,6 +62,23 @@ export function GroupHeaderAssigneeSelector({
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
+      additionalMenuFooterItems={
+        <Button
+          type="button"
+          onClick={() => {
+            openIssueOwnershipRuleModal({
+              project,
+              organization,
+              issueId: group.id,
+              eventData: event!,
+            });
+          }}
+          icon={<IconSettings />}
+          size="xs"
+        >
+          {t('Ownership')}
+        </Button>
+      }
     />
   );
 }

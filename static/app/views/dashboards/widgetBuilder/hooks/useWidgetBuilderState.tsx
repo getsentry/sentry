@@ -9,6 +9,16 @@ import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 
+export type WidgetBuilderStateQueryParams = {
+  dataset?: WidgetType;
+  description?: string;
+  displayType?: DisplayType;
+  field?: (string | undefined)[];
+  query?: string[];
+  title?: string;
+  yAxis?: string[];
+};
+
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
   SET_DESCRIPTION: 'SET_DESCRIPTION',
@@ -16,6 +26,7 @@ export const BuilderStateAction = {
   SET_DATASET: 'SET_DATASET',
   SET_FIELDS: 'SET_FIELDS',
   SET_Y_AXIS: 'SET_Y_AXIS',
+  SET_QUERY: 'SET_QUERY',
 } as const;
 
 type WidgetAction =
@@ -24,13 +35,15 @@ type WidgetAction =
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
   | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS};
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
+  | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY};
 
-interface WidgetBuilderState {
+export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  query?: string[];
   title?: string;
   yAxis?: Column[];
 }
@@ -63,10 +76,14 @@ function useWidgetBuilderState(): {
     deserializer: deserializeFields,
     serializer: serializeFields,
   });
+  const [query, setQuery] = useQueryParamState<string[]>({
+    fieldName: 'query',
+    decoder: decodeList,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis}),
-    [title, description, displayType, dataset, fields, yAxis]
+    () => ({title, description, displayType, dataset, fields, yAxis, query}),
+    [title, description, displayType, dataset, fields, yAxis, query]
   );
 
   const dispatch = useCallback(
@@ -90,11 +107,14 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
           break;
+        case BuilderStateAction.SET_QUERY:
+          setQuery(action.payload);
+          break;
         default:
           break;
       }
     },
-    [setTitle, setDescription, setDisplayType, setDataset, setFields, setYAxis]
+    [setTitle, setDescription, setDisplayType, setDataset, setFields, setYAxis, setQuery]
   );
 
   return {

@@ -3,20 +3,26 @@ import styled from '@emotion/styled';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
 import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
-import useWidgetBuilderState, {
-  BuilderStateAction,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 function DevBuilder() {
-  const {state, dispatch} = useWidgetBuilderState();
+  const {state, dispatch} = useWidgetBuilderContext();
+  const [showDevBuilder] = useLocalStorageState('showDevBuilder', false);
+
+  if (!showDevBuilder) {
+    return null;
+  }
 
   return (
     <Body>
@@ -114,6 +120,48 @@ function DevBuilder() {
           }}
         />
       </Section>
+      <Section>
+        <h1>Query:</h1>
+        <ol style={{overflow: 'auto'}}>
+          {state.query?.map((query, index) => <li key={index}>{query}</li>)}
+        </ol>
+        <div>
+          {state.query?.map((query, index) => (
+            <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+              <QueryField
+                query={query}
+                onSearch={queryString => {
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload:
+                      state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                  });
+                }}
+              />
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload: state.query?.filter((_, i) => i !== index) ?? [],
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() =>
+              dispatch({
+                type: BuilderStateAction.SET_QUERY,
+                payload: [...(state.query ?? []), ''],
+              })
+            }
+          >
+            Add
+          </button>
+        </div>
+      </Section>
     </Body>
   );
 }
@@ -174,6 +222,27 @@ function YAxis({
         selectedAggregate={undefined}
       />
     </CustomMeasurementsProvider>
+  );
+}
+
+function QueryField({
+  query,
+  onSearch,
+}: {
+  onSearch: (query: string) => void;
+  query: string;
+}) {
+  return (
+    <SearchQueryBuilder
+      placeholder={'Search'}
+      filterKeys={{}}
+      initialQuery={query ?? ''}
+      onSearch={onSearch}
+      searchSource={'widget_builder'}
+      filterKeySections={[]}
+      getTagValues={() => Promise.resolve([])}
+      showUnsubmittedIndicator
+    />
   );
 }
 
