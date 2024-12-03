@@ -219,6 +219,205 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard 3",
         ]
 
+    def test_get_only_favorites_no_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        dashboard_4 = Dashboard.objects.create(
+            title="Dashboard 4",
+            created_by_id=user_2.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_4.favorited_by = [user_1.id, user_2.id]
+        dashboard_3 = Dashboard.objects.create(
+            title="Dashboard 3",
+            created_by_id=user_1.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_3.favorited_by = [user_1.id]
+        dashboard_5 = Dashboard.objects.create(
+            title="Dashboard 5",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_5.favorited_by = [user_1.id]
+        dashboard_6 = Dashboard.objects.create(
+            title="Dashboard 6",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_6.favorited_by = [user_2.id]
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+            assert response.status_code == 200, response.content
+
+            values = [row["title"] for row in response.data]
+            # sorted by title by default
+            assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
+
+    def test_get_only_favorites_with_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        dashboard_4 = Dashboard.objects.create(
+            title="Dashboard 4",
+            created_by_id=user_2.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_4.favorited_by = [user_1.id, user_2.id]
+        dashboard_3 = Dashboard.objects.create(
+            title="Dashboard 3",
+            created_by_id=user_1.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_3.favorited_by = [user_1.id]
+        dashboard_5 = Dashboard.objects.create(
+            title="Dashboard 5",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_5.favorited_by = [user_1.id]
+        dashboard_6 = Dashboard.objects.create(
+            title="Dashboard 7",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_6.favorited_by = [user_2.id]
+        dashboard_7 = Dashboard.objects.create(
+            title="Dashboard 6",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_7.favorited_by = [user_2.id]
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(
+                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+            )
+            assert response.status_code == 200, response.content
+
+            values = [row["title"] for row in response.data]
+            assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+
+    def test_get_exclude_favorites_with_no_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        dashboard_4 = Dashboard.objects.create(
+            title="Dashboard 4",
+            created_by_id=user_2.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_4.favorited_by = [user_1.id, user_2.id]
+        dashboard_3 = Dashboard.objects.create(
+            title="Dashboard 3",
+            created_by_id=user_1.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_3.favorited_by = [user_1.id]
+        dashboard_7 = Dashboard.objects.create(
+            title="Dashboard 7",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_7.favorited_by = [user_2.id]
+        dashboard_5 = Dashboard.objects.create(
+            title="Dashboard 5",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_5.favorited_by = [user_1.id]
+        dashboard_6 = Dashboard.objects.create(
+            title="Dashboard 6",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_6.favorited_by = [user_2.id]
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(self.url, data={"filter": "excludeFavorites"})
+            assert response.status_code == 200, response.content
+
+            values = [row["title"] for row in response.data]
+            # sorted by title by default
+            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 6", "Dashboard 7"]
+
+    def test_get_exclude_favorites_with_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+        user_2 = self.create_user(username="user_2")
+        self.create_member(organization=self.organization, user=user_2)
+
+        dashboard_4 = Dashboard.objects.create(
+            title="Dashboard 4",
+            created_by_id=user_2.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_4.favorited_by = [user_1.id, user_2.id]
+        dashboard_3 = Dashboard.objects.create(
+            title="Dashboard 3",
+            created_by_id=user_1.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_3.favorited_by = [user_1.id]
+        dashboard_7 = Dashboard.objects.create(
+            title="Dashboard 7",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_7.favorited_by = [user_2.id]
+        dashboard_5 = Dashboard.objects.create(
+            title="Dashboard 5",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=5),
+        )
+        dashboard_5.favorited_by = [user_1.id]
+        dashboard_6 = Dashboard.objects.create(
+            title="Dashboard 6",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            last_visited=before_now(minutes=0),
+        )
+        dashboard_6.favorited_by = [user_2.id]
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(
+                self.url, data={"filter": "excludeFavorites", "sort": "dateCreated"}
+            )
+            assert response.status_code == 200, response.content
+
+            values = [row["title"] for row in response.data]
+            assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
+
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
