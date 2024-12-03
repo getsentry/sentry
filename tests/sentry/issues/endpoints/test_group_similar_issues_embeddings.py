@@ -773,3 +773,35 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"k": "1", "threshold": "0.01"},
         )
         assert response.data == []
+
+    def test_no_filename_or_module(self):
+        type = "FailedToFetchError"
+        value = "Charlie didn't bring the ball back"
+        context_line = f"raise {type}('{value}')"
+        error_data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": type,
+                        "value": value,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": f"play_fetch_{i}",
+                                    "context_line": context_line,
+                                }
+                                for i in range(MAX_FRAME_COUNT + 1)
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+        new_event = self.store_event(data=error_data, project_id=self.project)
+        assert new_event.group
+        response = self.client.get(
+            path=f"/api/0/issues/{new_event.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.01"},
+        )
+        assert response.data == []
