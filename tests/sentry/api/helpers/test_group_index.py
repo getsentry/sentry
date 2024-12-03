@@ -332,12 +332,13 @@ class MergeGroupsTest(TestCase):
         proj1 = projects[0]
         groups = [self.create_group(proj1), self.create_group(proj1)]
         group_ids = [g.id for g in groups]
-        project_ids = [g.project_id for g in groups]
+        project_ids = [p.id for p in projects]
 
         request = self.make_request(method="PUT")
         request.user = self.user
         request.data = {"merge": 1}
-        # The two groups belong to the same project, so we should be able to merge them
+        # The two groups belong to the same project, so we should be able to merge them, even though
+        # we're passing multiple project ids
         request.GET = {"id": group_ids, "project": project_ids}
 
         update_groups(request, group_ids, projects, self.organization.id)
