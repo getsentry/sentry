@@ -20,12 +20,7 @@ from sentry.search.events.builder.discover import (
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.fields import (
-    FIELD_ALIASES,
-    get_function_alias,
-    get_json_meta_type,
-    is_function,
-)
+from sentry.search.events.fields import FIELD_ALIASES, get_function_alias, is_function
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -411,20 +406,10 @@ def timeseries_query(
             compared_value = compared_row.get(col_name, 0)
             row["comparisonCount"] = compared_value
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
-        {
-            "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
-        },
+        {"data": result["data"], "meta": result["meta"]},
         snuba_params.start_date,
         snuba_params.end_date,
         rollup,

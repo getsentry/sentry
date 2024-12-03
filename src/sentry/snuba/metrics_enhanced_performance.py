@@ -191,6 +191,7 @@ def timeseries_query(
             functions_acl=functions_acl,
             has_metrics=has_metrics,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
     return SnubaTSResult(
         {

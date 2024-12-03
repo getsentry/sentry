@@ -7,7 +7,6 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.issue_platform import IssuePlatformTimeseriesQueryBuilder
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
@@ -211,19 +210,12 @@ def timeseries_query(
             cmp_result_val = cmp_result.get(col_name, 0)
             result["comparisonCount"] = cmp_result_val
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
         {
             "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
+            "meta": result["meta"],
         },
         snuba_params.start_date,
         snuba_params.end_date,

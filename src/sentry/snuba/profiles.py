@@ -6,7 +6,6 @@ from sentry.search.events.builder.profiles import (
     ProfilesQueryBuilder,
     ProfilesTimeseriesQueryBuilder,
 )
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
@@ -91,6 +90,7 @@ def timeseries_query(
         ),
     )
     results = builder.run_query(referrer=referrer, query_source=query_source)
+    results = builder.process_results(results)
 
     return SnubaTSResult(
         {
@@ -105,12 +105,7 @@ def timeseries_query(
                 if zerofill_results
                 else results["data"]
             ),
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
-                    for value in results["meta"]
-                }
-            },
+            "meta": results["meta"],
         },
         snuba_params.start_date,
         snuba_params.end_date,

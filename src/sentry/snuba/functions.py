@@ -121,12 +121,7 @@ def timeseries_query(
                 if zerofill_results
                 else results["data"]
             ),
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
-                    for value in results["meta"]
-                }
-            },
+            "meta": results["meta"],
         },
         snuba_params.start_date,
         snuba_params.end_date,
