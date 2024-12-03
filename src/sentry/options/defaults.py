@@ -2876,24 +2876,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# killswitch for profile consumers outcome emission.
-# If false, processed outcomes for profiles will keep
-# being emitted in the billing metrics consumer.
-#
-# If true, we'll stop emitting processed outcomes for
-# profiles in the billing metrics consumer and we'll
-# start emitting them in the profiling consumers
-register(
-    "profiling.emit_outcomes_in_profiling_consumer.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
     default=1_000_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for clamping project tag key date range
+register(
+    "visibility.tag-key-max-date-range.days",
+    default=14,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2916,7 +2909,28 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "performance.event-tracker.sample-rate.transaction",
+    "performance.event-tracker.sample-rate.transactions",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# migrating send_alert_event task to not pass Event
+register(
+    "sentryapps.send_alert_event.use-eventid",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "transactions.do_post_process_in_save",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+
+# allows us to disable indexing during maintenance events
+register(
+    "sentry.similarity.indexing.enabled",
+    default=True,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

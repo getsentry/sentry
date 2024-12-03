@@ -107,7 +107,6 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const groupingCurrentLevel = group?.metadata?.current_level;
-  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -389,7 +388,7 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <BreadcrumbsDataSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && (
+      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
         <EventTraceView group={group} event={event} organization={organization} />
       )}
       {defined(eventEntries[EntryType.REQUEST]) && (
@@ -420,9 +419,7 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      {hasFeatureFlagSection && (
-        <EventFeatureFlagList group={group} project={project} event={event} />
-      )}
+      <EventFeatureFlagList group={group} project={project} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />

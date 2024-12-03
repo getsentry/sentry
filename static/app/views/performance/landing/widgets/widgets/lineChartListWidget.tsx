@@ -26,7 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
@@ -687,10 +687,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             </Fragment>
           );
         case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+          const moduleRoute = moduleURLBuilder('cache', 'backend');
           const cacheMissRate = listItem[fieldString] as any;
+
           const target = normalizeUrl(
-            `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+            `/${moduleRoute}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
           );
+
           return (
             <Fragment>
               <GrowLink to={target}>

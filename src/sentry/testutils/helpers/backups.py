@@ -44,11 +44,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import (
-    AlertRuleExcludedProjects,
-    AlertRuleMonitorTypeInt,
-    AlertRuleTriggerExclusion,
-)
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -69,7 +65,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -511,20 +507,15 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # AlertRule*
-        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
             user=owner,
         )
-        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
         assert alert.snuba_query is not None
-        AlertRuleTriggerExclusion.objects.create(
-            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.get()
-        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
@@ -578,6 +569,10 @@ class ExhaustiveFixtures(Fixtures):
             title=f"Dashboard 1 for {slug}",
             created_by_id=owner_id,
             organization=org,
+        )
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner.id,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -579,14 +580,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -615,7 +616,6 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             ("messaging.message.body.size", "number", None),
             ("messaging.message.receive.latency", "number", None),
             ("messaging.message.retry.count", "number", None),
-            ("http.response_content_length", "number", None),
         ]
 
         self.store_spans(
@@ -728,6 +728,98 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "count()": 1,
             },
         ]
+        assert meta["dataset"] == self.dataset
+
+    def test_orderby_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.description", "sum(span.self_time)"],
+                "query": "",
+                "orderby": "sum_span_self_time",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "span.description": "foo",
+                "sum(span.self_time)": 1000,
+            },
+            {
+                "span.description": "bar",
+                "sum(span.self_time)": 2000,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
+    @pytest.mark.querybuilder
+    def test_explore_sample_query(self):
+        spans = [
+            self.create_span(
+                {"description": "foo", "sentry_tags": {"status": "success"}},
+                start_ts=self.ten_mins_ago,
+            ),
+            self.create_span(
+                {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                start_ts=self.nine_mins_ago,
+            ),
+        ]
+        self.store_spans(
+            spans,
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "id",
+                    "project",
+                    "span.op",
+                    "span.description",
+                    "span.duration",
+                    "timestamp",
+                    "trace",
+                    "transaction.span_id",
+                ],
+                # This is to skip INP spans
+                "query": "!transaction.span_id:00",
+                "orderby": "timestamp",
+                "statsPeriod": "1h",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        for source, result in zip(spans, data):
+            assert result["id"] == source["span_id"], "id"
+            assert result["span.duration"] == 1000.0, "duration"
+            assert result["span.op"] == "", "op"
+            assert result["span.description"] == source["description"], "description"
+            assert datetime.fromisoformat(result["timestamp"]).timestamp() == pytest.approx(
+                source["end_timestamp_precise"], abs=5
+            ), "timestamp"
+            assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
+            assert result["project"] == result["project.name"] == self.project.slug, "project"
         assert meta["dataset"] == self.dataset
 
     def test_span_status(self):
@@ -1275,6 +1367,69 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_span_data_fields_http_resource(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "resource.img",
+                        "description": "/image/",
+                        "data": {
+                            "http.decoded_response_content_length": 1,
+                            "http.response_content_length": 2,
+                            "http.response_transfer_size": 3,
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "http.decoded_response_content_length",
+                    "http.response_content_length",
+                    "http.response_transfer_size",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "allowAggregateConditions": "0",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "http.decoded_response_content_length": 1,
+                "http.response_content_length": 2,
+                "http.response_transfer_size": 3,
+                "project.name": self.project.slug,
+                "id": mock.ANY,
+            },
+        ]
+        assert response.data["meta"] == {
+            "dataset": mock.ANY,
+            "datasetReason": "unchanged",
+            "fields": {
+                "http.decoded_response_content_length": "size",
+                "http.response_content_length": "size",
+                "http.response_transfer_size": "size",
+                "id": "string",
+                "project.name": "string",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "http.decoded_response_content_length": "byte",
+                "http.response_content_length": "byte",
+                "http.response_transfer_size": "byte",
+                "id": None,
+                "project.name": None,
+            },
+        }
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
@@ -1295,10 +1450,20 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 start_ts=self.ten_mins_ago,
             )
         )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["count()"],
+                "field": ["description", "count()"],
+                "orderby": "-count()",
                 "query": "",
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -1307,8 +1472,14 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
 
         assert response.status_code == 200, response.content
         data = response.data["data"]
-        assert len(data) == 1
+        confidence = response.data["confidence"]
+        assert len(data) == 2
+        assert len(confidence) == 2
         assert data[0]["count()"] == 10
+        assert confidence[0]["count()"] == "low"
+        assert data[1]["count()"] == 1
+        # Skipping this assert for now, IMO confidence for "bar" should be high, but checking with sns
+        # assert confidence[1]["count()"] == "high"
 
     def test_span_duration(self):
         spans = [
@@ -1504,7 +1675,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):
         super().test_spm()
-
-    @pytest.mark.xfail(reason="units not implemented yet")
-    def test_simple_measurements(self):
-        super().test_simple_measurements()

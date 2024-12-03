@@ -11,5 +11,4 @@ export const MODULE_FEATURE = t('insights-mobile-screens-module');
 export const DATA_TYPE = t('Mobile Screens');
 export const DATA_TYPE_PLURAL = t('Mobile Screens');
 
-// TODO: Update this link once we have the proper docs.
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/mobile-vitals/';
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/mobile/';

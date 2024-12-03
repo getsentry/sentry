@@ -9,6 +9,7 @@ import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
+import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
 import {
@@ -19,6 +20,7 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -27,12 +29,11 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/useSuspectFlags';
 
 export function EventFeatureFlagList({
   event,
@@ -78,11 +79,6 @@ export function EventFeatureFlagList({
     },
   });
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
-  const {setParamValue: setProjectId} = useUrlParams('project');
-
-  useEffect(() => {
-    setProjectId(event.projectID);
-  }, [setProjectId, event.projectID]);
 
   const {
     suspectFlags,
@@ -97,6 +93,10 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = !!event.contexts.flags;
   const hasFlags = Boolean(hasFlagContext && event?.contexts?.flags?.values.length);
+  const showCTA =
+    !hasFlagContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-cta');
 
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
@@ -177,7 +177,10 @@ export function EventFeatureFlagList({
     }
   }, [hasFlags, hydratedFlags.length, organization]);
 
-  // TODO: for LD users, show a CTA in this section instead
+  if (showCTA) {
+    return <FeatureFlagInlineCTA projectId={event.projectID} />;
+  }
+
   // if contexts.flags is not set, hide the section
   if (!hasFlagContext) {
     return null;
@@ -186,45 +189,45 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      {hasFlagContext && (
-        <Fragment>
-          <Button
-            aria-label={t('Set Up Integration')}
-            size="xs"
-            onClick={activateSidebarSkipConfigure}
-          >
-            {t('Set Up Integration')}
-          </Button>
-          {hasFlags && (
-            <Fragment>
-              <Button
-                size="xs"
-                aria-label={t('View All')}
-                ref={viewAllButtonRef}
-                title={t('View All Flags')}
-                onClick={() => {
-                  isDrawerOpen ? closeDrawer() : onViewAllFlags();
-                }}
-              >
-                {t('View All')}
-              </Button>
-              <Button
-                aria-label={t('Open Feature Flag Search')}
-                icon={<IconSearch size="xs" />}
-                size="xs"
-                title={t('Open Search')}
-                onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-              />
-              <FeatureFlagSort
-                orderBy={orderBy}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                setOrderBy={setOrderBy}
-              />
-            </Fragment>
-          )}
-        </Fragment>
-      )}
+      <Fragment>
+        <Button
+          aria-label={t('Set Up Integration')}
+          size="xs"
+          onClick={mouseEvent => {
+            activateSidebarSkipConfigure(mouseEvent, project.id);
+          }}
+        >
+          {t('Set Up Integration')}
+        </Button>
+        {hasFlags && (
+          <Fragment>
+            <Button
+              size="xs"
+              aria-label={t('View All')}
+              ref={viewAllButtonRef}
+              title={t('View All Flags')}
+              onClick={() => {
+                isDrawerOpen ? closeDrawer() : onViewAllFlags();
+              }}
+            >
+              {t('View All')}
+            </Button>
+            <Button
+              aria-label={t('Open Feature Flag Search')}
+              icon={<IconSearch size="xs" />}
+              size="xs"
+              title={t('Open Search')}
+              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+            />
+            <FeatureFlagSort
+              orderBy={orderBy}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              setOrderBy={setOrderBy}
+            />
+          </Fragment>
+        )}
+      </Fragment>
     </ButtonBar>
   );
 

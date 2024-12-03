@@ -13,6 +13,7 @@ import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoa
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
+  featureFlagOnboarding,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
@@ -169,6 +170,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

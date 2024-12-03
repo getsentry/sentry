@@ -66,7 +66,7 @@ export function ProjectsTable({
       headers={[
         t('Project'),
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
-          {t('Sent Spans')}
+          {t('Accepted Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
         t('Stored Spans'),

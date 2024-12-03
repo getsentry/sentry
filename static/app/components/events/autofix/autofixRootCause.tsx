@@ -15,6 +15,7 @@ import {
   type AutofixRootCauseCodeContext,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
+  AutofixStatus,
   AutofixStepType,
   type CodeSnippetContext,
 } from 'sentry/components/events/autofix/types';
@@ -101,7 +102,7 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
             ...data,
             autofix: {
               ...data.autofix,
-              status: 'PROCESSING',
+              status: AutofixStatus.PROCESSING,
               steps: data.autofix.steps?.map(step => {
                 if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
                   return step;
@@ -229,6 +230,7 @@ function RootCauseContext({
           icon={<IconCode size="sm" color="subText" />}
           title={'Relevant code'}
           rounded
+          expandByDefault
         >
           <AutofixRootCauseCodeContexts codeContext={cause.code_context} repos={repos} />
         </ExpandableInsightContext>
