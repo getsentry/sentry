@@ -587,6 +587,9 @@ def emit_function_regression_issue(
             }
         )
 
+    if not payloads:
+        return 0
+
     response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
     if response.status != 200:
         return 0
