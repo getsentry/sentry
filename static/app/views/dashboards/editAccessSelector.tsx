@@ -81,7 +81,7 @@ function EditAccessSelector({
             ) ?? []),
           ];
     setSelectedOptions(selectedOptionsFromDashboard);
-  }, [dashboard, teamsToRender, isMenuOpen]);
+  }, [dashboard, teamsToRender, isMenuOpen]); // isMenuOpen dependency ensures perms are 'refreshed'
 
   // Handles state change when dropdown options are selected
   const onSelectOptions = newSelectedOptions => {
