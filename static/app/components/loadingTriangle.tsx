@@ -41,6 +41,7 @@ const CircleBackground = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  /* @white-dark from palette.less */
   background: #fbfbfc;
   border-radius: 50%;
 
