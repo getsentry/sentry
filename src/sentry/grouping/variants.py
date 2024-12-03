@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.grouping.component import (
@@ -22,7 +23,7 @@ class FingerprintVariantMetadata(TypedDict):
     matched_rule: NotRequired[str]
 
 
-class BaseVariant:
+class BaseVariant(ABC):
     # The type of the variant that is reported to the UI.
     type: str | None = None
 
