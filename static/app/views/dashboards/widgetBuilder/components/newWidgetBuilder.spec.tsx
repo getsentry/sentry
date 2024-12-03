@@ -69,6 +69,11 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/events/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -186,10 +191,18 @@ describe('NewWidgetBuiler', function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(<WidgetBuilderV2 isOpen onClose={onCloseMock} />, {
-      router,
-      organization,
-    });
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
 
     // click dropdown
     await userEvent.click(await screen.findByText('Table'));
