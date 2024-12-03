@@ -2,6 +2,7 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -153,7 +154,10 @@ class UserEmailsEndpoint(UserEndpoint):
         use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
         if use_signed_urls:
             add_email_signed(email, user)
-            return self.respond(status=201)
+            return self.respond(
+                {"email": _("A verification email has been sent. Please check your inbox.")},
+                status=201,
+            )
         else:
             try:
                 new_useremail = add_email(email, user)
@@ -231,13 +235,13 @@ class UserEmailsEndpoint(UserEndpoint):
             .exists()
         ):
             return self.respond(
-                {"email": "That email address is already associated with another account."},
+                {"email": _("That email address is already associated with another account.")},
                 status=400,
             )
 
         if not new_useremail.is_verified:
             return self.respond(
-                {"email": "You must verify your email address before marking it as primary."},
+                {"email": _("You must verify your email address before marking it as primary.")},
                 status=400,
             )
 
