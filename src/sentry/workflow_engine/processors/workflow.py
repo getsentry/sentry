@@ -26,6 +26,16 @@ def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set
     return triggered_workflows
 
 
+def evaluate_workflow_action_filters(workflows: set[Workflow], evt: GroupEvent) -> set[Workflow]:
+    triggered_workflows: set[Workflow] = set()
+
+    for workflow in workflows:
+        if workflow.evaluate_action_filters(evt):
+            triggered_workflows.add(workflow)
+
+    return triggered_workflows
+
+
 def process_workflows(evt: GroupEvent):
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
@@ -33,11 +43,7 @@ def process_workflows(evt: GroupEvent):
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, evt)
 
-    # get all the data_condition_group_ids from the triggered_workflows <=> workflow_data_condition_groups
-
-    # TODO - create processors/action.py: evaluate_actions(data_condition_group_ids, evt)
-    # TODO - decide if this should iterate the actions and call action.trigger
-    #         or just return the list of actions
-    #         or just return the trigger
+    # get all the triggered_workflow_groups from the triggered_workflows <=> workflow_data_condition_groups
+    # call `evaluate_workflow_actions` on the triggered groups, more or less the same as this stuff, but not triggered by an event.. is it?
 
     return triggered_workflows
