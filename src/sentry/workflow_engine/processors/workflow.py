@@ -1,5 +1,7 @@
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 from sentry.workflow_engine.types import DetectorType
 
 
@@ -8,7 +10,6 @@ def get_detector_by_event(evt: GroupEvent) -> Detector:
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:
-        # TODO - Don't hardcode the type as a string, make an enum
         detector = Detector.objects.get(project_id=evt.project_id, type=DetectorType.ERROR)
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
@@ -26,14 +27,29 @@ def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set
     return triggered_workflows
 
 
-def evaluate_workflow_action_filters(workflows: set[Workflow], evt: GroupEvent) -> set[Workflow]:
-    triggered_workflows: set[Workflow] = set()
+def evaluate_workflow_action_filters(
+    workflows: set[Workflow], evt: GroupEvent
+) -> BaseQuerySet[Action]:
+    # TODO - decide if this should live here, or in procesors/action.py
+    filtered_action_groups: set[DataConditionGroup] = set()
 
-    for workflow in workflows:
-        if workflow.evaluate_action_filters(evt):
-            triggered_workflows.add(workflow)
+    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
+    workflow_ids = {workflow.id for workflow in workflows}
 
-    return triggered_workflows
+    action_conditions = DataConditionGroup.objects.filter(
+        workflowdataconditiongroup__workflow_id__in=workflow_ids
+    ).distinct()
+
+    for action_condition in action_conditions:
+        evaluation, result = evaluate_condition_group(action_condition, evt)
+
+        if evaluation:
+            filtered_action_groups.add(action_condition)
+
+    # get the actions for any of the triggered data condition groups
+    return Action.objects.filter(
+        dataconditiongroupaction__condition_group__in=filtered_action_groups
+    ).distinct()
 
 
 def process_workflows(evt: GroupEvent):
@@ -45,5 +61,7 @@ def process_workflows(evt: GroupEvent):
 
     # get all the triggered_workflow_groups from the triggered_workflows <=> workflow_data_condition_groups
     # call `evaluate_workflow_actions` on the triggered groups, more or less the same as this stuff, but not triggered by an event.. is it?
+    # triggered_actions = evaluate_workflow_action_filters(triggered_workflows, evt)
 
+    # TODO - return the triggered_workflows or triggered_actions, decide on the location of the processing
     return triggered_workflows

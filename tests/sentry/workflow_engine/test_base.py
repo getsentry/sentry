@@ -94,7 +94,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return workflow, detector, detector_workflow, workflow_triggers
 
-    def create_group_event(self, project=None, **kwargs) -> tuple[Group, Event, GroupEvent]:
+    def create_group_event(self, project=None, occurrence=None) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project
         group = self.create_group(project)
         event = self.create_event(
@@ -109,6 +109,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             group,
             event.data,
             event._snuba_data,
+            occurrence,
         )
 
         return group, event, group_event
