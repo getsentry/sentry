@@ -322,7 +322,7 @@ urlpatterns += [
                     name="sentry-account-confirm-email",
                 ),
                 re_path(
-                    r"^account/confirm-signed-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    r"^confirm-signed-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
                     accounts.confirm_signed_email,
                     name="sentry-account-confirm-signed-email",
                 ),
