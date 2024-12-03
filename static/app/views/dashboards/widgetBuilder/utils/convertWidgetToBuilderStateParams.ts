@@ -10,6 +10,7 @@ export function convertWidgetToBuilderStateParams(
 ): WidgetBuilderStateQueryParams {
   const yAxis = widget.queries.flatMap(q => q.aggregates);
   const field = widget.queries.flatMap(q => q.fields);
+  const query = widget.queries.flatMap(q => q.conditions);
 
   return {
     title: widget.title,
@@ -18,5 +19,6 @@ export function convertWidgetToBuilderStateParams(
     displayType: widget.displayType ?? DisplayType.TABLE,
     field,
     yAxis,
+    query,
   };
 }
