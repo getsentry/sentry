@@ -77,6 +77,7 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -87,6 +88,7 @@ def timeseries_query(
         selected_columns=selected_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     results = builder.run_query(referrer=referrer, query_source=query_source)
