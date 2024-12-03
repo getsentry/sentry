@@ -547,6 +547,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         get_event_stats = get_event_stats_factory(dataset)
+        zerofill_results = not (
+            request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
+        )
+        if use_rpc:
+            zerofill_results = False
 
         try:
             return Response(
@@ -556,9 +561,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events,
                     allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
+                    zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
                 ),
