@@ -56,24 +56,26 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
     def test_post(self):
         with self.feature(self.features):
             response = self.client.post(
-                self.url, data={"secret": "123", "provider": "launchdarkly"}
+                self.url,
+                data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "launchdarkly"},
             )
             assert response.status_code == 201, response.content
 
         models = FlagWebHookSigningSecretModel.objects.all()
         assert len(models) == 1
-        assert models[0].secret == "123"
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
     def test_post_disabled(self):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404, response.content
 
-    def test_post_invalid_provider(self):
+    def test_post_invalid(self):
         with self.feature(self.features):
             url = reverse(self.endpoint, args=(self.organization.id,))
             response = self.client.post(url, data={"secret": "123", "provider": "other"})
             assert response.status_code == 400, response.content
             assert response.json()["provider"] == ['"other" is not a valid choice.']
+            assert response.json()["secret"] == ["Ensure this field has at least 32 characters."]
 
     def test_post_empty_request(self):
         with self.feature(self.features):
