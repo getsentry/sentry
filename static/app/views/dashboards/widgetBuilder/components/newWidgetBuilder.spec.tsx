@@ -57,6 +57,11 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());

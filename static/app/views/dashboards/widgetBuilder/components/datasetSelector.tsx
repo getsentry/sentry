@@ -81,6 +81,6 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
 
 const Header = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
+  ${p => p.theme.tooltipUnderline()};
   margin-bottom: ${space(2)};
-  border-bottom: 1px dotted ${p => p.theme.textColor};
 `;
