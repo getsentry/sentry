@@ -6,12 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     get_hash_basis_and_metadata,
     record_grouphash_metadata_metrics,
 )
+from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
@@ -109,17 +109,19 @@ def test_unknown_hash_basis(
         config_name, use_full_ingest_pipeline=True, project=default_project
     )
 
-    unknown_variants = {
-        "dogs": ComponentVariant(
-            BaseGroupingComponent(
-                id="not_a_known_component_type",
-                contributes=True,
-                values=[BaseGroupingComponent(id="dogs_are_great", contributes=True)],
-            ),
-            get_default_grouping_config_dict(),
-        )
-    }
-    with patch.object(event, "get_grouping_variants", new=MagicMock(return_value=unknown_variants)):
+    component = DefaultGroupingComponent(
+        contributes=True, values=[MessageGroupingComponent(contributes=True)]
+    )
+
+    # Overwrite the component ids so this stops being recognizable as a known grouping type
+    component.id = "not_a_known_component_type"
+    component.values[0].id = "dogs_are_great"
+
+    with patch.object(
+        event,
+        "get_grouping_variants",
+        new=MagicMock(return_value={"dogs": ComponentVariant(component, StrategyConfiguration())}),
+    ):
         # Overrride the input filename since there isn't a real input which will generate the mock
         # variants above, but we still want the snapshot.
         _assert_and_snapshot_results(event, config_name, "unknown_variant.json", insta_snapshot)
