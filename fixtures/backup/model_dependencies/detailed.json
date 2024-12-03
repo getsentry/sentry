@@ -3045,34 +3045,6 @@
       ]
     ]
   },
-  "sentry.incidentseen": {
-    "dangling": false,
-    "foreign_keys": {
-      "incident": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.incident",
-        "nullable": false
-      },
-      "user_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": false
-      }
-    },
-    "model": "sentry.incidentseen",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_incidentseen",
-    "uniques": [
-      [
-        "incident",
-        "user_id"
-      ]
-    ]
-  },
   "sentry.incidentsnapshot": {
     "dangling": false,
     "foreign_keys": {
@@ -3097,34 +3069,6 @@
     "uniques": [
       [
         "incident"
-      ]
-    ]
-  },
-  "sentry.incidentsubscription": {
-    "dangling": false,
-    "foreign_keys": {
-      "incident": {
-        "kind": "FlexibleForeignKey",
-        "model": "sentry.incident",
-        "nullable": false
-      },
-      "user_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": false
-      }
-    },
-    "model": "sentry.incidentsubscription",
-    "relocation_dependencies": [],
-    "relocation_scope": "Global",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_incidentsubscription",
-    "uniques": [
-      [
-        "incident",
-        "user_id"
       ]
     ]
   },

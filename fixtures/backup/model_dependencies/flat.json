@@ -424,17 +424,9 @@
     "sentry.incident",
     "sentry.project"
   ],
-  "sentry.incidentseen": [
-    "sentry.incident",
-    "sentry.user"
-  ],
   "sentry.incidentsnapshot": [
     "sentry.incident",
     "sentry.timeseriessnapshot"
-  ],
-  "sentry.incidentsubscription": [
-    "sentry.incident",
-    "sentry.user"
   ],
   "sentry.incidenttrigger": [
     "sentry.alertruletrigger",

@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0799_cron_incident_index
+sentry: 0800_rm_incidentseen_incidentsubscription
 
 social_auth: 0002_default_auto_field
 
