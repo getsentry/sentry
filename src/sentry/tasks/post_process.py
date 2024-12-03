@@ -31,6 +31,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
@@ -513,6 +514,7 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
+    from sentry.ingest.types import ConsumerType
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
@@ -558,7 +560,12 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 processing_store.delete_by_key(cache_key)
-
+            if eventstream_type == EventStreamEventType.Transaction.value:
+                track_sampled_event(
+                    data["event_id"],
+                    ConsumerType.Transactions,
+                    TransactionStageStatus.REDIS_DELETED,
+                )
             occurrence = None
             event = process_event(data, group_id)
         else:
@@ -643,6 +650,11 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
+            track_sampled_event(
+                event.event_id,
+                ConsumerType.Transactions,
+                TransactionStageStatus.POST_PROCESS_FINISHED,
+            )
 
         metric_tags = {}
         if group_id:
