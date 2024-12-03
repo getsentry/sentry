@@ -37,10 +37,13 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         project1.update_option("sentry:target_sample_rate", 0.2)
         project2 = self.create_project(teams=[self.team])
         project2.update_option("sentry:target_sample_rate", 0.2)
+        project3 = self.create_project(teams=[self.team])
+        project3.update_option("sentry:target_sample_rate", 0.2)
 
         data = [
             # we leave project 1 unchanged
             {"id": project2.id, "sampleRate": 0.5},
+            {"id": project3.id, "sampleRate": 0.123456789},
         ]
 
         with self.feature(self.features):
@@ -50,10 +53,12 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
 
         assert response.data == [
             {"id": project2.id, "sampleRate": 0.5},
+            {"id": project3.id, "sampleRate": 0.1235},
         ]
 
         assert project1.get_option("sentry:target_sample_rate") == 0.2
         assert project2.get_option("sentry:target_sample_rate") == 0.5
+        assert project3.get_option("sentry:target_sample_rate") == 0.1235
 
     def test_put_automatic_mode(self):
         self.organization.update_option(
