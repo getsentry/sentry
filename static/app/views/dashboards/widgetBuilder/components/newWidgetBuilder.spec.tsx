@@ -59,6 +59,16 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -99,7 +109,7 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
-    expect(await screen.findByText('TEST WIDGET')).toBeInTheDocument();
+    expect(screen.getByLabelText('Widget panel')).toBeInTheDocument();
   });
 
   it('edits name and description', async function () {

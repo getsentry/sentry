@@ -3,7 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import EventView from 'sentry/utils/discover/eventView';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -16,6 +21,7 @@ import {
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetBuilderV2Props = {
   dashboard: DashboardDetails;
@@ -46,15 +52,13 @@ function WidgetBuilderV2({
       <AnimatePresence>
         {isOpen && (
           <WidgetBuilderProvider>
-            <DashboardsMEPProvider>
-              <WidgetBuilderContainer>
-                <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
-                <WidgetPreviewContainer
-                  dashboardFilters={dashboardFilters}
-                  dashboard={dashboard}
-                />
-              </WidgetBuilderContainer>
-            </DashboardsMEPProvider>
+            <WidgetBuilderContainer>
+              <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
+              <WidgetPreviewContainer
+                dashboardFilters={dashboardFilters}
+                dashboard={dashboard}
+              />
+            </WidgetBuilderContainer>
           </WidgetBuilderProvider>
         )}
       </AnimatePresence>
@@ -72,20 +76,44 @@ function WidgetPreviewContainer({
   dashboardFilters: DashboardFilters;
 }) {
   const {state} = useWidgetBuilderContext();
+  const organization = useOrganization();
+  const location = useLocation();
+
   return (
-    <SampleWidgetCard
-      initial={{opacity: 0, x: '50%', y: 0}}
-      animate={{opacity: 1, x: 0, y: 0}}
-      exit={{opacity: 0, x: '50%', y: 0}}
-      transition={{
-        type: 'spring',
-        stiffness: 500,
-        damping: 50,
-      }}
-      isTable={state.displayType === DisplayType.TABLE}
-    >
-      <WidgetPreview dashboardFilters={dashboardFilters} dashboard={dashboard} />
-    </SampleWidgetCard>
+    <DashboardsMEPProvider>
+      <MetricsCardinalityProvider organization={organization} location={location}>
+        <MetricsDataSwitcher
+          organization={organization}
+          location={location}
+          hideLoadingIndicator
+          eventView={EventView.fromLocation(location)}
+        >
+          {metricsDataSide => (
+            <MEPSettingProvider
+              location={location}
+              forceTransactions={metricsDataSide.forceTransactionsOnly}
+            >
+              <SampleWidgetCard
+                initial={{opacity: 0, x: '50%', y: 0}}
+                animate={{opacity: 1, x: 0, y: 0}}
+                exit={{opacity: 0, x: '50%', y: 0}}
+                transition={{
+                  type: 'spring',
+                  stiffness: 500,
+                  damping: 50,
+                }}
+                isTable={state.displayType === DisplayType.TABLE}
+              >
+                <WidgetPreview
+                  dashboardFilters={dashboardFilters}
+                  dashboard={dashboard}
+                />
+              </SampleWidgetCard>
+            </MEPSettingProvider>
+          )}
+        </MetricsDataSwitcher>
+      </MetricsCardinalityProvider>
+    </DashboardsMEPProvider>
   );
 }
 
