@@ -8,47 +8,21 @@ from sentry.incidents.logic import create_incident_activity
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.users.services.user.service import user_service
 
 
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
         activity = create_incident_activity(
             incident=self.create_incident(),
-            activity_type=IncidentActivityType.COMMENT,
-            user=self.user,
-            comment="hello",
+            activity_type=IncidentActivityType.CREATED,
         )
         result = serialize(activity)
 
         assert result["id"] == str(activity.id)
         assert result["incidentIdentifier"] == str(activity.incident.identifier)
-        assert (
-            result["user"]
-            == user_service.serialize_many(filter=dict(user_ids=[activity.user_id]))[0]
-        )
         assert result["type"] == activity.type
         assert result["value"] is None
         assert result["previousValue"] is None
-        assert result["comment"] == activity.comment
-        assert result["dateCreated"] == activity.date_added
-
-    def test_no_user(self):
-        activity = create_incident_activity(
-            incident=self.create_incident(),
-            activity_type=IncidentActivityType.COMMENT,
-            user=None,
-            comment="hello",
-        )
-        result = serialize(activity)
-
-        assert result["id"] == str(activity.id)
-        assert result["incidentIdentifier"] == str(activity.incident.identifier)
-        assert result["user"] is None
-        assert result["type"] == activity.type
-        assert result["value"] is None
-        assert result["previousValue"] is None
-        assert result["comment"] == activity.comment
         assert result["dateCreated"] == activity.date_added
 
     def test_event_stats(self):
@@ -68,20 +42,13 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
             )
             activity = create_incident_activity(
                 incident=incident,
-                activity_type=IncidentActivityType.COMMENT,
-                user=self.user,
-                comment="hello",
+                activity_type=IncidentActivityType.CREATED,
             )
             result = serialize(activity)
 
             assert result["id"] == str(activity.id)
             assert result["incidentIdentifier"] == str(activity.incident.identifier)
-            assert (
-                result["user"]
-                == user_service.serialize_many(filter=dict(user_ids=[activity.user_id]))[0]
-            )
             assert result["type"] == activity.type
             assert result["value"] is None
             assert result["previousValue"] is None
-            assert result["comment"] == activity.comment
             assert result["dateCreated"] == activity.date_added
