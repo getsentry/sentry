@@ -965,3 +965,19 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
             assert task is not None
+
+    def test_release_received_through_transaction_event(self):
+        project = self.create_project()
+
+        event_data = load_data("transaction")
+        event_data.update({"release": "my-first-release", "tags": []})
+
+        event = self.store_event(data=event_data, project_id=project.id)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.RELEASE_TRACKING,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None

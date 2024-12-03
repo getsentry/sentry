@@ -412,7 +412,15 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
 
 
 def record_release_received(project, event, **kwargs):
-    if not event.get_tag("sentry:release"):
+    event_type = event.get_event_type()
+
+    release = (
+        event.data.get("release")
+        if event_type == "transaction"
+        else event.get_tag("sentry:release")
+    )
+
+    if not release:
         return
 
     success = OrganizationOnboardingTask.objects.record(
