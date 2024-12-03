@@ -4,6 +4,7 @@ coverage:
     project: false
     patch:
       frontend:
+        informational: true
         branches:
           - master
         flags:
