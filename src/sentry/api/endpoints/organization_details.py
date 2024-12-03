@@ -1036,7 +1036,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 error_sample_rate_fallback=None,
             )
             if current_rate:
-                project.update_option("sentry:target_sample_rate", current_rate)
+                project.update_option("sentry:target_sample_rate", round(current_rate, 4))
 
     def handle_delete(self, request: Request, organization: Organization):
         """
