@@ -643,7 +643,7 @@ export interface ResponseContext {
 }
 
 export type FeatureFlag = {flag: string; result: boolean};
-export type Flags = {values: FeatureFlag[]};
+export type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
