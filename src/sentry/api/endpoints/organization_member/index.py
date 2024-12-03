@@ -137,6 +137,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
+        if role == "billing" and features.has(
+            "organizations:invite-billing", self.context["organization"]
+        ):
+            return role
         role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
         if role_obj is None:
             raise serializers.ValidationError(
@@ -314,13 +318,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        if not features.has("organizations:invite-members", organization, actor=request.user):
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        billing_bypass = assigned_org_role == "billing" and features.has(
+            "organizations:invite-billing", organization
+        )
+        if not billing_bypass and not features.has(
+            "organizations:invite-members", organization, actor=request.user
+        ):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
