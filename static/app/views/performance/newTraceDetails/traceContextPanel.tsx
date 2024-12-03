@@ -3,9 +3,6 @@ import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 

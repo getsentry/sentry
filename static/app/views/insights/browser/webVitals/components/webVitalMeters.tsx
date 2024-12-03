@@ -78,16 +78,22 @@ export default function WebVitalMeters({
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
+      const webVitalKey = isAggregateMode
+        ? `p75(measurements.${webVital})`
+        : `measurements.${webVital})`;
+
+      const score = projectScore[`${webVital}Score`];
+      const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
+
       return (
         <VitalMeter
           key={webVital}
           webVital={webVital}
           showTooltip={showTooltip}
-          projectScore={projectScore}
-          projectData={projectData}
+          score={score}
+          meterValue={meterValue}
           color={colors[index]}
           onClick={onClick}
-          isAggregateMode={isAggregateMode}
         />
       );
     });
@@ -103,35 +109,25 @@ export default function WebVitalMeters({
 type VitalMeterProps = {
   webVital: WebVitals;
   showTooltip: boolean;
-  projectScore: ProjectScore;
-  projectData: TableData | undefined;
+  score: number | undefined;
+  meterValue: number;
   color: string;
   onClick?: (webVital: WebVitals) => void;
-  isAggregateMode: boolean;
 };
 
 function VitalMeter({
   webVital,
   showTooltip,
-  projectScore,
-  projectData,
+  score,
+  meterValue,
   color,
   onClick,
-  isAggregateMode,
 }: VitalMeterProps) {
-  if (!projectData) {
-    return null;
-  }
-
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
-  const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
-
-  const webVitalKey = isAggregateMode
-    ? `p75(measurements.${webVital})`
-    : `measurements.${webVital})`;
+  const webVitalExists = score !== undefined;
 
   const formattedMeterValueText = webVitalExists ? (
-    webVitalsConfig[webVital].formatter(projectData?.data?.[0]?.[webVitalKey] as number)
+    webVitalsConfig[webVital].formatter(meterValue)
   ) : (
     <NoValue />
   );
@@ -167,7 +163,7 @@ function VitalMeter({
           {formattedMeterValueText}
         </MeterValueText>
       </MeterBarBody>
-      <MeterBarFooter score={projectScore[`${webVital}Score`]} />
+      <MeterBarFooter score={score} />
     </Fragment>
   );
   return (
