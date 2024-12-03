@@ -72,6 +72,7 @@ DASHBOARD_OBJECT = {
         "isEditableByEveryone": True,
         "teamsWithEditAccess": [],
     },
+    "isFavorited": False,
 }
 
 DASHBOARDS_OBJECT = [
