@@ -138,6 +138,8 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
+from .utils.event_tracker import TransactionStageStatus, track_sampled_event
+
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
 
@@ -2611,6 +2613,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 @sentry_sdk.tracing.trace
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    from .ingest.types import ConsumerType
+
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
@@ -2661,6 +2665,13 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
         _eventstream_insert_many(jobs)
+
+    for job in jobs:
+        track_sampled_event(
+            job["event"].event_id,
+            ConsumerType.Transactions,
+            TransactionStageStatus.SNUBA_TOPIC_PUT,
+        )
 
     with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
         _track_outcome_accepted_many(jobs)
