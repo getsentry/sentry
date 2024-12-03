@@ -32,7 +32,7 @@ class SDKCrashDetector:
             return False
 
         try:
-            minimum_sdk_version = Version(self.config.min_sdk_version)
+            minimum_sdk_version = Version(self.config.sdk_names[sdk_name])
             actual_sdk_version = Version(sdk_version)
 
             if actual_sdk_version < minimum_sdk_version:
