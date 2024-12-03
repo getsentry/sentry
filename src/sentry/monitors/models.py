@@ -563,6 +563,8 @@ class MonitorCheckIn(Model):
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for dispatch_mark_unknown
+            models.Index(fields=["status", "date_added"]),
             # used for check-in list
             models.Index(fields=["trace_id"]),
         ]
