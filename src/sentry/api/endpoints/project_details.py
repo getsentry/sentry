@@ -752,8 +752,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
         if result.get("targetSampleRate") is not None:
-            if project.update_option("sentry:target_sample_rate", result["targetSampleRate"]):
-                changed_proj_settings["sentry:target_sample_rate"] = result["targetSampleRate"]
+            if project.update_option(
+                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
+            ):
+                changed_proj_settings["sentry:target_sample_rate"] = round(
+                    result["targetSampleRate"], 4
+                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
