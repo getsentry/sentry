@@ -7,23 +7,24 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 100;
 const MAX_HEIGHT = 700;
 
 type Props = {
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  tree: TraceTree;
 };
 
-export function TraceContextPanel({rootEvent}: Props) {
+export function TraceContextPanel({tree}: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [contextPaneHeight, setContextPaneHeight] = useState(DEFAULT_HEIGHT);
 
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
 
-  const hasMeasurements = rootEvent.data?.measurements;
+  const hasVitals = tree.vital_types.has('web') && tree.indicators.length > 0;
 
   const handleMouseDown = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -70,7 +71,7 @@ export function TraceContextPanel({rootEvent}: Props) {
       </GrabberContainer>
 
       <TraceContextContainer height={contextPaneHeight}>
-        {hasMeasurements && <WebVitalMeters isAggregateMode={false} />}
+        {hasVitals && <WebVitalMeters isAggregateMode={false} />}
       </TraceContextContainer>
     </Container>
   );

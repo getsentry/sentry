@@ -88,6 +88,7 @@ export function useTraceTree({
 
       setTree(newTree);
       newTree.build();
+      console.dir(newTree);
       return;
     }
   }, [
