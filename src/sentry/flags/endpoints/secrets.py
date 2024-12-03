@@ -11,7 +11,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationEventPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.flags.models import FlagWebHookSigningSecretModel
@@ -46,6 +46,7 @@ class FlagWebhookSigningSecretValidator(serializers.Serializer):
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
+    permission_classes = (OrganizationEventPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -94,6 +95,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
+    permission_classes = (OrganizationEventPermission,)
     publish_status = {"DELETE": ApiPublishStatus.PRIVATE}
 
     def delete(
