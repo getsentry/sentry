@@ -195,6 +195,7 @@ def get_prebuilt_dashboards(organization, user) -> list[dict[str, Any]]:
             "dateCreated": "",
             "createdBy": "",
             "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
+            "isFavorited": False,
             "widgets": [
                 {
                     "title": "Number of Errors",
