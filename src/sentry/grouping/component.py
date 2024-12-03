@@ -213,7 +213,7 @@ class FunctionGroupingComponent(BaseGroupingComponent[str]):
     id: str = "function"
 
 
-class LineNumberGroupingComponent(BaseGroupingComponent[str]):
+class LineNumberGroupingComponent(BaseGroupingComponent[int]):
     id: str = "lineno"
 
 
