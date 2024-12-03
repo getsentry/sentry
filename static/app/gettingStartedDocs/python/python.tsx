@@ -28,7 +28,7 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
     integration: 'LaunchDarklyIntegration',
   },
   [IntegrationOptions.OPENFEATURE]: {
-    module: 'OpenFeature',
+    module: 'openfeature',
     integration: 'OpenFeatureIntegration',
   },
 };
@@ -244,7 +244,7 @@ export function AlternativeConfiguration() {
 }
 
 export const featureFlagOnboarding: OnboardingConfig = {
-  install: onboarding.install,
+  install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,

@@ -141,12 +141,12 @@ export function VisualizationStep({
           shouldResize={false}
           onLegendSelectChanged={() => {}}
           legendOptions={
-            organization.features.includes('dashboards-releases-on-charts') &&
             widgetLegendState.widgetRequiresLegendUnselection(widget)
               ? {selected: unselectedReleasesForCharts}
               : undefined
           }
           widgetLegendState={widgetLegendState}
+          disableFullscreen
         />
 
         <IndexedEventsSelectionAlert widget={widget} />

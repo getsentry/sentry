@@ -186,15 +186,16 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
     stacktrace_string = get_stacktrace_string_with_metrics(
         get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
     )
-    if stacktrace_string == "":
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={
-                "call_made": False,
-                "blocker": "empty-stacktrace-string",
-            },
-        )
+    if not stacktrace_string:
+        if stacktrace_string == "":
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                tags={
+                    "call_made": False,
+                    "blocker": "empty-stacktrace-string",
+                },
+            )
         return True
     # Store the stacktrace string in the event so we only calculate it once. We need to pop it
     # later so it isn't stored in the database.
@@ -215,16 +216,34 @@ def get_seer_similar_issues(
     event_hash = event.get_primary_hash()
     exception_type = get_path(event.data, "exception", "values", -1, "type")
 
+    stacktrace_string = event.data.get(
+        "stacktrace_string",
+        get_stacktrace_string_with_metrics(
+            get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
+        ),
+    )
+
+    if not stacktrace_string:
+        # TODO: remove this log once we've confirmed it isn't happening
+        logger.info(
+            "get_seer_similar_issues.empty_stacktrace",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project.id,
+                "stacktrace_string": stacktrace_string,
+            },
+        )
+        similar_issues_metadata_empty = {
+            "results": [],
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+        }
+        return (similar_issues_metadata_empty, None)
+
     request_data: SimilarIssuesEmbeddingsRequest = {
         "event_id": event.event_id,
         "hash": event_hash,
         "project_id": event.project.id,
-        "stacktrace": event.data.get(
-            "stacktrace_string",
-            get_stacktrace_string_with_metrics(
-                get_grouping_info_from_variants(variants), event.platform, ReferrerOptions.INGEST
-            ),
-        ),
+        "stacktrace": stacktrace_string,
         "exception_type": filter_null_from_string(exception_type) if exception_type else None,
         "k": num_neighbors,
         "referrer": "ingest",
@@ -293,6 +312,7 @@ def maybe_check_seer_for_matching_grouphash(
         # Once those two problems are fixed, there will only be one hash passed to this function
         # and we won't have to do this search to find the right one to update.
         primary_hash = event.get_primary_hash()
+
         grouphash_sent = list(
             filter(lambda grouphash: grouphash.hash == primary_hash, all_grouphashes)
         )[0]
