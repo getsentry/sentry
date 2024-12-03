@@ -267,7 +267,7 @@ class FingerprintingRules:
                 yield from base_rules
 
     def get_fingerprint_values_for_event(
-        self, event: dict[str, object]
+        self, event: Mapping[str, object]
     ) -> None | FingerprintRuleMatch:
         if not (self.bases or self.rules):
             return None
