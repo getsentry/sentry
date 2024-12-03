@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import sentry_sdk
 
@@ -33,11 +33,16 @@ from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+class FingerprintInfo(TypedDict):
+    client_fingerprint: NotRequired[list[str]]
+    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass
@@ -234,7 +239,9 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: MutableMapping[str, Any], config: FingerprintingRules, allow_custom_title: bool = True
+) -> None:
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
