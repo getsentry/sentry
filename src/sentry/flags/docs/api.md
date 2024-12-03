@@ -83,7 +83,7 @@ Retrieve a single flag log instance.
   }
   ```
 
-## Signing Secrets [/organizations/<organization_id_or_slug>/flags/hooks/signing-secrets/]
+## Signing Secrets [/organizations/<organization_id_or_slug>/flags/signing-secrets/]
 
 ### Browse Signing Secrets [GET]
 
@@ -120,7 +120,7 @@ Requests from web hook providers can be signed. We use the signing secret to ver
 
 - Response 201
 
-## Signing Secret [/organizations/<organization_id_or_slug>/flags/hooks/signing-secrets/<signing_secret_id>/]
+## Signing Secret [/organizations/<organization_id_or_slug>/flags/signing-secrets/<signing_secret_id>/]
 
 ### Delete Signing Secret [DELETE]
 

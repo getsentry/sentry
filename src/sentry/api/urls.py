@@ -2009,7 +2009,7 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-hooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/$",
         OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
