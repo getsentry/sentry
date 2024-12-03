@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -169,25 +168,22 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const hasIssueDetailsTrace = organization.features.includes(
     'issue-details-always-show-trace'
   );
-  const hasTracePreviewFeature = hasProfilingFeature && hasIssueDetailsTrace;
-
-  // Only display this for error or default events since performance events are handled elsewhere
-  if (group.issueCategory === IssueCategory.PERFORMANCE) {
-    return null;
-  }
+  const hasTracePreviewFeature =
+    hasProfilingFeature &&
+    hasIssueDetailsTrace &&
+    // Only display this for error or default events since performance events are handled elsewhere
+    group.issueCategory !== IssueCategory.PERFORMANCE;
 
   return (
-    <ErrorBoundary mini>
-      <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
-        <TraceDataSection event={event} />
-        {hasTracePreviewFeature && (
-          <EventTraceViewInner
-            event={event}
-            organization={organization}
-            traceId={traceId}
-          />
-        )}
-      </InterimSection>
-    </ErrorBoundary>
+    <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
+      <TraceDataSection event={event} />
+      {hasTracePreviewFeature && (
+        <EventTraceViewInner
+          event={event}
+          organization={organization}
+          traceId={traceId}
+        />
+      )}
+    </InterimSection>
   );
 }
