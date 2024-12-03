@@ -218,4 +218,29 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
   });
+
+  describe('sort', () => {
+    it('can decode and update sorts', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState());
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_SORT,
+          payload: [{field: 'testField', kind: 'asc'}],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
+    });
+  });
 });
