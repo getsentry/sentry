@@ -237,8 +237,9 @@ export const FlamegraphTooltipTimelineInfo = styled('div')`
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
@@ -255,4 +256,5 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
+  transform: translateY(2px);
 `;

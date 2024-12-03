@@ -41,24 +41,22 @@ function computeBestTooltipPlacement(
   const cursorLeft = cursor[0];
   const cursorTop = cursor[1];
 
+  // Cursor is relative to canvas, not container
+  const cursorRelativeToContainer = cursorLeft + canvas.x;
+
   let left = cursorLeft;
 
-  if (cursor[0] > canvas.width / 2) {
-    left = cursor[0] - tooltip.width;
-  } else {
-    // when the tooltip is on the left, we need to add the padding from left side of the container
-    left += CURSOR_LEFT_OFFSET_PX;
-  }
+  left =
+    cursorRelativeToContainer > container.width / 2
+      ? cursorLeft - tooltip.width
+      : (left += CURSOR_LEFT_OFFSET_PX);
 
-  if (left <= -canvas.left + WIDTH_OFFSET) {
-    // when the tooltip is on the left, we need to add the padding from left side of the container
+  const right = left + tooltip.width + canvas.left;
+
+  if (left + canvas.left - WIDTH_OFFSET <= 0) {
     left = -canvas.left + WIDTH_OFFSET;
-  }
-
-  if (left + canvas.x + tooltip.width >= container.x + container.width - WIDTH_OFFSET) {
-    const offset = left + canvas.x + tooltip.width - (container.x + container.width);
-    // when the tooltip is on the right, we need to subtract the padding from right side of the container
-    left -= offset + WIDTH_OFFSET;
+  } else if (right >= container.width - WIDTH_OFFSET) {
+    left = container.width - tooltip.width - canvas.left - WIDTH_OFFSET;
   }
 
   return `translate(${left}px, ${cursorTop + CURSOR_TOP_OFFSET_PX}px)`;
