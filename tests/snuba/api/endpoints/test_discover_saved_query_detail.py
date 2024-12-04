@@ -198,6 +198,34 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["limit"] == 20
         assert response.data["queryDataset"] == "transaction-like"
 
+    def test_put_dataset_with_discover_dataset_returns_validation_error(self):
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            with self.feature({"organizations:deprecate-discover-widget-type": True}):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "New query",
+                        "projects": self.project_ids,
+                        "fields": [],
+                        "range": "24h",
+                        "limit": 20,
+                        "conditions": [],
+                        "aggregations": [],
+                        "orderby": "-time",
+                        "queryDataset": "discover",
+                    },
+                )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            in response.content.decode()
+        )
+
     def test_dataset_set_to_discover_on_update(self):
         query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
         model = DiscoverSavedQuery.objects.create(
@@ -229,7 +257,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(model.id)
-        assert response.data["queryDataset"] == "discover"
+        assert response.data["queryDataset"] == "error-events"
         assert response.data["datasetSource"] == "unknown"
 
     def test_put_with_interval(self):
