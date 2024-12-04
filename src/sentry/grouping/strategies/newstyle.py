@@ -643,19 +643,19 @@ def chained_exception(
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in exception_components_by_exception[id(exception)].items():
-            exception_components_by_variant.setdefault(name, []).append(component)
+        for variant_name, component in exception_components_by_exception[id(exception)].items():
+            exception_components_by_variant.setdefault(variant_name, []).append(component)
 
     rv = {}
 
-    for name, variant_exception_components in exception_components_by_variant.items():
+    for variant_name, variant_exception_components in exception_components_by_variant.items():
         # Calculate an aggregate tally of the different types of frames (in-app vs system,
         # contributing or not) across all of the exceptions in the chain
         total_frame_counts: Counter[str] = Counter()
         for exception_component in variant_exception_components:
             total_frame_counts += exception_component.frame_counts
 
-        rv[name] = ChainedExceptionGroupingComponent(
+        rv[variant_name] = ChainedExceptionGroupingComponent(
             values=variant_exception_components,
             frame_counts=total_frame_counts,
         )
