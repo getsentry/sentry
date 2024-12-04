@@ -281,7 +281,7 @@ def _get_component_trees_for_variants(
 ) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
+    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent]] = {}
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
@@ -289,7 +289,7 @@ def _get_component_trees_for_variants(
             event, context=context
         )
         for variant, component in current_strategy_components_by_variant.items():
-            per_variant_components.setdefault(variant, []).append(component)
+            all_strategies_components_by_variant.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
@@ -313,7 +313,7 @@ def _get_component_trees_for_variants(
                 component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
-    for variant, components in per_variant_components.items():
+    for variant, components in all_strategies_components_by_variant.items():
         component_class_by_variant = {
             "app": AppGroupingComponent,
             "default": DefaultGroupingComponent,
