@@ -615,17 +615,20 @@ class Fixtures:
         type="",
         condition_result=None,
         condition_group=None,
+        **kwargs,
     ):
         if condition_result is None:
             condition_result = str(DetectorPriorityLevel.HIGH.value)
         if condition_group is None:
             condition_group = self.create_data_condition_group()
+
         return Factories.create_data_condition(
             condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,
             condition_group=condition_group,
+            **kwargs,
         )
 
     def create_detector(
