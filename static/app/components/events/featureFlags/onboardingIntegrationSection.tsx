@@ -39,7 +39,7 @@ export default function OnboardingIntegrationSection({
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  const {mutate: submitSecret} = useMutation<
+  const {mutate: submitSecret, isPending} = useMutation<
     CreateSecretResponse,
     RequestError,
     CreateSecretQueryVariables
@@ -133,7 +133,9 @@ export default function OnboardingIntegrationSection({
                   <Button
                     priority="default"
                     onClick={() => submitSecret({provider, secret})}
-                    disabled={secret.length < 32 || secret === '' || !hasAccess}
+                    disabled={
+                      secret.length < 32 || secret === '' || !hasAccess || isPending
+                    }
                   >
                     {t('Save Secret')}
                   </Button>

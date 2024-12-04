@@ -43,7 +43,7 @@ export default function NewProviderForm({
     browserHistory.push(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
   }, [organization.slug]);
 
-  const {mutate: submitSecret} = useMutation<
+  const {mutate: submitSecret, isPending} = useMutation<
     CreateSecretResponse,
     RequestError,
     CreateSecretQueryVariables
@@ -90,7 +90,7 @@ export default function NewProviderForm({
       onCancel={handleGoBack}
       submitLabel={t('Add Provider')}
       requireChanges
-      submitDisabled={!onCreatedSecret}
+      submitDisabled={!onCreatedSecret || isPending}
     >
       <SelectField
         required
