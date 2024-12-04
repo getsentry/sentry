@@ -26,13 +26,15 @@ class TestAction(TestCase):
             assert handler == mock_handler
 
     def test_get_handler_webhook_type(self):
+        self.action = Action(type=Action.Type.WEBHOOK)
+
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
             mock_handler = Mock(spec=ActionHandler)
             mock_get.return_value = mock_handler
 
             handler = self.action.get_handler()
 
-            mock_get.assert_called_once_with(Action.Type.NOTIFICATION)
+            mock_get.assert_called_once_with(Action.Type.WEBHOOK)
             assert handler == mock_handler
 
     def test_get_handler_unregistered_type(self):
