@@ -72,8 +72,9 @@ function NewProviderForm({
       );
     },
 
-    onSuccess: () => {
+    onSuccess: (_response, {secret}) => {
       addSuccessMessage(t('Added provider and secret.'));
+      onCreatedSecret(secret);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -95,7 +96,6 @@ function NewProviderForm({
           provider,
           secret,
         });
-        onCreatedSecret(secret);
       }}
       onCancel={handleGoBack}
       submitLabel={t('Add Provider')}
