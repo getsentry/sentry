@@ -57,12 +57,12 @@ def get_fingerprint_value(var, data):
         return func or "<no-function>"
     elif var in ("path", "stack.abs_path"):
         frame = get_crash_frame_from_event_data(data)
-        func = frame.get("abs_path") or frame.get("filename") if frame else None
-        return func or "<no-abs-path>"
+        abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
+        return abs_path or "<no-abs-path>"
     elif var == "stack.filename":
         frame = get_crash_frame_from_event_data(data)
-        func = frame.get("filename") or frame.get("abs_path") if frame else None
-        return func or "<no-filename>"
+        filename = frame.get("filename") or frame.get("abs_path") if frame else None
+        return filename or "<no-filename>"
     elif var in ("module", "stack.module"):
         frame = get_crash_frame_from_event_data(data)
         mod = frame.get("module") if frame else None
