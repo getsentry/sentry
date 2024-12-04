@@ -33,6 +33,7 @@ const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
+  const onSaveMock = jest.fn();
 
   beforeEach(function () {
     OrganizationStore.init();
@@ -85,6 +86,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -131,6 +133,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -170,6 +173,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -197,6 +201,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
