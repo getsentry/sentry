@@ -72,13 +72,18 @@ failed command (code {p.returncode}):
 
 
 # Temporary, see https://github.com/getsentry/sentry/pull/78881
-def check_minimum_version(minimum_version: str):
+def check_minimum_version(minimum_version: str) -> bool:
     version = importlib.metadata.version("sentry-devenv")
 
     parsed_version = tuple(map(int, version.split(".")))
     parsed_minimum_version = tuple(map(int, minimum_version.split(".")))
 
-    if parsed_version < parsed_minimum_version:
+    return parsed_version >= parsed_minimum_version
+
+
+def main(context: dict[str, str]) -> int:
+    minimum_version = "1.13.0"
+    if not check_minimum_version(minimum_version):
         raise SystemExit(
             f"""
 Hi! To reduce potential breakage we've defined a minimum
@@ -93,10 +98,6 @@ Then, use it to run sync this one time.
 {constants.root}/bin/devenv sync
 """
         )
-
-
-def main(context: dict[str, str]) -> int:
-    check_minimum_version("1.14.2")
 
     repo = context["repo"]
     reporoot = context["reporoot"]
@@ -129,12 +130,27 @@ def main(context: dict[str, str]) -> int:
     print(f"ensuring {repo} venv at {venv_dir}...")
     venv.ensure(venv_dir, python_version, url, sha256)
 
-    if constants.DARWIN and os.path.exists(f"{constants.root}/bin/colima"):
-        # `devenv update`ing to >=1.14.0 will install global colima
-        # so if it's there, uninstall the repo local stuff
-        binroot = f"{reporoot}/.devenv/bin"
-        colima.uninstall(binroot)
-        limactl.uninstall(binroot)
+    if constants.DARWIN:
+        if check_minimum_version("1.14.2"):
+            # `devenv update`ing to >=1.14.0 will install global colima
+            # so if it's there, uninstall the repo local stuff
+            if os.path.exists(f"{constants.root}/bin/colima"):
+                binroot = f"{reporoot}/.devenv/bin"
+                colima.uninstall(binroot)
+                limactl.uninstall(binroot)
+        else:
+            colima.install(
+                repo_config["colima"]["version"],
+                repo_config["colima"][constants.SYSTEM_MACHINE],
+                repo_config["colima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
+            )
+            limactl.install(
+                repo_config["lima"]["version"],
+                repo_config["lima"][constants.SYSTEM_MACHINE],
+                repo_config["lima"][f"{constants.SYSTEM_MACHINE}_sha256"],
+                reporoot,
+            )
 
     if not run_procs(
         repo,
