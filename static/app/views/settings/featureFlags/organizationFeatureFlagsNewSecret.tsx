@@ -90,13 +90,11 @@ function NewProviderForm({
       apiMethod="POST"
       initialData={initialData}
       apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret`}
-      onSubmit={({provider, secret}) =>
+      onSubmit={({provider, secret}) => {
         submitSecret({
           provider,
           secret,
-        })
-      }
-      onSubmitSuccess={({secret}) => {
+        });
         onCreatedSecret(secret);
       }}
       onCancel={handleGoBack}

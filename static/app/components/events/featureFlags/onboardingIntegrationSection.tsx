@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconCheckmark} from 'sentry/icons';
+import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useApi from 'sentry/utils/useApi';
@@ -22,15 +23,24 @@ function usePostSecret({
 }) {
   const api = useApi();
 
-  const postSecret = async (secret: string) =>
-    await api.requestPromise(`/organizations/${orgSlug}/flags/signing-secrets/`, {
-      method: 'POST',
-      data: {
-        secret: secret,
-        provider: provider.toLowerCase(),
-      },
-    });
-
+  const postSecret = async (
+    secret: string,
+    setSecretSaved: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    try {
+      await api.requestPromise(`/organizations/${orgSlug}/flags/signing-secrets/`, {
+        method: 'POST',
+        data: {
+          secret: secret,
+          provider: provider.toLowerCase(),
+        },
+      });
+      setSecretSaved(true);
+    } catch {
+      setSecretSaved(false);
+      addErrorMessage('Error posting signing secret.');
+    }
+  };
   return {postSecret};
 }
 
@@ -84,6 +94,9 @@ export default function OnboardingIntegrationSection({
           <InputTitle>{t('Secret')}</InputTitle>
           <InputArea>
             <Input
+              maxLength={32}
+              minLength={32}
+              required
               value={secret}
               type="text"
               placeholder={t('Secret')}
@@ -92,8 +105,7 @@ export default function OnboardingIntegrationSection({
             <Button
               priority="default"
               onClick={() => {
-                postSecret(secret);
-                setSecretSaved(true);
+                postSecret(secret, setSecretSaved);
               }}
               disabled={secret === ''}
             >
@@ -103,6 +115,10 @@ export default function OnboardingIntegrationSection({
           {secretSaved ? (
             <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
               {t('Secret verified.')}
+            </StyledAlert>
+          ) : secret ? (
+            <StyledAlert showIcon type="warning" icon={<IconWarning />}>
+              {t('Make sure the secret is 32 characters long.')}
             </StyledAlert>
           ) : null}
         </SubSection>
