@@ -87,9 +87,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -414,9 +414,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
