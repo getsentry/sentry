@@ -193,6 +193,7 @@ class DashboardListResponse(TypedDict):
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
+    isFavorited: bool
 
 
 class DashboardListSerializer(Serializer):
@@ -252,6 +253,7 @@ class DashboardListSerializer(Serializer):
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
+            "isFavorited": user.id in obj.favorited_by,
         }
         return data
 
@@ -278,6 +280,7 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     projects: list[int]
     filters: DashboardFilters
     permissions: DashboardPermissionsResponse | None
+    isFavorited: bool
 
 
 @register(Dashboard)
@@ -314,6 +317,7 @@ class DashboardDetailsModelSerializer(Serializer):
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
+            "isFavorited": user.id in obj.favorited_by,
         }
 
         if obj.filters is not None:

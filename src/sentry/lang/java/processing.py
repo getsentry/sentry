@@ -7,7 +7,7 @@ import orjson
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.lang.java.utils import get_jvm_images, get_proguard_images
+from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
@@ -85,7 +85,7 @@ def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     return (
         "function" in frame
         and "module" in frame
-        and (frame.get("platform", None) or platform) == "java"
+        and (frame.get("platform", None) or platform) in JAVA_PLATFORMS
     )
 
 

@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.project_management.metrics import (
     ProjectManagementActionType,
@@ -20,6 +21,7 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementHaltReason,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.utils.email import parse_email
 
@@ -72,7 +74,12 @@ class WorkItemWebhook(Endpoint):
             if not check_webhook_secret(request, integration, event_type):
                 return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
-            handle_updated_workitem(data, integration)
+            with IntegrationWebhookEvent(
+                interaction_type=IntegrationWebhookEventType.INBOUND_SYNC,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key="vsts",
+            ).capture():
+                handle_updated_workitem(data, integration)
 
         return self.respond()
 
