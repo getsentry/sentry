@@ -20,7 +20,6 @@ import {
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/organizationFeatureFlagsProviderRow';
@@ -197,7 +196,7 @@ export function OrganizationFeatureFlagsIndex({
   );
 }
 
-export default withOrganization(OrganizationFeatureFlagsIndex);
+export default OrganizationFeatureFlagsIndex;
 
 const ResponsivePanelTable = styled(PanelTable)`
   @media (max-width: ${p => p.theme.breakpoints.small}) {

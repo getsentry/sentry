@@ -9,13 +9,13 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
 
 type CreateSecretQueryVariables = {
@@ -26,16 +26,15 @@ type CreateSecretQueryVariables = {
 type CreateSecretResponse = string;
 
 export default function NewProviderForm({
-  organization,
   onCreatedSecret,
 }: {
   onCreatedSecret: ((secret: string) => void) | undefined;
-  organization: Organization;
 }) {
   const initialData = {
     provider: '',
     secret: '',
   };
+  const organization = useOrganization();
 
   const api = useApi();
   const queryClient = useQueryClient();

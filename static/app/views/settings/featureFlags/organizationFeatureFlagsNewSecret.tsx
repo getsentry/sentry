@@ -10,7 +10,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import NewProviderForm from 'sentry/views/settings/featureFlags/newProviderForm';
@@ -58,7 +57,6 @@ export function OrganizationFeatureFlagsNewSecet({
                 <NewSecretHandler onGoBack={handleGoBack} secret={newSecret} />
               ) : (
                 <NewProviderForm
-                  organization={organization}
                   onCreatedSecret={
                     hasAccess ? (secret: string) => setNewSecret(secret) : undefined
                   }
@@ -72,4 +70,4 @@ export function OrganizationFeatureFlagsNewSecet({
   );
 }
 
-export default withOrganization(OrganizationFeatureFlagsNewSecet);
+export default OrganizationFeatureFlagsNewSecet;
