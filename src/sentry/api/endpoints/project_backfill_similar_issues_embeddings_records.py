@@ -1,3 +1,5 @@
+import time
+
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -37,6 +39,11 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         enable_ingestion = False
         skip_processed_projects = False
         skip_project_ids = None
+
+        # Hack for enabling project option without running backfill
+        if request.data.get("create_project_option"):
+            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+            return Response(status=204)
 
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])

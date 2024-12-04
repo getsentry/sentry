@@ -191,3 +191,13 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             skip_processed_projects=False,
             skip_project_ids=[1],
         )
+
+    @patch(
+        "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.is_active_superuser",
+        return_value=True,
+    )
+    @with_feature("projects:similarity-embeddings-backfill")
+    def test_post_success_create_project_option(self, mock_is_active_superuser):
+        response = self.client.post(self.url, data={"create_project_option": "true"})
+        assert response.status_code == 204
+        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
