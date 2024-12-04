@@ -80,7 +80,7 @@ interface Props {
     pageLinks?: string;
   };
   sort: ValidSort;
-  system: string;
+  system?: string;
 }
 
 export function QueriesTable({response, sort, system}: Props) {
@@ -145,7 +145,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
-  system: string
+  system?: string
 ) {
   if (column.key === 'span.description') {
     return (
