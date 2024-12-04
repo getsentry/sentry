@@ -26,7 +26,16 @@ export function TraceContextPanel({tree}: Props) {
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
 
-  const hasVitals = tree.vital_types.has('web') && tree.indicators.length > 0;
+  const hasWebVitals = tree.vital_types.has('web'); // && tree.vitals.filter(v => ALLOWED_VITALS.includes(v.key)).length > 0;
+  const hasValidWebVitals = () => {
+    let hasValidVitals = false;
+
+    tree.vitals.forEach(v => {
+      hasValidVitals = v.some(vital => ALLOWED_VITALS.includes(vital.key));
+    });
+
+    return hasValidVitals;
+  };
 
   const handleMouseDown = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -67,7 +76,7 @@ export function TraceContextPanel({tree}: Props) {
   }, [isDragging]);
 
   const renderVitals = () => {
-    if (!hasVitals) {
+    if (!hasWebVitals || !hasValidWebVitals()) {
       return null;
     }
 
