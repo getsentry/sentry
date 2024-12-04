@@ -355,53 +355,6 @@ class GroupUpdateTest(APITestCase):
         assert group_resolution.status == GroupResolution.Status.pending
         assert group_resolution.release.version == most_recent_version.version
 
-    # XXX: Remove this test once the feature flag is removed
-    def test_resolved_in_next_release_semver_no_flag_and_first_release(self):
-        self.login_as(user=self.user)
-        project = self.create_project_with_releases()
-        first_release = Release.get_or_create(version="com.foo.bar@1.0+0", project=project)
-        Release.get_or_create(version="com.foo.bar@2.0+0", project=project)
-        wrong_release = Release.get_or_create(version="com.foo.bar@1.0+1", project=project)
-        # Using store_event() instead of create_group() produces GroupRelease objects
-        # which is considered during the update_groups() call
-        event = self.store_event(data={"release": first_release.version}, project_id=project.id)
-        group = event.group
-        assert group is not None
-        assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.NEW
-        assert group.first_release == first_release
-        assert GroupResolution.objects.all().count() == 0
-
-        url = f"/api/0/issues/{group.id}/"
-        data = {"status": "resolvedInNextRelease"}
-        response = self.client.put(url, data=data)
-        assert response.status_code == 200, response.content == {}
-
-        # Refetch from DB to ensure the latest state is fetched
-        group = Group.objects.get(id=group.id, project=project.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        group_resolution = GroupResolution.objects.filter(group=group).first()
-        assert group_resolution is not None
-        assert group_resolution.group == group
-        # For semver projects, we consider resolution based on an expression rather than a specific release,
-        # thus, it is considered resolved in the release that has the highest semver
-        assert group_resolution.type == GroupResolution.Type.in_release
-        assert group_resolution.status == GroupResolution.Status.resolved
-        assert group_resolution.release.version == wrong_release.version
-        assert response.data["statusDetails"]["inRelease"] == wrong_release.version
-
-        # Let's test that it does not regress to the first release
-        event = self.store_event(data={"release": first_release.version}, project_id=project.id)
-        group = Group.objects.get(id=group.id, project=project.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        # Let's test that it does regress - this is fixed with the feature flag
-        event = self.store_event(data={"release": wrong_release.version}, project_id=project.id)
-        group = Group.objects.get(id=group.id, project=project.id)
-        assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.REGRESSED
-
     def create_project_with_releases(self) -> Project:
         project = self.create_project()
         project.flags.has_releases = True
@@ -482,32 +435,13 @@ class GroupUpdateTest(APITestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.REGRESSED
 
-    @with_feature("organizations:releases-resolve-next-release-semver-fix")
-    def test_resolved_in_next_release_semver_with_flag_no_first_release(self):
+    def test_resolved_in_next_release_semver_no_first_release(self):
         self.resolved_in_next_release_helper(with_first_release=False)
 
-    @with_feature("organizations:releases-resolve-next-release-semver-fix")
-    def test_resolved_in_next_release_semver_with_flag_and_first_release(self):
+    def test_resolved_in_next_release_semver_and_first_release(self):
         self.resolved_in_next_release_helper(with_first_release=True)
 
     def test_resolved_in_next_release_no_release(self):
-        self.login_as(user=self.user)
-        project = self.create_project_with_releases()
-        group = self.create_group_with_no_release(project)
-
-        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        response = self.client.put(url, data={"status": "resolvedInNextRelease"})
-        assert response.status_code == 200, response.content
-
-        group = Group.objects.get(id=group.id, project=group.project.id)
-        assert group.status == GroupStatus.RESOLVED
-
-        # no GroupResolution because there is no release
-        assert not GroupResolution.objects.filter(group=group).exists()
-        assert response.data["statusDetails"] == {}
-
-    @with_feature("organizations:releases-resolve-next-release-semver-fix")
-    def test_resolved_in_next_release_with_flag_no_release(self):
         self.login_as(user=self.user)
         project = self.create_project_with_releases()
         group = self.create_group_with_no_release(project)
