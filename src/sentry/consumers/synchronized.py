@@ -300,3 +300,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     @property
     def closed(self) -> bool:
         return self.__consumer.closed
+
+    @property
+    def member_id(self) -> str:
+        return self.__consumer.member_id

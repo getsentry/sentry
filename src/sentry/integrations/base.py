@@ -138,7 +138,7 @@ class IntegrationDomain(StrEnum):
 class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
     DISCORD = "discord"
-    MSTeams = "msteams"
+    MSTEAMS = "msteams"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
     AZURE_DEVOPS = "vsts"
@@ -155,7 +155,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
     IntegrationDomain.MESSAGING: [
         IntegrationProviderSlug.SLACK,
         IntegrationProviderSlug.DISCORD,
-        IntegrationProviderSlug.MSTeams,
+        IntegrationProviderSlug.MSTEAMS,
     ],
     IntegrationDomain.PROJECT_MANAGEMENT: [
         IntegrationProviderSlug.JIRA,

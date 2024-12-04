@@ -372,6 +372,44 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 assert result[1][0]["count"] == expected, key
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
+    def test_top_events_empty_other(self):
+        # Each of these denotes how many events to create in each minute
+        for transaction in ["foo", "bar"]:
+            self.store_spans(
+                [
+                    self.create_span(
+                        {"sentry_tags": {"transaction": transaction, "status": "success"}},
+                        start_ts=self.day_ago + timedelta(minutes=1),
+                        duration=2000,
+                    ),
+                ],
+                is_eap=self.is_eap,
+            )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["transaction", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert "Other" not in response.data
+        assert "foo" in response.data
+        assert "bar" in response.data
+        for key in ["foo", "bar"]:
+            rows = response.data[key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, key
+        assert response.data["foo"]["meta"]["dataset"] == self.dataset
+
     def test_top_events_with_project(self):
         # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]
