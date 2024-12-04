@@ -1,17 +1,21 @@
 from typing import Any
 
+from sentry.integrations.base import IntegrationProviderSlug
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_TYPE_2_INTEGRATION_ID_KEY,
     ACTION_TYPE_2_TARGET_DISPLAY_KEY,
     ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
-    RULE_REGISTRY_ID_2_ACTION_TYPE,
+    RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
 )
 
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 
-def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
+def sanitize_to_action(
+    action: dict[str, Any], action_type: IntegrationProviderSlug
+) -> dict[str, Any]:
     """
     Pops the keys we don't want to save inside the JSON field of the Action model.
 
@@ -43,25 +47,43 @@ def build_notification_actions_from_rule_data(actions: list[dict[str, Any]]) -> 
     notification_actions: list[Action] = []
 
     for action in actions:
-        # Use Rule -> Action.Type mapping to get the action type
-        action_type = RULE_REGISTRY_ID_2_ACTION_TYPE[action["id"]]
+        # Use Rule.integration.provider to get the action type
+        action_type = RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER[action["id"]]
 
-        integration_id = action.get(ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action_type))
+        # For all integrations, the target type is specific
+        # For email, the target type is user
+        # For sentry app, the target type is sentry app
+        if action_type == "email":
+            target_type = ActionTarget.USER
+        elif action_type == "sentry_app":
+            target_type = ActionTarget.SENTRY_APP
+        else:
+            target_type = ActionTarget.SPECIFIC
 
-        # Get the target_identifier if it exists
-        if action_type in ACTION_TYPE_2_TARGET_IDENTIFIER_KEY:
-            target_identifier = action.get(ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action_type))
+        if target_type == ActionTarget.SPECIFIC:
+            integration_id = action.get(ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action_type))
 
-        # Get the target_display if it exists
-        if action_type in ACTION_TYPE_2_TARGET_DISPLAY_KEY:
-            target_display = action.get(ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action_type))
+            # Get the target_identifier if it exists
+            if action_type in ACTION_TYPE_2_TARGET_IDENTIFIER_KEY:
+                target_identifier = action.get(ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action_type))
+
+            # Get the target_display if it exists
+            if action_type in ACTION_TYPE_2_TARGET_DISPLAY_KEY:
+                target_display = action.get(ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action_type))
 
         notification_action = Action(
             type=action_type,
-            data=sanitize_to_action(action, action_type),
+            data=(
+                # If the target type is specific, sanitize the action data
+                # Otherwise, use the action data as is
+                sanitize_to_action(action, action_type)
+                if target_type == ActionTarget.SPECIFIC
+                else action
+            ),
             integration_id=integration_id,
             target_identifier=target_identifier,
             target_display=target_display,
+            target_type=target_type,
         )
 
         notification_action.save()
