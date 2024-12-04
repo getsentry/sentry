@@ -9,17 +9,7 @@ import OrganizationFeatureFlagsNewSecet from 'sentry/views/settings/featureFlags
 
 describe('OrganizationFeatureFlagsNewSecret', function () {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
-  const {organization, router} = initializeOrg();
-
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
+  const {organization} = initializeOrg();
 
   beforeEach(function () {
     OrganizationsStore.addOrReplace(organization);
@@ -30,7 +20,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   });
 
   it('can create secret', async function () {
-    render(<OrganizationFeatureFlagsNewSecet {...defaultProps} />);
+    render(<OrganizationFeatureFlagsNewSecet />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -63,7 +53,7 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
   it('handles API errors when creating secret', async function () {
     jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<OrganizationFeatureFlagsNewSecet {...defaultProps} />);
+    render(<OrganizationFeatureFlagsNewSecet />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,

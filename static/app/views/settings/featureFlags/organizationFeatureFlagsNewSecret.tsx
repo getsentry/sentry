@@ -7,20 +7,17 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import NewProviderForm from 'sentry/views/settings/featureFlags/newProviderForm';
 import NewSecretHandler from 'sentry/views/settings/featureFlags/newSecretHandler';
 
-export function OrganizationFeatureFlagsNewSecet({
-  organization,
-}: {
-  organization: Organization;
-}) {
+export function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
+  const organization = useOrganization();
 
   const handleGoBack = useCallback(() => {
     browserHistory.push(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
