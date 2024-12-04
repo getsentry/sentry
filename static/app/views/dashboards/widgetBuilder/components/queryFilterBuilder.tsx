@@ -41,6 +41,7 @@ function WidgetBuilderQueryFilterBuilder() {
               }}
             />
             {canAddSearchConditions && (
+              // TODO: Hook up alias to query hook when it's implemented
               <LegendAliasInput
                 type="text"
                 name="name"
@@ -63,6 +64,7 @@ function WidgetBuilderQueryFilterBuilder() {
                 }}
               />
               {canAddSearchConditions && (
+                // TODO: Hook up alias to query hook when it's implemented
                 <LegendAliasInput
                   type="text"
                   name="name"
