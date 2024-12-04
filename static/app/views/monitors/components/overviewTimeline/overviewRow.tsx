@@ -171,7 +171,8 @@ export function OverviewRow({
           const {name, isMuted} = env;
           return (
             <EnvRow key={name}>
-              <DropdownMenu
+              <MonitorEnvironmentLabel monitorEnv={env} />
+              <EnvDropdown
                 size="sm"
                 trigger={triggerProps => (
                   <EnvActionButton
@@ -185,7 +186,6 @@ export function OverviewRow({
                   actionCreator(name, isMuted)
                 )}
               />
-              <MonitorEnvironmentLabel monitorEnv={env} />
             </EnvRow>
           );
         })}
@@ -345,6 +345,10 @@ const MonitorEnvContainer = styled('div')`
   flex-direction: column;
   border-right: 1px solid ${p => p.theme.innerBorder};
   text-align: right;
+`;
+
+const EnvDropdown = styled(DropdownMenu)`
+  text-align: left;
 `;
 
 const EnvRow = styled('div')`
