@@ -84,8 +84,10 @@ type Props = {
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
+  includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   showTotalCount?: boolean;
@@ -232,6 +234,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
   // Create new API Client so that historical requests aren't automatically deduplicated
   historicalAPI = new Client();
+  confidenceAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -451,6 +454,7 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
+      onConfidenceDataLoaded,
     } = this.props;
 
     const period = this.getStatsPeriod();
@@ -628,6 +632,16 @@ class TriggersChart extends PureComponent<Props, State> {
                 : HISTORICAL_TIME_PERIOD_MAP[period]
             }
             dataLoadedCallback={onHistoricalDataLoaded}
+          >
+            {noop}
+          </EventsRequest>
+        ) : null}
+        {this.props.includeConfidence ? (
+          <EventsRequest
+            {...baseProps}
+            api={this.confidenceAPI}
+            period="7d"
+            dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}
           </EventsRequest>
