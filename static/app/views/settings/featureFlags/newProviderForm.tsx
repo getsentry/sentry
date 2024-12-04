@@ -80,20 +80,6 @@ export default function NewProviderForm({
   return (
     <Access access={['org:write']}>
       {({hasAccess}) => (
-        <div>
-          {tct(
-            "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-            {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS["launchdarkly"]} />}
-          )}
-        </div>
-        <InputTitle>{t('Webhook URL')}</InputTitle>
-        <TextCopyInput
-          style={{padding: '20px'}}
-          aria-label={t('Webhook URL')}
-          size="sm"
-        >
-          {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/launchdarkly/`}
-        </TextCopyInput>
         <Form
           apiMethod="POST"
           initialData={initialData}
@@ -120,6 +106,20 @@ export default function NewProviderForm({
               'If you have already linked this provider, pasting a new secret will override the existing secret.'
             )}
           />
+          <div>
+            {tct(
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
+              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS.launchdarkly} />}
+            )}
+          </div>
+          <InputTitle>{t('Webhook URL')}</InputTitle>
+          <TextCopyInput
+            style={{padding: '20px'}}
+            aria-label={t('Webhook URL')}
+            size="sm"
+          >
+            {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/launchdarkly/`}
+          </TextCopyInput>
           <TextField
             name="secret"
             label={t('Secret')}
