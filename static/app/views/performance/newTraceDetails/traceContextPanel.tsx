@@ -173,10 +173,6 @@ const VitalMetersContainer = styled('div')`
   gap: ${space(1)};
   width: 100%;
   margin-bottom: ${space(1)};
-
-  > div {
-    max-width: 200px;
-  }
 `;
 
 const TraceTagsContainer = styled('div')`
