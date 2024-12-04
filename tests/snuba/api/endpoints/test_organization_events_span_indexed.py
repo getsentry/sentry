@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -815,7 +815,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert result["span.duration"] == 1000.0, "duration"
             assert result["span.op"] == "", "op"
             assert result["span.description"] == source["description"], "description"
-            assert datetime.fromisoformat(result["timestamp"]).timestamp() == pytest.approx(
+            ts = datetime.fromisoformat(result["timestamp"])
+            assert ts.tzinfo == timezone.utc
+            assert ts.timestamp() == pytest.approx(
                 source["end_timestamp_precise"], abs=5
             ), "timestamp"
             assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
