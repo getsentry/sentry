@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, TypedDict
 
 from django.utils import timezone
 
@@ -16,10 +16,44 @@ from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
     SentryAppAvatarSerializer as ResponseSentryAppAvatarSerializer,
 )
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
+
+
+class OwnerResponseField(TypedDict):
+    id: int
+    slug: str
+
+
+class SentryAppSerializerOptionalFields(TypedDict, total=False):
+    author: str | None
+    overview: str | None
+    popularity: int | None
+    redirectUrl: str | None
+    webhookUrl: str | None
+    datePublished: datetime | None
+    clientSecret: str | None
+    clientId: str | None
+    owner: OwnerResponseField | None
+
+
+class SentryAppSerializerResponse(SentryAppSerializerOptionalFields):
+    allowedOrigins: list[str]
+    avatars: SentryAppAvatarSerializerResponse
+    events: set[str]
+    featureData: list[str]
+    isAlertable: bool
+    metadata: str
+    name: str
+    schema: str
+    scopes: list[str]
+    slug: str
+    status: str
+    uuid: str
+    verifyInstall: bool
 
 
 @register(SentryApp)
@@ -57,35 +91,37 @@ class SentryAppSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: SentryApp, attrs: Mapping[str, Any], user: User, **kwargs: Any):
+    def serialize(
+        self, obj: SentryApp, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> SentryAppSerializerResponse:
         from sentry.sentry_apps.logic import consolidate_events
 
         application = attrs["application"]
 
-        data = {
-            "allowedOrigins": application.get_allowed_origins(),
-            "author": obj.author,
-            "avatars": serialize(
+        data = SentryAppSerializerResponse(
+            allowedOrigins=application.get_allowed_origins(),
+            author=obj.author,
+            avatars=serialize(
                 objects=attrs.get("avatars"),
                 user=user,
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),
-            "events": consolidate_events(obj.events),
-            "featureData": [],
-            "isAlertable": obj.is_alertable,
-            "metadata": obj.metadata,
-            "name": obj.name,
-            "overview": obj.overview,
-            "popularity": obj.popularity,
-            "redirectUrl": obj.redirect_url,
-            "schema": obj.schema,
-            "scopes": obj.get_scopes(),
-            "slug": obj.slug,
-            "status": obj.get_status_display(),
-            "uuid": obj.uuid,
-            "verifyInstall": obj.verify_install,
-            "webhookUrl": obj.webhook_url,
-        }
+            events=consolidate_events(obj.events),
+            featureData=[],
+            isAlertable=obj.is_alertable,
+            metadata=obj.metadata,
+            name=obj.name,
+            overview=obj.overview,
+            popularity=obj.popularity,
+            redirectUrl=obj.redirect_url,
+            schema=obj.schema,
+            scopes=obj.get_scopes(),
+            slug=obj.slug,
+            status=obj.get_status_display(),
+            uuid=obj.uuid,
+            verifyInstall=obj.verify_install,
+            webhookUrl=obj.webhook_url,
+        )
 
         if obj.status != SentryAppStatus.INTERNAL:
             data["featureData"] = [serialize(x, user) for x in attrs.get("features", [])]
