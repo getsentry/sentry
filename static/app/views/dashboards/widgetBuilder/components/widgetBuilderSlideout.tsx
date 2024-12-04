@@ -9,6 +9,7 @@ import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
@@ -37,6 +38,9 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         </Section>
         <Section>
           <WidgetBuilderDatasetSelector />
+        </Section>
+        <Section>
+          <WidgetBuilderTypeSelector />
         </Section>
         <Section>
           <WidgetBuilderNameAndDescription />
