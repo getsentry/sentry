@@ -198,7 +198,6 @@ module = [
     "sentry.incidents.endpoints.organization_incident_index",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
-    "sentry.integrations.api.bases.integration",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.bitbucket.client",
     "sentry.integrations.bitbucket.installed",
