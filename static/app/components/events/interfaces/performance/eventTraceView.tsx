@@ -165,12 +165,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   }
 
   const hasProfilingFeature = organization.features.includes('profiling');
-  const hasIssueDetailsTrace = organization.features.includes(
-    'issue-details-always-show-trace'
-  );
   const hasTracePreviewFeature =
     hasProfilingFeature &&
-    hasIssueDetailsTrace &&
     // Only display this for error or default events since performance events are handled elsewhere
     group.issueCategory !== IssueCategory.PERFORMANCE;
 

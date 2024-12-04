@@ -22,7 +22,7 @@ window.ResizeObserver = ResizeObserver;
 describe('EventTraceView', () => {
   const traceId = 'this-is-a-good-trace-id';
   const {organization, project} = initializeData({
-    features: ['profiling', 'issue-details-always-show-trace'],
+    features: ['profiling'],
   });
   const group = GroupFixture();
   const event = EventFixture({
