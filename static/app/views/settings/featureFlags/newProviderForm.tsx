@@ -120,13 +120,6 @@ export default function NewProviderForm({
               'If you have already linked this provider, pasting a new secret will override the existing secret.'
             )}
           />
-          <TextCopyInput
-            style={{padding: '20px'}}
-            aria-label={t('Webhook URL')}
-            size="sm"
-          >
-            {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/launchdarkly/`}
-          </TextCopyInput>
           <TextField
             name="secret"
             label={t('Secret')}
