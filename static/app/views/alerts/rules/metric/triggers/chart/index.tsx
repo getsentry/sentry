@@ -640,7 +640,6 @@ class TriggersChart extends PureComponent<Props, State> {
           <EventsRequest
             {...baseProps}
             api={this.confidenceAPI}
-            yAxis="count(span.duration)"
             period="7d"
             dataLoadedCallback={onConfidenceDataLoaded}
           >
