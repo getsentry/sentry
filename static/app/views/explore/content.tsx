@@ -152,7 +152,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 setConfidence={setConfidence}
                 setError={setChartError}
               />
-              <ExploreTables setError={setTableError} />
+              <ExploreTables confidence={confidence} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
