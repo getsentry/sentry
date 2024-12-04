@@ -6,7 +6,7 @@ import orjson
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -206,6 +206,14 @@ class DashboardListSerializer(Serializer):
             .values("dashboard_id", "order", "display_type", "detail", "id")
         )
 
+        favorited_dashboard_ids = set(
+            DashboardFavoriteUser.objects.filter(
+                user_id=user.id, dashboard_id__in=item_dict.keys()
+            ).values_list("dashboard_id", flat=True)
+        )
+
+        permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
+
         result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
         for widget in widgets:
             dashboard = item_dict[widget["dashboard_id"]]
@@ -239,8 +247,13 @@ class DashboardListSerializer(Serializer):
             )
         }
 
+        for permission in permissions:
+            dashboard = item_dict[permission.dashboard_id]
+            result[dashboard]["permissions"] = serialize(permission)
+
         for dashboard in item_dict.values():
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
+            result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
 
         return result
 
@@ -252,8 +265,8 @@ class DashboardListSerializer(Serializer):
             "createdBy": attrs.get("created_by"),
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
-            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
-            "isFavorited": user.id in obj.favorited_by,
+            "permissions": attrs.get("permissions", None),
+            "isFavorited": attrs.get("is_favorited", False),
         }
         return data
 
