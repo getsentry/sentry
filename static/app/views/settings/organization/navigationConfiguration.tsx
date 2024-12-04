@@ -123,7 +123,8 @@ const organizationNavigation: NavigationSection[] = [
         title: t('Feature Flags'),
         description: t('Set up your provider webhooks'),
         badge: () => <FeatureBadge type="beta" />,
-        show: ({organization}) => !!organization,
+        show: ({organization}) =>
+          !!organization && organization.features.includes('feature-flag-ui'),
       },
     ],
   },
