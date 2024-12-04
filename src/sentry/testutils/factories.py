@@ -54,7 +54,6 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentSeen,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -1509,7 +1508,6 @@ class Factories:
         date_started=None,
         date_detected=None,
         date_closed=None,
-        seen_by=None,
         alert_rule=None,
         subscription=None,
         activation=None,
@@ -1536,11 +1534,7 @@ class Factories:
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
-        if seen_by:
-            for user in seen_by:
-                IncidentSeen.objects.create(
-                    incident=incident, user_id=user.id, last_seen=timezone.now()
-                )
+
         return incident
 
     @staticmethod
@@ -2074,7 +2068,7 @@ class Factories:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name)
+        return Workflow.objects.create(organization=organization, name=name, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2102,9 +2096,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_data_condition(
-        **kwargs,
-    ) -> DataCondition:
+    def create_data_condition(**kwargs) -> DataCondition:
         return DataCondition.objects.create(**kwargs)
 
     @staticmethod
