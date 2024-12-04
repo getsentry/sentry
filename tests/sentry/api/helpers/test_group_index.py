@@ -323,6 +323,7 @@ class MergeGroupsTest(TestCase):
         )
 
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
+        assert response.status_code == 400
         assert mock_handle_merge.call_count == 0
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")

@@ -798,7 +798,9 @@ def prepare_response(
     if result.get("merge") and len(group_list) > 1:
         # don't allow merging cross project
         if len(project_lookup) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
+            return Response(
+                {"detail": "Merging across multiple projects is not supported"}, status=400
+            )
         result["merge"] = merge_groups(
             group_list,
             project_lookup,
