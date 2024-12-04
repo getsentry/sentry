@@ -175,9 +175,11 @@ export function SpanOperationTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>
+            <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
