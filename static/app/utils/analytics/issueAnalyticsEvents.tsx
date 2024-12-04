@@ -92,8 +92,9 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.share_from_icon': {};
   'issue.shared_publicly': {};
-  'issue_details.comment_created': {};
-  'issue_details.comment_deleted': {};
+  'issue_details.comment_created': {streamline: boolean};
+  'issue_details.comment_deleted': {streamline: boolean};
+  'issue_details.comment_updated': {streamline: boolean};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
@@ -480,5 +481,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.section_fold': 'Issue Details: Section Fold',
   'issue_details.comment_created': 'Issue Details: Comment Created',
   'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
+  'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };
