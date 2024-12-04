@@ -597,6 +597,12 @@ def register_temporary_features(manager: FeatureManager):
         api_expose=True,
     )
     manager.add(
+        "organizations:feature-flag-ui",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
+    manager.add(
         "organizations:feature-flag-cta",
         OrganizationFeature,
         FeatureHandlerStrategy.FLAGPOLE,
