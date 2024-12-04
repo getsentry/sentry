@@ -117,30 +117,25 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            filter_by = request.query_params.get("filter")
+            if filter_by == "onlyFavorites":
+                dashboards = Dashboard.objects.filter(
+                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+                )
+            elif filter_by == "excludeFavorites":
+                dashboards = Dashboard.objects.exclude(
+                    organization_id=organization.id, dashboardfavoriteuser__user_id=request.user.id
+                )
+            else:
+                dashboards = Dashboard.objects.filter(organization_id=organization.id)
+        else:
+            dashboards = Dashboard.objects.filter(organization_id=organization.id)
+
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
         prebuilt = Dashboard.get_prebuilt_list(organization, request.user, query)
-
-        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
-            filter_by = request.query_params.get("filter")
-            if filter_by == "onlyFavorites":
-                dashboards = dashboards.filter(
-                    id__in=[
-                        dashboard.id
-                        for dashboard in dashboards
-                        if request.user.id in dashboard.favorited_by
-                    ]
-                )
-            elif filter_by == "excludeFavorites":
-                dashboards = dashboards.exclude(
-                    id__in=[
-                        dashboard.id
-                        for dashboard in dashboards
-                        if request.user.id in dashboard.favorited_by
-                    ]
-                )
 
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
