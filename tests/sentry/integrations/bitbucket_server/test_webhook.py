@@ -1,7 +1,9 @@
 from time import time
 from typing import Any
+from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 from requests.exceptions import ConnectionError
 
@@ -13,6 +15,10 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry_plugins.bitbucket.testutils import REFS_CHANGED_EXAMPLE
+from tests.sentry.integrations.utils.test_assert_metrics import (
+    assert_failure_metric,
+    assert_success_metric,
+)
 
 PROVIDER = "bitbucket_server"
 
@@ -117,12 +123,37 @@ class RefsChangedWebhookTest(WebhookTestBase):
             status_code=404,
         )
 
-    def test_simple(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple(self, mock_record):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
         self.create_repository()
         self.send_webhook()
+
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.bitbucket_server.webhook.PushEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(self, mock_record, mock_event):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+        self.create_repository()
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        with pytest.raises(Exception):
+            self.get_error_response(
+                self.organization.id,
+                self.integration.id,
+                raw_data=REFS_CHANGED_EXAMPLE,
+                extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+                status_code=500,
+            )
+
+        assert_failure_metric(mock_record, error)
 
     @responses.activate
     def test_get_commits_error(self):

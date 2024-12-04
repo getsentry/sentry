@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any
@@ -12,7 +13,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
@@ -26,7 +29,13 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket_server"
 
 
-class Webhook:
+class Webhook(ABC):
+    @property
+    @abstractmethod
+    def event_type(self) -> IntegrationWebhookEventType:
+        raise NotImplementedError
+
+    @abstractmethod
     def __call__(self, organization: Organization, integration_id: int, event: Mapping[str, Any]):
         raise NotImplementedError
 
@@ -41,6 +50,10 @@ class Webhook:
 
 
 class PushEventWebhook(Webhook):
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
+
     def __call__(
         self, organization: Organization, integration_id: int, event: Mapping[str, Any]
     ) -> HttpResponse:
@@ -176,4 +189,11 @@ class BitbucketServerWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        return handler()(organization, integration_id, event)
+        event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key="bitbucket-server",
+        ).capture():
+            return event_handler(organization, integration_id, event)
