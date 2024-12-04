@@ -48,6 +48,7 @@ from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import construct_link_with_query, is_valid_redirect
 from sentry.utils.http import absolute_uri, is_using_customer_domain, origin_from_request
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.generic import FOREVER_CACHE
 from sentry.web.helpers import render_to_response
 from sudo.views import redirect_to_sudo
@@ -467,7 +468,9 @@ class BaseView(View, OrganizationMixin):
         return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: HttpRequest, **kwargs: Any) -> dict[str, Any]:
-        context = csrf(request)
+        context = {"react_config": get_client_config(request, self.active_organization)} | csrf(
+            request
+        )
         return context
 
     def respond(
