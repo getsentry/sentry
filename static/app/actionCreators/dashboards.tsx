@@ -155,18 +155,8 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {
-    title,
-    widgets,
-    projects,
-    environment,
-    period,
-    start,
-    end,
-    filters,
-    utc,
-    // isFavorited,
-  } = dashboard;
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    dashboard;
   const data = {
     title,
     widgets: widgets.map(widget => omit(widget, ['tempId'])),
@@ -177,7 +167,6 @@ export function updateDashboard(
     end,
     filters,
     utc,
-    // isFavorited,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
