@@ -42,14 +42,16 @@ class IntegrationEndpoint(ControlSiloOrganizationEndpoint):
     Baseclass for integration endpoints in control silo that need integration exception handling
     """
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
         *args: Any,
         **kwds: Any,
     ) -> Response:
-        return _handle_exception(exc) or super().handle_exception(request, exc, *args, **kwds)
+        return _handle_exception(exc) or super().handle_exception_with_details(
+            request, exc, *args, **kwds
+        )
 
 
 class RegionIntegrationEndpoint(OrganizationEndpoint):
@@ -57,11 +59,13 @@ class RegionIntegrationEndpoint(OrganizationEndpoint):
     Baseclass for integration endpoints in region silo that need integration exception handling
     """
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
         *args: Any,
         **kwds: Any,
     ) -> Response:
-        return _handle_exception(exc) or super().handle_exception(request, exc, *args, **kwds)
+        return _handle_exception(exc) or super().handle_exception_with_details(
+            request, exc, *args, **kwds
+        )

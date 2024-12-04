@@ -33,7 +33,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
     Webhook hit by Jira whenever an issue is updated in Jira's database.
     """
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -45,7 +45,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
             if response_option:
                 return self.respond(response_option)
 
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)

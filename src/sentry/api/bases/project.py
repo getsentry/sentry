@@ -207,7 +207,7 @@ class ProjectEndpoint(Endpoint):
 
         return params
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -221,4 +221,4 @@ class ProjectEndpoint(Endpoint):
             )
             response["Location"] = exc.new_url
             return response
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)
