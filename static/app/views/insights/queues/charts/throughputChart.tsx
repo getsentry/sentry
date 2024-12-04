@@ -4,7 +4,6 @@ import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {ALERTS} from 'sentry/views/insights/queues/alerts';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
 import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
@@ -27,19 +26,8 @@ export function ThroughputChart({error, destination, referrer}: Props) {
       destination,
       referrer,
     });
-  let {processed, published} = ALERTS;
-  if (destination) {
-    processed = {
-      ...processed,
-      query: `${processed.query} messaging.destination.name:${destination}`,
-    };
-    published = {
-      ...published,
-      query: `${published.query} messaging.destination.name:${destination}`,
-    };
-  }
   return (
-    <ChartPanel title={t('Published vs Processed')} alertConfigs={[processed, published]}>
+    <ChartPanel title={t('Published vs Processed')}>
       <Chart
         height={CHART_HEIGHT}
         grid={{
