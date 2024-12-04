@@ -2045,7 +2045,7 @@ describe('Dashboards > Detail', function () {
 
       const favoriteButton = await screen.findByLabelText('dashboards-favourite');
       expect(favoriteButton).toBeInTheDocument();
-      expect(screen.getByTestId('empty-star')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
     });
 
     it('renders favorite button in favorited state', async function () {
@@ -2073,7 +2073,7 @@ describe('Dashboards > Detail', function () {
 
       const favoriteButton = await screen.findByLabelText('dashboards-favourite');
       expect(favoriteButton).toBeInTheDocument();
-      expect(screen.getByTestId('yellow-star')).toBeInTheDocument();
+      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
     });
 
     it('toggles favorite button', async function () {
@@ -2107,11 +2107,9 @@ describe('Dashboards > Detail', function () {
       const favoriteButton = await screen.findByLabelText('dashboards-favourite');
       expect(favoriteButton).toBeInTheDocument();
 
-      expect(screen.getByTestId('yellow-star')).toBeInTheDocument();
-
+      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
       await userEvent.click(favoriteButton);
-
-      expect(screen.getByTestId('empty-star')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
     });
 
     describe('widget builder redesign', function () {
