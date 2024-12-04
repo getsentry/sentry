@@ -358,21 +358,22 @@ def run_top_events_timeseries_query(
             params.end,
             granularity_secs,
         )
-    result_data, result_confidence = _process_timeseries(
-        other_response.result_timeseries[0],
-        params,
-        granularity_secs,
-    )
-    final_result[OTHER_KEY] = SnubaTSResult(
-        {
-            "data": result_data,
-            "confidence": result_confidence,
-            "order": limit,
-        },
-        params.start,
-        params.end,
-        granularity_secs,
-    )
+    if other_response.result_timeseries:
+        result_data, result_confidence = _process_timeseries(
+            other_response.result_timeseries[0],
+            params,
+            granularity_secs,
+        )
+        final_result[OTHER_KEY] = SnubaTSResult(
+            {
+                "data": result_data,
+                "confidence": result_confidence,
+                "order": limit,
+            },
+            params.start,
+            params.end,
+            granularity_secs,
+        )
     return final_result
 
 
