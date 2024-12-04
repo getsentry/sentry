@@ -40,7 +40,7 @@
   {% block initial_data %}
     {% script %}
     <script>
-      window.__initialData = {% react_config|to_json %};
+      window.__initialData = {{ react_config|to_json }};
     </script>
     {% endscript %}
   {% endblock %}
