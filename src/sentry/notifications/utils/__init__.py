@@ -68,9 +68,7 @@ def get_release(activity: Activity, organization: Organization) -> Release | Non
         return None
 
 
-def get_group_counts_by_project(
-    release: Release, projects: Iterable[Project]
-) -> Mapping[Project, int]:
+def get_group_counts_by_project(release: Release, projects: Iterable[Project]) -> dict[int, int]:
     return dict(
         Group.objects.filter(
             project__in=projects,

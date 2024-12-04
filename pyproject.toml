@@ -265,7 +265,6 @@ module = [
     "sentry.net.http",
     "sentry.net.socket",
     "sentry.notifications.notifications.activity.base",
-    "sentry.notifications.notifications.activity.release",
     "sentry.notifications.notifications.integration_nudge",
     "sentry.pipeline.base",
     "sentry.pipeline.views.base",
