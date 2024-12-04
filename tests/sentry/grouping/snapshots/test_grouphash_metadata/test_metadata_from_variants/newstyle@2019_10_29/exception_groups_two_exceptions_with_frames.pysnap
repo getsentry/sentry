@@ -1,0 +1,86 @@
+---
+created: '2024-12-02T21:58:09.985157+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 3,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "True",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "d505dfb9059ac63c11955233323a9100"
+    component:
+      app*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_stuff"
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_different_stuff"
+            type*
+              "DoStuffException"
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_other_stuff"
+            type*
+              "DoOtherStuffException"
+          exception*
+            type*
+              "System.AggregateException"
+            value*
+              "One or more errors occurred."
+  system*
+    hash: "4f9cc6a81f4eb34f9e917374f281b9dc"
+    component:
+      system*
+        chained-exception*
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_stuff"
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_different_stuff"
+            type*
+              "DoStuffException"
+          exception*
+            stacktrace*
+              frame*
+                module*
+                  "dostuff"
+                function*
+                  "do_other_stuff"
+            type*
+              "DoOtherStuffException"
