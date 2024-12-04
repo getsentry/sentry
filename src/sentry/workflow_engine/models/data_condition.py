@@ -1,12 +1,20 @@
 import logging
 import operator
+from collections.abc import Callable
 from enum import StrEnum
+from typing import Any, TypeVar, cast
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
-from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLevel
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import (
+    DataConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +26,7 @@ class Condition(StrEnum):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+    GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
 
 
 condition_ops = {
@@ -29,6 +38,8 @@ condition_ops = {
     Condition.NOT_EQUAL: operator.ne,
 }
 
+T = TypeVar("T")
+
 
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
@@ -37,7 +48,7 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition")
+    __repr__ = sane_repr("type", "condition", "condition_group")
 
     # The condition is the logic condition that needs to be met, gt, lt, eq, etc.
     condition = models.CharField(max_length=200)
@@ -74,32 +85,44 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def evaluate_value(self, value: float | int) -> DataConditionResult:
-        # TODO: This logic should be in a condition class that we get from `self.type`
-        # TODO: This evaluation logic should probably go into the condition class, and we just produce a condition
-        # class from this model
+    def get_condition_handler(self) -> DataConditionHandler[T] | None:
         try:
+            condition_type = Condition(self.type)
+        except ValueError:
+            # If the type isn't in the condition, then it won't be in the registry either.
+            raise NoRegistrationExistsError(f"No registration exists for {self.type}")
+
+        return condition_handler_registry.get(condition_type)
+
+    def evaluate_value(self, value: T) -> DataConditionResult:
+        condition_handler: DataConditionHandler[T] | None = None
+        op: Callable | None = None
+
+        try:
+            # Use a custom hanler
+            condition_handler = self.get_condition_handler()
+        except NoRegistrationExistsError:
+            # If it's not a custom handler, use the default operators
             condition = Condition(self.condition)
-        except ValueError:
-            logger.exception(
-                "Invalid condition", extra={"condition": self.condition, "id": self.id}
+            op = condition_ops.get(condition, None)
+
+        if condition_handler is not None:
+            result = condition_handler.evaluate_value(value, self.comparison, self.condition)
+        elif op is not None:
+            result = op(cast(Any, value), self.comparison)
+        else:
+            logger.error(
+                "Invalid Data Condition Evaluation",
+                extra={
+                    "id": self.id,
+                    "type": self.type,
+                    "condition": self.condition,
+                },
             )
+
             return None
 
-        op = condition_ops.get(condition)
-        if op is None:
-            logger.error("Invalid condition", extra={"condition": self.condition, "id": self.id})
-            return None
-
-        try:
-            comparison = float(self.comparison)
-        except ValueError:
-            logger.exception(
-                "Invalid comparison value", extra={"comparison": self.comparison, "id": self.id}
-            )
-            return None
-
-        if op(value, comparison):
+        if result:
             return self.get_condition_result()
 
         return None
