@@ -69,8 +69,8 @@ class MultipleProjectsError(Exception):
 
 class ResolutionParams(TypedDict):
     release: Release
-    type: int
-    status: int
+    type: int | None
+    status: int | None
     actor_id: int | None
     current_release_version: NotRequired[str]
 
@@ -260,7 +260,6 @@ def update_groups(
         result = handle_other_status_updates(
             result,
             group_list,
-            group_ids,
             projects,
             project_lookup,
             status_details,
@@ -271,7 +270,6 @@ def update_groups(
     return prepare_response(
         result,
         group_list,
-        group_ids,
         project_lookup,
         projects,
         acting_user,
@@ -627,10 +625,7 @@ def process_group_resolution(
             group=group, defaults=resolution_params
         )
         if not created:
-            # Mypy complains about Argument 2 has incompatible type "**dict[str, Release | int | None]"; expected "str | None"
-            resolution.update(
-                datetime=django_timezone.now(), **resolution_params  # type: ignore[arg-type]
-            )
+            resolution.update(datetime=django_timezone.now(), **resolution_params)
 
     if commit:
         GroupLink.objects.create(
@@ -715,13 +710,13 @@ def merge_groups(
 def handle_other_status_updates(
     result: MutableMapping[str, Any],
     group_list: Sequence[Group],
-    group_ids: Sequence[int],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: Mapping[str, Any],
     acting_user,
     user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
+    group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
     new_substatus = None
@@ -768,7 +763,6 @@ def handle_other_status_updates(
 def prepare_response(
     result: dict[str, Any],
     group_list: Sequence[Group],
-    group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
     acting_user,
@@ -804,14 +798,10 @@ def prepare_response(
             acting_user,
         )
 
-    handle_has_seen(
-        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
-    )
+    handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
 
     if "isBookmarked" in result:
-        handle_is_bookmarked(
-            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
-        )
+        handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
 
     if result.get("isSubscribed") in (True, False):
         result["subscriptionDetails"] = handle_is_subscribed(
@@ -926,13 +916,13 @@ def handle_is_subscribed(
 def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group],
-    group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     acting_user,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
+    group_ids = [group.id for group in group_list]
     if is_bookmarked:
         for group in group_list:
             GroupBookmark.objects.get_or_create(
@@ -961,7 +951,6 @@ def handle_is_bookmarked(
 def handle_has_seen(
     has_seen: bool | None,
     group_list: Sequence[Group],
-    group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
     acting_user,
@@ -984,7 +973,9 @@ def handle_has_seen(
                     values={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False and user_id is not None:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+        GroupSeen.objects.filter(
+            group__in=[group.id for group in group_list], user_id=user_id
+        ).delete()
 
 
 def handle_priority(
