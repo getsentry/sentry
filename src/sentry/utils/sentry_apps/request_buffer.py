@@ -100,18 +100,26 @@ class SentryAppWebhookRequestsBuffer:
         else:
             return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
-    def _get_requests(self, event: str | None = None, error: bool = False) -> list[dict[str, Any]]:
+    def _get_requests(
+        self, event: str | list[str] | None = None, error: bool = False
+    ) -> list[dict[str, Any]]:
+        if isinstance(event, str):
+            return [
+                self._convert_redis_request(request, event)
+                for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
+            ]
         # If no event is specified, return the latest requests/errors for all event types
-        if event is None:
+        else:
+            event_types = event or EXTENDED_VALID_EVENTS
             pipe = self.client.pipeline()
 
             all_requests = []
-            for evt in EXTENDED_VALID_EVENTS:
+            for evt in event_types:
                 self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
 
             values = pipe.execute()
 
-            for idx, evt in enumerate(EXTENDED_VALID_EVENTS):
+            for idx, evt in enumerate(event_types):
                 event_requests = [
                     self._convert_redis_request(request, evt) for request in values[idx]
                 ]
@@ -120,14 +128,8 @@ class SentryAppWebhookRequestsBuffer:
             all_requests.sort(key=lambda x: parse_date(x["date"]), reverse=True)
             return all_requests[0:BUFFER_SIZE]
 
-        else:
-            return [
-                self._convert_redis_request(request, event)
-                for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
-            ]
-
     def get_requests(
-        self, event: str | None = None, errors_only: bool = False
+        self, event: str | list[str] | None = None, errors_only: bool = False
     ) -> list[dict[str, Any]]:
         return self._get_requests(event=event, error=errors_only)
 
