@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -366,7 +366,7 @@ def get_stacktrace_string_with_metrics(
     return stacktrace_string
 
 
-def event_content_has_stacktrace(event: Event) -> bool:
+def event_content_has_stacktrace(event: GroupEvent) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
@@ -376,7 +376,7 @@ def event_content_has_stacktrace(event: Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: Event) -> bool:
+def event_content_is_seer_eligible(event: GroupEvent) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
@@ -405,7 +405,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+def killswitch_enabled(project_id: int, event: GroupEvent | None = None) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
