@@ -79,7 +79,7 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    acting_user: Any,
+    acting_user,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=acting_user):
@@ -120,7 +120,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: Any, group: Group, self_assign_issue: str
+    acting_user, group: Group, self_assign_issue: str
 ) -> Actor | None:
     """
     Used during issue resolution to assign to acting user
@@ -363,7 +363,7 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
     user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], int | None]:
@@ -521,7 +521,7 @@ def process_group_resolution(
     commit: Commit | None,
     res_type: int | None,
     res_status: int | None,
-    acting_user: Any,
+    acting_user,
     user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
     activity_type: int,
@@ -684,7 +684,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -719,7 +719,7 @@ def handle_other_status_updates(
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
     status_details: Mapping[str, Any],
-    acting_user: Any,
+    acting_user,
     user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
     queryset = Group.objects.filter(id__in=group_ids)
@@ -771,7 +771,7 @@ def prepare_response(
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: Any,
+    acting_user,
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
@@ -900,7 +900,7 @@ def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -928,7 +928,7 @@ def handle_is_bookmarked(
     group_list: Sequence[Group],
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
@@ -964,7 +964,7 @@ def handle_has_seen(
     group_ids: Sequence[int],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: Any,
+    acting_user,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -990,7 +990,7 @@ def handle_has_seen(
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    acting_user: Any,
+    acting_user,
     project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
@@ -1010,7 +1010,7 @@ def handle_is_public(
     is_public: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1054,7 +1054,7 @@ def handle_assigned_to(
     integration: str | None,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: Any,
+    acting_user,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
