@@ -2047,6 +2047,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with Sentry installations that do not have a metrics pipeline.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2059,8 +2060,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -2084,6 +2085,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ``billing_metrics_consumer``.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2096,8 +2098,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -2147,6 +2149,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @freeze_time()
     def test_save_issueless_event(self) -> None:
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2159,8 +2162,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
