@@ -713,6 +713,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_eps_minute_rollup(self):
         super().test_throughput_eps_minute_rollup()
-
-    def test_top_events_empty_other(self):
-        super().test_top_events_empty_other()
