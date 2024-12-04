@@ -8,15 +8,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
-export type AlertConfig = {
-  aggregate: string;
-  name?: string;
-  query?: string;
-};
-
 type Props = {
   children: React.ReactNode;
-  alertConfigs?: AlertConfig[];
   button?: JSX.Element;
   className?: string;
   subtitle?: React.ReactNode;

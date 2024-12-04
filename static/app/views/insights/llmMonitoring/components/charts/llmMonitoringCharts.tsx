@@ -8,7 +8,6 @@ import {
   useSpanIndexedSeries,
   useSpanMetricsSeries,
 } from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {ALERTS} from 'sentry/views/insights/llmMonitoring/alerts';
 
 interface TotalTokensUsedChartProps {
   groupId?: string;
@@ -31,10 +30,7 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   );
 
   return (
-    <ChartPanel
-      title={t('Total tokens used')}
-      alertConfigs={[{...ALERTS.tokensUsed, query}]}
-    >
+    <ChartPanel title={t('Total tokens used')}>
       <Chart
         height={200}
         grid={{
@@ -69,10 +65,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   );
 
   return (
-    <ChartPanel
-      title={t('Total tokens used')}
-      alertConfigs={[{...ALERTS.tokensUsed, query}]}
-    >
+    <ChartPanel title={t('Total tokens used')}>
       <Chart
         height={200}
         grid={{
@@ -185,10 +178,7 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
   );
 
   return (
-    <ChartPanel
-      title={t('Pipeline Duration')}
-      alertConfigs={[{...ALERTS.duration, query}]}
-    >
+    <ChartPanel title={t('Pipeline Duration')}>
       <Chart
         height={200}
         grid={{
@@ -222,10 +212,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   );
 
   return (
-    <ChartPanel
-      title={t('Pipeline Duration')}
-      alertConfigs={[{...ALERTS.duration, query}]}
-    >
+    <ChartPanel title={t('Pipeline Duration')}>
       <Chart
         height={200}
         grid={{

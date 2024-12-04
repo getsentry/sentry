@@ -5,7 +5,6 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {ALERTS} from 'sentry/views/insights/browser/resources/alerts';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {
   DATA_TYPE,
@@ -77,10 +76,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   return (
     <Fragment>
       <ModuleLayout.Third>
-        <ChartPanel
-          title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}
-          alertConfigs={[{...ALERTS.spm, query: mutableSearch.formatString()}]}
-        >
+        <ChartPanel title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}>
           <Chart
             height={160}
             data={[spanMetricsSeriesData?.[`spm()`]]}
@@ -100,10 +96,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel
-          title={getDurationChartTitle('http')}
-          alertConfigs={[{...ALERTS.duration, query: mutableSearch.formatString()}]}
-        >
+        <ChartPanel title={getDurationChartTitle('http')}>
           <Chart
             height={160}
             data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
@@ -116,14 +109,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel
-          title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}
-          alertConfigs={[
-            {...ALERTS.decodedSize, query: mutableSearch.formatString()},
-            {...ALERTS.transferSize, query: mutableSearch.formatString()},
-            {...ALERTS.encodedSize, query: mutableSearch.formatString()},
-          ]}
-        >
+        <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
           <Chart
             height={160}
             aggregateOutputFormat="size"

@@ -1,20 +1,16 @@
 import type {ComponentProps} from 'react';
 
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
-import {ALERTS} from 'sentry/views/insights/http/alerts';
 import {CHART_HEIGHT} from 'sentry/views/insights/http/settings';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 interface Props {
   isLoading: boolean;
   series: Series[];
   error?: Error | null;
-  filters?: SpanMetricsQueryFilters;
   onHighlight?: (highlights: Highlight[], event: Event) => void; // TODO: Correctly type this
   scatterPlot?: ComponentProps<typeof Chart>['scatterPlot'];
 }
@@ -30,7 +26,6 @@ export function DurationChart({
   isLoading,
   error,
   onHighlight,
-  filters,
 }: Props) {
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
@@ -57,14 +52,8 @@ export function DurationChart({
     onHighlight?.(highlightedDataPoints, event);
   };
 
-  const filterString = filters && MutableSearch.fromQueryObject(filters).formatString();
-  const alertConfig = {
-    ...ALERTS.duration,
-    query: filterString ?? ALERTS.duration.query,
-  };
-
   return (
-    <ChartPanel title={getDurationChartTitle('http')} alertConfigs={[alertConfig]}>
+    <ChartPanel title={getDurationChartTitle('http')}>
       <Chart
         height={CHART_HEIGHT}
         grid={{

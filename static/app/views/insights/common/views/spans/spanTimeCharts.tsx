@@ -17,9 +17,7 @@ import Chart, {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
-import ChartPanel, {
-  type AlertConfig,
-} from 'sentry/views/insights/common/components/chartPanel';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/insights/common/views/spans/queries';
@@ -36,9 +34,6 @@ const NULL_SPAN_CATEGORY = t('custom');
 const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
-
-const THROUGHPUT_ALERT_AGGREGATE = 'spm()';
-const DURATION_ALERT_AGGREGATE = `avg(d:spans/exclusive_time@millisecond)`; // TODO: we should move this to span.duration once we stop using exclusive time entirely in the insights charts
 
 type Props = {
   appliedFilters: ModuleFilters;
@@ -88,7 +83,6 @@ export function SpanTimeCharts({
     {
       Comp: (props: ChartProps) => JSX.Element;
       title: string;
-      alertConfigs?: AlertConfig[];
     }[]
   > = {
     [ModuleName.DB]: [],
@@ -110,35 +104,23 @@ export function SpanTimeCharts({
     [ModuleName.OTHER]: [],
   };
 
-  const throughputAlertConfig = {
-    aggregate: THROUGHPUT_ALERT_AGGREGATE,
-    query: eventView.query,
-  };
-
-  const durationAlertConfig = {
-    aggregate: DURATION_ALERT_AGGREGATE,
-    query: eventView.query,
-  };
-
   const charts = [
     {
       title: getThroughputChartTitle(moduleName, throughputUnit),
       Comp: ThroughputChart,
-      alertConfigs: [throughputAlertConfig],
     },
     {
       title: getDurationChartTitle(moduleName),
       Comp: DurationChart,
-      alertConfigs: [durationAlertConfig],
     },
     ...moduleCharts[moduleName],
   ];
 
   return (
     <ChartsContainer>
-      {charts.map(({title, Comp, alertConfigs}) => (
+      {charts.map(({title, Comp}) => (
         <ChartsContainerItem key={title}>
-          <ChartPanel title={title} alertConfigs={alertConfigs}>
+          <ChartPanel title={title}>
             <Comp
               moduleName={moduleName}
               filters={appliedFilters}
