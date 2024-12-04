@@ -4,7 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import rest_framework
@@ -65,6 +65,14 @@ logger = logging.getLogger(__name__)
 
 class MultipleProjectsError(Exception):
     pass
+
+
+class ResolutionParams(TypedDict):
+    release: Release
+    type: int
+    status: int
+    actor_id: int | None
+    current_release_version: NotRequired[str]
 
 
 def handle_discard(
@@ -525,7 +533,7 @@ def process_group_resolution(
     created = None
     if release:
         # These are the parameters that are set for creating a GroupResolution
-        resolution_params = {
+        resolution_params: ResolutionParams = {
             "release": release,
             "type": res_type,
             "status": res_status,
@@ -547,11 +555,7 @@ def process_group_resolution(
             current_release_version = get_current_release_version_of_group(group, follows_semver)
 
             if current_release_version:
-                # Mypy believes `current_release_version` is of type `Release | None`,
-                # but we know it's of type `str` (CharField)
-                resolution_params.update(
-                    {"current_release_version": current_release_version}  # type: ignore[dict-item]
-                )
+                resolution_params.update({"current_release_version": current_release_version})
 
                 # Sets `current_release_version` for activity, since there is no point
                 # waiting for when a new release is created i.e.
@@ -740,7 +744,7 @@ def handle_other_status_updates(
                 )
             else:
                 result["statusDetails"] = handle_ignored(
-                    group_ids, group_list, dict(status_details), acting_user, user
+                    group_list, dict(status_details), acting_user, user
                 )
             result["inbox"] = None
         else:

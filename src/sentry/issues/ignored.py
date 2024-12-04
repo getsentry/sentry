@@ -87,7 +87,6 @@ def handle_archived_until_escalating(
 
 
 def handle_ignored(
-    group_ids: Sequence[int],
     group_list: Sequence[Group],
     status_details: dict[str, Any],
     acting_user: Any,
@@ -101,7 +100,7 @@ def handle_ignored(
     Returns: a dict with the statusDetails for ignore conditions.
     """
     metrics.incr("group.ignored", skip_internal=True)
-    for group in group_ids:
+    for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
     new_status_details: IgnoredStatusDetails = {}
@@ -154,6 +153,6 @@ def handle_ignored(
                 actor=serialized_user[0] if serialized_user else None,
             )
     else:
-        GroupSnooze.objects.filter(group__in=group_ids).delete()
+        GroupSnooze.objects.filter(group__in=[group.id for group in group_list]).delete()
 
     return new_status_details
