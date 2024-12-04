@@ -52,13 +52,15 @@ function WidgetBuilderV2({
       <AnimatePresence>
         {isOpen && (
           <WidgetBuilderProvider>
-            <WidgetBuilderContainer>
-              <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
-              <WidgetPreviewContainer
-                dashboardFilters={dashboardFilters}
-                dashboard={dashboard}
-              />
-            </WidgetBuilderContainer>
+            <ContainerWithoutSidebar>
+              <WidgetBuilderContainer>
+                <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
+                <WidgetPreviewContainer
+                  dashboardFilters={dashboardFilters}
+                  dashboard={dashboard}
+                />
+              </WidgetBuilderContainer>
+            </ContainerWithoutSidebar>
           </WidgetBuilderProvider>
         )}
       </AnimatePresence>
@@ -136,7 +138,7 @@ const Backdrop = styled('div')`
 `;
 
 const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
-  width: 35vw;
+  width: 30vw;
   min-width: 400px;
   height: ${p => (p.isTable ? 'auto' : '400px')};
   border: 2px dashed ${p => p.theme.border};
@@ -148,11 +150,22 @@ const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
   margin: auto;
 `;
 
+const ContainerWithoutSidebar = styled('div')`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 100vh;
+`;
+
 const WidgetBuilderContainer = styled('div')`
-  ${fullPageCss}
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 100vh;
+  position: fixed;
+  width: -webkit-fill-available;
+  width: fill-available;
 `;
