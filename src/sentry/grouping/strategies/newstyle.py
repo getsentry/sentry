@@ -818,10 +818,10 @@ def _filtered_threads(
 
     rv = {}
 
-    for name, stacktrace_component in context.get_grouping_component(
+    for variant_name, stacktrace_component in context.get_grouping_component(
         stacktrace, event=event, **meta
     ).items():
-        rv[name] = ThreadsGroupingComponent(values=[stacktrace_component])
+        rv[variant_name] = ThreadsGroupingComponent(values=[stacktrace_component])
 
     return rv
 
