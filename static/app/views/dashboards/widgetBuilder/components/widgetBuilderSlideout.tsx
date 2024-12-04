@@ -10,6 +10,7 @@ import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuil
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
@@ -38,6 +39,9 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         </Section>
         <Section>
           <WidgetBuilderDatasetSelector />
+        </Section>
+        <Section>
+          <WidgetBuilderTypeSelector />
         </Section>
         <Section>
           <WidgetBuilderQueryFilterBuilder />
