@@ -302,7 +302,7 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
-    MOBILE_THREAD_DATA = {
+    MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
             "description": "in-app thread stack-trace",
