@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -46,17 +48,17 @@ class EvaluateValueTest(TestCase):
         dc = self.create_data_condition(
             condition="invalid", comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
-        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
-            assert dc.evaluate_value(2) is None
-            assert mock_logger.exception.call_args[0][0] == "Invalid condition"
+        with pytest.raises(ValueError):
+            dc.evaluate_value(2)
 
     def test_bad_comparison(self):
         dc = self.create_data_condition(
             condition="gt", comparison="hi", condition_result=DetectorPriorityLevel.HIGH
         )
-        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
-            assert dc.evaluate_value(2) is None
-            assert mock_logger.exception.call_args[0][0] == "Invalid comparison value"
+
+        # Raises a TypeError because str vs int comparison
+        with pytest.raises(TypeError):
+            dc.evaluate_value(2)
 
     def test_bad_condition_result(self):
         dc = self.create_data_condition(condition="gt", comparison=1.0, condition_result="wrong")

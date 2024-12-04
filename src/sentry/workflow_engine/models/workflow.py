@@ -6,7 +6,9 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.eventstore.models import GroupEvent
 from sentry.models.owner_base import OwnerModel
+from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 
 from .json_config import JSONConfigBase
 
@@ -47,3 +49,14 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 fields=["name", "organization"], name="unique_workflow_name_per_org"
             )
         ]
+
+    def evaluate_trigger_conditions(self, evt: GroupEvent) -> bool:
+        """
+        Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
+        If there aren't any workflow trigger conditions, the workflow is considered triggered.
+        """
+        if self.when_condition_group is None:
+            return True
+
+        evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
+        return evaluation
