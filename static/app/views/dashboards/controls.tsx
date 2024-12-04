@@ -188,26 +188,25 @@ function Controls({
                 aria-label={'dashboards-favourite'}
                 icon={
                   <IconStar
-                    color={isFavorited ? 'yellow300' : 'subText'}
+                    color={isFavorited ? 'yellow300' : 'gray300'}
                     isSolid={isFavorited}
+                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
                     data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
                   />
                 }
-                onClick={() => {
-                  setIsFavorited(!isFavorited);
-                  updateDashboardFavorite(
-                    api,
-                    organization.slug,
-                    dashboard.id,
-                    !isFavorited
-                  )
-                    .then(() => {
-                      dashboard.isFavorited = !dashboard.isFavorited;
-                    })
-                    .catch(() => {
-                      // If the api call fails, revert the state
-                      setIsFavorited(isFavorited);
-                    });
+                onClick={async () => {
+                  try {
+                    setIsFavorited(!isFavorited);
+                    await updateDashboardFavorite(
+                      api,
+                      organization.slug,
+                      dashboard.id,
+                      !isFavorited
+                    );
+                  } catch (error) {
+                    // If the api call fails, revert the state
+                    setIsFavorited(isFavorited);
+                  }
                 }}
               />
             </Feature>
