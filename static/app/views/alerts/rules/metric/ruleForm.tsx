@@ -170,6 +170,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super(props, context);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
+    this.handleConfidenceTimeSeriesDataFetched =
+      this.handleConfidenceTimeSeriesDataFetched.bind(this);
   }
 
   get isDuplicateRule(): boolean {
@@ -1041,15 +1043,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
       newState.isExtrapolatedChartData = Boolean(isExtrapolatedData);
     }
-    if (isLowConfidenceTimeSeries(data)) {
-      newState.isLowConfidenceChartData = true;
-    }
     this.setState(newState, () => this.fetchAnomalies());
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
+
+  handleConfidenceTimeSeriesDataFetched(
+    data: EventsStats | MultiSeriesEventsStats | null
+  ) {
+    this.setState({isLowConfidenceChartData: isLowConfidenceTimeSeries(data)});
+  }
 
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
@@ -1227,8 +1232,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       showTotalCount:
         !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
+      onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
+      includeConfidence: alertType === 'eap_metrics',
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
