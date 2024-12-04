@@ -1,6 +1,9 @@
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {
   formatStoreCrashReports,
@@ -11,12 +14,46 @@ import {
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/security-and-privacy/';
 
-const ORG_DISABLED_REASON = t(
-  "This option is enforced by your organization's settings and cannot be customized per-project."
-);
-
 // Check if a field has been set AND IS TRUTHY at the organization level.
-const hasOrgOverride = ({organization, name}) => organization[name];
+const hasOrgOverride = ({
+  organization,
+  name,
+}: {
+  name: string;
+  organization: Organization;
+}) => organization[name];
+
+function hasProjectWriteAndOrgOverride({
+  organization,
+  project,
+  name,
+}: {
+  name: string;
+  organization: Organization;
+  project: Project;
+}) {
+  if (hasOrgOverride({organization, name})) {
+    return true;
+  }
+
+  return !hasEveryAccess(['project:write'], {organization, project});
+}
+
+function projectWriteAndOrgOverrideDisabledReason({
+  organization,
+  name,
+}: {
+  name: string;
+  organization: Organization;
+}) {
+  if (hasOrgOverride({organization, name})) {
+    return t(
+      "This option is enforced by your organization's settings and cannot be customized per-project."
+    );
+  }
+
+  return null;
+}
 
 const formGroups: JsonFormObject[] = [
   {
@@ -63,8 +100,8 @@ const formGroups: JsonFormObject[] = [
         name: 'dataScrubber',
         type: 'boolean',
         label: t('Data Scrubber'),
-        disabled: hasOrgOverride,
-        disabledReason: ORG_DISABLED_REASON,
+        disabled: hasProjectWriteAndOrgOverride,
+        disabledReason: projectWriteAndOrgOverrideDisabledReason,
         help: t('Enable server-side data scrubbing'),
         'aria-label': t('Enable server-side data scrubbing'),
         // `props` are the props given to FormField
@@ -76,8 +113,8 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'dataScrubberDefaults',
         type: 'boolean',
-        disabled: hasOrgOverride,
-        disabledReason: ORG_DISABLED_REASON,
+        disabled: hasProjectWriteAndOrgOverride,
+        disabledReason: projectWriteAndOrgOverrideDisabledReason,
         label: t('Use Default Scrubbers'),
         help: t(
           'Apply default scrubbers to prevent things like passwords and credit cards from being stored'
@@ -94,8 +131,8 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'scrubIPAddresses',
         type: 'boolean',
-        disabled: hasOrgOverride,
-        disabledReason: ORG_DISABLED_REASON,
+        disabled: hasProjectWriteAndOrgOverride,
+        disabledReason: projectWriteAndOrgOverrideDisabledReason,
         // `props` are the props given to FormField
         setValue: (val, props) => props.organization?.[props.name] || val,
         label: t('Prevent Storing of IP Addresses'),

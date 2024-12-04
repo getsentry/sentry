@@ -53,7 +53,7 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
         onSubmitError={() => addErrorMessage('Unable to save change')}
       >
         <JsonForm
-          additionalFieldProps={{organization}}
+          additionalFieldProps={{organization, project}}
           features={features}
           disabled={!hasAccess}
           forms={projectSecurityAndPrivacyGroups}
