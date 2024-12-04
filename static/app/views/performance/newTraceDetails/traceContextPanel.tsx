@@ -29,6 +29,8 @@ const ALLOWED_VITALS = ['lcp', 'fcp', 'cls', 'ttfb', 'inp'];
 export function TraceContextPanel({tree, rootEvent}: Props) {
   const theme = useTheme();
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
+
+  // Used to sync the styling of the container with the height state in a performant manner
   const containerRef = useRef<HTMLDivElement>(null);
 
   const hasWebVitals = tree.vital_types.has('web');
@@ -58,6 +60,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
           MIN_HEIGHT,
           Math.min(startHeight - deltaY, MAX_HEIGHT)
         );
+
         containerRef.current.style.setProperty('--panel-height', `${newHeight}px`);
       });
     };
