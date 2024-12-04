@@ -231,7 +231,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         elif not is_favorited and request.user.id in current_favorites:
             current_favorites.remove(request.user.id)
         else:
-            Response(status=204)
+            return Response(status=204)
 
         dashboard.favorited_by = current_favorites
 
