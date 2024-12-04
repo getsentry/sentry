@@ -271,7 +271,7 @@ function GroupReplaysTable({
     <StyledLayoutPage withPadding hasStreamlinedUI={hasStreamlinedUI}>
       <ReplayCountHeader>
         <IconUser size="sm" />
-        {replayCount ?? 0 > 50
+        {(replayCount ?? 0) > 50
           ? tn(
               'There are 50+ replays for this issue across %s event',
               'There are 50+ replays for this issue across %s events',
