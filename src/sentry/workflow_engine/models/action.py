@@ -59,11 +59,7 @@ class Action(DefaultFieldsModel):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, evt: GroupEvent, detector: Detector) -> bool:
-        triggered = False
-
+    def trigger(self, evt: GroupEvent, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(evt, self, detector)
-
-        return triggered
