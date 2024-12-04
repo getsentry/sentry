@@ -190,6 +190,7 @@ function Controls({
                   <IconStar
                     color={isFavorited ? 'yellow300' : 'subText'}
                     isSolid={isFavorited}
+                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
                   />
                 }
                 onClick={() => {
