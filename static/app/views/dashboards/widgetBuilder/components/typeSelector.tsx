@@ -37,6 +37,7 @@ function WidgetBuilderTypeSelector() {
         position="right-end"
         delay={200}
         isHoverable
+        showUnderline
       >
         <Header>{t('Type')}</Header>
       </Tooltip>
@@ -81,6 +82,5 @@ const SelectionWrapper = styled('div')`
 
 const Header = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
-  ${p => p.theme.tooltipUnderline()};
   margin-bottom: ${space(1)};
 `;

@@ -45,6 +45,7 @@ function WidgetBuilderDatasetSelector() {
         position="right-end"
         delay={200}
         isHoverable
+        showUnderline
       >
         <Header>{t('Dataset')}</Header>
       </Tooltip>
@@ -81,6 +82,5 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
 
 const Header = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
-  ${p => p.theme.tooltipUnderline()};
   margin-bottom: ${space(2)};
 `;
