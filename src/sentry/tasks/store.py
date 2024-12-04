@@ -652,6 +652,11 @@ def save_event_transaction(
     **kwargs: Any,
 ) -> None:
     if event_id:
+        metrics.incr(
+            "eventtracker.debug",
+            tags={"location": "save_event_transaction", "stage": "pre"},
+            skip_internal=False,
+        )
         track_sampled_event(
             event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
         )
@@ -665,6 +670,11 @@ def save_event_transaction(
         **kwargs,
     )
     if event_id:
+        metrics.incr(
+            "eventtracker.debug",
+            tags={"location": "save_event_transaction", "stage": "post"},
+            skip_internal=False,
+        )
         track_sampled_event(
             event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
         )
