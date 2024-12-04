@@ -468,9 +468,9 @@ class BaseView(View, OrganizationMixin):
         return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: HttpRequest, **kwargs: Any) -> dict[str, Any]:
-        context = {"react_config": get_client_config(request, self.active_organization)} | csrf(
-            request
-        )
+        context = {
+            "react_config": get_client_config(request, getattr(self, "active_organization", None))
+        } | csrf(request)
         return context
 
     def respond(
