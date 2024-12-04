@@ -1,6 +1,9 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {DateTime} from 'sentry/components/dateTime';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {Content} from 'sentry/components/keyValueData';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -8,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName} from 'sentry/views/insights/types';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -100,13 +104,47 @@ export function GeneralInfo(props: GeneralnfoProps) {
     return <LegacyGeneralInfo {...props} />;
   }
 
-  let items: SectionCardKeyValueList = [];
+  const startTimestamp = props.node.space[0];
+  const endTimestamp = props.node.space[0] + props.node.space[1];
+  const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
+    getFormattedTimeRangeWithLeadingAndTrailingZero(
+      startTimestamp / 1e3,
+      endTimestamp / 1e3
+    );
 
-  items.push({
-    key: 'duration',
-    subject: t('Duration'),
-    value: <SpanDuration node={props.node} />,
-  });
+  let items: SectionCardKeyValueList = [
+    {
+      key: 'duration',
+      subject: t('Duration'),
+      value: <SpanDuration node={props.node} />,
+    },
+    {
+      key: 'start_timestamp',
+      subject: t('Start Timestamp'),
+      value: getDynamicText({
+        fixed: 'Mar 19, 2021 11:06:27 AM UTC',
+        value: (
+          <Fragment>
+            <DateTime date={startTimestamp} />
+            {` (${startTimeWithLeadingZero})`}
+          </Fragment>
+        ),
+      }),
+    },
+    {
+      key: 'end_timestamp',
+      subject: t('End Timestamp'),
+      value: getDynamicText({
+        fixed: 'Mar 19, 2021 11:06:28 AM UTC',
+        value: (
+          <Fragment>
+            <DateTime date={endTimestamp} />
+            {` (${endTimeWithLeadingZero})`}
+          </Fragment>
+        ),
+      }),
+    },
+  ];
 
   if (props.node.value.exclusive_time) {
     items.push({
