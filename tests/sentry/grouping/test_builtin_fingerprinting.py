@@ -32,8 +32,8 @@ def test_default_bases(default_bases):
     assert FINGERPRINTING_BASES
     assert set(default_bases) == set(FINGERPRINTING_BASES.keys())
     assert {
-        k: [rule._to_config_structure() for rule in ruleset]
-        for k, ruleset in FINGERPRINTING_BASES.items()
+        fingerprinting_base: [rule._to_config_structure() for rule in ruleset]
+        for fingerprinting_base, ruleset in FINGERPRINTING_BASES.items()
     } == {
         "javascript@2024-02-02": [
             {
