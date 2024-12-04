@@ -141,7 +141,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       ref={e => {
         chartRef.current = e;
 
-        if (e) {
+        if (e?.getEchartsInstance) {
           registerWithWidgetSyncContext(e.getEchartsInstance());
         }
       }}
