@@ -37,7 +37,7 @@ export function determineSeriesConfidence(
     );
   });
 
-  const {lowConfidence, nullConfidence} = perDataUnitConfidence.reduce(
+  const {lowConfidence, highConfidence, nullConfidence} = perDataUnitConfidence.reduce(
     (acc, confidence) => {
       if (confidence === 'low') {
         acc.lowConfidence += 1;
@@ -51,13 +51,12 @@ export function determineSeriesConfidence(
     {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
   );
 
-  const totalEntries = perDataUnitConfidence.length;
-
-  if (nullConfidence === totalEntries) {
+  if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
     return null;
   }
 
-  if (lowConfidence / perDataUnitConfidence.length > threshold) {
+  // Do not divide by (low + high + null) because nulls then can then heavily influence the final confidence
+  if (lowConfidence / (lowConfidence + highConfidence) > threshold) {
     return 'low';
   }
 

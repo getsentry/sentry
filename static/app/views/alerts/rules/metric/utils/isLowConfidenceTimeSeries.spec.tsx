@@ -167,13 +167,17 @@ describe('determineSeriesConfidence', () => {
         [300, [{count: 300}]],
         [400, [{count: 400}]],
         [500, [{count: 500}]],
+        [600, [{count: 600}]],
+        [700, [{count: 700}]],
       ],
       confidence: [
         [100, [{count: 'high'}]],
-        [200, [{count: null}]],
-        [300, [{count: null}]],
-        [400, [{count: null}]],
+        [200, [{count: 'high'}]],
+        [300, [{count: 'high'}]],
+        [400, [{count: 'high'}]],
         [500, [{count: 'low'}]],
+        [600, [{count: 'high'}]],
+        [700, [{count: null}]],
       ],
     });
     expect(confidence).toEqual('high');
