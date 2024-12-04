@@ -156,9 +156,11 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values: list[str], info: FingerprintInfo) -> FingerprintVariantMetadata:
+def expose_fingerprint_dict(
+    fingerprint: list[str], info: FingerprintInfo
+) -> FingerprintVariantMetadata:
     rv: FingerprintVariantMetadata = {
-        "values": values,
+        "values": fingerprint,
     }
 
     client_values = info.get("client_fingerprint")
@@ -183,8 +185,8 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, values: list[str], fingerprint_info: FingerprintInfo):
-        self.values = values
+    def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
+        self.values = fingerprint
         self.info = fingerprint_info
 
     @property
@@ -215,13 +217,13 @@ class SaltedComponentVariant(ComponentVariant):
 
     def __init__(
         self,
-        values: list[str],
+        fingerprint: list[str],
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
         config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
         ComponentVariant.__init__(self, component, config)
-        self.values = values
+        self.values = fingerprint
         self.info = fingerprint_info
 
     @property
