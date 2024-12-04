@@ -1053,9 +1053,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleConfidenceTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
   ) {
-    this.setState({isLowConfidenceChartData: isLowConfidenceTimeSeries(data)}, () =>
-      this.fetchAnomalies()
-    );
+    this.setState({isLowConfidenceChartData: isLowConfidenceTimeSeries(data)});
   }
 
   handleHistoricalTimeSeriesDataFetched(
