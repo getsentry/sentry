@@ -64,7 +64,7 @@ export function determineSeriesConfidence(
   return 'high';
 }
 
-export function combineConfidence(a: Confidence, b: Confidence): Confidence {
+function combineConfidence(a: Confidence, b: Confidence): Confidence {
   if (!defined(a)) {
     return b;
   }
@@ -74,7 +74,7 @@ export function combineConfidence(a: Confidence, b: Confidence): Confidence {
   }
 
   if (a === 'low' || b === 'low') {
-    return 'high';
+    return 'low';
   }
 
   return 'high';
