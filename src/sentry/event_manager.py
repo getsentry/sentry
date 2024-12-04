@@ -2119,14 +2119,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             reason = "microservice_max_retry"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+            logger.exception("Seer severity microservice max retries exceeded")
         except TimeoutError:
             reason = "microservice_timeout"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+            logger.exception("Seer severity microservice timeout")
         except Exception:
             reason = "microservice_error"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            logger.exception("Seer severity microservice error")
             sentry_sdk.capture_exception()
         else:
             update_severity_error_count(reset=True)
