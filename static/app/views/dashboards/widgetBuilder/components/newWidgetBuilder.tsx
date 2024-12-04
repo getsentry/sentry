@@ -166,6 +166,7 @@ const WidgetBuilderContainer = styled('div')`
   justify-content: space-between;
   height: 100vh;
   position: fixed;
-  width: -webkit-fill-available;
-  width: fill-available;
+  width: -webkit-fill-available; /* Chrome */
+  width: -moz-available; /* Firefox */
+  width: fill-available; /* others */
 `;
