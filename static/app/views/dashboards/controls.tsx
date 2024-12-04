@@ -1,6 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
@@ -15,6 +16,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -55,6 +57,8 @@ function Controls({
   onCancel,
   onAddWidget,
 }: Props) {
+  const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
+
   function renderCancelButton(label = t('Cancel')) {
     return (
       <Button
@@ -73,7 +77,7 @@ function Controls({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-
+  const api = useApi();
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar gap={1} key="edit-controls">
@@ -182,8 +186,28 @@ function Controls({
               <Button
                 size="sm"
                 aria-label={'dashboards-favourite'}
-                icon={<IconStar color={'subText'} />}
-                // onClick={() => onRealtimeChange(!realtimeActive)}
+                icon={
+                  <IconStar
+                    color={isFavorited ? 'yellow300' : 'subText'}
+                    isSolid={isFavorited}
+                  />
+                }
+                onClick={() => {
+                  setIsFavorited(!isFavorited);
+                  updateDashboardFavorite(
+                    api,
+                    organization.slug,
+                    dashboard.id,
+                    !isFavorited
+                  )
+                    .then(() => {
+                      dashboard.isFavorited = !dashboard.isFavorited;
+                    })
+                    .catch(() => {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    });
+                }}
               />
             </Feature>
             <Feature features="dashboards-edit-access">
