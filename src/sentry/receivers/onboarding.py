@@ -711,8 +711,16 @@ def record_integration_added(
         return
 
     organization = Organization.objects.get_from_cache(id=organization_id)
+    try:
+        user: RpcUser = organization.get_default_owner()
+    except IndexError:
+        logger.warning(
+            "Cannot record first integration for organization (%s) due to missing owners",
+            organization_id,
+        )
+        return
 
-    if features.has("organizations:quick-start-updates", organization):
+    if features.has("organizations:quick-start-updates", organization, actor=user):
         integration_types = get_integration_types(integration.provider)
 
         task_mapping = {
