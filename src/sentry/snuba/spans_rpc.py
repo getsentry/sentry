@@ -206,6 +206,7 @@ def run_timeseries_query(
             for existing, new in zip(confidences, confidence):
                 existing.update(new)
     if len(result) == 0:
+        # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
         result = zerofill(
             [],
             params.start_date,

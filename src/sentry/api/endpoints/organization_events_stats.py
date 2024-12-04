@@ -551,6 +551,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
         )
         if use_rpc:
+            # The rpc will usually zerofill for us so we don't need to do it ourselves
             zerofill_results = False
 
         try:
