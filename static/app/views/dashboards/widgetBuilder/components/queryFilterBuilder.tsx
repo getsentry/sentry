@@ -22,7 +22,7 @@ function WidgetBuilderQueryFilterBuilder() {
   const onAddSearchConditions = () => {
     dispatch({
       type: BuilderStateAction.SET_QUERY,
-      payload: state.query ? [...state.query, ''] : [''],
+      payload: state.query?.length ? [...state.query, ''] : ['', ''],
     });
   };
 
@@ -91,23 +91,24 @@ function WidgetBuilderQueryFilterBuilder() {
 
   return (
     <Fragment>
-      <Tooltip
-        title={
-          canAddSearchConditions
-            ? t(
-                'Filter down your search here. You can add multiple queries to compare data for each overlay'
-              )
-            : t('Filter down your search here')
-        }
-        position="right-end"
-        delay={200}
-        isHoverable
-      >
-        <HeaderWrapper>
+      <HeaderWrapper>
+        <Tooltip
+          title={
+            canAddSearchConditions
+              ? t(
+                  'Filter down your search here. You can add multiple queries to compare data for each overlay'
+                )
+              : t('Filter down your search here')
+          }
+          position="right"
+          delay={200}
+          isHoverable
+          showUnderline
+        >
           <Header>{t('Filter')}</Header>
-          <OptionalHeader>{t('(optional)')}</OptionalHeader>
-        </HeaderWrapper>
-      </Tooltip>
+        </Tooltip>
+        <OptionalHeader>{t('(optional)')}</OptionalHeader>
+      </HeaderWrapper>
       {renderQueryFields()}
       {canAddSearchConditions && (
         <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
@@ -151,6 +152,7 @@ export function DeleteButton({onDelete}: {onDelete: () => void}) {
       icon={<IconDelete />}
       title={t('Remove this filter')}
       aria-label={t('Remove this filter')}
+      name="filter-delete-button"
     />
   );
 }
@@ -169,14 +171,14 @@ const LegendAliasInput = styled(Input)`
 
 const Header = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
-  ${p => p.theme.tooltipUnderline()};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const OptionalHeader = styled('h6')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
+  margin-bottom: ${space(1)};
 `;
 
 const HeaderWrapper = styled('div')`
