@@ -5,6 +5,7 @@ from sentry.workflow_engine.types import DetectorType
 
 
 # TODO - cache these by evt.group_id? :thinking:
+# TODO - Move to process_detector
 def get_detector_by_event(evt: GroupEvent) -> Detector:
     issue_occurrence = evt.occurrence
 
