@@ -1,6 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 export function hasMetricsExperimentalFeature(organization: Organization) {
   return organization.features.includes('custom-metrics-experimental');
@@ -26,12 +25,9 @@ export function hasMetricsNewInputs(organization: Organization) {
  */
 export function getForceMetricsLayerQueryExtras(
   organization: Organization,
-  alertDataset: Dataset,
-  alertType: AlertType
+  alertDataset: Dataset
 ): {forceMetricsLayer: 'true'} | Record<string, never> {
-  return hasCustomMetrics(organization) &&
-    alertDataset === Dataset.GENERIC_METRICS &&
-    alertType !== 'insights_metrics'
+  return hasCustomMetrics(organization) && alertDataset === Dataset.GENERIC_METRICS
     ? {forceMetricsLayer: 'true'}
     : {};
 }

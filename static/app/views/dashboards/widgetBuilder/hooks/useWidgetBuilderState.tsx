@@ -4,10 +4,23 @@ import {
   type Column,
   explodeField,
   generateFieldAsString,
+  type Sort,
 } from 'sentry/utils/discover/fields';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
+import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+
+export type WidgetBuilderStateQueryParams = {
+  dataset?: WidgetType;
+  description?: string;
+  displayType?: DisplayType;
+  field?: (string | undefined)[];
+  query?: string[];
+  sort?: string[];
+  title?: string;
+  yAxis?: string[];
+};
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
@@ -16,6 +29,8 @@ export const BuilderStateAction = {
   SET_DATASET: 'SET_DATASET',
   SET_FIELDS: 'SET_FIELDS',
   SET_Y_AXIS: 'SET_Y_AXIS',
+  SET_QUERY: 'SET_QUERY',
+  SET_SORT: 'SET_SORT',
 } as const;
 
 type WidgetAction =
@@ -24,13 +39,17 @@ type WidgetAction =
   | {payload: DisplayType; type: typeof BuilderStateAction.SET_DISPLAY_TYPE}
   | {payload: WidgetType; type: typeof BuilderStateAction.SET_DATASET}
   | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
-  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS};
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
+  | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
+  | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT};
 
-interface WidgetBuilderState {
+export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  query?: string[];
+  sort?: Sort[];
   title?: string;
   yAxis?: Column[];
 }
@@ -63,10 +82,19 @@ function useWidgetBuilderState(): {
     deserializer: deserializeFields,
     serializer: serializeFields,
   });
+  const [query, setQuery] = useQueryParamState<string[]>({
+    fieldName: 'query',
+    decoder: decodeList,
+  });
+  const [sort, setSort] = useQueryParamState<Sort[]>({
+    fieldName: 'sort',
+    decoder: decodeSorts,
+    serializer: serializeSorts,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis}),
-    [title, description, displayType, dataset, fields, yAxis]
+    () => ({title, description, displayType, dataset, fields, yAxis, query, sort}),
+    [title, description, displayType, dataset, fields, yAxis, query, sort]
   );
 
   const dispatch = useCallback(
@@ -90,11 +118,26 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);
           break;
+        case BuilderStateAction.SET_QUERY:
+          setQuery(action.payload);
+          break;
+        case BuilderStateAction.SET_SORT:
+          setSort(action.payload);
+          break;
         default:
           break;
       }
     },
-    [setTitle, setDescription, setDisplayType, setDataset, setFields, setYAxis]
+    [
+      setTitle,
+      setDescription,
+      setDisplayType,
+      setDataset,
+      setFields,
+      setYAxis,
+      setQuery,
+      setSort,
+    ]
   );
 
   return {
@@ -139,6 +182,10 @@ function deserializeFields(fields: string[]): Column[] {
  */
 function serializeFields(fields: Column[]): string[] {
   return fields.map(generateFieldAsString);
+}
+
+function serializeSorts(sorts: Sort[]): string[] {
+  return sorts.map(formatSort);
 }
 
 export default useWidgetBuilderState;
