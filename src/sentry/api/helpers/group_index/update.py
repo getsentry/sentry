@@ -79,10 +79,10 @@ def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    acting_user,
+    user,
 ) -> Response:
     for project in projects:
-        if not features.has("projects:discard-groups", project, actor=acting_user):
+        if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
@@ -97,7 +97,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=coerce_id_from(acting_user),
+                    actor_id=coerce_id_from(user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
