@@ -111,12 +111,8 @@ export function OrganizationFeatureFlagsIndex({
       setApiQueryData(
         queryClient,
         makeFetchSecretQueryKey({orgSlug: organization.slug}),
-        oldData => {
-          if (!Array.isArray(oldData)) {
-            return oldData;
-          }
-
-          return oldData.filter(oldSecret => oldSecret.id !== id);
+        (oldData: FetchSecretResponse) => {
+          return {data: oldData.data.filter(oldSecret => oldSecret.id !== id)};
         }
       );
     },

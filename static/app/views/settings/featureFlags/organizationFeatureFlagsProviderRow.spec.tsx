@@ -33,6 +33,10 @@ describe('OrganizationFeatureFlagsProviderRow', function () {
   };
 
   beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/1234/',
+      body: {},
+    });
     OrganizationsStore.addOrReplace(organization);
   });
 

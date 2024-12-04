@@ -38,14 +38,24 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     });
 
     await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
+    const providerDropdown = screen.getByRole('textbox', {
+      name: 'Provider',
+    });
+    await userEvent.click(providerDropdown);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
-    expect(screen.getByLabelText('Secret')).toHaveValue(SecretFixture().secret);
+    expect(screen.getByRole('textbox', {name: 'Secret'})).toHaveValue(
+      SecretFixture().secret
+    );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
-        secret: SecretFixture().secret,
+        data: {
+          provider: 'launchdarkly',
+          secret: SecretFixture().secret,
+        },
       })
     );
   });
@@ -61,10 +71,15 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
       body: {
         detail: 'Test API error occurred.',
       },
-      statusCode: 400,
+      statusCode: 403,
     });
 
-    await userEvent.type(screen.getByLabelText('Secret'), '132456');
+    await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
+    const providerDropdown = screen.getByRole('textbox', {
+      name: 'Provider',
+    });
+    await userEvent.click(providerDropdown);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
@@ -74,7 +89,10 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
-        secret: '132456',
+        data: {
+          provider: 'launchdarkly',
+          secret: SecretFixture().secret,
+        },
       })
     );
   });
