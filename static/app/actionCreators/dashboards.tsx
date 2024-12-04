@@ -97,6 +97,34 @@ export function updateDashboardVisit(
   return promise;
 }
 
+export async function updateDashboardFavorite(
+  api: Client,
+  orgId: string,
+  dashboardId: string | string[],
+  isFavorited: boolean
+): Promise<void> {
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
+      {
+        method: 'PUT',
+        data: {
+          isFavorited,
+        },
+      }
+    );
+  } catch (response) {
+    const errorResponse = response?.responseJSON ?? null;
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else {
+      addErrorMessage(t('Unable to update dashboard favorite status'));
+    }
+    throw response;
+  }
+}
+
 export function fetchDashboard(
   api: Client,
   orgId: string,
@@ -127,8 +155,18 @@ export function updateDashboard(
   orgId: string,
   dashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    dashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    // isFavorited,
+  } = dashboard;
   const data = {
     title,
     widgets: widgets.map(widget => omit(widget, ['tempId'])),
@@ -139,6 +177,7 @@ export function updateDashboard(
     end,
     filters,
     utc,
+    // isFavorited,
   };
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
