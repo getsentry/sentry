@@ -313,7 +313,7 @@ export function getOnboardingTasks({
       display: true,
       pendingTitle: t('Awaiting an error for this project.'),
       SupplementComponent: ({task}: OnboardingSupplementComponentProps) => {
-        if (!hasQuickStartUpdatesFeature(organization)) {
+        if (hasQuickStartUpdatesFeature(organization)) {
           return null;
         }
         if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
