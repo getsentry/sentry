@@ -460,7 +460,7 @@ class TestHandleIsBookmarked(TestCase):
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_is_bookmarked(self) -> None:
-        handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(True, self.group_list, self.project_lookup, self.user)
 
         assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert GroupSubscription.objects.filter(
@@ -477,7 +477,7 @@ class TestHandleIsBookmarked(TestCase):
             user_id=self.user.id,
             reason=GroupSubscriptionReason.bookmark,
         )
-        handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(False, self.group_list, self.project_lookup, self.user)
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
@@ -487,13 +487,10 @@ class TestHandleHasSeen(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
-        self.group_ids = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_has_seen(self) -> None:
-        handle_has_seen(
-            True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
@@ -502,9 +499,7 @@ class TestHandleHasSeen(TestCase):
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
 
-        handle_has_seen(
-            False, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(False, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
