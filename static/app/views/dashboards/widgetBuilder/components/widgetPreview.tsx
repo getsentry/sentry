@@ -39,10 +39,8 @@ function WidgetPreview({dashboard, dashboardFilters}: WidgetPreviewProps) {
   // TODO: The way we create the widget here does not propagate a widget ID
   // to pass to the legend encoder decoder.
   const unselectedReleasesForCharts = {
-    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
-      'Releases',
-      'widget-builder'
-    )]: false,
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend('Releases', undefined)]:
+      false,
   };
 
   return (

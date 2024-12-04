@@ -1,22 +1,22 @@
 import styled from '@emotion/styled';
 
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import {type Column, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/columnsStep/columnFields';
 import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
-import ResultsSearchQueryBuilder from 'sentry/views/discover/resultsSearchQueryBuilder';
+import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderContext();
@@ -124,15 +124,14 @@ function DevBuilder() {
       </Section>
       <Section>
         <h1>Query:</h1>
-        <ol>{state.query?.map((query, index) => <li key={index}>{query}</li>)}</ol>
+        <ol style={{overflow: 'auto'}}>
+          {state.query?.map((query, index) => <li key={index}>{query}</li>)}
+        </ol>
         <div>
           {state.query?.map((query, index) => (
             <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
               <QueryField
                 query={query}
-                widgetType={state.dataset ?? WidgetType.DISCOVER}
-                fields={state.fields ?? []}
-                key={index}
                 onSearch={queryString => {
                   dispatch({
                     type: BuilderStateAction.SET_QUERY,
@@ -164,6 +163,11 @@ function DevBuilder() {
             Add
           </button>
         </div>
+      </Section>
+      <Section>
+        <h1>Sort:</h1>
+        <div>{state.sort?.map(formatSort).join(', ')}</div>
+        <SortSelector />
       </Section>
     </Body>
   );
@@ -230,27 +234,73 @@ function YAxis({
 
 function QueryField({
   query,
-  widgetType,
-  fields,
   onSearch,
 }: {
-  fields: Column[];
   onSearch: (query: string) => void;
   query: string;
-  widgetType: WidgetType;
 }) {
-  const pageFilters = usePageFilters();
+  return (
+    <SearchQueryBuilder
+      placeholder={'Search'}
+      filterKeys={{}}
+      initialQuery={query ?? ''}
+      onSearch={onSearch}
+      searchSource={'widget_builder'}
+      filterKeySections={[]}
+      getTagValues={() => Promise.resolve([])}
+      showUnsubmittedIndicator
+    />
+  );
+}
+
+function SortSelector() {
+  const {state, dispatch} = useWidgetBuilderContext();
+
+  // There's a SortDirection enum in the widgetBuilder utils, but it's not used anywhere else
+  // so I'd rather just get rid of the dependency and use a new object that uses standard terms
+  const sortDirections = {
+    desc: 'High to low',
+    asc: 'Low to high',
+  };
+  const direction = state.sort?.[0]?.kind;
+  const sortBy = state.sort?.[0]?.field;
 
   return (
-    <ResultsSearchQueryBuilder
-      projectIds={pageFilters.selection.projects}
-      query={query}
-      fields={fields as any}
-      onSearch={onSearch}
-      dataset={getDiscoverDatasetFromWidgetType(widgetType)}
-      includeTransactions
-      searchSource="widget_builder"
-    />
+    <div>
+      <SelectControl
+        name="sortDirection"
+        aria-label={'Sort direction'}
+        menuPlacement="auto"
+        options={Object.keys(sortDirections).map(value => ({
+          label: sortDirections[value],
+          value,
+        }))}
+        value={direction}
+        onChange={option => {
+          dispatch({
+            type: BuilderStateAction.SET_SORT,
+            payload: [{field: sortBy ?? '', kind: option.value}],
+          });
+        }}
+      />
+      <SelectControl
+        name="sortBy"
+        aria-label={'Sort by'}
+        menuPlacement="auto"
+        placeholder={'Sort'}
+        value={sortBy}
+        options={state.fields?.map(field => ({
+          label: generateFieldAsString(field),
+          value: generateFieldAsString(field),
+        }))}
+        onChange={option => {
+          dispatch({
+            type: BuilderStateAction.SET_SORT,
+            payload: [{field: option.value, kind: direction ?? 'asc'}],
+          });
+        }}
+      />
+    </div>
   );
 }
 
