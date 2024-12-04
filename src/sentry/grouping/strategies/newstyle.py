@@ -610,7 +610,7 @@ def chained_exception(
     all_exceptions = interface.exceptions()
 
     # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
-    exception_components = {
+    exception_components_by_exception = {
         id(exception): context.get_grouping_component(exception, event=event, **meta)
         for exception in all_exceptions
     }
@@ -618,7 +618,7 @@ def chained_exception(
     # Filter the exceptions according to rules for handling exception groups.
     try:
         exceptions = filter_exceptions_for_exception_groups(
-            all_exceptions, exception_components, event
+            all_exceptions, exception_components_by_exception, event
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
@@ -635,13 +635,13 @@ def chained_exception(
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
     if len(exceptions) == 1:
-        return exception_components[id(exceptions[0])]
+        return exception_components_by_exception[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
     by_name: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in exception_components[id(exception)].items():
+        for name, component in exception_components_by_exception[id(exception)].items():
             by_name.setdefault(name, []).append(component)
 
     rv = {}
