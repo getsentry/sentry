@@ -157,19 +157,19 @@ class ComponentVariant(BaseVariant):
 
 
 def expose_fingerprint_dict(
-    fingerprint: list[str], info: FingerprintInfo
+    fingerprint: list[str], fingerprint_info: FingerprintInfo
 ) -> FingerprintVariantMetadata:
     rv: FingerprintVariantMetadata = {
         "values": fingerprint,
     }
 
-    client_values = info.get("client_fingerprint")
+    client_values = fingerprint_info.get("client_fingerprint")
     if client_values and (
         len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
     ):
         rv["client_values"] = client_values
 
-    matched_rule = info.get("matched_rule")
+    matched_rule = fingerprint_info.get("matched_rule")
     if matched_rule:
         # TODO: Before late October 2024, we didn't store the rule text along with the matched rule,
         # meaning there are still events out there whose `_fingerprint_info` entry doesn't have it.
