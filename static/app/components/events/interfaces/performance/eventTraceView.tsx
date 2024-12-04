@@ -139,13 +139,7 @@ function IssuesTraceOverlay({event}: {event: Event}) {
 
 function OneOtherIssueEvent({event}: {event: Event}) {
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({event});
-  let params: Record<string, boolean> = {};
-  if (!isLoading && oneOtherIssueEvent !== undefined) {
-    params = {
-      has_related_trace_issue: true,
-    };
-  }
-  useRouteAnalyticsParams(params);
+  useRouteAnalyticsParams(oneOtherIssueEvent ? {has_related_trace_issue: true} : {});
 
   if (isLoading || !oneOtherIssueEvent) {
     return null;
