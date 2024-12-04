@@ -140,7 +140,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(screen.getByText('openfeature')).toBeInTheDocument();
-      expect(screen.queryByText('launchdarkly')).not.toBeInTheDocument(); // TODO
+      expect(screen.queryByText('launchdarkly')).not.toBeInTheDocument();
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Removed the provider and signing secret for the organization.'
@@ -156,7 +156,11 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
       const secrets: Secret[] = [
         SecretFixture(),
-        SecretFixture({id: 2, provider: 'openfeature', secret: '456def****'}),
+        SecretFixture({
+          id: 2,
+          provider: 'openfeature',
+          secret: '456def**************************',
+        }),
       ];
 
       const props = {

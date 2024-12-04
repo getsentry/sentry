@@ -72,14 +72,11 @@ function NewProviderForm({
       );
     },
 
-    onSuccess: (secret: string) => {
+    onSuccess: () => {
       addSuccessMessage(t('Added provider and secret.'));
-
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
-
-      onCreatedSecret(secret);
     },
     onError: error => {
       const message = t('Failed to add provider or secret.');
@@ -93,11 +90,14 @@ function NewProviderForm({
       apiMethod="POST"
       initialData={initialData}
       apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret`}
-      onSubmit={({provider, secret}) => {
+      onSubmit={({provider, secret}) =>
         submitSecret({
           provider,
           secret,
-        });
+        })
+      }
+      onSubmitSuccess={({secret}) => {
+        onCreatedSecret(secret);
       }}
       onCancel={handleGoBack}
       submitLabel={t('Add Provider')}
@@ -116,6 +116,8 @@ function NewProviderForm({
       <TextField
         name="secret"
         label={t('Secret')}
+        maxLength={32}
+        minLength={32}
         required
         help={t(
           'Paste the signing secret given by your provider when creating the webhook.'
@@ -164,7 +166,10 @@ export function OrganizationFeatureFlagsNewSecet({
           {newSecret ? (
             <NewSecretHandler handleGoBack={handleGoBack} secret={newSecret} />
           ) : (
-            <NewProviderForm organization={organization} onCreatedSecret={setNewSecret} />
+            <NewProviderForm
+              organization={organization}
+              onCreatedSecret={(secret: string) => setNewSecret(secret)}
+            />
           )}
         </PanelBody>
       </Panel>

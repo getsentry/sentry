@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Flex} from 'sentry/components/container/flex';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -10,6 +11,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Secret} from 'sentry/views/settings/featureFlags';
+import useUserFromId from 'sentry/views/settings/featureFlags/useUserFromId';
 
 export function OrganizationFeatureFlagsProviderRow({
   isRemoving,
@@ -20,6 +22,8 @@ export function OrganizationFeatureFlagsProviderRow({
   secret: Secret;
   removeSecret?: (id: number) => void;
 }) {
+  const {isPending: isUserPending, data: user} = useUserFromId({id: secret.createdBy});
+
   return (
     <Fragment>
       <div>
@@ -33,7 +37,7 @@ export function OrganizationFeatureFlagsProviderRow({
         </Fragment>
       </DateTime>
 
-      <div>{secret.createdBy}</div>
+      <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
 
       <Actions>
         <Tooltip
