@@ -220,14 +220,10 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
         for frame in contributing_frames:
             frame_dict = extract_values_from_frame_values(frame.get("values", []))
-            filename = extract_filename(frame_dict)
+            filename = extract_filename(frame_dict) or "None"
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
-
-            if not filename:
-                # Skip the frame if we can't figure out the filename
-                continue
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
