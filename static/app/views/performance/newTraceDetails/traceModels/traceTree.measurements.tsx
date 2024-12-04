@@ -125,10 +125,13 @@ export function collectTraceMeasurements(
     WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
     MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
 
+    const score = measurements[`score.${measurement}`]?.value;
+
     const vital = vitals.get(node)!;
     vital.push({
       key: measurement,
       measurement: value,
+      score,
     });
 
     if (!RENDERABLE_MEASUREMENTS[measurement]) {
@@ -151,11 +154,6 @@ export function collectTraceMeasurements(
       type: measurement as TraceTree.Indicator['type'],
       label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
     };
-
-    const score = measurements[`score.${measurement}`]?.value;
-    if (score) {
-      indicator.score = score;
-    }
 
     indicators.push(indicator);
   }

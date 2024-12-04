@@ -114,7 +114,7 @@ type VitalMeterProps = {
   webVital: WebVitals;
   showTooltip: boolean;
   score: number | undefined;
-  meterValue: number;
+  meterValue: number | undefined;
   color: string;
   onClick?: (webVital: WebVitals) => void;
 };
@@ -130,11 +130,12 @@ export function VitalMeter({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
   const webVitalExists = score !== undefined;
 
-  const formattedMeterValueText = webVitalExists ? (
-    webVitalsConfig[webVital].formatter(meterValue)
-  ) : (
-    <NoValue />
-  );
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
 
   const headerText = webVitalsConfig[webVital].name;
   const meterBody = (

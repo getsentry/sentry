@@ -16,7 +16,7 @@ type Props = {
   tree: TraceTree;
 };
 
-const ALLOWED_VITALS = ['lcp', 'fcp', 'cls', 'ttfb'];
+const ALLOWED_VITALS = ['lcp', 'fcp', 'cls', 'ttfb', 'inp'];
 
 export function TraceContextPanel({tree}: Props) {
   const theme = useTheme();
@@ -71,24 +71,38 @@ export function TraceContextPanel({tree}: Props) {
       return null;
     }
 
-    return tree.indicators.map((indicator, index) => {
-      if (ALLOWED_VITALS.includes(indicator.type) && indicator.score) {
-        const colors = theme.charts.getColorPalette(3);
-        const score = Math.round(indicator.score * 100);
+    console.dir(tree.vitals);
 
+    return ALLOWED_VITALS.map((webVital, index) => {
+      let vital: TraceTree.CollectedVital | undefined;
+      tree.vitals.forEach(v => (vital = v.find(vital => vital.key === webVital)));
+
+      if (!vital || !vital.score) {
         return (
           <VitalMeter
-            key={indicator.type}
-            webVital={indicator.type as WebVitals}
-            score={score}
-            meterValue={indicator.measurement.value}
+            key={webVital}
+            webVital={webVital as WebVitals}
+            score={undefined}
+            meterValue={undefined}
+            color={theme.charts.getColorPalette(3)[index]}
             showTooltip
-            color={colors[index]}
           />
         );
       }
 
-      return null;
+      const colors = theme.charts.getColorPalette(3);
+      const score = Math.round(vital.score * 100);
+
+      return (
+        <VitalMeter
+          key={vital.key}
+          webVital={vital.key as WebVitals}
+          score={score}
+          meterValue={vital.measurement.value}
+          showTooltip
+          color={colors[index]}
+        />
+      );
     });
   };
 
@@ -100,6 +114,7 @@ export function TraceContextPanel({tree}: Props) {
 
       <TraceContextContainer height={contextPaneHeight}>
         <VitalMetersContainer>{renderVitals()}</VitalMetersContainer>
+        <TraceTagsContainer />
       </TraceContextContainer>
     </Container>
   );
@@ -144,8 +159,16 @@ const VitalMetersContainer = styled('div')`
   flex-direction: row;
   gap: ${space(1)};
   width: 100%;
+  margin-bottom: ${space(1)};
 
   > div {
     max-width: 200px;
   }
+`;
+
+const TraceTagsContainer = styled('div')`
+  width: 100%;
+  height: 200px;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
