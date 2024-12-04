@@ -3,7 +3,11 @@ import trimStart from 'lodash/trimStart';
 import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
+import {
+  getAggregateAlias,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
@@ -83,7 +87,7 @@ export function getSeriesRequestData(
       if (
         widgetQuery.orderby &&
         !isEquationAlias(orderby) &&
-        !requestData.field.includes(orderby)
+        !requestData.field.map(getAggregateAlias).includes(getAggregateAlias(orderby))
       ) {
         requestData.field.push(orderby);
       }

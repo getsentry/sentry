@@ -160,5 +160,59 @@ describe('utils', () => {
         topEvents: 5,
       });
     });
+
+    it('does not add the orderby field if it is in alias format but the query is not', () => {
+      const widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        queries: [
+          WidgetQueryFixture({
+            fields: ['title', 'count_unique(user)'],
+            aggregates: ['count_unique(user)'],
+            columns: ['title'],
+            orderby: 'count_unique_user',
+          }),
+        ],
+      });
+      const pageFilters = PageFiltersFixture();
+      const organization = OrganizationFixture();
+
+      const requestData = getSeriesRequestData(
+        widget,
+        0,
+        organization,
+        pageFilters,
+        DiscoverDatasets.ERRORS,
+        'test-referrer'
+      );
+
+      expect(requestData.field).not.toContain('count_unique_user');
+    });
+
+    it('adds the orderby to fields if it is not in fields, columns, or aggregates', () => {
+      const widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        queries: [
+          WidgetQueryFixture({
+            fields: ['test'],
+            aggregates: [],
+            columns: ['test'],
+            orderby: 'count_unique_user',
+          }),
+        ],
+      });
+      const pageFilters = PageFiltersFixture();
+      const organization = OrganizationFixture();
+
+      const requestData = getSeriesRequestData(
+        widget,
+        0,
+        organization,
+        pageFilters,
+        DiscoverDatasets.ERRORS,
+        'test-referrer'
+      );
+
+      expect(requestData.field).toContain('count_unique_user');
+    });
   });
 });
