@@ -139,13 +139,10 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   }, [query, previousQuery, options, previousOptions]);
 
   const timeSeriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
+  const previousTimeSeriesResult = usePrevious(timeSeriesResult);
 
   const resultConfidence = useMemo(() => {
-    if (
-      dataset !== DiscoverDatasets.SPANS_EAP_RPC ||
-      timeSeriesResult.isPending ||
-      timeSeriesResult.error
-    ) {
+    if (dataset !== DiscoverDatasets.SPANS_EAP_RPC) {
       return null;
     }
 
@@ -167,25 +164,27 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
       {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
     );
 
-    const total = lowConfidence + highConfidence + nullConfidence;
-    if (lowConfidence / total > 0.5) {
+    if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
+      return null;
+    }
+
+    if (lowConfidence / (lowConfidence + highConfidence) > 0.5) {
       return 'low';
     }
 
     return 'high';
-  }, [
-    dataset,
-    timeSeriesResult.data,
-    timeSeriesResult.isPending,
-    timeSeriesResult.error,
-  ]);
-
-  const previousTimeSeriesResult = usePrevious(timeSeriesResult);
+  }, [dataset, timeSeriesResult.data]);
 
   useEffect(() => {
-    setConfidence(resultConfidence);
+    // only update the confidence once the result has loaded
+    if (!timeSeriesResult.isPending) {
+      setConfidence(resultConfidence);
+    }
+  }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
+
+  useEffect(() => {
     setError(timeSeriesResult.error?.message ?? '');
-  }, [setConfidence, setError, resultConfidence, timeSeriesResult.error?.message]);
+  }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
