@@ -64,9 +64,6 @@ export default function WebVitalMeters({
     return null;
   }
 
-  console.dir(projectData);
-  console.dir(projectScore);
-
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
@@ -104,13 +101,13 @@ export default function WebVitalMeters({
 }
 
 type VitalMeterProps = {
-  webVital: WebVitals;
-  showTooltip: boolean;
-  score: number | undefined;
-  meterValue: number | undefined;
   color: string;
-  onClick?: (webVital: WebVitals) => void;
+  meterValue: number | undefined;
+  score: number | undefined;
+  showTooltip: boolean;
+  webVital: WebVitals;
   isAggregateMode?: boolean;
+  onClick?: (webVital: WebVitals) => void;
 };
 
 export function VitalMeter({
@@ -182,8 +179,8 @@ type VitalContainerProps = {
   meterBody: React.ReactNode;
   webVital: WebVitals;
   webVitalExists: boolean;
-  onClick?: (webVital: WebVitals) => void;
   isAggregateMode?: boolean;
+  onClick?: (webVital: WebVitals) => void;
 };
 
 function VitalContainer({

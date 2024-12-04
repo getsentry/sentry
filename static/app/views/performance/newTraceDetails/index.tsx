@@ -230,7 +230,7 @@ export function TraceView() {
                 source="performance"
                 isEmbedded={false}
               />
-              {hasTraceNewUi && <TraceContextPanel tree={tree} />}
+              {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>

@@ -1,10 +1,14 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction} from 'sentry/types/event';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -16,66 +20,74 @@ const DEFAULT_HEIGHT = 100;
 const MAX_HEIGHT = 700;
 
 type Props = {
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 };
 
 const ALLOWED_VITALS = ['lcp', 'fcp', 'cls', 'ttfb', 'inp'];
 
-export function TraceContextPanel({tree}: Props) {
+export function TraceContextPanel({tree, rootEvent}: Props) {
   const theme = useTheme();
-  const [isDragging, setIsDragging] = useState(false);
-  const [contextPaneHeight, setContextPaneHeight] = useState(DEFAULT_HEIGHT);
-
-  const [startY, setStartY] = useState(0);
-  const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const hasWebVitals = tree.vital_types.has('web');
-  const hasValidWebVitals = () => {
+  const hasValidWebVitals = useCallback(() => {
     return Array.from(tree.vitals.values()).some(vitalGroup =>
       vitalGroup.some(vital => ALLOWED_VITALS.includes(vital.key))
     );
-  };
+  }, [tree]);
 
   const handleMouseDown = (event: React.MouseEvent) => {
     event.preventDefault();
-
-    setIsDragging(true);
-    setStartY(event.clientY);
-    setStartHeight(contextPaneHeight);
-  };
-
-  // handle resizing the context panel
-  useEffect(() => {
-    const handleMouseUp = () => {
-      setIsDragging(false);
-    };
-
-    const handleDrag = (event: MouseEvent) => {
-      event.preventDefault();
-
-      const deltaY = startY - event.clientY;
-      const newHeight = Math.max(MIN_HEIGHT, Math.min(startHeight + deltaY, MAX_HEIGHT));
-      setContextPaneHeight(newHeight);
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleDrag);
-      window.addEventListener('mouseup', handleMouseUp);
-    } else {
-      window.removeEventListener('mousemove', handleDrag);
-      window.removeEventListener('mouseup', handleMouseUp);
+    if (!containerRef.current) {
+      return;
     }
 
-    return () => {
-      window.removeEventListener('mousemove', handleDrag);
+    const startY = event.clientY;
+    const startHeight = height;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      requestAnimationFrame(() => {
+        if (!containerRef.current) {
+          return;
+        }
+
+        const deltaY = moveEvent.clientY - startY;
+        const newHeight = Math.max(
+          MIN_HEIGHT,
+          Math.min(startHeight - deltaY, MAX_HEIGHT)
+        );
+        containerRef.current.style.setProperty('--panel-height', `${newHeight}px`);
+      });
+    };
+
+    const handleMouseUp = () => {
+      if (!containerRef.current) {
+        return;
+      }
+
+      const finalHeight = parseInt(
+        getComputedStyle(containerRef.current).getPropertyValue('--panel-height'),
+        10
+      );
+      setHeight(finalHeight);
+
+      window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-    // this hook only needs to run when isDragging changes
-    // adding `deltaY` and `newHeight` as dependencies would cause unnecessary re-renders
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDragging]);
 
-  const renderVitals = () => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.setProperty('--panel-height', `${height}px`);
+    }
+  }, [height]);
+
+  const renderVitals = useCallback(() => {
     if (!hasWebVitals || !hasValidWebVitals()) {
       return null;
     }
@@ -113,19 +125,34 @@ export function TraceContextPanel({tree}: Props) {
         />
       );
     });
-  };
+  }, [tree, theme, hasWebVitals, hasValidWebVitals]);
+
+  const renderTags = useCallback(() => {
+    if (!rootEvent.data) {
+      return null;
+    }
+
+    return (
+      <EventTagsTree
+        event={rootEvent.data}
+        meta={rootEvent.data._meta}
+        projectSlug={rootEvent.data.projectSlug ?? ''}
+        tags={rootEvent.data.tags ?? []}
+      />
+    );
+  }, [rootEvent.data]);
 
   return (
-    <Container>
+    <Container ref={containerRef}>
       <GrabberContainer onMouseDown={handleMouseDown}>
         <IconGrabbable color="gray500" />
       </GrabberContainer>
 
-      <TraceContextContainer height={contextPaneHeight}>
+      <TraceContextContainer>
         <VitalMetersContainer>{renderVitals()}</VitalMetersContainer>
         <TraceTagsContainer>
           <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
-            Hello
+            {renderTags()}
           </FoldSection>
         </TraceTagsContainer>
       </TraceContextContainer>
@@ -133,11 +160,27 @@ export function TraceContextPanel({tree}: Props) {
   );
 }
 
+const TraceContextContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: ${space(1)};
+  height: var(--panel-height);
+`;
+
 const Container = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  --panel-height: ${DEFAULT_HEIGHT}px;
+
+  &[style*='--panel-height: 0px'] {
+    & ${TraceContextContainer} {
+      display: none;
+    }
+  }
 `;
 
 const GrabberContainer = styled(Container)`
@@ -154,18 +197,6 @@ const GrabberContainer = styled(Container)`
   & > svg {
     transform: rotate(90deg);
   }
-`;
-
-const TraceContextContainer = styled('div')<{height: number}>`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  width: 100%;
-  margin-top: ${space(1)};
-  height: ${p => p.height}px;
-
-  ${p => p.height === 0 && 'display: none;'}
 `;
 
 const VitalMetersContainer = styled('div')`
