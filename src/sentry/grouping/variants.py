@@ -133,10 +133,10 @@ class ComponentVariant(BaseVariant):
     def __init__(
         self,
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
-        config: StrategyConfiguration,
+        strategy_config: StrategyConfiguration,
     ):
         self.component = component
-        self.config = config
+        self.config = strategy_config
 
     @property
     def description(self):
@@ -219,10 +219,10 @@ class SaltedComponentVariant(ComponentVariant):
         self,
         fingerprint: list[str],
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
-        config: StrategyConfiguration,
+        strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, config)
+        ComponentVariant.__init__(self, component, strategy_config)
         self.values = fingerprint
         self.info = fingerprint_info
 
