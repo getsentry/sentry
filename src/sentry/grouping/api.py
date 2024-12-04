@@ -372,13 +372,13 @@ def get_grouping_variants_for_event(
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = _get_component_trees_for_variants(event, context)
+    component_trees_by_variant = _get_component_trees_for_variants(event, context)
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for variant_name, component in components.items():
+        for variant_name, component in component_trees_by_variant.items():
             component.update(
                 contributes=False,
                 hint="custom fingerprint takes precedence",
@@ -394,14 +394,14 @@ def get_grouping_variants_for_event(
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for variant_name, component in components.items():
+        for variant_name, component in component_trees_by_variant.items():
             rv[variant_name] = ComponentVariant(component, context.config)
 
     # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for variant_name, component in components.items():
+        for variant_name, component in component_trees_by_variant.items():
             rv[variant_name] = SaltedComponentVariant(
                 fingerprint, component, context.config, fingerprint_info
             )
