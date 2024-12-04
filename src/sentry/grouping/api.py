@@ -294,7 +294,7 @@ def _get_component_trees_for_variants(
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    variants_hint = "/".join(
+                    variant_descriptor = "/".join(
                         sorted(
                             k
                             for k, v in current_strategy_components_by_variant.items()
@@ -303,7 +303,7 @@ def _get_component_trees_for_variants(
                     )
                     precedence_hint = "{} take{} precedence".format(
                         (
-                            f"{strategy.name} of {variants_hint}"
+                            f"{strategy.name} of {variant_descriptor}"
                             if variant != "default"
                             else strategy.name
                         ),
