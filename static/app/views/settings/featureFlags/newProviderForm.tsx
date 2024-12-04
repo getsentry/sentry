@@ -5,6 +5,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -28,7 +29,7 @@ export type CreateSecretResponse = string;
 export default function NewProviderForm({
   onCreatedSecret,
 }: {
-  onCreatedSecret: ((secret: string) => void) | undefined;
+  onCreatedSecret: (secret: string) => void;
 }) {
   const initialData = {
     provider: '',
@@ -64,7 +65,7 @@ export default function NewProviderForm({
 
     onSuccess: (_response, {secret}) => {
       addSuccessMessage(t('Added provider and secret.'));
-      onCreatedSecret?.(secret);
+      onCreatedSecret(secret);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -77,41 +78,45 @@ export default function NewProviderForm({
   });
 
   return (
-    <Form
-      apiMethod="POST"
-      initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
-      onSubmit={({provider, secret}) => {
-        submitSecret({
-          provider,
-          secret,
-        });
-      }}
-      onCancel={handleGoBack}
-      submitLabel={t('Add Provider')}
-      requireChanges
-      submitDisabled={!onCreatedSecret || isPending}
-    >
-      <SelectField
-        required
-        label={t('Provider')}
-        name="provider"
-        options={[{value: 'launchdarkly', label: 'LaunchDarkly'}]}
-        placeholder={t('Select one')}
-        help={t(
-          'If you have already linked this provider, pasting a new secret will override the existing secret.'
-        )}
-      />
-      <TextField
-        name="secret"
-        label={t('Secret')}
-        maxLength={32}
-        minLength={32}
-        required
-        help={t(
-          'Paste the signing secret given by your provider when creating the webhook.'
-        )}
-      />
-    </Form>
+    <Access access={['org:write']}>
+      {({hasAccess}) => (
+        <Form
+          apiMethod="POST"
+          initialData={initialData}
+          apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
+          onSubmit={({provider, secret}) => {
+            submitSecret({
+              provider,
+              secret,
+            });
+          }}
+          onCancel={handleGoBack}
+          submitLabel={t('Add Provider')}
+          requireChanges
+          submitDisabled={!hasAccess || isPending}
+        >
+          <SelectField
+            required
+            label={t('Provider')}
+            name="provider"
+            options={[{value: 'launchdarkly', label: 'LaunchDarkly'}]}
+            placeholder={t('Select one')}
+            help={t(
+              'If you have already linked this provider, pasting a new secret will override the existing secret.'
+            )}
+          />
+          <TextField
+            name="secret"
+            label={t('Secret')}
+            maxLength={32}
+            minLength={32}
+            required
+            help={t(
+              'Paste the signing secret given by your provider when creating the webhook.'
+            )}
+          />
+        </Form>
+      )}
+    </Access>
   );
 }

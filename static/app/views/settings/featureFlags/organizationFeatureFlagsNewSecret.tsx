@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
 
-import Access from 'sentry/components/acl/access';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -24,46 +23,38 @@ export function OrganizationFeatureFlagsNewSecet() {
   }, [organization.slug]);
 
   return (
-    <Access access={['org:write']}>
-      {({hasAccess}) => (
-        <Fragment>
-          <SentryDocumentTitle title={t('Add New Provider')} />
-          <SettingsPageHeader title={t('Add New Provider')} />
+    <Fragment>
+      <SentryDocumentTitle title={t('Add New Provider')} />
+      <SettingsPageHeader title={t('Add New Provider')} />
 
-          <TextBlock>
-            {t(
-              'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
-            )}
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
-                ),
-              }
-            )}
-          </TextBlock>
+      <TextBlock>
+        {t(
+          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
+        )}
+      </TextBlock>
+      <TextBlock>
+        {tct(
+          'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
+            ),
+          }
+        )}
+      </TextBlock>
 
-          <Panel>
-            <PanelHeader>{t('Add New Provider')}</PanelHeader>
+      <Panel>
+        <PanelHeader>{t('Add New Provider')}</PanelHeader>
 
-            <PanelBody>
-              {newSecret ? (
-                <NewSecretHandler onGoBack={handleGoBack} secret={newSecret} />
-              ) : (
-                <NewProviderForm
-                  onCreatedSecret={
-                    hasAccess ? (secret: string) => setNewSecret(secret) : undefined
-                  }
-                />
-              )}
-            </PanelBody>
-          </Panel>
-        </Fragment>
-      )}
-    </Access>
+        <PanelBody>
+          {newSecret ? (
+            <NewSecretHandler onGoBack={handleGoBack} secret={newSecret} />
+          ) : (
+            <NewProviderForm onCreatedSecret={setNewSecret} />
+          )}
+        </PanelBody>
+      </Panel>
+    </Fragment>
   );
 }
 
