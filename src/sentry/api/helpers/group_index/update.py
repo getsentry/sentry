@@ -689,7 +689,7 @@ def merge_groups(
 
 
 def handle_other_status_updates(
-    result: MutableMapping[str, Any],
+    result: dict[str, Any],
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
@@ -720,7 +720,7 @@ def handle_other_status_updates(
                 )
             else:
                 result["statusDetails"] = handle_ignored(
-                    group_list, dict(status_details), acting_user, user
+                    group_list, status_details, acting_user, user
                 )
             result["inbox"] = None
         else:
@@ -738,7 +738,7 @@ def handle_other_status_updates(
             status_details=result.get("statusDetails", {}),
             sender=update_groups,
         )
-    return dict(result)
+    return result
 
 
 def prepare_response(
