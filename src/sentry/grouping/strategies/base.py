@@ -464,7 +464,10 @@ def produces_variants(
 
 
 def call_with_variants(
-    f: Callable[..., ReturnedVariants], variants: Sequence[str], *args: Any, **kwargs: Any
+    f: Callable[..., ReturnedVariants],
+    variants_to_produce: Sequence[str],
+    *args: Any,
+    **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
     if context["variant"] is not None:
@@ -473,12 +476,15 @@ def call_with_variants(
         #
         # To ensure the function can deal with the particular value we assert
         # the variant name is one of our own though.
-        assert context["variant"] in variants or "!" + context["variant"] in variants
+        assert (
+            context["variant"] in variants_to_produce
+            or "!" + context["variant"] in variants_to_produce
+        )
         return f(*args, **kwargs)
 
     rv = {}
 
-    for variant_name in variants:
+    for variant_name in variants_to_produce:
         with context:
             context["variant"] = variant_name.lstrip("!")
             rv_variants = f(*args, **kwargs)
