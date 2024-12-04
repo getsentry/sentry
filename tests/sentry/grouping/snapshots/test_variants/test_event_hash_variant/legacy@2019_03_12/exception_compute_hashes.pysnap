@@ -1,5 +1,5 @@
 ---
-created: '2021-02-15T10:11:48.660275Z'
+created: '2024-12-03T22:09:00.075675+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,29 +8,17 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
-        stacktrace*
-          frame*
-            filename*
-              "foo/baz.py"
-            lineno*
-              1
         type*
           "ValueError"
-        value (stacktrace and type take precedence)
+        value*
           "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: "baf0bfa8bb312627cd5ef4171aec9f4e"
+  hash: "b23ee1963904c2ca87b145febf94b66c"
   component:
     system*
       exception*
-        stacktrace*
-          frame*
-            filename*
-              "foo/baz.py"
-            lineno*
-              1
         type*
           "ValueError"
-        value (stacktrace and type take precedence)
+        value*
           "hello world"

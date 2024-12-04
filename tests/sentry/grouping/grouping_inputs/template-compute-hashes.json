@@ -1,7 +1,7 @@
 {
   "template": {
     "lineno": 1,
-    "context_line": "hello world",
+    "context_line": "{% invalid template tag %}",
     "filename": "foo.html"
   }
 }
