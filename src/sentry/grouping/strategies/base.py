@@ -478,13 +478,13 @@ def call_with_variants(
 
     rv = {}
 
-    for variant in variants:
+    for variant_name in variants:
         with context:
-            context["variant"] = variant.lstrip("!")
+            context["variant"] = variant_name.lstrip("!")
             rv_variants = f(*args, **kwargs)
             assert len(rv_variants) == 1
-            component = rv_variants[variant.lstrip("!")]
+            component = rv_variants[variant_name.lstrip("!")]
 
-        rv[variant] = component
+        rv[variant_name] = component
 
     return rv
