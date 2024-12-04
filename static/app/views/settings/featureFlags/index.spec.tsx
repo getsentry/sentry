@@ -19,17 +19,7 @@ import {
 
 describe('OrganizationFeatureFlagsIndex', function () {
   const ENDPOINT = '/organizations/org-slug/flags/signing-secrets/';
-  const {organization, router} = initializeOrg();
-
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    params: {orgId: organization.slug},
-    routes: router.routes,
-    route: {},
-    routeParams: router.params,
-  };
+  const {organization} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -55,7 +45,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       body: {data: secrets},
     });
 
-    render(<OrganizationFeatureFlagsIndex {...defaultProps} />);
+    render(<OrganizationFeatureFlagsIndex />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -78,7 +68,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       statusCode: 400,
     });
 
-    render(<OrganizationFeatureFlagsIndex {...defaultProps} />);
+    render(<OrganizationFeatureFlagsIndex />);
 
     expect(await screen.findByTestId('loading-error')).toHaveTextContent(
       'Failed to load secrets and providers for the organization.'
@@ -98,7 +88,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
       body: {data: secrets},
     });
 
-    render(<OrganizationFeatureFlagsIndex {...defaultProps} />);
+    render(<OrganizationFeatureFlagsIndex />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -127,7 +117,7 @@ describe('OrganizationFeatureFlagsIndex', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationFeatureFlagsIndex {...defaultProps} />);
+      render(<OrganizationFeatureFlagsIndex />);
       renderGlobalModal();
 
       expect(await screen.findByText('openfeature')).toBeInTheDocument();
@@ -167,18 +157,13 @@ describe('OrganizationFeatureFlagsIndex', function () {
         }),
       ];
 
-      const props = {
-        ...defaultProps,
-        organization: org,
-      };
-
       MockApiClient.addMockResponse({
         url: ENDPOINT,
         method: 'GET',
         body: {data: secrets},
       });
 
-      render(<OrganizationFeatureFlagsIndex {...props} />, {organization: org});
+      render(<OrganizationFeatureFlagsIndex />, {organization: org});
 
       expect(await screen.findByText('launchdarkly')).toBeInTheDocument();
 
