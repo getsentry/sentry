@@ -85,6 +85,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
         reasons = []
 
         logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
+        host, port = None
         try:
             for memory, host, port in check_service_memory(service):
                 if memory.percentage >= high_watermark:
@@ -102,6 +103,9 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
             unhealthy_services[name] = e
+            logger.exception(
+                "Error while processing node %s:%s for service %s", host, port, service
+            )
         else:
             unhealthy_services[name] = reasons
 
