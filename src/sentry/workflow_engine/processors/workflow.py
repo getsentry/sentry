@@ -1,20 +1,7 @@
 from sentry.eventstore.models import GroupEvent
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
-from sentry.workflow_engine.types import DetectorType
-
-
-# TODO - cache these by evt.group_id? :thinking:
-# TODO - Move to process_detector
-def get_detector_by_event(evt: GroupEvent) -> Detector:
-    issue_occurrence = evt.occurrence
-
-    if issue_occurrence is None:
-        detector = Detector.objects.get(project_id=evt.project_id, type=DetectorType.ERROR)
-    else:
-        detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
-
-    return detector
+from sentry.workflow_engine.processors.detector import get_detector_by_event
 
 
 def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set[Workflow]:
@@ -28,6 +15,13 @@ def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set
 
 
 def process_workflows(evt: GroupEvent) -> set[Workflow]:
+    """
+    This method will get the detector based on the event, and then gather the associated workflows.
+    Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
+    the workflow will be added to a unique list of triggered workflows.
+
+    Finally, each of the triggered workflows will have their actions evaluated and executed.
+    """
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
 
@@ -38,8 +32,10 @@ def process_workflows(evt: GroupEvent) -> set[Workflow]:
     # call `evaluate_workflow_actions` on the triggered groups, more or less the same as this stuff, but not triggered by an event.. is it?
     actions = set(evaluate_workflow_action_filters(triggered_workflows, evt))
 
+    # TODO - Figure out if we should move this to a separate method?
+    # Could have: process_workflow_engine(job: PostProcessJob)
+    #   which wraps this method and a new process_actions method?
     for action in actions:
         action.trigger(evt, detector)
 
-    # TODO decide if this should return a tuple or not.
     return triggered_workflows
