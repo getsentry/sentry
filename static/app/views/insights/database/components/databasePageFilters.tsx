@@ -12,8 +12,8 @@ import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/cons
 import {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
-  system: string;
   databaseCommand?: string;
+  system?: string;
   table?: string;
 };
 
@@ -30,7 +30,7 @@ export function DatabasePageFilters(props: Props) {
         <ActionSelector
           moduleName={ModuleName.DB}
           value={databaseCommand ?? ''}
-          filters={{'span.system': system}}
+          filters={system ? {'span.system': system} : undefined}
         />
         <DomainSelector
           moduleName={ModuleName.DB}
