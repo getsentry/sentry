@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
-from typing import Any, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 from sentry import options
 from sentry.eventstore.models import Event, GroupEvent
@@ -173,6 +173,13 @@ def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
+class FramesMetrics(TypedDict):
+    frame_count: int
+    html_frame_count: int  # for a temporary metric
+    is_frames_truncated: bool
+    found_non_snipped_context_line: bool
+
+
 def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
@@ -193,54 +200,14 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    frame_count = 0
-    html_frame_count = 0  # for a temporary metric
-    is_frames_truncated = False
-    stacktrace_str = ""
-    found_non_snipped_context_line = False
-
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
-    def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
-        nonlocal frame_count
-        nonlocal html_frame_count
-        nonlocal is_frames_truncated
-        nonlocal found_non_snipped_context_line
-        frame_strings = []
-
-        contributing_frames = [
-            frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
-        ]
-        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
-            is_frames_truncated = True
-        contributing_frames = _discard_excess_frames(
-            contributing_frames, MAX_FRAME_COUNT, frame_count
-        )
-        frame_count += len(contributing_frames)
-
-        for frame in contributing_frames:
-            frame_dict = extract_values_from_frame_values(frame.get("values", []))
-            filename = extract_filename(frame_dict) or "None"
-
-            if not _is_snipped_context_line(frame_dict["context-line"]):
-                found_non_snipped_context_line = True
-
-            # Not an exhaustive list of tests we could run to detect HTML, but this is only
-            # meant to be a temporary, quick-and-dirty metric
-            # TODO: Don't let this, and the metric below, hang around forever. It's only to
-            # help us get a sense of whether it's worthwhile trying to more accurately
-            # detect, and then exclude, frames containing HTML
-            if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
-                html_frame_count += 1
-
-            if is_base64_encoded_frame(frame_dict):
-                continue
-
-            frame_strings.append(
-                f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
-            )
-
-        return frame_strings
+    frame_metrics: FramesMetrics = {
+        "frame_count": 0,
+        "html_frame_count": 0,
+        "is_frames_truncated": False,
+        "found_non_snipped_context_line": False,
+    }
 
     result_parts = []
 
@@ -256,31 +223,34 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         ]:
             continue
 
-        # For each exception, extract its type, value, and up to limit number of stacktrace frames
-        exc_type, exc_value, frame_strings = "", "", []
-        if exception_type == "stacktrace":
-            frame_strings = _process_frames(exception.get("values", []))
-        else:
-            for exception_value in exception.get("values", []):
-                if exception_value.get("id") == "type":
-                    exc_type = _get_value_if_exists(exception_value)
-                elif exception_value.get("id") == "value":
-                    exc_value = _get_value_if_exists(exception_value)
-                elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                    frame_strings = _process_frames(exception_value["values"])
+        exc_type, exc_value, frame_strings, frame_metrics = process_exception_frames(
+            exception, frame_metrics
+        )
         if (
             platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
-            and is_frames_truncated
+            and frame_metrics["is_frames_truncated"]
             and not app_hash
         ):
             raise TooManyOnlySystemFramesException
-
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
 
         result_parts.append((header, frame_strings))
 
+    return generate_stacktrace_string(
+        result_parts,
+        frame_metrics["found_non_snipped_context_line"],
+        frame_metrics["html_frame_count"],
+    )
+
+
+def generate_stacktrace_string(
+    result_parts: Sequence[tuple[str, list[str]]],
+    found_non_snipped_context_line: bool,
+    html_frame_count: int,
+) -> str:
+    stacktrace_str = ""
     final_frame_count = 0
 
     for header, frame_strings in result_parts:
@@ -308,6 +278,71 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     )
 
     return stacktrace_str.strip()
+
+
+def process_exception_frames(
+    exception: dict[str, Any], frame_metrics: FramesMetrics
+) -> tuple[str, str, list[str], FramesMetrics]:
+    # For each exception, extract its type, value, and up to limit number of stacktrace frames
+    exc_type, exc_value = "", ""
+    frame_strings: list[str] = []
+    exception_type = exception.get("id")
+    if exception_type == "stacktrace":
+        frame_strings, frame_metrics = _process_frames(exception.get("values", []), frame_metrics)
+    else:
+        for exception_value in exception.get("values", []):
+            if exception_value.get("id") == "type":
+                exc_type = _get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "value":
+                exc_value = _get_value_if_exists(exception_value)
+            elif (
+                exception_value.get("id") == "stacktrace"
+                and frame_metrics["frame_count"] < MAX_FRAME_COUNT
+            ):
+                frame_strings, frame_metrics = _process_frames(
+                    exception_value["values"], frame_metrics
+                )
+
+    return exc_type, exc_value, frame_strings, frame_metrics
+
+
+def _process_frames(
+    frames: list[dict[str, Any]], frame_metrics: FramesMetrics
+) -> tuple[list[str], FramesMetrics]:
+    frame_strings = []
+    frame_count = frame_metrics["frame_count"]
+
+    contributing_frames = [
+        frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
+    ]
+    if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
+        frame_metrics["is_frames_truncated"] = True
+    contributing_frames = _discard_excess_frames(contributing_frames, MAX_FRAME_COUNT, frame_count)
+    frame_count += len(contributing_frames)
+
+    for frame in contributing_frames:
+        frame_dict = extract_values_from_frame_values(frame.get("values", []))
+        filename = extract_filename(frame_dict)
+
+        if not _is_snipped_context_line(frame_dict["context-line"]):
+            frame_metrics["found_non_snipped_context_line"] = True
+
+        # Not an exhaustive list of tests we could run to detect HTML, but this is only
+        # meant to be a temporary, quick-and-dirty metric
+        # TODO: Don't let this, and the metric below, hang around forever. It's only to
+        # help us get a sense of whether it's worthwhile trying to more accurately
+        # detect, and then exclude, frames containing HTML
+        if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
+            frame_metrics["html_frame_count"] += 1
+
+        if is_base64_encoded_frame(frame_dict):
+            continue
+
+        frame_strings.append(
+            f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+        )
+
+    return frame_strings, frame_metrics
 
 
 def extract_values_from_frame_values(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
