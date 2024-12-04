@@ -731,8 +731,10 @@ class DashboardDetail extends Component<Props, State> {
 
   onEditWidget = (widget: Widget) => {
     const {router, organization, params, location, dashboard} = this.props;
+    const {modifiedDashboard} = this.state;
+    const currentDashboard = modifiedDashboard ?? dashboard;
     const {dashboardId} = params;
-    const widgetIndex = dashboard.widgets.indexOf(widget);
+    const widgetIndex = currentDashboard.widgets.indexOf(widget);
     this.setState({
       isWidgetBuilderOpen: true,
     });
@@ -1262,6 +1264,7 @@ class DashboardDetail extends Component<Props, State> {
                                       dashboard.filters
                                     }
                                     dashboard={modifiedDashboard ?? dashboard}
+                                    onSave={() => {}}
                                   />
                                 </Fragment>
                               </WidgetViewerContext.Provider>
