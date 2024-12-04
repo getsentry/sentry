@@ -18,12 +18,12 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeFetchSecretQueryKey} from 'sentry/views/settings/featureFlags';
 
-type CreateSecretQueryVariables = {
+export type CreateSecretQueryVariables = {
   provider: string;
   secret: string;
 };
 
-type CreateSecretResponse = string;
+export type CreateSecretResponse = string;
 
 export default function NewProviderForm({
   onCreatedSecret,
