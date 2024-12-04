@@ -994,6 +994,18 @@ def process_replay_link(job: PostProcessJob) -> None:
         )
 
 
+def process_workflow_engine(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    evt = job["event"]
+
+    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+        process_workflows(evt)
+
+
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
