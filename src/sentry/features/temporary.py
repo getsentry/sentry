@@ -257,6 +257,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-db-main-thread-detector", OrganizationFeature, api_expose=False)
     # Enable Discover Saved Query dataset selector
     manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable deprecate discover widget type
+    manager.add("organizations:deprecate-discover-widget-type", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable backend overriding and always making a fresh split decision
     manager.add("organizations:performance-discover-widget-split-override-save", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable UI sending a discover split for widget
@@ -354,8 +356,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the release details performance section
     manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Fixes the next release resolution for semver releases
-    manager.add("organizations:releases-resolve-next-release-semver-fix", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # enable new release set_commits functionality
     manager.add("organizations:set-commits-updated", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable new release UI
