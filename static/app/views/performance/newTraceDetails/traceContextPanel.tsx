@@ -7,6 +7,9 @@ import {space} from 'sentry/styles/space';
 import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {t} from 'sentry/locale';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 100;
@@ -123,7 +126,11 @@ export function TraceContextPanel({tree}: Props) {
 
       <TraceContextContainer height={contextPaneHeight}>
         <VitalMetersContainer>{renderVitals()}</VitalMetersContainer>
-        <TraceTagsContainer />
+        <TraceTagsContainer>
+          <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
+            Hello
+          </FoldSection>
+        </TraceTagsContainer>
       </TraceContextContainer>
     </Container>
   );
@@ -177,7 +184,7 @@ const VitalMetersContainer = styled('div')`
 
 const TraceTagsContainer = styled('div')`
   width: 100%;
-  height: 200px;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  padding: 0 ${space(1)};
 `;
