@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
+    from sentry.eventstore.models import GroupEvent
     from sentry.workflow_engine.models import Action, Detector
 
 T = TypeVar("T")
@@ -27,9 +28,9 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
-class ActionHandler(Generic[T]):
+class ActionHandler:
     @staticmethod
-    def execute(data: T, action: Action, detector: Detector) -> None:
+    def execute(group_event: GroupEvent, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 

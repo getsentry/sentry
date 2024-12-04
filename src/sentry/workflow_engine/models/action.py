@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.db import models
 
@@ -55,7 +55,7 @@ class Action(DefaultFieldsModel):
     # LEGACY: This is used to denote if the Notification is going to a user, team, sentry app, etc
     target_type = models.SmallIntegerField(choices=ActionTarget.as_choices(), null=True)
 
-    def get_handler(self) -> ActionHandler[Any]:
+    def get_handler(self) -> ActionHandler:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 

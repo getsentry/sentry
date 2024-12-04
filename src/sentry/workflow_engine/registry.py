@@ -5,4 +5,4 @@ from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, Da
 
 data_source_type_registry = Registry[type[DataSourceTypeHandler]]()
 condition_handler_registry = Registry[DataConditionHandler[Any]]()
-action_handler_registry = Registry[type[ActionHandler]]()
+action_handler_registry = Registry[ActionHandler]()

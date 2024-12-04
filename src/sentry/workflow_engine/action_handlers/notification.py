@@ -5,10 +5,10 @@ from sentry.workflow_engine.types import ActionHandler
 
 
 @action_handler_registry.register(Action.Type.NOTIFICATION)
-class NotificationActionHandler(ActionHandler[GroupEvent]):
+class NotificationActionHandler(ActionHandler):
     @staticmethod
     def execute(
-        data: GroupEvent,
+        evt: GroupEvent,
         action: Action,
         detector: Detector,
     ) -> None:
