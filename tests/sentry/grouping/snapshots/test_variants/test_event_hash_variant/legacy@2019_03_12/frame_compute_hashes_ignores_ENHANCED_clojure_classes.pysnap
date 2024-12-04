@@ -1,5 +1,5 @@
 ---
-created: '2024-10-24T14:22:36.154597+00:00'
+created: '2024-12-03T22:09:00.136553+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,8 +7,8 @@ app:
   hash: null
   component:
     app (stacktrace of system takes precedence)
-      stacktrace (ignored because it contains no in-app frames)
-        frame (non app frame)
+      stacktrace (ignored because hash matches system variant)
+        frame* (frame considered in-app because no frame is in-app)
           module* (removed codegen marker)
             "sentry_clojure_example.core$_main$fn__<auto>"
           function*
