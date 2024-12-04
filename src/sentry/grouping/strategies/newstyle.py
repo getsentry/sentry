@@ -638,15 +638,15 @@ def chained_exception(
         return exception_components_by_exception[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
-    by_name: dict[str, list[ExceptionGroupingComponent]] = {}
+    exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
         for name, component in exception_components_by_exception[id(exception)].items():
-            by_name.setdefault(name, []).append(component)
+            exception_components_by_variant.setdefault(name, []).append(component)
 
     rv = {}
 
-    for name, component_list in by_name.items():
+    for name, component_list in exception_components_by_variant.items():
         # Calculate an aggregate tally of the different types of frames (in-app vs system,
         # contributing or not) across all of the exceptions in the chain
         total_frame_counts: Counter[str] = Counter()
