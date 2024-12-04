@@ -198,14 +198,14 @@ class Enhancements:
             key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
 
-        component = StacktraceGroupingComponent(
+        stacktrace_component = StacktraceGroupingComponent(
             values=components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
             frame_counts=frame_counts,
         )
 
-        return component, rust_results.invert_stacktrace
+        return stacktrace_component, rust_results.invert_stacktrace
 
     def as_dict(self, with_rules=False):
         rv = {
