@@ -285,14 +285,22 @@ def _get_component_trees_for_variants(
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
-        rv = strategy.get_grouping_component_variants(event, context=context)
-        for variant, component in rv.items():
+        current_strategy_components_by_variant = strategy.get_grouping_component_variants(
+            event, context=context
+        )
+        for variant, component in current_strategy_components_by_variant.items():
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
+                    variants_hint = "/".join(
+                        sorted(
+                            k
+                            for k, v in current_strategy_components_by_variant.items()
+                            if v.contributes
+                        )
+                    )
                     precedence_hint = "{} take{} precedence".format(
                         (
                             f"{strategy.name} of {variants_hint}"
