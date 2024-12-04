@@ -420,7 +420,7 @@ def test_load_configs_empty_doesnt_blow_up(tmp_path):
         assert _load_configs() == {}
 
 
-def test_load_configs_nx_path_doesnt_blow_up(tmp_path):
+def test_load_configs_non_existent_path_doesnt_blow_up(tmp_path):
     tmp_path.rmdir()
     with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
