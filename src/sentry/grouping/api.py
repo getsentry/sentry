@@ -97,16 +97,18 @@ class GroupingConfigLoader:
         cache_prefix = self.cache_prefix
         cache_prefix += f"{LATEST_VERSION}:"
         cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
-        rv = cache.get(cache_key)
-        if rv is not None:
-            return rv
+        enhancements = cache.get(cache_key)
+        if enhancements is not None:
+            return enhancements
 
         try:
-            rv = Enhancements.from_config_string(enhancements, bases=[enhancements_base]).dumps()
+            enhancements = Enhancements.from_config_string(
+                enhancements, bases=[enhancements_base]
+            ).dumps()
         except InvalidEnhancerConfig:
-            rv = get_default_enhancements()
-        cache.set(cache_key, rv)
-        return rv
+            enhancements = get_default_enhancements()
+        cache.set(cache_key, enhancements)
+        return enhancements
 
     def _get_config_id(self, project):
         raise NotImplementedError
