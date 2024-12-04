@@ -4,6 +4,7 @@ import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/se
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/insights/database/settings';
 import {
   FRONTEND_MODULE_TITLE as HTTP_FRONTEND_MODULE_TITLE,
+  MOBILE_MODULE_TITLE as HTTP_MOBILE_MODULE_TITLE,
   MODULE_TITLE as HTTP_MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
@@ -42,7 +43,9 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
 > = {
   ai: {},
   backend: {},
-  mobile: {},
+  mobile: {
+    [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,
+  },
   frontend: {
     [ModuleName.HTTP]: HTTP_FRONTEND_MODULE_TITLE,
   },
