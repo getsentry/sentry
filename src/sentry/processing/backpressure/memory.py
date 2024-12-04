@@ -51,6 +51,20 @@ def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     return ServiceMemory(node_id, memory_used, memory_available)
 
 
+def get_host_port_info(node_id: str, info: Mapping[str, Any], cluster: Cluster) -> tuple[str, int]:
+    """
+    Extract the host and port of the given node in the cluster.
+    """
+    if isinstance(cluster, RedisCluster):
+        # RedisCluster node mapping
+        node = cluster.connection_pool.nodes.nodes.get(node_id)
+        return node["host"], node["port"]
+    else:
+        # rb.Cluster node mapping
+        node = cluster.hosts[node_id]
+        return node.host, node.port
+
+
 def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
     """
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
@@ -65,4 +79,6 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
         cluster_info = promise.value
 
     for node_id, info in cluster_info.items():
-        yield get_memory_usage(node_id, info)
+        host, port = get_host_port_info(node_id, cluster)
+        memory_usage = get_memory_usage(node_id, info)
+        yield memory_usage, host, port
