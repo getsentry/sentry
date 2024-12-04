@@ -66,7 +66,7 @@ export default function SubregionSelector({size}: Props) {
       triggerProps={{
         prefix: (
           <Fragment>
-            <StyledFeatureBadge type="beta" />
+            <StyledFeatureBadge type="new" />
             {t('Geo region')}
           </Fragment>
         ),
