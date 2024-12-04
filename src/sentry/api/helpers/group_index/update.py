@@ -693,7 +693,7 @@ def handle_other_status_updates(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    status_details: Mapping[str, Any],
+    status_details: dict[str, Any],
     acting_user,
     user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:

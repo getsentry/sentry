@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
@@ -88,7 +88,7 @@ def handle_archived_until_escalating(
 
 def handle_ignored(
     group_list: Sequence[Group],
-    status_details: Mapping[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | RpcUser | AnonymousUser,
     user: User | RpcUser | AnonymousUser,
 ) -> IgnoredStatusDetails:
