@@ -618,8 +618,8 @@ class FingerprintingVisitor(NodeVisitorBase):
     def visit_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
     ) -> FingerprintMatch:
-        _, negation, key, _, argument = children
-        return FingerprintMatch(key, argument, bool(negation))
+        _, negation, key, _, pattern = children
+        return FingerprintMatch(key, pattern, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:
         return children[0]
