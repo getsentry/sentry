@@ -217,7 +217,7 @@ const ResponsivePanelTable = styled(PanelTable)`
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),
-    *:nth-child(4n + 3) {
+    > *:nth-child(4n + 3) {
       display: none;
     }
   }
