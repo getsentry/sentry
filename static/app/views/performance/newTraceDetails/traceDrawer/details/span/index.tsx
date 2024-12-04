@@ -149,6 +149,12 @@ function SpanSections({
     );
   }
 
+  const hasSpanSpecificData =
+    hasSpanHTTPInfo(node.value) ||
+    hasSpanKeys(node) ||
+    hasSpanTags(node.value) ||
+    eventHasCustomMetrics(organization, node.value._metrics_summary);
+
   return (
     <Fragment>
       <GeneralInfo
@@ -157,20 +163,22 @@ function SpanSections({
         location={location}
         onParentClick={onParentClick}
       />
-      <InterimSection title={t('Span Specific')} type="span_specifc" initialCollapse>
-        <TraceDrawerComponents.SectionCardGroup>
-          {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
-          {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
-          {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
-          {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-            <CustomMetricsEventData
-              projectId={project?.id || ''}
-              metricsSummary={node.value._metrics_summary}
-              startTimestamp={node.value.start_timestamp}
-            />
-          ) : null}
-        </TraceDrawerComponents.SectionCardGroup>
-      </InterimSection>
+      {hasSpanSpecificData ? (
+        <InterimSection title={t('Span Specific')} type="span_specifc" initialCollapse>
+          <TraceDrawerComponents.SectionCardGroup>
+            {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+            {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
+            {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
+            {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
+              <CustomMetricsEventData
+                projectId={project?.id || ''}
+                metricsSummary={node.value._metrics_summary}
+                startTimestamp={node.value.start_timestamp}
+              />
+            ) : null}
+          </TraceDrawerComponents.SectionCardGroup>
+        </InterimSection>
+      ) : null}
     </Fragment>
   );
 }

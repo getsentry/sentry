@@ -103,7 +103,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
     getSpanAggregateMeasurements(node);
 
   return (
-    !allZeroSizes ||
+    allZeroSizes ||
     unknownKeys.length > 0 ||
     timingKeys.length > 0 ||
     aggregateMeasurements.length > 0 ||
