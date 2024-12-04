@@ -69,6 +69,11 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
       });
 
     const options = [
+      ...unknownOptions.map(option => ({
+        label: prettifyTagKey(option),
+        value: option,
+        textValue: option,
+      })),
       ...Object.values(numberTags).map(tag => {
         return {
           label: tag.name,
@@ -76,11 +81,6 @@ export function ToolbarVisualize({}: ToolbarVisualizeProps) {
           textValue: tag.name,
         };
       }),
-      ...unknownOptions.map(option => ({
-        label: prettifyTagKey(option),
-        value: option,
-        textValue: option,
-      })),
     ];
 
     options.sort((a, b) => {
@@ -246,7 +246,7 @@ const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  width: 32px;
+  width: 38px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};

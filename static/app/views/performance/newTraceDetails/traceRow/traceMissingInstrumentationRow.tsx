@@ -20,13 +20,13 @@ export function TraceMissingInstrumentationRow(
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >

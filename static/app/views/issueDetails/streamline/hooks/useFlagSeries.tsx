@@ -25,7 +25,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   } = useOrganizationFlagLog({organization, query});
   const {selection} = usePageFilters();
 
-  if (!rawFlagData || isError || isPending) {
+  if (!rawFlagData || !rawFlagData.data.length || isError || isPending) {
     return {
       seriesName: t('Feature Flags'),
       markLine: {},
@@ -34,7 +34,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
   }
 
   const hydratedFlagData = hydrateToFlagSeries(rawFlagData);
-  const evaluatedFlagNames = event?.contexts.flags?.values.map(f => f.flag);
+  const evaluatedFlagNames = event?.contexts?.flags?.values?.map(f => f.flag);
   const intersectionFlags = hydratedFlagData.filter(f =>
     evaluatedFlagNames?.includes(f.name)
   );
@@ -57,6 +57,13 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
         const time = getFormattedDate(data.xAxis, 'MMM D, YYYY LT z', {
           local: !selection.datetime.utc,
         });
+
+        const eventIsBefore = moment(event?.dateCreated).isBefore(moment(time));
+        const formattedDate = moment(time).from(event?.dateCreated, true);
+        const suffix = eventIsBefore
+          ? t(' (%s after this event)', formattedDate)
+          : t(' (%s before this event)', formattedDate);
+
         return [
           '<div class="tooltip-series">',
           `<div><span class="tooltip-label"><strong>${t(
@@ -66,8 +73,7 @@ export default function useFlagSeries({query = {}, event}: FlagSeriesProps) {
           '</div>',
           '<div class="tooltip-footer">',
           time,
-          event?.dateCreated &&
-            ` (${moment(time).from(event.dateCreated, true)} ${t('before this event')})`,
+          event?.dateCreated && suffix,
           '</div>',
           '<div class="tooltip-arrow"></div>',
         ].join('');

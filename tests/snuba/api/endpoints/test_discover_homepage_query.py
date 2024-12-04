@@ -1,10 +1,16 @@
+import pytest
 from django.urls import reverse
 
 from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
-FEATURES = ("organizations:discover-query",)
+FEATURES = ("organizations:discover-query", "organizations:performance-use-metrics")
+
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
@@ -89,7 +95,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.data == serialize(new_query)
         assert new_query.query["fields"] == homepage_query_payload["fields"]
         assert new_query.query["environment"] == homepage_query_payload["environment"]
-        assert new_query.dataset == DiscoverSavedQueryTypes.get_id_for_type_name("discover")
+        assert new_query.dataset == DiscoverSavedQueryTypes.get_id_for_type_name("error-events")
         assert set(new_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
     def test_put_responds_with_saved_empty_name_field(self):
@@ -164,3 +170,40 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert not DiscoverSavedQuery.objects.filter(
             created_by_id=self.user.id, organization=self.org, is_homepage=True
         ).exists()
+
+    def test_put_allows_custom_measurements_in_equations_with_query(self):
+        # Having a custom measurement stored implies that a transaction with this measurement has been stored
+        BaseMetricsTestCase.store_metric(
+            self.org.id,
+            self.project_ids[0],
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
+        )
+
+        homepage_query_payload = {
+            "version": 2,
+            "name": "New Homepage Query",
+            "projects": [self.project_ids[0]],
+            "environment": ["alpha"],
+            "fields": [
+                "transaction.duration",
+                "measurements.custom_duration",
+                "equation|measurements.custom_duration / transaction.duration",
+            ],
+            "orderby": "-transaction.duration",
+            "query": "test",
+            "range": None,
+        }
+
+        with self.feature(FEATURES):
+            response = self.client.put(self.url, data=homepage_query_payload)
+
+        assert response.status_code == 201, response.content
+
+        new_query = DiscoverSavedQuery.objects.get(
+            created_by_id=self.user.id, organization=self.org, is_homepage=True
+        )
+        assert response.data == serialize(new_query)
+        assert list(new_query.projects.values_list("id", flat=True)) == [self.project_ids[0]]

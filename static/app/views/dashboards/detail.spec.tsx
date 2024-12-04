@@ -25,9 +25,12 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
-import {handleUpdateDashboardSplit} from 'sentry/views/dashboards/detail';
+import DashboardDetail, {
+  handleUpdateDashboardSplit,
+} from 'sentry/views/dashboards/detail';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
+import {DashboardState} from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -2015,6 +2018,149 @@ describe('Dashboards > Detail', function () {
         'aria-disabled',
         'true'
       );
+    });
+
+    it('renders favorite button in unfavorited state', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: false}),
+      });
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-favourite', ...initialData.organization.features],
+          },
+        }
+      );
+
+      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      expect(favoriteButton).toBeInTheDocument();
+      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
+    });
+
+    it('renders favorite button in favorited state', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+      });
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-favourite', ...initialData.organization.features],
+          },
+        }
+      );
+
+      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      expect(favoriteButton).toBeInTheDocument();
+      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
+    });
+
+    it('toggles favorite button', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/favorite/',
+        method: 'PUT',
+        body: {isFavorited: false},
+      });
+      render(
+        <ViewEditDashboard
+          {...RouteComponentPropsFixture()}
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        >
+          {null}
+        </ViewEditDashboard>,
+        {
+          router: initialData.router,
+          organization: {
+            features: ['dashboards-favourite', ...initialData.organization.features],
+          },
+        }
+      );
+
+      const favoriteButton = await screen.findByLabelText('dashboards-favourite');
+      expect(favoriteButton).toBeInTheDocument();
+
+      expect(await screen.findByLabelText('UnFavorite')).toBeInTheDocument();
+      await userEvent.click(favoriteButton);
+      expect(await screen.findByLabelText('Favorite')).toBeInTheDocument();
+    });
+
+    describe('widget builder redesign', function () {
+      beforeEach(function () {
+        initialData = initializeOrg({
+          organization: OrganizationFixture({
+            features: [
+              'global-views',
+              'dashboards-basic',
+              'dashboards-edit',
+              'discover-query',
+              'performance-discover-dataset-selector',
+              'dashboards-widget-builder-redesign',
+            ],
+          }),
+        });
+      });
+
+      it('opens the widget builder slideout when clicking add widget', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('opens the widget builder slideout when clicking add widget in edit mode', async function () {
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={DashboardFixture([])}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {organization: initialData.organization}
+        );
+        await userEvent.click(await screen.findByTestId('widget-add'));
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
     });
 
     describe('discover split', function () {

@@ -37,7 +37,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -136,24 +135,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        if not features.has(
-            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
-        ):
-            try:
-                # This sets current_release_version to the latest semver version associated with a group
-                associated_release_id = GroupRelease.objects.filter(
-                    project_id=group.project.id, group_id=group.id
-                ).values_list("release_id")
-                current_release_version = (
-                    get_semver_releases(group.project)
-                    .filter(id__in=associated_release_id)
-                    .values_list("version", flat=True)[:1]
-                    .get()
-                )
-            except Release.DoesNotExist:
-                pass
-        else:
-            current_release_version = greatest_semver_release(group.project).version
+        current_release_version = greatest_semver_release(group.project).version
 
     else:
         # This sets current_release_version to the most recent release associated with a group
@@ -170,7 +152,7 @@ def update_groups(
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None,
+    search_fn: SearchFunction | None = None,
     user: RpcUser | User | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -179,58 +161,33 @@ def update_groups(
     user = user or request.user
     data = data or request.data
 
-    if group_ids:
-        group_list = Group.objects.filter(
-            project__organization_id=organization_id, project__in=projects, id__in=group_ids
+    try:
+        group_ids, group_list = get_group_ids_and_group_list(
+            organization_id, projects, group_ids, search_fn
         )
-        # filter down group ids to only valid matches
-        group_ids = [g.id for g in group_list]
-        if not group_ids:
-            return Response(status=204)
-    else:
-        group_list = None
+    except ValidationError:
+        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+        return Response(
+            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+        )
 
-    serializer = None
-    # TODO(jess): We may want to look into refactoring GroupValidator
-    # to support multiple projects, but this is pretty complicated
-    # because of the assignee validation. Punting on this for now.
-    for project in projects:
-        serializer = GroupValidator(
-            data=data,
-            partial=True,
-            context={
-                "project": project,
-                "organization": project.organization,
-                "access": getattr(request, "access", None),
-            },
-        )
-        if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors)
+    if not group_ids or not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    serializer = validate_request(request, projects, data)
 
     if serializer is None:
         return
 
     result = dict(serializer.validated_data)
 
-    # so we won't have to requery for each group
-    project_lookup = {p.id: p for p in projects}
-
     acting_user = user if user.is_authenticated else None
 
-    if search_fn and not group_ids:
-        try:
-            cursor_result, _ = search_fn(
-                {
-                    "limit": BULK_MUTATION_LIMIT,
-                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-                }
-            )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
+    if not group_list:
+        return Response(detail="No groups found", status=400)
 
-        group_list = list(cursor_result)
-        group_ids = [g.id for g in group_list]
-
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in group_list}
     group_project_ids = {g.project_id for g in group_list}
     # filter projects down to only those that have groups in the search results
     projects = [p for p in projects if p.id in group_project_ids]
@@ -287,6 +244,82 @@ def update_groups(
         res_type,
         request.META.get("HTTP_REFERER", ""),
     )
+
+
+def validate_request(
+    request: Request,
+    projects: Sequence[Project],
+    data: Mapping[str, Any],
+) -> GroupValidator | None:
+    serializer = None
+    # TODO(jess): We may want to look into refactoring GroupValidator
+    # to support multiple projects, but this is pretty complicated
+    # because of the assignee validation. Punting on this for now.
+    for project in projects:
+        serializer = GroupValidator(
+            data=data,
+            partial=True,
+            context={
+                "project": project,
+                "organization": project.organization,
+                "access": getattr(request, "access", None),
+            },
+        )
+        if not serializer.is_valid():
+            raise serializers.ValidationError(serializer.errors)
+    return serializer
+
+
+def get_group_ids_and_group_list(
+    organization_id: int,
+    projects: Sequence[Project],
+    group_ids: Sequence[int | str] | None,
+    search_fn: SearchFunction | None,
+) -> tuple[list[int | str], list[Group]]:
+    """
+    Gets group IDs and group list based on provided filters.
+
+    Args:
+        organization_id: ID of the organization
+        projects: Sequence of projects to filter groups by
+        group_ids: Optional sequence of specific group IDs to fetch
+        search_fn: Optional search function to find groups if no IDs provided
+
+    Returns:
+        Tuple of:
+            - List of group IDs that were found
+            - List of Group objects that were found
+
+    Notes:
+        - If group_ids provided, filters to only valid groups in the org/projects
+        - If no group_ids but search_fn provided, uses search to find groups
+        - Limited to BULK_MUTATION_LIMIT results when using search
+    """
+    _group_ids: list[int | str] = []
+    _group_list: list[Group] = []
+
+    if group_ids:
+        _group_list = list(
+            Group.objects.filter(
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids
+            )
+        )
+        # filter down group ids to only valid matches
+        _group_ids = [g.id for g in _group_list]
+
+    if search_fn and not _group_ids:
+        # It can raise ValidationError
+        cursor_result, _ = search_fn(
+            {
+                "limit": BULK_MUTATION_LIMIT,
+                "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+            }
+        )
+
+        _group_list = list(cursor_result)
+        _group_ids = [g.id for g in _group_list]
+
+    return _group_ids, _group_list
 
 
 def handle_resolve_in_release(
@@ -765,7 +798,9 @@ def prepare_response(
     if result.get("merge") and len(group_list) > 1:
         # don't allow merging cross project
         if len(project_lookup) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
+            return Response(
+                {"detail": "Merging across multiple projects is not supported"}, status=400
+            )
         result["merge"] = merge_groups(
             group_list,
             project_lookup,
@@ -788,18 +823,10 @@ def prepare_response(
 
 
 def get_release_to_resolve_by(project: Project) -> Release | None:
-    # XXX: Remove block once released
-    follows_semver = False
-    if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
-        follows_semver = follows_semver_versioning_scheme(
-            org_id=project.organization_id, project_id=project.id
-        )
-
-    if follows_semver:
-        release = greatest_semver_release(project)
-    else:
-        release = most_recent_release(project)
-    return release
+    follows_semver = follows_semver_versioning_scheme(
+        org_id=project.organization_id, project_id=project.id
+    )
+    return greatest_semver_release(project) if follows_semver else most_recent_release(project)
 
 
 def most_recent_release(project: Project) -> Release | None:

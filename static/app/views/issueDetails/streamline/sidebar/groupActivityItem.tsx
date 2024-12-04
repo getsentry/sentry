@@ -540,8 +540,8 @@ export default function getGroupActivityItem(
         return {
           title: t('Unmerged'),
           message: tn(
-            '%1$s fingerprint to %3$s by %2$s',
-            '%1$s fingerprints to %3$s by %2$s',
+            '%1$s fingerprint from %3$s by %2$s',
+            '%1$s fingerprints from %3$s by %2$s',
             fingerprints.length,
             author,
             source ? (
