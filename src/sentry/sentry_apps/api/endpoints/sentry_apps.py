@@ -15,7 +15,6 @@ from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.group import Group
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppsBaseEndpoint
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
@@ -157,11 +156,11 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                 analytics.record(name, **log_info)
         return Response(serializer.errors, status=400)
 
-    def _filter_queryset_for_user(self, queryset: BaseQuerySet[Group, Group], user_id: int):
+    def _filter_queryset_for_user(self, queryset: BaseQuerySet[SentryApp, SentryApp], user_id: int):
         owner_ids = []
         for o in user_service.get_organizations(user_id=user_id, only_visible=True):
             org_context = organization_service.get_organization_by_id(id=o.id, user_id=user_id)
-            if "org:read" in org_context.member.scopes:
+            if org_context and org_context.member and "org:read" in org_context.member.scopes:
                 owner_ids.append(o.id)
 
         return queryset.filter(owner_id__in=owner_ids)
