@@ -118,8 +118,10 @@ export async function updateDashboardFavorite(
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
       addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else if (isFavorited) {
+      addErrorMessage(t('Unable to favorite dashboard'));
     } else {
-      addErrorMessage(t('Unable to update dashboard favorite status'));
+      addErrorMessage(t('Unable to unfavorite dashboard'));
     }
     throw response;
   }
