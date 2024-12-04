@@ -71,7 +71,7 @@ function DiffSides({
   viewDimensions: {height: number; width: number};
   width: string | undefined;
 }) {
-  const rightSideElem = useRef<HTMLDivElement>(null);
+  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
   const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
@@ -79,12 +79,11 @@ function DiffSides({
     initialSize: viewDimensions.width / 2,
     min: 0,
     onResize: newSize => {
-      if (rightSideElem.current) {
-        rightSideElem.current.style.width =
+      if (beforeElemRef.current) {
+        beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.min(viewDimensions.width, viewDimensions.width - newSize)) ??
-              '0px';
+            : toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =
@@ -118,18 +117,18 @@ function DiffSides({
               <ReplayPlayerStateContextProvider>
                 <StyledNegativeSpaceContainer>
                   <ReplayPlayerMeasurer measure="both">
-                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </StyledNegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
             </Placement>
           </Cover>
-          <Cover ref={rightSideElem} style={{width: 0}}>
+          <Cover ref={beforeElemRef}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <StyledNegativeSpaceContainer>
                   <ReplayPlayerMeasurer measure="both">
-                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </StyledNegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
@@ -159,13 +158,15 @@ const Cover = styled('div')`
   height: 100%;
   overflow: hidden;
   position: absolute;
-  right: 0px;
+  left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.red300};
+  border-color: ${p => p.theme.green300};
   & + & {
-    border-color: ${p => p.theme.green300};
-    border-left-color: transparent;
+    border: 3px solid;
+    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
+    border-color: ${p => p.theme.red300};
+    border-right-width: 0;
   }
 `;
 
@@ -174,7 +175,7 @@ const Placement = styled('div')`
   height: 100%;
   justify-content: center;
   position: absolute;
-  right: 0;
+  left: 0;
   top: 0;
   place-items: center;
 `;
