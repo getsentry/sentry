@@ -99,7 +99,7 @@ function AccountAuthorizations() {
                     <DetailRow>{authorization.scopes.join(', ')}</DetailRow>
                     {authorization.organization && (
                       <DetailRow>
-                        {t('scopes are limitted to ')}
+                        {t('scopes are limited to ')}
                         {authorization.organization.slug}
                       </DetailRow>
                     )}
