@@ -150,8 +150,9 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        current_release_version = greatest_semver_release(group.project).version
-
+        release = greatest_semver_release(group.project)
+        if release is not None:
+            current_release_version = release.version
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
