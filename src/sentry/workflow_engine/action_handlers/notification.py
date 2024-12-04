@@ -8,7 +8,6 @@ from sentry.workflow_engine.types import ActionHandler
 class NotificationActionHandler(ActionHandler[GroupEvent]):
     @staticmethod
     def execute(
-        self,
         data: GroupEvent,
         action: Action,
         detector: Detector,

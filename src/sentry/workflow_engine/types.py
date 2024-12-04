@@ -29,7 +29,7 @@ ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 class ActionHandler(Generic[T]):
     @staticmethod
-    def execute(self, data: T, action: Action, detector: Detector) -> None:
+    def execute(data: T, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 
