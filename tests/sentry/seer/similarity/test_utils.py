@@ -879,6 +879,19 @@ class GetStacktraceStringTest(TestCase):
             },
         )
 
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_header_one_frame_no_filename(self, mock_metrics):
+        exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
+        # Remove filename
+        exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
+            "values"
+        ] = []
+        get_stacktrace_string(exception)
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
+        )
+
 
 class EventContentIsSeerEligibleTest(TestCase):
     def get_eligible_event_data(self) -> dict[str, Any]:
