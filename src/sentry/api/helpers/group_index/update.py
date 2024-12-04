@@ -213,7 +213,7 @@ def update_groups(
     serializer = validate_request(request, projects, data)
 
     if serializer is None:
-        # XXX: I do not know what the right code should be here.
+        logger.error("Error validating request. Investigate.")
         return Response(status=500)
 
     result = dict(serializer.validated_data)
