@@ -9,7 +9,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModelExisting, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_model
-class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
+class Detector(DefaultFieldsModelExisting, OwnerModel, JSONConfigBase):
     __relocation_scope__ = RelocationScope.Organization
 
     # TODO - Finish removing this field

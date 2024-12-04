@@ -4,7 +4,12 @@ from django.conf import settings
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import (
+    DefaultFieldsModelExisting,
+    FlexibleForeignKey,
+    region_silo_model,
+    sane_repr,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.eventstore.models import GroupEvent
 from sentry.models.owner_base import OwnerModel
@@ -14,7 +19,7 @@ from .json_config import JSONConfigBase
 
 
 @region_silo_model
-class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
+class Workflow(DefaultFieldsModelExisting, OwnerModel, JSONConfigBase):
     """
     A workflow is a way to execute actions in a specified order.
     Workflows are initiated after detectors have been processed, driven by changes to their state.

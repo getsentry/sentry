@@ -1,13 +1,13 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModelExisting, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.models.notificationaction import ActionTarget
 
 
 @region_silo_model
-class Action(DefaultFieldsModel):
+class Action(DefaultFieldsModelExisting):
     """
     Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.
     Examples include: detectors emitting events, sending notifications, creating an issue in the Issue Platform, etc.

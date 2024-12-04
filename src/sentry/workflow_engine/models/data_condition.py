@@ -7,7 +7,7 @@ from typing import Any, TypeVar, cast
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModelExisting, region_silo_model, sane_repr
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import (
@@ -42,7 +42,7 @@ T = TypeVar("T")
 
 
 @region_silo_model
-class DataCondition(DefaultFieldsModel):
+class DataCondition(DefaultFieldsModelExisting):
     """
     A data condition is a way to specify a logic condition, if the condition is met, the condition_result is returned.
     """

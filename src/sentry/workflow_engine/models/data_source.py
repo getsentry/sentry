@@ -7,7 +7,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
-    DefaultFieldsModel,
+    DefaultFieldsModelExisting,
     FlexibleForeignKey,
     region_silo_model,
 )
@@ -25,7 +25,7 @@ class DataPacket(Generic[T]):
 
 
 @region_silo_model
-class DataSource(DefaultFieldsModel):
+class DataSource(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
