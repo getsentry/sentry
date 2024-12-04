@@ -246,7 +246,7 @@ const ChartLabel = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
   text-align: center;
-  width: 32px;
+  width: 38px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
