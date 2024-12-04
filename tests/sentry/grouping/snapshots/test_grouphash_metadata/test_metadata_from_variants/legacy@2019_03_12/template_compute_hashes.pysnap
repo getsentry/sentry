@@ -1,11 +1,11 @@
 ---
-created: '2024-11-20T21:26:19.604071+00:00'
+created: '2024-12-03T22:10:04.627914+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: template
 hashing_metadata: {
-  "template_context_line": "hello world",
+  "template_context_line": "{% invalid template tag %}",
   "template_name": "foo.html"
 }
 ---
@@ -18,11 +18,11 @@ metrics with tags: {
 ---
 contributing variants:
   default*
-    hash: "826f66ef602835f68030c04c634df320"
+    hash: "1f5bdebe3c9f414c7dbb4296a8353245"
     component:
       default*
         template*
           filename*
             "foo.html"
           context-line*
-            "hello world"
+            "{% invalid template tag %}"
