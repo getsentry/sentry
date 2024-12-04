@@ -534,12 +534,12 @@ class FingerprintRule:
         return config_structure
 
     @classmethod
-    def _from_config_structure(cls, obj: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
+    def _from_config_structure(cls, config: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls(
-            [FingerprintMatch._from_config_structure(x) for x in obj["matchers"]],
-            obj["fingerprint"],
-            obj.get("attributes") or {},
-            obj.get("is_builtin") or False,
+            [FingerprintMatch._from_config_structure(x) for x in config["matchers"]],
+            config["fingerprint"],
+            config.get("attributes") or {},
+            config.get("is_builtin") or False,
         )
 
     def to_json(self) -> FingerprintRuleJSON:
