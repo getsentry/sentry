@@ -366,7 +366,7 @@ def get_stacktrace_string_with_metrics(
     return stacktrace_string
 
 
-def event_content_has_stacktrace(event: Event) -> bool:
+def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
