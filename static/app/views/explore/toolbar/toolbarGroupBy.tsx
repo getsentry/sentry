@@ -11,7 +11,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
 
@@ -96,7 +95,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
         return (
           <ToolbarSection data-test-id="section-group-by">
-            <StyledToolbarHeader>
+            <ToolbarHeader>
               <Tooltip
                 position="right"
                 title={t(
@@ -115,7 +114,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
                   icon={<IconAdd />}
                 />
               </Tooltip>
-            </StyledToolbarHeader>
+            </ToolbarHeader>
             {columnEditorRows}
           </ToolbarSection>
         );
@@ -126,10 +125,6 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
 const FullWidthTooltip = styled(Tooltip)`
   width: 100%;
-`;
-
-const StyledToolbarHeader = styled(ToolbarHeader)`
-  margin-bottom: ${space(1)};
 `;
 
 interface ColumnEditorRowProps {
@@ -165,7 +160,7 @@ function ColumnEditorRow({
   }, [column.column, options]);
 
   return (
-    <RowContainer
+    <ToolbarRow
       key={column.id}
       ref={setNodeRef}
       style={{
@@ -204,15 +199,9 @@ function ColumnEditorRow({
         icon={<IconDelete size="sm" />}
         onClick={() => onColumnDelete()}
       />
-    </RowContainer>
+    </ToolbarRow>
   );
 }
-
-const RowContainer = styled(ToolbarRow)`
-  :not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   flex-grow: 1;
