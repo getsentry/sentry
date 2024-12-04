@@ -473,14 +473,14 @@ class FingerprintMatch:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls, obj: list[str]) -> Self:
-        key = obj[0]
+    def _from_config_structure(cls, matcher: list[str]) -> Self:
+        key = matcher[0]
         if key.startswith("!"):
             key = key[1:]
             negated = True
         else:
             negated = False
-        return cls(key, obj[1], negated)
+        return cls(key, matcher[1], negated)
 
     @property
     def text(self) -> str:
