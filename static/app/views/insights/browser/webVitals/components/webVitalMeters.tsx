@@ -27,9 +27,6 @@ type Props = {
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
-  // In the trace view, the web vitals correspond to single events, not aggregate data
-  // This prop provides the flexibility to render both cases
-  isAggregateMode?: boolean;
 };
 
 const WEB_VITALS_METERS_CONFIG = {
@@ -60,7 +57,6 @@ export default function WebVitalMeters({
   projectData,
   projectScore,
   showTooltip = true,
-  isAggregateMode = true,
 }: Props) {
   const theme = useTheme();
 
@@ -78,10 +74,7 @@ export default function WebVitalMeters({
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
-      const webVitalKey = isAggregateMode
-        ? `p75(measurements.${webVital})`
-        : `measurements.${webVital})`;
-
+      const webVitalKey = `p75(measurements.${webVital})`;
       const score = projectScore[`${webVital}Score`];
       const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
 
@@ -117,6 +110,7 @@ type VitalMeterProps = {
   meterValue: number | undefined;
   color: string;
   onClick?: (webVital: WebVitals) => void;
+  isAggregateMode?: boolean;
 };
 
 export function VitalMeter({
@@ -126,6 +120,7 @@ export function VitalMeter({
   meterValue,
   color,
   onClick,
+  isAggregateMode = true,
 }: VitalMeterProps) {
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
   const webVitalExists = score !== undefined;
@@ -178,6 +173,7 @@ export function VitalMeter({
       webVitalExists={webVitalExists}
       meterBody={meterBody}
       onClick={onClick}
+      isAggregateMode={isAggregateMode}
     />
   );
 }
@@ -187,6 +183,7 @@ type VitalContainerProps = {
   webVital: WebVitals;
   webVitalExists: boolean;
   onClick?: (webVital: WebVitals) => void;
+  isAggregateMode?: boolean;
 };
 
 function VitalContainer({
@@ -194,6 +191,7 @@ function VitalContainer({
   webVitalExists,
   meterBody,
   onClick,
+  isAggregateMode = true,
 }: VitalContainerProps) {
   return (
     <MeterBarContainer
@@ -205,8 +203,9 @@ function VitalContainer({
       {webVitalExists && meterBody}
       {!webVitalExists && (
         <StyledTooltip
-          title={tct('No [webVital] data found in this project.', {
+          title={tct('No [webVital] data found in this [selection].', {
             webVital: webVital.toUpperCase(),
+            selection: isAggregateMode ? 'project' : 'trace',
           })}
         >
           {meterBody}

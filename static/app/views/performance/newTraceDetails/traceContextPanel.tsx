@@ -93,6 +93,7 @@ export function TraceContextPanel({tree}: Props) {
             meterValue={undefined}
             color={theme.charts.getColorPalette(3)[index]}
             showTooltip
+            isAggregateMode={false}
           />
         );
       }
@@ -108,6 +109,7 @@ export function TraceContextPanel({tree}: Props) {
           meterValue={vital.measurement.value}
           showTooltip
           color={colors[index]}
+          isAggregateMode={false}
         />
       );
     });
