@@ -6,8 +6,12 @@ describe('isLowConfidenceTimeSeries', () => {
     it('should return false when no data points have low confidence', () => {
       const eventsStats: EventsStats = {
         data: [
-          [1731556800, [{count: 100, confidence: 'high'}]],
-          [1731560400, [{count: 200, confidence: 'high'}]],
+          [1731556800, [{count: 100}]],
+          [1731560400, [{count: 200}]],
+        ],
+        confidence: [
+          [1731556800, [{count: 'high'}]],
+          [1731560400, [{count: 'high'}]],
         ],
       };
       expect(isLowConfidenceTimeSeries(eventsStats)).toBe(false);
@@ -15,8 +19,12 @@ describe('isLowConfidenceTimeSeries', () => {
     it('should return true when any data points have low confidence', () => {
       const eventsStats: EventsStats = {
         data: [
-          [1731556800, [{count: 100, confidence: 'low'}]],
-          [1731560400, [{count: 200, confidence: 'high'}]],
+          [1731556800, [{count: 100}]],
+          [1731560400, [{count: 200}]],
+        ],
+        confidence: [
+          [1731556800, [{count: 'low'}]],
+          [1731560400, [{count: 'high'}]],
         ],
       };
       expect(isLowConfidenceTimeSeries(eventsStats)).toBe(true);
@@ -28,14 +36,22 @@ describe('isLowConfidenceTimeSeries', () => {
       const multiSeriesEventsStats: MultiSeriesEventsStats = {
         a: {
           data: [
-            [1731556800, [{count: 100, confidence: 'high'}]],
-            [1731560400, [{count: 200, confidence: 'high'}]],
+            [1731556800, [{count: 100}]],
+            [1731560400, [{count: 200}]],
+          ],
+          confidence: [
+            [1731556800, [{count: 'high'}]],
+            [1731560400, [{count: 'high'}]],
           ],
         },
         b: {
           data: [
-            [1731556800, [{count: 100, confidence: 'high'}]],
-            [1731560400, [{count: 200, confidence: 'high'}]],
+            [1731556800, [{count: 100}]],
+            [1731560400, [{count: 200}]],
+          ],
+          confidence: [
+            [1731556800, [{count: 'high'}]],
+            [1731560400, [{count: 'high'}]],
           ],
         },
       };
@@ -45,14 +61,22 @@ describe('isLowConfidenceTimeSeries', () => {
       const multiSeriesEventsStats: MultiSeriesEventsStats = {
         a: {
           data: [
-            [1731556800, [{count: 100, confidence: 'low'}]],
-            [1731560400, [{count: 200, confidence: 'high'}]],
+            [1731556800, [{count: 100}]],
+            [1731560400, [{count: 200}]],
+          ],
+          confidence: [
+            [1731556800, [{count: 'low'}]],
+            [1731560400, [{count: 'high'}]],
           ],
         },
         b: {
           data: [
-            [1731556800, [{count: 100, confidence: 'high'}]],
-            [1731560400, [{count: 200, confidence: 'high'}]],
+            [1731556800, [{count: 100}]],
+            [1731560400, [{count: 200}]],
+          ],
+          confidence: [
+            [1731556800, [{count: 'high'}]],
+            [1731560400, [{count: 'high'}]],
           ],
         },
       };

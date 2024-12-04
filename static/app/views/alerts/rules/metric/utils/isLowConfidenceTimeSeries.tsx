@@ -57,7 +57,7 @@ export function determineSeriesConfidence(
     return null;
   }
 
-  if (lowConfidence / perDataUnitConfidence.length < threshold) {
+  if (lowConfidence / perDataUnitConfidence.length > threshold) {
     return 'low';
   }
 
