@@ -9,9 +9,13 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 class TestProcessWorkflows(BaseWorkflowTest):
     def setUp(self):
-        self.workflow, self.detector, self.detector_workflow, self.workflow_triggers = (
-            self.create_detector_and_workflow()
-        )
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
+
         self.error_workflow, self.error_detector, self.detector_workflow_error, _ = (
             self.create_detector_and_workflow(
                 name_prefix="error",
@@ -36,20 +40,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
 class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def setUp(self):
-        self.workflow, self.detector, self.detector_workflow, self.workflow_triggers = (
-            self.create_detector_and_workflow()
-        )
+        (
+            self.workflow,
+            self.detector,
+            self.detector_workflow,
+            self.workflow_triggers,
+        ) = self.create_detector_and_workflow()
 
-        self.action_group = self.create_data_condition_group(logic_type="any-short")
-        self.workflow_action_group = self.create_workflow_data_condition_group(
-            self.workflow, self.action_group
-        )
-
-        self.action = self.create_action(type="SendNotificationAction", data={"message": "test"})
-        self.create_data_condition_group_action(
-            condition_group=self.action_group,
-            action=self.action,
-        )
+        self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence_data(evidence_data={"detector_id": self.detector.id})
@@ -72,6 +70,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__filtered(self):
+        # Add a filter to the action's group
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.GROUP_EVENT_ATTR_COMPARISON,

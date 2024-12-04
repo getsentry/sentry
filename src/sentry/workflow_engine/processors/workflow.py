@@ -30,7 +30,6 @@ def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set
 def evaluate_workflow_action_filters(
     workflows: set[Workflow], evt: GroupEvent
 ) -> BaseQuerySet[Action]:
-    # TODO - decide if this should live here, or in procesors/action.py
     filtered_action_groups: set[DataConditionGroup] = set()
 
     # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
@@ -52,7 +51,7 @@ def evaluate_workflow_action_filters(
     ).distinct()
 
 
-def process_workflows(evt: GroupEvent):
+def process_workflows(evt: GroupEvent) -> set[Workflow]:
     # Check to see if the GroupEvent has an issue occurrence
     detector = get_detector_by_event(evt)
 
@@ -61,7 +60,10 @@ def process_workflows(evt: GroupEvent):
 
     # get all the triggered_workflow_groups from the triggered_workflows <=> workflow_data_condition_groups
     # call `evaluate_workflow_actions` on the triggered groups, more or less the same as this stuff, but not triggered by an event.. is it?
-    # triggered_actions = evaluate_workflow_action_filters(triggered_workflows, evt)
+    actions = set(evaluate_workflow_action_filters(triggered_workflows, evt))
 
-    # TODO - return the triggered_workflows or triggered_actions, decide on the location of the processing
+    for action in actions:
+        action.trigger(evt, detector)
+
+    # TODO decide if this should return a tuple or not.
     return triggered_workflows

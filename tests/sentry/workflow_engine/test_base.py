@@ -6,7 +6,13 @@ from sentry.models.group import Group
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
-from sentry.workflow_engine.models import DataConditionGroup, Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -93,6 +99,29 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         )
 
         return workflow, detector, detector_workflow, workflow_triggers
+
+    def create_workflow_action(
+        self,
+        workflow: Workflow,
+        **kwargs,
+    ) -> tuple[DataConditionGroup, Action]:
+        action_group = self.create_data_condition_group(logic_type="any-short")
+
+        action = self.create_action(
+            type=Action.Type.NOTIFICATION,
+            data={"message": "test"},
+            **kwargs,
+        )
+
+        self.create_data_condition_group_action(
+            condition_group=action_group,
+            action=action,
+        )
+
+        # Add the action group to the workflow
+        self.create_workflow_data_condition_group(workflow, action_group)
+
+        return action_group, action
 
     def create_group_event(self, project=None, occurrence=None) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project
