@@ -4,6 +4,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.workflow_engine.actions.notification_action.types import NotificationType
 
 
 @region_silo_model
@@ -21,8 +22,36 @@ class Action(DefaultFieldsModel):
 
     # TODO (@saponifi3d): Don't hardcode these values, and these are incomplete values
     class Type(models.TextChoices):
-        Notification = "SendNotificationAction"
-        TriggerWorkflow = "TriggerWorkflowAction"
+        NOTIFICATION_SLACK = f"notification.{NotificationType.Slack}", "Slack Notification"
+        NOTIFICATION_DISCORD = f"notification.{NotificationType.Discord}", "Discord Notification"
+        NOTIFICATION_MSTEAMS = f"notification.{NotificationType.MSTeams}", "MS Teams Notification"
+        NOTIFICATION_PAGERDUTY = (
+            f"notification.{NotificationType.PagerDuty}",
+            "PagerDuty Notification",
+        )
+        NOTIFICATION_OPSGENIE = f"notification.{NotificationType.Opsgenie}", "Opsgenie Notification"
+        NOTIFICATION_GITHUB = f"notification.{NotificationType.GitHub}", "GitHub Notification"
+        NOTIFICATION_GITHUB_ENTERPRISE = (
+            f"notification.{NotificationType.GithubEnterprise}",
+            "GitHub Enterprise Notification",
+        )
+        NOTIFICATION_GITLAB = f"notification.{NotificationType.Gitlab}", "GitLab Notification"
+        NOTIFICATION_JIRA = f"notification.{NotificationType.Jira}", "Jira Notification"
+        NOTIFICATION_JIRA_SERVER = (
+            f"notification.{NotificationType.JiraServer}",
+            "Jira Server Notification",
+        )
+        NOTIFICATION_AZURE_DEVOPS = (
+            f"notification.{NotificationType.AzureDevOps}",
+            "Azure DevOps Notification",
+        )
+        NOTIFICATION_SENTRY_APP = (
+            f"notification.{NotificationType.SentryApp}",
+            "Sentry App Notification",
+        )
+        NOTIFICATION_EMAIL = f"notification.{NotificationType.Email}", "Email Notification"
+
+        TRIGGER_WORKFLOW = "trigger_workflow", "Trigger Workflow"
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)
