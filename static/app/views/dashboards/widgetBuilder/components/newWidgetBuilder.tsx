@@ -29,7 +29,7 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (widget: Widget) => void;
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
 function WidgetBuilderV2({

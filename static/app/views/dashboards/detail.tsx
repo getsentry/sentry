@@ -752,6 +752,48 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  handleSaveWidget = async ({
+    index,
+    widget,
+  }: {
+    index: number | undefined;
+    widget: Widget;
+  }) => {
+    if (
+      !this.props.organization.features.includes('dashboards-widget-builder-redesign')
+    ) {
+      return;
+    }
+
+    const currentDashboard = this.state.modifiedDashboard ?? this.props.dashboard;
+
+    // Get the "base" widget and merge the changes to persist information like tempIds and layout
+    const baseWidget = defined(index) ? currentDashboard.widgets[index] : {};
+    const mergedWidget = {...baseWidget, ...widget};
+
+    const newWidgets = defined(index)
+      ? [
+          ...currentDashboard.widgets.slice(0, index),
+          mergedWidget,
+          ...currentDashboard.widgets.slice(index + 1),
+        ]
+      : [...currentDashboard.widgets, mergedWidget];
+
+    try {
+      if (!this.isEditingDashboard) {
+        // If we're not in edit mode, send a request to update the dashboard
+        await this.handleUpdateWidgetList(newWidgets);
+      } else {
+        // If we're in edit mode, update the edit state
+        this.onUpdateWidget(newWidgets);
+      }
+
+      this.handleCloseWidgetBuilder();
+    } catch (error) {
+      addErrorMessage(t('Failed to save widget'));
+    }
+  };
+
   /* Handles POST request for Edit Access Selector Changes */
   onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
     const {dashboard, api, organization} = this.props;
@@ -768,6 +810,18 @@ class DashboardDetail extends Component<Props, State> {
         });
         return newDashboard;
       }
+    );
+  };
+
+  handleCloseWidgetBuilder = () => {
+    const {organization, router, location, params} = this.props;
+    this.setState({isWidgetBuilderOpen: false});
+    router.push(
+      getDashboardLocation({
+        organization,
+        dashboardId: params.dashboardId,
+        location,
+      })
     );
   };
 
@@ -1249,22 +1303,13 @@ class DashboardDetail extends Component<Props, State> {
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
-                                    onClose={() => {
-                                      this.setState({isWidgetBuilderOpen: false});
-                                      router.push(
-                                        getDashboardLocation({
-                                          organization,
-                                          dashboardId,
-                                          location,
-                                        })
-                                      );
-                                    }}
+                                    onClose={this.handleCloseWidgetBuilder}
                                     dashboardFilters={
                                       getDashboardFiltersFromURL(location) ??
                                       dashboard.filters
                                     }
                                     dashboard={modifiedDashboard ?? dashboard}
-                                    onSave={() => {}}
+                                    onSave={this.handleSaveWidget}
                                   />
                                 </Fragment>
                               </WidgetViewerContext.Provider>

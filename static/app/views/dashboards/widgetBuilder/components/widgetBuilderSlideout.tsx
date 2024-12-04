@@ -17,7 +17,7 @@ import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/com
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (widget: Widget) => void;
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
 function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutProps) {
@@ -26,7 +26,11 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
   const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
 
   return (
-    <SlideOverPanel collapsed={!isOpen} slidePosition="left">
+    <SlideOverPanel
+      collapsed={!isOpen}
+      slidePosition="left"
+      data-test-id="widget-slideout"
+    >
       <SlideoutHeaderWrapper>
         <SlideoutTitle>{title}</SlideoutTitle>
         <CloseButton
