@@ -11,9 +11,9 @@ import {space} from 'sentry/styles/space';
 
 function NewSecretHandler({
   secret,
-  handleGoBack,
+  onGoBack,
 }: {
-  handleGoBack: MouseEventHandler;
+  onGoBack: MouseEventHandler;
   secret: string;
 }) {
   return (
@@ -39,7 +39,7 @@ function NewSecretHandler({
 
       <PanelItem>
         <ButtonWrapper>
-          <Button onClick={handleGoBack} priority="primary">
+          <Button onClick={onGoBack} priority="primary">
             {t('Done')}
           </Button>
         </ButtonWrapper>

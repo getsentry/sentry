@@ -1,10 +1,11 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -38,7 +39,7 @@ function NewProviderForm({
   organization,
   onCreatedSecret,
 }: {
-  onCreatedSecret: (secret: string) => void;
+  onCreatedSecret: ((secret: string) => void) | undefined;
   organization: Organization;
 }) {
   const initialData = {
@@ -74,7 +75,7 @@ function NewProviderForm({
 
     onSuccess: (_response, {secret}) => {
       addSuccessMessage(t('Added provider and secret.'));
-      onCreatedSecret(secret);
+      onCreatedSecret?.(secret);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -90,7 +91,7 @@ function NewProviderForm({
     <Form
       apiMethod="POST"
       initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret`}
+      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
       onSubmit={({provider, secret}) => {
         submitSecret({
           provider,
@@ -100,6 +101,7 @@ function NewProviderForm({
       onCancel={handleGoBack}
       submitLabel={t('Add Provider')}
       requireChanges
+      submitDisabled={!onCreatedSecret}
     >
       <SelectField
         required
@@ -137,41 +139,47 @@ export function OrganizationFeatureFlagsNewSecet({
   }, [organization.slug]);
 
   return (
-    <div>
-      <SentryDocumentTitle title={t('Add New Provider')} />
-      <SettingsPageHeader title={t('Add New Provider')} />
+    <Access access={['org:write']}>
+      {({hasAccess}) => (
+        <Fragment>
+          <SentryDocumentTitle title={t('Add New Provider')} />
+          <SettingsPageHeader title={t('Add New Provider')} />
 
-      <TextBlock>
-        {t(
-          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
-            ),
-          }
-        )}
-      </TextBlock>
+          <TextBlock>
+            {t(
+              'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
+            )}
+          </TextBlock>
+          <TextBlock>
+            {tct(
+              'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
+                ),
+              }
+            )}
+          </TextBlock>
 
-      <Panel>
-        <PanelHeader>{t('Add New Provider')}</PanelHeader>
+          <Panel>
+            <PanelHeader>{t('Add New Provider')}</PanelHeader>
 
-        <PanelBody>
-          {newSecret ? (
-            <NewSecretHandler handleGoBack={handleGoBack} secret={newSecret} />
-          ) : (
-            <NewProviderForm
-              organization={organization}
-              onCreatedSecret={(secret: string) => setNewSecret(secret)}
-            />
-          )}
-        </PanelBody>
-      </Panel>
-    </div>
+            <PanelBody>
+              {newSecret ? (
+                <NewSecretHandler onGoBack={handleGoBack} secret={newSecret} />
+              ) : (
+                <NewProviderForm
+                  organization={organization}
+                  onCreatedSecret={
+                    hasAccess ? (secret: string) => setNewSecret(secret) : undefined
+                  }
+                />
+              )}
+            </PanelBody>
+          </Panel>
+        </Fragment>
+      )}
+    </Access>
   );
 }
 

@@ -8,6 +8,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -123,15 +124,21 @@ export function OrganizationFeatureFlagsIndex({
     },
   });
 
-  const addNewProvider = (
-    <LinkButton
-      priority="primary"
-      size="sm"
-      to={`/settings/${organization.slug}/feature-flags/new-provider/`}
-      data-test-id="create-new-provider"
+  const addNewProvider = hasAccess => (
+    <Tooltip
+      title={t('You must be an organization owner, manager or admin to add a provider.')}
+      disabled={hasAccess}
     >
-      {t('Add New Provider')}
-    </LinkButton>
+      <LinkButton
+        priority="primary"
+        size="sm"
+        to={`/settings/${organization.slug}/feature-flags/new-provider/`}
+        data-test-id="create-new-provider"
+        disabled={!hasAccess}
+      >
+        {t('Add New Provider')}
+      </LinkButton>
+    </Tooltip>
   );
 
   return (
@@ -139,7 +146,10 @@ export function OrganizationFeatureFlagsIndex({
       {({hasAccess}) => (
         <Fragment>
           <SentryDocumentTitle title={t('Feature Flags')} />
-          <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider} />
+          <SettingsPageHeader
+            title={t('Feature Flags')}
+            action={addNewProvider(hasAccess)}
+          />
 
           <TextBlock>
             {t(

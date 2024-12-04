@@ -32,9 +32,7 @@ export function OrganizationFeatureFlagsProviderRow({
       </div>
 
       <DateTime>
-        <Fragment>
-          <TimeSince date={secret.createdAt} />
-        </Fragment>
+        <TimeSince date={secret.createdAt} />
       </DateTime>
 
       <Flex align="center">{isUserPending ? <LoadingIndicator mini /> : user?.name}</Flex>
