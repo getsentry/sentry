@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {t} from 'sentry/locale';
+import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 100;
@@ -29,15 +29,11 @@ export function TraceContextPanel({tree}: Props) {
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(DEFAULT_HEIGHT);
 
-  const hasWebVitals = tree.vital_types.has('web'); // && tree.vitals.filter(v => ALLOWED_VITALS.includes(v.key)).length > 0;
+  const hasWebVitals = tree.vital_types.has('web');
   const hasValidWebVitals = () => {
-    let hasValidVitals = false;
-
-    tree.vitals.forEach(v => {
-      hasValidVitals = v.some(vital => ALLOWED_VITALS.includes(vital.key));
-    });
-
-    return hasValidVitals;
+    return Array.from(tree.vitals.values()).some(vitalGroup =>
+      vitalGroup.some(vital => ALLOWED_VITALS.includes(vital.key))
+    );
   };
 
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -48,6 +44,7 @@ export function TraceContextPanel({tree}: Props) {
     setStartHeight(contextPaneHeight);
   };
 
+  // handle resizing the context panel
   useEffect(() => {
     const handleMouseUp = () => {
       setIsDragging(false);
@@ -83,11 +80,9 @@ export function TraceContextPanel({tree}: Props) {
       return null;
     }
 
-    console.dir(tree.vitals);
-
     return ALLOWED_VITALS.map((webVital, index) => {
       let vital: TraceTree.CollectedVital | undefined;
-      tree.vitals.forEach(v => (vital = v.find(vital => vital.key === webVital)));
+      tree.vitals.forEach(entry => (vital = entry.find(v => v.key === webVital)));
 
       if (!vital || !vital.score) {
         return (
@@ -167,6 +162,8 @@ const TraceContextContainer = styled('div')<{height: number}>`
   width: 100%;
   margin-top: ${space(1)};
   height: ${p => p.height}px;
+
+  ${p => p.height === 0 && 'display: none;'}
 `;
 
 const VitalMetersContainer = styled('div')`
@@ -186,5 +183,5 @@ const TraceTagsContainer = styled('div')`
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: 0 ${space(1)};
+  padding: 0 ${space(0.5)};
 `;
