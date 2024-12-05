@@ -6348,17 +6348,11 @@
     "table_name": "workflow_engine_alertruledetector",
     "uniques": [
       [
-        "alert_rule"
-      ],
-      [
         "alert_rule",
         "detector"
       ],
       [
         "detector",
-        "rule"
-      ],
-      [
         "rule"
       ]
     ]
@@ -6414,14 +6408,8 @@
     "table_name": "workflow_engine_alertruleworkflow",
     "uniques": [
       [
-        "alert_rule"
-      ],
-      [
         "alert_rule",
         "workflow"
-      ],
-      [
-        "rule"
       ],
       [
         "rule",
