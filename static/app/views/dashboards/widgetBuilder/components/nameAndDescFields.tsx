@@ -6,6 +6,7 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
@@ -15,7 +16,7 @@ function WidgetBuilderNameAndDescription() {
 
   return (
     <Fragment>
-      <Header>{t('Widget Name & Description')}</Header>
+      <SectionHeader title={t('Widget Name & Description')} />
       <StyledInput
         size="md"
         placeholder={t('Name')}
@@ -56,11 +57,6 @@ function WidgetBuilderNameAndDescription() {
 }
 
 export default WidgetBuilderNameAndDescription;
-
-const Header = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
-`;
 
 const StyledInput = styled(Input)`
   margin-bottom: ${space(1)};
