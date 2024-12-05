@@ -36,7 +36,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             "skip_project_ids",
             "only_delete",
             "enable_ingestion",
-            "process_skipped_projects",
+            "reprocess_backfilled_projects",
         }
 
         # Check for any disallowed keys
@@ -53,16 +53,16 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             else None
         )
         skip_project_ids = (
-            [int(i) for i in request.data["skip_project_ids"].split(",")]
-            if request.data.get("skip_project_ids")
-            else None
+            request.data["skip_project_ids"] if request.data.get("skip_project_ids") else None
         )
 
         # These overwrite the defaults of backfill_seer_grouping_records_for_project
         only_delete = True if request.data.get("only_delete") else False
         enable_ingestion = True if request.data.get("enable_ingestion") else False
-        # Notice that it reads as "process" rather than "skip", thus, it's the opposite of what you'd expect
-        skip_processed_projects = True if request.data.get("process_skipped_projects") else False
+        # Notice that it reads as "reprocess" rather than "skip", thus, it's the opposite of what you'd expect
+        skip_processed_projects = (
+            True if request.data.get("reprocess_backfilled_projects") else False
+        )
 
         if only_delete and enable_ingestion:
             return Response(
