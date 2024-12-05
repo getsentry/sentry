@@ -94,11 +94,8 @@ class Migration(CheckedMigration):
                 "db_table": "workflow_engine_alertruledetector",
                 "constraints": [
                     models.CheckConstraint(
-                        condition=models.Q(
-                            models.Q(("alert_rule__isnull", True), ("rule__isnull", False)),
-                            models.Q(("alert_rule__isnull", False), ("rule__isnull", True)),
-                            _connector="OR",
-                        ),
+                        condition=Q(rule__isnull=False, alert_rule__isnull=True)
+                          | Q(rule__isnull=True, alert_rule__isnull=False),
                         name="rule_or_alert_rule_detector",
                     )
                 ],
@@ -141,11 +138,8 @@ class Migration(CheckedMigration):
                 "db_table": "workflow_engine_alertruleworkflow",
                 "constraints": [
                     models.CheckConstraint(
-                        condition=models.Q(
-                            models.Q(("alert_rule__isnull", True), ("rule__isnull", False)),
-                            models.Q(("alert_rule__isnull", False), ("rule__isnull", True)),
-                            _connector="OR",
-                        ),
+                          condition=Q(rule__isnull=False, alert_rule__isnull=True)
+                          | Q(rule__isnull=True, alert_rule__isnull=False),
                         name="rule_or_alert_rule_workflow",
                     )
                 ],
