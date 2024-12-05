@@ -153,6 +153,7 @@ export function SpanSearchQueryBuilder({
 interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
   supportedAggregates?: AggregationKey[];
 }
 
@@ -164,6 +165,7 @@ export function EAPSpanSearchQueryBuilder({
   searchSource,
   numberTags,
   stringTags,
+  getFilterTokenWarning,
   supportedAggregates = [],
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
@@ -233,6 +235,7 @@ export function EAPSpanSearchQueryBuilder({
       fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
       onSearch={onSearch}
       onBlur={onBlur}
+      getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
