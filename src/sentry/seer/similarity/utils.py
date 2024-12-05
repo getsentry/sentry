@@ -17,6 +17,7 @@ MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
+        "csharp",
         "go",
         "java",
         "javascript",
@@ -138,7 +139,10 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "android-profiling-onboarding-1-install",
         "android-profiling-onboarding-3-configure-profiling",
         "android-profiling-onboarding-4-upload",
+        "csharp",
+        "csharp-aspnetcore",
         "dart",
+        "dotnet",
         "flutter",
         "groovy",
         "java",
