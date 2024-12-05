@@ -1,7 +1,9 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Literal
 
+from dateutil.tz import tz
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -147,6 +149,10 @@ def simple_measurements_field(
         internal_name=field,
         search_type=search_type,
     )
+
+
+def datetime_processor(datetime_string: str) -> str:
+    return datetime.fromisoformat(datetime_string).replace(tzinfo=tz.tzutc()).isoformat()
 
 
 SPAN_COLUMN_DEFINITIONS = {
@@ -296,6 +302,17 @@ SPAN_COLUMN_DEFINITIONS = {
             internal_name="http.response_transfer_size",
             search_type="byte",
         ),
+        ResolvedColumn(
+            public_alias="sampling_rate",
+            internal_name="sentry.sampling_factor",
+            search_type="percentage",
+        ),
+        ResolvedColumn(
+            public_alias="timestamp",
+            internal_name="sentry.timestamp",
+            search_type="string",
+            processor=datetime_processor,
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
@@ -306,7 +323,6 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("sdk.version"),
         simple_sentry_field("span.status_code"),
         simple_sentry_field("span_id"),
-        simple_sentry_field("timestamp"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
         simple_sentry_field("transaction.op"),
@@ -438,7 +454,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -448,7 +464,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -553,7 +569,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],
@@ -563,7 +579,7 @@ SPAN_FUNCTION_DEFINITIONS = {
         default_search_type="duration",
         arguments=[
             ArgumentDefinition(
-                argument_types=["byte", "duration", "millisecond", "number"],
+                argument_types=["byte", "duration", "millisecond", "number", "percentage"],
                 default_arg="span.duration",
             )
         ],

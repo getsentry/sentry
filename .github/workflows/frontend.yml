@@ -129,7 +129,11 @@ jobs:
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          if [ ${{ github.ref }} = 'refs/heads/master' ]; then
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit --coverage
+          else
+            JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          fi
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.

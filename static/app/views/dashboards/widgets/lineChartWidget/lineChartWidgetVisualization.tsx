@@ -5,17 +5,19 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
+import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
@@ -31,7 +33,8 @@ export interface LineChartWidgetVisualizationProps {
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
-  const chartRef = useRef<ReactEchartsRef>(null);
+  const chartRef = useRef<EChartsReactCore | null>(null);
+  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
   const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
@@ -135,7 +138,13 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
   return (
     <BaseChart
-      ref={chartRef}
+      ref={e => {
+        chartRef.current = e;
+
+        if (e?.getEchartsInstance) {
+          registerWithWidgetSyncContext(e.getEchartsInstance());
+        }
+      }}
       autoHeightResize
       series={[
         ...completeSeries.map(timeserie => {

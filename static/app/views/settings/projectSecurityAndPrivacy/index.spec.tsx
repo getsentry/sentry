@@ -87,4 +87,22 @@ describe('projectSecurityAndPrivacy', function () {
       screen.getByRole('checkbox', {name: 'Enable server-side data scrubbing'})
     ).toBeChecked();
   });
+
+  it('disables fields when missing project:write access', function () {
+    const {organization} = initializeOrg({
+      organization: {
+        access: [], // Remove all access
+      },
+    });
+    const project = ProjectFixture();
+
+    render(<ProjectSecurityAndPrivacy project={project} organization={organization} />);
+
+    // Check that the data scrubber toggle is disabled
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Enable server-side data scrubbing',
+      })
+    ).toBeDisabled();
+  });
 });

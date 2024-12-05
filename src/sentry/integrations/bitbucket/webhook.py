@@ -1,5 +1,6 @@
 import ipaddress
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -14,7 +15,9 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
@@ -27,7 +30,13 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket"
 
 
-class Webhook:
+class Webhook(ABC):
+    @property
+    @abstractmethod
+    def event_type(self) -> IntegrationWebhookEventType:
+        raise NotImplementedError
+
+    @abstractmethod
     def __call__(self, organization: Organization, event: Mapping[str, Any]):
         raise NotImplementedError
 
@@ -61,6 +70,11 @@ class Webhook:
 
 class PushEventWebhook(Webhook):
     # https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-Push
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
+
     def __call__(self, organization: Organization, event: Mapping[str, Any]):
         authors = {}
 
@@ -186,5 +200,13 @@ class BitbucketWebhookEndpoint(Endpoint):
             )
             return HttpResponse(status=400)
 
-        handler()(organization, event)
+        event_handler = handler()
+
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key="bitbucket",
+        ).capture():
+            event_handler(organization, event)
+
         return HttpResponse(status=204)

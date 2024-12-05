@@ -844,6 +844,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
 `;
 
 const CountsWrapper = styled('div')`
+  position: relative;
   display: flex;
   flex-direction: column;
 `;
