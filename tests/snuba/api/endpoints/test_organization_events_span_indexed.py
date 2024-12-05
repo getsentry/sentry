@@ -966,7 +966,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
-    def test_aggregate_numeric_attr_weighted(self):
+    def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
                 self.create_span(
@@ -1217,79 +1217,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         assert data[1]["description"] == "bar"
         assert data[2]["tags[foo,number]"] == 71
         assert data[2]["description"] == "baz"
-
-    def test_aggregate_numeric_attr(self):
-        self.store_spans(
-            [
-                self.create_span(
-                    {
-                        "description": "foo",
-                        "sentry_tags": {"status": "success"},
-                        "tags": {"bar": "bar1"},
-                    },
-                    start_ts=self.ten_mins_ago,
-                ),
-                self.create_span(
-                    {
-                        "description": "foo",
-                        "sentry_tags": {"status": "success"},
-                        "tags": {"bar": "bar2"},
-                    },
-                    measurements={"foo": {"value": 5}},
-                    start_ts=self.ten_mins_ago,
-                ),
-            ],
-            is_eap=self.is_eap,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "description",
-                    "count_unique(bar)",
-                    "count_unique(tags[bar])",
-                    "count_unique(tags[bar,string])",
-                    "count()",
-                    "count(span.duration)",
-                    "count(tags[foo,     number])",
-                    "sum(tags[foo,number])",
-                    "avg(tags[foo,number])",
-                    "p50(tags[foo,number])",
-                    "p75(tags[foo,number])",
-                    "p95(tags[foo,number])",
-                    "p99(tags[foo,number])",
-                    "p100(tags[foo,number])",
-                    "min(tags[foo,number])",
-                    "max(tags[foo,number])",
-                ],
-                "query": "",
-                "orderby": "description",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        assert data[0] == {
-            "description": "foo",
-            "count_unique(bar)": 2,
-            "count_unique(tags[bar])": 2,
-            "count_unique(tags[bar,string])": 2,
-            "count()": 2,
-            "count(span.duration)": 2,
-            "count(tags[foo,     number])": 1,
-            "sum(tags[foo,number])": 5.0,
-            "avg(tags[foo,number])": 5.0,
-            "p50(tags[foo,number])": 5.0,
-            "p75(tags[foo,number])": 5.0,
-            "p95(tags[foo,number])": 5.0,
-            "p99(tags[foo,number])": 5.0,
-            "p100(tags[foo,number])": 5.0,
-            "min(tags[foo,number])": 5.0,
-            "max(tags[foo,number])": 5.0,
-        }
 
     def test_margin_of_error(self):
         total_samples = 10
@@ -1591,10 +1518,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
-    @pytest.mark.xfail(reason="weighted functions will not be moved to the RPC")
-    def test_aggregate_numeric_attr_weighted(self):
-        super().test_aggregate_numeric_attr_weighted()
-
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -1672,14 +1595,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_margin_of_error(self):
         super().test_margin_of_error()
 
-    @pytest.mark.xfail(reason="rpc not handling attr_str vs attr_num with same alias")
-    def test_numeric_attr_without_space(self):
-        super().test_numeric_attr_without_space()
-
-    @pytest.mark.xfail(reason="rpc not handling attr_str vs attr_num with same alias")
-    def test_numeric_attr_with_spaces(self):
-        super().test_numeric_attr_with_spaces()
-
     @pytest.mark.xfail(reason="module not migrated over")
     def test_module_alias(self):
         super().test_module_alias()
@@ -1695,10 +1610,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="wip: not implemented yet")
     def test_other_category_span(self):
         super().test_other_category_span()
-
-    @pytest.mark.xfail(reason="wip: not implemented yet")
-    def test_queue_span(self):
-        super().test_queue_span()
 
     @pytest.mark.xfail(reason="wip: not implemented yet")
     def test_sentry_tags_syntax(self):
