@@ -245,6 +245,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router: chartsRouter,
@@ -270,6 +271,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
