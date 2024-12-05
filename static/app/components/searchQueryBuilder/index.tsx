@@ -83,6 +83,11 @@ export interface SearchQueryBuilderProps {
    */
   filterKeySections?: FilterKeySection[];
   /**
+   * A function that returns a warning message for a given filter key
+   * will only render a warning if the value is truthy
+   */
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
+  /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
@@ -195,6 +200,7 @@ export function SearchQueryBuilder({
   searchSource,
   showUnsubmittedIndicator,
   trailingItems,
+  getFilterTokenWarning,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -207,6 +213,7 @@ export function SearchQueryBuilder({
   const parsedQuery = useMemo(
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        getFilterTokenWarning,
         disallowFreeText,
         disallowLogicalOperators,
         disallowUnsupportedFilters,
@@ -223,6 +230,7 @@ export function SearchQueryBuilder({
       disallowWildcard,
       filterKeys,
       invalidMessages,
+      getFilterTokenWarning,
     ]
   );
 
