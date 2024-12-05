@@ -663,7 +663,7 @@ class Fixtures:
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
-    # workflow_engine action
+    # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
 
