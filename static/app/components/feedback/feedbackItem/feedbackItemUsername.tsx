@@ -55,12 +55,15 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   }
 
   const mailToHref = new URL(`mailto:${email}`);
-  mailToHref.searchParams.append('subject', `Following up from ${organization.name}`);
+  mailToHref.searchParams.append(
+    'subject',
+    encodeURIComponent(`Following up from ${organization.name}`)
+  );
   mailToHref.searchParams.append(
     'body',
     feedbackIssue.metadata.message
       .split('\n')
-      .map(s => `> ${s}`)
+      .map(s => encodeURIComponent(`> ${s}`))
       .join('\n')
   );
 
