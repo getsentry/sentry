@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -6,10 +7,12 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -20,7 +23,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete} from 'sentry/icons';
+import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -50,6 +53,7 @@ enum ResponseKeys {
   OWNER = 'createdBy',
   ACCESS = 'permissions',
   CREATED = 'dateCreated',
+  FAVORITE = 'isFavorited',
 }
 
 function DashboardTable({
@@ -60,20 +64,30 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder = organization.features.includes('dashboards-edit-access')
-    ? [
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-      ]
-    : [
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-      ];
+  const [favoritedStates, setFavoritedStates] = useState<Record<string, boolean>>(() =>
+    dashboards
+      ? dashboards.reduce(
+          (acc, dashboard) => {
+            acc[dashboard.id] = dashboard.isFavorited ?? false;
+            return acc;
+          },
+          {} as Record<string, boolean>
+        )
+      : {}
+  );
+
+  const columnOrder = [
+    ...(organization.features.includes('dashboards-favourite')
+      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: COL_WIDTH_UNDEFINED}]
+      : []),
+    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+    ...(organization.features.includes('dashboards-edit-access')
+      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
+      : []),
+    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+  ];
 
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -109,6 +123,28 @@ function DashboardTable({
     }
   }
 
+  const handleFavorite = async (dashboardId: string) => {
+    try {
+      setFavoritedStates({
+        ...favoritedStates,
+        [dashboardId]: !favoritedStates[dashboardId],
+      });
+      // console.log(favoritedStates[dashboardId]);
+      await updateDashboardFavorite(
+        api,
+        organization.slug,
+        dashboardId,
+        !favoritedStates[dashboardId]
+      );
+    } catch (error) {
+      // Revert the state if the API call fails
+      setFavoritedStates({
+        ...favoritedStates,
+        [dashboardId]: favoritedStates[dashboardId],
+      });
+    }
+  };
+
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
   const queryLocation = {
@@ -121,6 +157,27 @@ function DashboardTable({
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
   ) => {
+    if (column.key === ResponseKeys.FAVORITE) {
+      const isFavorited = favoritedStates[dataRow.id];
+      return (
+        <Feature features="dashboards-favourite">
+          <Button
+            size="zero"
+            aria-label={'dashboards-favourite'}
+            icon={
+              <IconStar
+                color={isFavorited ? 'yellow300' : 'gray300'}
+                isSolid={isFavorited}
+                aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+              />
+            }
+            onClick={() => handleFavorite(dataRow.id)}
+          />
+        </Feature>
+      );
+    }
+
     if (column.key === ResponseKeys.NAME) {
       return (
         <Link
