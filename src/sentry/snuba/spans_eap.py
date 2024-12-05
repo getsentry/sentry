@@ -97,6 +97,7 @@ def timeseries_query(
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -114,6 +115,7 @@ def timeseries_query(
             selected_columns=columns,
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         result = querybuilder.run_query(referrer, query_source=query_source)
