@@ -17,6 +17,7 @@ import type {User} from 'sentry/types/user';
 interface Props {
   dashboardId: string;
   detail: React.ReactNode;
+  onFavorite: (isFavorited: boolean) => void;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];
@@ -24,7 +25,6 @@ interface Props {
   dateStatus?: React.ReactNode;
   isFavorited?: boolean;
   onEventClick?: () => void;
-  onFavorite?: () => void;
   renderContextMenu?: () => React.ReactNode;
 }
 
@@ -49,6 +49,7 @@ function DashboardCard({
   // Fetch the theme to set the `InteractionStateLayer` color. Otherwise it will
   // use the `currentColor` of the `Link`, which is blue, and not correct
   const theme = useTheme();
+
   return (
     <CardWithoutMargin>
       <CardLink
@@ -92,17 +93,28 @@ function DashboardCard({
             icon={
               <IconStar
                 isSolid={favorited}
-                color={favorited ? 'yellow300' : 'subText'}
+                color={favorited ? 'yellow300' : 'gray300'}
                 size="sm"
                 onClick={() => {
-                  setFavorited(!favorited);
-                  onFavorite?.();
+                  // setFavorited(!favorited);
+                  // onFavorite?.();
                 }}
+                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+                data-test-id={favorited ? 'yellow-star' : 'empty-star'}
               />
             }
-            aria-label="wfd"
             size="zero"
             borderless
+            aria-label={'dashboards-favorite'}
+            onClick={async () => {
+              try {
+                setFavorited(!favorited);
+                await onFavorite(!favorited);
+              } catch (error) {
+                // If the api call fails, revert the state
+                setFavorited(favorited);
+              }
+            }}
           />
         </Feature>
         {renderContextMenu?.()}

@@ -102,22 +102,11 @@ function DashboardGrid({
     }
   }
 
-  async function handleFavorite(dashboard: DashboardListItem) {
-    // const oldValue = dashboard.isFavorited;
-    dashboard.isFavorited = !dashboard.isFavorited;
-    onDashboardsChange();
-
+  async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
     try {
-      await updateDashboardFavorite(
-        api,
-        organization.slug,
-        dashboard.id,
-        dashboard.isFavorited
-      );
-      onDashboardsChange();
+      await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
     } catch (error) {
-      // dashboard.isFavorited = oldValue;
-      addErrorMessage(t('Error favoriting dashboard'));
+      throw error;
     }
   }
 
@@ -211,7 +200,7 @@ function DashboardGrid({
           renderContextMenu={() => renderDropdownMenu(dashboard)}
           dashboardId={dashboard.id}
           isFavorited={dashboard.isFavorited}
-          onFavorite={() => handleFavorite(dashboard)}
+          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
         />
       );
     });
