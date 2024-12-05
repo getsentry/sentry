@@ -253,7 +253,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "access token from Bitbucket")
 
-        self.assert_failure_metric(mock_record, error_msg)
+        assert_failure_metric(mock_record, error_msg)
 
     @responses.activate
     def test_authentication_success(self):
