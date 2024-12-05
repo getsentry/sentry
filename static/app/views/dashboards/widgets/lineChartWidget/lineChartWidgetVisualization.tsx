@@ -131,6 +131,9 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      valueFormatter: value => {
+        return formatChartValue(value, type, unit);
+      },
       truncate: true,
       utc: props.utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -189,9 +192,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           type: 'cross',
         },
         formatter,
-        valueFormatter: value => {
-          return formatChartValue(value, type, unit);
-        },
       }}
       yAxis={{
         axisLabel: {
