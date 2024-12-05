@@ -229,7 +229,6 @@ function getInsightsModuleBreadcrumbs(
     moduleName = TRACE_SOURCE_TO_MODULE[location.query.source] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
-      preservePageFilters: false,
       to: getBreadCrumbTarget(
         `${moduleURLBuilder(moduleName, view)}/`,
         location.query,
