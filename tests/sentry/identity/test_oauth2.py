@@ -12,9 +12,9 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import assert_failure_metric
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 

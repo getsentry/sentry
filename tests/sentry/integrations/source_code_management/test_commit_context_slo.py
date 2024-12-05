@@ -6,12 +6,9 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.users.models.identity import Identity
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_halt_metric,
-)
 
 
 class MockCommitContextIntegration(CommitContextIntegration):

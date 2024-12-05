@@ -7,7 +7,7 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -16,12 +16,6 @@ from sentry.users.models.identity import Identity, IdentityProvider
 @control_silo_test
 class BitbucketServerIntegrationTest(IntegrationTestCase):
     provider = BitbucketServerIntegrationProvider
-
-    def assert_failure_metric(self, mock_record, error_msg):
-        (event_failures,) = (
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
-        )
-        assert event_failures.args[1] == error_msg
 
     def test_config_view(self):
         resp = self.client.get(self.init_path)
@@ -114,7 +108,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "request token from Bitbucket")
         self.assertContains(resp, "Timed out")
 
-        self.assert_failure_metric(
+        assert_failure_metric(
             mock_record, "Timed out attempting to reach host: bitbucket.example.com"
         )
 
@@ -142,7 +136,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "request token from Bitbucket")
 
-        self.assert_failure_metric(mock_record, "")
+        assert_failure_metric(mock_record, "")
 
     @responses.activate
     def test_authentication_request_token_redirect(self):
@@ -210,7 +204,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "access token from Bitbucket")
 
-        self.assert_failure_metric(mock_record, error_msg)
+        assert_failure_metric(mock_record, error_msg)
 
     def install_integration(self):
         # Get config page
@@ -259,7 +253,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "access token from Bitbucket")
 
-        self.assert_failure_metric(mock_record, error_msg)
+        assert_failure_metric(mock_record, error_msg)
 
     @responses.activate
     def test_authentication_success(self):
