@@ -241,7 +241,11 @@ function TagDetailsValue({
 }) {
   const valueComponent =
     tagKey === 'user' ? (
-      <UserBadge user={{...tagValue, id: tagValue.id ?? ''}} avatarSize={20} hideEmail />
+      <UserBadge
+        user={{...tagValue, id: tagValue.id ?? tagValue.value}}
+        avatarSize={20}
+        hideEmail
+      />
     ) : (
       <DeviceName value={tagValue.value} />
     );
