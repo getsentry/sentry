@@ -13,6 +13,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
@@ -83,7 +84,16 @@ function ExploreContentImpl({}: ExploreContentProps) {
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Traces')}</Layout.Title>
+              <Layout.Title>
+                {t('Traces')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                  title={t(
+                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                  )}
+                  linkLabel={t('Read the Discussion')}
+                />
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
