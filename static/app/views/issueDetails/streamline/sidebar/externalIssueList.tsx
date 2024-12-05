@@ -195,7 +195,7 @@ const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
   padding: ${space(0.5)} ${space(0.75)};
-  border: 1px solid ${p => p.theme.subText};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   font-weight: normal;
 `;
