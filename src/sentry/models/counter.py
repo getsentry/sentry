@@ -45,8 +45,7 @@ def increment_project_counter(project, delta=1, using="default"):
     # To prevent the statement_timeout leaking into the session we need to use
     # set local which can be used only within a transaction
     with transaction.atomic(using=using):
-        cur = connections[using].cursor()
-        try:
+        with connections[using].cursor() as cur:
             statement_timeout = None
             if settings.SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT:
                 # WARNING: This is not a proper fix and should be removed once
@@ -83,9 +82,6 @@ def increment_project_counter(project, delta=1, using="default"):
                 )
 
             return project_counter
-
-        finally:
-            cur.close()
 
 
 # this must be idempotent because it seems to execute twice
