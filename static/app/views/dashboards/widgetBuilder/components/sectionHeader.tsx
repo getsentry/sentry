@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -7,13 +6,19 @@ import {space} from 'sentry/styles/space';
 
 interface SectionHeaderProps {
   title: React.ReactNode;
+  className?: string;
   optional?: boolean;
   tooltipText?: React.ReactNode;
 }
 
-export function SectionHeader({tooltipText, title, optional}: SectionHeaderProps) {
+export function SectionHeader({
+  tooltipText,
+  title,
+  optional,
+  className,
+}: SectionHeaderProps) {
   return (
-    <Fragment>
+    <HeaderWrapper>
       <Tooltip
         title={tooltipText}
         disabled={!tooltipText}
@@ -22,10 +27,10 @@ export function SectionHeader({tooltipText, title, optional}: SectionHeaderProps
         isHoverable
         showUnderline
       >
-        <StyledHeader>{title}</StyledHeader>
+        <StyledHeader className={className}>{title}</StyledHeader>
       </Tooltip>
       {optional && <OptionalHeader>{t('(optional)')}</OptionalHeader>}
-    </Fragment>
+    </HeaderWrapper>
   );
 }
 
@@ -39,4 +44,10 @@ const OptionalHeader = styled('h6')`
   color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
+`;
+
+const HeaderWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(0.5)};
 `;

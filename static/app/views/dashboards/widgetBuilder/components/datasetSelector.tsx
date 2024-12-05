@@ -33,7 +33,7 @@ function WidgetBuilderDatasetSelector() {
 
   return (
     <Fragment>
-      <SectionHeader
+      <StyledSectionHeader
         title={t('Dataset')}
         tooltipText={tct(
           `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
@@ -73,4 +73,8 @@ const FeatureBadgeAlignmentWrapper = styled('div')`
     position: relative;
     top: -1px;
   }
+`;
+
+const StyledSectionHeader = styled(SectionHeader)`
+  margin-bottom: ${space(2)};
 `;

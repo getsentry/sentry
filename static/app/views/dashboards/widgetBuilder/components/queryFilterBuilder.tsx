@@ -29,19 +29,17 @@ function WidgetBuilderQueryFilterBuilder() {
 
   return (
     <Fragment>
-      <HeaderWrapper>
-        <SectionHeader
-          title={t('Filter')}
-          tooltipText={
-            canAddSearchConditions
-              ? t(
-                  'Filter down your search here. You can add multiple queries to compare data for each overlay'
-                )
-              : t('Filter down your search here')
-          }
-          optional
-        />
-      </HeaderWrapper>
+      <SectionHeader
+        title={t('Filter')}
+        tooltipText={
+          canAddSearchConditions
+            ? t(
+                'Filter down your search here. You can add multiple queries to compare data for each overlay'
+              )
+            : t('Filter down your search here')
+        }
+        optional
+      />
       {!state.query?.length ? (
         <QueryFieldRowWrapper key={0}>
           <QueryField
@@ -155,10 +153,4 @@ const QueryFieldRowWrapper = styled('div')`
 
 const LegendAliasInput = styled(Input)`
   width: 33%;
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
 `;
