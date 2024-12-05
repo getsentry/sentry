@@ -1,22 +1,28 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
+import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;
+  onFavorite: (isFavorited: boolean) => void;
   renderWidgets: () => React.ReactNode;
   title: string;
   to: LinkProps['to'];
   createdBy?: User;
   dateStatus?: React.ReactNode;
+  isFavorited?: boolean;
   onEventClick?: () => void;
   renderContextMenu?: () => React.ReactNode;
 }
@@ -30,7 +36,11 @@ function DashboardCard({
   to,
   onEventClick,
   renderContextMenu,
+  isFavorited = false,
+  onFavorite,
 }: Props) {
+  const [favorited, setFavorited] = useState<boolean>(isFavorited);
+
   function onClick() {
     onEventClick?.();
   }
@@ -76,7 +86,33 @@ function DashboardCard({
         </CardFooter>
       </CardLink>
 
-      <ContextMenuWrapper>{renderContextMenu?.()}</ContextMenuWrapper>
+      <ContextMenuWrapper>
+        <Feature features="dashboards-favourite">
+          <StyledButton
+            icon={
+              <IconStar
+                isSolid={favorited}
+                color={favorited ? 'yellow300' : 'gray300'}
+                size="sm"
+                aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+              />
+            }
+            size="zero"
+            borderless
+            aria-label={t('Dashboards Favorite')}
+            onClick={async () => {
+              try {
+                setFavorited(!favorited);
+                await onFavorite(!favorited);
+              } catch (error) {
+                // If the api call fails, revert the state
+                setFavorited(favorited);
+              }
+            }}
+          />
+        </Feature>
+        {renderContextMenu?.()}
+      </ContextMenuWrapper>
     </CardWithoutMargin>
   );
 }
@@ -168,6 +204,12 @@ const ContextMenuWrapper = styled('div')`
   position: absolute;
   right: ${space(2)};
   bottom: ${space(1)};
+  display: flex;
+`;
+
+const StyledButton = styled(Button)`
+  margin-right: -10px;
+  padding: 5px;
 `;
 
 export default DashboardCard;
