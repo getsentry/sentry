@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -169,10 +169,6 @@ class TooManyOnlySystemFramesException(Exception):
     pass
 
 
-class NoFilenameOrModuleException(Exception):
-    pass
-
-
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
@@ -200,7 +196,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
     is_frames_truncated = False
-    has_no_filename_or_module = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -210,7 +205,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal is_frames_truncated
-        nonlocal has_no_filename_or_module
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
@@ -226,13 +220,10 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
         for frame in contributing_frames:
             frame_dict = extract_values_from_frame_values(frame.get("values", []))
-            filename = extract_filename(frame_dict)
+            filename = extract_filename(frame_dict) or "None"
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
-
-            if not filename:
-                has_no_filename_or_module = True
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
@@ -283,8 +274,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             and not app_hash
         ):
             raise TooManyOnlySystemFramesException
-        if has_no_filename_or_module:
-            raise NoFilenameOrModuleException
+
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -370,20 +360,13 @@ def get_stacktrace_string_with_metrics(
                 sample_rate=sample_rate,
                 tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
             )
-    except NoFilenameOrModuleException:
-        if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "no-module-or-filename"},
-            )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
     return stacktrace_string
 
 
-def event_content_has_stacktrace(event: Event) -> bool:
+def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
@@ -393,7 +376,7 @@ def event_content_has_stacktrace(event: Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: Event) -> bool:
+def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
@@ -422,7 +405,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+def killswitch_enabled(project_id: int, event: GroupEvent | Event | None = None) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
