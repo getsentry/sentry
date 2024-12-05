@@ -91,3 +91,7 @@ class HashDiscarded(Exception):
 
 class InvalidParams(Exception):
     pass
+
+
+class SentryAppError(Exception):
+    pass
