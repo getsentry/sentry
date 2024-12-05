@@ -56,14 +56,13 @@ import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerFor
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
-import {fakeConfidenceData} from 'sentry/views/alerts/rules/metric/utils/fakeConfidenceData';
-import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {
   combineConfidence,
   determineSeriesConfidence,
-} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
+} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
+import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -1059,15 +1058,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleConfidenceTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
   ) {
-    const dataWithConfidence = fakeConfidenceData(data);
-    if (!dataWithConfidence) {
+    if (!data) {
       return;
     }
     let confidence: Confidence | undefined;
-    if (isEventsStats(dataWithConfidence)) {
-      confidence = determineSeriesConfidence(dataWithConfidence);
+    if (isEventsStats(data)) {
+      confidence = determineSeriesConfidence(data);
     } else {
-      confidence = Object.values(dataWithConfidence).reduce(
+      confidence = Object.values(data).reduce(
         (acc, eventsStats) =>
           combineConfidence(acc, determineSeriesConfidence(eventsStats)),
         null as Confidence

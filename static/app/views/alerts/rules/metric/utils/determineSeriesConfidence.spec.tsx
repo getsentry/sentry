@@ -1,4 +1,4 @@
-import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
+import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 
 describe('determineSeriesConfidence', () => {
   it('equal null if no data', () => {

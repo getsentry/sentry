@@ -183,9 +183,8 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
 
   useEffect(() => {
-    setConfidence(resultConfidence);
     setError(timeSeriesResult.error?.message ?? '');
-  }, [setConfidence, setError, resultConfidence, timeSeriesResult.error?.message]);
+  }, [setError, timeSeriesResult.error?.message]);
 
   const getSeries = useCallback(
     (dedupedYAxes: string[], formattedYAxes: (string | undefined)[]) => {
