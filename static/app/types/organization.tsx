@@ -299,6 +299,8 @@ export type EventsStatsData = [number, {count: number; comparisonCount?: number}
 
 export type ConfidenceStatsData = [number, {count: Confidence}[]][];
 
+export type ConfidenceStatsData = [number, {count: Confidence}[]][];
+
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;

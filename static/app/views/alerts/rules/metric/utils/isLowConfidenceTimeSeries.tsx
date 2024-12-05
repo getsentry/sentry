@@ -1,6 +1,7 @@
 import type {Confidence, EventsStats} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
+// Timeseries with more than this ratio of low confidence intervals will be considered low confidence
 const LOW_CONFIDENCE_THRESHOLD = 0.25;
 
 export function determineSeriesConfidence(
@@ -18,7 +19,7 @@ export function determineSeriesConfidence(
     );
   });
 
-  const {lowConfidence, nullConfidence} = perDataUnitConfidence.reduce(
+  const {lowConfidence, highConfidence, nullConfidence} = perDataUnitConfidence.reduce(
     (acc, confidence) => {
       if (confidence === 'low') {
         acc.lowConfidence += 1;
@@ -32,20 +33,19 @@ export function determineSeriesConfidence(
     {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
   );
 
-  const totalEntries = perDataUnitConfidence.length;
-
-  if (nullConfidence === totalEntries) {
+  if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
     return null;
   }
 
-  if (lowConfidence / perDataUnitConfidence.length < threshold) {
+  // Do not divide by (low + high + null) because nulls then can then heavily influence the final confidence
+  if (lowConfidence / (lowConfidence + highConfidence) > threshold) {
     return 'low';
   }
 
   return 'high';
 }
 
-export function combineConfidence(a: Confidence, b: Confidence): Confidence {
+function combineConfidence(a: Confidence, b: Confidence): Confidence {
   if (!defined(a)) {
     return b;
   }
@@ -55,7 +55,7 @@ export function combineConfidence(a: Confidence, b: Confidence): Confidence {
   }
 
   if (a === 'low' || b === 'low') {
-    return 'high';
+    return 'low';
   }
 
   return 'high';

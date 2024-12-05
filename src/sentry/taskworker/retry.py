@@ -35,8 +35,10 @@ class Retry:
         self._times_exceeded = times_exceeded
 
     def should_retry(self, state: RetryState, exc: Exception) -> bool:
-        # No more attempts left
-        if state.attempts >= self._times:
+        # No more attempts left.
+        # We subtract one, as attempts starts at 0, but `times`
+        # starts at 1.
+        if state.attempts >= (self._times - 1):
             return False
 
         # Explicit RetryError with attempts left.
