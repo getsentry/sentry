@@ -9,12 +9,14 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {
   aggregateOutputType,
   parseFunction,
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePrevious from 'sentry/utils/usePrevious';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -38,6 +40,7 @@ import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
+  setConfidence: Dispatch<SetStateAction<Confidence>>;
   setError: Dispatch<SetStateAction<string>>;
 }
 
@@ -58,8 +61,7 @@ const exploreChartTypeOptions = [
 
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
-// TODO: Update to support aggregate mode and multiple queries / visualizations
-export function ExploreCharts({query, setError}: ExploreChartsProps) {
+export function ExploreCharts({query, setConfidence, setError}: ExploreChartsProps) {
   const [dataset] = useDataset({allowRPC: true});
   const [visualizes, setVisualizes] = useVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
@@ -137,8 +139,48 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
   }, [query, previousQuery, options, previousOptions]);
 
   const timeSeriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
-
   const previousTimeSeriesResult = usePrevious(timeSeriesResult);
+
+  const resultConfidence = useMemo(() => {
+    if (dataset !== DiscoverDatasets.SPANS_EAP_RPC) {
+      return null;
+    }
+
+    const {lowConfidence, highConfidence, nullConfidence} = Object.values(
+      timeSeriesResult.data
+    ).reduce(
+      (acc, series) => {
+        for (const s of series) {
+          if (s.confidence === 'low') {
+            acc.lowConfidence += 1;
+          } else if (s.confidence === 'high') {
+            acc.highConfidence += 1;
+          } else {
+            acc.nullConfidence += 1;
+          }
+        }
+        return acc;
+      },
+      {lowConfidence: 0, highConfidence: 0, nullConfidence: 0}
+    );
+
+    if (lowConfidence <= 0 && highConfidence <= 0 && nullConfidence >= 0) {
+      return null;
+    }
+
+    if (lowConfidence / (lowConfidence + highConfidence) > 0.5) {
+      return 'low';
+    }
+
+    return 'high';
+  }, [dataset, timeSeriesResult.data]);
+
+  useEffect(() => {
+    // only update the confidence once the result has loaded
+    if (!timeSeriesResult.isPending) {
+      setConfidence(resultConfidence);
+    }
+  }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
 
   useEffect(() => {
     setError(timeSeriesResult.error?.message ?? '');

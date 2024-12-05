@@ -8,7 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
+import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
@@ -37,10 +37,11 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
+  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function SpansTable({setError}: SpansTableProps) {
+export function SpansTable({confidence, setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
   const [dataset] = useDataset({allowRPC: true});
@@ -106,6 +107,7 @@ export function SpansTable({setError}: SpansTableProps) {
     organization,
     columns: fields,
     userQuery: query,
+    confidence,
   });
 
   const {tableStyles} = useTableStyles({
