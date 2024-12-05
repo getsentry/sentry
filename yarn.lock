@@ -3096,21 +3096,21 @@
   resolved "https://registry.yarnpkg.com/@remix-run/router/-/router-1.19.2.tgz#0c896535473291cb41f152c180bedd5680a3b273"
   integrity sha512-baiMx18+IMuD1yyvOGaHM9QrVUPGGG0jC+z+IPHnRJWUAUvaKuWKyE8gjDj2rzv3sz9zOGoRSPgeBVHRhZnBlA==
 
-"@rsdoctor/client@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/client/-/client-0.4.8.tgz#c9d50cae4e14d6d155a9013566e0637aca751680"
-  integrity sha512-Jj+37B+WFAgsszwE4l65ySM8USW8Z/VqIE5dUMq+os/johgTRF7wafnlABIPdpd2ih8HTbankzEJOMHyJYHTog==
+"@rsdoctor/client@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/client/-/client-0.4.11.tgz#39a2d5b91ba104294e0fc56c368f0e0734170739"
+  integrity sha512-UqLwDcolExZ0QaKlnYZ7lGW6/MtKMw+aEv3IYPi6ByBlHY/Q6GlvgieR6BqSJXGg4ai7acKXbmZJqLaICPml0Q==
 
-"@rsdoctor/core@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/core/-/core-0.4.8.tgz#e31f7ffc0110eeaab1e0747a1a4f421b06ffd6fc"
-  integrity sha512-I2Hl9D5K/yGQCJaUoyLGFAaMF1vpIXW5s2zeprEbfW1EFN8u59LzvatEg4+wgcfaXPMecAB5dfm6J+D36F4aRA==
+"@rsdoctor/core@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/core/-/core-0.4.11.tgz#e778c442a5df5fe76b4817a2602b589a4f96ef22"
+  integrity sha512-CBBxk/RAkYg/ATKYk/LZIq5TrLR9q1B6xNZtBkLCko0NYzk76PovllF23ZoLwIzPgNI2i2EBVgajHZNJs2OXKA==
   dependencies:
-    "@rsdoctor/graph" "0.4.8"
-    "@rsdoctor/sdk" "0.4.8"
-    "@rsdoctor/types" "0.4.8"
-    "@rsdoctor/utils" "0.4.8"
-    axios "^1.7.7"
+    "@rsdoctor/graph" "0.4.11"
+    "@rsdoctor/sdk" "0.4.11"
+    "@rsdoctor/types" "0.4.11"
+    "@rsdoctor/utils" "0.4.11"
+    axios "^1.7.8"
     enhanced-resolve "5.12.0"
     filesize "^10.1.6"
     fs-extra "^11.1.1"
@@ -3120,31 +3120,32 @@
     source-map "^0.7.4"
     webpack-bundle-analyzer "^4.10.2"
 
-"@rsdoctor/graph@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/graph/-/graph-0.4.8.tgz#51740f886daf66aa059a0b94e9e5a27599274ba1"
-  integrity sha512-F6lKNjU1pewVXT8PLPgL7WuxB4Aru7unpZjJ4Hh1vbcNUsK6VNUNHsAviOu2ZrbuKuwbxqjd3p/NIjThUzX7NQ==
+"@rsdoctor/graph@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/graph/-/graph-0.4.11.tgz#9f02616e3c69c19fea1668846ecdac3e2804ff87"
+  integrity sha512-K+dWjeN5QeqWAwmwZPUyJyozz9WZAqf4PbKagzqa9SxcTM5Sx0HeeKJlJTPG9SwDsBKPSBJ8fXnxhIJyjeuI4w==
   dependencies:
-    "@rsdoctor/types" "0.4.8"
-    "@rsdoctor/utils" "0.4.8"
+    "@rsdoctor/types" "0.4.11"
+    "@rsdoctor/utils" "0.4.11"
     lodash "^4.17.21"
     socket.io "4.7.2"
     source-map "^0.7.4"
 
-"@rsdoctor/sdk@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/sdk/-/sdk-0.4.8.tgz#46b0bd04a151fa7780cb73f675b5493658cf6410"
-  integrity sha512-tD14drEa9ZZm5FtKL6BfDsBbOvYbIRbF5aEpQSP5ZQsKa6YfOhHA2dpv+zN7qIUXzd16vKBGNzTT906BT7HvEw==
+"@rsdoctor/sdk@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/sdk/-/sdk-0.4.11.tgz#08a93973323f87b52a6dec53b74bd92d8ef7b276"
+  integrity sha512-8GNUtqSoZSElnQ8NfPdD8jnjMj6O4YpX18Y31VPNW9+wQhYo+Cvx2l90Y0j6JiCcqSObDVjE9OruNZTD5u+o3g==
   dependencies:
-    "@rsdoctor/client" "0.4.8"
-    "@rsdoctor/graph" "0.4.8"
-    "@rsdoctor/types" "0.4.8"
-    "@rsdoctor/utils" "0.4.8"
+    "@rsdoctor/client" "0.4.11"
+    "@rsdoctor/graph" "0.4.11"
+    "@rsdoctor/types" "0.4.11"
+    "@rsdoctor/utils" "0.4.11"
     "@types/fs-extra" "^11.0.4"
     body-parser "1.20.3"
     cors "2.8.5"
     dayjs "1.11.13"
     fs-extra "^11.1.1"
+    json-cycle "^1.5.0"
     lodash "^4.17.21"
     open "^8.4.2"
     serve-static "1.16.2"
@@ -3152,23 +3153,23 @@
     source-map "^0.7.4"
     tapable "2.2.1"
 
-"@rsdoctor/types@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/types/-/types-0.4.8.tgz#f5deeab4503f816f13f3e8cef3eced54afb25e30"
-  integrity sha512-yY9OyfRLuOva2GhLccjHy1jDVTfoxeGSXF030DingiorrhFXMi+TJjq98LN4p9ha/awxzHayAUcSwZ3nq1XEXQ==
+"@rsdoctor/types@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/types/-/types-0.4.11.tgz#a90621c9b25bcec0a49d0ef6f2c07b07880c6eb7"
+  integrity sha512-wxevR9h6fwtN9vkEionLy8O8Rs+j2prxi1nhtooNCSMH80q6svUnQxXouKjCWCeXvoalxTyBSk5+OoGV3lgfiA==
   dependencies:
     "@types/connect" "3.4.38"
     "@types/estree" "1.0.5"
     "@types/tapable" "2.2.7"
     source-map "^0.7.4"
 
-"@rsdoctor/utils@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/utils/-/utils-0.4.8.tgz#0300518b1be6084d5e72e81fce3f4f80bdff9e20"
-  integrity sha512-5m0dvwkdKAT5mONAf49oG1JEr+FXSThxwo36tfIHrUPNm3pnx8bDXFL3E5rNb9LK8Va7GFYe6hjmxTxyoaveFg==
+"@rsdoctor/utils@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/utils/-/utils-0.4.11.tgz#09f0ca7f1c7822da3e6644af33d035c656643172"
+  integrity sha512-hLtd4Nuq8nYZMbnsYI59YCqGBFwB0SgPdenV3e2FZLpge8gBKz+5NYceurqwxoc/JiZMV3L/fQu75W8lz4XqNA==
   dependencies:
     "@babel/code-frame" "7.25.7"
-    "@rsdoctor/types" "0.4.8"
+    "@rsdoctor/types" "0.4.11"
     "@types/estree" "1.0.5"
     acorn "^8.10.0"
     acorn-import-assertions "1.9.0"
@@ -3186,16 +3187,16 @@
     rslog "^1.2.3"
     strip-ansi "^6.0.1"
 
-"@rsdoctor/webpack-plugin@0.4.8":
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/@rsdoctor/webpack-plugin/-/webpack-plugin-0.4.8.tgz#c1505f0c57809d7a3f57b86e82c23d114430b81a"
-  integrity sha512-6Lh+OMws5H0fqsXljCyE/+bVTQFGi1IhaDikHaLK/J3Rt9u0PR5iaYEEDfiS3GCN110gJqwhXu8PbDWoomz9Dg==
+"@rsdoctor/webpack-plugin@0.4.11":
+  version "0.4.11"
+  resolved "https://registry.yarnpkg.com/@rsdoctor/webpack-plugin/-/webpack-plugin-0.4.11.tgz#b9f328c92e12f021edb25f44e12cfe8a2a9417ee"
+  integrity sha512-Qg/qo+TUkLl6iDk5BzFBAaYI5wx7UE98BJ1DyXTaOKS22ICc9kyl+kOgipvaHYQRjFxa/u9CJxPQZnCahzK4EQ==
   dependencies:
-    "@rsdoctor/core" "0.4.8"
-    "@rsdoctor/graph" "0.4.8"
-    "@rsdoctor/sdk" "0.4.8"
-    "@rsdoctor/types" "0.4.8"
-    "@rsdoctor/utils" "0.4.8"
+    "@rsdoctor/core" "0.4.11"
+    "@rsdoctor/graph" "0.4.11"
+    "@rsdoctor/sdk" "0.4.11"
+    "@rsdoctor/types" "0.4.11"
+    "@rsdoctor/utils" "0.4.11"
     fs-extra "^11.1.1"
     lodash "^4.17.21"
 
@@ -3259,7 +3260,7 @@
     "@rspack/binding-win32-ia32-msvc" "1.1.5"
     "@rspack/binding-win32-x64-msvc" "1.1.5"
 
-"@rspack/cli@^1.1.0":
+"@rspack/cli@^1.1.5":
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/@rspack/cli/-/cli-1.1.5.tgz#bf42bfc038bd746d92ae9ab86df689c6c8d7ae5f"
   integrity sha512-R08aM5gEvRV9zSE9fIaTxT77Nu/kRtoghj9TqItFk0xTbFxai9jF1fwRTbnDv23yVGNCwPfwvPOmpqvrf3SGnQ==
@@ -3274,7 +3275,7 @@
     webpack-bundle-analyzer "4.6.1"
     yargs "17.6.2"
 
-"@rspack/core@^1.1.0":
+"@rspack/core@^1.1.5":
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/@rspack/core/-/core-1.1.5.tgz#cb43c76a2af974a037db9435215248b51faa679d"
   integrity sha512-/FmxDeMuW8fJkhz8fHuCu7OiJHFKW78xclEu7LkEujWl4PqJgdWjUL/6FWIj50spRwj6PRfuc31hFSL4hbNfCA==
@@ -5067,7 +5068,7 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
-axios@^1.7.7:
+axios@^1.7.8:
   version "1.7.9"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.9.tgz#d7d071380c132a24accda1b2cfc1535b79ec650a"
   integrity sha512-LhLcE7Hbiryz8oMDdDptSrWowmB4Bl6RCt6sIJKpRB4XtVf0iEgewX3au/pJqm+Py1kCASkb/FFKjxQaLtxJvw==
@@ -8860,6 +8861,11 @@ json-buffer@3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/json-buffer/-/json-buffer-3.0.1.tgz#9338802a30d3b6605fbe0613e094008ca8c05a13"
   integrity sha512-4bV5BfR2mqfQTJm+V5tPPdf+ZpuhiIvTuAB5g8kcrXOZpTT/QwwVRWBywX1ozr6lEuPdbHxwaJlm9G6mI2sfSQ==
+
+json-cycle@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/json-cycle/-/json-cycle-1.5.0.tgz#b1f1d976eee16cef51d5f3d3b3caece3e90ba23a"
+  integrity sha512-GOehvd5PO2FeZ5T4c+RxobeT5a1PiGpF4u9/3+UvrMU4bhnVqzJY7hm39wg8PDCqkU91fWGH8qjWR4bn+wgq9w==
 
 json-parse-even-better-errors@^2.3.0, json-parse-even-better-errors@^2.3.1:
   version "2.3.1"
