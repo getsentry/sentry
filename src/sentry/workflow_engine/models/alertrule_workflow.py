@@ -10,7 +10,7 @@ class AlertRuleWorkflow(DefaultFieldsModel):
     A lookup model for rules and workflows.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
     rule = FlexibleForeignKey("sentry.Rule", null=True)
