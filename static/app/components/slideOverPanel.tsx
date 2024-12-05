@@ -27,6 +27,7 @@ type SlideOverPanelProps = {
   collapsed: boolean;
   ariaLabel?: string;
   className?: string;
+  'data-test-id'?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
@@ -36,6 +37,7 @@ export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
   {
+    'data-test-id': testId,
     ariaLabel,
     collapsed,
     children,
@@ -75,6 +77,7 @@ function SlideOverPanel(
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
+      data-test-id={testId}
     >
       {children}
     </_SlideOverPanel>
