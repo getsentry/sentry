@@ -1,10 +1,12 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
 import pytest
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
