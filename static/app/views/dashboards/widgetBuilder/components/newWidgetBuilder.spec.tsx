@@ -81,6 +81,11 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -129,6 +134,10 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
     expect(screen.getByLabelText('Widget panel')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Group by')).not.toBeInTheDocument();
+    });
   });
 
   it('edits name and description', async function () {
@@ -284,6 +293,50 @@ describe('NewWidgetBuiler', function () {
       expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
       expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders the group by field on chart widgets and can function', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(await screen.findByText('Select group')).toBeInTheDocument();
+    expect(await screen.findByText('Add Group')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByText('Select group'));
+    await userEvent.click(await screen.findByText('timestamp'));
+
+    await userEvent.click(await screen.findByText('Add Group'));
+    await userEvent.click(await screen.findByText('Select group'));
+    await userEvent.click(await screen.findByText('id'));
+
+    expect(await screen.findAllByLabelText('Remove group')).toHaveLength(2);
+
+    await userEvent.click((await screen.findAllByLabelText('Remove group'))[0]);
+
+    expect(await screen.findByText('id')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('timestamp')).not.toBeInTheDocument();
     });
   });
 });
