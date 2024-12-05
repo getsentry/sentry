@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -122,7 +122,7 @@ export function OrganizationFeatureFlagsIndex() {
 
   const addNewProvider = hasAccess => (
     <Tooltip
-      title={t('You must be an organization owner, manager or admin to add a provider.')}
+      title={t('You must be an organization member to add a provider.')}
       disabled={hasAccess}
     >
       <LinkButton
@@ -137,59 +137,55 @@ export function OrganizationFeatureFlagsIndex() {
     </Tooltip>
   );
 
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
+
   return (
-    <Access access={['org:write']}>
-      {({hasAccess}) => (
-        <Fragment>
-          <SentryDocumentTitle title={t('Feature Flags')} />
-          <SettingsPageHeader
-            title={t('Feature Flags')}
-            action={addNewProvider(hasAccess)}
+    <Fragment>
+      <SentryDocumentTitle title={t('Feature Flags')} />
+      <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider(hasAccess)} />
+
+      <TextBlock>
+        {t(
+          'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
+        )}
+      </TextBlock>
+      <TextBlock>
+        {tct(
+          'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
+            ),
+          }
+        )}
+      </TextBlock>
+
+      <ResponsivePanelTable
+        isLoading={isPending || isError}
+        isEmpty={!isPending && !secretList?.data?.length}
+        loader={
+          isError ? (
+            <LoadingError
+              message={t('Failed to load secrets and providers for the organization.')}
+              onRetry={refetchSecretList}
+            />
+          ) : undefined
+        }
+        emptyMessage={t("You haven't linked any providers yet.")}
+        headers={[t('Provider'), t('Created'), t('Created by'), '']}
+      >
+        {!isError && !isPending && !!secretList?.data?.length && (
+          <SecretList
+            secretList={secretList.data}
+            isRemoving={isRemoving}
+            removeSecret={hasAccess ? handleRemoveSecret : undefined}
           />
-
-          <TextBlock>
-            {t(
-              'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. This page lists the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
-            )}
-          </TextBlock>
-          <TextBlock>
-            {tct(
-              'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
-                ),
-              }
-            )}
-          </TextBlock>
-
-          <ResponsivePanelTable
-            isLoading={isPending || isError}
-            isEmpty={!isPending && !secretList?.data?.length}
-            loader={
-              isError ? (
-                <LoadingError
-                  message={t(
-                    'Failed to load secrets and providers for the organization.'
-                  )}
-                  onRetry={refetchSecretList}
-                />
-              ) : undefined
-            }
-            emptyMessage={t("You haven't linked any providers yet.")}
-            headers={[t('Provider'), t('Created'), t('Created by'), '']}
-          >
-            {!isError && !isPending && !!secretList?.data?.length && (
-              <SecretList
-                secretList={secretList.data}
-                isRemoving={isRemoving}
-                removeSecret={hasAccess ? handleRemoveSecret : undefined}
-              />
-            )}
-          </ResponsivePanelTable>
-        </Fragment>
-      )}
-    </Access>
+        )}
+      </ResponsivePanelTable>
+    </Fragment>
   );
 }
 
