@@ -4,12 +4,13 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import rest_framework
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
@@ -61,11 +62,23 @@ from .validators import GroupValidator, ValidationError
 logger = logging.getLogger(__name__)
 
 
+class MultipleProjectsError(Exception):
+    pass
+
+
+class ResolutionParams(TypedDict):
+    release: Release
+    type: int | None
+    status: int | None
+    actor_id: int | None
+    current_release_version: NotRequired[str]
+
+
 def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user: User,
+    user,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -106,12 +119,14 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
+    acting_user, group: Group, self_assign_issue: str
 ) -> Actor | None:
-    # Used during issue resolution to assign to acting user
-    # returns None if the user didn't elect to self assign on resolution
-    # or the group is assigned already, otherwise returns Actor
-    # representation of current user
+    """
+    Used during issue resolution to assign to acting user
+    returns None if the user didn't elect to self assign on resolution
+    or the group is assigned already, otherwise returns Actor
+    representation of current user
+    """
     if acting_user:
         GroupSubscription.objects.subscribe(
             subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
@@ -135,8 +150,9 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        current_release_version = greatest_semver_release(group.project).version
-
+        release = greatest_semver_release(group.project)
+        if release is not None:
+            current_release_version = release.version
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -153,12 +169,13 @@ def update_groups(
     projects: Sequence[Project],
     organization_id: int,
     search_fn: SearchFunction | None = None,
-    user: RpcUser | User | None = None,
+    user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
+    acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
     try:
@@ -177,14 +194,12 @@ def update_groups(
     serializer = validate_request(request, projects, data)
 
     if serializer is None:
-        return
+        logger.error("Error validating request. Investigate.")
+        return Response(status=500)
 
     result = dict(serializer.validated_data)
 
     acting_user = user if user.is_authenticated else None
-
-    if not group_list:
-        return Response(detail="No groups found", status=400)
 
     # so we won't have to requery for each group
     project_lookup = {g.project_id: g.project for g in group_list}
@@ -205,27 +220,27 @@ def update_groups(
         handle_priority(
             priority=result["priority"],
             group_list=group_list,
-            actor=acting_user,
+            acting_user=acting_user,
             project_lookup=project_lookup,
         )
     if status in ("resolved", "resolvedInNextRelease"):
-        result, res_type = handle_resolve_in_release(
-            status,
-            status_details,
-            group_list,
-            projects,
-            project_lookup,
-            acting_user,
-            user,
-            result,
-        )
-        if isinstance(result, Response):
-            return result
+        try:
+            result, res_type = handle_resolve_in_release(
+                status,
+                status_details,
+                group_list,
+                projects,
+                project_lookup,
+                acting_user,
+                user,
+                result,
+            )
+        except MultipleProjectsError:
+            return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
     elif status:
         result = handle_other_status_updates(
             result,
             group_list,
-            group_ids,
             projects,
             project_lookup,
             status_details,
@@ -236,7 +251,6 @@ def update_groups(
     return prepare_response(
         result,
         group_list,
-        group_ids,
         project_lookup,
         projects,
         acting_user,
@@ -328,10 +342,10 @@ def handle_resolve_in_release(
     group_list: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
-    user: User | RpcUser,
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
     result: MutableMapping[str, Any],
-) -> tuple[dict[str, Any], GroupResolution.Type | None] | Response:
+) -> tuple[dict[str, Any], int | None]:
     res_type = None
     release = None
     commit = None
@@ -346,10 +360,7 @@ def handle_resolve_in_release(
     if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in next release for multiple projects."},
-                status=400,
-            )
+            raise MultipleProjectsError()
         # may not be a release yet
         release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
 
@@ -370,10 +381,7 @@ def handle_resolve_in_release(
         res_status = GroupResolution.Status.pending
     elif status_details.get("inUpcomingRelease"):
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in upcoming release for multiple projects."},
-                status=400,
-            )
+            raise MultipleProjectsError()
         release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {"version": ""}
@@ -392,9 +400,7 @@ def handle_resolve_in_release(
         # applies to multiple projects, but I think we agreed to punt
         # on this for now
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in release for multiple projects."}, status=400
-            )
+            raise MultipleProjectsError()
         release = status_details["inRelease"]
         activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
         activity_data = {
@@ -415,9 +421,7 @@ def handle_resolve_in_release(
         # TODO(jess): Same here, this is probably something we could do, but
         # punting for now.
         if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
-            )
+            raise MultipleProjectsError()
         commit = status_details["inCommit"]
         activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
         activity_data = {"commit": commit.id}
@@ -486,7 +490,7 @@ def handle_resolve_in_release(
 
     result.update({"status": "resolved", "statusDetails": new_status_details})
 
-    return result, res_type
+    return dict(result), res_type
 
 
 def process_group_resolution(
@@ -494,24 +498,25 @@ def process_group_resolution(
     group_list: Sequence[Group],
     release: Release | None,
     commit: Commit | None,
-    res_type: GroupResolution.Type,
-    res_status: GroupResolution.Status,
-    acting_user: User | None,
-    user: User | RpcUser,
+    res_type: int | None,
+    res_status: int | None,
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
     self_assign_issue: str,
-    activity_type: ActivityType,
-    activity_data: Mapping[str, Any],
+    activity_type: int,
+    activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ):
     now = django_timezone.now()
     resolution = None
     created = None
     if release:
-        resolution_params = {
+        # These are the parameters that are set for creating a GroupResolution
+        resolution_params: ResolutionParams = {
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": user.id if user.is_authenticated else None,
+            "actor_id": user.id if user and user.is_authenticated else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
@@ -616,7 +621,7 @@ def process_group_resolution(
         status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
     )
     if not resolution:
-        created = affected
+        created = bool(affected)
 
     group.status = GroupStatus.RESOLVED
     group.substatus = None
@@ -642,7 +647,7 @@ def process_group_resolution(
             type=activity_type,
             user_id=acting_user.id,
             ident=resolution.id if resolution else None,
-            data=activity_data,
+            data=dict(activity_data),
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
@@ -655,7 +660,7 @@ def process_group_resolution(
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User,
+    acting_user,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -684,20 +689,20 @@ def merge_groups(
 
 
 def handle_other_status_updates(
-    result: Mapping[str, Any],
+    result: dict[str, Any],
     group_list: Sequence[Group],
-    group_ids: Sequence[Group],
     projects: Sequence[Project],
     project_lookup: Mapping[int, Project],
-    status_details: Mapping[str, Any],
-    acting_user: User,
-    user: User,
+    status_details: dict[str, Any],
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
 ) -> dict[str, Any]:
+    group_ids = [group.id for group in group_list]
     queryset = Group.objects.filter(id__in=group_ids)
     new_status = STATUS_UPDATE_CHOICES[result["status"]]
-    new_substatus = (
-        SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
-    )
+    new_substatus = None
+    if result.get("substatus"):
+        new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
@@ -715,7 +720,7 @@ def handle_other_status_updates(
                 )
             else:
                 result["statusDetails"] = handle_ignored(
-                    group_ids, group_list, status_details, acting_user, user
+                    group_list, status_details, acting_user, user
                 )
             result["inbox"] = None
         else:
@@ -737,14 +742,13 @@ def handle_other_status_updates(
 
 
 def prepare_response(
-    result: Mapping[str, Any],
+    result: dict[str, Any],
     group_list: Sequence[Group],
-    group_ids: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User,
+    acting_user,
     data: Mapping[str, Any],
-    res_type: GroupResolution.Type | None,
+    res_type: int | None,
     referer: str,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
@@ -775,14 +779,10 @@ def prepare_response(
             acting_user,
         )
 
-    handle_has_seen(
-        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
-    )
+    handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
 
     if "isBookmarked" in result:
-        handle_is_bookmarked(
-            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
-        )
+        handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
 
     if result.get("isSubscribed") in (True, False):
         result["subscriptionDetails"] = handle_is_subscribed(
@@ -852,10 +852,10 @@ def greatest_semver_release(project: Project) -> Release | None:
     return get_semver_releases(project).first()
 
 
-def get_semver_releases(project: Project) -> Release:
+def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()
+        .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
@@ -864,8 +864,8 @@ def get_semver_releases(project: Project) -> Release:
 def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
-    project_lookup: dict[int, Any],
-    acting_user: User,
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -890,14 +890,14 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group] | None,
-    group_ids: Sequence[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
+    group_ids = [group.id for group in group_list]
     if is_bookmarked:
         for group in group_list:
             GroupBookmark.objects.get_or_create(
@@ -905,13 +905,16 @@ def handle_is_bookmarked(
                 group=group,
                 user_id=acting_user.id if acting_user else None,
             )
-            GroupSubscription.objects.subscribe(
-                subscriber=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
-            )
-    elif is_bookmarked is False:
+            if acting_user:
+                GroupSubscription.objects.subscribe(
+                    subscriber=acting_user,
+                    group=group,
+                    reason=GroupSubscriptionReason.bookmark,
+                )
+    elif is_bookmarked is False and acting_user is not None:
         GroupBookmark.objects.filter(
             group__in=group_ids,
-            user_id=acting_user.id if acting_user else None,
+            user_id=acting_user.id,
         ).delete()
         if group_list:
             GroupSubscription.objects.filter(
@@ -921,12 +924,11 @@ def handle_is_bookmarked(
 
 
 def handle_has_seen(
-    has_seen: Any,
+    has_seen: bool | None,
     group_list: Sequence[Group],
-    group_ids: Sequence[Group],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User | None,
+    acting_user,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -945,15 +947,17 @@ def handle_has_seen(
                     project=project_lookup[group.project_id],
                     values={"last_seen": django_timezone.now()},
                 )
-    elif has_seen is False:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+    elif has_seen is False and user_id is not None:
+        GroupSeen.objects.filter(
+            group__in=[group.id for group in group_list], user_id=user_id
+        ).delete()
 
 
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    actor: User | None,
-    project_lookup: dict[int, Project],
+    acting_user,
+    project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
         priority_value = PriorityLevel.from_str(priority) if priority else None
@@ -962,7 +966,7 @@ def handle_priority(
             group=group,
             priority=priority_value,
             sender="manual_update_priority",
-            actor=actor,
+            actor=acting_user,
             project=project_lookup[group.project_id],
         )
         group.update(priority_locked_at=django_timezone.now())
@@ -970,9 +974,9 @@ def handle_priority(
 
 def handle_is_public(
     is_public: bool,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -1014,9 +1018,9 @@ def handle_assigned_to(
     assigned_actor: Actor,
     assigned_by: str | None,
     integration: str | None,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

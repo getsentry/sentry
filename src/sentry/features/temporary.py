@@ -348,6 +348,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable the new quick start guide
     manager.add("organizations:quick-start-updates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable new small design changes for the quick start guide GA
+    manager.add("organizations:quick-start-updates-ga", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable related issues feature
@@ -450,8 +452,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to insights metrics alerts
     manager.add("organizations:insights-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable domain view in Insights modules
-    manager.add("organizations:insights-domain-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Related Issues table in Insights modules
     manager.add("organizations:insights-related-issues-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable access to Mobile Screens insights module
@@ -588,7 +588,7 @@ def register_temporary_features(manager: FeatureManager):
 
     # Ecosystem: Enable verbose alert reporting when triggering test alerts
     manager.add("projects:verbose-test-alert-reporting", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE,
-                api_expose=False)
+                default=True, api_expose=False)
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
 
