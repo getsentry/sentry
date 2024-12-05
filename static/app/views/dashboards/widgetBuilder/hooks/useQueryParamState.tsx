@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {defined} from 'sentry/utils';
-import {type decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {type decodeList, decodeScalar, type decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -23,9 +23,17 @@ interface UseQueryParamStateWithListDecoder<T> {
   serializer?: (value: T) => string[];
 }
 
+interface UseQueryParamStateWithSortsDecoder<T> {
+  decoder: typeof decodeSorts;
+  fieldName: string;
+  serializer: (value: T) => string[];
+  deserializer?: (value: ReturnType<typeof decodeSorts>) => T;
+}
+
 type UseQueryParamStateProps<T> =
   | UseQueryParamStateWithScalarDecoder<T>
-  | UseQueryParamStateWithListDecoder<T>;
+  | UseQueryParamStateWithListDecoder<T>
+  | UseQueryParamStateWithSortsDecoder<T>;
 
 /**
  * Hook to manage a state that is synced with a query param in the URL

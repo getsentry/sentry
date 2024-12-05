@@ -419,7 +419,9 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      <EventFeatureFlagList group={group} project={project} event={event} />
+      <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
+        <EventFeatureFlagList group={group} project={project} event={event} />
+      </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />

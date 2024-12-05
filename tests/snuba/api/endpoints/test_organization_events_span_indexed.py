@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import mock
 
 import pytest
@@ -580,14 +580,14 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         keys = [
             ("app_start_cold", "duration", "millisecond"),
             ("app_start_warm", "duration", "millisecond"),
-            ("frames_frozen", "number", None),
+            ("frames_frozen", "number", None),  # should be integer but keeping it consistent
             ("frames_frozen_rate", "percentage", None),
-            ("frames_slow", "number", None),
+            ("frames_slow", "number", None),  # should be integer but keeping it consistent
             ("frames_slow_rate", "percentage", None),
-            ("frames_total", "number", None),
+            ("frames_total", "number", None),  # should be integer but keeping it consistent
             ("time_to_initial_display", "duration", "millisecond"),
             ("time_to_full_display", "duration", "millisecond"),
-            ("stall_count", "number", None),
+            ("stall_count", "number", None),  # should be integer but keeping it consistent
             ("stall_percentage", "percentage", None),
             ("stall_stall_longest_time", "number", None),
             ("stall_stall_total_time", "number", None),
@@ -815,7 +815,9 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             assert result["span.duration"] == 1000.0, "duration"
             assert result["span.op"] == "", "op"
             assert result["span.description"] == source["description"], "description"
-            assert datetime.fromisoformat(result["timestamp"]).timestamp() == pytest.approx(
+            ts = datetime.fromisoformat(result["timestamp"])
+            assert ts.tzinfo == timezone.utc
+            assert ts.timestamp() == pytest.approx(
                 source["end_timestamp_precise"], abs=5
             ), "timestamp"
             assert result["transaction.span_id"] == source["segment_id"], "transaction.span_id"
@@ -1478,8 +1480,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 10
         assert confidence[0]["count()"] == "low"
         assert data[1]["count()"] == 1
-        # Skipping this assert for now, IMO confidence for "bar" should be high, but checking with sns
-        # assert confidence[1]["count()"] == "high"
+        # While logically the confidence for 1 event at 100% sample rate should be high, we're going with low until we
+        # get customer feedback
+        assert confidence[1]["count()"] == "low"
 
     def test_span_duration(self):
         spans = [
@@ -1522,6 +1525,54 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    @pytest.mark.xfail(reason="sampling_factor is not a queryable column yet")
+    def test_average_sampling_rate(self):
+        spans = []
+        spans.append(
+            self.create_span(
+                {
+                    "description": "foo",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.1}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        spans.append(
+            self.create_span(
+                {
+                    "description": "bar",
+                    "sentry_tags": {"status": "success"},
+                    "measurements": {"client_sample_rate": {"value": 0.85}},
+                },
+                start_ts=self.ten_mins_ago,
+            )
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_sample(sampling_rate)",
+                    "count()",
+                    "min(sampling_rate)",
+                    "count_sample()",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        confidence = response.data["confidence"]
+        assert len(data) == 1
+        assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
+        assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
+        assert data[0]["count_sample()"] == 2
+        assert data[0]["count()"] == 11
+        assert confidence[0]["count()"] == "low"
 
     @pytest.mark.xfail(reason="weighted functions will not be moved to the RPC")
     def test_aggregate_numeric_attr_weighted(self):
@@ -1675,11 +1726,3 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     @pytest.mark.xfail(reason="rate not implemented yet")
     def test_spm(self):
         super().test_spm()
-
-    @pytest.mark.xfail(reason="units not implemented yet")
-    def test_simple_measurements(self):
-        super().test_simple_measurements()
-
-    @pytest.mark.xfail(reason="units not implemented yet")
-    def test_span_data_fields_http_resource(self):
-        super().test_span_data_fields_http_resource()

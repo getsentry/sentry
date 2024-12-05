@@ -93,6 +93,8 @@ export type CodeSnippetContext = {
   file_path: string;
   repo_name: string;
   snippet: string;
+  end_line?: number;
+  start_line?: number;
 };
 
 export type StacktraceContext = {
