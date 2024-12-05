@@ -1570,6 +1570,9 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
     ],
+    GroupCategory.METRIC_ALERT: [
+        process_workflow_engine,
+    ],
 }
 
 GENERIC_POST_PROCESS_PIPELINE = [

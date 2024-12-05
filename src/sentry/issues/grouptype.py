@@ -638,6 +638,17 @@ class MetricIssuePOC(GroupType):
     enable_escalation_detection = False
 
 
+@dataclass(frozen=True)
+class MetricIssueWorkflow(GroupType):
+    type_id = 8003
+    slug = "metric_issue_workflow"
+    description = "Metric Issue Workflow POC"
+    category = GroupCategory.METRIC_ALERT.value
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
