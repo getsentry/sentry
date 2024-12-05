@@ -123,8 +123,8 @@ def create_project_cohort(
         query = query.exclude(projectoption__key=PROJECT_BACKFILL_COMPLETED)
     project_cohort_list = (
         query.values_list("id", flat=True)
-        # This slices the projects by the worker number, so that each worker only processes a subset of projects
-        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])[:cohort_size]
+        .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
+        .order_by("id")[:cohort_size]
     )
     return list(project_cohort_list)
 
@@ -132,16 +132,8 @@ def create_project_cohort(
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
-    last_processed_group_id: int | None,
     last_processed_project_index: int | None,
 ):
-    logger.info(
-        "backfill_seer_grouping_records.start",
-        extra={
-            "project_id": project_id,
-            "last_processed_index": last_processed_group_id,
-        },
-    )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
@@ -150,7 +142,7 @@ def initialize_backfill(
         last_processed_project_index if last_processed_project_index else 0
     )
 
-    return project, last_processed_group_id, last_processed_project_index_ret
+    return project, last_processed_project_index_ret
 
 
 def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):

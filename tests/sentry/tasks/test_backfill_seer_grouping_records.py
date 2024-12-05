@@ -34,6 +34,7 @@ from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project
 )
 from sentry.tasks.embeddings_grouping.constants import PROJECT_BACKFILL_COMPLETED
 from sentry.tasks.embeddings_grouping.utils import (
+    PROJECT_BACKFILL_COMPLETED,
     _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
@@ -634,7 +635,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        project2 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization, platform="python")
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -824,7 +825,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        project2 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization, platform="python")
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -953,7 +954,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         Test that the function does not create records when there is no feature flag
         """
-        project = self.create_project(organization=self.organization)
+        project = self.create_project(organization=self.organization, platform="python")
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(project, None)
@@ -1324,7 +1325,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         if it exists
         """
 
-        project2 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization, platform="python")
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -1730,10 +1731,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that projects that have a backfill completed project option are skipped when passed
         the skip_processed_projects flag.
         """
-        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+        # Test that projects that are already backfilled are skipped
+        project2 = self.create_project(organization=self.organization, platform="python")
+        project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_processed_projects=True
+                current_project_id=None, skip_processed_projects=True, worker_number=0
             )
 
         expected_call_args_list = [
@@ -1763,51 +1767,80 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @with_feature("projects:similarity-embeddings-backfill")
+    @override_options({"similarity.backfill_total_worker_count": 1})
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_reprocess_project_already_processed(
+    def test_backfill_seer_grouping_records_typical_backfill_request(
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
         Test that projects that have a backfill completed project option are not skipped when not
         passed the skip_processed_projects flag.
         """
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+        # Test that projects that are already backfilled are skipped
+        project2 = self.create_project(organization=self.organization, platform="python")
+        project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+        project3 = self.create_project(organization=self.organization, platform="python")
+        # Since we set the total worker count to 1, the project cohort will have all projects
+        # except the one that has already been backfilled
+        cohort = [self.project.id, project3.id]
 
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            # This is the typical way of backfilling all projects
+            backfill_seer_grouping_records_for_project(
+                current_project_id=None,
+                last_processed_group_id_input=None,
+                skip_processed_projects=True,
+                worker_number=0,
+            )
+
+        key = "backfill_seer_grouping_records"
         last_group_id = sorted(
             [group.id for group in Group.objects.filter(project_id=self.project.id)]
         )[0]
+        extra = {
+            "current_project_id": self.project.id,
+            "last_processed_group_id": None,
+            "cohort": cohort,
+            "last_processed_project_index": None,
+            "only_delete": False,
+            "skip_processed_projects": True,
+            "skip_project_ids": None,
+            "worker_number": 0,
+        }
         expected_call_args_list = [
+            call(key, extra=extra),
             call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": None,
-                    "last_processed_project_index": None,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
+                f"{key}.start",
+                extra={"project_id": self.project.id, "last_processed_index": None},
             ),
             call(
-                "backfill_seer_grouping_records",
+                key,
                 extra={
-                    "current_project_id": self.project.id,
+                    **extra,
                     "last_processed_group_id": last_group_id,
-                    "cohort": None,
                     "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
                 },
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+            call(
+                f"{key}.start",
+                extra={"project_id": self.project.id, "last_processed_index": 1},
+            ),
+            call(
+                key,
+                extra={
+                    **extra,
+                    "current_project_id": project3.id,
+                    "last_processed_project_index": 1,
+                },
+            ),
+            call(
+                f"{key}.start",
+                extra={"project_id": project3.id, "last_processed_index": None},
+            ),
+            call("reached the end of the projects in cohort", extra={"worker_number": 0}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
@@ -1859,7 +1892,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         task continues and calls the next batch.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        project_invalid_batch = self.create_project(organization=self.organization)
+        project_invalid_batch = self.create_project(
+            organization=self.organization, platform="python"
+        )
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
         # Create batch size valid groups
@@ -2417,7 +2452,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
-        project = self.create_project(organization=self.organization)
+        project = self.create_project(organization=self.organization, platform="python")
         data = {
             **ONLY_STACKTRACE,
             "timestamp": before_now(seconds=10).isoformat(),
@@ -2438,7 +2473,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
-        project = self.create_project(organization=self.organization)
+        project = self.create_project(organization=self.organization, platform="python")
         data = {
             **EVENT_WITH_THREADS_STACKTRACE,
             "timestamp": before_now(seconds=10).isoformat(),

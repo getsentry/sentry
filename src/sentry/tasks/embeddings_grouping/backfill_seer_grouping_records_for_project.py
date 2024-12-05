@@ -29,6 +29,8 @@ from sentry.tasks.embeddings_grouping.utils import (
 )
 from sentry.utils import metrics
 
+BACKFILL_NAME = "backfill_grouping_records"
+BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
 EVENT_INFO_EXCEPTIONS = (GroupingConfigNotFound, ResourceDoesNotExist, InvalidEnhancerConfig)
 
@@ -65,13 +67,13 @@ def backfill_seer_grouping_records_for_project(
     """
 
     if cohort is None and worker_number is not None:
-        cohort = create_project_cohort(
-            worker_number, last_processed_project_id, skip_processed_projects
-        )
+        cohort = create_project_cohort(worker_number, last_processed_project_id)
         if not cohort:
             logger.info(
                 "reached the end of the projects in cohort",
-                extra={"worker_number": worker_number},
+                extra={
+                    "worker_number": worker_number,
+                },
             )
             return
         current_project_id = cohort[0]
@@ -98,14 +100,15 @@ def backfill_seer_grouping_records_for_project(
     )
 
     try:
-        (
-            project,
-            last_processed_group_id,
-            last_processed_project_index,
-        ) = initialize_backfill(
-            current_project_id,
-            last_processed_group_id_input,
-            last_processed_project_index_input,
+        project, last_processed_project_index = initialize_backfill(
+            current_project_id, last_processed_project_index_input
+        )
+        logger.info(
+            "backfill_seer_grouping_records.start",
+            extra={
+                "project_id": current_project_id,
+                "last_processed_index": last_processed_group_id_input,
+            },
         )
     except FeatureError:
         logger.info(
@@ -183,7 +186,7 @@ def backfill_seer_grouping_records_for_project(
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
     (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
-        project, last_processed_group_id, batch_size, enable_ingestion
+        project, last_processed_group_id_input, batch_size, enable_ingestion
     )
 
     if len(groups_to_backfill_with_no_embedding) == 0:
