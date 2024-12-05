@@ -802,7 +802,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       <TraceGrid
         layout={traceState.preferences.layout}
         ref={setTraceGridRef}
-        hasTraceNewUi={hasTraceNewUi}
+        hideBottomBorder={hasTraceNewUi}
       >
         <Trace
           trace={props.tree}
@@ -851,8 +851,8 @@ const TraceToolbar = styled('div')`
 `;
 
 export const TraceGrid = styled('div')<{
-  hasTraceNewUi: boolean;
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+  hideBottomBorder?: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -890,8 +890,8 @@ export const TraceGrid = styled('div')<{
   grid-template-rows: 1fr auto;
 
   ${p =>
-    p.hasTraceNewUi
+    p.hideBottomBorder
       ? `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`
       : `border-radius: ${p.theme.borderRadius};`}
-  ${p => (p.hasTraceNewUi ? 'border-bottom: none;' : '')}
+  ${p => (p.hideBottomBorder ? 'border-bottom: none;' : '')}
 `;
