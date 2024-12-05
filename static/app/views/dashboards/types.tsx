@@ -126,6 +126,7 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  isFavorited?: boolean;
   permissions?: DashboardPermissions;
 };
 

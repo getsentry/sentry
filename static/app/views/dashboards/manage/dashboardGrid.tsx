@@ -7,6 +7,7 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -101,6 +102,14 @@ function DashboardGrid({
     }
   }
 
+  async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
+    try {
+      await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   function renderDropdownMenu(dashboard: DashboardListItem) {
     const menuItems: MenuItemProps[] = [
       {
@@ -189,6 +198,8 @@ function DashboardGrid({
           createdBy={dashboard.createdBy}
           renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
+          isFavorited={dashboard.isFavorited}
+          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
         />
       );
     });
