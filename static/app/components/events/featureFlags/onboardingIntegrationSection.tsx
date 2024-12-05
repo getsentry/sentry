@@ -86,7 +86,7 @@ export default function OnboardingIntegrationSection({
   }
 
   return (
-    <Access access={['org:write']}>
+    <Access access={['org:read']}>
       {({hasAccess}) => (
         <Fragment>
           <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
@@ -125,9 +125,7 @@ export default function OnboardingIntegrationSection({
                   onChange={e => setSecret(e.target.value)}
                 />
                 <Tooltip
-                  title={t(
-                    'You must be an organization owner, manager or admin to add a secret.'
-                  )}
+                  title={t('You must be an organization member to add a secret.')}
                   disabled={hasAccess}
                 >
                   <Button
