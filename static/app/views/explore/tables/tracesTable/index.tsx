@@ -16,6 +16,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -49,10 +50,11 @@ import {
 } from 'sentry/views/explore/tables/tracesTable/styles';
 
 interface TracesTableProps {
+  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function TracesTable({setError}: TracesTableProps) {
+export function TracesTable({confidence, setError}: TracesTableProps) {
   const [dataset] = useDataset();
   const [query] = useUserQuery();
   const [visualizes] = useVisualizes();
@@ -89,6 +91,7 @@ export function TracesTable({setError}: TracesTableProps) {
       'timestamp',
     ],
     userQuery: query,
+    confidence,
   });
 
   const {data, isPending, isError, getResponseHeader} = result;

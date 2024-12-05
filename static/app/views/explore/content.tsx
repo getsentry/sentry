@@ -21,6 +21,7 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -73,6 +74,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [confidence, setConfidence] = useState<Confidence>(null);
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
@@ -107,6 +109,13 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
+            {confidence === 'low' && (
+              <ConfidenceAlert type="warning" showIcon>
+                {t(
+                  'Your low sample count may impact the accuracy of this extrapolation. Edit your query or increase your sample rate.'
+                )}
+              </ConfidenceAlert>
+            )}
             <TopSection>
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
@@ -148,8 +157,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   {tableError || chartError}
                 </Alert>
               )}
-              <ExploreCharts query={userQuery} setError={setChartError} />
-              <ExploreTables setError={setTableError} />
+              <ExploreCharts
+                query={userQuery}
+                setConfidence={setConfidence}
+                setError={setChartError}
+              />
+              <ExploreTables confidence={confidence} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
@@ -179,6 +192,11 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: 400px minmax(100px, auto);
   }
+`;
+
+const ConfidenceAlert = styled(Alert)`
+  grid-column: 1/3;
+  margin: 0;
 `;
 
 const TopSection = styled('div')`

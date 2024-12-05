@@ -9,7 +9,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
+import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -50,10 +50,11 @@ export function formatSort(sort: Sort): string {
 }
 
 interface AggregatesTableProps {
+  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function AggregatesTable({setError}: AggregatesTableProps) {
+export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
@@ -125,6 +126,7 @@ export function AggregatesTable({setError}: AggregatesTableProps) {
     organization,
     columns: groupBys,
     userQuery: query,
+    confidence,
   });
 
   const {tableStyles} = useTableStyles({
