@@ -61,6 +61,7 @@ def create_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
         type="MetricAlertFire",  # this probably isn't right
         condition_group=data_condition_group,
     )
+    # TODO AlertRuleTriggerDataCondition
 
 
 def create_alert_lookup_tables(
