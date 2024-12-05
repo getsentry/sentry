@@ -3,28 +3,49 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 function NewSecretHandler({
   secret,
+  provider,
   onGoBack,
 }: {
   onGoBack: MouseEventHandler;
+  provider: string;
   secret: string;
 }) {
   return (
     <div>
-      <Alert type="warning" showIcon system>
+      <StyledAlert type="warning" showIcon system>
         {t('The secret has been posted.')}
-      </Alert>
+      </StyledAlert>
 
-      <PanelItem>
+      <StyledPanelItem>
         <InputWrapper>
-          <FieldGroupNoPadding
+          <StyledFieldGroup
+            label={t('Webhook URL')}
+            help={tct(
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+              {
+                link: (
+                  <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider.toLowerCase()]} />
+                ),
+              }
+            )}
+            inline
+            flexibleControlStateSize
+          >
+            <TextCopyInput
+              aria-label={t('Webhook URL')}
+            >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${provider.toLowerCase()}/`}</TextCopyInput>
+          </StyledFieldGroup>
+          <StyledFieldGroup
             label={t('Secret')}
             help={t(
               'The secret should not be shared and will not be retrievable once you leave this page.'
@@ -33,17 +54,17 @@ function NewSecretHandler({
             flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('Secret')}>{secret}</TextCopyInput>
-          </FieldGroupNoPadding>
+          </StyledFieldGroup>
         </InputWrapper>
-      </PanelItem>
+      </StyledPanelItem>
 
-      <PanelItem>
+      <StyledPanelItem>
         <ButtonWrapper>
           <Button onClick={onGoBack} priority="primary">
             {t('Done')}
           </Button>
         </ButtonWrapper>
-      </PanelItem>
+      </StyledPanelItem>
     </div>
   );
 }
@@ -52,8 +73,8 @@ const InputWrapper = styled('div')`
   flex: 1;
 `;
 
-const FieldGroupNoPadding = styled(FieldGroup)`
-  padding: 0;
+const StyledFieldGroup = styled(FieldGroup)`
+  padding: ${space(1)};
 `;
 
 const ButtonWrapper = styled('div')`
@@ -65,4 +86,11 @@ const ButtonWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
+const StyledPanelItem = styled(PanelItem)`
+  padding: ${space(1.5)};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
+`;
 export default NewSecretHandler;
