@@ -40,25 +40,27 @@ export class TraceView {
     this.trace_view = new DOMView(0, 0, space[2], space[3]);
   }
 
-  setTraceView(view: {width?: number; x?: number}) {
+  setTraceView(view: [x: number, y: number, width: number, height: number]) {
     // In cases where a trace might have a single error, there is no concept of a timeline
     if (this.trace_view.width === 0) {
       return;
     }
 
-    const x = view.x ?? this.trace_view.x;
-    const width = view.width ?? this.trace_view.width;
+    const x = view[0];
+    const width = view[2];
 
     this.trace_view.x = clamp(
       x,
       0,
       Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION_MS)
     );
+    this.trace_view.y = Math.max(0, view[1]);
     this.trace_view.width = clamp(
       width,
       this.MAX_ZOOM_PRECISION_MS,
       this.trace_space.width - this.trace_view.x
     );
+    this.trace_view.height = view[3];
   }
 
   getSpanToPxForSpace(space: [number, number]): mat3 {

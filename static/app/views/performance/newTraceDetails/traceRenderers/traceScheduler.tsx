@@ -22,7 +22,9 @@ export interface TraceEvents {
   ['set trace space']: (
     space: [x: number, y: number, width: number, height: number]
   ) => void;
-  ['set trace view']: (view: {width?: number; x?: number}) => void;
+  ['set trace view']: (
+    space: [x: number, y: number, width: number, height: number]
+  ) => void;
 }
 
 export class TraceScheduler {

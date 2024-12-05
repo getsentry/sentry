@@ -169,10 +169,9 @@ export const useVirtualizedList = (
 
       managerRef.current.scrolling_source = 'list';
       managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
+      scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
 
       rafId.current = window.requestAnimationFrame(() => {
-        scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
-
         const recomputedItems = findRenderedItems({
           scrollTop: scrollTopRef.current,
           items: props.items,

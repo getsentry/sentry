@@ -234,10 +234,12 @@ export class VirtualizedViewManager {
     this.view.trace_physical_space.width =
       span_list * this.view.trace_container_physical_space.width;
 
-    this.scheduler.dispatch('set trace view', {
-      x: this.view.trace_view.x,
-      width: this.view.trace_view.width,
-    });
+    this.scheduler.dispatch('set trace view', [
+      this.view.trace_view.x,
+      this.view.trace_view.y,
+      this.view.trace_view.width,
+      this.view.trace_view.height,
+    ]);
 
     this.scheduler.dispatch('divider resize', {
       list,
@@ -473,13 +475,14 @@ export class VirtualizedViewManager {
       // When users zoom in, the matrix will compute a width value that is lower than the min,
       // which results in the value of x being incorrectly set and the view moving to the right.
       // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
-      this.scheduler.dispatch('set trace view', {
-        x:
-          newView[2] < this.view.MAX_ZOOM_PRECISION_MS
-            ? this.view.trace_view.x
-            : newView[0],
-        width: newView[2],
-      });
+      this.scheduler.dispatch('set trace view', [
+        newView[2] < this.view.MAX_ZOOM_PRECISION_MS
+          ? this.view.trace_view.x
+          : newView[0],
+        this.view.trace_view.y,
+        newView[2],
+        this.view.trace_view.height,
+      ]);
     } else {
       if (!this.timers.onWheelEnd) {
         this.onWheelStart();
@@ -501,9 +504,12 @@ export class VirtualizedViewManager {
       const physical_delta_pct = distance / this.view.trace_physical_space.width;
       const view_delta = physical_delta_pct * this.view.trace_view.width;
 
-      this.scheduler.dispatch('set trace view', {
-        x: this.view.trace_view.x + view_delta,
-      });
+      this.scheduler.dispatch('set trace view', [
+        this.view.trace_view.x + view_delta,
+        this.view.trace_view.y + event.deltaY,
+        this.view.trace_view.width,
+        this.view.trace_view.height,
+      ]);
     }
   }
 
@@ -531,10 +537,12 @@ export class VirtualizedViewManager {
     const width = node_space[1] > 0 ? node_space[1] : this.view.trace_view.width;
     const margin = 0.2 * width;
 
-    this.scheduler.dispatch('set trace view', {
-      x: start - margin - this.view.to_origin,
-      width: width + margin * 2,
-    });
+    this.scheduler.dispatch('set trace view', [
+      start - margin - this.view.to_origin,
+      this.view.trace_view.y,
+      width + margin * 2,
+      this.view.trace_view.height,
+    ]);
   }
 
   onZoomIntoSpace(space: [number, number]) {
@@ -578,17 +586,21 @@ export class VirtualizedViewManager {
       if (progress <= 1) {
         const x = start_x + distance_x * eased;
         const width = start_width - distance_width * eased;
-        this.scheduler.dispatch('set trace view', {
+        this.scheduler.dispatch('set trace view', [
           x,
+          this.view.trace_view.y,
           width,
-        });
+          this.view.trace_view.height,
+        ]);
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
-        this.scheduler.dispatch('set trace view', {
-          x: final_x,
-          width: final_width,
-        });
+        this.scheduler.dispatch('set trace view', [
+          final_x,
+          this.view.trace_view.y,
+          final_width,
+          this.view.trace_view.height,
+        ]);
       }
     };
 
@@ -675,7 +687,12 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.scheduler.dispatch('set trace view', {x, width});
+    this.scheduler.dispatch('set trace view', [
+      x,
+      this.view.trace_view.y,
+      width,
+      this.view.trace_view.height,
+    ]);
   }
 
   enqueueFOVQueryParamSync(view: TraceView) {
@@ -724,10 +741,12 @@ export class VirtualizedViewManager {
     }
 
     const timestamp = indicator.timestamp - this.view.to_origin;
-    this.scheduler.dispatch('set trace view', {
-      x: timestamp - this.view.trace_view.width / 2,
-      width: this.view.trace_view.width,
-    });
+    this.scheduler.dispatch('set trace view', [
+      timestamp - this.view.trace_view.width / 2,
+      this.view.trace_view.y,
+      this.view.trace_view.width,
+      this.view.trace_view.height,
+    ]);
   }
 
   onHorizontalScrollbarScrollStart(): void {

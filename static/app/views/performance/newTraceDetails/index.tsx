@@ -50,7 +50,11 @@ export function TraceView() {
     []
   );
 
-  const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
+  const replayTrace = useMemo(
+    () => [{traceSlug, timestamp: queryParams.timestamp}],
+    [traceSlug, queryParams.timestamp]
+  );
+  const meta = useTraceMeta(replayTrace);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
   const rootEvent = useTraceRootEvent(trace.data ?? null);
   const tree = useTraceTree({traceSlug, trace, meta, replay: null});
