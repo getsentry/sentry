@@ -21,6 +21,19 @@ class ServiceMemory:
         self.percentage = used / available
 
 
+@dataclass
+class HostPortInfo:
+    host: str | None
+    port: int | None
+
+
+@dataclass
+class MemoryUsageInfo:
+    memory_usage: ServiceMemory
+    host: str | None
+    port: int | None
+
+
 def query_rabbitmq_memory_usage(host: str) -> ServiceMemory:
     """Returns the currently used memory and the memory limit of a
     RabbitMQ host.
@@ -51,7 +64,7 @@ def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     return ServiceMemory(node_id, memory_used, memory_available)
 
 
-def get_host_port_info(node_id: str, cluster: Cluster) -> tuple[str, int]:
+def get_host_port_info(node_id: str, cluster: Cluster) -> HostPortInfo:
     """
     Extract the host and port of the redis node in the cluster.
     """
@@ -59,16 +72,16 @@ def get_host_port_info(node_id: str, cluster: Cluster) -> tuple[str, int]:
         if isinstance(cluster, RedisCluster):
             # RedisCluster node mapping
             node = cluster.connection_pool.nodes.nodes.get(node_id)
-            return node["host"], node["port"]
+            return HostPortInfo(node["host"], node["port"])
         else:
             # rb.Cluster node mapping
             node = cluster.hosts[node_id]
-            return node.host, node.port
+            return HostPortInfo(node.host, node.port)
     except Exception:
-        return None, None
+        return HostPortInfo(None, None)
 
 
-def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None, None]:
+def iter_cluster_memory_usage(cluster: Cluster) -> Generator[MemoryUsageInfo, None, None]:
     """
     A generator that yields redis `INFO` results for each of the nodes in the `cluster`.
     """
@@ -82,6 +95,6 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
         cluster_info = promise.value
 
     for node_id, info in cluster_info.items():
-        host, port = get_host_port_info(node_id, cluster)
+        node_info = get_host_port_info(node_id, cluster)
         memory_usage = get_memory_usage(node_id, info)
-        yield memory_usage, host, port
+        yield MemoryUsageInfo(memory_usage, node_info.host, node_info.port)
