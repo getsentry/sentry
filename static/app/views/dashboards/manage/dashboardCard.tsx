@@ -15,7 +15,6 @@ import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
 
 interface Props {
-  dashboardId: string;
   detail: React.ReactNode;
   onFavorite: (isFavorited: boolean) => void;
   renderWidgets: () => React.ReactNode;

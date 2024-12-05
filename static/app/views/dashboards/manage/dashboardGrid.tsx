@@ -198,7 +198,6 @@ function DashboardGrid({
           createdBy={dashboard.createdBy}
           renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
-          dashboardId={dashboard.id}
           isFavorited={dashboard.isFavorited}
           onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
         />
