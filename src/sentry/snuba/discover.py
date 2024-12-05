@@ -20,12 +20,7 @@ from sentry.search.events.builder.discover import (
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.fields import (
-    FIELD_ALIASES,
-    get_function_alias,
-    get_json_meta_type,
-    is_function,
-)
+from sentry.search.events.fields import FIELD_ALIASES, get_function_alias, is_function
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -312,6 +307,7 @@ def timeseries_query(
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -337,6 +333,8 @@ def timeseries_query(
     allow_metric_aggregates - Ignored here, only used in metric enhanced performance
     fallback_to_transactions - Whether to fallback to the transactions dataset if the query
                     fails in metrics enhanced requests. To be removed once the discover dataset is split.
+    transform_alias_to_input_format - Whether aggregate columns should be returned in the originally
+                                requested function format.
     """
     assert dataset in [
         Dataset.Discover,
@@ -356,6 +354,7 @@ def timeseries_query(
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         query_list = [base_builder]
@@ -411,20 +410,10 @@ def timeseries_query(
             compared_value = compared_row.get(col_name, 0)
             row["comparisonCount"] = compared_value
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
-        {
-            "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
-        },
+        {"data": result["data"], "meta": result["meta"]},
         snuba_params.start_date,
         snuba_params.end_date,
         rollup,
