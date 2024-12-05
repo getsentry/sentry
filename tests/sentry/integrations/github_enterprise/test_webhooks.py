@@ -14,12 +14,9 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_success_metric,
-)
 
 
 class WebhookTest(APITestCase):

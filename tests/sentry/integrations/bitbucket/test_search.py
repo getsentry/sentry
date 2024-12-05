@@ -5,9 +5,9 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.metrics import SourceCodeSearchEndpointHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 
 @control_silo_test

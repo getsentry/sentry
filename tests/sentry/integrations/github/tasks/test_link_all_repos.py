@@ -12,12 +12,9 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_halt_metric,
-)
 
 
 @control_silo_test

@@ -6,8 +6,8 @@ from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.integrations.messaging.metrics import MessageCommandFailureReason
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import APITestCase
-from tests.sentry.integrations.utils.test_assert_metrics import assert_failure_metric
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 

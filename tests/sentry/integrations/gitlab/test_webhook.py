@@ -16,11 +16,8 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_success_metric,
-)
 
 
 class WebhookTest(GitLabTestCase):
