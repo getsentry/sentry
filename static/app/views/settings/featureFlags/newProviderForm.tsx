@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -87,64 +87,65 @@ export default function NewProviderForm({
     },
   });
 
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
+
   return (
-    <Access access={['org:write']}>
-      {({hasAccess}) => (
-        <Form
-          apiMethod="POST"
-          initialData={initialData}
-          apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
-          onSubmit={({provider, secret}) => {
-            submitSecret({
-              provider,
-              secret,
-            });
-          }}
-          onCancel={handleGoBack}
-          submitLabel={t('Add Provider')}
-          requireChanges
-          submitDisabled={!hasAccess || isPending}
-        >
-          <SelectField
-            required
-            label={t('Provider')}
-            onChange={setSelectedProvider}
-            value={selectedProvider}
-            placeholder={t('Select a provider')}
-            name="provider"
-            options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
-            help={t(
-              'If you have already linked this provider, pasting a new secret will override the existing secret.'
-            )}
-          />
-          <StyledFieldGroup
-            label={t('Webhook URL')}
-            help={tct(
-              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
-              {
-                link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[selectedProvider]} />,
-              }
-            )}
-            inline
-            flexibleControlStateSize
-          >
-            <TextCopyInput
-              aria-label={t('Webhook URL')}
-            >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
-          </StyledFieldGroup>
-          <TextField
-            name="secret"
-            label={t('Secret')}
-            maxLength={32}
-            minLength={32}
-            required
-            help={t(
-              'Paste the signing secret given by your provider when creating the webhook.'
-            )}
-          />
-        </Form>
-      )}
-    </Access>
+    <Form
+      apiMethod="POST"
+      initialData={initialData}
+      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
+      onSubmit={({provider, secret}) => {
+        submitSecret({
+          provider,
+          secret,
+        });
+      }}
+      onCancel={handleGoBack}
+      submitLabel={t('Add Provider')}
+      requireChanges
+      submitDisabled={!hasAccess || isPending}
+    >
+      <SelectField
+        required
+        label={t('Provider')}
+        onChange={setSelectedProvider}
+        value={selectedProvider}
+        placeholder={t('Select a provider')}
+        name="provider"
+        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        help={t(
+          'If you have already linked this provider, pasting a new secret will override the existing secret.'
+        )}
+      />
+      <StyledFieldGroup
+        label={t('Webhook URL')}
+        help={tct(
+          "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+          {
+            link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[selectedProvider]} />,
+          }
+        )}
+        inline
+        flexibleControlStateSize
+      >
+        <TextCopyInput
+          aria-label={t('Webhook URL')}
+        >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+      </StyledFieldGroup>
+      <TextField
+        name="secret"
+        label={t('Secret')}
+        maxLength={32}
+        minLength={32}
+        required
+        help={t(
+          'Paste the signing secret given by your provider when creating the webhook.'
+        )}
+      />
+    </Form>
   );
 }
 

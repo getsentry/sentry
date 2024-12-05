@@ -141,6 +141,7 @@ export function OrganizationFeatureFlagsIndex() {
   const canWrite = hasEveryAccess(['org:write'], {organization});
   const canAdmin = hasEveryAccess(['org:admin'], {organization});
   const hasAccess = canRead || canWrite || canAdmin;
+  const hasDeleteAccess = canWrite || canAdmin;
 
   return (
     <Fragment>
@@ -181,7 +182,7 @@ export function OrganizationFeatureFlagsIndex() {
           <SecretList
             secretList={secretList.data}
             isRemoving={isRemoving}
-            removeSecret={hasAccess ? handleRemoveSecret : undefined}
+            removeSecret={hasDeleteAccess ? handleRemoveSecret : undefined}
           />
         )}
       </ResponsivePanelTable>
