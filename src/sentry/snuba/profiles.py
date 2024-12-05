@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import timedelta
 from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
@@ -68,7 +68,7 @@ def timeseries_query(
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
-    comparison_delta: datetime | None = None,
+    comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
