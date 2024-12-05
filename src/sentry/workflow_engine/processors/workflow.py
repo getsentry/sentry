@@ -1,5 +1,7 @@
 import logging
 
+import sentry_sdk
+
 from sentry.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector, Workflow
@@ -35,11 +37,13 @@ def process_workflows(evt: GroupEvent) -> set[Workflow]:
         logger.exception("Detector not found for event", extra={"event_id": evt.event_id})
         return set()
 
+    # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, evt)
     actions = evaluate_workflow_action_filters(triggered_workflows, evt)
 
-    for action in actions:
-        action.trigger(evt, detector)
+    with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
+        for action in actions:
+            action.trigger(evt, detector)
 
     return triggered_workflows
