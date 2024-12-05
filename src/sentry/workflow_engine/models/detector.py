@@ -18,7 +18,7 @@ from sentry.models.owner_base import OwnerModel
 from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
-    from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 

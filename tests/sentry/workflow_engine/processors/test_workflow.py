@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
@@ -34,6 +36,21 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         triggered_workflows = process_workflows(self.group_event)
         assert triggered_workflows == {self.workflow}
+
+    def test_no_detector(self):
+        self.group_event.occurrence = self.build_occurrence(evidence_data={})
+
+        with mock.patch("sentry.workflow_engine.processors.workflow.logger") as mock_logger:
+            with mock.patch("sentry.workflow_engine.processors.workflow.metrics") as mock_metrics:
+                triggered_workflows = process_workflows(self.group_event)
+
+                assert not triggered_workflows
+
+                mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+                mock_logger.exception.assert_called_once_with(
+                    "Detector not found for event",
+                    extra={"event_id": self.event.event_id},
+                )
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):

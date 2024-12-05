@@ -5,7 +5,7 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.processors.detector import StatefulDetectorHandler
+from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):

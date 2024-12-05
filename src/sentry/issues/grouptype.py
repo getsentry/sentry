@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
-    from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 
 import logging
