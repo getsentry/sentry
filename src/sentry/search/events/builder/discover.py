@@ -92,16 +92,28 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             "sentry.search.events.project.check_event", self.params.organization_id
         ):
             if self.dataset == Dataset.Discover:
-                return [
+                project_ids = [
                     proj.id
                     for proj in self.params.projects
                     if proj.flags.has_transactions or proj.first_event is not None
                 ]
             elif self.dataset == Dataset.Events:
-                return [proj.id for proj in self.params.projects if proj.first_event is not None]
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.first_event is not None
+                ]
             elif self.dataset in [Dataset.Transactions, Dataset.IssuePlatform]:
-                return [proj.id for proj in self.params.projects if proj.flags.has_transactions]
-            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.flags.has_transactions
+                ]
+            else:
+                return super().resolve_projects()
+
+            if len(project_ids) == 0:
+                raise InvalidSearchQuery(
+                    "All the projects in your query haven't received data yet, so no query was ran"
+                )
+            else:
+                return project_ids
         else:
             return super().resolve_projects()
 
