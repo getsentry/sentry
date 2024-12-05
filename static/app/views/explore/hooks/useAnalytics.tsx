@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import type {Organization} from 'sentry/types/organization';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -17,8 +17,10 @@ export function useAnalytics({
   organization,
   columns,
   userQuery,
+  confidence,
 }: {
   columns: string[];
+  confidence: Confidence;
   organization: Organization;
   resultLength: number | undefined;
   resultMode: 'span samples' | 'trace samples' | 'aggregates';
@@ -37,6 +39,7 @@ export function useAnalytics({
       organization,
       columns,
       columns_count: columns.filter(Boolean).length,
+      confidence,
       query_status: resultStatus,
       result_length: resultLength || 0,
       result_missing_root: resultMissingRoot || 0,
@@ -57,5 +60,6 @@ export function useAnalytics({
     visualizes,
     columns,
     userQuery,
+    confidence,
   ]);
 }
