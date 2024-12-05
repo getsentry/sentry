@@ -137,6 +137,9 @@ export function EventDetailsContent({
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
+      {issueTypeConfig.tags.enabled && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
+      )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
         {!hasStreamlinedUI && (
@@ -217,9 +220,7 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
-      )}
+
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
