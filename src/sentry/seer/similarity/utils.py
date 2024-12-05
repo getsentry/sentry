@@ -141,6 +141,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "csharp",
         "csharp-aspnetcore",
         "dart",
+        "dotnet",
         "flutter",
         "groovy",
         "java",
