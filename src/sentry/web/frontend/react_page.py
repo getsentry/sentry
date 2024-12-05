@@ -55,13 +55,13 @@ def resolve_redirect_url(request: HttpRequest | Request, org_slug: str, user_id=
 def resolve_activeorg_redirect_url(request: HttpRequest | Request) -> str | None:
     user: AnonymousUser | RpcUser | None = getattr(request, "user", None)
     if not user or isinstance(user, AnonymousUser):
-        return
+        return None
     session = request.session
     if not session:
-        return
+        return None
     last_active_org = session.get("activeorg", None)
     if not last_active_org:
-        return
+        return None
     return resolve_redirect_url(request=request, org_slug=last_active_org, user_id=user.id)
 
 
