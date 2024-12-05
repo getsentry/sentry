@@ -54,10 +54,12 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     return <strong>{t('Anonymous User')}</strong>;
   }
 
-  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(`Following up from ${organization.name}`)}&body=${feedbackIssue.metadata.message
-    .split('\n')
-    .map(s => encodeURIComponent(`> ${s}`))
-    .join('\n')}`;
+  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(`Following up from ${organization.name}`)}&body=${encodeURIComponent(
+    feedbackIssue.metadata.message
+      .split('\n')
+      .map(s => `> ${s}`)
+      .join('\n')
+  )}`;
 
   return (
     <Flex align="center" gap={space(1)} className={className} style={style}>
