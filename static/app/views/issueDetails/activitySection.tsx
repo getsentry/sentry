@@ -9,6 +9,7 @@ import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -46,6 +47,10 @@ function ActivitySection(props: Props) {
           itemKey={group.id}
           onCreate={n => {
             onCreate(n, me);
+            trackAnalytics('issue_details.comment_created', {
+              organization,
+              streamline: false,
+            });
             setInputId(uniqueId());
           }}
           source="activity"
@@ -66,10 +71,20 @@ function ActivitySection(props: Props) {
                 user={item.user as User}
                 dateCreated={item.dateCreated}
                 authorName={authorName}
-                onDelete={() => onDelete(item)}
+                onDelete={() => {
+                  onDelete(item);
+                  trackAnalytics('issue_details.comment_deleted', {
+                    organization,
+                    streamline: false,
+                  });
+                }}
                 onUpdate={n => {
                   item.data.text = n.text;
                   onUpdate(item, n);
+                  trackAnalytics('issue_details.comment_updated', {
+                    organization,
+                    streamline: false,
+                  });
                 }}
                 {...noteProps}
               />

@@ -10,12 +10,12 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
-from sentry.search.events.types import EventsMeta, EventsResponse, SnubaData, SnubaParams
-from sentry.snuba.discover import OTHER_KEY, create_result_key
+from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
+from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -37,7 +37,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
-) -> EventsResponse:
+) -> EAPResponse:
     """Make the query"""
     resolver = (
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
@@ -66,6 +66,9 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
+    has_aggregations = any(
+        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
+    )
 
     labeled_columns = [categorize_column(col) for col in columns]
 
@@ -74,11 +77,15 @@ def run_table_query(
         meta=meta,
         filter=query,
         columns=labeled_columns,
-        group_by=[
-            col.proto_definition
-            for col in columns
-            if isinstance(col.proto_definition, AttributeKey)
-        ],
+        group_by=(
+            [
+                col.proto_definition
+                for col in columns
+                if isinstance(col.proto_definition, AttributeKey)
+            ]
+            if has_aggregations
+            else []
+        ),
         order_by=resolved_orderby,
         limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
@@ -87,6 +94,7 @@ def run_table_query(
 
     """Process the results"""
     final_data: SnubaData = []
+    final_confidence: ConfidenceData = []
     final_meta: EventsMeta = EventsMeta(fields={})
     # Mapping from public alias to resolved column so we know type etc.
     columns_by_name = {col.public_alias: col for col in columns}
@@ -100,10 +108,18 @@ def run_table_query(
             )
             continue
         resolved_column = columns_by_name[attribute]
-        final_meta["fields"][attribute] = resolved_column.meta_type
+        final_meta["fields"][attribute] = resolved_column.search_type
+
+        # When there's no aggregates reliabilities is an empty array
+        has_reliability = len(column_value.reliabilities) > 0
+        if has_reliability:
+            assert len(column_value.results) == len(column_value.reliabilities), Exception(
+                "Length of rpc results do not match length of rpc reliabilities"
+            )
 
         while len(final_data) < len(column_value.results):
             final_data.append({})
+            final_confidence.append({})
 
         for index, result in enumerate(column_value.results):
             result_value: str | int | float
@@ -113,9 +129,14 @@ def run_table_query(
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
+            result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
+            if has_reliability:
+                final_confidence[index][attribute] = CONFIDENCES.get(
+                    column_value.reliabilities[index], None
+                )
 
-    return {"data": final_data, "meta": final_meta}
+    return {"data": final_data, "meta": final_meta, "confidence": final_confidence}
 
 
 def get_timeseries_query(
@@ -173,19 +194,34 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
 
     """Process the results"""
-    result: list[dict[str, Any]] = []
+    result: SnubaData = []
+    confidences: SnubaData = []
     for timeseries in rpc_response.result_timeseries:
-        processed = _process_timeseries(timeseries, params, granularity_secs)
+        processed, confidence = _process_timeseries(timeseries, params, granularity_secs)
         if len(result) == 0:
             result = processed
+            confidences = confidence
         else:
             for existing, new in zip(result, processed):
                 existing.update(new)
-    return SnubaTSResult({"data": result}, params.start, params.end, granularity_secs)
+            for existing, new in zip(confidences, confidence):
+                existing.update(new)
+    if len(result) == 0:
+        # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
+        result = zerofill(
+            [],
+            params.start_date,
+            params.end_date,
+            granularity_secs,
+            ["time"],
+        )
+    return SnubaTSResult(
+        {"data": result, "confidence": confidences}, params.start, params.end, granularity_secs
+    )
 
 
 def build_top_event_conditions(
-    resolver: SearchResolver, top_events: EventsResponse, groupby_columns: list[str]
+    resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
 ) -> Any:
     conditions = []
     other_conditions = []
@@ -193,11 +229,17 @@ def build_top_event_conditions(
         row_conditions = []
         other_row_conditions = []
         for key in groupby_columns:
+            if key == "project.id":
+                value = resolver.params.project_slug_map[
+                    event.get("project", event.get("project.slug"))
+                ]
+            else:
+                value = event[key]
             resolved_term = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
-                    value=SearchValue(raw_value=event[key]),
+                    value=SearchValue(raw_value=value),
                 )
             )
             if resolved_term is not None:
@@ -206,7 +248,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
-                    value=SearchValue(raw_value=event[key]),
+                    value=SearchValue(raw_value=value),
                 )
             )
             if other_term is not None:
@@ -223,7 +265,7 @@ def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
     y_axes: list[str],
-    groupby: list[str],
+    raw_groupby: list[str],
     orderby: list[str] | None,
     limit: int,
     referrer: str,
@@ -239,7 +281,7 @@ def run_top_events_timeseries_query(
     top_events = run_table_query(
         params,
         query_string,
-        groupby + y_axes,
+        raw_groupby + y_axes,
         orderby,
         0,
         limit,
@@ -247,16 +289,20 @@ def run_top_events_timeseries_query(
         config,
         search_resolver=search_resolver,
     )
-    groupby_columns = [col for col in groupby if not is_function(col)]
+    # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
+    groupby_columns = [col for col in raw_groupby if not is_function(col)]
+    groupby_columns_without_project = [
+        col if col not in ["project", "project.name"] else "project.id" for col in groupby_columns
+    ]
     top_conditions, other_conditions = build_top_event_conditions(
-        search_resolver, top_events, groupby_columns
+        search_resolver, top_events, groupby_columns_without_project
     )
     """Make the query"""
     rpc_request = get_timeseries_query(
         params,
         query_string,
         y_axes,
-        groupby,
+        groupby_columns_without_project,
         referrer,
         config,
         granularity_secs,
@@ -266,7 +312,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        groupby,
+        groupby_columns_without_project,
         referrer,
         config,
         granularity_secs,
@@ -284,55 +330,67 @@ def run_top_events_timeseries_query(
         remapped_groupby = {}
         # Remap internal attrs back to public ones
         for col in groupby_columns:
-            resolved_groupby, _ = search_resolver.resolve_attribute(col)
-            remapped_groupby[resolved_groupby.public_alias] = groupby_attributes[
-                resolved_groupby.internal_name
-            ]
+            if col in ["project", "project.slug"]:
+                resolved_groupby, _ = search_resolver.resolve_attribute("project.id")
+                remapped_groupby[col] = params.project_id_map[
+                    int(groupby_attributes[resolved_groupby.internal_name])
+                ]
+            else:
+                resolved_groupby, _ = search_resolver.resolve_attribute(col)
+                remapped_groupby[col] = groupby_attributes[resolved_groupby.internal_name]
         result_key = create_result_key(remapped_groupby, groupby_columns, {})
         map_result_key_to_timeseries[result_key] = timeseries
     final_result = {}
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
+        result_data, result_confidence = _process_timeseries(
+            map_result_key_to_timeseries[result_key],
+            params,
+            granularity_secs,
+        )
         final_result[result_key] = SnubaTSResult(
             {
-                "data": _process_timeseries(
-                    map_result_key_to_timeseries[result_key],
-                    params,
-                    granularity_secs,
-                ),
+                "data": result_data,
+                "confidence": result_confidence,
                 "order": index,
             },
             params.start,
             params.end,
             granularity_secs,
         )
-    final_result[OTHER_KEY] = SnubaTSResult(
-        {
-            "data": _process_timeseries(
-                other_response.result_timeseries[0],
-                params,
-                granularity_secs,
-            ),
-            "order": limit,
-        },
-        params.start,
-        params.end,
-        granularity_secs,
-    )
+    if other_response.result_timeseries:
+        result_data, result_confidence = _process_timeseries(
+            other_response.result_timeseries[0],
+            params,
+            granularity_secs,
+        )
+        final_result[OTHER_KEY] = SnubaTSResult(
+            {
+                "data": result_data,
+                "confidence": result_confidence,
+                "order": limit,
+            },
+            params.start,
+            params.end,
+            granularity_secs,
+        )
     return final_result
 
 
 def _process_timeseries(
     timeseries: TimeSeries, params: SnubaParams, granularity_secs: int, order: int | None = None
-) -> list[dict[str, Any]]:
+) -> tuple[SnubaData, SnubaData]:
     result: SnubaData = []
+    confidence: SnubaData = []
     # Timeseries serialization expects the function alias (eg. `count` not `count()`)
     label = get_function_alias(timeseries.label)
     if len(result) < len(timeseries.buckets):
         for bucket in timeseries.buckets:
             result.append({"time": bucket.seconds})
+            confidence.append({"time": bucket.seconds})
     for index, data_point in enumerate(timeseries.data_points):
-        result[index][label] = data_point.data
+        result[index][label] = process_value(data_point.data)
+        confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
-    return result
+    return result, confidence

@@ -84,8 +84,10 @@ type Props = {
   comparisonDelta?: number;
   formattedAggregate?: string;
   header?: React.ReactNode;
+  includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
+  onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   showTotalCount?: boolean;
@@ -232,6 +234,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
   // Create new API Client so that historical requests aren't automatically deduplicated
   historicalAPI = new Client();
+  confidenceAPI = new Client();
 
   get availableTimePeriods() {
     // We need to special case sessions, because sub-hour windows are available
@@ -277,7 +280,6 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       query,
       dataset,
-      aggregate,
     } = this.props;
 
     const statsPeriod = this.getStatsPeriod();
@@ -296,7 +298,6 @@ class TriggersChart extends PureComponent<Props, State> {
       queryDataset = DiscoverDatasets.ERRORS;
     }
 
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
     try {
       const totalCount = await fetchTotalCount(api, organization.slug, {
         field: [],
@@ -305,7 +306,7 @@ class TriggersChart extends PureComponent<Props, State> {
         statsPeriod,
         environment: environment ? [environment] : [],
         dataset: queryDataset,
-        ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+        ...getForceMetricsLayerQueryExtras(organization, dataset),
       });
       this.setState({totalCount});
     } catch (e) {
@@ -453,14 +454,13 @@ class TriggersChart extends PureComponent<Props, State> {
       thresholdType,
       isQueryValid,
       isOnDemandMetricAlert,
+      onConfidenceDataLoaded,
     } = this.props;
 
     const period = this.getStatsPeriod();
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
-
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     const queryExtras = {
       ...getMetricDatasetQueryExtras({
@@ -469,7 +469,7 @@ class TriggersChart extends PureComponent<Props, State> {
         dataset,
         newAlertOrQuery,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
       ...(shouldUseErrorsDiscoverDataset(query, dataset, organization)
         ? {dataset: DiscoverDatasets.ERRORS}
         : {}),
@@ -599,6 +599,10 @@ class TriggersChart extends PureComponent<Props, State> {
       );
     }
 
+    const useRpc =
+      organization.features.includes('eap-alerts-ui-uses-rpc') &&
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM;
+
     const baseProps = {
       api,
       organization,
@@ -613,6 +617,7 @@ class TriggersChart extends PureComponent<Props, State> {
       includePrevious: false,
       currentSeriesNames: [formattedAggregate || aggregate],
       partial: false,
+      useRpc,
     };
 
     return (
@@ -627,6 +632,16 @@ class TriggersChart extends PureComponent<Props, State> {
                 : HISTORICAL_TIME_PERIOD_MAP[period]
             }
             dataLoadedCallback={onHistoricalDataLoaded}
+          >
+            {noop}
+          </EventsRequest>
+        ) : null}
+        {this.props.includeConfidence ? (
+          <EventsRequest
+            {...baseProps}
+            api={this.confidenceAPI}
+            period="7d"
+            dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}
           </EventsRequest>

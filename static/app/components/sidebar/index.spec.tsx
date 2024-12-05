@@ -427,12 +427,12 @@ describe('Sidebar', function () {
     it('should render the sidebar banner with no dismissed prompts and an existing rollback', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       renderSidebarWithFeatures(['sentry-rollback-2024']);
@@ -443,7 +443,7 @@ describe('Sidebar', function () {
     it('will not render anything if the user does not have a rollback', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
@@ -463,12 +463,12 @@ describe('Sidebar', function () {
     it('will not render sidebar banner when collapsed', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       renderSidebarWithFeatures(['sentry-rollback-2024']);
@@ -483,12 +483,12 @@ describe('Sidebar', function () {
     it('should show dot on org dropdown after dismissing sidebar banner', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       const dismissMock = MockApiClient.addMockResponse({

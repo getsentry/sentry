@@ -474,6 +474,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   align-items: center;
   justify-content: space-between;
   gap: ${space(3)};
+  font-variant-numeric: tabular-nums;
   font-weight: ${p =>
     p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
 `;

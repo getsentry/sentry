@@ -63,7 +63,7 @@ function TimelineItem({
     <ActivityTimelineItem
       title={
         <Flex gap={space(0.5)} align="center" justify="flex-start">
-          <TitleTooltip title={title} showOnlyOnOverflow skipWrapper>
+          <TitleTooltip title={title} showOnlyOnOverflow>
             {title}
           </TitleTooltip>
           {item.type === GroupActivityType.NOTE && (
@@ -143,7 +143,10 @@ export default function StreamlinedActivitySection({
             addErrorMessage(t('Failed to delete comment'));
           },
           onSuccess: () => {
-            trackAnalytics('issue_details.comment_deleted', {organization});
+            trackAnalytics('issue_details.comment_deleted', {
+              organization,
+              streamline: true,
+            });
             addSuccessMessage(t('Comment removed'));
           },
         }
@@ -163,7 +166,10 @@ export default function StreamlinedActivitySection({
         },
         onSuccess: data => {
           GroupStore.addActivity(group.id, data);
-          trackAnalytics('issue_details.comment_created', {organization});
+          trackAnalytics('issue_details.comment_created', {
+            organization,
+            streamline: true,
+          });
           addSuccessMessage(t('Comment posted'));
         },
       });

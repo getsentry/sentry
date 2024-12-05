@@ -47,7 +47,12 @@ class SearchResolver:
 
     params: SnubaParams
     config: SearchResolverConfig
-    resolved_columns: dict[str, ResolvedColumn] = field(default_factory=dict)
+    _resolved_attribute_cache: dict[str, tuple[ResolvedColumn, VirtualColumnContext | None]] = (
+        field(default_factory=dict)
+    )
+    _resolved_function_cache: dict[str, tuple[ResolvedFunction, VirtualColumnContext | None]] = (
+        field(default_factory=dict)
+    )
 
     def resolve_meta(self, referrer: str) -> RequestMeta:
         if self.params.organization_id is None:
@@ -286,7 +291,7 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
-                elif isinstance(value, float):
+                elif isinstance(value, (float, int)):
                     return AttributeValue(val_int=int(value))
             elif column_type == constants.FLOAT:
                 if operator in constants.IN_OPERATORS:
@@ -363,10 +368,6 @@ class SearchResolver:
         else:
             return self.resolve_attribute(column)
 
-        # TODO: Cache the column
-        # self.resolved_coluumn[alias] = ResolvedColumn()
-        # return ResolvedColumn()
-
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
@@ -387,6 +388,8 @@ class SearchResolver:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
         # If a virtual context is defined the column definition is always the same
+        if column in self._resolved_attribute_cache:
+            return self._resolved_attribute_cache[column]
         if column in VIRTUAL_CONTEXTS:
             column_context = VIRTUAL_CONTEXTS[column](self.params)
             column_definition = ResolvedColumn(
@@ -417,13 +420,15 @@ class SearchResolver:
             if field_type not in constants.TYPE_MAP:
                 raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
 
+            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedColumn(
-                public_alias=column, internal_name=field, search_type=field_type
+                public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
 
         if column_definition:
-            return column_definition, column_context
+            self._resolved_attribute_cache[column] = (column_definition, column_context)
+            return self._resolved_attribute_cache[column]
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
@@ -441,6 +446,8 @@ class SearchResolver:
     def resolve_aggregate(
         self, column: str, match: Match | None = None
     ) -> tuple[ResolvedFunction, VirtualColumnContext | None]:
+        if column in self._resolved_function_cache:
+            return self._resolved_function_cache[column]
         # Check if this is a valid function, parse the function name and args out
         if match is None:
             match = fields.is_function(column)
@@ -490,24 +497,29 @@ class SearchResolver:
         # Proto doesn't support anything more than 1 argument yet
         if len(parsed_columns) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1:
-            resolved_argument = (
-                parsed_columns[0].proto_definition
-                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
-                else None
+        elif len(parsed_columns) == 1 and isinstance(
+            parsed_columns[0].proto_definition, AttributeKey
+        ):
+            parsed_column = parsed_columns[0]
+            resolved_argument = parsed_column.proto_definition
+            search_type = (
+                parsed_column.search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
             )
         else:
             resolved_argument = None
+            search_type = function_definition.default_search_type
 
-        return (
-            ResolvedFunction(
-                public_alias=alias,
-                internal_name=function_definition.internal_function,
-                search_type=function_definition.search_type,
-                internal_type=function_definition.internal_type,
-                processor=function_definition.processor,
-                extrapolation=function_definition.extrapolation,
-                argument=resolved_argument,
-            ),
-            None,
+        resolved_function = ResolvedFunction(
+            public_alias=alias,
+            internal_name=function_definition.internal_function,
+            search_type=search_type,
+            internal_type=function_definition.internal_type,
+            processor=function_definition.processor,
+            extrapolation=function_definition.extrapolation,
+            argument=resolved_argument,
         )
+        resolved_context = None
+        self._resolved_function_cache[column] = (resolved_function, resolved_context)
+        return self._resolved_function_cache[column]

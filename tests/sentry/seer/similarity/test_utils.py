@@ -10,11 +10,13 @@ from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
+    ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
     get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.testutils.cases import TestCase
 
@@ -331,14 +333,14 @@ class GetStacktraceStringTest(TestCase):
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["module"],
                                             },
                                             {
                                                 "id": "filename",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["filename"],
                                             },
                                             {
                                                 "id": "function",
@@ -691,7 +693,7 @@ class GetStacktraceStringTest(TestCase):
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
-        assert stacktrace_str == 'File "", function TestHandler'
+        assert stacktrace_str == 'File "filename", function TestHandler'
 
     def test_system(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
@@ -722,7 +724,17 @@ class GetStacktraceStringTest(TestCase):
         ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
 
         with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system)
+            get_stacktrace_string(data_system, platform="java")
+
+    def test_too_many_system_frames_single_exception_invalid_platform(self):
+        data_system = copy.deepcopy(self.BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["system"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
+
+        stacktrace_string = get_stacktrace_string(data_system, "python")
+        assert stacktrace_string is not None and stacktrace_string != ""
 
     def test_too_many_system_frames_chained_exception(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
@@ -736,12 +748,26 @@ class GetStacktraceStringTest(TestCase):
         ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
 
         with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system)
+            get_stacktrace_string(data_system, platform="java")
+
+    def test_too_many_system_frames_chained_exception_invalid_platform(self):
+        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        # Split MAX_FRAME_COUNT across the two exceptions
+        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+
+        stacktrace_string = get_stacktrace_string(data_system, "python")
+        assert stacktrace_string is not None and stacktrace_string != ""
 
     def test_too_many_in_app_contributing_frames(self):
         """
         Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
-        are included.
+        is included.
         """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
@@ -756,7 +782,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames)
+        stacktrace_str = get_stacktrace_string(data_frames, "java")
 
         num_frames = 0
         for i in range(1, 11):
@@ -813,6 +839,31 @@ class GetStacktraceStringTest(TestCase):
     def test_only_stacktrace_frames(self):
         stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
         assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
+
+    def test_replace_file_with_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
+        )
+
+    def test_no_filename_or_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete module from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        stacktrace_string = get_stacktrace_string(exception)
+        # It only includes the exception type and value because there's no filename or module
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
+        )
 
 
 class EventContentIsSeerEligibleTest(TestCase):

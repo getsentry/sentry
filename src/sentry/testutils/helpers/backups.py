@@ -48,7 +48,6 @@ from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
-    IncidentSubscription,
     IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
@@ -65,7 +64,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -552,7 +551,6 @@ class ExhaustiveFixtures(Fixtures):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -569,6 +567,10 @@ class ExhaustiveFixtures(Fixtures):
             title=f"Dashboard 1 for {slug}",
             created_by_id=owner_id,
             organization=org,
+        )
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner.id,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -659,7 +661,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
@@ -687,7 +689,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO @saponifi3d: Create or define trigger workflow action type
-        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )

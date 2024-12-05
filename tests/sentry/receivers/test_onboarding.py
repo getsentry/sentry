@@ -87,9 +87,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -414,9 +414,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 "platform": "javascript",
                 "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -947,3 +947,37 @@ class OrganizationOnboardingTaskTest(TestCase):
                 id=integration_id,
                 provider="github",
             )
+
+    def test_second_platform_complete(self):
+        with self.feature("organizations:quick-start-updates"):
+            now = timezone.now()
+            project = self.create_project(first_event=now)
+            second_project = self.create_project(first_event=now)
+
+            project_created.send(project=project, user=self.user, sender=type(project))
+            project_created.send(
+                project=second_project, user=self.user, sender=type(second_project)
+            )
+
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.SECOND_PLATFORM,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+    def test_release_received_through_transaction_event(self):
+        project = self.create_project()
+
+        event_data = load_data("transaction")
+        event_data.update({"release": "my-first-release", "tags": []})
+
+        event = self.store_event(data=event_data, project_id=project.id)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.RELEASE_TRACKING,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None

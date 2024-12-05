@@ -31,6 +31,7 @@ import {
 } from './traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {TraceAutogroupedRow} from './traceRow/traceAutogroupedRow';
+import {TraceCollapsedRow} from './traceRow/traceCollapsedRow';
 import {TraceErrorRow} from './traceRow/traceErrorRow';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {TraceMissingInstrumentationRow} from './traceRow/traceMissingInstrumentationRow';
@@ -51,6 +52,7 @@ import {
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
+  isCollapsedNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -86,7 +88,6 @@ function computeNextIndexFromAction(
 
 interface TraceProps {
   forceRerender: number;
-  isEmbedded: boolean;
   isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
@@ -116,7 +117,6 @@ export function Trace({
   scheduler,
   forceRerender,
   trace_id,
-  isEmbedded,
   isLoading,
 }: TraceProps) {
   const theme = useTheme();
@@ -333,7 +333,6 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
-          isEmbedded={isEmbedded}
         />
       );
     },
@@ -462,7 +461,6 @@ export function Trace({
 
 function RenderTraceRow(props: {
   index: number;
-  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -591,7 +589,6 @@ function RenderTraceRow(props: {
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
-    isEmbedded: props.isEmbedded,
     onSpanArrowClick: onSpanRowArrowClick,
     manager: props.manager,
     index: props.index,
@@ -635,6 +632,10 @@ function RenderTraceRow(props: {
 
   if (isTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
+  }
+
+  if (isCollapsedNode(node)) {
+    return <TraceCollapsedRow {...rowProps} node={node} />;
   }
 
   return null;
@@ -1259,6 +1260,22 @@ const TraceStylingWrapper = styled('div')`
             color: ${p => p.theme.white};
             background-color: ${p => p.theme.red300};
           }
+        }
+      }
+    }
+
+    &.Collapsed {
+      background-color: ${p => p.theme.backgroundSecondary};
+      border-bottom: 1px solid ${p => p.theme.border};
+      border-top: 1px solid ${p => p.theme.border};
+
+      .TraceLeftColumn {
+        padding-left: 14px;
+        width: 100%;
+        color: ${p => p.theme.subText};
+
+        .TraceLeftColumnInner {
+          padding-left: 0 !important;
         }
       }
     }

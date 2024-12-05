@@ -36,6 +36,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {
   getForceMetricsLayerQueryExtras,
@@ -57,7 +58,6 @@ import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/trigge
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
-import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isLowConfidenceTimeSeries} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
@@ -170,6 +170,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super(props, context);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
+    this.handleConfidenceTimeSeriesDataFetched =
+      this.handleConfidenceTimeSeriesDataFetched.bind(this);
   }
 
   get isDuplicateRule(): boolean {
@@ -180,9 +182,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['custom_metrics', 'span_metrics', 'insights_metrics', 'eap_metrics'].includes(
-        alertType
-      )
+      !['custom_metrics', 'span_metrics', 'eap_metrics'].includes(alertType)
         ? query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
@@ -761,7 +761,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       sensitivity,
       seasonality,
       comparisonType,
-      alertType,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -840,7 +839,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             wizardV3: 'true',
             referrer: location?.query?.referrer,
             sessionId,
-            ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+            ...getForceMetricsLayerQueryExtras(organization, dataset),
           }
         );
         // if we get a 202 back it means that we have an async task
@@ -1044,15 +1043,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
       newState.isExtrapolatedChartData = Boolean(isExtrapolatedData);
     }
-    if (isLowConfidenceTimeSeries(data)) {
-      newState.isLowConfidenceChartData = true;
-    }
     this.setState(newState, () => this.fetchAnomalies());
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
+
+  handleConfidenceTimeSeriesDataFetched(
+    data: EventsStats | MultiSeriesEventsStats | null
+  ) {
+    this.setState({isLowConfidenceChartData: isLowConfidenceTimeSeries(data)});
+  }
 
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
@@ -1203,6 +1205,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (alertType === 'custom_metrics') {
       formattedAggregate = formatMRIField(aggregate);
     }
+    const func = parseFunction(aggregate);
+    if (func && alertType === 'eap_metrics') {
+      formattedAggregate = prettifyParsedFunction(func);
+    }
 
     const chartProps: ComponentProps<typeof TriggersChart> = {
       organization,
@@ -1226,16 +1232,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       showTotalCount:
         !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
+      onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
+      includeConfidence: alertType === 'eap_metrics',
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
-    if (
-      alertType === 'custom_metrics' ||
-      alertType === 'insights_metrics' ||
-      alertType === 'eap_metrics'
-    ) {
+    if (alertType === 'custom_metrics' || alertType === 'eap_metrics') {
       formattedQuery = '';
     }
 
@@ -1354,10 +1358,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
-        {isCustomMetricAlert(rule.aggregate) &&
-          !isInsightsMetricAlert(rule.aggregate) && (
-            <MetricsBetaEndAlert organization={organization} />
-          )}
+        {isCustomMetricAlert(rule.aggregate) && (
+          <MetricsBetaEndAlert organization={organization} />
+        )}
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
         <Form
