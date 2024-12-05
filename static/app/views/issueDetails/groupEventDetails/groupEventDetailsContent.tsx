@@ -217,7 +217,7 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       <EventEvidence event={event} group={group} project={project} />
@@ -399,18 +399,11 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled ? (
         <Fragment>
           {hasStreamlinedUI ? (
-            <Fragment>
-              <HighlightsDataSection
-                event={event}
-                project={project}
-                viewAllRef={tagsRef}
-              />
-              <EventTagsDataSection
-                event={event}
-                projectSlug={project.slug}
-                ref={tagsRef}
-              />
-            </Fragment>
+            <EventTagsDataSection
+              event={event}
+              projectSlug={project.slug}
+              ref={tagsRef}
+            />
           ) : (
             <div ref={tagsRef}>
               <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
