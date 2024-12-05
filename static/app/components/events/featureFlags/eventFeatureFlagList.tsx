@@ -114,7 +114,7 @@ export function EventFeatureFlagList({
 
     // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
     const flags = rawFlags.filter(
-      (f): f is Required<FeatureFlag> => f && 'flag' in f && 'result' in f
+      (f): f is Required<FeatureFlag> => f && 'flag' in f && 'result' in f && !!f.flag
     );
 
     return flags.map(f => {
