@@ -229,7 +229,11 @@ function getInsightsModuleBreadcrumbs(
     moduleName = TRACE_SOURCE_TO_MODULE[location.query.source] as RoutableModuleNames;
     crumbs.push({
       label: MODULE_TITLES[moduleName],
-      to: moduleURLBuilder(moduleName),
+      to: getBreadCrumbTarget(
+        `${moduleURLBuilder(moduleName, view)}/`,
+        location.query,
+        organization
+      ),
     });
   }
 
