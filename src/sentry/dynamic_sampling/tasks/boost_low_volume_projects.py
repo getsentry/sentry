@@ -398,6 +398,10 @@ def adjust_sample_rates_of_projects(
         )
         return
 
+    # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
+    if not any(count > 0 for _, count, _, _ in projects_with_tx_count):
+        return
+
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
