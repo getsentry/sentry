@@ -1,4 +1,4 @@
-from django.db.models import CheckConstraint, Q, UniqueConstraint
+from django.db.models import CheckConstraint, Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -28,15 +28,5 @@ class AlertRuleDetector(DefaultFieldsModel):
                 condition=Q(rule__isnull=False, alert_rule__isnull=True)
                 | Q(rule__isnull=True, alert_rule__isnull=False),
                 name="rule_or_alert_rule_detector",
-            ),
-            UniqueConstraint(
-                fields=["rule"],
-                condition=Q(detector__isnull=True),
-                name="unique_rule_user_detector",
-            ),
-            UniqueConstraint(
-                fields=["alert_rule"],
-                condition=Q(detector__isnull=True),
-                name="unique_alert_rule_user_detector",
             ),
         ]
