@@ -337,6 +337,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         use_aggregate_conditions=False,
                     ),
                 )
+
+            transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
+
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -366,6 +369,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                     actor=request.user,
                 ),
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
         def get_event_stats_factory(scoped_dataset):
