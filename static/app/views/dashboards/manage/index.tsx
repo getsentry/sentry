@@ -37,6 +37,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import DashboardGrid from 'sentry/views/dashboards/manage/dashboardGrid';
 import {DashboardImportButton} from 'sentry/views/dashboards/manage/dashboardImport';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {MetricsRemovedAlertsWidgetsAlert} from 'sentry/views/metrics/metricsRemovedAlertsWidgetsAlert';
@@ -46,7 +47,6 @@ import {getDashboardTemplates} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
 import type {DashboardDetails, DashboardListItem} from '../types';
 
-import DashboardGrid from './dashboardGrid';
 import {
   DASHBOARD_CARD_GRID_PADDING,
   DASHBOARD_GRID_DEFAULT_NUM_CARDS,
@@ -115,11 +115,13 @@ function ManageDashboards() {
     refetch: refetchDashboards,
   } = useApiQuery<DashboardListItem[]>(
     [
+      // here
       `/organizations/${organization.slug}/dashboards/`,
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
+          filter: 'onlyFavorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },
