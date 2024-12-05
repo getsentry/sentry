@@ -70,6 +70,7 @@ from sentry.utils.snuba import (
     is_numeric_measurement,
     is_percentage_measurement,
     is_span_op_breakdown,
+    process_value,
     raw_snql_query,
     resolve_column,
 )
@@ -1595,18 +1596,7 @@ class BaseQueryBuilder:
             def get_row(row: dict[str, Any]) -> dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    if isinstance(value, float):
-                        # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
-                        # so needed to pick something valid to use instead
-                        if math.isnan(value):
-                            value = 0
-                        elif math.isinf(value):
-                            value = None
-                        value = self.handle_invalid_float(value)
-                    if isinstance(value, list):
-                        for index, item in enumerate(value):
-                            if isinstance(item, float):
-                                value[index] = self.handle_invalid_float(item)
+                    value = process_value(value)
                     if key in self.value_resolver_map:
                         new_value = self.value_resolver_map[key](value)
                     else:
