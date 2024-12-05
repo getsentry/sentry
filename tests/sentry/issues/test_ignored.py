@@ -22,14 +22,14 @@ class HandleIgnoredTest(TestCase):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
     def test_ignored_forever(self) -> None:
-        status_details = handle_ignored(self.group_ids, self.group_list, {}, self.user, self.user)
+        status_details = handle_ignored(self.group_list, {}, self.user, self.user)
         assert status_details == {}
         assert not GroupInbox.objects.filter(group=self.group).exists()
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
     def test_ignored_duration(self) -> None:
         status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreDuration": 30}, self.user, self.user
+            self.group_list, {"ignoreDuration": 30}, self.user, self.user
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
@@ -37,9 +37,7 @@ class HandleIgnoredTest(TestCase):
         assert snooze.until == status_details.get("ignoreUntil")
 
     def test_ignored_count(self) -> None:
-        status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreCount": 50}, self.user, self.user
-        )
+        status_details = handle_ignored(self.group_list, {"ignoreCount": 50}, self.user, self.user)
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
@@ -47,7 +45,7 @@ class HandleIgnoredTest(TestCase):
 
     def test_ignored_user_count(self) -> None:
         status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreUserCount": 100}, self.user, self.user
+            self.group_list, {"ignoreUserCount": 100}, self.user, self.user
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()

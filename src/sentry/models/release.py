@@ -98,7 +98,7 @@ class ReleaseModelManager(BaseManager["Release"]):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
-    def filter_to_semver(self):
+    def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver_build(

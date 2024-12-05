@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
@@ -18,8 +19,8 @@ from sentry.users.models.user import User
 
 def update_inbox(
     in_inbox: bool,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
     acting_user: User | None,
     http_referrer: str,
     sender: Any,

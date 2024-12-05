@@ -161,7 +161,6 @@ module = [
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
     "sentry.api.helpers.group_index.index",
-    "sentry.api.helpers.group_index.update",
     "sentry.api.invite_helper",
     "sentry.api.issue_search",
     "sentry.api.paginator",
