@@ -420,6 +420,10 @@ class UnfurlTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - timedelta(minutes=2),
         )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
