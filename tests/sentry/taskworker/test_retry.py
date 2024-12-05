@@ -47,7 +47,7 @@ def test_should_retry_retryerror() -> None:
     err = RetryError("something bad")
     assert retry.should_retry(state, err)
 
-    state.attempts = 5
+    state.attempts = 4
     assert not retry.should_retry(state, err)
 
 
@@ -57,6 +57,13 @@ def test_should_retry_multiprocessing_timeout() -> None:
 
     timeout = TimeoutError("timeouts should retry if there are attempts left")
     assert retry.should_retry(state, timeout)
+
+    state.attempts = 1
+    assert retry.should_retry(state, timeout)
+
+    # attempt = 2 is actually the third attempt.
+    state.attempts = 2
+    assert not retry.should_retry(state, timeout)
 
     state.attempts = 3
     assert not retry.should_retry(state, timeout)
