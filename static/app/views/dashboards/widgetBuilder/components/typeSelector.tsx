@@ -55,6 +55,16 @@ function WidgetBuilderTypeSelector() {
             type: BuilderStateAction.SET_DISPLAY_TYPE,
             payload: newValue.value,
           });
+          if (
+            (newValue.value === DisplayType.TABLE ||
+              newValue.value === DisplayType.BIG_NUMBER) &&
+            state.query?.length
+          ) {
+            dispatch({
+              type: BuilderStateAction.SET_QUERY,
+              payload: [state.query[0]],
+            });
+          }
         }}
         components={{
           SingleValue: containerProps => {
