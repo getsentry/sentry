@@ -54,18 +54,10 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     return <strong>{t('Anonymous User')}</strong>;
   }
 
-  const mailToHref = new URL(`mailto:${email}`);
-  mailToHref.searchParams.append(
-    'subject',
-    encodeURIComponent(`Following up from ${organization.name}`)
-  );
-  mailToHref.searchParams.append(
-    'body',
-    feedbackIssue.metadata.message
-      .split('\n')
-      .map(s => encodeURIComponent(`> ${s}`))
-      .join('\n')
-  );
+  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(`Following up from ${organization.name}`)}&body=${feedbackIssue.metadata.message
+    .split('\n')
+    .map(s => encodeURIComponent(`> ${s}`))
+    .join('\n')}`;
 
   return (
     <Flex align="center" gap={space(1)} className={className} style={style}>
@@ -94,7 +86,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       {email ? (
         <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
-            href={mailToHref.toString()}
+            href={mailToHref}
             external
             icon={<IconMail color="gray300" />}
             aria-label={t(`Email %s`, user)}
