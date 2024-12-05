@@ -18,6 +18,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as dashboardActions from 'sentry/actionCreators/dashboards';
 import * as modals from 'sentry/actionCreators/modal';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -2113,6 +2114,7 @@ describe('Dashboards > Detail', function () {
     });
 
     describe('widget builder redesign', function () {
+      let mockUpdateDashboard;
       beforeEach(function () {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2126,6 +2128,17 @@ describe('Dashboards > Detail', function () {
             ],
           }),
         });
+
+        // Mock just the updateDashboard function
+        mockUpdateDashboard = jest
+          .spyOn(dashboardActions, 'updateDashboard')
+          .mockResolvedValue({
+            ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
+          });
+      });
+
+      afterEach(() => {
+        mockUpdateDashboard.mockRestore();
       });
 
       it('opens the widget builder slideout when clicking add widget', async function () {
@@ -2160,6 +2173,186 @@ describe('Dashboards > Detail', function () {
         );
         await userEvent.click(await screen.findByTestId('widget-add'));
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+      });
+
+      it('allows for editing a widget in edit mode', async function () {
+        const mockWidget = WidgetFixture({id: '1', title: 'Custom Widget'});
+        const mockDashboard = DashboardFixture([mockWidget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={mockDashboard}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {
+            organization: initialData.organization,
+            // Mock the widgetIndex param so it's available when the widget builder opens
+            router: {...initialData.router, params: {widgetIndex: 0}},
+          }
+        );
+
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
+        await userEvent.click(await screen.findByRole('button', {name: 'Edit Widget'}));
+
+        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
+
+        await userEvent.clear(screen.getByLabelText('Widget Name'));
+        await userEvent.type(screen.getByLabelText('Widget Name'), 'Updated Widget');
+
+        await userEvent.click(screen.getByText('Update Widget'));
+
+        // The widget builder is closed after the widget is updated
+        await waitFor(() => {
+          expect(screen.queryByText('Edit Widget')).not.toBeInTheDocument();
+        });
+
+        // The widget is updated in the dashboard
+        expect(screen.getByText('Updated Widget')).toBeInTheDocument();
+      });
+
+      it('allows for creating a widget in edit mode', async function () {
+        const mockDashboard = DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.EDIT}
+            dashboard={mockDashboard}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {
+            organization: initialData.organization,
+          }
+        );
+
+        await userEvent.click(await screen.findByTestId('widget-add'));
+
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+
+        await userEvent.clear(screen.getByLabelText('Widget Name'));
+        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
+
+        await userEvent.click(screen.getByText('Add Widget'));
+
+        // The widget builder is closed after the widget is updated
+        await waitFor(() => {
+          expect(screen.queryByText('Create Custom Widget')).not.toBeInTheDocument();
+        });
+
+        // The widget is added in the dashboard
+        expect(screen.getByText('Totally new widget')).toBeInTheDocument();
+      });
+
+      it('allows for editing a widget in view mode', async function () {
+        const mockWidget = WidgetFixture({id: '1', title: 'Custom Widget'});
+        const mockDashboard = DashboardFixture([mockWidget], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={mockDashboard}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {
+            organization: initialData.organization,
+            // Mock the widgetIndex param so it's available when the widget builder opens
+            router: {...initialData.router, params: {widgetIndex: 0}},
+          }
+        );
+
+        expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
+        await userEvent.click(await screen.findByLabelText('Widget actions'));
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Edit Widget'})
+        );
+
+        expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
+
+        await userEvent.clear(screen.getByLabelText('Widget Name'));
+        await userEvent.type(
+          screen.getByLabelText('Widget Name'),
+          'Updated Widget Title'
+        );
+
+        await userEvent.click(screen.getByText('Update Widget'));
+
+        // The widget builder is closed after the widget is updated
+        await waitFor(() => {
+          expect(screen.queryByText('Edit Widget')).not.toBeInTheDocument();
+        });
+
+        // The update action is called with the updated widget
+        expect(mockUpdateDashboard).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            widgets: [expect.objectContaining({title: 'Updated Widget Title'})],
+          })
+        );
+      });
+
+      it('allows for creating a widget in view mode', async function () {
+        const mockDashboard = DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+        });
+        render(
+          <DashboardDetail
+            {...RouteComponentPropsFixture()}
+            initialState={DashboardState.VIEW}
+            dashboard={mockDashboard}
+            dashboards={[]}
+            onDashboardUpdate={jest.fn()}
+            newWidget={undefined}
+            onSetNewWidget={() => {}}
+          />,
+          {
+            organization: initialData.organization,
+          }
+        );
+
+        await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
+
+        expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
+
+        await userEvent.clear(screen.getByLabelText('Widget Name'));
+        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
+
+        await userEvent.click(
+          await within(screen.getByTestId('widget-slideout')).findByText('Add Widget')
+        );
+
+        // The widget builder is closed after the widget is updated
+        await waitFor(() => {
+          expect(screen.queryByText('Create Custom Widget')).not.toBeInTheDocument();
+        });
+
+        // The update action is called with the new widget
+        expect(mockUpdateDashboard).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            widgets: [expect.objectContaining({title: 'Totally new widget'})],
+          })
+        );
       });
     });
 
