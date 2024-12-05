@@ -165,7 +165,7 @@ export function HTTPLandingPage() {
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-      ] as any, // TODO - change this
+      ] as any, // TODO - This casting is temporary until we have these functions available
       enabled: useEap,
     },
     Referrer.LANDING_RESPONSE_CODE_CHART
