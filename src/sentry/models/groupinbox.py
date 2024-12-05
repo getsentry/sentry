@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     bulk_record_group_history,
@@ -93,7 +94,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
     return group_inbox
 
 
-def remove_group_from_inbox(group, action=None, user=None, referrer=None):
+def remove_group_from_inbox(group: Group, action=None, user=None, referrer=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
