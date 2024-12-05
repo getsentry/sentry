@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
@@ -85,76 +85,73 @@ export default function OnboardingIntegrationSection({
     setSecretSaved(false);
   }
 
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
+
   return (
-    <Access access={['org:write']}>
-      {({hasAccess}) => (
-        <Fragment>
-          <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
-          <IntegrationSection>
-            <SubSection>
-              <div>
-                {tct(
-                  "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
-                  {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
-                )}
-              </div>
-              <InputTitle>{t('Webhook URL')}</InputTitle>
-              <TextCopyInput
-                style={{padding: '20px'}}
-                aria-label={t('Webhook URL')}
-                size="sm"
+    <Fragment>
+      <h4 style={{marginTop: space(4)}}>{t('Integrate Feature Flag Service')}</h4>
+      <IntegrationSection>
+        <SubSection>
+          <div>
+            {tct(
+              "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter a URL, which you can find below.",
+              {link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[provider]} />}
+            )}
+          </div>
+          <InputTitle>{t('Webhook URL')}</InputTitle>
+          <TextCopyInput
+            style={{padding: '20px'}}
+            aria-label={t('Webhook URL')}
+            size="sm"
+          >
+            {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}
+          </TextCopyInput>
+        </SubSection>
+        <SubSection>
+          <div>
+            {t(
+              "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
+            )}
+          </div>
+          <InputTitle>{t('Secret')}</InputTitle>
+          <InputArea>
+            <Input
+              maxLength={32}
+              minLength={32}
+              required
+              value={secret}
+              type="text"
+              placeholder={t('Secret')}
+              onChange={e => setSecret(e.target.value)}
+            />
+            <Tooltip
+              title={t('You must be an organization member to add a secret.')}
+              disabled={hasAccess}
+            >
+              <Button
+                priority="default"
+                onClick={() => submitSecret({provider, secret})}
+                disabled={secret.length < 32 || secret === '' || !hasAccess || isPending}
               >
-                {`https://sentry.io/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`}
-              </TextCopyInput>
-            </SubSection>
-            <SubSection>
-              <div>
-                {t(
-                  "During the process of creating a webhook integration, you'll be given the option to sign the webhook. This is an auto-generated secret code that Sentry requires to verify requests from your feature flag service. Paste the secret below."
-                )}
-              </div>
-              <InputTitle>{t('Secret')}</InputTitle>
-              <InputArea>
-                <Input
-                  maxLength={32}
-                  minLength={32}
-                  required
-                  value={secret}
-                  type="text"
-                  placeholder={t('Secret')}
-                  onChange={e => setSecret(e.target.value)}
-                />
-                <Tooltip
-                  title={t(
-                    'You must be an organization owner, manager or admin to add a secret.'
-                  )}
-                  disabled={hasAccess}
-                >
-                  <Button
-                    priority="default"
-                    onClick={() => submitSecret({provider, secret})}
-                    disabled={
-                      secret.length < 32 || secret === '' || !hasAccess || isPending
-                    }
-                  >
-                    {t('Save Secret')}
-                  </Button>
-                </Tooltip>
-              </InputArea>
-              {secretSaved ? (
-                <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
-                  {t('Secret verified.')}
-                </StyledAlert>
-              ) : secret ? (
-                <StyledAlert showIcon type="warning" icon={<IconWarning />}>
-                  {t('Make sure the secret is 32 characters long.')}
-                </StyledAlert>
-              ) : null}
-            </SubSection>
-          </IntegrationSection>
-        </Fragment>
-      )}
-    </Access>
+                {t('Save Secret')}
+              </Button>
+            </Tooltip>
+          </InputArea>
+          {secretSaved ? (
+            <StyledAlert showIcon type="success" icon={<IconCheckmark />}>
+              {t('Secret verified.')}
+            </StyledAlert>
+          ) : secret ? (
+            <StyledAlert showIcon type="warning" icon={<IconWarning />}>
+              {t('Make sure the secret is 32 characters long.')}
+            </StyledAlert>
+          ) : null}
+        </SubSection>
+      </IntegrationSection>
+    </Fragment>
   );
 }
 
