@@ -18,10 +18,20 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  useEAPSpans,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEapSeries,
+  useSpanMetricsSeries,
+} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  EapSelector,
+  useEapOptions,
+} from 'sentry/views/insights/common/views/spans/selectors/eapSelector';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
@@ -50,11 +60,15 @@ export function HTTPLandingPage() {
   const location = useLocation();
   const {view} = useDomainViewFilters();
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
+  const {useEap} = useEapOptions();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
   // TODO: Pull this using `useLocationQuery` below
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort =
+    decodeSorts(sortField).filter(isAValidSort).at(0) ?? useEap
+      ? DEFAULT_EAP_SORT
+      : DEFAULT_SORT;
 
   const query = useLocationQuery({
     fields: {
@@ -99,11 +113,7 @@ export function HTTPLandingPage() {
     });
   };
 
-  const {
-    isPending: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
+  const eapThroughputDataResponse = useEapSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
@@ -111,11 +121,15 @@ export function HTTPLandingPage() {
     Referrer.LANDING_THROUGHPUT_CHART
   );
 
-  const {
-    isPending: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
+  const throughtputDataResponse = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
+    Referrer.LANDING_THROUGHPUT_CHART
+  );
+
+  const durationDataResponse = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`avg(span.self_time)`],
@@ -123,11 +137,15 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DURATION_CHART
   );
 
-  const {
-    isPending: isResponseCodeDataLoading,
-    data: responseCodeData,
-    error: responseCodeError,
-  } = useSpanMetricsSeries(
+  const eapDurationDataResponse = useEapSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`avg(span.self_time)`],
+    },
+    Referrer.LANDING_DURATION_CHART
+  );
+
+  const responseRateResponse = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
@@ -135,7 +153,42 @@ export function HTTPLandingPage() {
     Referrer.LANDING_RESPONSE_CODE_CHART
   );
 
-  const domainsListResponse = useSpanMetrics(
+  const eapResponseRateResponse = useEapSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [
+        'http_response_rate(3)',
+        'http_response_rate(4)',
+        'http_response_rate(5)',
+      ] as any, // TODO - change this
+    },
+    Referrer.LANDING_RESPONSE_CODE_CHART
+  );
+
+  const eapDomainListResponse = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project',
+        'project.id',
+        'span.domain',
+        'spm()',
+        // 'http_response_rate(3)',
+        // 'http_response_rate(4)',
+        // 'http_response_rate(5)',
+        'avg(span.self_time)',
+        // 'sum(span.self_time)', This works, but it ends up populating time_spent
+        // 'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: DOMAIN_TABLE_ROW_COUNT,
+      cursor,
+      enabled: useEap,
+    },
+    Referrer.LANDING_DOMAINS_LIST
+  ) as any; // TODO - Casting to any just simplifies a lot of type errors for the table, once eap fully works, we shouldn't need to cast this
+
+  const metricsDomainsListResponse = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
       fields: [
@@ -153,9 +206,27 @@ export function HTTPLandingPage() {
       sorts: [sort],
       limit: DOMAIN_TABLE_ROW_COUNT,
       cursor,
+      enabled: !useEap,
     },
     Referrer.LANDING_DOMAINS_LIST
   );
+
+  const domainsListResponse = useEap ? eapDomainListResponse : metricsDomainsListResponse;
+  const {
+    isPending: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useEap ? eapDurationDataResponse : durationDataResponse;
+  const {
+    isPending: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useEap ? eapThroughputDataResponse : throughtputDataResponse;
+  const {
+    isPending: isResponseCodeDataLoading,
+    data: responseCodeData,
+    error: responseCodeError,
+  } = useEap ? eapResponseRateResponse : responseRateResponse;
 
   useSynchronizeCharts(
     3,
@@ -172,6 +243,7 @@ export function HTTPLandingPage() {
   const headerProps = {
     headerTitle,
     module: ModuleName.HTTP,
+    headerActions: <EapSelector />,
   };
 
   return (
@@ -253,6 +325,11 @@ export function HTTPLandingPage() {
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage()' as const,
+  kind: 'desc' as const,
+};
+
+const DEFAULT_EAP_SORT = {
+  field: 'spm()' as const,
   kind: 'desc' as const,
 };
 
