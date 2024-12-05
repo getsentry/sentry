@@ -97,35 +97,6 @@ export function updateDashboardVisit(
   return promise;
 }
 
-export function updateDashboardFavorite(
-  api: Client,
-  orgId: string,
-  dashboardId: string | string[],
-  isFavorited: boolean
-): Promise<void> {
-  const promise = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
-    {
-      method: 'PUT',
-      data: {
-        isFavorited,
-      },
-    }
-  );
-
-  promise.catch(response => {
-    const errorResponse = response?.responseJSON ?? null;
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
-    } else {
-      addErrorMessage(t('Unable to favorite dashboard'));
-    }
-  });
-
-  return promise;
-}
-
 export function fetchDashboard(
   api: Client,
   orgId: string,
