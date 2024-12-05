@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -138,6 +139,8 @@ function IssuesTraceOverlay({event}: {event: Event}) {
 }
 
 function OneOtherIssueEvent({event}: {event: Event}) {
+  const location = useLocation();
+  const organization = useOrganization();
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({event});
   useRouteAnalyticsParams(oneOtherIssueEvent ? {has_related_trace_issue: true} : {});
 
@@ -145,9 +148,25 @@ function OneOtherIssueEvent({event}: {event: Event}) {
     return null;
   }
 
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
+
   return (
     <Fragment>
-      <span>{t('One other issue appears in the same trace.')}</span>
+      <span>
+        {t('One other issue appears in the same trace. ')}
+        <Link to={traceTarget}>{t('View Full Trace')}</Link>
+      </span>
       <TraceIssueEvent event={oneOtherIssueEvent} />
     </Fragment>
   );
