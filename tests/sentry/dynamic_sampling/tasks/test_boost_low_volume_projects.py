@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import cast
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -182,6 +183,22 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (sample_rate, got_value) == (None, False)
 
         assert get_guarded_project_sample_rate(org1, p1) == 0.2
+
+    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
+    def test_project_mode_sampling_with_query_zero_metrics(self):
+        org1 = self.create_organization("test-org")
+        p1 = self.create_project(organization=org1)
+
+        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        p1.update_option("sentry:target_sample_rate", 0.2)
+
+        # bulk task
+        with patch(
+            "sentry.dynamic_sampling.models.projects_rebalancing.ProjectsRebalancingModel._run"
+        ) as mock_run:
+            with self.tasks():
+                boost_low_volume_projects.delay()
+            assert not mock_run.called
 
     def test_complex(self):
         context = TaskContext("rebalancing", 20)
