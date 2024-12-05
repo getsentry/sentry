@@ -328,7 +328,7 @@ describe('Dashboards - DashboardGrid', function () {
       }
     );
 
-    expect(screen.queryAllByLabelText('dashboards-favorite')).toHaveLength(2);
+    expect(screen.queryAllByLabelText('Dashboards Favorite')).toHaveLength(2);
     expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
     expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
   });

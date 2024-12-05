@@ -99,7 +99,7 @@ function DashboardCard({
             }
             size="zero"
             borderless
-            aria-label={t('dashboards-favorite')}
+            aria-label={t('Dashboards Favorite')}
             onClick={async () => {
               try {
                 setFavorited(!favorited);
