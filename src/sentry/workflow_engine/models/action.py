@@ -1,9 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import ActionHandler
+
+if TYPE_CHECKING:
+    from sentry.workflow_engine.models import Detector
 
 
 @region_silo_model
@@ -17,12 +27,11 @@ class Action(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Excluded
-    __repr__ = sane_repr("workflow_id", "type")
+    __repr__ = sane_repr("id", "type")
 
-    # TODO (@saponifi3d): Don't hardcode these values, and these are incomplete values
     class Type(models.TextChoices):
-        Notification = "SendNotificationAction"
-        TriggerWorkflow = "TriggerWorkflowAction"
+        NOTIFICATION = "notification"
+        WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=Type.choices)
@@ -45,3 +54,12 @@ class Action(DefaultFieldsModel):
 
     # LEGACY: This is used to denote if the Notification is going to a user, team, sentry app, etc
     target_type = models.SmallIntegerField(choices=ActionTarget.as_choices(), null=True)
+
+    def get_handler(self) -> ActionHandler:
+        action_type = Action.Type(self.type)
+        return action_handler_registry.get(action_type)
+
+    def trigger(self, evt: GroupEvent, detector: Detector) -> None:
+        # get the handler for the action type
+        handler = self.get_handler()
+        handler.execute(evt, self, detector)
