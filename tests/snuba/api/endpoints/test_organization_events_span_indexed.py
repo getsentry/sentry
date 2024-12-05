@@ -856,6 +856,23 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_handle_nans_from_snuba(self):
+        self.store_spans(
+            [self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": "span.status:internal_error",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True

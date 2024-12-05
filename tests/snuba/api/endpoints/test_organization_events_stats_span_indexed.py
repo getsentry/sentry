@@ -74,6 +74,21 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
 
+    def test_handle_nans_from_snuba(self):
+        self.store_spans(
+            [self.create_span({"description": "foo"}, start_ts=self.day_ago)],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "yAxis": "avg(measurements.lcp)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+
     def test_count_unique(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):

@@ -15,7 +15,7 @@ from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -129,6 +129,7 @@ def run_table_query(
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
+            result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
                 final_confidence[index][attribute] = CONFIDENCES.get(
@@ -389,7 +390,7 @@ def _process_timeseries(
             result.append({"time": bucket.seconds})
             confidence.append({"time": bucket.seconds})
     for index, data_point in enumerate(timeseries.data_points):
-        result[index][label] = data_point.data
+        result[index][label] = process_value(data_point.data)
         confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
     return result, confidence
