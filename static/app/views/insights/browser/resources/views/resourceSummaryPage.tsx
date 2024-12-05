@@ -1,13 +1,6 @@
 import React from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,16 +17,15 @@ import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -50,7 +42,6 @@ const {
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
-  const {isInDomainView} = useDomainViewFilters();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {
@@ -94,43 +85,17 @@ function ResourceSummary() {
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
 
-  const crumbs = useModuleBreadcrumbs('resource');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-                },
-              ]}
-            />
-
-            <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <FrontendHeader
-          headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
-          breadcrumbs={[
-            {
-              label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-            },
-          ]}
-          module={ModuleName.RESOURCE}
-        />
-      )}
+      <FrontendHeader
+        headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+        breadcrumbs={[
+          {
+            label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+          },
+        ]}
+        module={ModuleName.RESOURCE}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
         <Layout.Body>
@@ -139,12 +104,7 @@ function ResourceSummary() {
               <ModuleLayout.Full>
                 <HeaderContainer>
                   <ToolRibbon>
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
-
+                    <ModulePageFilterBar moduleName={ModuleName.RESOURCE} />
                     <RenderBlockingSelector
                       value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
                     />
@@ -197,11 +157,7 @@ function ResourceSummary() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="resource"
-      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
       <ResourceSummary />
     </ModulePageProviders>
   );

@@ -27,6 +27,8 @@ const performanceConfig: IssueCategoryConfigMapping = {
     mergedIssues: {enabled: false},
     replays: {enabled: true},
     similarIssues: {enabled: false},
+    stacktrace: {enabled: false},
+    spanEvidence: {enabled: true},
     userFeedback: {enabled: false},
     // Performance issues render a custom SpanEvidence component
     evidence: null,
@@ -195,8 +197,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
     discover: {enabled: false},
     regression: {enabled: true},
     replays: {enabled: false},
+    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
+    tagsTab: {enabled: false},
+    // We show the regression summary instead
+    spanEvidence: {enabled: false},
   },
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
     actions: {
@@ -225,9 +231,13 @@ const performanceConfig: IssueCategoryConfigMapping = {
     },
     discover: {enabled: false},
     regression: {enabled: true},
+    performanceDurationRegression: {enabled: true},
     replays: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
+    tagsTab: {enabled: false},
+    // We show the regression summary instead
+    spanEvidence: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
@@ -317,9 +327,13 @@ const performanceConfig: IssueCategoryConfigMapping = {
     discover: {enabled: false},
     events: {enabled: false},
     regression: {enabled: true},
+    profilingDurationRegression: {enabled: true},
     replays: {enabled: false},
+    // We show the regression summary instead
+    spanEvidence: {enabled: false},
     stats: {enabled: false},
     tags: {enabled: false},
+    tagsTab: {enabled: false},
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION]: {
     actions: {
@@ -349,9 +363,13 @@ const performanceConfig: IssueCategoryConfigMapping = {
     discover: {enabled: false},
     events: {enabled: false},
     regression: {enabled: true},
+    profilingDurationRegression: {enabled: true},
     replays: {enabled: false},
     stats: {enabled: false},
+    // We show the regression summary instead
+    spanEvidence: {enabled: false},
     tags: {enabled: false},
+    tagsTab: {enabled: false},
   },
 };
 

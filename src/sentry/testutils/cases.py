@@ -99,8 +99,6 @@ from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -110,6 +108,8 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -124,7 +124,6 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
-    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -1407,43 +1406,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_metrics_summary(self, span):
-        common_fields = {
-            "duration_ms": span["duration_ms"],
-            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
-            "group": span["sentry_tags"].get("group", "0"),
-            "is_segment": span["is_segment"],
-            "project_id": span["project_id"],
-            "received": span["received"],
-            "retention_days": span["retention_days"],
-            "segment_id": span.get("segment_id", "0"),
-            "span_id": span["span_id"],
-            "trace_id": span["trace_id"],
-        }
-        rows = []
-        for mri, summaries in span.get("_metrics_summary", {}).items():
-            for summary in summaries:
-                rows.append(
-                    {
-                        **common_fields,
-                        **{
-                            "count": summary.get("count", 0),
-                            "max": summary.get("max", 0.0),
-                            "mri": mri,
-                            "min": summary.get("min", 0.0),
-                            "sum": summary.get("sum", 0.0),
-                            "tags": summary.get("tags", {}),
-                        },
-                    }
-                )
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps(rows),
-            ).status_code
-            == 200
-        )
-
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1531,7 +1493,6 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
@@ -1570,8 +1531,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
@@ -1582,9 +1541,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["status"] = status
 
         self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1602,7 +1558,6 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
@@ -1644,8 +1599,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
@@ -1655,9 +1608,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2264,49 +2214,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
         for subvalue in value:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
-    def store_profile_functions_metric(
-        self,
-        value: dict[str, int] | list[int] | int,
-        metric: str = "function.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
-        internal_metric = (
-            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        )
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        val_list: list[int | dict[str, int]] = []
-        if not isinstance(value, list):
-            val_list.append(value)
-        else:
-            val_list = value
-        for subvalue in val_list:
             self.store_metric(
                 org_id,
                 project,

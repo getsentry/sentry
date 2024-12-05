@@ -14,7 +14,6 @@ from sentry.search.events.builder.errors import (
     ErrorsTimeseriesQueryBuilder,
     ErrorsTopEventsQueryBuilder,
 )
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
@@ -104,6 +103,8 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ):
 
     with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
@@ -120,6 +121,7 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
                 parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         query_list = [base_builder]
@@ -174,19 +176,12 @@ def timeseries_query(
             cmp_result_val = cmp_result.get(col_name, 0)
             result["comparisonCount"] = cmp_result_val
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
         {
             "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
+            "meta": result["meta"],
         },
         snuba_params.start_date,
         snuba_params.end_date,
@@ -214,6 +209,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events

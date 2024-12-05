@@ -30,6 +30,7 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {
@@ -38,7 +39,6 @@ import {
   getTransactionName,
 } from '../utils';
 
-import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
@@ -120,6 +120,8 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
+  const {isInDomainView} = useDomainViewFilters();
+
   const getNewRoute = useCallback(
     (newTab: Tab) => {
       if (!transactionName) {
@@ -140,8 +142,6 @@ function PageLayout(props: Props) {
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -260,7 +260,7 @@ function PageLayout(props: Props) {
 
   let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
     tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
-  if (organization.features.includes('insights-domain-view')) {
+  if (isInDomainView) {
     hasWebVitals = 'no';
   }
 

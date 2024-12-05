@@ -7,7 +7,7 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now

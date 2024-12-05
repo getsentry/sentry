@@ -17,7 +17,6 @@ from sentry.monitors.models import (
     MonitorType,
 )
 from sentry.monitors.schedule import get_prev_schedule
-from sentry.monitors.types import TickVolumeAnomolyResult
 from sentry.utils import metrics
 
 from .producer import MONITORS_CLOCK_TASKS_CODEC, produce_task
@@ -48,15 +47,11 @@ IGNORE_MONITORS = ~Q(
 )
 
 
-def dispatch_check_missing(ts: datetime, volume_anomaly_result: TickVolumeAnomolyResult):
+def dispatch_check_missing(ts: datetime):
     """
     Given a clock tick timestamp determine which monitor environments are past
     their next_checkin_latest, indicating they haven't checked-in when they
     should have
-
-    When the volume_anomaly_result is "abnormal" miss check-ins will be created
-    with the unknown status and will not mark the monitor as failed or produce
-    notifications.
 
     This will dispatch MarkMissing messages into monitors-clock-tasks.
     """
@@ -79,7 +74,6 @@ def dispatch_check_missing(ts: datetime, volume_anomaly_result: TickVolumeAnomol
             "type": "mark_missing",
             "ts": ts.timestamp(),
             "monitor_environment_id": monitor_environment["id"],
-            "volume_anomaly_result": volume_anomaly_result.value,
         }
         # XXX(epurkhiser): Partitioning by monitor_environment.id is important
         # here as these task messages will be consumed in a multi-consumer
@@ -167,4 +161,9 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         monitor.schedule,
     )
 
-    mark_failed(checkin, ts=most_recent_expected_ts)
+    mark_failed(
+        checkin,
+        failed_at=most_recent_expected_ts,
+        received=ts,
+        clock_tick=ts,
+    )

@@ -17,13 +17,13 @@ interface AutofixSetupWriteAccessModalProps extends ModalRenderProps {
 
 function Content({groupId, closeModal}: {closeModal: () => void; groupId: string}) {
   const {canCreatePullRequests, data} = useAutofixSetup(
-    {groupId},
+    {groupId, checkWriteAccess: true},
     {refetchOnWindowFocus: true} // We want to check each time the user comes back to the tab
   );
 
   const sortedRepos = useMemo(
     () =>
-      data?.githubWriteIntegration.repos.toSorted((a, b) => {
+      data?.githubWriteIntegration?.repos.toSorted((a, b) => {
         if (a.ok === b.ok) {
           return `${a.owner}/${a.name}`.localeCompare(`${b.owner}/${b.name}`);
         }
@@ -93,10 +93,10 @@ export function AutofixSetupWriteAccessModal({
   groupId,
   closeModal,
 }: AutofixSetupWriteAccessModalProps) {
-  const {canCreatePullRequests} = useAutofixSetup({groupId});
+  const {canCreatePullRequests} = useAutofixSetup({groupId, checkWriteAccess: true});
 
   return (
-    <Fragment>
+    <div id="autofix-write-access-modal">
       <Header closeButton>
         <h3>{t('Allow Autofix to Make Pull Requests')}</h3>
       </Header>
@@ -117,7 +117,7 @@ export function AutofixSetupWriteAccessModal({
           </ButtonBar>
         </Footer>
       )}
-    </Fragment>
+    </div>
   );
 }
 

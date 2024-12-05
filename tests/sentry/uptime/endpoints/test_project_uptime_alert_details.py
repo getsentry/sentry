@@ -60,6 +60,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.timeout_ms == 1500
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body == "something"
+        assert uptime_sub.trace_sampling is False
 
         resp = self.get_success_response(
             self.organization.slug,
@@ -85,6 +86,7 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         assert uptime_sub.timeout_ms == 1500
         assert uptime_sub.headers == [["hello", "world"]]
         assert uptime_sub.body is None
+        assert uptime_sub.trace_sampling is False
 
     def test_enviroment(self):
         uptime_subscription = self.create_project_uptime_subscription()

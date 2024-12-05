@@ -28,11 +28,12 @@ class SDKCrashDetector:
         sdk_name: str,
         sdk_version: str,
     ) -> bool:
-        if sdk_name not in self.config.sdk_names:
+        minimum_sdk_version_string = self.config.sdk_names.get(sdk_name)
+        if not minimum_sdk_version_string:
             return False
 
         try:
-            minimum_sdk_version = Version(self.config.min_sdk_version)
+            minimum_sdk_version = Version(minimum_sdk_version_string)
             actual_sdk_version = Version(sdk_version)
 
             if actual_sdk_version < minimum_sdk_version:
@@ -103,6 +104,18 @@ class SDKCrashDetector:
 
         function = frame.get("function")
         if function:
+            for (
+                function_and_path_pattern
+            ) in self.config.sdk_frame_config.function_and_path_patterns:
+                function_pattern = function_and_path_pattern.function_pattern
+                path_pattern = function_and_path_pattern.path_pattern
+
+                function_matches = glob_match(function, function_pattern, ignorecase=True)
+                path_matches = self._path_patters_match_frame({path_pattern}, frame)
+
+                if function_matches and path_matches:
+                    return True
+
             for patterns in self.config.sdk_frame_config.function_patterns:
                 if glob_match(function, patterns, ignorecase=True):
                     return True

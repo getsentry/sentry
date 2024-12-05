@@ -5,14 +5,14 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
+import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {organizationSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/organizationSamplingForm';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 
 const {useFormField} = organizationSamplingForm;
 
 export function OrganizationSampleRateField({}) {
   const field = useFormField('targetSampleRate');
-  const {hasAccess} = useAccess({access: ['org:write']});
+  const hasAccess = useHasDynamicSamplingWriteAccess();
 
   return (
     <FieldGroup
@@ -33,10 +33,7 @@ export function OrganizationSampleRateField({}) {
           title={t('You do not have permission to change the sample rate.')}
         >
           <PercentInput
-            width={100}
             type="number"
-            min={0}
-            max={100}
             disabled={!hasAccess}
             value={field.value}
             onChange={event => field.onChange(event.target.value)}

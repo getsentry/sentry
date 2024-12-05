@@ -41,12 +41,12 @@ import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['span.op', 'avg(span.duration)'],
-  columns: ['span.op'],
+  fields: ['count(span.duration)'],
+  columns: [],
   fieldAliases: [],
-  aggregates: ['avg(span.duration)'],
+  aggregates: ['count(span.duration)'],
   conditions: '',
-  orderby: '-avg(span.duration)',
+  orderby: '',
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {

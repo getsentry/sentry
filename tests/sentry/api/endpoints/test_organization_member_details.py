@@ -5,6 +5,7 @@ from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authprovider import AuthProvider
@@ -13,6 +14,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.roles import organization_roles
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -202,9 +204,15 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.curr_invite.id, reinvite=1)
         mock_send_invite_email.assert_called_once_with()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_REINVITE"),
+        )
         mock_send_invite_email.reset_mock()
+
         response = self.get_error_response(
             self.organization.slug, self.other_invite.id, reinvite=1, status_code=403
         )
@@ -240,13 +248,13 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         assert (
             response.data.get("detail")
-            == "You can only reinvite members; you cannot modify other member details."
+            == "You cannot modify member details when resending an invitation. Separate requests are required."
         )
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
     @with_feature("organizations:members-invite-teammates")
-    def test_member_cannot_reinvite_members(self, mock_send_invite_email):
+    def test_member_cannot_reinvite_non_pending_members(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
         self.organization.flags.disable_member_invite = True
@@ -263,6 +271,60 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         )
         assert response.data.get("detail") == "You do not have permission to perform this action."
         assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_cannot_reinvite_and_modify_member(self, mock_send_invite_email):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, member_om.id, reinvite=1, role="manager", status_code=403
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot modify member details when resending an invitation. Separate requests are required."
+        )
+        assert not mock_send_invite_email.mock_calls
+
+    @patch("sentry.models.OrganizationMember.send_invite_email")
+    def test_member_details_not_modified_after_reinviting(self, mock_send_invite_email):
+        team = self.create_team(organization=self.organization, name="Moo Deng's Team")
+
+        member_om = self.create_member(
+            organization=self.organization,
+            email="foo@example.com",
+            role="member",
+            teams=[team],
+        )
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_REINVITE"),
+        )
+
+        teams = list(map(lambda team: team.slug, member_om.teams.all()))
+        roles = [t for t in member_om.get_team_roles()]
+        assert member_om.role == "member"
+        assert team.slug in teams
+        assert roles == [
+            {
+                "team": team.id,
+                "role": None,
+            }
+        ]
 
     @patch("sentry.ratelimits.for_organization_member_invite")
     @patch("sentry.models.OrganizationMember.send_invite_email")

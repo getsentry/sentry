@@ -8,7 +8,7 @@ Host: https://sentry.io/api/0
 
 **How to read this document.**
 
-This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response WILL document the full interchange format. Clients may opt to restrict response data or provide a subset of the request data.
+This document is structured by resource with each resource having actions that can be performed against it. Every action that either accepts a request or returns a response **must** document the full interchange format.
 
 ## Flag Logs [/organizations/<organization_id_or_slug>/flags/logs/]
 
@@ -17,7 +17,7 @@ This document is structured by resource with each resource having actions that c
   - start (optional, string) - ISO 8601 format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
   - end (optional, string) - ISO 8601 format. Required if `start` is set.
   - statsPeriod (optional, string) - A positive integer suffixed with a unit type.
-  - cursor (optional, string)`
+  - cursor (optional, string)
   - per_page (optional, number)
     Default: 10
   - offset (optional, number)
@@ -83,32 +83,78 @@ Retrieve a single flag log instance.
   }
   ```
 
-## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/token/<token>/]
+## Signing Secrets [/organizations/<organization_id_or_slug>/flags/signing-secrets/]
 
-### Create Flag Log [POST]
+- Parameters
+  - cursor (optional, string)
+  - per_page (optional, number)
+    Default: 10
+  - offset (optional, number)
+    Default: 0
 
-The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: Unleash, Split, Statsig, and LaunchDarkly.
+### Browse Signing Secrets [GET]
 
-**Flag Pole Example:**
+Browse a list of signing secrets. Secrets are unique per provider. Secrets only show the first six characters; the remainder are redacted.
 
-Flag pole is Sentry owned. It matches our audit-log resource because it is designed for that purpose.
+**Attributes**
 
-- Request (application/json)
+| Column    | Type   | Description                                                            |
+| --------- | ------ | ---------------------------------------------------------------------- |
+| createdAt | string | ISO-8601 timestamp of when the secret was added.                       |
+| createdBy | string | The user responsible for adding the secret.                            |
+| id        | number | A unique identifier for the secret entry.                              |
+| provider  | string | The provider this secret applies to.                                   |
+| secret    | string | A secret value which allows us to verify the signature of the request. |
+
+- Response 200
 
   ```json
   {
     "data": [
       {
-        "action": "updated",
-        "createdAt": "2024-11-19T19:12:55",
-        "createdBy": "colton.allen@sentry.io",
-        "flag": "flag-name",
-        "tags": {
-          "commit_sha": "1f33a107d7cd060ab9c98e11c9e5a62dc1347861"
-        }
+        "createdAt": "2024-12-12T00:00:00+00:00",
+        "createdBy": 12345,
+        "id": 123,
+        "provider": "launchdarkly",
+        "secret": "abc123**********"
       }
     ]
   }
   ```
+
+### Create Signing Secret [POST]
+
+Requests from web hook providers can be signed. We use the signing secret to verify the webhook's origin is authentic.
+
+- Request (application/json)
+
+  ```json
+  {
+    "provider": "launchdarkly",
+    "secret": "d41d7d1adced450d9e2eb7f76dde6a04"
+  }
+  ```
+
+- Response 201
+
+## Signing Secret [/organizations/<organization_id_or_slug>/flags/signing-secrets/<signing_secret_id>/]
+
+### Delete Signing Secret [DELETE]
+
+Delete a signing secret.
+
+- Response 204
+
+## Webhooks [/organizations/<organization_id_or_slug>/flags/hooks/provider/<provider>/]
+
+### Create Flag Log [POST]
+
+The shape of the request object varies by provider. The `<provider>` URI parameter informs the server of the shape of the request and it is on the server to handle the provider. The following providers are supported: LaunchDarkly.
+
+Webhooks are signed by their provider. The provider handler must use the secret stored in Sentry to verify the signature of the payload. Failure to do so could lead to unauthorized access.
+
+Any request content-type is acceptable (JSON, XML, binary-formats) so long as the server is capable of decoding the request and mapping it to our object model.
+
+- Request
 
 - Response 201

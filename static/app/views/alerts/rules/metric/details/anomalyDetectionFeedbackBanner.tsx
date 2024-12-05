@@ -10,6 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {Incident} from 'sentry/views/alerts/types';
 
 interface AnomalyDetectionFeedbackProps {
@@ -24,6 +25,7 @@ export default function AnomalyDetectionFeedbackBanner({
   selectedIncident,
 }: AnomalyDetectionFeedbackProps) {
   const [isSubmitted, submit] = useDismissable(id);
+  const openFeedbackForm = useFeedbackForm();
 
   const handleClick = useCallback(
     (anomalyCorrectlyIdentified: boolean) => {
@@ -50,6 +52,15 @@ export default function AnomalyDetectionFeedbackBanner({
         level: 'info',
         message: 'Anomaly Detection Alerts Banner Feedback',
       });
+      if (!anomalyCorrectlyIdentified && openFeedbackForm) {
+        openFeedbackForm({
+          messagePlaceholder: t('Why was this anomaly incorrect?'),
+          tags: {
+            ['feedback.source']: 'anomaly_detection_false_positive',
+            ['feedback.owner']: 'ml-ai',
+          },
+        });
+      }
       submit();
     },
     [
@@ -61,6 +72,7 @@ export default function AnomalyDetectionFeedbackBanner({
       selectedIncident.alertRule.thresholdType,
       selectedIncident.alertRule.timeWindow,
       submit,
+      openFeedbackForm,
     ]
   );
 

@@ -7,9 +7,6 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import all_silo_function
@@ -80,32 +77,31 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data, **kwargs):
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
-            client = self.get_client()
+        client = self.get_client()
 
-            project_id = data.get("project")
+        project_id = data.get("project")
 
-            if not project_id:
-                raise IntegrationError("project kwarg must be provided")
+        if not project_id:
+            raise IntegrationError("project kwarg must be provided")
 
-            try:
-                issue = client.create_issue(
-                    project=project_id,
-                    data={"title": data["title"], "description": data["description"]},
-                )
-                project = client.get_project(project_id)
-            except ApiError as e:
-                raise IntegrationError(self.message_from_error(e))
+        try:
+            issue = client.create_issue(
+                project=project_id,
+                data={"title": data["title"], "description": data["description"]},
+            )
+            project = client.get_project(project_id)
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
 
-            project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
-            return {
-                "key": project_and_issue_iid,
-                "title": issue["title"],
-                "description": issue["description"],
-                "url": issue["web_url"],
-                "project": project_id,
-                "metadata": {"display_name": project_and_issue_iid},
-            }
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
+        return {
+            "key": project_and_issue_iid,
+            "title": issue["title"],
+            "description": issue["description"],
+            "url": issue["web_url"],
+            "project": project_id,
+            "metadata": {"display_name": project_and_issue_iid},
+        }
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]

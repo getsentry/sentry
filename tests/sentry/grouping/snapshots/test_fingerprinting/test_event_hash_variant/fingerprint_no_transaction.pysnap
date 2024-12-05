@@ -1,5 +1,5 @@
 ---
-created: '2024-10-16T22:32:29.100447+00:00'
+created: '2024-11-08T22:03:14.660887+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -27,10 +27,10 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: type:"DatabaseUnavailable" module:"io.sentry.example.*" -> "database-unavailable{{
       transaction }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - database-unavailable
     - <no-transaction>

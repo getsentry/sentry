@@ -1,5 +1,5 @@
 ---
-created: '2024-11-06T23:32:46.290200+00:00'
+created: '2024-12-03T19:31:11.333104+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -18,6 +18,12 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
+    - created_by
+    - organization
+  model_name: flags.flagwebhooksigningsecretmodel
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
     - apikey_id
     - organization
   model_name: hybridcloud.apikeyreplica
@@ -27,6 +33,7 @@ source: tests/sentry/backup/test_comparators.py
     - apitoken_id
     - application_id
     - organization
+    - scoping_organization_id
     - user_id
   model_name: hybridcloud.apitokenreplica
 - comparators:
@@ -118,12 +125,6 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - alert_rule
     - project
-  model_name: sentry.alertruleexcludedprojects
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - alert_rule
-    - project
   model_name: sentry.alertruleprojects
 - comparators:
   - class: ForeignKeyComparator
@@ -137,12 +138,6 @@ source: tests/sentry/backup/test_comparators.py
     - integration_id
     - sentry_app_id
   model_name: sentry.alertruletriggeraction
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - alert_rule_trigger
-    - query_subscription
-  model_name: sentry.alertruletriggerexclusion
 - comparators:
   - class: HashObfuscatingComparator
     fields:
@@ -358,6 +353,16 @@ source: tests/sentry/backup/test_comparators.py
     - created_by_id
     - organization
   model_name: sentry.dashboard
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - dashboard
+    - user_id
+  model_name: sentry.dashboardfavoriteuser
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -755,21 +760,9 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - incident
-    - user_id
-  model_name: sentry.incidentseen
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - event_stats_snapshot
     - incident
   model_name: sentry.incidentsnapshot
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - incident
-    - user_id
-  model_name: sentry.incidentsubscription
 - comparators:
   - class: DateUpdatedComparator
     fields:
@@ -1712,9 +1705,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
     - organization
     - owner_team
     - owner_user_id
+    - project
     - workflow_condition_group
   model_name: workflow_engine.detector
 - comparators:
@@ -1743,7 +1738,11 @@ source: tests/sentry/backup/test_comparators.py
     - date_updated
   - class: ForeignKeyComparator
     fields:
+    - created_by_id
+    - environment
     - organization
+    - owner_team
+    - owner_user_id
     - when_condition_group
   model_name: workflow_engine.workflow
 - comparators:

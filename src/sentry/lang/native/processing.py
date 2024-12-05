@@ -99,6 +99,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -283,7 +285,7 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(minidump.data)
+    response = symbolicator.process_minidump(data.get("platform"), minidump.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -306,7 +308,7 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
@@ -421,7 +423,9 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     signal = signal_from_data(data)
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
+    response = symbolicator.process_payload(
+        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+    )
 
     if not _handle_response_status(data, response):
         return data

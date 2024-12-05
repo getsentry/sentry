@@ -48,6 +48,13 @@ class GlobalParams:
         type=str,
         location="path",
     )
+    INTEGRATION_ID = OpenApiParameter(
+        name="integration_id",
+        description="The ID of the integration installed on the organization.",
+        required=True,
+        type=str,
+        location="path",
+    )
     STATS_PERIOD = OpenApiParameter(
         name="statsPeriod",
         location="query",
@@ -97,6 +104,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class EnvironmentParams:
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the environment.",
+    )
     VISIBILITY = OpenApiParameter(
         name="visibility",
         location="query",

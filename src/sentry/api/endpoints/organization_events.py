@@ -23,11 +23,14 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
     metrics_enhanced_performance,
     metrics_performance,
+    spans_eap,
+    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -67,12 +70,24 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
     Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_COLD_START.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_WARM_START.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ISSUES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
@@ -414,8 +429,24 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
+        # Only works when dataset == spans
+        use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            if use_rpc and dataset == spans_eap:
+                return spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=query,
+                    selected_columns=self.get_field_list(organization, request),
+                    orderby=self.get_orderby(request),
+                    offset=offset,
+                    limit=limit,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=True,
+                        use_aggregate_conditions=use_aggregate_conditions,
+                    ),
+                )
             query_source = self.get_request_source(request)
             return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
@@ -437,6 +468,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
             )
 
         @sentry_sdk.tracing.trace

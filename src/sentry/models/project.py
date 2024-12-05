@@ -38,7 +38,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
-from sentry.snuba.models import SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -478,6 +477,7 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor
+        from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id

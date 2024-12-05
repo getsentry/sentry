@@ -1,9 +1,11 @@
-import sentry_sdk
 from django.http import HttpResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column, Condition, Limit, Op, Query
+from snuba_sdk import Request as SnqlRequest
+from snuba_sdk import Storage
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -12,15 +14,12 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.profiles.flamegraph import (
-    FlamegraphExecutor,
-    get_chunks_from_spans_metadata,
-    get_profile_ids,
-    get_profiles_with_function,
-    get_spans_from_group,
-)
+from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
+from sentry.snuba.dataset import Dataset, StorageKey
+from sentry.snuba.referrer import Referrer
+from sentry.utils.snuba import raw_snql_query
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
@@ -64,36 +63,6 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
-
-        if not features.has(
-            "organizations:continuous-profiling-compat", organization, actor=request.user
-        ):
-            snuba_params = self.get_snuba_params(request, organization)
-
-            project_ids = snuba_params.project_ids
-            if len(project_ids) > 1:
-                raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
-
-            if request.query_params.get("fingerprint"):
-                sentry_sdk.set_tag("data source", "functions")
-                function_fingerprint = int(request.query_params["fingerprint"])
-
-                profile_ids = get_profiles_with_function(
-                    organization.id,
-                    project_ids[0],
-                    function_fingerprint,
-                    snuba_params,
-                    request.GET.get("query", ""),
-                )
-            else:
-                sentry_sdk.set_tag("data source", "profiles")
-                profile_ids = get_profile_ids(snuba_params, request.query_params.get("query", None))
-
-            return proxy_profiling_service(
-                method="POST",
-                path=f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
-                json_data=profile_ids,
-            )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -158,32 +127,38 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
 
 
 @region_silo_endpoint
-class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+class OrganizationProfilingHasChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
         snuba_params = self.get_snuba_params(request, organization)
 
-        project_ids = snuba_params.project_ids
-        if len(project_ids) != 1:
-            raise ParseError(detail="one project_id must be specified.")
+        with handle_query_errors():
+            # We just need to query to see if any chunks exists in that time range.
+            query = Query(
+                match=Storage(StorageKey.ProfileChunks.value),
+                select=[Column("project_id")],
+                where=[
+                    Condition(Column("project_id"), Op.IN, snuba_params.project_ids),
+                    Condition(Column("end_timestamp"), Op.GTE, snuba_params.start),
+                    Condition(Column("start_timestamp"), Op.LT, snuba_params.end),
+                ],
+                limit=Limit(1),
+            )
 
-        span_group = request.query_params.get("span_group")
-        if span_group is None:
-            raise ParseError(detail="span_group must be specified.")
+            referrer = Referrer.API_PROFILING_PROFILE_HAS_CHUNKS.value
 
-        spans = get_spans_from_group(
-            organization.id,
-            project_ids[0],
-            snuba_params,
-            span_group,
-        )
+            request = SnqlRequest(
+                dataset=Dataset.Profiles.value,
+                app_id="default",
+                query=query,
+                tenant_ids={
+                    "referrer": referrer,
+                    "organization_id": organization.id,
+                },
+            )
 
-        chunksMetadata = get_chunks_from_spans_metadata(organization.id, project_ids[0], spans)
+            data = raw_snql_query(request, referrer)["data"]
 
-        return proxy_profiling_service(
-            method="POST",
-            path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks-flamegraph",
-            json_data={"chunks_metadata": chunksMetadata},
-        )
+        return Response({"hasChunks": len(data) > 0}, status=200)

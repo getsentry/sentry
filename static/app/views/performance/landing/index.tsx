@@ -95,7 +95,6 @@ export function PerformanceLanding(props: Props) {
   const {setPageInfo, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
-  const hasDomainViews = organization.features.includes('insights-domain-view');
 
   const performanceMovingAlert = useMemo(() => {
     if (!slug) {
@@ -106,13 +105,19 @@ export function PerformanceLanding(props: Props) {
         {t(
           `To make it easier to see what's relevant for you, Sentry's Performance landing page is now being split into separate `
         )}
-        <Link to={getPerformanceBaseUrl(slug, 'frontend')}>{FRONTEND_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'frontend')}/`}>
+          {FRONTEND_SIDEBAR_LABEL}
+        </Link>
         {`, `}
-        <Link to={getPerformanceBaseUrl(slug, 'backend')}>{BACKEND_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'backend')}/`}>
+          {BACKEND_SIDEBAR_LABEL}
+        </Link>
         {`, `}
-        <Link to={getPerformanceBaseUrl(slug, 'mobile')}>{MOBILE_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'mobile')}/`}>
+          {MOBILE_SIDEBAR_LABEL}
+        </Link>
         {t(', and ')}
-        <Link to={getPerformanceBaseUrl(slug, 'ai')}>{AI_SIDEBAR_LABEL}</Link>
+        <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
         {t(' performance pages. They can all be found in the Insights tab.')}
       </Fragment>
     );
@@ -127,13 +132,11 @@ export function PerformanceLanding(props: Props) {
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
   const showOnboarding = onboardingProject !== undefined;
 
-  if (
-    hasDomainViews &&
-    performanceMovingAlert &&
-    pageAlert?.message !== performanceMovingAlert
-  ) {
-    setPageInfo(performanceMovingAlert);
-  }
+  useEffect(() => {
+    if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
+      setPageInfo(performanceMovingAlert);
+    }
+  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
 
   useEffect(() => {
     if (hasMounted.current) {

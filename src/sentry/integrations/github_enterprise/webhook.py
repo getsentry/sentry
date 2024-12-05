@@ -4,8 +4,6 @@ import hashlib
 import hmac
 import logging
 import re
-from collections.abc import Callable
-from typing import Any
 
 import orjson
 import sentry_sdk
@@ -18,12 +16,15 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
+    Webhook,
     get_github_external_id,
 )
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
 from sentry.utils.sdk import Scope
@@ -127,7 +128,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {}
+    _handlers: dict[str, type[InstallationEventWebhook] | type[Webhook]] = {}
 
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
@@ -296,7 +297,14 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
-        handler()(event, host)
+        event_handler = handler()
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key="github-enterprise",
+        ).capture():
+            event_handler(event, host)
+
         return HttpResponse(status=204)
 
 

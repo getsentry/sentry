@@ -844,6 +844,7 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
 `;
 
 const CountsWrapper = styled('div')`
+  position: relative;
   display: flex;
   flex-direction: column;
 `;
@@ -852,11 +853,11 @@ export const PrimaryCount = styled(Count)<{hasNewLayout?: boolean}>`
   font-size: ${p => (p.hasNewLayout ? p.theme.fontSizeMedium : p.theme.fontSizeLarge)};
   ${p =>
     p.hasNewLayout &&
-    `
-    display: flex;
-    justify-content: right;
-    margin-bottom: ${space(0.25)};
-  `}
+    css`
+      display: flex;
+      justify-content: right;
+      margin-bottom: ${space(0.25)};
+    `}
   font-variant-numeric: tabular-nums;
 `;
 

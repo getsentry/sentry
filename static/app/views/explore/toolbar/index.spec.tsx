@@ -38,7 +38,7 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -53,7 +53,7 @@ describe('ExploreToolbar', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -80,7 +80,7 @@ describe('ExploreToolbar', function () {
     expect(resultMode).toEqual('samples');
 
     expect(sampleFields).toEqual([
-      'span_id',
+      'id',
       'project',
       'span.op',
       'span.description',
@@ -98,7 +98,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -108,31 +108,44 @@ describe('ExploreToolbar', function () {
 
     // this is the default
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
 
     // try changing the field
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
     ]);
 
     // try changing the aggregate
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
     expect(visualizes).toEqual([
-      {yAxes: ['avg(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)'],
+      },
     ]);
 
     // try adding an overlay
-    await userEvent.click(within(section).getByRole('button', {name: 'Add Overlay'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(visualizes).toEqual([
       {
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
         chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
     ]);
 
@@ -140,23 +153,40 @@ describe('ExploreToolbar', function () {
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
     expect(visualizes).toEqual([
       {
-        yAxes: ['avg(span.self_time)', 'count(span.self_time)'],
         chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
 
     // delete first overlay
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
-      {yAxes: ['count(span.duration)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
+      {
+        chartType: ChartType.LINE,
+        label: 'B',
+        yAxes: ['avg(span.duration)'],
+      },
     ]);
 
     // delete second chart
     await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
     expect(visualizes).toEqual([
-      {yAxes: ['count(span.self_time)'], chartType: ChartType.LINE},
+      {
+        chartType: ChartType.LINE,
+        label: 'A',
+        yAxes: ['avg(span.self_time)'],
+      },
     ]);
 
     // only one left so cant be deleted
@@ -172,7 +202,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -187,11 +217,11 @@ describe('ExploreToolbar', function () {
 
     // check the default field options
     const fields = [
-      'span_id',
+      'id',
       'project',
-      'span.op',
       'span.description',
       'span.duration',
+      'span.op',
       'timestamp',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
@@ -229,7 +259,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}

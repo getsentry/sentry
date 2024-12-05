@@ -81,6 +81,8 @@ export enum FieldKey {
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
   OS_NAME = 'os.name',
+  OS_DISTRIBUTION_NAME = 'os.distribution_name',
+  OS_DISTRIBUTION_VERSION = 'os.distribution_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
@@ -816,17 +818,17 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
-  AggregationKey.COUNT,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
   AggregationKey.AVG,
-  AggregationKey.SUM,
+  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
+  AggregationKey.SUM,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
 ];
 
 export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -1523,6 +1525,16 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.OS_DISTRIBUTION_NAME]: {
+    desc: t('Distribution name'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_DISTRIBUTION_VERSION]: {
+    desc: t('Distribution version number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.PLATFORM]: {
     desc: t('Name of the platform'),
     kind: FieldKind.FIELD,
@@ -1837,6 +1849,8 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1905,6 +1919,8 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1967,6 +1983,8 @@ export const DISCOVER_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_LOCALE,

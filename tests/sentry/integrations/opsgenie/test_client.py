@@ -4,7 +4,7 @@ import orjson
 import pytest
 import responses
 
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba

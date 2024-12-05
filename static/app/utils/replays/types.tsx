@@ -1,4 +1,8 @@
-import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {
+  EventType,
+  type eventWithTime as TEventWithTime,
+  MouseInteractions,
+} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
@@ -130,6 +134,26 @@ export function isRecordingFrame(
   attachment: Record<string, any>
 ): attachment is RecordingFrame {
   return 'type' in attachment && 'timestamp' in attachment;
+}
+
+export function isTouchStartFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchStart
+  );
+}
+
+export function isTouchEndFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'type' in frame.data &&
+    frame.data.type === MouseInteractions.TouchEnd
+  );
+}
+
+export function isMetaFrame(frame: RecordingFrame) {
+  return frame.type === EventType.Meta;
 }
 
 export function isBreadcrumbFrameEvent(

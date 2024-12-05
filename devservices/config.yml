@@ -19,8 +19,15 @@ x-sentry-service-config:
         mode: containerized
     postgres:
       description: Database used to store Sentry data
+    redis:
+      description: Shared instance of redis used by sentry services
+      remote:
+        repo_name: sentry-shared-redis
+        branch: main
+        repo_link: git@github.com:getsentry/sentry-shared-redis.git
   modes:
     default: [snuba, postgres, relay]
+    migrations: [postgres, redis]
 
 services:
   postgres:
@@ -43,13 +50,15 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - 127.0.0.1:5432:5432
     extra_hosts:
       - host.docker.internal:host-gateway
+    restart: unless-stopped
 
 networks:
   devservices:
     name: devservices
+    external: true
 
 volumes:
   postgres-data:

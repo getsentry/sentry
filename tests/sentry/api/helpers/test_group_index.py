@@ -323,7 +323,56 @@ class MergeGroupsTest(TestCase):
         )
 
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
+        assert response.status_code == 400
         assert mock_handle_merge.call_count == 0
+
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock):
+        """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
+        projects = [self.create_project(), self.create_project()]
+        proj1 = projects[0]
+        groups = [self.create_group(proj1), self.create_group(proj1)]
+        group_ids = [g.id for g in groups]
+        project_ids = [p.id for p in projects]
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        # The two groups belong to the same project, so we should be able to merge them, even though
+        # we're passing multiple project ids
+        request.GET = {"id": group_ids, "project": project_ids}
+
+        update_groups(request, group_ids, projects, self.organization.id)
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {proj1.id: proj1}
+        assert call_args[2] == self.user
+
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock):
+        """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
+        we should be able to derive them from the given group ids."""
+        group_ids = [self.create_group().id, self.create_group().id]
+        project = self.project
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        request.GET = {"id": group_ids}
+
+        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {project.id: project}
+        assert call_args[2] == self.user
 
     def test_metrics(self):
         for referer, expected_referer_tag in [
@@ -412,7 +461,7 @@ class TestHandleIsBookmarked(TestCase):
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_is_bookmarked(self) -> None:
-        handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(True, self.group_list, self.project_lookup, self.user)
 
         assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert GroupSubscription.objects.filter(
@@ -429,7 +478,7 @@ class TestHandleIsBookmarked(TestCase):
             user_id=self.user.id,
             reason=GroupSubscriptionReason.bookmark,
         )
-        handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(False, self.group_list, self.project_lookup, self.user)
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
@@ -439,13 +488,10 @@ class TestHandleHasSeen(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
-        self.group_ids = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_has_seen(self) -> None:
-        handle_has_seen(
-            True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
@@ -454,9 +500,7 @@ class TestHandleHasSeen(TestCase):
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
 
-        handle_has_seen(
-            False, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(False, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
@@ -474,6 +518,10 @@ class TestHandleIsPublic(TestCase):
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SET_PUBLIC.value
         ).exists()
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIVATE.value
+        ).exists()
+
         assert share_id == new_share.uuid
 
     def test_is_public_existing_shares(self) -> None:

@@ -29,6 +29,7 @@ from sentry.search.eap.columns import (
     SPAN_FUNCTION_DEFINITIONS,
     VIRTUAL_CONTEXTS,
     ResolvedColumn,
+    ResolvedFunction,
 )
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events import constants as qb_constants
@@ -46,7 +47,12 @@ class SearchResolver:
 
     params: SnubaParams
     config: SearchResolverConfig
-    resolved_columns: dict[str, ResolvedColumn] = field(default_factory=dict)
+    _resolved_attribute_cache: dict[str, tuple[ResolvedColumn, VirtualColumnContext | None]] = (
+        field(default_factory=dict)
+    )
+    _resolved_function_cache: dict[str, tuple[ResolvedFunction, VirtualColumnContext | None]] = (
+        field(default_factory=dict)
+    )
 
     def resolve_meta(self, referrer: str) -> RequestMeta:
         if self.params.organization_id is None:
@@ -59,13 +65,65 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
-    def resolve_query(self, querystring: str) -> TraceItemFilter | None:
+    def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
+        environment_query = self.__resolve_environment_query()
+        query = self.__resolve_query(querystring)
+
+        # The RPC request meta does not contain the environment.
+        # So we have to inject it as a query condition.
+        #
+        # To do so, we want to AND it with the query.
+        # So if either one is not defined, we just use the other.
+        # But if both are defined, we AND them together.
+
+        if not environment_query:
+            return query
+
+        if not query:
+            return environment_query
+
+        return TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    environment_query,
+                    query,
+                ]
+            )
+        )
+
+    def __resolve_environment_query(self) -> TraceItemFilter | None:
+        resolved_column, _ = self.resolve_column("environment")
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            return None
+
+        # TODO: replace this with an IN condition when the RPC supports it
+        filters = [
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str=environment.name),
+                )
+            )
+            for environment in self.params.environments
+            if environment is not None
+        ]
+
+        if not filters:
+            return None
+
+        return TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+    def __resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
+        if querystring is None:
+            return None
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
+                get_function_result_type=self.get_field_type,
             )
         except ParseError as e:
             if e.expr is not None:
@@ -157,46 +215,10 @@ class SearchResolver:
         parsed_terms = []
         for item in terms:
             if isinstance(item, event_search.SearchFilter):
-                resolved_column, context = self.resolve_column(item.key.name)
-                raw_value = item.value.raw_value
-                if item.value.is_wildcard():
-                    if item.operator == "=":
-                        operator = ComparisonFilter.OP_LIKE
-                    elif item.operator == "!=":
-                        operator = ComparisonFilter.OP_NOT_LIKE
-                    else:
-                        raise InvalidSearchQuery(
-                            f"Cannot use a wildcard with a {item.operator} filter"
-                        )
-                    # Slashes have to be double escaped so they are
-                    # interpreted as a string literal.
-                    raw_value = (
-                        str(item.value.raw_value)
-                        .replace("\\", "\\\\")
-                        .replace("%", "\\%")
-                        .replace("_", "\\_")
-                        .replace("*", "%")
-                    )
-                elif item.operator in constants.OPERATOR_MAP:
-                    operator = constants.OPERATOR_MAP[item.operator]
-                else:
-                    raise InvalidSearchQuery(f"Unknown operator: {item.operator}")
-                if isinstance(resolved_column.proto_definition, AttributeKey):
-                    parsed_terms.append(
-                        TraceItemFilter(
-                            comparison_filter=ComparisonFilter(
-                                key=resolved_column.proto_definition,
-                                op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, item.operator, raw_value
-                                ),
-                            )
-                        )
-                    )
-                else:
-                    raise NotImplementedError("Can't filter on aggregates yet")
+                parsed_terms.append(self.resolve_term(cast(event_search.SearchFilter, item)))
             else:
-                raise NotImplementedError()
+                if self.config.use_aggregate_conditions:
+                    raise NotImplementedError("Can't filter on aggregates yet")
 
         if len(parsed_terms) > 1:
             return TraceItemFilter(and_filter=AndFilter(filters=parsed_terms))
@@ -204,6 +226,40 @@ class SearchResolver:
             return parsed_terms[0]
         else:
             return None
+
+    def resolve_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
+        resolved_column, context = self.resolve_column(term.key.name)
+        raw_value = term.value.raw_value
+        if term.value.is_wildcard():
+            if term.operator == "=":
+                operator = ComparisonFilter.OP_LIKE
+            elif term.operator == "!=":
+                operator = ComparisonFilter.OP_NOT_LIKE
+            else:
+                raise InvalidSearchQuery(f"Cannot use a wildcard with a {term.operator} filter")
+            # Slashes have to be double escaped so they are
+            # interpreted as a string literal.
+            raw_value = (
+                str(term.value.raw_value)
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+                .replace("*", "%")
+            )
+        elif term.operator in constants.OPERATOR_MAP:
+            operator = constants.OPERATOR_MAP[term.operator]
+        else:
+            raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+        if isinstance(resolved_column.proto_definition, AttributeKey):
+            return TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=resolved_column.proto_definition,
+                    op=operator,
+                    value=self._resolve_search_value(resolved_column, term.operator, raw_value),
+                )
+            )
+        else:
+            raise NotImplementedError("Can't filter on aggregates yet")
 
     def _resolve_search_value(
         self,
@@ -235,7 +291,7 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{value} is not a valid value for doing an IN filter"
                         )
-                elif isinstance(value, float):
+                elif isinstance(value, (float, int)):
                     return AttributeValue(val_int=int(value))
             elif column_type == constants.FLOAT:
                 if operator in constants.IN_OPERATORS:
@@ -271,7 +327,7 @@ class SearchResolver:
 
     def resolve_columns(
         self, selected_columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext]]:
+    ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
         """Given a list of columns resolve them and get their context if applicable
 
         This function will also dedupe the virtual column contexts if necessary
@@ -303,7 +359,7 @@ class SearchResolver:
 
     def resolve_column(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedColumn | ResolvedFunction, VirtualColumnContext | None]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
         match = fields.is_function(column)
@@ -311,10 +367,6 @@ class SearchResolver:
             return self.resolve_aggregate(column, match)
         else:
             return self.resolve_attribute(column)
-
-        # TODO: Cache the column
-        # self.resolved_coluumn[alias] = ResolvedColumn()
-        # return ResolvedColumn()
 
     def get_field_type(self, column: str) -> str:
         resolved_column, _ = self.resolve_column(column)
@@ -336,6 +388,8 @@ class SearchResolver:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
         # If a virtual context is defined the column definition is always the same
+        if column in self._resolved_attribute_cache:
+            return self._resolved_attribute_cache[column]
         if column in VIRTUAL_CONTEXTS:
             column_context = VIRTUAL_CONTEXTS[column](self.params)
             column_definition = ResolvedColumn(
@@ -366,19 +420,21 @@ class SearchResolver:
             if field_type not in constants.TYPE_MAP:
                 raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
 
+            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedColumn(
-                public_alias=column, internal_name=field, search_type=field_type
+                public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
 
         if column_definition:
-            return column_definition, column_context
+            self._resolved_attribute_cache[column] = (column_definition, column_context)
+            return self._resolved_attribute_cache[column]
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     def resolve_aggregates(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
+    ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:
         """Helper function to resolve a list of aggregates instead of 1 attribute at a time"""
         resolved_aggregates, resolved_contexts = [], []
         for column in columns:
@@ -389,7 +445,9 @@ class SearchResolver:
 
     def resolve_aggregate(
         self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedColumn, VirtualColumnContext | None]:
+    ) -> tuple[ResolvedFunction, VirtualColumnContext | None]:
+        if column in self._resolved_function_cache:
+            return self._resolved_function_cache[column]
         # Check if this is a valid function, parse the function name and args out
         if match is None:
             match = fields.is_function(column)
@@ -428,34 +486,40 @@ class SearchResolver:
                 )
 
             if (
-                argument.argument_type is not None
-                and parsed_argument.search_type != argument.argument_type
+                argument.argument_types is not None
+                and parsed_argument.search_type not in argument.argument_types
             ):
                 raise InvalidSearchQuery(
-                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a {argument.argument_type} type field"
+                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
                 )
             parsed_columns.append(parsed_argument)
 
         # Proto doesn't support anything more than 1 argument yet
         if len(parsed_columns) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1:
-            resolved_argument = (
-                parsed_columns[0].proto_definition
-                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
-                else None
+        elif len(parsed_columns) == 1 and isinstance(
+            parsed_columns[0].proto_definition, AttributeKey
+        ):
+            parsed_column = parsed_columns[0]
+            resolved_argument = parsed_column.proto_definition
+            search_type = (
+                parsed_column.search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
             )
         else:
             resolved_argument = None
+            search_type = function_definition.default_search_type
 
-        return (
-            ResolvedColumn(
-                public_alias=alias,
-                internal_name=function_definition.internal_function,
-                search_type=function_definition.search_type,
-                internal_type=function_definition.internal_type,
-                processor=function_definition.processor,
-                argument=resolved_argument,
-            ),
-            None,
+        resolved_function = ResolvedFunction(
+            public_alias=alias,
+            internal_name=function_definition.internal_function,
+            search_type=search_type,
+            internal_type=function_definition.internal_type,
+            processor=function_definition.processor,
+            extrapolation=function_definition.extrapolation,
+            argument=resolved_argument,
         )
+        resolved_context = None
+        self._resolved_function_cache[column] = (resolved_function, resolved_context)
+        return self._resolved_function_cache[column]

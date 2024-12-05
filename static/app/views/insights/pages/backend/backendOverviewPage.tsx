@@ -52,8 +52,8 @@ export const BACKEND_COLUMN_TITLES = [
   'operation',
   'project',
   'tpm',
-  'p50',
-  'p95',
+  'p50()',
+  'p95()',
   'failure rate',
   'apdex',
   'users',
@@ -85,8 +85,8 @@ function BackendOverviewPage() {
     {field: 'transaction.op'},
     {field: 'project'},
     {field: 'tpm()'},
-    {field: 'p50(transaction.duration)'},
-    {field: 'p95(transaction.duration)'},
+    {field: 'p50()'},
+    {field: 'p95()'},
     {field: 'failure_rate()'},
     {field: 'apdex()'},
     {field: 'count_unique(user)'},
@@ -166,7 +166,7 @@ function BackendOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >

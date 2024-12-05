@@ -27,6 +27,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -184,7 +185,7 @@ const onboarding: OnboardingConfig = {
   configure: (params: Params) => [
     getConfigureStep(params),
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps//',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
       ...params,
     }),
   ],
@@ -321,6 +322,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

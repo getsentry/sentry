@@ -1,8 +1,10 @@
 import logging
+from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from typing import Any, TypeVar
 
 from sentry import options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -24,17 +26,14 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
         "ruby",
     ]
 )
-SEER_ELIGIBLE_PLATFORMS = frozenset(
+# An original set of platforms were backfilled allowing more than 30 system contributing frames
+# being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
+# these set of platforms but for now we will blacklist them.
+SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
     [
-        # "android",
-        # "android-profiling-onboarding-1-install",
-        # "android-profiling-onboarding-3-configure-profiling",
-        # "android-profiling-onboarding-4-upload",
         "bun",
-        # "dart",
         "deno",
         "django",
-        # "flutter",
         "go",
         "go-echo",
         "go-fasthttp",
@@ -44,16 +43,6 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
-        # "groovy",
-        "java",
-        "java-android",
-        # "java-appengine",
-        # "java-log4j",
-        # "java-log4j2",
-        # "java-logging",
-        "java-logback",
-        # "java-spring",
-        # "java-spring-boot",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -143,6 +132,26 @@ SEER_ELIGIBLE_PLATFORMS = frozenset(
         "ruby-rails",
     ]
 )
+SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
+    [
+        "android",
+        "android-profiling-onboarding-1-install",
+        "android-profiling-onboarding-3-configure-profiling",
+        "android-profiling-onboarding-4-upload",
+        "dart",
+        "flutter",
+        "groovy",
+        "java",
+        "java-android",
+        "java-appengine",
+        "java-log4j",
+        "java-log4j2",
+        "java-logging",
+        "java-logback",
+        "java-spring",
+        "java-spring-boot",
+    ]
+)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -151,11 +160,20 @@ BASE64_ENCODED_PREFIXES = [
 ]
 
 
-def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
+class ReferrerOptions(StrEnum):
+    INGEST = "ingest"
+    BACKFILL = "backfill"
+
+
+class TooManyOnlySystemFramesException(Exception):
+    pass
+
+
+def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
-def get_stacktrace_string(data: dict[str, Any]) -> str:
+def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
     """Format a stacktrace string from the grouping information."""
     app_hash = get_path(data, "app", "hash")
     app_component = get_path(data, "app", "component", "values")
@@ -177,6 +195,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
+    is_frames_truncated = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -185,22 +204,23 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
         nonlocal frame_count
         nonlocal html_frame_count
+        nonlocal is_frames_truncated
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
         contributing_frames = [
             frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
         ]
+        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
+            is_frames_truncated = True
         contributing_frames = _discard_excess_frames(
             contributing_frames, MAX_FRAME_COUNT, frame_count
         )
         frame_count += len(contributing_frames)
 
         for frame in contributing_frames:
-            frame_dict = {"filename": "", "function": "", "context-line": ""}
-            for frame_values in frame.get("values", []):
-                if frame_values.get("id") in frame_dict:
-                    frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
+            frame_dict = extract_values_from_frame_values(frame.get("values", []))
+            filename = extract_filename(frame_dict) or "None"
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
@@ -213,22 +233,11 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
                 html_frame_count += 1
 
-            # We want to skip frames with base64 encoded filenames since they can be large
-            # and not contain any usable information
-            base64_encoded = False
-            for base64_prefix in BASE64_ENCODED_PREFIXES:
-                if frame_dict["filename"].startswith(base64_prefix):
-                    metrics.incr(
-                        "seer.grouping.base64_encoded_filename",
-                        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                    )
-                    base64_encoded = True
-                    break
-            if base64_encoded:
+            if is_base64_encoded_frame(frame_dict):
                 continue
 
             frame_strings.append(
-                f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
             )
 
         return frame_strings
@@ -259,6 +268,13 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     exc_value = _get_value_if_exists(exception_value)
                 elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
                     frame_strings = _process_frames(exception_value["values"])
+        if (
+            platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
+            and is_frames_truncated
+            and not app_hash
+        ):
+            raise TooManyOnlySystemFramesException
+
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
@@ -294,7 +310,63 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     return stacktrace_str.strip()
 
 
-def event_content_has_stacktrace(event: Event) -> bool:
+def extract_values_from_frame_values(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    frame_dict = {"filename": "", "function": "", "context-line": "", "module": ""}
+    for frame_values in values:
+        if frame_values.get("id") in frame_dict:
+            frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
+    return frame_dict
+
+
+def extract_filename(frame_dict: Mapping[str, Any]) -> str:
+    """
+    Extract the filename from the frame dictionary. Fallback to module if filename is not present.
+    """
+    filename = frame_dict["filename"]
+    if filename == "" and frame_dict["module"] != "":
+        filename = frame_dict["module"]
+    return filename
+
+
+def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
+    # We want to skip frames with base64 encoded filenames since they can be large
+    # and not contain any usable information
+    base64_encoded = False
+    for base64_prefix in BASE64_ENCODED_PREFIXES:
+        if frame_dict["filename"].startswith(base64_prefix):
+            base64_encoded = True
+            break
+    return base64_encoded
+
+
+def get_stacktrace_string_with_metrics(
+    data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
+) -> str | None:
+    stacktrace_string = None
+    key = "grouping.similarity.did_call_seer"
+    sample_rate = options.get("seer.similarity.metrics_sample_rate")
+    try:
+        stacktrace_string = get_stacktrace_string(data, platform)
+    except TooManyOnlySystemFramesException:
+        platform = platform if platform else "unknown"
+        metrics.incr(
+            "grouping.similarity.over_threshold_only_system_frames",
+            sample_rate=sample_rate,
+            tags={"platform": platform, "referrer": referrer},
+        )
+        if referrer == ReferrerOptions.INGEST:
+            metrics.incr(
+                key,
+                sample_rate=sample_rate,
+                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+            )
+    except Exception:
+        logger.exception("Unexpected exception in stacktrace string formatting")
+
+    return stacktrace_string
+
+
+def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
@@ -304,7 +376,7 @@ def event_content_has_stacktrace(event: Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: Event) -> bool:
+def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
@@ -333,7 +405,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+def killswitch_enabled(project_id: int, event: GroupEvent | Event | None = None) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """

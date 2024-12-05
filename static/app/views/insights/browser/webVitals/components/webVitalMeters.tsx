@@ -116,27 +116,51 @@ export default function WebVitalMeters({
             </Fragment>
           );
           return (
-            <MeterBarContainer
+            <VitalContainer
               key={webVital}
-              onClick={() => webVitalExists && onClick?.(webVital)}
-              clickable={webVitalExists}
-            >
-              {webVitalExists && <InteractionStateLayer />}
-              {webVitalExists && meterBody}
-              {!webVitalExists && (
-                <StyledTooltip
-                  title={tct('No [webVital] data found in this project.', {
-                    webVital: webVital.toUpperCase(),
-                  })}
-                >
-                  {meterBody}
-                </StyledTooltip>
-              )}
-            </MeterBarContainer>
+              webVital={webVital}
+              webVitalExists={webVitalExists}
+              meterBody={meterBody}
+              onClick={onClick}
+            />
           );
         })}
       </Flex>
     </Container>
+  );
+}
+
+type VitalContainerProps = {
+  meterBody: React.ReactNode;
+  webVital: WebVitals;
+  webVitalExists: boolean;
+  onClick?: (webVital: WebVitals) => void;
+};
+
+function VitalContainer({
+  webVital,
+  webVitalExists,
+  meterBody,
+  onClick,
+}: VitalContainerProps) {
+  return (
+    <MeterBarContainer
+      key={webVital}
+      onClick={() => webVitalExists && onClick?.(webVital)}
+      clickable={webVitalExists}
+    >
+      {webVitalExists && <InteractionStateLayer />}
+      {webVitalExists && meterBody}
+      {!webVitalExists && (
+        <StyledTooltip
+          title={tct('No [webVital] data found in this project.', {
+            webVital: webVital.toUpperCase(),
+          })}
+        >
+          {meterBody}
+        </StyledTooltip>
+      )}
+    </MeterBarContainer>
   );
 }
 
@@ -175,6 +199,7 @@ const MeterBarBody = styled('div')`
 
 const MeterHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.textColor};
   display: inline-block;
   text-align: center;
@@ -209,7 +234,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.5)};
   text-align: center;

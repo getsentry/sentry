@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import sentry_sdk
 
 from sentry import options
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import (
+    AppGroupingComponent,
+    BaseGroupingComponent,
+    DefaultGroupingComponent,
+    SystemGroupingComponent,
+)
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
@@ -33,11 +38,16 @@ from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+class FingerprintInfo(TypedDict):
+    client_fingerprint: NotRequired[list[str]]
+    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass
@@ -136,7 +146,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -234,7 +244,9 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: MutableMapping[str, Any], config: FingerprintingRules, allow_custom_title: bool = True
+) -> None:
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
@@ -264,10 +276,10 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 def _get_calculated_grouping_variants_for_event(
     event: Event, context: GroupingContext
-) -> dict[str, GroupingComponent]:
+) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    per_variant_components: dict[str, list[GroupingComponent]] = {}
+    per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
@@ -292,7 +304,12 @@ def _get_calculated_grouping_variants_for_event(
 
     rv = {}
     for variant, components in per_variant_components.items():
-        component = GroupingComponent(id=variant, values=components)
+        component_class_by_variant = {
+            "app": AppGroupingComponent,
+            "default": DefaultGroupingComponent,
+            "system": SystemGroupingComponent,
+        }
+        component = component_class_by_variant[variant](values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
         rv[variant] = component
@@ -321,7 +338,7 @@ def get_grouping_variants_for_event(
             return {"checksum": ChecksumVariant(checksum)}
 
         rv: dict[str, BaseVariant] = {
-            "hashed-checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
         # The legacy code path also supported arbitrary values here but
@@ -336,7 +353,7 @@ def get_grouping_variants_for_event(
     # a materialized fingerprint info from server side fingerprinting we forward it to the
     # variants which can export additional information about them.
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
-    fingerprint_info = event.data.get("_fingerprint_info")
+    fingerprint_info = event.data.get("_fingerprint_info", {})
     defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
 
     if config is None:
@@ -359,10 +376,10 @@ def get_grouping_variants_for_event(
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        if (fingerprint_info or {}).get("matched_rule", {}).get("is_builtin") is True:
-            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+        if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
+            rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
         else:
-            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+            rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
