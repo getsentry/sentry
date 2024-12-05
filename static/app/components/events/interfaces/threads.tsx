@@ -326,7 +326,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         </Fragment>
       )}
       <TraceEventDataSection
-        type={EntryType.THREADS}
+        type={SectionKey.THREADS}
         projectSlug={projectSlug}
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
