@@ -7,6 +7,12 @@ import NewSecretHandler from 'sentry/views/settings/featureFlags/newSecretHandle
 describe('NewSecretHandler', () => {
   it('renders', () => {
     const callback = ({}) => {};
-    render(<NewSecretHandler secret={SecretFixture().secret} onGoBack={callback} />);
+    render(
+      <NewSecretHandler
+        secret={SecretFixture().secret}
+        onGoBack={callback}
+        provider={SecretFixture().provider}
+      />
+    );
   });
 });
