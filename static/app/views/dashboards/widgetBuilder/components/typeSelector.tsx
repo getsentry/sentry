@@ -3,11 +3,11 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconGraph, IconNumber, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
@@ -32,15 +32,10 @@ function WidgetBuilderTypeSelector() {
 
   return (
     <Fragment>
-      <Tooltip
-        title={t('This is the type of visualization (ex. line chart)')}
-        position="right-end"
-        delay={200}
-        isHoverable
-        showUnderline
-      >
-        <Header>{t('Type')}</Header>
-      </Tooltip>
+      <SectionHeader
+        tooltipText={t('This is the type of visualization (ex. line chart)')}
+        title={t('Type')}
+      />
       <SelectControl
         name="displayType"
         value={state.displayType}
@@ -88,9 +83,4 @@ export default WidgetBuilderTypeSelector;
 const SelectionWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
-`;
-
-const Header = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
 `;
