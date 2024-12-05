@@ -69,7 +69,6 @@ export function EventFeatureFlagList({
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const organization = useOrganization();
   const eventView = useIssueDetailsEventView({group});
-
   const {data: rawFlagData} = useOrganizationFlagLog({
     organization,
     query: {
