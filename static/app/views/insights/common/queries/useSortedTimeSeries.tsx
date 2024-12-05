@@ -1,11 +1,9 @@
 import type {Series} from 'sentry/types/echarts';
 import type {
-  Confidence,
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -18,7 +16,6 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -221,11 +218,6 @@ function processSingleEventStats(
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
     })),
   };
-
-  const confidence: Confidence = determineSeriesConfidence(seriesData);
-  if (defined(confidence)) {
-    processedData.confidence = confidence;
-  }
 
   return [seriesData.order || 0, processedData];
 }
