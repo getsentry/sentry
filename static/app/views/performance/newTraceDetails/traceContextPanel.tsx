@@ -89,12 +89,12 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
   }, [rootEvent.data]);
 
   return (
-    <Container ref={containerRef}>
+    <Container>
       <GrabberContainer onMouseDown={handleMouseDown}>
         <IconGrabbable color="gray500" />
       </GrabberContainer>
 
-      <TraceContextContainer>
+      <TraceContextContainer ref={containerRef}>
         <VitalMetersContainer>
           <TraceContextVitals tree={tree} />
         </VitalMetersContainer>
@@ -108,26 +108,24 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
   );
 }
 
+const Container = styled('div')`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
 const TraceContextContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
   margin-top: ${space(1)};
-  height: var(--panel-height);
-`;
-
-const Container = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   --panel-height: ${DEFAULT_HEIGHT}px;
+  height: var(--panel-height);
 
   &[style*='--panel-height: 0px'] {
-    & ${TraceContextContainer} {
-      display: none;
-    }
+    display: none;
   }
 `;
 
