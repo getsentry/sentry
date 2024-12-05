@@ -117,16 +117,21 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
         control_buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         control_errors_only = region_filter["errors_only"] = errors_only
 
+        def filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
+            for i, req in enumerate(unfiltered_requests):
+                if filter_by_date(req, start_time, end_time) and filter_by_organization(
+                    req, organization
+                ):
+                    requests.append(BufferedRequest(id=i, data=req))
+
         def get_buffer_requests_for_control(event_type) -> list[RpcSentryAppRequest]:
-            control_buffer.get_requests(event=event_type, errors_only=control_errors_only)
-            requests.extend(
-                [
-                    serialize_rpc_sentry_app_request(req)
-                    for req in control_buffer.get_requests(
-                        event=event_type, errors_only=control_errors_only
-                    )
-                ]
-            )
+            control_requests = [
+                serialize_rpc_sentry_app_request(req)
+                for req in control_buffer.get_requests(
+                    event=event_type, errors_only=control_errors_only
+                )
+            ]
+            filter_and_append_requests(control_requests)
 
         def get_buffer_requests_for_regions() -> list[RpcSentryAppRequest]:
             for region_name in find_all_region_names():
@@ -136,7 +141,7 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
                     filter=region_filter,
                 )
                 if buffer_requests is not None:
-                    requests.extend(buffer_requests)
+                    filter_and_append_requests(buffer_requests)
 
         # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
         if event_type == "installation.created" or event_type == "installation.deleted":
@@ -160,17 +165,11 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
             )
             get_buffer_requests_for_regions()
 
-        requests.sort(key=lambda x: parse_date(x.date), reverse=True)
-        filtered_requests: list[BufferedRequest] = []
-        for i, req in enumerate(requests):
-            if filter_by_date(req, start_time, end_time) and filter_by_organization(
-                req, organization
-            ):
-                filtered_requests.append(BufferedRequest(id=i, data=req))
+        requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)
 
         def data_fn(offset, limit):
             page_offset = offset * limit
-            return filtered_requests[page_offset : page_offset + limit]
+            return requests[page_offset : page_offset + limit]
 
         return self.paginate(
             request=request,
