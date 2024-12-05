@@ -341,6 +341,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["isDynamicallySampled"]
+            assert "planSampleRate" in response.data
+            assert "desiredSampleRate" in response.data
 
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
