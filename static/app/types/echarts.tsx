@@ -27,6 +27,7 @@ export type Series = {
     opacity: number;
   };
   color?: string;
+  confidence?: Confidence;
   id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z

@@ -28,6 +28,7 @@ import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
+  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -55,10 +56,14 @@ import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerFor
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
+import {fakeConfidenceData} from 'sentry/views/alerts/rules/metric/utils/fakeConfidenceData';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
-import {isLowConfidenceTimeSeries} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
+import {
+  combineConfidence,
+  determineSeriesConfidence,
+} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -68,6 +73,7 @@ import {
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {isEventsStats} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -1053,7 +1059,21 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   handleConfidenceTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
   ) {
-    this.setState({isLowConfidenceChartData: isLowConfidenceTimeSeries(data)});
+    const dataWithConfidence = fakeConfidenceData(data);
+    if (!dataWithConfidence) {
+      return;
+    }
+    let confidence: Confidence | undefined;
+    if (isEventsStats(dataWithConfidence)) {
+      confidence = determineSeriesConfidence(dataWithConfidence);
+    } else {
+      confidence = Object.values(dataWithConfidence).reduce(
+        (acc, eventsStats) =>
+          combineConfidence(acc, determineSeriesConfidence(eventsStats)),
+        null as Confidence
+      );
+    }
+    this.setState({isLowConfidenceChartData: confidence === 'low'});
   }
 
   handleHistoricalTimeSeriesDataFetched(
