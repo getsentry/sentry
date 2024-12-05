@@ -37,6 +37,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.domain'
+  | 'url'
   | 'project'
   | 'spm()'
   | 'http_response_rate(3)'
@@ -45,49 +46,6 @@ type Column = GridColumnHeader<
   | 'avg(span.self_time)'
   | 'time_spent_percentage()'
 >;
-
-const COLUMN_ORDER: Column[] = [
-  {
-    key: 'span.domain',
-    name: t('Domain'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'project',
-    name: t('Project'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'spm()',
-    name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: `http_response_rate(3)`,
-    name: t('3XXs'),
-    width: 50,
-  },
-  {
-    key: `http_response_rate(4)`,
-    name: t('4XXs'),
-    width: 50,
-  },
-  {
-    key: `http_response_rate(5)`,
-    name: t('5XXs'),
-    width: 50,
-  },
-  {
-    key: `avg(span.self_time)`,
-    name: DataTitles.avg,
-    width: COL_WIDTH_UNDEFINED,
-  },
-  {
-    key: 'time_spent_percentage()',
-    name: DataTitles.timeSpent,
-    width: COL_WIDTH_UNDEFINED,
-  },
-];
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
@@ -114,13 +72,67 @@ interface Props {
     meta?: EventsMetaType;
     pageLinks?: string;
   };
+  showRoutes: boolean;
   sort: ValidSort;
 }
 
-export function DomainsTable({response, sort}: Props) {
+export function DomainsTable({response, showRoutes, sort}: Props) {
   const {data, isLoading, meta, pageLinks} = response;
   const location = useLocation();
   const organization = useOrganization();
+
+  const COLUMN_ORDER: Column[] = [
+    ...(showRoutes
+      ? [
+          {
+            key: 'url',
+            name: t('URL'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+        ]
+      : [
+          {
+            key: 'span.domain',
+            name: t('Domain'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+        ]),
+    {
+      key: 'project',
+      name: t('Project'),
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'spm()',
+      name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: `http_response_rate(3)`,
+      name: t('3XXs'),
+      width: 50,
+    },
+    {
+      key: `http_response_rate(4)`,
+      name: t('4XXs'),
+      width: 50,
+    },
+    {
+      key: `http_response_rate(5)`,
+      name: t('5XXs'),
+      width: 50,
+    },
+    {
+      key: `avg(span.self_time)`,
+      name: DataTitles.avg,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'time_spent_percentage()',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
+    },
+  ];
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
@@ -184,6 +196,16 @@ function renderBodyCell(
   if (column.key === 'span.domain') {
     return (
       <DomainCell projectId={row['project.id']?.toString()} domain={row['span.domain']} />
+    );
+  }
+
+  if (column.key === 'url') {
+    return (
+      <DomainCell
+        projectId={row['project.id']?.toString()}
+        domain={row['span.domain']}
+        url={row.url}
+      />
     );
   }
 

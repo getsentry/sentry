@@ -1,8 +1,9 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useState} from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
+import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -18,7 +19,10 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEAPSpans,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -45,11 +49,14 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
+export const USE_EAP_HTTP_MODULE = true;
+
 export function HTTPLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {view} = useDomainViewFilters();
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
+  const [shouldShowRoutes, setShowRoutes] = useState(false);
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
@@ -135,7 +142,7 @@ export function HTTPLandingPage() {
     Referrer.LANDING_RESPONSE_CODE_CHART
   );
 
-  const domainsListResponse = useSpanMetrics(
+  const spanMetricsDomainListRes = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
       fields: [
@@ -153,6 +160,7 @@ export function HTTPLandingPage() {
       sorts: [sort],
       limit: DOMAIN_TABLE_ROW_COUNT,
       cursor,
+      enabled: !USE_EAP_HTTP_MODULE,
     },
     Referrer.LANDING_DOMAINS_LIST
   );
@@ -161,6 +169,31 @@ export function HTTPLandingPage() {
     3,
     !isThroughputDataLoading && !isDurationDataLoading && !isResponseCodeDataLoading
   );
+
+  const eapDomainListRes = useEAPSpans(
+    {
+      cursor,
+      search: MutableSearch.fromQueryObject(tableFilters),
+      limit: DOMAIN_TABLE_ROW_COUNT,
+      fields: [
+        'project',
+        'project.id',
+        ...(shouldShowRoutes ? ['url'] : ['span.domain']),
+        'spm()',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+      ],
+      enabled: USE_EAP_HTTP_MODULE,
+      sorts: [sort],
+    },
+    Referrer.LANDING_DOMAINS_LIST
+  );
+
+  console.log(eapDomainListRes);
+
+  const domainsListResponse = USE_EAP_HTTP_MODULE
+    ? eapDomainListRes
+    : spanMetricsDomainListRes;
 
   const headerTitle = (
     <Fragment>
@@ -172,6 +205,10 @@ export function HTTPLandingPage() {
   const headerProps = {
     headerTitle,
     module: ModuleName.HTTP,
+  };
+
+  const handleRouteToggle = () => {
+    setShowRoutes(!shouldShowRoutes);
   };
 
   return (
@@ -202,7 +239,6 @@ export function HTTPLandingPage() {
                     filters={chartFilters}
                   />
                 </ModuleLayout.Third>
-
                 <ModuleLayout.Third>
                   <DurationChart
                     series={[durationData[`avg(span.self_time)`]]}
@@ -211,7 +247,6 @@ export function HTTPLandingPage() {
                     filters={chartFilters}
                   />
                 </ModuleLayout.Third>
-
                 <ModuleLayout.Third>
                   <ResponseRateChart
                     series={[
@@ -233,7 +268,6 @@ export function HTTPLandingPage() {
                     filters={chartFilters}
                   />
                 </ModuleLayout.Third>
-
                 <ModuleLayout.Full>
                   <SearchBar
                     query={query['span.domain']}
@@ -241,9 +275,16 @@ export function HTTPLandingPage() {
                     onSearch={handleSearch}
                   />
                 </ModuleLayout.Full>
-
                 <ModuleLayout.Full>
-                  <DomainsTable response={domainsListResponse} sort={sort} />
+                  <SwitchButton isActive={shouldShowRoutes} toggle={handleRouteToggle} />
+                  {' Show full urls'}
+                </ModuleLayout.Full>
+                <ModuleLayout.Full>
+                  <DomainsTable
+                    showRoutes={shouldShowRoutes}
+                    response={domainsListResponse}
+                    sort={sort}
+                  />
                 </ModuleLayout.Full>
               </ModulesOnboarding>
             </ModuleLayout.Layout>
@@ -255,7 +296,7 @@ export function HTTPLandingPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'spm()' as const,
   kind: 'desc' as const,
 };
 
