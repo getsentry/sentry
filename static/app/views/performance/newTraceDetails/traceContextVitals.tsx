@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -15,15 +14,11 @@ export function TraceContextVitals({tree}: Props) {
   const theme = useTheme();
 
   const hasWebVitals = tree.vital_types.has('web');
-  const hasValidWebVitals = useCallback(
-    () =>
-      Array.from(tree.vitals.values()).some(vitalGroup =>
-        vitalGroup.some(vital => ALLOWED_VITALS.includes(vital.key))
-      ),
-    [tree]
+  const hasValidWebVitals = Array.from(tree.vitals.values()).some(vitalGroup =>
+    vitalGroup.some(vital => ALLOWED_VITALS.includes(vital.key))
   );
 
-  if (!hasWebVitals || !hasValidWebVitals()) {
+  if (!hasWebVitals || !hasValidWebVitals) {
     return null;
   }
 
