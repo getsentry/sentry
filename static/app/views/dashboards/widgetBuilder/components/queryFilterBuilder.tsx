@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
@@ -29,24 +29,17 @@ function WidgetBuilderQueryFilterBuilder() {
 
   return (
     <Fragment>
-      <HeaderWrapper>
-        <Tooltip
-          title={
-            canAddSearchConditions
-              ? t(
-                  'Filter down your search here. You can add multiple queries to compare data for each overlay'
-                )
-              : t('Filter down your search here')
-          }
-          position="right"
-          delay={200}
-          isHoverable
-          showUnderline
-        >
-          <Header>{t('Filter')}</Header>
-        </Tooltip>
-        <OptionalHeader>{t('(optional)')}</OptionalHeader>
-      </HeaderWrapper>
+      <SectionHeader
+        title={t('Filter')}
+        tooltipText={
+          canAddSearchConditions
+            ? t(
+                'Filter down your search here. You can add multiple queries to compare data for each overlay'
+              )
+            : t('Filter down your search here')
+        }
+        optional
+      />
       {!state.query?.length ? (
         <QueryFieldRowWrapper key={0}>
           <QueryField
@@ -160,22 +153,4 @@ const QueryFieldRowWrapper = styled('div')`
 
 const LegendAliasInput = styled(Input)`
   width: 33%;
-`;
-
-const Header = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
-`;
-
-const OptionalHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  margin-bottom: ${space(1)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
 `;
