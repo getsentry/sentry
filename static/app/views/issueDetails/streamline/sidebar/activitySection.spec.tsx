@@ -163,7 +163,10 @@ describe('StreamlinedActivitySection', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
+    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(editMock).not.toHaveBeenCalled();
 
     expect(await screen.findByText('Group Test')).toBeInTheDocument();
 
