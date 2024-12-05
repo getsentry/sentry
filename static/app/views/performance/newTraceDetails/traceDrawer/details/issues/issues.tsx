@@ -127,7 +127,11 @@ function Issue(props: IssueProps) {
       </IconWrapper>
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
-          <EventOrGroupHeader data={fetchedIssue} organization={organization} />
+          <EventOrGroupHeader
+            data={fetchedIssue}
+            organization={organization}
+            eventId={props.issue.event_id}
+          />
           <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
