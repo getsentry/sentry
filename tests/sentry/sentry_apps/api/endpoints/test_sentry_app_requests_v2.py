@@ -2,6 +2,9 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 
+from rest_framework.exceptions import ErrorDetail
+
+
 from sentry.sentry_apps.api.endpoints.sentry_app_requests_v2 import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -262,7 +265,14 @@ class SentryAppRequestsV2GetTest(APITestCase):
         url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
         made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
         assert made_up_org_response.status_code == 400
-        assert made_up_org_response.data["detail"] == "Invalid organization."
+        assert made_up_org_response.data == {
+            "organization_slug": [
+                ErrorDetail(
+                    "Invalid organization slug.",
+                    code="invalid",
+                )
+            ]
+        }
 
         org_response = self.client.get(f"{url}?organizationSlug={self.org.slug}", format="json")
         assert org_response.status_code == 200

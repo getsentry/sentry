@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from collections.abc import Mapping
+from typing import Any
+
 from dateutil.parser import parse as parse_date
+from responses import start
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,7 +14,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers import serialize
 from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.sentry_apps.api.serializers.request_v2 import RequestSerializer
@@ -19,8 +23,56 @@ from sentry.sentry_apps.services.app_request.serial import serialize_rpc_sentry_
 from sentry.sentry_apps.services.app_request.service import app_request_service
 from sentry.types.region import find_all_region_names
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
+from sentry.api.serializers import Serializer, serialize
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 
 INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
+
+
+class IncomingRequestSerializer(CamelSnakeSerializer, serializers.Serializer):
+    date_format = "%Y-%m-%d %H:%M:%S"
+    event_type = serializers.ChoiceField(
+        choices=EXTENDED_VALID_EVENTS,
+        required=False,
+    )
+    errors_only = serializers.BooleanField(required=False)
+    organization_slug = serializers.CharField(required=False)
+    start = serializers.DateTimeField(
+        format=date_format,
+        default=datetime.strptime("2000-01-01 00:00:00", date_format),
+        required=False,
+    )
+    end = serializers.DateTimeField(format=date_format, default=datetime.now(), required=False)
+
+    def validate(self, data):
+        start_time = data.get("start")
+        end_time = data.get("end")
+
+        if start_time and end_time and start_time >= end_time:
+            raise serializers.ValidationError("Invalid timestamp (start must be before end).")
+        return data
+
+    # def validate_organization_slug(
+    #     self, organization_slug: str | None
+    # ) -> RpcOrganizationSummary | None:
+    #     breakpoint()
+    #     if organization_slug:
+    #         organization = organization_service.get_org_by_slug(slug=organization_slug)
+    #         if organization is None:
+    #             raise serializers.ValidationError("Invalid organization slug.")
+    #         return organization
+    #     return None
+
+    # def serialize(
+    #     self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    # ) -> Mapping[str, Any]:
+    #     return {
+    #         "event_type": obj.event_type,
+    #         "errors_only": obj.errors_only,
+    #         "org_slug": obj.org_slug,
+    #         "start_time": obj.start_time,
+    #         "end_time": obj.end_time,
+    #     }
 
 
 def filter_by_date(request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
@@ -52,7 +104,7 @@ class BufferedRequest:
 class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (SentryAppStatsPermission,)
 
@@ -64,28 +116,17 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
         :qparam string start: Optionally specify a date to begin at. Format must be YYYY-MM-DD HH:MM:SS
         :qparam string end: Optionally specify a date to end at. Format must be YYYY-MM-DD HH:MM:SS
         """
-        date_format = "%Y-%m-%d %H:%M:%S"
-        start_time: datetime = datetime.strptime("2000-01-01 00:00:00", date_format)
-        end_time: datetime = datetime.now()
+        breakpoint()
+        serializer = IncomingRequestSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        event_type = request.GET.get("eventType")
-        errors_only = request.GET.get("errorsOnly")
-        org_slug = request.GET.get("organizationSlug")
-        start_parameter = request.GET.get("start", None)
-        end_parameter = request.GET.get("end", None)
-
-        try:
-            start_time = (
-                datetime.strptime(start_parameter, date_format) if start_parameter else start_time
-            )
-        except ValueError:
-            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
-
-        try:
-
-            end_time = datetime.strptime(end_parameter, date_format) if end_parameter else end_time
-        except ValueError:
-            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
+        print("VALIDATED", serializer.validated_data)
+        event_type = serializer.validated_data.get("event_type")
+        errors_only = serializer.validated_data.get("errors_only")
+        organization = serializer.validated_data.get("organization")
+        start_time = serializer.validated_data.get("start_time")
+        end_time = serializer.validated_data.get("end_time")
 
         filter: SentryAppRequestFilterArgs = {}
         if event_type:
@@ -103,40 +144,25 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
         if errors_only:
             filter["errors_only"] = True
 
-        organization = None
-        if org_slug:
-            organization = organization_service.get_org_by_slug(slug=org_slug)
-            if organization is None:
-                return Response({"detail": "Invalid organization."}, status=400)
-
         requests: list[RpcSentryAppRequest] = []
 
-        buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+        control_buffer = SentryAppWebhookRequestsBuffer(sentry_app)
         control_errors_only = True if errors_only else False
 
-        if event_type == "installation.created" or event_type == "installation.deleted":
+        def get_buffer_requests_for_control(event) -> list[RpcSentryAppRequest]:
+            return [
+                serialize_rpc_sentry_app_request(req)
+                for req in control_buffer.get_requests(event=event, errors_only=control_errors_only)
+            ]
 
-            requests.extend(
-                [
-                    serialize_rpc_sentry_app_request(req)
-                    for req in buffer.get_requests(
-                        event=event_type, errors_only=control_errors_only
-                    )
-                ]
-            )
+        if event_type == "installation.created" or event_type == "installation.deleted":
+            requests.extend(get_buffer_requests_for_control(event_type))
         elif event_type is None:
             control_event_type = [
                 "installation.created",
                 "installation.deleted",
             ]
-            requests.extend(
-                [
-                    serialize_rpc_sentry_app_request(req)
-                    for req in buffer.get_requests(
-                        event=control_event_type, errors_only=control_errors_only
-                    )
-                ]
-            )
+            requests.extend(get_buffer_requests_for_control(control_event_type))
 
         # If event type is installation.created or installation.deleted, we don't need to fetch requests from other regions
         if event_type != "installation.created" and event_type != "installation.deleted":
