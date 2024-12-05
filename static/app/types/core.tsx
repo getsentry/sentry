@@ -102,6 +102,7 @@ export enum DataCategoryExact {
   PROFILE_DURATION = 'profileDuration',
   SPAN = 'span',
   SPAN_INDEXED = 'span_indexed',
+  PROFILE_CHUNK = 'profileChunk',
 }
 
 export interface DataCategoryInfo {

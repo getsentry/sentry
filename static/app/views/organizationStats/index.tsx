@@ -245,6 +245,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
+    // Some data categories are not applicable to some subscription plans.
+    // So we filter them out depending on if the organization has the necessary features.
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
       if (isSelfHostedErrorsOnly) {
         return opt.value === DATA_CATEGORY_INFO.error.plural;
@@ -263,6 +265,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
           organization.features.includes('continuous-profiling-stats') ||
           organization.features.includes('continuous-profiling')
         );
+      }
+      if (DATA_CATEGORY_INFO.profileChunk.plural === opt.value) {
+        return organization.features.includes('continuous-profiling');
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
         return !organization.features.includes('continuous-profiling-stats');
