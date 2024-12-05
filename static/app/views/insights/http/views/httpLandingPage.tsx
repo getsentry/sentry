@@ -113,18 +113,20 @@ export function HTTPLandingPage() {
     });
   };
 
-  const eapThroughputDataResponse = useEapSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
-    },
-    Referrer.LANDING_THROUGHPUT_CHART
-  );
-
   const throughtputDataResponse = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['spm()'],
+      enabled: !useEap,
+    },
+    Referrer.LANDING_THROUGHPUT_CHART
+  );
+
+  const eapThroughputDataResponse = useEapSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+      enabled: useEap,
     },
     Referrer.LANDING_THROUGHPUT_CHART
   );
@@ -133,6 +135,7 @@ export function HTTPLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`avg(span.self_time)`],
+      enabled: !useEap,
     },
     Referrer.LANDING_DURATION_CHART
   );
@@ -141,6 +144,7 @@ export function HTTPLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: [`avg(span.self_time)`],
+      enabled: useEap,
     },
     Referrer.LANDING_DURATION_CHART
   );
@@ -149,6 +153,7 @@ export function HTTPLandingPage() {
     {
       search: MutableSearch.fromQueryObject(chartFilters),
       yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
+      enabled: !useEap,
     },
     Referrer.LANDING_RESPONSE_CODE_CHART
   );
@@ -161,6 +166,7 @@ export function HTTPLandingPage() {
         'http_response_rate(4)',
         'http_response_rate(5)',
       ] as any, // TODO - change this
+      enabled: useEap,
     },
     Referrer.LANDING_RESPONSE_CODE_CHART
   );
