@@ -72,6 +72,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
@@ -79,6 +80,7 @@ export function parseQueryBuilderValue(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
       disallowFreeText: options?.disallowFreeText,
+      getFilterTokenWarning: options?.getFilterTokenWarning,
       validateKeys: options?.disallowUnsupportedFilters,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
