@@ -37,14 +37,8 @@ def process_workflows(evt: GroupEvent) -> set[Workflow]:
 
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
     triggered_workflows = evaluate_workflow_triggers(workflows, evt)
+    actions = evaluate_workflow_action_filters(triggered_workflows, evt)
 
-    # get all the triggered_workflow_groups from the triggered_workflows <=> workflow_data_condition_groups
-    # call `evaluate_workflow_actions` on the triggered groups, more or less the same as this stuff, but not triggered by an event.. is it?
-    actions = set(evaluate_workflow_action_filters(triggered_workflows, evt))
-
-    # TODO - Figure out if we should move this to a separate method?
-    # Could have: process_workflow_engine(job: PostProcessJob)
-    #   which wraps this method and a new process_actions method?
     for action in actions:
         action.trigger(evt, detector)
 
