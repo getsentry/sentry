@@ -714,22 +714,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 assert result[1][0]["count"] == expected, key
         assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
-    @pytest.mark.xfail(reason="epm not implemented yet")
-    def test_throughput_epm_hour_rollup(self):
-        super().test_throughput_epm_hour_rollup()
-
-    @pytest.mark.xfail(reason="epm not implemented yet")
-    def test_throughput_epm_day_rollup(self):
-        super().test_throughput_epm_day_rollup()
-
-    @pytest.mark.xfail(reason="epm not implemented yet")
-    def test_throughput_epm_hour_rollup_offset_of_hour(self):
-        super().test_throughput_epm_hour_rollup_offset_of_hour()
-
-    @pytest.mark.xfail(reason="epm not implemented yet")
-    def test_throughput_eps_minute_rollup(self):
-        super().test_throughput_eps_minute_rollup()
-
     def test_comparison_delta(self):
         event_counts = [6, 0, 6, 4, 0, 4]
         for current_period in [True, False]:
@@ -806,3 +790,19 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
             assert test[1][1][0]["comparisonCount"] == 0
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_hour_rollup(self):
+        super().test_throughput_epm_hour_rollup()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_day_rollup(self):
+        super().test_throughput_epm_day_rollup()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_epm_hour_rollup_offset_of_hour(self):
+        super().test_throughput_epm_hour_rollup_offset_of_hour()
+
+    @pytest.mark.xfail(reason="epm not implemented yet")
+    def test_throughput_eps_minute_rollup(self):
+        super().test_throughput_eps_minute_rollup()
